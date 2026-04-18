@@ -9,8 +9,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
@@ -18,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,6 +33,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,8 +48,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.parts.SparePart
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.designsystem.components.BrandedPlaceholderFill
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.PrimaryButton
+import com.equipseva.app.designsystem.components.QuantityStepper
+import com.equipseva.app.designsystem.components.SectionHeader
+import com.equipseva.app.designsystem.components.ShimmerBox
 import com.equipseva.app.designsystem.theme.Spacing
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,6 +106,7 @@ fun PartDetailScreen(
 
 @Composable
 private fun PartBody(part: SparePart, addingToCart: Boolean, onAddToCart: () -> Unit) {
+    var quantity by remember { mutableStateOf(1) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -135,6 +143,24 @@ private fun PartBody(part: SparePart, addingToCart: Boolean, onAddToCart: () -> 
         SpecRow("Min order", "${part.minimumOrderQuantity} ${part.unit}")
         SpecRow("GST", "${part.gstRatePercent.toInt()}%")
 
+        RelatedPartsRail()
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = "Quantity",
+                style = MaterialTheme.typography.titleMedium,
+            )
+            QuantityStepper(
+                value = quantity,
+                onDecrement = { if (quantity > 1) quantity -= 1 },
+                onIncrement = { if (quantity < 99) quantity += 1 },
+            )
+        }
+
         PrimaryButton(
             label = when {
                 !part.inStock -> "Out of stock"
@@ -148,24 +174,33 @@ private fun PartBody(part: SparePart, addingToCart: Boolean, onAddToCart: () -> 
 }
 
 @Composable
+private fun RelatedPartsRail() {
+    SectionHeader(title = "Related parts")
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        items(count = 3) {
+            ShimmerBox(
+                modifier = Modifier
+                    .width(140.dp)
+                    .height(120.dp),
+                shape = MaterialTheme.shapes.medium,
+            )
+        }
+    }
+}
+
+@Composable
 private fun ImageCarousel(urls: List<String>) {
     val shape = RoundedCornerShape(Spacing.md)
     if (urls.isEmpty()) {
-        Box(
+        BrandedPlaceholderFill(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(16f / 9f)
-                .clip(shape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Inventory2,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+                .aspectRatio(16f / 9f),
+            shape = shape,
+        )
         return
     }
     LazyRow(

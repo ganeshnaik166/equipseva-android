@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.data.prefs.ThemeMode
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.Profile
 import com.equipseva.app.core.data.profile.ProfileRepository
@@ -12,12 +13,13 @@ import com.equipseva.app.features.auth.UserRole
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -49,6 +51,29 @@ class ProfileViewModel @Inject constructor(
 
     private val _effects = Channel<Effect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
+
+    val themeMode: StateFlow<ThemeMode> = userPrefs.themeMode.stateIn(
+        viewModelScope,
+        SharingStarted.Eagerly,
+        ThemeMode.Light,
+    )
+
+    private val _settingsOpen = MutableStateFlow(false)
+    val settingsOpen: StateFlow<Boolean> = _settingsOpen.asStateFlow()
+
+    fun onOpenSettings() {
+        _settingsOpen.value = true
+    }
+
+    fun onDismissSettings() {
+        _settingsOpen.value = false
+    }
+
+    fun onThemeModeChange(mode: ThemeMode) {
+        viewModelScope.launch {
+            userPrefs.setThemeMode(mode)
+        }
+    }
 
     init {
         viewModelScope.launch {

@@ -15,6 +15,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -37,7 +38,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.designsystem.components.ESTopBar
+import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.ShimmerListItem
 import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.features.repair.components.RepairJobCard
 
@@ -84,7 +87,7 @@ fun RepairJobsScreen(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
             ) {
                 when {
-                    state.initialLoading -> CenteredLoading()
+                    state.initialLoading -> InitialShimmerList()
                     state.items.isEmpty() -> EmptyState(query = state.query)
                     else -> LazyColumn(
                         state = listState,
@@ -152,35 +155,25 @@ private fun SearchHeader(query: String, onQueryChange: (String) -> Unit) {
 }
 
 @Composable
-private fun CenteredLoading() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
+private fun InitialShimmerList() {
+    Column(modifier = Modifier.fillMaxSize()) {
+        repeat(4) { ShimmerListItem() }
     }
 }
 
 @Composable
 private fun EmptyState(query: String) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(Spacing.xl),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Text(
-                text = if (query.isBlank()) "No open jobs right now."
-                else "No jobs matched \"$query\".",
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                text = if (query.isBlank()) "Pull down to refresh."
-                else "Try a different search or clear the filter.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+    if (query.isBlank()) {
+        EmptyStateView(
+            icon = Icons.Outlined.Build,
+            title = "No repair jobs yet",
+            subtitle = "Posted jobs will show up here.",
+        )
+    } else {
+        EmptyStateView(
+            icon = Icons.Outlined.Build,
+            title = "No jobs matched \"$query\".",
+            subtitle = "Try a different search or clear the filter.",
+        )
     }
 }

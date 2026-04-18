@@ -4,8 +4,41 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Stylised "ES" monogram on transparent background; the adaptive icon wraps it on brand green. -->
-    <path
-        android:pathData="M36,38 L72,38 L72,46 L44,46 L44,52 L68,52 L68,60 L44,60 L44,66 L72,66 L72,74 L36,74 Z"
-        android:fillColor="#FFFFFF" />
+
+    <!-- EquipSeva grid mark on transparent foreground; adaptive icon background supplies brand green. -->
+
+    <!-- Row 1 (y=14) — all white -->
+    <path android:pathData="M14,14 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#FFFFFF" />
+    <path android:pathData="M34,14 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#FFFFFF" />
+    <path android:pathData="M54,14 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#FFFFFF" />
+    <path android:pathData="M74,14 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#FFFFFF" />
+    <path android:pathData="M94,14 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#FFFFFF" />
+
+    <!-- Row 2 (y=34) — W W D D D -->
+    <path android:pathData="M14,34 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#FFFFFF" />
+    <path android:pathData="M34,34 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#FFFFFF" />
+    <path android:pathData="M54,34 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#000000" android:fillAlpha="0.14" />
+    <path android:pathData="M74,34 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#000000" android:fillAlpha="0.14" />
+    <path android:pathData="M94,34 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#000000" android:fillAlpha="0.14" />
+
+    <!-- Row 3 (y=54) — W W W W D -->
+    <path android:pathData="M14,54 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#FFFFFF" />
+    <path android:pathData="M34,54 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#FFFFFF" />
+    <path android:pathData="M54,54 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#FFFFFF" />
+    <path android:pathData="M74,54 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#FFFFFF" />
+    <path android:pathData="M94,54 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#000000" android:fillAlpha="0.14" />
+
+    <!-- Row 4 (y=74) — W W D D D -->
+    <path android:pathData="M14,74 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#FFFFFF" />
+    <path android:pathData="M34,74 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#FFFFFF" />
+    <path android:pathData="M54,74 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#000000" android:fillAlpha="0.14" />
+    <path android:pathData="M74,74 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#000000" android:fillAlpha="0.14" />
+    <path android:pathData="M94,74 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#000000" android:fillAlpha="0.14" />
+
+    <!-- Row 5 (y=94) — all white -->
+    <path android:pathData="M14,94 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#FFFFFF" />
+    <path android:pathData="M34,94 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#FFFFFF" />
+    <path android:pathData="M54,94 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#FFFFFF" />
+    <path android:pathData="M74,94 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#FFFFFF" />
+    <path android:pathData="M94,94 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" android:fillColor="#FFFFFF" />
 </vector>

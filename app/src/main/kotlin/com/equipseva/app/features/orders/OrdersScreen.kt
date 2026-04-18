@@ -1,5 +1,6 @@
 package com.equipseva.app.features.orders
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,14 +14,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Inventory
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -32,7 +33,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -41,12 +43,16 @@ import com.equipseva.app.core.data.orders.Order
 import com.equipseva.app.core.data.orders.OrderStatus
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.ESTopBar
+import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.StatusChip
+import com.equipseva.app.designsystem.components.StatusTone
 import com.equipseva.app.designsystem.theme.Spacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrdersScreen(
+    onShowMessage: (String) -> Unit = {},
     viewModel: OrdersViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -91,7 +97,10 @@ fun OrdersScreen(
                         verticalArrangement = Arrangement.spacedBy(Spacing.md),
                     ) {
                         items(items = state.items, key = { it.id }) { order ->
-                            OrderCard(order = order)
+                            OrderCard(
+                                order = order,
+                                onShowMessage = onShowMessage,
+                            )
                         }
                         if (state.loadingMore) {
                             item("loading_more") {
@@ -122,9 +131,15 @@ fun OrdersScreen(
 }
 
 @Composable
-private fun OrderCard(order: Order) {
+private fun OrderCard(
+    order: Order,
+    onShowMessage: (String) -> Unit,
+) {
+    val clipboardManager = LocalClipboardManager.current
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onShowMessage("Order detail coming soon") },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
@@ -142,7 +157,10 @@ private fun OrderCard(order: Order) {
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
-                OrderStatusChip(order.status)
+                StatusChip(
+                    label = order.status.displayName,
+                    tone = order.status.toTone(),
+                )
             }
             val itemLine = if (order.lineItemCount == 1) "1 item" else "${order.lineItemCount} items"
             Text(
@@ -157,12 +175,29 @@ private fun OrderCard(order: Order) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            order.trackingNumber?.takeIf { it.isNotBlank() }?.let {
-                Text(
-                    text = "Tracking: $it",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            order.trackingNumber?.takeIf { it.isNotBlank() }?.let { tracking ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Tracking: $tracking",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    IconButton(
+                        onClick = {
+                            clipboardManager.setText(AnnotatedString(tracking))
+                            onShowMessage("Tracking number copied")
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.ContentCopy,
+                            contentDescription = "Copy tracking number",
+                        )
+                    }
+                }
             }
             Text(
                 text = formatRupees(order.totalAmount),
@@ -174,55 +209,19 @@ private fun OrderCard(order: Order) {
     }
 }
 
-@Composable
-private fun OrderStatusChip(status: OrderStatus) {
-    val (container, content) = when (status) {
-        OrderStatus.PLACED -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
-        OrderStatus.CONFIRMED -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-        OrderStatus.SHIPPED -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
-        OrderStatus.DELIVERED -> Color(0xFFD1F2E0) to Color(0xFF0B5132)
-        OrderStatus.CANCELLED, OrderStatus.RETURNED -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
-        OrderStatus.UNKNOWN -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    AssistChip(
-        onClick = {},
-        enabled = false,
-        label = { Text(status.displayName) },
-        colors = AssistChipDefaults.assistChipColors(
-            disabledContainerColor = container,
-            disabledLabelColor = content,
-        ),
-        border = null,
-    )
+private fun OrderStatus.toTone(): StatusTone = when (this) {
+    OrderStatus.PLACED, OrderStatus.CONFIRMED -> StatusTone.Info
+    OrderStatus.SHIPPED -> StatusTone.Warn
+    OrderStatus.DELIVERED -> StatusTone.Success
+    OrderStatus.CANCELLED, OrderStatus.RETURNED -> StatusTone.Danger
+    OrderStatus.UNKNOWN -> StatusTone.Neutral
 }
 
 @Composable
 private fun EmptyOrders() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(Spacing.xl),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Receipt,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(64.dp),
-            )
-            Text(
-                text = "No orders yet.",
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                text = "Your part orders will show up here.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
+    EmptyStateView(
+        icon = Icons.Outlined.Inventory,
+        title = "No orders yet",
+        subtitle = "Completed purchases will appear here.",
+    )
 }

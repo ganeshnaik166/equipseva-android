@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,6 +19,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -44,7 +46,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.parts.PartCategory
+import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.ShimmerBox
 import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.features.marketplace.components.PartCard
 
@@ -93,8 +97,8 @@ fun MarketplaceScreen(
             modifier = Modifier.weight(1f).fillMaxWidth(),
         ) {
             when {
-                state.initialLoading -> CenteredLoading()
-                state.items.isEmpty() -> EmptyState(query = state.query)
+                state.initialLoading && state.items.isEmpty() -> MarketplaceShimmerList()
+                state.items.isEmpty() -> EmptyState()
                 else -> LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
@@ -201,32 +205,25 @@ private fun CategoryRow(
 }
 
 @Composable
-private fun CenteredLoading() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
+private fun MarketplaceShimmerList() {
+    Column(modifier = Modifier.fillMaxSize()) {
+        repeat(4) {
+            ShimmerBox(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .height(120.dp),
+                shape = MaterialTheme.shapes.medium,
+            )
+        }
     }
 }
 
 @Composable
-private fun EmptyState(query: String) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(Spacing.xl),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text(
-                text = if (query.isBlank()) "No parts available right now."
-                else "No parts matched \"$query\".",
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                text = if (query.isBlank()) "Pull down to refresh."
-                else "Try a different search or clear filters.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
+private fun EmptyState() {
+    EmptyStateView(
+        icon = Icons.Outlined.Inventory2,
+        title = "No parts found",
+        subtitle = "Try clearing filters or searching a different term.",
+    )
 }

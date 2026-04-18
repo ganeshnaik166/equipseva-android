@@ -10,23 +10,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.outlined.Inventory2
-import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.material.icons.outlined.ShoppingCartCheckout
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -36,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,10 +43,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.launch
 import com.equipseva.app.core.data.cart.CartItem
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.designsystem.components.BrandedPlaceholder
 import com.equipseva.app.designsystem.components.ESTopBar
+import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.PrimaryButton
+import com.equipseva.app.designsystem.components.QuantityStepper
 import com.equipseva.app.designsystem.theme.Spacing
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,6 +62,7 @@ fun CartScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
@@ -74,10 +77,17 @@ fun CartScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             if (state.items.isNotEmpty()) {
-                CartBottomBar(
-                    totalInPaise = state.totalInPaise,
-                    onCheckout = viewModel::onCheckout,
-                )
+                Column {
+                    ApplyPromoRow(
+                        onClick = {
+                            scope.launch { snackbarHostState.showSnackbar("Promo codes coming soon") }
+                        },
+                    )
+                    CartBottomBar(
+                        totalInPaise = state.totalInPaise,
+                        onCheckout = viewModel::onCheckout,
+                    )
+                }
             }
         },
     ) { padding ->
@@ -155,9 +165,9 @@ private fun CartLineRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 QuantityStepper(
-                    quantity = item.quantity,
-                    onIncrement = onIncrement,
+                    value = item.quantity,
                     onDecrement = onDecrement,
+                    onIncrement = onIncrement,
                 )
             }
 
@@ -176,19 +186,10 @@ private fun CartLineRow(
 private fun CartLineImage(url: String?) {
     val shape = RoundedCornerShape(Spacing.sm)
     if (url.isNullOrBlank()) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(shape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Inventory2,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        BrandedPlaceholder(
+            modifier = Modifier.size(56.dp),
+            shape = shape,
+        )
     } else {
         AsyncImage(
             model = url,
@@ -199,37 +200,6 @@ private fun CartLineImage(url: String?) {
                 .clip(shape)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
         )
-    }
-}
-
-@Composable
-private fun QuantityStepper(
-    quantity: Int,
-    onIncrement: () -> Unit,
-    onDecrement: () -> Unit,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-    ) {
-        IconButton(onClick = onDecrement) {
-            Icon(
-                imageVector = Icons.Filled.Remove,
-                contentDescription = "Decrease quantity",
-            )
-        }
-        Text(
-            text = quantity.toString(),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.width(24.dp),
-        )
-        IconButton(onClick = onIncrement) {
-            Icon(
-                imageVector = Icons.Filled.Add,
-                contentDescription = "Increase quantity",
-            )
-        }
     }
 }
 
@@ -275,25 +245,45 @@ private fun CartBottomBar(totalInPaise: Long, onCheckout: () -> Unit) {
 
 @Composable
 private fun EmptyCart(onBrowseParts: () -> Unit) {
-    Column(
+    EmptyStateView(
+        icon = Icons.Outlined.ShoppingCartCheckout,
+        title = "Your cart is empty",
+        subtitle = "Browse parts to get started.",
+        ctaLabel = "Browse parts",
+        onCta = onBrowseParts,
+    )
+}
+
+@Composable
+private fun ApplyPromoRow(onClick: () -> Unit) {
+    OutlinedCard(
+        onClick = onClick,
         modifier = Modifier
-            .fillMaxSize()
-            .padding(Spacing.xl),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
     ) {
-        Icon(
-            imageVector = Icons.Outlined.ShoppingCart,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = "Your cart is empty",
-            style = MaterialTheme.typography.titleMedium,
-        )
-        OutlinedButton(onClick = onBrowseParts) {
-            Text("Browse parts")
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Sell,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                text = "Apply promo code",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = "Coming soon",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

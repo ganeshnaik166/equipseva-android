@@ -1,15 +1,20 @@
 package com.equipseva.app.features.repair.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -21,6 +26,8 @@ import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.designsystem.components.StatusChip
+import com.equipseva.app.designsystem.components.StatusTone
 import com.equipseva.app.designsystem.theme.Spacing
 import java.time.Duration
 import java.time.Instant
@@ -31,6 +38,7 @@ fun RepairJobCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val isEmergency = job.urgency == RepairJobUrgency.Emergency
     Card(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
@@ -38,34 +46,44 @@ fun RepairJobCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Column(
-            modifier = Modifier.padding(Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            Text(
-                text = job.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = job.equipmentLabel,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-
-            ChipRow(job = job)
-
-            val meta = buildMetaLine(job)
-            if (meta.isNotBlank()) {
-                Text(
-                    text = meta,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+            if (isEmergency) {
+                Box(
+                    modifier = Modifier
+                        .width(4.dp)
+                        .fillMaxHeight()
+                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.18f)),
                 )
+            }
+            Column(
+                modifier = Modifier.padding(Spacing.md),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
+                Text(
+                    text = job.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = job.equipmentLabel,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+
+                ChipRow(job = job)
+
+                val meta = buildMetaLine(job)
+                if (meta.isNotBlank()) {
+                    Text(
+                        text = meta,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }
@@ -77,46 +95,27 @@ private fun ChipRow(job: RepairJob) {
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        StatusChip(job.status)
+        StatusChip(label = job.status.displayName, tone = job.status.toTone())
         if (job.urgency != RepairJobUrgency.Unknown) {
-            UrgencyChip(job.urgency)
+            StatusChip(label = job.urgency.displayName, tone = job.urgency.toTone())
         }
     }
 }
 
-@Composable
-private fun StatusChip(status: RepairJobStatus) {
-    val (container, content) = when (status) {
-        RepairJobStatus.Requested -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-        RepairJobStatus.Assigned -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
-        else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    Chip(text = status.displayName, container = container, content = content)
+internal fun RepairJobStatus.toTone(): StatusTone = when (this) {
+    RepairJobStatus.Requested -> StatusTone.Info
+    RepairJobStatus.Assigned -> StatusTone.Warn
+    RepairJobStatus.EnRoute, RepairJobStatus.InProgress -> StatusTone.Info
+    RepairJobStatus.Completed -> StatusTone.Success
+    RepairJobStatus.Cancelled, RepairJobStatus.Disputed -> StatusTone.Danger
+    RepairJobStatus.Unknown -> StatusTone.Neutral
 }
 
-@Composable
-private fun UrgencyChip(urgency: RepairJobUrgency) {
-    val (container, content) = when (urgency) {
-        RepairJobUrgency.Emergency -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
-        RepairJobUrgency.SameDay -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
-        else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    Chip(text = urgency.displayName, container = container, content = content)
-}
-
-@Composable
-private fun Chip(text: String, container: androidx.compose.ui.graphics.Color, content: androidx.compose.ui.graphics.Color) {
-    Surface(
-        color = container,
-        contentColor = content,
-        shape = RoundedCornerShape(Spacing.xs),
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xxs),
-        )
-    }
+internal fun RepairJobUrgency.toTone(): StatusTone = when (this) {
+    RepairJobUrgency.Emergency -> StatusTone.Danger
+    RepairJobUrgency.SameDay -> StatusTone.Warn
+    RepairJobUrgency.Scheduled -> StatusTone.Info
+    RepairJobUrgency.Unknown -> StatusTone.Neutral
 }
 
 private fun buildMetaLine(job: RepairJob): String {

@@ -9,11 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.parts.SparePart
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.designsystem.components.BrandedPlaceholder
 import com.equipseva.app.designsystem.theme.Spacing
 
 @Composable
@@ -75,20 +73,19 @@ fun PartCard(
 
 @Composable
 private fun Thumbnail(url: String?) {
-    Box(
-        modifier = Modifier
-            .size(84.dp)
-            .clip(RoundedCornerShape(Spacing.sm))
-            .background(MaterialTheme.colorScheme.surfaceVariant),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (url.isNullOrBlank()) {
-            Icon(
-                imageVector = Icons.Outlined.Inventory2,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
+    if (url.isNullOrBlank()) {
+        BrandedPlaceholder(
+            modifier = Modifier.size(84.dp),
+            shape = RoundedCornerShape(Spacing.sm),
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .size(84.dp)
+                .clip(RoundedCornerShape(Spacing.sm))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center,
+        ) {
             AsyncImage(
                 model = url,
                 contentDescription = null,

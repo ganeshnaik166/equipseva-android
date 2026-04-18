@@ -2,9 +2,11 @@ package com.equipseva.app.features.profile
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +23,9 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -32,12 +37,14 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,12 +53,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.equipseva.app.core.data.prefs.ThemeMode
+import com.equipseva.app.designsystem.components.BrandedPlaceholder
 import com.equipseva.app.designsystem.components.ESTopBar
+import com.equipseva.app.designsystem.components.SettingsSheet
 import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.features.auth.UserRole
 
@@ -61,6 +72,8 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+    val settingsOpen by viewModel.settingsOpen.collectAsStateWithLifecycle()
 
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
@@ -93,8 +106,11 @@ fun ProfileScreen(
                 else -> {
                     ProfileContent(
                         state = state,
+                        themeMode = themeMode,
                         onEditRole = viewModel::onOpenRoleEditor,
                         onSignOut = viewModel::onSignOut,
+                        onEditProfile = { onShowMessage("Edit profile — coming soon") },
+                        onOpenSettings = viewModel::onOpenSettings,
                     )
                 }
             }
@@ -111,13 +127,24 @@ fun ProfileScreen(
             onDismiss = viewModel::onDismissRoleEditor,
         )
     }
+
+    if (settingsOpen) {
+        SettingsSheet(
+            currentMode = themeMode,
+            onSelectMode = viewModel::onThemeModeChange,
+            onDismiss = viewModel::onDismissSettings,
+        )
+    }
 }
 
 @Composable
 private fun ProfileContent(
     state: ProfileViewModel.UiState,
+    themeMode: ThemeMode,
     onEditRole: () -> Unit,
     onSignOut: () -> Unit,
+    onEditProfile: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val profile = state.profile!!
     Column(
@@ -134,6 +161,15 @@ private fun ProfileContent(
             avatarUrl = profile.avatarUrl,
         )
 
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            TextButton(onClick = onEditProfile) {
+                Text("Edit profile")
+            }
+        }
+
         RoleCard(
             role = profile.role,
             roleConfirmed = profile.roleConfirmed,
@@ -147,6 +183,11 @@ private fun ProfileContent(
                 locationLine = profile.locationLine,
             )
         }
+
+        SettingsCard(
+            themeMode = themeMode,
+            onOpenSettings = onOpenSettings,
+        )
 
         Spacer(Modifier.height(Spacing.md))
 
@@ -172,6 +213,98 @@ private fun ProfileContent(
 }
 
 @Composable
+private fun SettingsCard(
+    themeMode: ThemeMode,
+    onOpenSettings: () -> Unit,
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "Settings",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            SettingsRow(
+                icon = Icons.Outlined.Palette,
+                label = "Appearance",
+                trailing = themeMode.displayLabel(),
+                enabled = true,
+                onClick = onOpenSettings,
+            )
+            SettingsRow(
+                icon = Icons.Outlined.Notifications,
+                label = "Notifications",
+                trailing = "Coming soon",
+                enabled = false,
+                onClick = null,
+            )
+            SettingsRow(
+                icon = Icons.Outlined.Info,
+                label = "About",
+                trailing = "Coming soon",
+                enabled = false,
+                onClick = null,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsRow(
+    icon: ImageVector,
+    label: String,
+    trailing: String,
+    enabled: Boolean,
+    onClick: (() -> Unit)?,
+) {
+    val contentColor = if (enabled) {
+        LocalContentColor.current
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+    }
+    val rowModifier = Modifier
+        .fillMaxWidth()
+        .let { if (enabled && onClick != null) it.clickable(onClick = onClick) else it }
+        .padding(vertical = Spacing.sm)
+    Row(
+        modifier = rowModifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = contentColor,
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = contentColor,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = trailing,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else contentColor,
+        )
+    }
+}
+
+private fun ThemeMode.displayLabel(): String = when (this) {
+    ThemeMode.System -> "System"
+    ThemeMode.Light -> "Light"
+    ThemeMode.Dark -> "Dark"
+}
+
+@Composable
 private fun ProfileHeader(
     displayName: String,
     email: String?,
@@ -194,20 +327,13 @@ private fun ProfileHeader(
                     .background(MaterialTheme.colorScheme.surfaceVariant),
             )
         } else {
-            Box(
+            BrandedPlaceholder(
                 modifier = Modifier
                     .size(avatarSize)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Person,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(48.dp),
-                )
-            }
+                    .clip(CircleShape),
+                shape = CircleShape,
+                logoSize = 56.dp,
+            )
         }
         Text(
             text = displayName,

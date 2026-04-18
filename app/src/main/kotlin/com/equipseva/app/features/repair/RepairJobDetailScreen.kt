@@ -1,14 +1,20 @@
 package com.equipseva.app.features.repair
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -23,21 +29,23 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.repair.RepairBid
@@ -48,7 +56,9 @@ import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.PrimaryButton
+import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.features.repair.components.toTone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -133,9 +143,14 @@ private fun JobBody(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            StatusChip(job.status)
-            if (job.urgency != RepairJobUrgency.Unknown) UrgencyChip(job.urgency)
+            StatusChip(label = job.status.displayName, tone = job.status.toTone())
+            if (job.urgency != RepairJobUrgency.Unknown) {
+                StatusChip(label = job.urgency.displayName, tone = job.urgency.toTone())
+            }
         }
+
+        SectionTitle("Progress")
+        JobTimeline(currentStatus = job.status)
 
         SectionTitle("Issue")
         Text(job.issueDescription, style = MaterialTheme.typography.bodyMedium)
@@ -170,6 +185,83 @@ private fun JobBody(
             withdrawing = withdrawing,
             onPlaceBid = onPlaceBid,
             onWithdraw = onWithdraw,
+        )
+    }
+}
+
+@Composable
+private fun JobTimeline(currentStatus: RepairJobStatus) {
+    val steps = listOf("Requested", "Assigned", "In progress", "Completed")
+    val currentIndex = when (currentStatus) {
+        RepairJobStatus.Requested -> 0
+        RepairJobStatus.Assigned -> 1
+        RepairJobStatus.EnRoute, RepairJobStatus.InProgress -> 2
+        RepairJobStatus.Completed -> 3
+        RepairJobStatus.Cancelled, RepairJobStatus.Disputed, RepairJobStatus.Unknown -> -1
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        steps.forEachIndexed { index, label ->
+            TimelineRow(
+                label = label,
+                state = when {
+                    currentIndex < 0 -> TimelineState.Future
+                    index < currentIndex -> TimelineState.Completed
+                    index == currentIndex -> TimelineState.Current
+                    else -> TimelineState.Future
+                },
+                showConnector = index != steps.lastIndex,
+            )
+        }
+    }
+}
+
+private enum class TimelineState { Completed, Current, Future }
+
+@Composable
+private fun TimelineRow(label: String, state: TimelineState, showConnector: Boolean) {
+    val primary = MaterialTheme.colorScheme.primary
+    val outline = MaterialTheme.colorScheme.outline
+    val outlineVariant = MaterialTheme.colorScheme.outlineVariant
+
+    Row(verticalAlignment = Alignment.Top) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            when (state) {
+                TimelineState.Current -> Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .background(color = primary, shape = CircleShape),
+                )
+                TimelineState.Completed -> Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .background(color = primary.copy(alpha = 0.6f), shape = CircleShape),
+                )
+                TimelineState.Future -> Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .border(width = 1.dp, color = outline, shape = CircleShape),
+                )
+            }
+            if (showConnector) {
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .height(28.dp)
+                        .background(outlineVariant),
+                )
+            }
+        }
+        Spacer(Modifier.width(Spacing.md))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleSmall,
+            color = when (state) {
+                TimelineState.Current -> MaterialTheme.colorScheme.onSurface
+                TimelineState.Completed -> MaterialTheme.colorScheme.onSurface
+                TimelineState.Future -> MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            modifier = Modifier.padding(top = 0.dp),
         )
     }
 }
@@ -235,41 +327,6 @@ private fun BidActions(
 }
 
 @Composable
-private fun StatusChip(status: RepairJobStatus) {
-    val (container, content) = when (status) {
-        RepairJobStatus.Requested -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-        RepairJobStatus.Assigned -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
-        else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    Chip(text = status.displayName, container = container, content = content)
-}
-
-@Composable
-private fun UrgencyChip(urgency: RepairJobUrgency) {
-    val (container, content) = when (urgency) {
-        RepairJobUrgency.Emergency -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
-        RepairJobUrgency.SameDay -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
-        else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    Chip(text = urgency.displayName, container = container, content = content)
-}
-
-@Composable
-private fun Chip(text: String, container: Color, content: Color) {
-    Surface(
-        color = container,
-        contentColor = content,
-        shape = RoundedCornerShape(Spacing.xs),
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xxs),
-        )
-    }
-}
-
-@Composable
 private fun SectionTitle(text: String) {
     Text(
         text = text,
@@ -325,10 +382,22 @@ private fun BidComposerSheet(
         mutableStateOf(existingBid?.note.orEmpty())
     }
 
+    var amountTouched by rememberSaveable { mutableStateOf(false) }
+    var etaTouched by rememberSaveable { mutableStateOf(false) }
+    var amountFocused by remember { mutableStateOf(false) }
+    var etaFocused by remember { mutableStateOf(false) }
+
     val parsedAmount = amount.toDoubleOrNull()
     val amountValid = parsedAmount != null && parsedAmount > 0.0
     val parsedEta = eta.trim().takeIf { it.isNotEmpty() }?.toIntOrNull()
-    val etaValid = eta.trim().isEmpty() || parsedEta != null
+    val etaValid = eta.trim().isEmpty() || (parsedEta != null && parsedEta > 0)
+
+    val amountError by remember(amount, amountTouched) {
+        derivedStateOf { amountTouched && !amountValid }
+    }
+    val etaError by remember(eta, etaTouched) {
+        derivedStateOf { etaTouched && !etaValid }
+    }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
@@ -349,8 +418,16 @@ private fun BidComposerSheet(
                 label = { Text("Amount (₹)") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                isError = amount.isNotEmpty() && !amountValid,
-                modifier = Modifier.fillMaxWidth(),
+                isError = amountError,
+                supportingText = {
+                    if (amountError) Text("Enter a valid amount")
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focusState ->
+                        if (!focusState.isFocused && amountFocused) amountTouched = true
+                        amountFocused = focusState.isFocused
+                    },
             )
 
             OutlinedTextField(
@@ -359,8 +436,16 @@ private fun BidComposerSheet(
                 label = { Text("ETA hours (optional)") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                isError = !etaValid,
-                modifier = Modifier.fillMaxWidth(),
+                isError = etaError,
+                supportingText = {
+                    if (etaError) Text("Enter hours as a positive whole number")
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focusState ->
+                        if (!focusState.isFocused && etaFocused) etaTouched = true
+                        etaFocused = focusState.isFocused
+                    },
             )
 
             OutlinedTextField(
@@ -374,8 +459,10 @@ private fun BidComposerSheet(
             PrimaryButton(
                 label = if (placingBid) "Submitting…" else "Submit",
                 onClick = {
+                    amountTouched = true
+                    etaTouched = true
                     val value = parsedAmount
-                    if (value != null) {
+                    if (value != null && amountValid && etaValid) {
                         onSubmit(value, parsedEta, note.trim().ifBlank { null })
                     }
                 },

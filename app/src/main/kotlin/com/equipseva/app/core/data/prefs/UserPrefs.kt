@@ -28,6 +28,7 @@ class UserPrefs @Inject constructor(
 
     val activeRole: Flow<String?> = context.prefsStore.data.map { it[Keys.ACTIVE_ROLE] }
     val theme: Flow<String?> = context.prefsStore.data.map { it[Keys.THEME] }
+    val themeMode: Flow<ThemeMode> = context.prefsStore.data.map { ThemeMode.fromKey(it[Keys.THEME]) }
     val onboardingDone: Flow<Boolean> = context.prefsStore.data.map { it[Keys.ONBOARDING_DONE] == "1" }
 
     suspend fun setActiveRole(role: String) {
@@ -38,8 +39,8 @@ class UserPrefs @Inject constructor(
         context.prefsStore.edit { it.remove(Keys.ACTIVE_ROLE) }
     }
 
-    suspend fun setTheme(theme: String) {
-        context.prefsStore.edit { it[Keys.THEME] = theme }
+    suspend fun setThemeMode(mode: ThemeMode) {
+        context.prefsStore.edit { it[Keys.THEME] = mode.storageKey }
     }
 
     suspend fun markOnboardingDone() {
