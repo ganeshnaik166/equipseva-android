@@ -33,6 +33,7 @@ data class OrderDto(
     @SerialName("shipping_pincode") val shippingPincode: String? = null,
     @SerialName("order_status") val orderStatus: String? = null,
     @SerialName("payment_status") val paymentStatus: String? = null,
+    @SerialName("payment_id") val paymentId: String? = null,
     @SerialName("tracking_number") val trackingNumber: String? = null,
     @SerialName("estimated_delivery") val estimatedDelivery: String? = null,
     @SerialName("delivered_at") val deliveredAt: String? = null,

@@ -34,6 +34,7 @@ googleId = "1.1.1"
 junit = "4.13.2"
 junitExt = "1.2.1"
 espresso = "3.6.1"
+razorpay = "1.6.41"
 
 [libraries]
 # AndroidX core
@@ -107,6 +108,9 @@ firebase-analytics = { module = "com.google.firebase:firebase-analytics-ktx" }
 
 # Sentry
 sentry-android = { module = "io.sentry:sentry-android", version.ref = "sentry" }
+
+# Razorpay Standard Checkout (Android SDK)
+razorpay-checkout = { module = "com.razorpay:checkout", version.ref = "razorpay" }
 
 # Test
 junit = { module = "junit:junit", version.ref = "junit" }

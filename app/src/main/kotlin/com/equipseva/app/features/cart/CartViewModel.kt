@@ -32,6 +32,7 @@ class CartViewModel @Inject constructor(
 
     sealed interface Effect {
         data class ShowMessage(val text: String) : Effect
+        data object OpenCheckout : Effect
     }
 
     private val _state = MutableStateFlow(UiState())
@@ -68,9 +69,11 @@ class CartViewModel @Inject constructor(
     fun onClear() = mutate { cartRepository.clear() }
 
     fun onCheckout() {
-        viewModelScope.launch {
-            _effects.send(Effect.ShowMessage("Checkout coming in Phase 1"))
+        if (_state.value.items.isEmpty()) {
+            viewModelScope.launch { _effects.send(Effect.ShowMessage("Your cart is empty")) }
+            return
         }
+        viewModelScope.launch { _effects.send(Effect.OpenCheckout) }
     }
 
     private fun mutate(block: suspend () -> Result<Unit>) {

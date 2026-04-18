@@ -53,6 +53,7 @@ import com.equipseva.app.designsystem.theme.Spacing
 @Composable
 fun OrdersScreen(
     onShowMessage: (String) -> Unit = {},
+    onOrderClick: (String) -> Unit = {},
     viewModel: OrdersViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -100,6 +101,7 @@ fun OrdersScreen(
                             OrderCard(
                                 order = order,
                                 onShowMessage = onShowMessage,
+                                onClick = { onOrderClick(order.id) },
                             )
                         }
                         if (state.loadingMore) {
@@ -134,12 +136,13 @@ fun OrdersScreen(
 private fun OrderCard(
     order: Order,
     onShowMessage: (String) -> Unit,
+    onClick: () -> Unit,
 ) {
     val clipboardManager = LocalClipboardManager.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onShowMessage("Order detail coming soon") },
+            .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {

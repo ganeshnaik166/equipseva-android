@@ -168,6 +168,9 @@ dependencies {
     // Sentry
     implementation(libs.sentry.android)
 
+    // Razorpay Standard Checkout
+    implementation(libs.razorpay.checkout)
+
     // Test
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

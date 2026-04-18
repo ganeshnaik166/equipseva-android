@@ -23,6 +23,56 @@ class SupabaseOrderRepository @Inject constructor(
         }.decodeList<OrderDto>().map(OrderDto::toDomain)
     }
 
+    override suspend fun insert(draft: OrderDraft): Result<com.equipseva.app.core.data.orders.Order> = runCatching {
+        val payload = OrderInsertDto(
+            orderNumber = mintOrderNumber(),
+            buyerUserId = draft.buyerUserId,
+            supplierOrgId = draft.supplierOrgId,
+            items = draft.items,
+            subtotal = draft.subtotalRupees,
+            gstAmount = draft.gstRupees,
+            shippingCost = draft.shippingRupees,
+            totalAmount = draft.totalRupees,
+            shippingAddress = draft.shippingAddress?.takeIf { it.isNotBlank() },
+            shippingCity = draft.shippingCity?.takeIf { it.isNotBlank() },
+            shippingState = draft.shippingState?.takeIf { it.isNotBlank() },
+            shippingPincode = draft.shippingPincode?.takeIf { it.isNotBlank() },
+            notes = draft.notes?.takeIf { it.isNotBlank() },
+        )
+        client.from(TABLE).insert(payload) {
+            select()
+        }.decodeSingle<OrderDto>().toDomain()
+    }
+
+    override suspend fun fetchById(id: String): Result<com.equipseva.app.core.data.orders.Order?> = runCatching {
+        client.from(TABLE).select {
+            filter { eq("id", id) }
+            limit(count = 1)
+        }.decodeList<OrderDto>().firstOrNull()?.toDomain()
+    }
+
+    override suspend fun markPayment(
+        id: String,
+        paymentId: String?,
+        paymentStatus: String,
+        orderStatus: String?,
+    ): Result<Unit> = runCatching {
+        client.from(TABLE).update({
+            set("payment_status", paymentStatus)
+            paymentId?.let { set("payment_id", it) }
+            orderStatus?.let { set("order_status", it) }
+        }) {
+            filter { eq("id", id) }
+        }
+        Unit
+    }
+
+    private fun mintOrderNumber(): String {
+        val epochSeconds = System.currentTimeMillis() / 1000
+        val suffix = (Math.random() * 9000 + 1000).toInt()
+        return "ES-$epochSeconds-$suffix"
+    }
+
     private companion object {
         const val TABLE = "spare_part_orders"
     }

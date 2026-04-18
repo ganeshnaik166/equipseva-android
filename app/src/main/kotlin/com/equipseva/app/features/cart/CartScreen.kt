@@ -57,6 +57,7 @@ import com.equipseva.app.designsystem.theme.Spacing
 @Composable
 fun CartScreen(
     onBack: () -> Unit,
+    onCheckout: () -> Unit = {},
     onBrowseParts: () -> Unit = {},
     viewModel: CartViewModel = hiltViewModel(),
 ) {
@@ -68,6 +69,7 @@ fun CartScreen(
         viewModel.effects.collect { effect ->
             when (effect) {
                 is CartViewModel.Effect.ShowMessage -> snackbarHostState.showSnackbar(effect.text)
+                CartViewModel.Effect.OpenCheckout -> onCheckout()
             }
         }
     }

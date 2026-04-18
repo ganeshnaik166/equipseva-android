@@ -16,6 +16,19 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.location" android:required="false" />
 
+    <!-- Razorpay Standard Checkout launches Chrome / UPI apps; Android 11+ needs these declared. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="upi" />
+        </intent>
+        <package android:name="com.razorpay.checkout" />
+    </queries>
+
     <application
         android:name=".EquipSevaApplication"
         android:allowBackup="true"

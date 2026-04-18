@@ -15,11 +15,13 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -29,9 +31,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.equipseva.app.features.cart.CartScreen
+import com.equipseva.app.features.checkout.CheckoutScreen
 import com.equipseva.app.features.home.HomeScreen
 import com.equipseva.app.features.marketplace.MarketplaceScreen
 import com.equipseva.app.features.marketplace.PartDetailScreen
+import com.equipseva.app.features.orders.OrderDetailScreen
 import com.equipseva.app.features.orders.OrdersScreen
 import com.equipseva.app.features.profile.ProfileScreen
 import com.equipseva.app.features.repair.RepairJobDetailScreen
@@ -49,10 +53,18 @@ private val tabs = listOf(
 )
 
 /** Routes that take over the screen and should hide the bottom navigation bar. */
-private val fullScreenRoutePrefixes = listOf(Routes.MARKETPLACE_DETAIL, Routes.CART, Routes.REPAIR_DETAIL)
+private val fullScreenRoutePrefixes = listOf(
+    Routes.MARKETPLACE_DETAIL,
+    Routes.CART,
+    Routes.CHECKOUT,
+    Routes.ORDER_DETAIL,
+    Routes.REPAIR_DETAIL,
+)
 
 @Composable
-fun MainNavGraph() {
+fun MainNavGraph(
+    deepLinkHost: DeepLinkHost = hiltViewModel<DeepLinkHost>(),
+) {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
@@ -61,6 +73,16 @@ fun MainNavGraph() {
 
     val showSnackbar: (String) -> Unit = { msg ->
         scope.launch { snackbarHost.showSnackbar(msg) }
+    }
+
+    LaunchedEffect(Unit) {
+        deepLinkHost.events.collect { event ->
+            when (event) {
+                is DeepLinkRouter.Event.OpenOrder -> {
+                    navController.navigate(Routes.orderDetailRoute(event.orderId))
+                }
+            }
+        }
     }
 
     val isFullScreenRoute = currentRoute != null &&
@@ -116,7 +138,25 @@ fun MainNavGraph() {
                     onOpenCart = { navController.navigate(Routes.CART) },
                 )
             }
-            composable(Routes.ORDERS) { OrdersScreen() }
+            composable(Routes.ORDERS) {
+                OrdersScreen(
+                    onShowMessage = showSnackbar,
+                    onOrderClick = { orderId ->
+                        navController.navigate(Routes.orderDetailRoute(orderId))
+                    },
+                )
+            }
+            composable(
+                route = "${Routes.ORDER_DETAIL}/{${Routes.ORDER_DETAIL_ARG_ID}}",
+                arguments = listOf(
+                    navArgument(Routes.ORDER_DETAIL_ARG_ID) { type = NavType.StringType },
+                ),
+            ) {
+                OrderDetailScreen(
+                    onBack = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
+                )
+            }
             composable(Routes.REPAIR) {
                 RepairJobsScreen(
                     onJobClick = { jobId ->
@@ -141,11 +181,23 @@ fun MainNavGraph() {
             composable(Routes.CART) {
                 CartScreen(
                     onBack = { navController.popBackStack() },
+                    onCheckout = { navController.navigate(Routes.CHECKOUT) },
                     onBrowseParts = {
                         navController.navigate(Routes.MARKETPLACE) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                             launchSingleTop = true
                             restoreState = true
+                        }
+                    },
+                )
+            }
+            composable(Routes.CHECKOUT) {
+                CheckoutScreen(
+                    onBack = { navController.popBackStack() },
+                    onOrderPlaced = { orderId ->
+                        navController.navigate(Routes.orderDetailRoute(orderId)) {
+                            popUpTo(Routes.HOME) { saveState = true }
+                            launchSingleTop = true
                         }
                     },
                 )

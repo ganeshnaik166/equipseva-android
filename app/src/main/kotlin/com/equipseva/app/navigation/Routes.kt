@@ -33,6 +33,14 @@ object Routes {
     // Cart (sub-route, full-screen — bottom nav hidden).
     const val CART = "cart"
 
+    // Checkout (sub-route, full-screen — bottom nav hidden).
+    const val CHECKOUT = "checkout"
+
+    // Order detail (sub-route, full-screen — bottom nav hidden).
+    const val ORDER_DETAIL = "orders/detail"
+    const val ORDER_DETAIL_ARG_ID = "orderId"
+    fun orderDetailRoute(orderId: String): String = "$ORDER_DETAIL/$orderId"
+
     // Repair job detail (sub-route, full-screen — bottom nav hidden).
     const val REPAIR_DETAIL = "repair/detail"
     const val REPAIR_DETAIL_ARG_ID = "jobId"

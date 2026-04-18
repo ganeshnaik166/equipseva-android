@@ -7,6 +7,7 @@ package com.equipseva.app.core.data.parts
  */
 data class SparePart(
     val id: String,
+    val supplierOrgId: String?,
     val name: String,
     val partNumber: String,
     val description: String,
@@ -40,6 +41,7 @@ internal fun SparePartDto.toDomain(): SparePart {
     }
     return SparePart(
         id = id,
+        supplierOrgId = supplierOrgId,
         name = name,
         partNumber = partNumber,
         description = description,
