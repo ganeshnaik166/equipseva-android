@@ -1,0 +1,18 @@
+# Copy to `local.properties` and fill in real values. NEVER commit the real file.
+
+# Android SDK location (set automatically by Android Studio on first sync)
+sdk.dir=/Users/<you>/Library/Android/sdk
+
+# Supabase
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_ANON_KEY=<anon-public-key>
+
+# Sentry (optional in dev — leave blank to skip Sentry init)
+SENTRY_DSN=
+
+# Razorpay (Phase 1 — leave blank for Phase 0 scaffold)
+RAZORPAY_KEY=
+
+# Google Sign-in: WEB client ID from Firebase / Google Cloud Console
+# (NOT the Android client ID — Credential Manager + Supabase verify-id-token both want the WEB type)
+GOOGLE_WEB_CLIENT_ID=

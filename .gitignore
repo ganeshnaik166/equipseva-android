@@ -1,0 +1,33 @@
+# Gradle
+.gradle/
+build/
+**/build/
+out/
+
+# Local configuration & secrets
+local.properties
+*.keystore
+*.jks
+*.aab
+*.apk
+
+# Firebase / Google services (real credentials)
+**/google-services.json
+**/GoogleService-Info.plist
+
+# Sentry
+sentry.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+captures/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
