@@ -2,7 +2,11 @@ package com.equipseva.app.features.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.core.auth.AuthRepository
+import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.prefs.UserPrefs
+import com.equipseva.app.core.data.profile.ProfileRepository
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.features.auth.state.AuthEffect
 import com.equipseva.app.features.auth.state.FormUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -10,6 +14,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -17,6 +23,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RoleSelectViewModel @Inject constructor(
+    private val authRepository: AuthRepository,
+    private val profileRepository: ProfileRepository,
     private val userPrefs: UserPrefs,
 ) : ViewModel() {
 
@@ -44,12 +52,20 @@ class RoleSelectViewModel @Inject constructor(
         if (current.form.submitting) return
         _state.update { it.copy(form = FormUiState(submitting = true)) }
         viewModelScope.launch {
-            // TODO(phase-1): once the Supabase `profiles` table is wired, queue an outbox
-            // entry to upsert the role server-side. For now we persist locally only;
-            // SessionViewModel will react to the prefs change and transition to Ready.
-            userPrefs.setActiveRole(role.storageKey)
-            _state.update { it.copy(form = FormUiState()) }
-            _effects.send(AuthEffect.NavigateToHome)
+            val session = authRepository.sessionState
+                .filterIsInstance<AuthSession.SignedIn>()
+                .first()
+            profileRepository.updateRole(session.userId, role)
+                .onSuccess {
+                    userPrefs.setActiveRole(role.storageKey)
+                    _state.update { it.copy(form = FormUiState()) }
+                    _effects.send(AuthEffect.NavigateToHome)
+                }
+                .onFailure { error ->
+                    _state.update {
+                        it.copy(form = FormUiState(errorMessage = error.toUserMessage()))
+                    }
+                }
         }
     }
 }

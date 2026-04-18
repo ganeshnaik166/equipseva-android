@@ -4,13 +4,13 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.equipseva.app.core.data.dao.CartDao
+import com.equipseva.app.core.data.cart.CartDao
+import com.equipseva.app.core.data.cart.CartItemEntity
 import com.equipseva.app.core.data.dao.DeviceTokenDao
 import com.equipseva.app.core.data.dao.MessageDao
 import com.equipseva.app.core.data.dao.OrderDao
 import com.equipseva.app.core.data.dao.OutboxDao
 import com.equipseva.app.core.data.dao.RepairJobDao
-import com.equipseva.app.core.data.entities.CartEntity
 import com.equipseva.app.core.data.entities.DeviceTokenEntity
 import com.equipseva.app.core.data.entities.MessageEntity
 import com.equipseva.app.core.data.entities.OrderEntity
@@ -25,14 +25,14 @@ import javax.inject.Singleton
 
 @Database(
     entities = [
-        CartEntity::class,
+        CartItemEntity::class,
         OrderEntity::class,
         RepairJobEntity::class,
         MessageEntity::class,
         OutboxEntryEntity::class,
         DeviceTokenEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {

@@ -1,0 +1,49 @@
+package com.equipseva.app.core.data.repair
+
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Order
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class SupabaseRepairJobRepository @Inject constructor(
+    private val client: SupabaseClient,
+) : RepairJobRepository {
+
+    override suspend fun fetchOpenJobs(
+        page: Int,
+        pageSize: Int,
+        query: String?,
+    ): Result<List<RepairJob>> = runCatching {
+        val from = (page.coerceAtLeast(0)).toLong() * pageSize
+        val to = from + pageSize - 1
+
+        client.from(TABLE).select {
+            filter {
+                // Engineer feed shows jobs that are still actionable from the outside
+                // — i.e. not yet wrapped up or killed. RLS decides which of these
+                // rows this engineer is actually allowed to see.
+                isIn("status", RepairJobStatus.OpenForEngineers.map { it.storageKey })
+                if (!query.isNullOrBlank()) {
+                    val needle = query.trim().sanitizeForIlike()
+                    or {
+                        ilike("issue_description", "%$needle%")
+                        ilike("equipment_brand", "%$needle%")
+                        ilike("equipment_model", "%$needle%")
+                    }
+                }
+            }
+            // Most recent first — the feed is a worklist, not an archive.
+            order("created_at", order = Order.DESCENDING)
+            range(from, to)
+        }.decodeList<RepairJobDto>().map(RepairJobDto::toDomain)
+    }
+
+    private fun String.sanitizeForIlike(): String =
+        replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+    private companion object {
+        const val TABLE = "repair_jobs"
+    }
+}

@@ -29,4 +29,7 @@ object Routes {
     const val MARKETPLACE_DETAIL = "marketplace/detail"
     const val MARKETPLACE_DETAIL_ARG_ID = "partId"
     fun marketplaceDetailRoute(partId: String): String = "$MARKETPLACE_DETAIL/$partId"
+
+    // Cart (sub-route, full-screen — bottom nav hidden).
+    const val CART = "cart"
 }

@@ -3,14 +3,18 @@ package com.equipseva.app.features.marketplace
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.core.data.cart.CartRepository
 import com.equipseva.app.core.data.parts.SparePart
 import com.equipseva.app.core.data.parts.SparePartsRepository
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.features.cart.CartBridge
 import com.equipseva.app.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -19,6 +23,7 @@ import javax.inject.Inject
 class PartDetailViewModel @Inject constructor(
     savedState: SavedStateHandle,
     private val repository: SparePartsRepository,
+    private val cartRepository: CartRepository,
 ) : ViewModel() {
 
     data class PartDetailState(
@@ -26,6 +31,7 @@ class PartDetailViewModel @Inject constructor(
         val part: SparePart? = null,
         val errorMessage: String? = null,
         val notFound: Boolean = false,
+        val addingToCart: Boolean = false,
     )
 
     private val partId: String =
@@ -36,11 +42,26 @@ class PartDetailViewModel @Inject constructor(
     private val _state = MutableStateFlow(PartDetailState())
     val state: StateFlow<PartDetailState> = _state.asStateFlow()
 
+    private val _messages = Channel<String>(Channel.BUFFERED)
+    val messages = _messages.receiveAsFlow()
+
     init {
         load()
     }
 
     fun retry() = load()
+
+    fun onAddToCart() {
+        val part = _state.value.part ?: return
+        if (_state.value.addingToCart) return
+        _state.update { it.copy(addingToCart = true) }
+        viewModelScope.launch {
+            cartRepository.addOrIncrement(CartBridge.buildCartItem(part))
+                .onSuccess { _messages.send("${part.name} added to cart") }
+                .onFailure { _messages.send(it.toUserMessage()) }
+            _state.update { it.copy(addingToCart = false) }
+        }
+    }
 
     private fun load() {
         _state.update { it.copy(loading = true, errorMessage = null, notFound = false) }

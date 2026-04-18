@@ -34,6 +34,10 @@ class UserPrefs @Inject constructor(
         context.prefsStore.edit { it[Keys.ACTIVE_ROLE] = role }
     }
 
+    suspend fun clearActiveRole() {
+        context.prefsStore.edit { it.remove(Keys.ACTIVE_ROLE) }
+    }
+
     suspend fun setTheme(theme: String) {
         context.prefsStore.edit { it[Keys.THEME] = theme }
     }

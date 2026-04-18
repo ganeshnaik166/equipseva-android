@@ -18,6 +18,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -49,10 +52,12 @@ import com.equipseva.app.features.marketplace.components.PartCard
 @Composable
 fun MarketplaceScreen(
     onPartClick: (partId: String) -> Unit,
+    onOpenCart: () -> Unit = {},
     viewModel: MarketplaceViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    val cartCount by viewModel.cartCount.collectAsStateWithLifecycle()
 
     val reachedEnd by remember {
         derivedStateOf {
@@ -70,6 +75,8 @@ fun MarketplaceScreen(
         SearchHeader(
             query = state.query,
             onQueryChange = viewModel::onQueryChange,
+            cartCount = cartCount,
+            onOpenCart = onOpenCart,
         )
         CategoryRow(
             selected = state.selectedCategory,
@@ -123,26 +130,46 @@ fun MarketplaceScreen(
 }
 
 @Composable
-private fun SearchHeader(query: String, onQueryChange: (String) -> Unit) {
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
+private fun SearchHeader(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    cartCount: Int,
+    onOpenCart: () -> Unit,
+) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-        placeholder = { Text("Search parts, part numbers") },
-        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-        trailingIcon = if (query.isNotEmpty()) {
-            { IconButton(onClick = { onQueryChange("") }) {
-                Icon(Icons.Filled.Close, contentDescription = "Clear search")
-            } }
-        } else null,
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Text,
-            imeAction = ImeAction.Search,
-        ),
-    )
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier.weight(1f),
+            placeholder = { Text("Search parts, part numbers") },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            trailingIcon = if (query.isNotEmpty()) {
+                { IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Filled.Close, contentDescription = "Clear search")
+                } }
+            } else null,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Text,
+                imeAction = ImeAction.Search,
+            ),
+        )
+        IconButton(onClick = onOpenCart) {
+            if (cartCount > 0) {
+                BadgedBox(badge = { Badge { Text(cartCount.toString()) } }) {
+                    Icon(Icons.Outlined.ShoppingCart, contentDescription = "Cart")
+                }
+            } else {
+                Icon(Icons.Outlined.ShoppingCart, contentDescription = "Cart")
+            }
+        }
+    }
 }
 
 @Composable
