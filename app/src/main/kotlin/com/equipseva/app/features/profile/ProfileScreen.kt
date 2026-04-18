@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
@@ -69,6 +70,7 @@ import com.equipseva.app.features.auth.UserRole
 @Composable
 fun ProfileScreen(
     onShowMessage: (String) -> Unit,
+    onOpenMessages: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -111,6 +113,7 @@ fun ProfileScreen(
                         onSignOut = viewModel::onSignOut,
                         onEditProfile = { onShowMessage("Edit profile — coming soon") },
                         onOpenSettings = viewModel::onOpenSettings,
+                        onOpenMessages = onOpenMessages,
                     )
                 }
             }
@@ -145,6 +148,7 @@ private fun ProfileContent(
     onSignOut: () -> Unit,
     onEditProfile: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenMessages: () -> Unit,
 ) {
     val profile = state.profile!!
     Column(
@@ -187,6 +191,7 @@ private fun ProfileContent(
         SettingsCard(
             themeMode = themeMode,
             onOpenSettings = onOpenSettings,
+            onOpenMessages = onOpenMessages,
         )
 
         Spacer(Modifier.height(Spacing.md))
@@ -216,6 +221,7 @@ private fun ProfileContent(
 private fun SettingsCard(
     themeMode: ThemeMode,
     onOpenSettings: () -> Unit,
+    onOpenMessages: () -> Unit,
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -232,6 +238,13 @@ private fun SettingsCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            SettingsRow(
+                icon = Icons.Outlined.ChatBubbleOutline,
+                label = "Messages",
+                trailing = "Open",
+                enabled = true,
+                onClick = onOpenMessages,
+            )
             SettingsRow(
                 icon = Icons.Outlined.Palette,
                 label = "Appearance",

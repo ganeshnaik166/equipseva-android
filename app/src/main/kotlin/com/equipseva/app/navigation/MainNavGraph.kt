@@ -31,6 +31,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.equipseva.app.features.cart.CartScreen
+import com.equipseva.app.features.chat.ChatScreen
+import com.equipseva.app.features.chat.ConversationsScreen
 import com.equipseva.app.features.checkout.CheckoutScreen
 import com.equipseva.app.features.home.HomeScreen
 import com.equipseva.app.features.marketplace.MarketplaceScreen
@@ -59,6 +61,8 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.CHECKOUT,
     Routes.ORDER_DETAIL,
     Routes.REPAIR_DETAIL,
+    Routes.CONVERSATIONS,
+    Routes.CHAT_DETAIL,
 )
 
 @Composable
@@ -176,7 +180,10 @@ fun MainNavGraph(
                 )
             }
             composable(Routes.PROFILE) {
-                ProfileScreen(onShowMessage = showSnackbar)
+                ProfileScreen(
+                    onShowMessage = showSnackbar,
+                    onOpenMessages = { navController.navigate(Routes.CONVERSATIONS) },
+                )
             }
             composable(Routes.CART) {
                 CartScreen(
@@ -189,6 +196,22 @@ fun MainNavGraph(
                             restoreState = true
                         }
                     },
+                )
+            }
+            composable(Routes.CONVERSATIONS) {
+                ConversationsScreen(
+                    onBack = { navController.popBackStack() },
+                    onConversationClick = { id -> navController.navigate(Routes.chatRoute(id)) },
+                )
+            }
+            composable(
+                route = "${Routes.CHAT_DETAIL}/{${Routes.CHAT_DETAIL_ARG_ID}}",
+                arguments = listOf(
+                    navArgument(Routes.CHAT_DETAIL_ARG_ID) { type = NavType.StringType },
+                ),
+            ) {
+                ChatScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.CHECKOUT) {

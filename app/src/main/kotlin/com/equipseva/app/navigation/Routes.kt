@@ -45,4 +45,10 @@ object Routes {
     const val REPAIR_DETAIL = "repair/detail"
     const val REPAIR_DETAIL_ARG_ID = "jobId"
     fun repairJobDetailRoute(jobId: String): String = "$REPAIR_DETAIL/$jobId"
+
+    // Chat — conversation list and single-thread view (both full-screen).
+    const val CONVERSATIONS = "chat"
+    const val CHAT_DETAIL = "chat/detail"
+    const val CHAT_DETAIL_ARG_ID = "conversationId"
+    fun chatRoute(conversationId: String): String = "$CHAT_DETAIL/$conversationId"
 }
