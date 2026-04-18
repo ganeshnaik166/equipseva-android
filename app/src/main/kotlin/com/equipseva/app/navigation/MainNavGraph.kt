@@ -34,6 +34,7 @@ import com.equipseva.app.features.marketplace.MarketplaceScreen
 import com.equipseva.app.features.marketplace.PartDetailScreen
 import com.equipseva.app.features.orders.OrdersScreen
 import com.equipseva.app.features.profile.ProfileScreen
+import com.equipseva.app.features.repair.RepairJobDetailScreen
 import com.equipseva.app.features.repair.RepairJobsScreen
 import kotlinx.coroutines.launch
 
@@ -48,7 +49,7 @@ private val tabs = listOf(
 )
 
 /** Routes that take over the screen and should hide the bottom navigation bar. */
-private val fullScreenRoutePrefixes = listOf(Routes.MARKETPLACE_DETAIL, Routes.CART)
+private val fullScreenRoutePrefixes = listOf(Routes.MARKETPLACE_DETAIL, Routes.CART, Routes.REPAIR_DETAIL)
 
 @Composable
 fun MainNavGraph() {
@@ -116,7 +117,24 @@ fun MainNavGraph() {
                 )
             }
             composable(Routes.ORDERS) { OrdersScreen() }
-            composable(Routes.REPAIR) { RepairJobsScreen() }
+            composable(Routes.REPAIR) {
+                RepairJobsScreen(
+                    onJobClick = { jobId ->
+                        navController.navigate(Routes.repairJobDetailRoute(jobId))
+                    },
+                )
+            }
+            composable(
+                route = "${Routes.REPAIR_DETAIL}/{${Routes.REPAIR_DETAIL_ARG_ID}}",
+                arguments = listOf(
+                    navArgument(Routes.REPAIR_DETAIL_ARG_ID) { type = NavType.StringType },
+                ),
+            ) {
+                RepairJobDetailScreen(
+                    onBack = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
+                )
+            }
             composable(Routes.PROFILE) {
                 ProfileScreen(onShowMessage = showSnackbar)
             }

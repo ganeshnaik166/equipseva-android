@@ -32,4 +32,9 @@ object Routes {
 
     // Cart (sub-route, full-screen — bottom nav hidden).
     const val CART = "cart"
+
+    // Repair job detail (sub-route, full-screen — bottom nav hidden).
+    const val REPAIR_DETAIL = "repair/detail"
+    const val REPAIR_DETAIL_ARG_ID = "jobId"
+    fun repairJobDetailRoute(jobId: String): String = "$REPAIR_DETAIL/$jobId"
 }

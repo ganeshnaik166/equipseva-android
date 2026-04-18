@@ -12,4 +12,8 @@ abstract class RepairModule {
     @Binds
     @Singleton
     abstract fun bindRepairJobRepository(impl: SupabaseRepairJobRepository): RepairJobRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindRepairBidRepository(impl: SupabaseRepairBidRepository): RepairBidRepository
 }

@@ -40,6 +40,15 @@ class SupabaseRepairJobRepository @Inject constructor(
         }.decodeList<RepairJobDto>().map(RepairJobDto::toDomain)
     }
 
+    override suspend fun fetchById(jobId: String): Result<RepairJob?> = runCatching {
+        client.from(TABLE).select {
+            filter {
+                eq("id", jobId)
+            }
+            limit(count = 1)
+        }.decodeList<RepairJobDto>().firstOrNull()?.toDomain()
+    }
+
     private fun String.sanitizeForIlike(): String =
         replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 

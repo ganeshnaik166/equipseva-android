@@ -15,4 +15,7 @@ interface RepairJobRepository {
         pageSize: Int = 20,
         query: String? = null,
     ): Result<List<RepairJob>>
+
+    /** Fetch a single job by id. Returns `null` if not found / not visible to caller. */
+    suspend fun fetchById(jobId: String): Result<RepairJob?>
 }
