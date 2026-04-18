@@ -78,5 +78,8 @@
         <meta-data
             android:name="firebase_crashlytics_collection_enabled"
             android:value="true" />
+
+        <!-- Sentry auto-init requires a non-empty DSN; keep it off until a real DSN is wired. -->
+        <meta-data android:name="io.sentry.auto-init" android:value="false" />
     </application>
 </manifest>
