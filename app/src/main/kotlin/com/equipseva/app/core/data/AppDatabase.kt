@@ -52,7 +52,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "equipseva.db")
-            .fallbackToDestructiveMigration(dropAllTables = false)
+            .fallbackToDestructiveMigration()
             .build()
 
     @Provides fun cart(db: AppDatabase): CartDao = db.cartDao()

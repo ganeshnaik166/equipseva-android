@@ -102,6 +102,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.splashscreen)
+    implementation(libs.google.material)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
     // Google Sign-in via Credential Manager
