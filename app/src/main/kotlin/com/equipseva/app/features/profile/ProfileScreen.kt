@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
+import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
@@ -71,6 +72,7 @@ import com.equipseva.app.features.auth.UserRole
 fun ProfileScreen(
     onShowMessage: (String) -> Unit,
     onOpenMessages: () -> Unit = {},
+    onOpenVerification: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -114,6 +116,7 @@ fun ProfileScreen(
                         onEditProfile = { onShowMessage("Edit profile — coming soon") },
                         onOpenSettings = viewModel::onOpenSettings,
                         onOpenMessages = onOpenMessages,
+                        onOpenVerification = onOpenVerification,
                     )
                 }
             }
@@ -149,6 +152,7 @@ private fun ProfileContent(
     onEditProfile: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenMessages: () -> Unit,
+    onOpenVerification: () -> Unit,
 ) {
     val profile = state.profile!!
     Column(
@@ -192,6 +196,8 @@ private fun ProfileContent(
             themeMode = themeMode,
             onOpenSettings = onOpenSettings,
             onOpenMessages = onOpenMessages,
+            onOpenVerification = onOpenVerification,
+            showVerification = profile.role == UserRole.ENGINEER,
         )
 
         Spacer(Modifier.height(Spacing.md))
@@ -222,6 +228,8 @@ private fun SettingsCard(
     themeMode: ThemeMode,
     onOpenSettings: () -> Unit,
     onOpenMessages: () -> Unit,
+    onOpenVerification: () -> Unit,
+    showVerification: Boolean,
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -245,6 +253,15 @@ private fun SettingsCard(
                 enabled = true,
                 onClick = onOpenMessages,
             )
+            if (showVerification) {
+                SettingsRow(
+                    icon = Icons.Outlined.VerifiedUser,
+                    label = "Verification",
+                    trailing = "Manage",
+                    enabled = true,
+                    onClick = onOpenVerification,
+                )
+            }
             SettingsRow(
                 icon = Icons.Outlined.Palette,
                 label = "Appearance",

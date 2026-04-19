@@ -19,6 +19,7 @@ data class RepairJobDto(
     val id: String,
     @SerialName("job_number") val jobNumber: String? = null,
     @SerialName("hospital_org_id") val hospitalOrgId: String? = null,
+    @SerialName("hospital_user_id") val hospitalUserId: String? = null,
     @SerialName("engineer_id") val engineerId: String? = null,
     @SerialName("equipment_type") val equipmentType: String? = null,
     @SerialName("equipment_brand") val equipmentBrand: String? = null,

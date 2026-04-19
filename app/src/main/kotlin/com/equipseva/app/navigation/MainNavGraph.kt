@@ -35,6 +35,7 @@ import com.equipseva.app.features.chat.ChatScreen
 import com.equipseva.app.features.chat.ConversationsScreen
 import com.equipseva.app.features.checkout.CheckoutScreen
 import com.equipseva.app.features.home.HomeScreen
+import com.equipseva.app.features.kyc.KycScreen
 import com.equipseva.app.features.marketplace.MarketplaceScreen
 import com.equipseva.app.features.marketplace.PartDetailScreen
 import com.equipseva.app.features.orders.OrderDetailScreen
@@ -63,6 +64,7 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.REPAIR_DETAIL,
     Routes.CONVERSATIONS,
     Routes.CHAT_DETAIL,
+    Routes.KYC,
 )
 
 @Composable
@@ -121,7 +123,28 @@ fun MainNavGraph(
             startDestination = Routes.HOME,
             modifier = Modifier.padding(padding),
         ) {
-            composable(Routes.HOME) { HomeScreen(onShowMessage = showSnackbar) }
+            composable(Routes.HOME) {
+                HomeScreen(
+                    onShowMessage = showSnackbar,
+                    onCardClick = { key ->
+                        val tabRoute = when (key) {
+                            "browse_parts" -> Routes.MARKETPLACE
+                            "active_jobs", "jobs_nearby", "request_service", "active_work" -> Routes.REPAIR
+                            "order_history", "incoming_orders" -> Routes.ORDERS
+                            else -> null
+                        }
+                        if (tabRoute != null) {
+                            navController.navigate(tabRoute) {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        } else {
+                            showSnackbar("Coming soon")
+                        }
+                    },
+                )
+            }
             composable(Routes.MARKETPLACE) {
                 MarketplaceScreen(
                     onPartClick = { partId ->
@@ -177,12 +200,20 @@ fun MainNavGraph(
                 RepairJobDetailScreen(
                     onBack = { navController.popBackStack() },
                     onShowMessage = showSnackbar,
+                    onOpenChat = { id -> navController.navigate(Routes.chatRoute(id)) },
                 )
             }
             composable(Routes.PROFILE) {
                 ProfileScreen(
                     onShowMessage = showSnackbar,
                     onOpenMessages = { navController.navigate(Routes.CONVERSATIONS) },
+                    onOpenVerification = { navController.navigate(Routes.KYC) },
+                )
+            }
+            composable(Routes.KYC) {
+                KycScreen(
+                    onBack = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
                 )
             }
             composable(Routes.CART) {

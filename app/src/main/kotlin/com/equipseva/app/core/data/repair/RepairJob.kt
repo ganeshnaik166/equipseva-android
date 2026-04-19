@@ -22,6 +22,7 @@ data class RepairJob(
     val scheduledDate: String?,
     val scheduledTimeSlot: String?,
     val isAssignedToEngineer: Boolean,
+    val hospitalUserId: String?,
     val createdAtInstant: Instant?,
     val updatedAtInstant: Instant?,
 ) {
@@ -57,6 +58,7 @@ internal fun RepairJobDto.toDomain(): RepairJob {
         scheduledDate = scheduledDate?.takeIf { it.isNotBlank() },
         scheduledTimeSlot = scheduledTimeSlot?.takeIf { it.isNotBlank() },
         isAssignedToEngineer = !engineerId.isNullOrBlank(),
+        hospitalUserId = hospitalUserId?.takeIf { it.isNotBlank() },
         createdAtInstant = createdAt?.toInstantOrNull(),
         updatedAtInstant = updatedAt?.toInstantOrNull(),
     )

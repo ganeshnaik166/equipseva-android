@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -65,12 +66,20 @@ import com.equipseva.app.features.repair.components.toTone
 fun RepairJobDetailScreen(
     onBack: () -> Unit,
     onShowMessage: (String) -> Unit,
+    onOpenChat: (String) -> Unit,
     viewModel: RepairJobDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(viewModel) {
         viewModel.messages.collect { onShowMessage(it) }
+    }
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is RepairJobDetailViewModel.Effect.NavigateToChat -> onOpenChat(effect.conversationId)
+            }
+        }
     }
 
     Scaffold(
@@ -100,8 +109,10 @@ fun RepairJobDetailScreen(
                     job = state.job!!,
                     ownBid = state.ownBid,
                     withdrawing = state.withdrawingBid,
+                    openingChat = state.openingChat,
                     onPlaceBid = viewModel::openBidComposer,
                     onWithdraw = viewModel::withdrawBid,
+                    onMessageHospital = viewModel::openChatWithHospital,
                 )
             }
         }
@@ -122,8 +133,10 @@ private fun JobBody(
     job: RepairJob,
     ownBid: RepairBid?,
     withdrawing: Boolean,
+    openingChat: Boolean,
     onPlaceBid: () -> Unit,
     onWithdraw: () -> Unit,
+    onMessageHospital: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -186,6 +199,18 @@ private fun JobBody(
             onPlaceBid = onPlaceBid,
             onWithdraw = onWithdraw,
         )
+
+        if (job.hospitalUserId != null) {
+            TextButton(
+                onClick = onMessageHospital,
+                enabled = !openingChat,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = null)
+                Spacer(Modifier.width(Spacing.sm))
+                Text(if (openingChat) "Opening chat…" else "Message requester")
+            }
+        }
     }
 }
 

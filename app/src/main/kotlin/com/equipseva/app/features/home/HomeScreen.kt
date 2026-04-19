@@ -65,6 +65,7 @@ import com.equipseva.app.features.auth.UserRole
 @Composable
 fun HomeScreen(
     onShowMessage: (String) -> Unit,
+    onCardClick: (String) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -99,7 +100,7 @@ fun HomeScreen(
                     HomeContent(
                         greetingName = state.greetingName,
                         role = state.role,
-                        onCardClick = { /* stub — nav wiring owner will fill in */ },
+                        onCardClick = onCardClick,
                     )
                 }
             }

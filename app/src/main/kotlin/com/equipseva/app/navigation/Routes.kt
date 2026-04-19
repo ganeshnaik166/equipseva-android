@@ -51,4 +51,7 @@ object Routes {
     const val CHAT_DETAIL = "chat/detail"
     const val CHAT_DETAIL_ARG_ID = "conversationId"
     fun chatRoute(conversationId: String): String = "$CHAT_DETAIL/$conversationId"
+
+    // Engineer KYC / verification (full-screen, engineer-only entry from Profile).
+    const val KYC = "profile/kyc"
 }

@@ -3,6 +3,9 @@ package com.equipseva.app.features.repair
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.core.auth.AuthRepository
+import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.data.chat.ChatRepository
 import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairBidRepository
 import com.equipseva.app.core.data.repair.RepairBidStatus
@@ -15,6 +18,9 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -25,7 +31,13 @@ class RepairJobDetailViewModel @Inject constructor(
     savedState: SavedStateHandle,
     private val jobRepository: RepairJobRepository,
     private val bidRepository: RepairBidRepository,
+    private val chatRepository: ChatRepository,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
+
+    sealed interface Effect {
+        data class NavigateToChat(val conversationId: String) : Effect
+    }
 
     data class RepairJobDetailUiState(
         val loading: Boolean = true,
@@ -36,6 +48,7 @@ class RepairJobDetailViewModel @Inject constructor(
         val placingBid: Boolean = false,
         val withdrawingBid: Boolean = false,
         val bidComposerOpen: Boolean = false,
+        val openingChat: Boolean = false,
     )
 
     private val jobId: String =
@@ -48,6 +61,9 @@ class RepairJobDetailViewModel @Inject constructor(
 
     private val _messages = Channel<String>(Channel.BUFFERED)
     val messages = _messages.receiveAsFlow()
+
+    private val _effects = Channel<Effect>(Channel.BUFFERED)
+    val effects = _effects.receiveAsFlow()
 
     init {
         load()
@@ -87,6 +103,43 @@ class RepairJobDetailViewModel @Inject constructor(
                 },
                 onFailure = { ex ->
                     _state.update { it.copy(placingBid = false) }
+                    _messages.send(ex.toUserMessage())
+                },
+            )
+        }
+    }
+
+    fun openChatWithHospital() {
+        val snap = _state.value
+        val job = snap.job ?: return
+        val hospitalUserId = job.hospitalUserId
+        if (hospitalUserId.isNullOrBlank() || snap.openingChat) return
+        _state.update { it.copy(openingChat = true) }
+        viewModelScope.launch {
+            val session = authRepository.sessionState
+                .filterIsInstance<AuthSession.SignedIn>()
+                .firstOrNull()
+            val selfId = session?.userId
+            if (selfId == null) {
+                _state.update { it.copy(openingChat = false) }
+                _messages.send("Please sign in to start a chat")
+                return@launch
+            }
+            if (selfId == hospitalUserId) {
+                _state.update { it.copy(openingChat = false) }
+                _messages.send("You're the requester on this job")
+                return@launch
+            }
+            chatRepository.getOrCreateForRepairJob(
+                jobId = job.id,
+                participantUserIds = listOf(selfId, hospitalUserId),
+            ).fold(
+                onSuccess = { convo ->
+                    _state.update { it.copy(openingChat = false) }
+                    _effects.send(Effect.NavigateToChat(convo.id))
+                },
+                onFailure = { ex ->
+                    _state.update { it.copy(openingChat = false) }
                     _messages.send(ex.toUserMessage())
                 },
             )
