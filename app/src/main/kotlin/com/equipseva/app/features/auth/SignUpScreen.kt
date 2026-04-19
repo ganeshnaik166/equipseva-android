@@ -2,8 +2,6 @@ package com.equipseva.app.features.auth
 
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -14,7 +12,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.designsystem.components.AuthScaffold
 import com.equipseva.app.designsystem.components.EmailField
 import com.equipseva.app.designsystem.components.ErrorBanner
-import com.equipseva.app.designsystem.components.PasswordField
 import com.equipseva.app.designsystem.components.PrimaryButton
 import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.features.auth.state.AuthEffect
@@ -39,7 +36,7 @@ fun SignUpScreen(
 
     AuthScaffold(
         title = "Create your account",
-        subtitle = "Use your work email — we'll send a confirmation link and 6-digit code.",
+        subtitle = "Enter your email — we'll send you a verification code to sign in.",
     ) {
         ErrorBanner(message = state.form.errorMessage)
 
@@ -49,29 +46,14 @@ fun SignUpScreen(
             enabled = !state.form.submitting,
             isError = state.emailError != null,
             errorText = state.emailError,
-            imeAction = ImeAction.Next,
-        )
-
-        PasswordField(
-            value = state.password,
-            onValueChange = viewModel::onPasswordChange,
-            enabled = !state.form.submitting,
-            isError = state.passwordError != null,
-            errorText = state.passwordError,
             imeAction = ImeAction.Done,
             onImeAction = viewModel::onSubmit,
-        )
-
-        Text(
-            text = "Use at least 8 characters with letters and numbers.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         Spacer(Modifier.height(Spacing.sm))
 
         PrimaryButton(
-            label = "Create account",
+            label = "Send code",
             onClick = viewModel::onSubmit,
             enabled = state.canSubmit,
             loading = state.form.submitting,

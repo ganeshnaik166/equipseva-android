@@ -36,7 +36,7 @@ fun OtpRequestScreen(
 
     AuthScaffold(
         title = "Sign in with email code",
-        subtitle = "Enter your email and we'll send you a 6-digit code.",
+        subtitle = "Enter your email and we'll send you a verification code.",
     ) {
         ErrorBanner(message = state.form.errorMessage)
 

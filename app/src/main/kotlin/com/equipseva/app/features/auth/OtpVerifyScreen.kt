@@ -42,7 +42,7 @@ fun OtpVerifyScreen(
 
     AuthScaffold(
         title = "Enter code",
-        subtitle = "We sent a 6-digit code to ${state.email.ifBlank { email }}. It expires in 10 minutes.",
+        subtitle = "We sent a code to ${state.email.ifBlank { email }}. It expires in 10 minutes.",
     ) {
         ErrorBanner(message = state.form.errorMessage)
 

@@ -6,7 +6,6 @@ interface AuthRepository {
     val sessionState: Flow<AuthSession>
 
     suspend fun signInWithEmailPassword(email: String, password: String): Result<Unit>
-    suspend fun signUpWithEmailPassword(email: String, password: String): Result<Unit>
     suspend fun sendEmailOtp(email: String): Result<Unit>
     suspend fun verifyEmailOtp(email: String, token: String): Result<Unit>
     suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?): Result<Unit>

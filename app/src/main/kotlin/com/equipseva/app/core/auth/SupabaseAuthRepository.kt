@@ -40,13 +40,6 @@ class SupabaseAuthRepository @Inject constructor(
         }
     }
 
-    override suspend fun signUpWithEmailPassword(email: String, password: String): Result<Unit> = runCatching {
-        client.auth.signUpWith(Email) {
-            this.email = email
-            this.password = password
-        }
-    }
-
     override suspend fun sendEmailOtp(email: String): Result<Unit> = runCatching {
         client.auth.signInWith(OTP) {
             this.email = email

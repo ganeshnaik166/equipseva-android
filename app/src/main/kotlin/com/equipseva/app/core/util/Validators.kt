@@ -27,6 +27,6 @@ object Validators {
         else -> null
     }
 
-    fun otpIsSixDigit(code: String): Boolean =
-        code.length == 6 && code.all { it.isDigit() }
+    fun otpIsValid(code: String): Boolean =
+        code.length in 6..10 && code.all { it.isDigit() }
 }
