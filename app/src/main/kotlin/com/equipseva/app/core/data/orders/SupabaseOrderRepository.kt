@@ -51,6 +51,13 @@ class SupabaseOrderRepository @Inject constructor(
         }.decodeList<OrderDto>().firstOrNull()?.toDomain()
     }
 
+    override suspend fun fetchForSupplier(supplierOrgId: String): Result<List<com.equipseva.app.core.data.orders.Order>> = runCatching {
+        client.from(TABLE).select {
+            filter { eq("supplier_org_id", supplierOrgId) }
+            order("created_at", order = Order.DESCENDING)
+        }.decodeList<OrderDto>().map(OrderDto::toDomain)
+    }
+
     override suspend fun markPaymentOutcome(
         id: String,
         paymentStatus: NonTerminalPaymentStatus,
@@ -61,6 +68,16 @@ class SupabaseOrderRepository @Inject constructor(
             orderStatus?.let { set("order_status", it.storageKey) }
         }) {
             filter { eq("id", id) }
+        }
+        Unit
+    }
+
+    override suspend fun cancelOrder(orderId: String): Result<Unit> = runCatching {
+        client.from(TABLE).update({
+            set("order_status", "cancelled")
+            set("payment_status", "cancelled")
+        }) {
+            filter { eq("id", orderId) }
         }
         Unit
     }

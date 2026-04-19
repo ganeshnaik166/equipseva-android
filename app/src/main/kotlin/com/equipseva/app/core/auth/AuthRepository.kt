@@ -9,6 +9,7 @@ interface AuthRepository {
     suspend fun sendEmailOtp(email: String): Result<Unit>
     suspend fun verifyEmailOtp(email: String, token: String): Result<Unit>
     suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?): Result<Unit>
+    suspend fun sendPasswordResetEmail(email: String): Result<Unit>
     suspend fun signOut(): Result<Unit>
 }
 

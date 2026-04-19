@@ -6,6 +6,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
+import com.equipseva.app.features.auth.ForgotPasswordScreen
 import com.equipseva.app.features.auth.OtpRequestScreen
 import com.equipseva.app.features.auth.OtpVerifyScreen
 import com.equipseva.app.features.auth.SignInScreen
@@ -36,7 +37,7 @@ fun NavGraphBuilder.authNavGraph(
         composable(Routes.AUTH_SIGN_IN) {
             SignInScreen(
                 onUseOtpInstead = { navController.navigate(Routes.AUTH_OTP_REQUEST) },
-                onForgotPassword = { showSnackbar("Password reset coming soon") },
+                onForgotPassword = { navController.navigate(Routes.AUTH_FORGOT_PASSWORD) },
                 onShowMessage = showSnackbar,
             )
         }
@@ -47,6 +48,9 @@ fun NavGraphBuilder.authNavGraph(
                 },
                 onShowMessage = showSnackbar,
             )
+        }
+        composable(Routes.AUTH_FORGOT_PASSWORD) {
+            ForgotPasswordScreen(onBack = { navController.popBackStack() })
         }
         composable(Routes.AUTH_OTP_REQUEST) {
             OtpRequestScreen(

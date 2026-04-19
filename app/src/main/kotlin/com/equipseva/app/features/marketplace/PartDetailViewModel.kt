@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.cart.CartRepository
 import com.equipseva.app.core.data.parts.SparePart
 import com.equipseva.app.core.data.parts.SparePartsRepository
+import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.features.cart.CartBridge
 import com.equipseva.app.navigation.Routes
@@ -24,6 +25,7 @@ class PartDetailViewModel @Inject constructor(
     savedState: SavedStateHandle,
     private val repository: SparePartsRepository,
     private val cartRepository: CartRepository,
+    private val userPrefs: UserPrefs,
 ) : ViewModel() {
 
     data class PartDetailState(
@@ -32,6 +34,7 @@ class PartDetailViewModel @Inject constructor(
         val errorMessage: String? = null,
         val notFound: Boolean = false,
         val addingToCart: Boolean = false,
+        val isFavorite: Boolean = false,
     )
 
     private val partId: String =
@@ -47,9 +50,18 @@ class PartDetailViewModel @Inject constructor(
 
     init {
         load()
+        viewModelScope.launch {
+            userPrefs.favorites.collect { favs ->
+                _state.update { it.copy(isFavorite = partId in favs) }
+            }
+        }
     }
 
     fun retry() = load()
+
+    fun onToggleFavorite() {
+        viewModelScope.launch { userPrefs.toggleFavorite(partId) }
+    }
 
     fun onAddToCart() {
         val part = _state.value.part ?: return

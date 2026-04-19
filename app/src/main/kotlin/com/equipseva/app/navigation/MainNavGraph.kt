@@ -30,19 +30,38 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.equipseva.app.features.about.AboutScreen
+import com.equipseva.app.features.activework.ActiveWorkScreen
 import com.equipseva.app.features.cart.CartScreen
 import com.equipseva.app.features.chat.ChatScreen
 import com.equipseva.app.features.chat.ConversationsScreen
 import com.equipseva.app.features.checkout.CheckoutScreen
+import com.equipseva.app.features.earnings.EarningsScreen
+import com.equipseva.app.features.engineerprofile.EngineerProfileScreen
+import com.equipseva.app.features.favorites.FavoritesScreen
 import com.equipseva.app.features.home.HomeScreen
+import com.equipseva.app.features.hospital.CreateRfqScreen
+import com.equipseva.app.features.hospital.RequestServiceScreen
 import com.equipseva.app.features.kyc.KycScreen
+import com.equipseva.app.features.logistics.ActiveDeliveriesScreen
+import com.equipseva.app.features.logistics.CompletedTodayScreen
+import com.equipseva.app.features.logistics.PickupQueueScreen
+import com.equipseva.app.features.manufacturer.AnalyticsScreen
+import com.equipseva.app.features.manufacturer.LeadPipelineScreen
+import com.equipseva.app.features.manufacturer.RfqsAssignedScreen
 import com.equipseva.app.features.marketplace.MarketplaceScreen
 import com.equipseva.app.features.marketplace.PartDetailScreen
+import com.equipseva.app.features.mybids.MyBidsScreen
 import com.equipseva.app.features.orders.OrderDetailScreen
 import com.equipseva.app.features.orders.OrdersScreen
 import com.equipseva.app.features.profile.ProfileScreen
 import com.equipseva.app.features.repair.RepairJobDetailScreen
 import com.equipseva.app.features.repair.RepairJobsScreen
+import com.equipseva.app.features.supplier.AddListingScreen
+import com.equipseva.app.features.supplier.MyListingsScreen
+import com.equipseva.app.features.supplier.StockAlertsScreen
+import com.equipseva.app.features.supplier.SupplierOrdersScreen
+import com.equipseva.app.features.supplier.SupplierRfqsScreen
 import kotlinx.coroutines.launch
 
 private data class TabItem(val route: String, val label: String, val icon: ImageVector)
@@ -65,6 +84,25 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.CONVERSATIONS,
     Routes.CHAT_DETAIL,
     Routes.KYC,
+    Routes.ABOUT,
+    Routes.MY_BIDS,
+    Routes.EARNINGS,
+    Routes.ACTIVE_WORK,
+    Routes.MY_LISTINGS,
+    Routes.STOCK_ALERTS,
+    Routes.SUPPLIER_ORDERS,
+    Routes.SUPPLIER_RFQS,
+    Routes.RFQS_ASSIGNED,
+    Routes.LEAD_PIPELINE,
+    Routes.ANALYTICS,
+    Routes.PICKUP_QUEUE,
+    Routes.ACTIVE_DELIVERIES,
+    Routes.COMPLETED_TODAY,
+    Routes.REQUEST_SERVICE,
+    Routes.ENGINEER_PROFILE,
+    Routes.SUPPLIER_ADD_LISTING,
+    Routes.HOSPITAL_CREATE_RFQ,
+    Routes.FAVORITES,
 )
 
 @Composable
@@ -129,18 +167,38 @@ fun MainNavGraph(
                     onCardClick = { key ->
                         val tabRoute = when (key) {
                             "browse_parts" -> Routes.MARKETPLACE
-                            "active_jobs", "jobs_nearby", "request_service", "active_work" -> Routes.REPAIR
-                            "order_history", "incoming_orders" -> Routes.ORDERS
+                            "active_jobs", "jobs_nearby" -> Routes.REPAIR
+                            "order_history" -> Routes.ORDERS
                             else -> null
                         }
-                        if (tabRoute != null) {
-                            navController.navigate(tabRoute) {
+                        val subRoute = when (key) {
+                            "request_service" -> Routes.REQUEST_SERVICE
+                            "hospital_create_rfq" -> Routes.HOSPITAL_CREATE_RFQ
+                            "my_bids" -> Routes.MY_BIDS
+                            "earnings" -> Routes.EARNINGS
+                            "active_work" -> Routes.ACTIVE_WORK
+                            "engineer_profile" -> Routes.ENGINEER_PROFILE
+                            "my_listings" -> Routes.MY_LISTINGS
+                            "supplier_add_listing" -> Routes.SUPPLIER_ADD_LISTING
+                            "stock_alerts" -> Routes.STOCK_ALERTS
+                            "incoming_orders" -> Routes.SUPPLIER_ORDERS
+                            "rfqs", "supplier_rfqs" -> Routes.SUPPLIER_RFQS
+                            "rfqs_assigned", "matched_rfqs" -> Routes.RFQS_ASSIGNED
+                            "lead_pipeline", "leads" -> Routes.LEAD_PIPELINE
+                            "analytics" -> Routes.ANALYTICS
+                            "pickup_queue", "pickups" -> Routes.PICKUP_QUEUE
+                            "active_deliveries", "deliveries" -> Routes.ACTIVE_DELIVERIES
+                            "completed_today", "completed" -> Routes.COMPLETED_TODAY
+                            else -> null
+                        }
+                        when {
+                            tabRoute != null -> navController.navigate(tabRoute) {
                                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
-                        } else {
-                            showSnackbar("Coming soon")
+                            subRoute != null -> navController.navigate(subRoute)
+                            else -> showSnackbar("Coming soon")
                         }
                     },
                 )
@@ -208,10 +266,18 @@ fun MainNavGraph(
                     onShowMessage = showSnackbar,
                     onOpenMessages = { navController.navigate(Routes.CONVERSATIONS) },
                     onOpenVerification = { navController.navigate(Routes.KYC) },
+                    onOpenAbout = { navController.navigate(Routes.ABOUT) },
+                    onOpenFavorites = { navController.navigate(Routes.FAVORITES) },
                 )
             }
             composable(Routes.KYC) {
                 KycScreen(
+                    onBack = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
+                )
+            }
+            composable(Routes.ABOUT) {
+                AboutScreen(
                     onBack = { navController.popBackStack() },
                     onShowMessage = showSnackbar,
                 )
@@ -253,6 +319,108 @@ fun MainNavGraph(
                             popUpTo(Routes.HOME) { saveState = true }
                             launchSingleTop = true
                         }
+                    },
+                )
+            }
+            composable(Routes.MY_BIDS) {
+                MyBidsScreen(
+                    onBack = { navController.popBackStack() },
+                    onJobClick = { jobId -> navController.navigate(Routes.repairJobDetailRoute(jobId)) },
+                )
+            }
+            composable(Routes.EARNINGS) {
+                EarningsScreen(
+                    onBack = { navController.popBackStack() },
+                    onJobClick = { jobId -> navController.navigate(Routes.repairJobDetailRoute(jobId)) },
+                )
+            }
+            composable(Routes.ACTIVE_WORK) {
+                ActiveWorkScreen(
+                    onBack = { navController.popBackStack() },
+                    onJobClick = { jobId -> navController.navigate(Routes.repairJobDetailRoute(jobId)) },
+                )
+            }
+            composable(Routes.MY_LISTINGS) {
+                MyListingsScreen(
+                    onBack = { navController.popBackStack() },
+                    onPartClick = { partId -> navController.navigate(Routes.marketplaceDetailRoute(partId)) },
+                )
+            }
+            composable(Routes.STOCK_ALERTS) {
+                StockAlertsScreen(
+                    onBack = { navController.popBackStack() },
+                    onPartClick = { partId -> navController.navigate(Routes.marketplaceDetailRoute(partId)) },
+                )
+            }
+            composable(Routes.SUPPLIER_ORDERS) {
+                SupplierOrdersScreen(
+                    onBack = { navController.popBackStack() },
+                    onOrderClick = { orderId -> navController.navigate(Routes.orderDetailRoute(orderId)) },
+                )
+            }
+            composable(Routes.SUPPLIER_RFQS) {
+                SupplierRfqsScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.RFQS_ASSIGNED) {
+                RfqsAssignedScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.LEAD_PIPELINE) {
+                LeadPipelineScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.ANALYTICS) {
+                AnalyticsScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.PICKUP_QUEUE) {
+                PickupQueueScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.ACTIVE_DELIVERIES) {
+                ActiveDeliveriesScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.COMPLETED_TODAY) {
+                CompletedTodayScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.REQUEST_SERVICE) {
+                RequestServiceScreen(
+                    onBack = { navController.popBackStack() },
+                    onSubmitted = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
+                )
+            }
+            composable(Routes.HOSPITAL_CREATE_RFQ) {
+                CreateRfqScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.ENGINEER_PROFILE) {
+                EngineerProfileScreen(
+                    onBack = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
+                )
+            }
+            composable(Routes.SUPPLIER_ADD_LISTING) {
+                AddListingScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.FAVORITES) {
+                FavoritesScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenPart = { partId ->
+                        navController.navigate(Routes.marketplaceDetailRoute(partId))
                     },
                 )
             }

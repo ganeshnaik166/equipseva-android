@@ -4,6 +4,8 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,16 +19,25 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.material.icons.outlined.CloudUpload
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -40,21 +51,50 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
+import com.equipseva.app.designsystem.components.AppProgress
+import com.equipseva.app.designsystem.components.GradientTile
+import com.equipseva.app.designsystem.theme.ErrorBg
+import com.equipseva.app.designsystem.theme.ErrorRed
+import com.equipseva.app.designsystem.theme.Info
+import com.equipseva.app.designsystem.theme.InfoBg
+import com.equipseva.app.designsystem.theme.Ink300
+import com.equipseva.app.designsystem.theme.Ink500
+import com.equipseva.app.designsystem.theme.Ink700
+import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Success
+import com.equipseva.app.designsystem.theme.SuccessBg
+import com.equipseva.app.designsystem.theme.Surface0
+import com.equipseva.app.designsystem.theme.Surface50
+import com.equipseva.app.designsystem.theme.Surface200
+import com.equipseva.app.designsystem.theme.Warning
+import com.equipseva.app.designsystem.theme.WarningBg
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.graphics.Path
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,14 +130,29 @@ fun KycScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Verification") },
+                title = { Text("Verification (KYC)") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
             )
         },
+        bottomBar = {
+            KycBottomBar(
+                status = state.verificationStatus,
+                aadhaarUploaded = !state.aadhaarDocPath.isNullOrBlank(),
+                certUploaded = state.certDocPaths.isNotEmpty(),
+                saving = state.saving,
+                onSave = viewModel::save,
+            )
+        },
+        containerColor = Surface50,
     ) { inner ->
         Box(modifier = Modifier.fillMaxSize().padding(inner)) {
             when {
@@ -135,14 +190,13 @@ fun KycScreen(
                     onPickCertificate = {
                         certPicker.launch(arrayOf("application/pdf", "image/jpeg", "image/png", "image/webp"))
                     },
-                    onSave = viewModel::save,
                 )
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun KycForm(
     state: KycViewModel.UiState,
@@ -157,8 +211,14 @@ private fun KycForm(
     onToggleSpecialization: (RepairEquipmentCategory) -> Unit,
     onPickAadhaar: () -> Unit,
     onPickCertificate: () -> Unit,
-    onSave: () -> Unit,
 ) {
+    val aadhaarUploaded = !state.aadhaarDocPath.isNullOrBlank()
+    val certUploaded = state.certDocPaths.isNotEmpty()
+    // Required doc count: Aadhaar, Certificate (represents trade/qualification + profile verification).
+    // Using a 2-doc required model reflecting what the KycViewModel actually tracks.
+    val required = 2
+    val uploadedCount = listOf(aadhaarUploaded, certUploaded).count { it }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -166,12 +226,63 @@ private fun KycForm(
             .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
-        VerificationStatusChip(
-            status = state.verificationStatus,
-            aadhaarVerified = state.aadhaarVerified,
-        )
+        StatusBanner(status = state.verificationStatus, aadhaarVerified = state.aadhaarVerified)
 
-        SectionCard(title = "Identity") {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            AppProgress(value = uploadedCount, total = required)
+            Text(
+                text = "$uploadedCount of $required required documents",
+                fontSize = 12.sp,
+                color = Ink500,
+            )
+        }
+
+        // Document upload list per design.
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            DocumentRow(
+                title = "Aadhaar card",
+                uploaded = aadhaarUploaded,
+                uploading = state.uploadingAadhaar,
+                icon = Icons.Filled.Badge,
+                hue = 150,
+                onClick = onPickAadhaar,
+            )
+            DocumentRow(
+                title = "Trade / qualification certificate",
+                uploaded = certUploaded,
+                uploading = state.uploadingCert,
+                icon = Icons.Filled.WorkspacePremium,
+                hue = 280,
+                subtitleOverride = if (certUploaded) {
+                    "Uploaded (${state.certDocPaths.size})"
+                } else null,
+                onClick = onPickCertificate,
+            )
+            // Supplementary static slots from design (PAN / Profile photo) to keep visual parity —
+            // these aren't tracked in KycViewModel state so they render as "optional / coming soon".
+            DocumentRow(
+                title = "PAN card",
+                uploaded = false,
+                uploading = false,
+                icon = Icons.Filled.CreditCard,
+                hue = 40,
+                subtitleOverride = "Optional",
+                onClick = null,
+            )
+            DocumentRow(
+                title = "Profile photo",
+                uploaded = false,
+                uploading = false,
+                icon = Icons.Filled.AccountCircle,
+                hue = 200,
+                subtitleOverride = "Optional",
+                onClick = null,
+            )
+        }
+
+        // Keep existing form sections (identity / qualifications / specializations / service area).
+        // These preserve the ViewModel contract while rendering in a cleaner card style.
+        KycSectionCard(title = "Identity details") {
             OutlinedTextField(
                 value = state.aadhaarNumber,
                 onValueChange = onAadhaarNumberChange,
@@ -180,16 +291,9 @@ private fun KycForm(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            UploadRow(
-                label = if (state.aadhaarDocPath != null) "Aadhaar photo uploaded" else "Upload aadhaar photo",
-                uploaded = state.aadhaarDocPath != null,
-                loading = state.uploadingAadhaar,
-                icon = Icons.Filled.PhotoCamera,
-                onClick = onPickAadhaar,
-            )
         }
 
-        SectionCard(title = "Qualifications & experience") {
+        KycSectionCard(title = "Qualifications & experience") {
             OutlinedTextField(
                 value = state.experienceYears,
                 onValueChange = onExperienceChange,
@@ -231,20 +335,9 @@ private fun KycForm(
                     }
                 }
             }
-            UploadRow(
-                label = if (state.certDocPaths.isNotEmpty()) {
-                    "Certificates uploaded (${state.certDocPaths.size})"
-                } else {
-                    "Upload certificate (PDF/image)"
-                },
-                uploaded = state.certDocPaths.isNotEmpty(),
-                loading = state.uploadingCert,
-                icon = Icons.Filled.Description,
-                onClick = onPickCertificate,
-            )
         }
 
-        SectionCard(title = "Specializations") {
+        KycSectionCard(title = "Specializations") {
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -265,7 +358,7 @@ private fun KycForm(
             }
         }
 
-        SectionCard(title = "Service area") {
+        KycSectionCard(title = "Service area") {
             OutlinedTextField(
                 value = state.city,
                 onValueChange = onCityChange,
@@ -290,69 +383,201 @@ private fun KycForm(
             )
         }
 
-        Button(
-            onClick = onSave,
-            enabled = !state.saving,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            if (state.saving) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    strokeWidth = 2.dp,
-                )
-                Spacer(Modifier.size(Spacing.sm))
-                Text("Saving…")
-            } else {
-                Text("Save verification details")
-            }
-        }
-
-        Spacer(Modifier.height(Spacing.md))
+        Spacer(Modifier.height(Spacing.sm))
     }
 }
 
 @Composable
-private fun VerificationStatusChip(status: VerificationStatus, aadhaarVerified: Boolean) {
-    val (container, content) = when (status) {
-        VerificationStatus.Verified -> MaterialTheme.colorScheme.primaryContainer to
-            MaterialTheme.colorScheme.onPrimaryContainer
-        VerificationStatus.Rejected -> MaterialTheme.colorScheme.errorContainer to
-            MaterialTheme.colorScheme.onErrorContainer
-        VerificationStatus.Pending -> MaterialTheme.colorScheme.tertiaryContainer to
-            MaterialTheme.colorScheme.onTertiaryContainer
+private fun StatusBanner(status: VerificationStatus, aadhaarVerified: Boolean) {
+    // Map domain statuses to the design's banner palette.
+    val (bg, fg, label, subtitle, icon) = when (status) {
+        VerificationStatus.Verified -> BannerStyle(
+            bg = SuccessBg,
+            fg = Success,
+            label = "Verified",
+            subtitle = "You can accept jobs.",
+            icon = Icons.Filled.Verified,
+        )
+        VerificationStatus.Rejected -> BannerStyle(
+            bg = ErrorBg,
+            fg = ErrorRed,
+            label = "Rejected",
+            subtitle = "Re-upload the flagged documents.",
+            icon = Icons.Filled.Error,
+        )
+        VerificationStatus.Pending -> if (aadhaarVerified) {
+            BannerStyle(
+                bg = InfoBg,
+                fg = Info,
+                label = "Submitted for review",
+                subtitle = "Typically takes 24 hours.",
+                icon = Icons.Filled.HourglassTop,
+            )
+        } else {
+            BannerStyle(
+                bg = WarningBg,
+                fg = Warning,
+                label = "In progress",
+                subtitle = "Upload required documents to continue.",
+                icon = Icons.Filled.HourglassTop,
+            )
+        }
     }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(bg)
+            .padding(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = fg,
+            modifier = Modifier.size(24.dp),
+        )
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = label,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = fg,
+            )
+            Text(
+                text = subtitle,
+                fontSize = 13.sp,
+                color = Ink700,
+            )
+        }
+    }
+}
+
+private data class BannerStyle(
+    val bg: Color,
+    val fg: Color,
+    val label: String,
+    val subtitle: String,
+    val icon: ImageVector,
+)
+
+@Composable
+private fun DocumentRow(
+    title: String,
+    uploaded: Boolean,
+    uploading: Boolean,
+    icon: ImageVector,
+    hue: Int,
+    subtitleOverride: String? = null,
+    onClick: (() -> Unit)?,
+) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = container),
+        colors = CardDefaults.cardColors(containerColor = Surface0),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Surface200),
+        shape = RoundedCornerShape(5.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(
-            modifier = Modifier.padding(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                "Verification status",
-                style = MaterialTheme.typography.labelMedium,
-                color = content,
-            )
-            Text(
-                status.displayName,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = content,
-            )
-            Text(
-                if (aadhaarVerified) "Aadhaar verified" else "Aadhaar not yet verified",
-                style = MaterialTheme.typography.bodySmall,
-                color = content,
-            )
+            if (uploaded) {
+                GradientTile(icon = icon, hue = hue, size = 56.dp)
+            } else {
+                DashedPlaceholderTile(icon = icon)
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = title,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Ink900,
+                )
+                val subtitle = subtitleOverride ?: if (uploaded) "✓ Uploaded" else "Required"
+                Text(
+                    text = subtitle,
+                    fontSize = 12.sp,
+                    color = if (uploaded) Success else Ink500,
+                )
+            }
+            if (onClick != null) {
+                if (uploading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp,
+                    )
+                } else if (uploaded) {
+                    OutlinedButton(
+                        onClick = onClick,
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    ) {
+                        Text("Replace", fontSize = 13.sp)
+                    }
+                } else {
+                    Button(
+                        onClick = onClick,
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    ) {
+                        Icon(
+                            Icons.Outlined.CloudUpload,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.size(6.dp))
+                        Text("Upload", fontSize = 13.sp)
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun SectionCard(title: String, content: @Composable () -> Unit) {
+private fun DashedPlaceholderTile(icon: ImageVector) {
+    val dashColor = Ink300
+    Box(
+        modifier = Modifier
+            .size(56.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(Surface50)
+            .drawBehind {
+                val stroke = Stroke(
+                    width = 1.5.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx()), 0f),
+                )
+                val path = Path().apply {
+                    addRoundRect(
+                        RoundRect(
+                            rect = androidx.compose.ui.geometry.Rect(
+                                offset = androidx.compose.ui.geometry.Offset.Zero,
+                                size = Size(size.width, size.height),
+                            ),
+                            cornerRadius = CornerRadius(10.dp.toPx()),
+                        ),
+                    )
+                }
+                drawPath(path = path, color = dashColor, style = stroke)
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = Ink500,
+            modifier = Modifier.size(24.dp),
+        )
+    }
+}
+
+@Composable
+private fun KycSectionCard(title: String, content: @Composable () -> Unit) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(containerColor = Surface0),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Surface200),
+        shape = RoundedCornerShape(5.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
@@ -360,9 +585,11 @@ private fun SectionCard(title: String, content: @Composable () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             Text(
-                title,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = title.uppercase(),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = Ink700,
+                letterSpacing = 0.3.sp,
             )
             content()
         }
@@ -370,31 +597,46 @@ private fun SectionCard(title: String, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun UploadRow(
-    label: String,
-    uploaded: Boolean,
-    loading: Boolean,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit,
+private fun KycBottomBar(
+    status: VerificationStatus,
+    aadhaarUploaded: Boolean,
+    certUploaded: Boolean,
+    saving: Boolean,
+    onSave: () -> Unit,
 ) {
-    OutlinedButton(
-        onClick = onClick,
-        enabled = !loading,
-        modifier = Modifier.fillMaxWidth(),
+    val allUploaded = aadhaarUploaded && certUploaded
+    val label = when {
+        status == VerificationStatus.Verified -> "Verified"
+        status == VerificationStatus.Pending && aadhaarUploaded && certUploaded -> "Submit for review"
+        else -> "Submit for review"
+    }
+    val enabled = !saving && allUploaded && status != VerificationStatus.Verified
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Surface0)
+            .border(width = 1.dp, color = Surface200, shape = RoundedCornerShape(0.dp))
+            .padding(Spacing.lg),
     ) {
-        if (loading) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(18.dp),
-                strokeWidth = 2.dp,
-            )
-        } else {
-            Icon(if (uploaded) Icons.Filled.Check else icon, contentDescription = null)
-        }
-        Spacer(Modifier.size(Spacing.sm))
-        Text(label)
-        Spacer(Modifier.weight(1f))
-        if (!loading && !uploaded) {
-            Icon(Icons.Filled.CloudUpload, contentDescription = null)
+        Button(
+            onClick = onSave,
+            enabled = enabled,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(Spacing.MinTouchTarget),
+            colors = ButtonDefaults.buttonColors(),
+        ) {
+            if (saving) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = Color.White,
+                )
+                Spacer(Modifier.size(Spacing.sm))
+                Text("Saving…")
+            } else {
+                Text(label)
+            }
         }
     }
 }

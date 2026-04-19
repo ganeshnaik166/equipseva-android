@@ -17,6 +17,13 @@ data class Engineer(
     val verificationStatus: VerificationStatus,
     val backgroundCheckStatus: VerificationStatus,
     val certificates: List<EngineerCertificate>,
+    // Engineer self-profile fields. Defaults so existing callers (KYC tests, etc.) that
+    // don't yet supply these still compile. Nullable rate/years/bio mean "not yet set".
+    val hourlyRate: Double? = null,
+    val yearsExperience: Int? = null,
+    val serviceAreas: List<String> = emptyList(),
+    val bio: String? = null,
+    val isAvailable: Boolean = true,
 ) {
     val aadhaarDocPath: String? get() =
         certificates.lastOrNull { it.type == EngineerCertificate.TYPE_AADHAAR }?.path
@@ -40,4 +47,9 @@ internal fun EngineerDto.toDomain(): Engineer = Engineer(
     verificationStatus = VerificationStatus.fromKey(verificationStatus),
     backgroundCheckStatus = VerificationStatus.fromKey(backgroundCheckStatus),
     certificates = certificates.orEmpty(),
+    hourlyRate = hourlyRate,
+    yearsExperience = yearsExperience,
+    serviceAreas = serviceAreas.orEmpty(),
+    bio = bio?.takeIf { it.isNotBlank() },
+    isAvailable = isAvailable ?: true,
 )

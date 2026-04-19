@@ -18,4 +18,29 @@ interface RepairJobRepository {
 
     /** Fetch a single job by id. Returns `null` if not found / not visible to caller. */
     suspend fun fetchById(jobId: String): Result<RepairJob?>
+
+    /** Jobs where the signed-in engineer is the assignee. RLS narrows to caller. */
+    suspend fun fetchAssignedToMe(): Result<List<RepairJob>>
+
+    /** Bulk-load jobs by id. Used to decorate bids with parent-job context. */
+    suspend fun fetchByIds(jobIds: Collection<String>): Result<List<RepairJob>>
+
+    /** Jobs created by the signed-in hospital user — hospital "active jobs" view. */
+    suspend fun fetchByHospitalUser(hospitalUserId: String): Result<List<RepairJob>>
+
+    /**
+     * Create a new repair job on behalf of the signed-in hospital user.
+     * Caller supplies just the free-text + enum fields; server mints id/job_number.
+     */
+    suspend fun create(draft: RepairJobDraft): Result<RepairJob>
 }
+
+data class RepairJobDraft(
+    val hospitalUserId: String,
+    val hospitalOrgId: String?,
+    val issueDescription: String,
+    val equipmentCategory: RepairEquipmentCategory,
+    val equipmentBrand: String?,
+    val equipmentModel: String?,
+    val urgency: RepairJobUrgency,
+)

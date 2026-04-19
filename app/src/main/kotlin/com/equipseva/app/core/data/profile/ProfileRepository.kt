@@ -11,4 +11,7 @@ interface ProfileRepository {
      * RLS allows the user to update only their own row.
      */
     suspend fun updateRole(userId: String, role: UserRole): Result<Unit>
+
+    /** Update the signed-in user's display name + phone. Either can be null to clear. */
+    suspend fun updateBasicInfo(userId: String, fullName: String?, phone: String?): Result<Unit>
 }

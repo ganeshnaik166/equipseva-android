@@ -48,6 +48,30 @@ class SupabaseEngineerRepository @Inject constructor(
         }.decodeSingle<EngineerDto>().toDomain()
     }
 
+    override suspend fun upsertProfile(
+        userId: String,
+        hourlyRate: Double,
+        yearsExperience: Int,
+        serviceAreas: List<String>,
+        specializations: List<String>,
+        bio: String,
+        isAvailable: Boolean,
+    ): Result<Engineer> = runCatching {
+        val payload = EngineerProfileUpsertDto(
+            userId = userId,
+            hourlyRate = hourlyRate,
+            yearsExperience = yearsExperience,
+            serviceAreas = serviceAreas,
+            specializations = specializations,
+            bio = bio,
+            isAvailable = isAvailable,
+        )
+        client.from(TABLE).upsert(payload) {
+            onConflict = "user_id"
+            select()
+        }.decodeSingle<EngineerDto>().toDomain()
+    }
+
     override suspend fun uploadKycDoc(
         userId: String,
         fileName: String,

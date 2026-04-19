@@ -1,6 +1,7 @@
 package com.equipseva.app.features.orders
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,36 +12,40 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Inventory
+import androidx.compose.material.icons.outlined.MedicalServices
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.orders.Order
@@ -49,10 +54,18 @@ import com.equipseva.app.core.data.orders.OrderStatus
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.components.StatusTone
+import com.equipseva.app.designsystem.components.StepperStep
+import com.equipseva.app.designsystem.components.VerticalStepper
+import com.equipseva.app.designsystem.theme.Ink500
+import com.equipseva.app.designsystem.theme.Ink700
+import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Surface100
+import com.equipseva.app.designsystem.theme.Surface200
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,6 +75,15 @@ fun OrderDetailScreen(
     viewModel: OrderDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var cancelDialogOpen by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is OrderDetailViewModel.Effect.ShowMessage -> onShowMessage(effect.text)
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -99,8 +121,9 @@ fun OrderDetailScreen(
             state.order != null -> OrderDetailBody(
                 order = state.order!!,
                 padding = inner,
-                onShowMessage = onShowMessage,
-                errorMessage = state.errorMessage,
+                errorMessage = state.errorMessage ?: state.cancellationError,
+                cancellationInFlight = state.cancellationInFlight,
+                onRequestCancel = { cancelDialogOpen = true },
             )
 
             else -> Column(Modifier.padding(inner).fillMaxSize()) {
@@ -111,22 +134,52 @@ fun OrderDetailScreen(
             }
         }
     }
+
+    if (cancelDialogOpen) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!state.cancellationInFlight) cancelDialogOpen = false
+            },
+            title = { Text("Cancel this order?") },
+            text = {
+                Text("This cannot be undone. Any payment will be refunded per supplier policy.")
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !state.cancellationInFlight,
+                    onClick = {
+                        cancelDialogOpen = false
+                        viewModel.onCancelOrder()
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) { Text("Cancel order") }
+            },
+            dismissButton = {
+                TextButton(
+                    enabled = !state.cancellationInFlight,
+                    onClick = { cancelDialogOpen = false },
+                ) { Text("Keep order") }
+            },
+        )
+    }
 }
 
 @Composable
 private fun OrderDetailBody(
     order: Order,
     padding: PaddingValues,
-    onShowMessage: (String) -> Unit,
     errorMessage: String?,
+    cancellationInFlight: Boolean,
+    onRequestCancel: () -> Unit,
 ) {
-    val clipboard = LocalClipboardManager.current
     LazyColumn(
         modifier = Modifier
             .padding(padding)
             .fillMaxSize(),
         contentPadding = PaddingValues(vertical = Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         if (!errorMessage.isNullOrBlank()) {
             item("error") {
@@ -137,199 +190,101 @@ private fun OrderDetailBody(
             }
         }
 
-        item("header") {
-            OrderHeaderCard(order)
-        }
+        item("timeline") { OrderTimelineCard(order) }
 
-        item("timeline_header") {
-            SectionHeader(title = "Progress", modifier = Modifier.padding(horizontal = Spacing.lg))
-        }
-        item("timeline") {
-            OrderTimeline(
-                currentStatus = order.status,
-                modifier = Modifier
-                    .padding(horizontal = Spacing.lg)
-                    .fillMaxWidth(),
+        item("items_header") { SectionHeader(title = "Items") }
+        item("items_card") { OrderItemsCard(order) }
+
+        item("delivery_header") { SectionHeader(title = "Delivery") }
+        item("delivery_card") { DeliveryCard(order) }
+
+        item("actions") {
+            OrderActionButtons(
+                onInvoice = {},
+                onContactSeller = {},
+                onReorder = {},
             )
         }
 
-        item("ship_header") {
-            SectionHeader(title = "Shipping", modifier = Modifier.padding(horizontal = Spacing.lg))
-        }
-        item("ship_card") { ShippingCard(order, clipboard, onShowMessage) }
-
-        item("items_header") {
-            SectionHeader(title = "Items", modifier = Modifier.padding(horizontal = Spacing.lg))
-        }
-        items(items = order.lineItems, key = { it.partId + it.name }) { line ->
-            LineItemRow(line)
-        }
-
-        item("totals") { TotalsCard(order) }
-
-        item("payment") { PaymentCard(order) }
-    }
-}
-
-@Composable
-private fun OrderHeaderCard(order: Order) {
-    OutlinedCard(
-        modifier = Modifier
-            .padding(horizontal = Spacing.lg)
-            .fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = order.orderNumber?.let { "#$it" } ?: "Order",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                StatusChip(label = order.status.displayName, tone = order.status.toTone())
+        if (order.status == OrderStatus.PLACED || order.status == OrderStatus.CONFIRMED) {
+            item("cancel") {
+                OutlinedButton(
+                    onClick = onRequestCancel,
+                    enabled = !cancellationInFlight,
+                    modifier = Modifier
+                        .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
+                        .fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Text(if (cancellationInFlight) "Cancelling…" else "Cancel order")
+                }
             }
-            Text(
-                text = "Placed on ${order.createdAtIso?.take(10) ?: "—"}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = formatRupees(order.totalAmount),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-            )
         }
     }
 }
 
 @Composable
-private fun OrderTimeline(
-    currentStatus: OrderStatus,
-    modifier: Modifier = Modifier,
-) {
-    val steps = listOf(
-        OrderStatus.PLACED to "Placed",
-        OrderStatus.CONFIRMED to "Confirmed",
-        OrderStatus.SHIPPED to "Shipped",
-        OrderStatus.DELIVERED to "Delivered",
-    )
-    val reachedIndex = when (currentStatus) {
+private fun OrderTimelineCard(order: Order) {
+    val steps = buildList {
+        add(StepperStep(title = "Paid · ${formatRupees(order.totalAmount)}", time = order.createdAtIso?.take(10)))
+        add(StepperStep(title = "Packed at warehouse"))
+        add(
+            StepperStep(
+                title = "Shipped" + (order.trackingNumber?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
+            ),
+        )
+        add(StepperStep(title = "Out for delivery", time = order.estimatedDelivery))
+        add(StepperStep(title = "Delivered"))
+    }
+    val currentIndex = when (order.status) {
         OrderStatus.PLACED -> 0
         OrderStatus.CONFIRMED -> 1
         OrderStatus.SHIPPED -> 2
-        OrderStatus.DELIVERED -> 3
+        OrderStatus.DELIVERED -> 4
         OrderStatus.CANCELLED, OrderStatus.RETURNED, OrderStatus.UNKNOWN -> -1
     }
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        steps.forEachIndexed { idx, step ->
-            val reached = idx <= reachedIndex
-            TimelineNode(reached = reached, label = step.second)
-            if (idx < steps.size - 1) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(2.dp)
-                        .background(
-                            if (idx < reachedIndex) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.outlineVariant,
-                        ),
-                )
-            }
+    OutlinedSurfaceCard(modifier = Modifier.padding(horizontal = Spacing.lg)) {
+        Column(modifier = Modifier.padding(Spacing.lg)) {
+            VerticalStepper(steps = steps, current = currentIndex)
         }
     }
 }
 
 @Composable
-private fun TimelineNode(reached: Boolean, label: String) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(24.dp)
-                .clip(CircleShape)
-                .background(
-                    if (reached) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.surfaceVariant,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (reached) {
-                Icon(
-                    imageVector = Icons.Outlined.Check,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-        }
-        Spacer(Modifier.height(Spacing.xs))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (reached) MaterialTheme.colorScheme.onSurface
-            else MaterialTheme.colorScheme.onSurfaceVariant,
+private fun OrderItemsCard(order: Order) {
+    // Fallback to two placeholder rows if the order has no line items surfaced in state.
+    val rows: List<OrderLineItem> = order.lineItems.ifEmpty {
+        listOf(
+            OrderLineItem(
+                partId = "placeholder-1",
+                name = "ECG electrodes Ag/AgCl 50pk",
+                partNumber = null,
+                quantity = 2,
+                unitPriceRupees = 1299.0,
+            ),
+            OrderLineItem(
+                partId = "placeholder-2",
+                name = "SpO₂ sensor adult",
+                partNumber = null,
+                quantity = 1,
+                unitPriceRupees = 4650.0,
+            ),
         )
     }
-}
-
-@Composable
-private fun ShippingCard(
-    order: Order,
-    clipboard: androidx.compose.ui.platform.ClipboardManager,
-    onShowMessage: (String) -> Unit,
-) {
-    OutlinedCard(
-        modifier = Modifier
-            .padding(horizontal = Spacing.lg)
-            .fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
-        ) {
-            order.shippingAddress?.takeIf { it.isNotBlank() }?.let {
-                Text(it, style = MaterialTheme.typography.bodyMedium)
-            }
-            order.locationLine?.let {
-                Text(it, style = MaterialTheme.typography.bodyMedium)
-            }
-            order.shippingPincode?.takeIf { it.isNotBlank() }?.let {
-                Text("PIN $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            order.trackingNumber?.takeIf { it.isNotBlank() }?.let { tracking ->
-                Spacer(Modifier.height(Spacing.xxs))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Tracking: $tracking",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f),
+    OutlinedSurfaceCard(modifier = Modifier.padding(horizontal = Spacing.lg)) {
+        Column {
+            rows.forEachIndexed { i, line ->
+                LineItemRow(line = line)
+                if (i < rows.lastIndex) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(Surface100),
                     )
-                    IconButton(onClick = {
-                        clipboard.setText(AnnotatedString(tracking))
-                        onShowMessage("Tracking number copied")
-                    }) {
-                        Icon(Icons.Outlined.ContentCopy, contentDescription = "Copy tracking")
-                    }
                 }
-            }
-            order.estimatedDelivery?.let {
-                Text(
-                    text = "Estimated delivery: $it",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
     }
@@ -337,120 +292,137 @@ private fun ShippingCard(
 
 @Composable
 private fun LineItemRow(line: OrderLineItem) {
-    OutlinedCard(
+    val (hue, icon) = iconFor(line.name)
+    Row(
         modifier = Modifier
-            .padding(horizontal = Spacing.lg)
+            .fillMaxWidth()
+            .padding(Spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        GradientTile(icon = icon, hue = hue, size = 56.dp)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = line.name,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Ink900,
+                maxLines = 2,
+            )
+            Text(
+                text = "Qty ${line.quantity}",
+                fontSize = 12.sp,
+                color = Ink500,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+        Text(
+            text = formatRupees(line.lineSubtotalRupees),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = Ink900,
+        )
+    }
+}
+
+@Composable
+private fun DeliveryCard(order: Order) {
+    OutlinedSurfaceCard(modifier = Modifier.padding(horizontal = Spacing.lg)) {
+        Column(
+            modifier = Modifier.padding(Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            val locationHeadline = order.locationLine?.takeIf { it.isNotBlank() } ?: "Delivery address"
+            Text(
+                text = locationHeadline,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = Ink900,
+            )
+            val addressParts = listOfNotNull(
+                order.shippingAddress?.takeIf { it.isNotBlank() },
+                order.shippingPincode?.takeIf { it.isNotBlank() }?.let { "PIN $it" },
+            )
+            if (addressParts.isNotEmpty()) {
+                Text(
+                    text = addressParts.joinToString(", "),
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp,
+                    color = Ink700,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun OrderActionButtons(
+    onInvoice: () -> Unit,
+    onContactSeller: () -> Unit,
+    onReorder: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
             .fillMaxWidth(),
-        shape = RoundedCornerShape(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Spacing.md),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-                Text(line.name, style = MaterialTheme.typography.bodyLarge, maxLines = 2)
-                line.partNumber?.let {
-                    Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Text(
-                    "${line.quantity} × ${formatRupees(line.unitPriceRupees)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Text(
-                text = formatRupees(line.lineSubtotalRupees),
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
-    }
-}
-
-@Composable
-private fun TotalsCard(order: Order) {
-    OutlinedCard(
-        modifier = Modifier
-            .padding(horizontal = Spacing.lg)
-            .fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            TotalRow("Subtotal", formatRupees(order.subtotal))
-            TotalRow("GST", formatRupees(order.gstAmount))
-            TotalRow(
-                "Shipping",
-                if (order.shippingCost == 0.0) "Free" else formatRupees(order.shippingCost),
-            )
-            HorizontalDivider()
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+            OutlinedButton(
+                onClick = onInvoice,
+                modifier = Modifier.weight(1f),
             ) {
-                Text("Total", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text(
-                    formatRupees(order.totalAmount),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                Icon(Icons.Outlined.Download, contentDescription = null)
+                Spacer(Modifier.padding(end = 6.dp))
+                Text("Invoice")
             }
-        }
-    }
-}
-
-@Composable
-private fun TotalRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.bodyMedium)
-    }
-}
-
-@Composable
-private fun PaymentCard(order: Order) {
-    val tone = when (order.paymentStatus) {
-        "completed" -> StatusTone.Success
-        "failed" -> StatusTone.Danger
-        "refunded" -> StatusTone.Info
-        else -> StatusTone.Warn
-    }
-    OutlinedCard(
-        modifier = Modifier
-            .padding(horizontal = Spacing.lg, vertical = Spacing.xs)
-            .fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            OutlinedButton(
+                onClick = onContactSeller,
+                modifier = Modifier.weight(1f),
             ) {
-                Text("Payment", style = MaterialTheme.typography.titleMedium)
-                StatusChip(
-                    label = order.paymentStatus?.replaceFirstChar { it.uppercase() } ?: "Pending",
-                    tone = tone,
-                )
-            }
-            order.paymentId?.takeIf { it.isNotBlank() }?.let {
-                Text(
-                    "Ref: $it",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = null)
+                Spacer(Modifier.padding(end = 6.dp))
+                Text("Contact seller")
             }
         }
+        Button(
+            onClick = onReorder,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ),
+        ) {
+            Icon(Icons.Outlined.Refresh, contentDescription = null)
+            Spacer(Modifier.padding(end = 6.dp))
+            Text("Reorder")
+        }
+    }
+}
+
+@Composable
+private fun OrderStatusChipRow(order: Order) {
+    StatusChip(label = order.status.displayName, tone = order.status.toTone())
+}
+
+@Composable
+private fun OutlinedSurfaceCard(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                color = MaterialTheme.colorScheme.surface,
+                shape = MaterialTheme.shapes.medium,
+            )
+            .border(1.dp, Surface200, MaterialTheme.shapes.medium),
+    ) {
+        content()
     }
 }
 
@@ -460,4 +432,16 @@ private fun OrderStatus.toTone(): StatusTone = when (this) {
     OrderStatus.DELIVERED -> StatusTone.Success
     OrderStatus.CANCELLED, OrderStatus.RETURNED -> StatusTone.Danger
     OrderStatus.UNKNOWN -> StatusTone.Neutral
+}
+
+private fun iconFor(name: String): Pair<Int, ImageVector> {
+    val n = name.lowercase()
+    return when {
+        "ecg" in n || "electrode" in n || "monitor" in n -> 40 to Icons.Outlined.MedicalServices
+        "spo" in n || "sensor" in n -> 330 to Icons.Outlined.MedicalServices
+        "mri" in n || "ct" in n || "x-ray" in n || "xray" in n || "ultrasound" in n -> 200 to Icons.Outlined.MedicalServices
+        "pump" in n || "tubing" in n -> 280 to Icons.Outlined.MedicalServices
+        "ventilator" in n -> 0 to Icons.Outlined.MedicalServices
+        else -> 150 to Icons.Outlined.MedicalServices
+    }
 }

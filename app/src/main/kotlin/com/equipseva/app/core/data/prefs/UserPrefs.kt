@@ -3,6 +3,7 @@ package com.equipseva.app.core.data.prefs
 import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.Module
 import dagger.Provides
@@ -24,12 +25,14 @@ class UserPrefs @Inject constructor(
         val ACTIVE_ROLE = stringPreferencesKey("active_role")
         val THEME = stringPreferencesKey("theme")
         val ONBOARDING_DONE = stringPreferencesKey("onboarding_done")
+        val FAVORITES = stringSetPreferencesKey("favorites")
     }
 
     val activeRole: Flow<String?> = context.prefsStore.data.map { it[Keys.ACTIVE_ROLE] }
     val theme: Flow<String?> = context.prefsStore.data.map { it[Keys.THEME] }
     val themeMode: Flow<ThemeMode> = context.prefsStore.data.map { ThemeMode.fromKey(it[Keys.THEME]) }
     val onboardingDone: Flow<Boolean> = context.prefsStore.data.map { it[Keys.ONBOARDING_DONE] == "1" }
+    val favorites: Flow<Set<String>> = context.prefsStore.data.map { it[Keys.FAVORITES].orEmpty() }
 
     suspend fun setActiveRole(role: String) {
         context.prefsStore.edit { it[Keys.ACTIVE_ROLE] = role }
@@ -45,6 +48,17 @@ class UserPrefs @Inject constructor(
 
     suspend fun markOnboardingDone() {
         context.prefsStore.edit { it[Keys.ONBOARDING_DONE] = "1" }
+    }
+
+    suspend fun toggleFavorite(partId: String) {
+        context.prefsStore.edit { prefs ->
+            val cur = prefs[Keys.FAVORITES].orEmpty()
+            prefs[Keys.FAVORITES] = if (partId in cur) cur - partId else cur + partId
+        }
+    }
+
+    suspend fun setFavorites(ids: Set<String>) {
+        context.prefsStore.edit { it[Keys.FAVORITES] = ids }
     }
 }
 

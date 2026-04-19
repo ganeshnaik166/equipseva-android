@@ -4,6 +4,7 @@ import com.equipseva.app.features.auth.UserRole
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import javax.inject.Inject
@@ -29,6 +30,22 @@ class SupabaseProfileRepository @Inject constructor(
             buildJsonObject {
                 put("role", JsonPrimitive(role.storageKey))
                 put("role_confirmed", JsonPrimitive(true))
+            },
+        ) {
+            filter { eq("id", userId) }
+        }
+        Unit
+    }
+
+    override suspend fun updateBasicInfo(
+        userId: String,
+        fullName: String?,
+        phone: String?,
+    ): Result<Unit> = runCatching {
+        client.from(TABLE).update(
+            buildJsonObject {
+                put("full_name", fullName?.let { JsonPrimitive(it) } ?: JsonNull)
+                put("phone", phone?.let { JsonPrimitive(it) } ?: JsonNull)
             },
         ) {
             filter { eq("id", userId) }

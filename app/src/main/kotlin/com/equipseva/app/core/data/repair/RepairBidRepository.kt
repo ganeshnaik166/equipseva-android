@@ -9,4 +9,7 @@ interface RepairBidRepository {
         note: String? = null,
     ): Result<RepairBid>
     suspend fun withdrawBid(bidId: String): Result<Unit>
+
+    /** All bids placed by the signed-in engineer, newest first. RLS restricts to own rows. */
+    suspend fun fetchMyBids(): Result<List<RepairBid>>
 }

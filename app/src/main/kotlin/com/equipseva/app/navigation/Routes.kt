@@ -12,6 +12,7 @@ object Routes {
     const val AUTH_SIGN_UP = "auth/sign_up"
     const val AUTH_OTP_REQUEST = "auth/otp_request"
     const val AUTH_OTP_VERIFY = "auth/otp_verify"
+    const val AUTH_FORGOT_PASSWORD = "auth/forgot_password"
 
     // OTP verify takes the email as a path arg so the back stack is restorable.
     const val AUTH_OTP_VERIFY_ARG_EMAIL = "email"
@@ -54,4 +55,37 @@ object Routes {
 
     // Engineer KYC / verification (full-screen, engineer-only entry from Profile).
     const val KYC = "profile/kyc"
+
+    // About screen (version, licenses, links — sub-route entered from Profile).
+    const val ABOUT = "profile/about"
+
+    // Favorites (saved parts) — sub-route entered from Profile.
+    const val FAVORITES = "profile/favorites"
+
+    // Engineer-specific dashboards (full-screen sub-routes entered from Home).
+    const val MY_BIDS = "engineer/my_bids"
+    const val EARNINGS = "engineer/earnings"
+    const val ACTIVE_WORK = "engineer/active_work"
+    const val ENGINEER_PROFILE = "engineer/profile"
+
+    // Supplier-specific dashboards (full-screen sub-routes entered from Home).
+    const val MY_LISTINGS = "supplier/listings"
+    const val STOCK_ALERTS = "supplier/stock_alerts"
+    const val SUPPLIER_ORDERS = "supplier/orders"
+    const val SUPPLIER_RFQS = "supplier/rfqs"
+    const val SUPPLIER_ADD_LISTING = "supplier/listings/add"
+
+    // Manufacturer-specific dashboards (full-screen sub-routes entered from Home).
+    const val RFQS_ASSIGNED = "manufacturer/rfqs"
+    const val LEAD_PIPELINE = "manufacturer/leads"
+    const val ANALYTICS = "manufacturer/analytics"
+
+    // Logistics partner dashboards (full-screen sub-routes entered from Home).
+    const val PICKUP_QUEUE = "logistics/pickups"
+    const val ACTIVE_DELIVERIES = "logistics/active"
+    const val COMPLETED_TODAY = "logistics/completed"
+
+    // Hospital-side sub-routes.
+    const val REQUEST_SERVICE = "hospital/request_service"
+    const val HOSPITAL_CREATE_RFQ = "hospital/create_rfq"
 }

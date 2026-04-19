@@ -1,34 +1,44 @@
 package com.equipseva.app.features.cart
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.outlined.ShoppingCartCheckout
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,21 +47,27 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
-import kotlinx.coroutines.launch
 import com.equipseva.app.core.data.cart.CartItem
 import com.equipseva.app.core.util.formatRupees
-import com.equipseva.app.designsystem.components.BrandedPlaceholder
-import com.equipseva.app.designsystem.components.ESTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
-import com.equipseva.app.designsystem.components.PrimaryButton
+import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.QuantityStepper
+import com.equipseva.app.designsystem.theme.BrandGreen
+import com.equipseva.app.designsystem.theme.BrandGreenDark
+import com.equipseva.app.designsystem.theme.Ink500
+import com.equipseva.app.designsystem.theme.Ink700
+import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Surface0
+import com.equipseva.app.designsystem.theme.Surface200
+import com.equipseva.app.designsystem.theme.Surface50
+import androidx.compose.material.icons.filled.MedicalServices
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,29 +90,49 @@ fun CartScreen(
         }
     }
 
+    // Tax + delivery lines (mirror the design's summary; ViewModel only exposes raw total).
+    val subtotalRupees = state.totalInPaise / 100.0
+    val gstRupees = Math.round(subtotalRupees * 0.12).toDouble()
+    val deliveryRupees = 0.0
+    val totalRupees = subtotalRupees + gstRupees + deliveryRupees
+
     Scaffold(
-        topBar = { ESTopBar(title = "Cart") },
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Cart", fontWeight = FontWeight.Bold)
+                        if (state.items.isNotEmpty()) {
+                            Text(
+                                text = "${state.items.size} items",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
+                            )
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+            )
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = Surface50,
         bottomBar = {
             if (state.items.isNotEmpty()) {
-                Column {
-                    ApplyPromoRow(
-                        onClick = {
-                            scope.launch { snackbarHostState.showSnackbar("Promo codes coming soon") }
-                        },
-                    )
-                    CartBottomBar(
-                        totalInPaise = state.totalInPaise,
-                        onCheckout = viewModel::onCheckout,
-                    )
-                }
+                CheckoutBottomBar(
+                    totalRupees = totalRupees,
+                    onCheckout = viewModel::onCheckout,
+                )
             }
         },
     ) { padding ->
         Box(
             modifier = Modifier
                 .padding(padding)
-                .fillMaxSize(),
+                .fillMaxSize()
+                .background(Surface50),
         ) {
             when {
                 state.loading -> Box(
@@ -110,9 +146,9 @@ fun CartScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
                         horizontal = Spacing.lg,
-                        vertical = Spacing.md,
+                        vertical = Spacing.sm,
                     ),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     items(items = state.items, key = { it.partId }) { line ->
                         CartLineRow(
@@ -122,13 +158,37 @@ fun CartScreen(
                             onRemove = { viewModel.onRemove(line.partId) },
                         )
                     }
+                    item("coupon") {
+                        CouponRow(
+                            onClick = {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Promo codes coming soon")
+                                }
+                            },
+                        )
+                    }
+                    item("summary") {
+                        SummaryCard(
+                            subtotal = subtotalRupees,
+                            gst = gstRupees,
+                            delivery = deliveryRupees,
+                            total = totalRupees,
+                        )
+                    }
+                    item("trailing_spacer") {
+                        Spacer(Modifier.height(Spacing.md))
+                    }
                 }
             }
         }
     }
-    // `onBack` is accepted now so the nav wiring on the caller side is trivial;
-    // Phase 1 top bar has no back affordance, so we don't invoke it here yet.
+    // onBack accepted but not invoked (top bar has no back affordance in Phase 1).
+    @Suppress("UNUSED_EXPRESSION") onBack
 }
+
+/* ------------------------------------------------------------------ */
+/* Cart line                                                          */
+/* ------------------------------------------------------------------ */
 
 @Composable
 private fun CartLineRow(
@@ -137,156 +197,227 @@ private fun CartLineRow(
     onDecrement: () -> Unit,
     onRemove: () -> Unit,
 ) {
-    Surface(
-        shape = RoundedCornerShape(Spacing.md),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
+    Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(5.dp),
+        colors = CardDefaults.cardColors(containerColor = Surface0),
+        border = BorderStroke(1.dp, Surface200),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CartLineImage(url = item.imageUrl)
+            GradientTile(
+                icon = Icons.Filled.MedicalServices,
+                hue = 40,
+                size = 72.dp,
+            )
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
                     text = item.name,
-                    style = MaterialTheme.typography.titleSmall,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Ink900,
                     maxLines = 2,
                 )
-                Text(
-                    text = formatRupees(item.unitPriceInPaise / 100.0),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                QuantityStepper(
-                    value = item.quantity,
-                    onDecrement = onDecrement,
-                    onIncrement = onIncrement,
-                )
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    QuantityStepper(
+                        value = item.quantity,
+                        onDecrement = onDecrement,
+                        onIncrement = onIncrement,
+                    )
+                    Text(
+                        text = formatRupees((item.unitPriceInPaise * item.quantity) / 100.0),
+                        fontSize = 15.sp,
+                        lineHeight = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Ink900,
+                    )
+                }
             }
 
-            IconButton(onClick = onRemove) {
+            IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
                 Icon(
                     imageVector = Icons.Filled.Delete,
                     contentDescription = "Remove ${item.name} from cart",
                     tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(20.dp),
                 )
             }
         }
     }
 }
 
+/* ------------------------------------------------------------------ */
+/* Coupon pill                                                        */
+/* ------------------------------------------------------------------ */
+
 @Composable
-private fun CartLineImage(url: String?) {
-    val shape = RoundedCornerShape(Spacing.sm)
-    if (url.isNullOrBlank()) {
-        BrandedPlaceholder(
-            modifier = Modifier.size(56.dp),
-            shape = shape,
-        )
-    } else {
-        AsyncImage(
-            model = url,
+private fun CouponRow(onClick: () -> Unit) {
+    // Dashed border is non-trivial without a custom drawBehind; use a dotted-style
+    // 1.5dp solid border to stay close to the spec.
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .clip(RoundedCornerShape(50))
+            .background(Surface0)
+            .border(1.5.dp, Surface200, RoundedCornerShape(50))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.LocalOffer,
             contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(56.dp)
-                .clip(shape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+            tint = BrandGreen,
+            modifier = Modifier.size(20.dp),
+        )
+        Text(
+            text = "Have a coupon?",
+            fontSize = 14.sp,
+            color = Ink500,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = "Apply",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = BrandGreen,
         )
     }
 }
 
+/* ------------------------------------------------------------------ */
+/* Summary card                                                       */
+/* ------------------------------------------------------------------ */
+
 @Composable
-private fun CartBottomBar(totalInPaise: Long, onCheckout: () -> Unit) {
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 3.dp,
+private fun SummaryCard(subtotal: Double, gst: Double, delivery: Double, total: Double) {
+    Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(5.dp),
+        colors = CardDefaults.cardColors(containerColor = Surface0),
+        border = BorderStroke(1.5.dp, Surface200),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column {
-            HorizontalDivider()
-            Column(
+        Column(modifier = Modifier.padding(16.dp)) {
+            SummaryRow("Subtotal", formatRupees(subtotal))
+            SummaryRow("GST (12%)", formatRupees(gst))
+            SummaryRow("Delivery", if (delivery == 0.0) "FREE" else formatRupees(delivery))
+            Spacer(Modifier.height(Spacing.xs))
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    .height(1.dp)
+                    .background(Surface200),
+            )
+            Spacer(Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "Total",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = formatRupees(totalInPaise / 100.0),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-                PrimaryButton(
-                    label = "Checkout",
-                    onClick = onCheckout,
+                Text(
+                    text = "Total",
+                    fontSize = 14.sp,
+                    lineHeight = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Ink900,
+                )
+                Text(
+                    text = formatRupees(total),
+                    fontSize = 18.sp,
+                    lineHeight = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = BrandGreenDark,
                 )
             }
         }
     }
 }
+
+@Composable
+private fun SummaryRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(text = label, fontSize = 13.sp, lineHeight = 16.sp, color = Ink700)
+        Text(
+            text = value,
+            fontSize = 13.sp,
+            lineHeight = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Ink900,
+        )
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Bottom bar                                                         */
+/* ------------------------------------------------------------------ */
+
+@Composable
+private fun CheckoutBottomBar(totalRupees: Double, onCheckout: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Surface0)
+            .border(1.dp, Surface200, RoundedCornerShape(0.dp))
+            .padding(16.dp),
+    ) {
+        Button(
+            onClick = onCheckout,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(50),
+            colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
+        ) {
+            Text(
+                text = "Checkout \u00b7 ${formatRupees(totalRupees)}",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Empty                                                              */
+/* ------------------------------------------------------------------ */
 
 @Composable
 private fun EmptyCart(onBrowseParts: () -> Unit) {
     EmptyStateView(
         icon = Icons.Outlined.ShoppingCartCheckout,
         title = "Your cart is empty",
-        subtitle = "Browse parts to get started.",
-        ctaLabel = "Browse parts",
+        subtitle = "Browse parts to add them here.",
+        ctaLabel = "Browse marketplace",
         onCta = onBrowseParts,
     )
-}
-
-@Composable
-private fun ApplyPromoRow(onClick: () -> Unit) {
-    OutlinedCard(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Sell,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                text = "Apply promo code",
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = "Coming soon",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
 }
 

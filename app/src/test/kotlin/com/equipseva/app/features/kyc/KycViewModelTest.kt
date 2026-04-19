@@ -151,6 +151,7 @@ private class FakeAuthRepository(userId: String) : AuthRepository {
     override suspend fun verifyEmailOtp(email: String, token: String) = Result.success(Unit)
     override suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?) = Result.success(Unit)
     override suspend fun signOut() = Result.success(Unit)
+    override suspend fun sendPasswordResetEmail(email: String) = Result.success(Unit)
 }
 
 private class FakeEngineerRepository : EngineerRepository {
@@ -202,4 +203,14 @@ private class FakeEngineerRepository : EngineerRepository {
         bytes: ByteArray,
         contentType: String?,
     ): Result<String> = Result.success("$userId/$fileName")
+
+    override suspend fun upsertProfile(
+        userId: String,
+        hourlyRate: Double,
+        yearsExperience: Int,
+        serviceAreas: List<String>,
+        specializations: List<String>,
+        bio: String,
+        isAvailable: Boolean,
+    ): Result<Engineer> = Result.success(fetched ?: error("FakeEngineerRepository.upsertProfile not stubbed"))
 }
