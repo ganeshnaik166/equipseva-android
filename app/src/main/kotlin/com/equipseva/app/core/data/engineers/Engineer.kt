@@ -16,7 +16,14 @@ data class Engineer(
     val state: String?,
     val verificationStatus: VerificationStatus,
     val backgroundCheckStatus: VerificationStatus,
-)
+    val certificates: List<EngineerCertificate>,
+) {
+    val aadhaarDocPath: String? get() =
+        certificates.lastOrNull { it.type == EngineerCertificate.TYPE_AADHAAR }?.path
+
+    val certDocPaths: List<String> get() =
+        certificates.filter { it.type == EngineerCertificate.TYPE_CERT }.map { it.path }
+}
 
 internal fun EngineerDto.toDomain(): Engineer = Engineer(
     id = id,
@@ -32,4 +39,5 @@ internal fun EngineerDto.toDomain(): Engineer = Engineer(
     state = state?.takeIf { it.isNotBlank() },
     verificationStatus = VerificationStatus.fromKey(verificationStatus),
     backgroundCheckStatus = VerificationStatus.fromKey(backgroundCheckStatus),
+    certificates = certificates.orEmpty(),
 )

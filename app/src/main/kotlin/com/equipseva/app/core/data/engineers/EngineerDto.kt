@@ -18,6 +18,7 @@ data class EngineerDto(
     val state: String? = null,
     @SerialName("verification_status") val verificationStatus: String? = null,
     @SerialName("background_check_status") val backgroundCheckStatus: String? = null,
+    val certificates: List<EngineerCertificate>? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
 )
@@ -32,4 +33,5 @@ internal data class EngineerUpsertDto(
     @SerialName("service_radius_km") val serviceRadiusKm: Int? = null,
     val city: String? = null,
     val state: String? = null,
+    val certificates: List<EngineerCertificate>? = null,
 )

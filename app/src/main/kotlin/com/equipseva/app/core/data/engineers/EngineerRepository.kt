@@ -14,6 +14,7 @@ interface EngineerRepository {
         serviceRadiusKm: Int,
         city: String?,
         state: String?,
+        certificates: List<EngineerCertificate>,
     ): Result<Engineer>
 
     /**

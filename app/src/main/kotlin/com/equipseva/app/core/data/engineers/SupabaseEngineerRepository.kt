@@ -29,6 +29,7 @@ class SupabaseEngineerRepository @Inject constructor(
         serviceRadiusKm: Int,
         city: String?,
         state: String?,
+        certificates: List<EngineerCertificate>,
     ): Result<Engineer> = runCatching {
         val payload = EngineerUpsertDto(
             userId = userId,
@@ -39,6 +40,7 @@ class SupabaseEngineerRepository @Inject constructor(
             serviceRadiusKm = serviceRadiusKm,
             city = city?.takeIf { it.isNotBlank() },
             state = state?.takeIf { it.isNotBlank() },
+            certificates = certificates.ifEmpty { null },
         )
         client.from(TABLE).upsert(payload) {
             onConflict = "user_id"

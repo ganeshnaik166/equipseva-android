@@ -5,10 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.engineers.Engineer
+import com.equipseva.app.core.data.engineers.EngineerCertificate
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.network.toUserMessage
+import kotlinx.datetime.Clock
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -103,6 +105,8 @@ class KycViewModel @Inject constructor(
                     serviceRadiusKm = engineer.serviceRadiusKm.toString(),
                     qualifications = engineer.qualifications,
                     selectedSpecializations = engineer.specializations.toSet(),
+                    aadhaarDocPath = engineer.aadhaarDocPath,
+                    certDocPaths = engineer.certDocPaths,
                 )
             }
         }
@@ -220,6 +224,15 @@ class KycViewModel @Inject constructor(
         }
         _state.update { it.copy(saving = true) }
         viewModelScope.launch {
+            val now = Clock.System.now().toString()
+            val certificates = buildList {
+                snap.aadhaarDocPath?.let {
+                    add(EngineerCertificate(EngineerCertificate.TYPE_AADHAAR, it, now))
+                }
+                snap.certDocPaths.forEach {
+                    add(EngineerCertificate(EngineerCertificate.TYPE_CERT, it, now))
+                }
+            }
             engineerRepository.upsert(
                 userId = uid,
                 aadhaarNumber = aadhaarDigits.takeIf { it.isNotEmpty() },
@@ -229,6 +242,7 @@ class KycViewModel @Inject constructor(
                 serviceRadiusKm = snap.serviceRadiusKm.toIntOrNull() ?: 25,
                 city = snap.city.takeIf { it.isNotBlank() },
                 state = snap.state.takeIf { it.isNotBlank() },
+                certificates = certificates,
             ).fold(
                 onSuccess = { engineer ->
                     hydrate(engineer)
