@@ -11,11 +11,11 @@ import javax.inject.Singleton
 /**
  * Wraps Razorpay Standard Checkout behind a suspending API. The hosting [Activity] must
  * implement [com.razorpay.PaymentResultWithDataListener] and hand each callback to
- * [complete]. Only one checkout can be in flight at a time.
+ * [onPaymentSuccess] / [onPaymentError]. Only one checkout can be in flight at a time.
  *
- * For production, server-side order creation + signature verification via a Supabase edge
- * function is recommended. This launcher intentionally keeps the client path minimal so
- * the buyer loop closes end-to-end with the Razorpay test key.
+ * Checkout is always launched with a server-minted `razorpay_order_id` so the success
+ * callback returns a signed (order_id, payment_id, signature) triple that
+ * `verify-razorpay-payment` HMAC-checks.
  */
 @Singleton
 class RazorpayLauncher @Inject constructor() {
@@ -27,6 +27,7 @@ class RazorpayLauncher @Inject constructor() {
 
     data class CheckoutRequest(
         val orderId: String,
+        val razorpayOrderId: String,
         val orderNumber: String?,
         val amountInPaise: Long,
         val buyerName: String,
@@ -48,6 +49,7 @@ class RazorpayLauncher @Inject constructor() {
             put("description", request.description)
             put("currency", "INR")
             put("amount", request.amountInPaise)
+            put("order_id", request.razorpayOrderId)
             put("prefill", JSONObject().apply {
                 request.buyerEmail?.let { put("email", it) }
                 request.buyerPhone?.let { put("contact", it) }
@@ -65,9 +67,33 @@ class RazorpayLauncher @Inject constructor() {
         return deferred.await()
     }
 
-    fun onPaymentSuccess(razorpayPaymentId: String, signature: String?) {
+    fun onPaymentSuccess(
+        razorpayPaymentId: String,
+        razorpayOrderId: String?,
+        signature: String?,
+    ) {
         val orderId = pendingOrderId ?: return
-        pending?.complete(PaymentResult.Success(orderId, razorpayPaymentId, signature))
+        if (razorpayOrderId.isNullOrBlank() || signature.isNullOrBlank()) {
+            // Razorpay should always return these when checkout is launched with order_id.
+            // Treat missing values as a hard failure so we don't attempt unverifiable marks.
+            pending?.complete(
+                PaymentResult.Failure(
+                    orderId,
+                    code = -1,
+                    description = "Razorpay callback missing order_id/signature",
+                ),
+            )
+            clear()
+            return
+        }
+        pending?.complete(
+            PaymentResult.Success(
+                orderId = orderId,
+                razorpayOrderId = razorpayOrderId,
+                razorpayPaymentId = razorpayPaymentId,
+                razorpaySignature = signature,
+            ),
+        )
         clear()
     }
 

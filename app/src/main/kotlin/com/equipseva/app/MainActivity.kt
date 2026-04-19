@@ -55,6 +55,7 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
     override fun onPaymentSuccess(razorpayPaymentId: String?, paymentData: PaymentData?) {
         razorpayLauncher.onPaymentSuccess(
             razorpayPaymentId = razorpayPaymentId.orEmpty(),
+            razorpayOrderId = paymentData?.orderId,
             signature = paymentData?.signature,
         )
     }

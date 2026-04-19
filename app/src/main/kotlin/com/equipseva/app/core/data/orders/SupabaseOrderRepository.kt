@@ -51,16 +51,14 @@ class SupabaseOrderRepository @Inject constructor(
         }.decodeList<OrderDto>().firstOrNull()?.toDomain()
     }
 
-    override suspend fun markPayment(
+    override suspend fun markPaymentOutcome(
         id: String,
-        paymentId: String?,
-        paymentStatus: String,
-        orderStatus: String?,
+        paymentStatus: NonTerminalPaymentStatus,
+        orderStatus: NonTerminalOrderStatus?,
     ): Result<Unit> = runCatching {
         client.from(TABLE).update({
-            set("payment_status", paymentStatus)
-            paymentId?.let { set("payment_id", it) }
-            orderStatus?.let { set("order_status", it) }
+            set("payment_status", paymentStatus.storageKey)
+            orderStatus?.let { set("order_status", it.storageKey) }
         }) {
             filter { eq("id", id) }
         }

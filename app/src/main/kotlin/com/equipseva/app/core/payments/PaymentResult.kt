@@ -6,8 +6,9 @@ sealed interface PaymentResult {
 
     data class Success(
         override val orderId: String,
+        val razorpayOrderId: String,
         val razorpayPaymentId: String,
-        val razorpaySignature: String?,
+        val razorpaySignature: String,
     ) : PaymentResult
 
     data class Failure(

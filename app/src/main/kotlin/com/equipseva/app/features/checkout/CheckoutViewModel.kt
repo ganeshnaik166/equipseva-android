@@ -8,14 +8,16 @@ import com.equipseva.app.core.data.cart.CartItem
 import com.equipseva.app.core.data.cart.CartRepository
 import com.equipseva.app.core.data.orders.OrderDraft
 import com.equipseva.app.core.data.orders.OrderLineItem
+import com.equipseva.app.core.data.orders.NonTerminalOrderStatus
+import com.equipseva.app.core.data.orders.NonTerminalPaymentStatus
 import com.equipseva.app.core.data.orders.OrderRepository
-import com.equipseva.app.core.data.orders.OrderStatus
 import com.equipseva.app.core.data.parts.SparePart
 import com.equipseva.app.core.data.parts.SparePartsRepository
 import com.equipseva.app.core.data.profile.Profile
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.payments.PaymentResult
+import com.equipseva.app.core.payments.PaymentVerificationRepository
 import com.equipseva.app.core.payments.RazorpayLauncher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -28,7 +30,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.math.roundToLong
 
 @HiltViewModel
 class CheckoutViewModel @Inject constructor(
@@ -38,6 +39,7 @@ class CheckoutViewModel @Inject constructor(
     private val partsRepository: SparePartsRepository,
     private val orderRepository: OrderRepository,
     private val razorpayLauncher: RazorpayLauncher,
+    private val paymentVerification: PaymentVerificationRepository,
 ) : ViewModel() {
 
     data class FormState(
@@ -186,17 +188,28 @@ class CheckoutViewModel @Inject constructor(
             orderRepository.insert(draft)
                 .onSuccess { order ->
                     pendingOrderId = order.id
-                    val amountPaise = (snap.totalRupees * 100.0).roundToLong()
-                    val request = RazorpayLauncher.CheckoutRequest(
-                        orderId = order.id,
-                        orderNumber = order.orderNumber,
-                        amountInPaise = amountPaise,
-                        buyerName = snap.form.fullName,
-                        buyerEmail = snap.prefilledEmail,
-                        buyerPhone = snap.form.phone,
-                        description = order.orderNumber?.let { "Order $it" } ?: "EquipSeva order",
+                    paymentVerification.createRazorpayOrder(
+                        PaymentVerificationRepository.CreateRequest(orderId = order.id),
                     )
-                    emit(Effect.LaunchRazorpay(request))
+                        .onSuccess { created ->
+                            val request = RazorpayLauncher.CheckoutRequest(
+                                orderId = order.id,
+                                razorpayOrderId = created.razorpayOrderId,
+                                orderNumber = order.orderNumber,
+                                amountInPaise = created.amount,
+                                buyerName = snap.form.fullName,
+                                buyerEmail = snap.prefilledEmail,
+                                buyerPhone = snap.form.phone,
+                                description = order.orderNumber?.let { "Order $it" } ?: "EquipSeva order",
+                            )
+                            emit(Effect.LaunchRazorpay(request))
+                        }
+                        .onFailure { error ->
+                            _state.update {
+                                it.copy(submitting = false, errorMessage = error.toUserMessage())
+                            }
+                            emit(Effect.ShowMessage(error.toUserMessage()))
+                        }
                 }
                 .onFailure { error ->
                     _state.update {
@@ -217,21 +230,36 @@ class CheckoutViewModel @Inject constructor(
         viewModelScope.launch {
             when (result) {
                 is PaymentResult.Success -> {
-                    orderRepository.markPayment(
-                        id = result.orderId,
-                        paymentId = result.razorpayPaymentId,
-                        paymentStatus = "completed",
-                        orderStatus = OrderStatus.CONFIRMED.storageKey,
+                    paymentVerification.verify(
+                        PaymentVerificationRepository.VerifyRequest(
+                            orderId = result.orderId,
+                            razorpayOrderId = result.razorpayOrderId,
+                            razorpayPaymentId = result.razorpayPaymentId,
+                            razorpaySignature = result.razorpaySignature,
+                        ),
                     )
-                    cartRepository.clear()
-                    _state.update { it.copy(submitting = false) }
-                    emit(Effect.OpenOrder(result.orderId))
+                        .onSuccess {
+                            cartRepository.clear()
+                            _state.update { it.copy(submitting = false) }
+                            emit(Effect.OpenOrder(result.orderId))
+                        }
+                        .onFailure { error ->
+                            // Signature mismatch or server refusal. Do NOT mark completed
+                            // client-side — RLS would refuse and UI would mislead the user.
+                            // Order stays in whatever state the server left it; buyer is told
+                            // to contact support and routed to the order detail.
+                            _state.update { it.copy(submitting = false) }
+                            emit(Effect.ShowMessage(
+                                "Payment received but verification failed. " +
+                                    "Contact support if the amount is debited.",
+                            ))
+                            emit(Effect.OpenOrder(result.orderId))
+                        }
                 }
                 is PaymentResult.Failure -> {
-                    orderRepository.markPayment(
+                    orderRepository.markPaymentOutcome(
                         id = result.orderId,
-                        paymentId = null,
-                        paymentStatus = "failed",
+                        paymentStatus = NonTerminalPaymentStatus.FAILED,
                         orderStatus = null,
                     )
                     _state.update { it.copy(submitting = false) }
@@ -239,11 +267,10 @@ class CheckoutViewModel @Inject constructor(
                     emit(Effect.OpenOrder(result.orderId))
                 }
                 is PaymentResult.Cancelled -> {
-                    orderRepository.markPayment(
+                    orderRepository.markPaymentOutcome(
                         id = result.orderId,
-                        paymentId = null,
-                        paymentStatus = "pending",
-                        orderStatus = OrderStatus.CANCELLED.storageKey,
+                        paymentStatus = NonTerminalPaymentStatus.PENDING,
+                        orderStatus = NonTerminalOrderStatus.CANCELLED,
                     )
                     _state.update { it.copy(submitting = false) }
                     emit(Effect.ShowMessage("Payment cancelled"))

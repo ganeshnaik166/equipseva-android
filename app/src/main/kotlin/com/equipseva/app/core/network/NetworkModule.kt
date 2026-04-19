@@ -32,7 +32,15 @@ object NetworkModule {
     @Singleton
     fun provideOkHttp(authInterceptor: AuthInterceptor): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply {
-            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
+            // Debug builds log headers + method + URL; release builds log nothing. Bodies
+            // are deliberately NOT logged — the Supabase SDK carries JWTs in request bodies
+            // for RPC calls and we don't want those in logcat even on developer machines.
+            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.HEADERS else HttpLoggingInterceptor.Level.NONE
+            // Scrub the bearer token from the header dump even in debug.
+            redactHeader("Authorization")
+            redactHeader("apikey")
+            redactHeader("Cookie")
+            redactHeader("Set-Cookie")
         }
         return OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
