@@ -17,11 +17,30 @@ class StorageRepository @Inject constructor(
         const val CATALOG_IMAGES = "catalog-images"
     }
 
-    suspend fun upload(bucket: String, path: String, bytes: ByteArray, contentType: String? = null) {
-        supabase.storage.from(bucket).upload(path, bytes) {
+    /**
+     * Uploads [bytes] to [bucket]/[path]. Enforces:
+     *   - MIME type allowlist (per [UploadValidator])
+     *   - size ceiling (per [UploadValidator])
+     *   - EXIF/metadata scrub for JPEG images (via [ExifScrubber])
+     *
+     * Callers should catch [UploadError] and surface a human-readable message; the bucket
+     * policy in Supabase enforces the same rules server-side as a backstop.
+     */
+    suspend fun upload(
+        bucket: String,
+        path: String,
+        bytes: ByteArray,
+        contentType: String? = null,
+    ): Result<Unit> = runCatching {
+        val policy = UploadValidator.validate(bucket, contentType, bytes.size.toLong()).getOrThrow()
+        val scrubbed = ExifScrubber.strip(bytes, contentType)
+        supabase.storage.from(bucket).upload(path, scrubbed) {
             upsert = true
             contentType?.let { this.contentType = io.ktor.http.ContentType.parse(it) }
         }
+        // policy is returned to callers who want to branch on the concrete limits.
+        @Suppress("UNUSED_VARIABLE")
+        val _p = policy
     }
 
     suspend fun signedUrl(bucket: String, path: String, expiresInMinutes: Int = 15): String =

@@ -32,10 +32,16 @@ class DeepLinkRouter @Inject constructor() {
         val path = uri.path.orEmpty()
         return when {
             host == "equipseva.com" && path.startsWith("/pay/return") -> {
-                uri.getQueryParameter("order_id")?.takeIf { it.isNotBlank() }
-                    ?.let(Event::OpenOrder)
+                val raw = uri.getQueryParameter("order_id") ?: return null
+                raw.takeIf { UUID_REGEX.matches(it) }?.let(Event::OpenOrder)
             }
             else -> null
         }
+    }
+
+    private companion object {
+        /** RFC 4122 UUID, case-insensitive. Rejects anything else so we never route on junk. */
+        private val UUID_REGEX =
+            Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
     }
 }

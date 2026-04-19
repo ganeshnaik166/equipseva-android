@@ -1,11 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android 12+ data-extraction policy. `allowBackup=false` in the manifest disables cloud
+    backup and device-transfer; these exclude-all rules ensure that if backup is toggled on
+    via a future build or OEM override, no sensitive prefs / databases are eligible.
+-->
 <data-extraction-rules>
     <cloud-backup>
-        <exclude domain="sharedpref" path="equipseva_prefs.xml" />
-        <exclude domain="database" path="equipseva.db" />
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
     </cloud-backup>
     <device-transfer>
-        <exclude domain="sharedpref" path="equipseva_prefs.xml" />
-        <exclude domain="database" path="equipseva.db" />
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
     </device-transfer>
 </data-extraction-rules>

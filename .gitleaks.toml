@@ -1,0 +1,22 @@
+# gitleaks config — extends default rules with project-specific allowlist.
+# Keeps the default rule set (API keys, JWTs, private keys, etc.) and only
+# carves out example/placeholder files that would otherwise trip false positives.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Project-specific allowlist"
+paths = [
+    # Placeholder config files — the real files are gitignored.
+    '''google-services\.json\.example''',
+    '''local\.properties\.example''',
+    # Lock files should not be scanned for content.
+    '''gradle/wrapper/gradle-wrapper\.properties''',
+]
+regexes = [
+    # Placeholder tokens intentionally shipped in example files.
+    '''REPLACE_ME''',
+    '''REPLACE_WITH_.*''',
+    '''PLACEHOLDER''',
+    '''BASE64-PIN-(PRIMARY|BACKUP)''',
+]

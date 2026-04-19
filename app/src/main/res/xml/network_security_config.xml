@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Explicit network security policy.
+
+    - base-config blocks cleartext end-to-end on release builds.
+    - debug-overrides allows cleartext to emulator loopback so local Supabase / Razorpay
+      stubs keep working in debug builds (and adds user-installed CAs for mitmproxy /
+      Charles during engineering).
+    - pin-set stanzas are stubbed out pending a cert-pinning runbook. Turning them on
+      without key rotation in place risks a DoS-by-cert-rotation; enable only after we
+      document the pin refresh flow.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+
+    <!--
+    <domain-config>
+        <domain includeSubdomains="true">supabase.co</domain>
+        <pin-set>
+            <pin digest="SHA-256">BASE64-PIN-PRIMARY</pin>
+            <pin digest="SHA-256">BASE64-PIN-BACKUP</pin>
+        </pin-set>
+    </domain-config>
+    <domain-config>
+        <domain includeSubdomains="true">razorpay.com</domain>
+        <pin-set>
+            <pin digest="SHA-256">BASE64-PIN-PRIMARY</pin>
+            <pin digest="SHA-256">BASE64-PIN-BACKUP</pin>
+        </pin-set>
+    </domain-config>
+    -->
+</network-security-config>
