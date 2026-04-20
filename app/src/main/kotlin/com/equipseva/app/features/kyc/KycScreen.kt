@@ -108,7 +108,6 @@ fun KycScreen(
         viewModel.effects.collect { effect ->
             when (effect) {
                 is KycViewModel.Effect.ShowMessage -> onShowMessage(effect.text)
-                KycViewModel.Effect.Saved -> Unit
             }
         }
     }
