@@ -364,11 +364,7 @@ private fun MarketplaceHome(
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
         item("featured_header") {
-            SectionHeader(
-                title = "Featured parts",
-                actionLabel = "See all",
-                onAction = { /* no-op: list already shown below */ },
-            )
+            SectionHeader(title = "Featured parts")
         }
         item("featured_rail") {
             val featured = items.take(6)
@@ -379,22 +375,6 @@ private fun MarketplaceHome(
             ) {
                 items(items = featured, key = { "f-${it.id}" }) { part ->
                     FeaturedCard(part = part, onClick = { onPartClick(part.id) })
-                }
-            }
-        }
-
-        item("recent_header") {
-            SectionHeader(title = "Recently viewed")
-        }
-        item("recent_rail") {
-            val recent = items.drop(6).take(6)
-            if (recent.isEmpty()) return@item
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = Spacing.lg),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            ) {
-                items(items = recent, key = { "r-${it.id}" }) { part ->
-                    RecentCard(part = part, onClick = { onPartClick(part.id) })
                 }
             }
         }
@@ -457,39 +437,6 @@ private fun FeaturedCard(part: SparePart, onClick: () -> Unit) {
                 modifier = Modifier.padding(top = 4.dp),
             )
         }
-    }
-}
-
-@Composable
-private fun RecentCard(part: SparePart, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .width(140.dp)
-            .clickable(onClick = onClick),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        GradientTile(
-            icon = categoryIcon(part.category),
-            hue = categoryHue(part.category),
-            size = 140.dp,
-        )
-        Text(
-            text = part.name,
-            fontSize = 12.sp,
-            lineHeight = 15.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = Ink900,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 6.dp),
-        )
-        Text(
-            text = formatRupees(part.priceRupees),
-            fontSize = 13.sp,
-            lineHeight = 16.sp,
-            fontWeight = FontWeight.Bold,
-            color = BrandGreenDark,
-        )
     }
 }
 
