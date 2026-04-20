@@ -23,7 +23,6 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Directions
-import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.StarOutline
@@ -83,7 +82,6 @@ import com.equipseva.app.designsystem.theme.Ink700
 import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.designsystem.theme.Surface200
-import com.equipseva.app.designsystem.theme.Surface50
 import com.equipseva.app.features.repair.components.iconForEquipment
 import com.equipseva.app.features.repair.components.toTone
 
@@ -511,29 +509,6 @@ private fun IssueCard(job: RepairJob) {
             lineHeight = 20.sp,
             color = Ink900,
         )
-        // Placeholder photo grid — the VM does not surface attached photos yet.
-        Row(
-            modifier = Modifier.padding(top = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            listOf(150, 40, 200).forEach { hue ->
-                GradientTile(icon = Icons.Outlined.Image, hue = hue, size = 60.dp)
-            }
-            Box(
-                modifier = Modifier
-                    .size(60.dp)
-                    .background(Surface50, RoundedCornerShape(5.dp))
-                    .border(1.dp, Surface200, RoundedCornerShape(5.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "+2",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Ink500,
-                )
-            }
-        }
     }
 }
 
