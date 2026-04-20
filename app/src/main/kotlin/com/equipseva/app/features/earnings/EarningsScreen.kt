@@ -165,11 +165,6 @@ private fun EarningsHero(paidTotal: Double, pendingTotal: Double) {
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
-                text = "This month",
-                fontSize = 12.sp,
-                color = Color.White.copy(alpha = 0.85f),
-            )
-            Text(
                 text = formatRupees(total),
                 fontSize = 44.sp,
                 fontWeight = FontWeight.Normal,
