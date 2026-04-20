@@ -3,7 +3,6 @@ package com.equipseva.app.features.cart
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,7 +21,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.outlined.ShoppingCartCheckout
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -40,7 +38,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,7 +62,6 @@ import com.equipseva.app.designsystem.theme.Surface0
 import com.equipseva.app.designsystem.theme.Surface200
 import com.equipseva.app.designsystem.theme.Surface50
 import androidx.compose.material.icons.filled.MedicalServices
-import kotlinx.coroutines.launch
 
 @Composable
 fun CartScreen(
@@ -76,7 +72,6 @@ fun CartScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
@@ -135,15 +130,6 @@ fun CartScreen(
                             onIncrement = { viewModel.onIncrement(line.partId) },
                             onDecrement = { viewModel.onDecrement(line.partId) },
                             onRemove = { viewModel.onRemove(line.partId) },
-                        )
-                    }
-                    item("coupon") {
-                        CouponRow(
-                            onClick = {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("Promo codes coming soon")
-                                }
-                            },
                         )
                     }
                     item("summary") {
@@ -235,47 +221,6 @@ private fun CartLineRow(
                 )
             }
         }
-    }
-}
-
-/* ------------------------------------------------------------------ */
-/* Coupon pill                                                        */
-/* ------------------------------------------------------------------ */
-
-@Composable
-private fun CouponRow(onClick: () -> Unit) {
-    // Dashed border is non-trivial without a custom drawBehind; use a dotted-style
-    // 1.5dp solid border to stay close to the spec.
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(48.dp)
-            .clip(RoundedCornerShape(50))
-            .background(Surface0)
-            .border(1.5.dp, Surface200, RoundedCornerShape(50))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Icon(
-            imageVector = Icons.Filled.LocalOffer,
-            contentDescription = null,
-            tint = BrandGreen,
-            modifier = Modifier.size(20.dp),
-        )
-        Text(
-            text = "Have a coupon?",
-            fontSize = 14.sp,
-            color = Ink500,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            text = "Apply",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = BrandGreen,
-        )
     }
 }
 
