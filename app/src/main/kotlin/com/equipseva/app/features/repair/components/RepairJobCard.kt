@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobStatus
@@ -138,4 +139,12 @@ internal fun RepairJobUrgency.toTone(): StatusTone = when (this) {
     RepairJobUrgency.SameDay -> StatusTone.Warn
     RepairJobUrgency.Scheduled -> StatusTone.Success
     RepairJobUrgency.Unknown -> StatusTone.Neutral
+}
+
+internal fun RepairBidStatus.toTone(): StatusTone = when (this) {
+    RepairBidStatus.Pending -> StatusTone.Info
+    RepairBidStatus.Accepted -> StatusTone.Success
+    RepairBidStatus.Rejected -> StatusTone.Danger
+    RepairBidStatus.Withdrawn -> StatusTone.Neutral
+    RepairBidStatus.Unknown -> StatusTone.Neutral
 }

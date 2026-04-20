@@ -29,14 +29,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.StatusChip
-import com.equipseva.app.designsystem.components.StatusTone
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.features.repair.components.toTone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -160,10 +159,3 @@ private fun BidRowCard(
     }
 }
 
-private fun RepairBidStatus.toTone(): StatusTone = when (this) {
-    RepairBidStatus.Pending -> StatusTone.Info
-    RepairBidStatus.Accepted -> StatusTone.Success
-    RepairBidStatus.Rejected -> StatusTone.Danger
-    RepairBidStatus.Withdrawn -> StatusTone.Neutral
-    RepairBidStatus.Unknown -> StatusTone.Neutral
-}

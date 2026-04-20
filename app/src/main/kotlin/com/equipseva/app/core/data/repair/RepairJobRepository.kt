@@ -1,5 +1,7 @@
 package com.equipseva.app.core.data.repair
 
+import java.time.Instant
+
 interface RepairJobRepository {
     /**
      * Server-filtered query against `public.repair_jobs` restricted to jobs an
@@ -33,6 +35,39 @@ interface RepairJobRepository {
      * Caller supplies just the free-text + enum fields; server mints id/job_number.
      */
     suspend fun create(draft: RepairJobDraft): Result<RepairJob>
+
+    /**
+     * Sparse status transition. Callers supply `startedAt`/`completedAt` only
+     * when the transition is the one that records that timestamp (check-in →
+     * sets started_at; mark-done → sets completed_at). RLS restricts who can
+     * update which rows.
+     */
+    suspend fun updateStatus(
+        jobId: String,
+        newStatus: RepairJobStatus,
+        startedAt: Instant? = null,
+        completedAt: Instant? = null,
+    ): Result<RepairJob>
+
+    /**
+     * Submit a post-completion rating from one side of the job. [role] decides
+     * which pair of columns (hospital_* vs engineer_*) is written so each side
+     * can only score the other.
+     */
+    suspend fun submitRating(
+        jobId: String,
+        role: RatingRole,
+        stars: Int,
+        review: String?,
+    ): Result<RepairJob>
+}
+
+enum class RatingRole {
+    /** Hospital requester scoring the engineer who completed the job. */
+    HospitalRatesEngineer,
+
+    /** Engineer scoring the hospital requester after completion. */
+    EngineerRatesHospital,
 }
 
 data class RepairJobDraft(

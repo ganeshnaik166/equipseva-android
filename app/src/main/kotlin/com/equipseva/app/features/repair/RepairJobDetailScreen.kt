@@ -19,10 +19,14 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Directions
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -122,7 +126,9 @@ fun RepairJobDetailScreen(
         },
         bottomBar = {
             val job = state.job
-            if (job != null) {
+            // Hospital viewer has no bid CTA — they accept bids inline from
+            // the bids-received section, not from a sticky footer.
+            if (job != null && state.viewerRole != RepairJobDetailViewModel.ViewerRole.Hospital) {
                 StickyBottomBar(
                     job = job,
                     ownBid = state.ownBid,
@@ -149,6 +155,15 @@ fun RepairJobDetailScreen(
                 state.job != null -> JobBody(
                     job = state.job!!,
                     ownBid = state.ownBid,
+                    bids = state.bids,
+                    viewerRole = state.viewerRole,
+                    updatingStatus = state.updatingStatus,
+                    submittingRating = state.submittingRating,
+                    acceptingBidId = state.acceptingBidId,
+                    onCheckIn = viewModel::checkIn,
+                    onMarkDone = viewModel::markDone,
+                    onSubmitRating = viewModel::submitRating,
+                    onAcceptBid = viewModel::acceptBid,
                 )
             }
         }
@@ -168,7 +183,17 @@ fun RepairJobDetailScreen(
 private fun JobBody(
     job: RepairJob,
     ownBid: RepairBid?,
+    bids: List<RepairBid>,
+    viewerRole: RepairJobDetailViewModel.ViewerRole,
+    updatingStatus: Boolean,
+    submittingRating: Boolean,
+    acceptingBidId: String?,
+    onCheckIn: () -> Unit,
+    onMarkDone: () -> Unit,
+    onSubmitRating: (Int, String?) -> Unit,
+    onAcceptBid: (String) -> Unit,
 ) {
+    val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -177,17 +202,197 @@ private fun JobBody(
     ) {
         EquipmentBannerCard(job = job)
 
+        if (viewerRole == RepairJobDetailViewModel.ViewerRole.Engineer) {
+            EngineerActionStrip(
+                job = job,
+                updatingStatus = updatingStatus,
+                onCheckIn = onCheckIn,
+                onMarkDone = onMarkDone,
+            )
+        }
+
         SectionHeader(title = "Issue described")
         IssueCard(job = job)
 
         SectionHeader(title = "Location")
         LocationCard()
 
-        SectionHeader(title = "Your bid")
-        YourBidCard(ownBid = ownBid)
+        if (isHospital) {
+            SectionHeader(title = "Bids received")
+            HospitalBidsList(
+                job = job,
+                bids = bids,
+                acceptingBidId = acceptingBidId,
+                onAcceptBid = onAcceptBid,
+            )
+        } else {
+            SectionHeader(title = "Your bid")
+            YourBidCard(ownBid = ownBid)
+        }
 
         SectionHeader(title = "Status")
         StatusStepperCard(job = job)
+
+        if (job.status == RepairJobStatus.Completed &&
+            viewerRole != RepairJobDetailViewModel.ViewerRole.Other
+        ) {
+            SectionHeader(title = "Rate this job")
+            RatingCard(
+                job = job,
+                viewerRole = viewerRole,
+                submitting = submittingRating,
+                onSubmit = onSubmitRating,
+            )
+        }
+    }
+}
+
+@Composable
+private fun EngineerActionStrip(
+    job: RepairJob,
+    updatingStatus: Boolean,
+    onCheckIn: () -> Unit,
+    onMarkDone: () -> Unit,
+) {
+    val canCheckIn = job.status == RepairJobStatus.Assigned ||
+        job.status == RepairJobStatus.EnRoute
+    val canMarkDone = job.status == RepairJobStatus.InProgress ||
+        job.status == RepairJobStatus.EnRoute
+    if (!canCheckIn && !canMarkDone) return
+    val shape = MaterialTheme.shapes.medium
+    Row(
+        modifier = Modifier
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
+            .fillMaxWidth()
+            .background(BrandGreen50, shape)
+            .padding(Spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (canCheckIn) {
+            Button(
+                onClick = onCheckIn,
+                enabled = !updatingStatus,
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = BrandGreen,
+                    contentColor = Color.White,
+                ),
+            ) {
+                Icon(Icons.Outlined.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(if (updatingStatus) "Checking in…" else "Check in")
+            }
+        }
+        if (canMarkDone) {
+            Button(
+                onClick = onMarkDone,
+                enabled = !updatingStatus,
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = BrandGreenDark,
+                    contentColor = Color.White,
+                ),
+            ) {
+                Icon(Icons.Outlined.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(if (updatingStatus) "Saving…" else "Mark done")
+            }
+        }
+    }
+}
+
+@Composable
+private fun RatingCard(
+    job: RepairJob,
+    viewerRole: RepairJobDetailViewModel.ViewerRole,
+    submitting: Boolean,
+    onSubmit: (Int, String?) -> Unit,
+) {
+    val shape = MaterialTheme.shapes.medium
+    val existing = when (viewerRole) {
+        RepairJobDetailViewModel.ViewerRole.Hospital -> job.hospitalRating
+        RepairJobDetailViewModel.ViewerRole.Engineer -> job.engineerRating
+        RepairJobDetailViewModel.ViewerRole.Other -> null
+    }
+    val existingReview = when (viewerRole) {
+        RepairJobDetailViewModel.ViewerRole.Hospital -> job.hospitalReview
+        RepairJobDetailViewModel.ViewerRole.Engineer -> job.engineerReview
+        RepairJobDetailViewModel.ViewerRole.Other -> null
+    }
+
+    var stars by rememberSaveable(existing) { mutableStateOf(existing ?: 0) }
+    var review by rememberSaveable(existingReview) {
+        mutableStateOf(existingReview.orEmpty())
+    }
+    val prompt = when (viewerRole) {
+        RepairJobDetailViewModel.ViewerRole.Hospital -> "How did the engineer do?"
+        RepairJobDetailViewModel.ViewerRole.Engineer -> "How was this customer?"
+        RepairJobDetailViewModel.ViewerRole.Other -> ""
+    }
+
+    Column(
+        modifier = Modifier
+            .padding(horizontal = Spacing.lg)
+            .padding(bottom = Spacing.md)
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface, shape)
+            .border(1.dp, Surface200, shape)
+            .padding(Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(
+            text = prompt,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Ink900,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            (1..5).forEach { n ->
+                val filled = n <= stars
+                IconButton(
+                    onClick = { if (existing == null) stars = n },
+                    enabled = existing == null && !submitting,
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(
+                        imageVector = if (filled) Icons.Filled.Star else Icons.Outlined.StarOutline,
+                        contentDescription = "$n star",
+                        tint = if (filled) Color(0xFFF5A623) else Ink500,
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
+            }
+        }
+        if (existing == null) {
+            OutlinedTextField(
+                value = review,
+                onValueChange = { review = it },
+                label = { Text("Leave a note (optional)") },
+                maxLines = 4,
+                enabled = !submitting,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            PrimaryButton(
+                label = if (submitting) "Submitting…" else "Submit rating",
+                onClick = { onSubmit(stars, review.trim().ifBlank { null }) },
+                enabled = stars in 1..5 && !submitting,
+                loading = submitting,
+            )
+        } else {
+            Text(
+                text = "Thanks — your rating is locked in.",
+                fontSize = 13.sp,
+                color = Ink700,
+            )
+            if (!existingReview.isNullOrBlank()) {
+                Text(
+                    text = "\"$existingReview\"",
+                    fontSize = 13.sp,
+                    color = Ink500,
+                )
+            }
+        }
     }
 }
 
@@ -371,6 +576,115 @@ private fun LocationCard() {
             Icon(Icons.Outlined.Directions, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(6.dp))
             Text("Directions")
+        }
+    }
+}
+
+@Composable
+private fun HospitalBidsList(
+    job: RepairJob,
+    bids: List<RepairBid>,
+    acceptingBidId: String?,
+    onAcceptBid: (String) -> Unit,
+) {
+    val shape = MaterialTheme.shapes.medium
+    if (bids.isEmpty()) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = Spacing.lg)
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface, shape)
+                .border(1.dp, Surface200, shape)
+                .padding(Spacing.md),
+        ) {
+            Text(
+                text = "No bids yet. Engineers will be notified when your job is posted.",
+                fontSize = 13.sp,
+                color = Ink500,
+            )
+        }
+        return
+    }
+    val canAccept = job.status == RepairJobStatus.Requested
+    Column(
+        modifier = Modifier
+            .padding(horizontal = Spacing.lg)
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        bids.forEach { bid ->
+            HospitalBidRow(
+                bid = bid,
+                canAccept = canAccept,
+                accepting = acceptingBidId == bid.id,
+                anyAccepting = acceptingBidId != null,
+                onAcceptBid = onAcceptBid,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HospitalBidRow(
+    bid: RepairBid,
+    canAccept: Boolean,
+    accepting: Boolean,
+    anyAccepting: Boolean,
+    onAcceptBid: (String) -> Unit,
+) {
+    val shape = MaterialTheme.shapes.medium
+    val isAccepted = bid.status == RepairBidStatus.Accepted
+    val bg = if (isAccepted) BrandGreen50 else MaterialTheme.colorScheme.surface
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(bg, shape)
+            .border(1.dp, if (isAccepted) BrandGreen else Surface200, shape)
+            .padding(Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = formatRupees(bid.amountRupees),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isAccepted) BrandGreenDark else Ink900,
+                modifier = Modifier.weight(1f),
+            )
+            StatusChip(
+                label = bid.status.displayName,
+                tone = bid.status.toTone(),
+            )
+        }
+        val meta = buildString {
+            bid.etaHours?.let { append("ETA ${it}h") }
+            if (isNotEmpty() && !bid.note.isNullOrBlank()) append(" · ")
+            if (!bid.note.isNullOrBlank()) append(bid.note)
+        }
+        if (meta.isNotBlank()) {
+            Text(
+                text = meta,
+                fontSize = 13.sp,
+                color = Ink700,
+            )
+        }
+        if (canAccept && bid.status == RepairBidStatus.Pending) {
+            Button(
+                onClick = { onAcceptBid(bid.id) },
+                enabled = !anyAccepting,
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = BrandGreen,
+                    contentColor = Color.White,
+                ),
+            ) {
+                Text(if (accepting) "Accepting…" else "Accept bid")
+            }
         }
     }
 }
