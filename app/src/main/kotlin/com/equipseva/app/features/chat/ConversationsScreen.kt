@@ -148,19 +148,48 @@ private fun ConversationRow(
                     Text(
                         text = ts,
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Ink500,
+                        fontWeight = if (row.conversation.unreadCount > 0) FontWeight.Bold else FontWeight.Medium,
+                        color = if (row.conversation.unreadCount > 0) BrandGreen else Ink500,
                     )
                 }
             }
-            Text(
-                text = row.preview,
-                fontSize = 13.sp,
-                color = Ink500,
-                maxLines = 1,
+            Row(
                 modifier = Modifier.padding(top = 3.dp),
-            )
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = row.preview,
+                    fontSize = 13.sp,
+                    fontWeight = if (row.conversation.unreadCount > 0) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (row.conversation.unreadCount > 0) Ink900 else Ink500,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f),
+                )
+                if (row.conversation.unreadCount > 0) {
+                    UnreadBadge(count = row.conversation.unreadCount)
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun UnreadBadge(count: Int) {
+    val label = if (count > 99) "99+" else count.toString()
+    Box(
+        modifier = Modifier
+            .padding(start = 8.dp)
+            .size(20.dp)
+            .clip(CircleShape)
+            .background(BrandGreen),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+        )
     }
 }
 

@@ -142,11 +142,31 @@ class SupabaseChatRepository @Inject constructor(
 
     private suspend fun fetchConversationsFor(userId: String): List<ChatConversation> {
         // participant_user_ids is a uuid[]; use Postgrest "contains" to filter server-side.
-        return client.from(CONVERSATIONS_TABLE).select {
+        val conversations = client.from(CONVERSATIONS_TABLE).select {
             filter { contains("participant_user_ids", listOf(userId)) }
             order("last_message_at", order = Order.DESCENDING, nullsFirst = false)
             limit(count = 200)
         }.decodeList<ConversationDto>().map(ConversationDto::toDomain)
+
+        if (conversations.isEmpty()) return conversations
+
+        val unreadByConversation = runCatching {
+            client.from(MESSAGES_TABLE).select(columns = io.github.jan.supabase.postgrest.query.Columns.list("conversation_id")) {
+                filter {
+                    isIn("conversation_id", conversations.map { it.id })
+                    neq("sender_user_id", userId)
+                    eq("is_read", false)
+                }
+                limit(count = 2000)
+            }.decodeList<UnreadRowDto>()
+                .groupingBy { it.conversationId }
+                .eachCount()
+        }.getOrDefault(emptyMap())
+
+        return conversations.map { convo ->
+            val count = unreadByConversation[convo.id] ?: 0
+            if (count > 0) convo.copy(unreadCount = count) else convo
+        }
     }
 
     private suspend fun fetchMessagesFor(conversationId: String): List<ChatMessage> =
