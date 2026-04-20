@@ -124,8 +124,12 @@ fun MainNavGraph(
     LaunchedEffect(Unit) {
         deepLinkHost.events.collect { event ->
             when (event) {
-                is DeepLinkRouter.Event.OpenOrder -> {
+                is DeepLinkHost.VerifiedEvent.OpenOrder -> {
                     navController.navigate(Routes.orderDetailRoute(event.orderId))
+                }
+                DeepLinkHost.VerifiedEvent.OrderNotFound -> {
+                    navController.navigate(Routes.ORDERS)
+                    showSnackbar("Order not found")
                 }
             }
         }
