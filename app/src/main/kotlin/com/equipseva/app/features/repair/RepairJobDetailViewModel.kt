@@ -6,13 +6,16 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.chat.ChatRepository
+import com.equipseva.app.core.data.repair.RatingRole
 import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairBidRepository
 import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobRepository
+import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.navigation.Routes
+import java.time.Instant
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,6 +42,13 @@ class RepairJobDetailViewModel @Inject constructor(
         data class NavigateToChat(val conversationId: String) : Effect
     }
 
+    /**
+     * Which side of the job the signed-in user is on. Drives which CTAs the
+     * detail screen surfaces (engineer sees check-in/mark-done; hospital sees
+     * the rating card after completion).
+     */
+    enum class ViewerRole { Engineer, Hospital, Other }
+
     data class RepairJobDetailUiState(
         val loading: Boolean = true,
         val job: RepairJob? = null,
@@ -49,6 +59,9 @@ class RepairJobDetailViewModel @Inject constructor(
         val withdrawingBid: Boolean = false,
         val bidComposerOpen: Boolean = false,
         val openingChat: Boolean = false,
+        val viewerRole: ViewerRole = ViewerRole.Other,
+        val updatingStatus: Boolean = false,
+        val submittingRating: Boolean = false,
     )
 
     private val jobId: String =
@@ -173,19 +186,103 @@ class RepairJobDetailViewModel @Inject constructor(
         }
     }
 
+    fun checkIn() = transitionStatus(
+        target = RepairJobStatus.InProgress,
+        allowedFrom = setOf(RepairJobStatus.Assigned, RepairJobStatus.EnRoute),
+        requireEngineer = true,
+        successMessage = "Checked in",
+        setStartedAt = true,
+    )
+
+    fun markDone() = transitionStatus(
+        target = RepairJobStatus.Completed,
+        allowedFrom = setOf(RepairJobStatus.InProgress, RepairJobStatus.EnRoute),
+        requireEngineer = true,
+        successMessage = "Marked done",
+        setCompletedAt = true,
+    )
+
+    fun submitRating(stars: Int, review: String?) {
+        val snap = _state.value
+        val job = snap.job ?: return
+        if (snap.submittingRating) return
+        if (job.status != RepairJobStatus.Completed) return
+        val role = when (snap.viewerRole) {
+            ViewerRole.Engineer -> RatingRole.EngineerRatesHospital
+            ViewerRole.Hospital -> RatingRole.HospitalRatesEngineer
+            ViewerRole.Other -> return
+        }
+        if (stars !in 1..5) return
+        _state.update { it.copy(submittingRating = true) }
+        viewModelScope.launch {
+            jobRepository.submitRating(
+                jobId = job.id,
+                role = role,
+                stars = stars,
+                review = review?.trim()?.ifBlank { null },
+            ).fold(
+                onSuccess = { updated ->
+                    _state.update { it.copy(submittingRating = false, job = updated) }
+                    _messages.send("Thanks — rating submitted")
+                },
+                onFailure = { ex ->
+                    _state.update { it.copy(submittingRating = false) }
+                    _messages.send(ex.toUserMessage())
+                },
+            )
+        }
+    }
+
+    private fun transitionStatus(
+        target: RepairJobStatus,
+        allowedFrom: Set<RepairJobStatus>,
+        requireEngineer: Boolean,
+        successMessage: String,
+        setStartedAt: Boolean = false,
+        setCompletedAt: Boolean = false,
+    ) {
+        val snap = _state.value
+        val job = snap.job ?: return
+        if (snap.updatingStatus) return
+        if (requireEngineer && snap.viewerRole != ViewerRole.Engineer) return
+        if (job.status !in allowedFrom) return
+        _state.update { it.copy(updatingStatus = true) }
+        viewModelScope.launch {
+            val now = Instant.now()
+            jobRepository.updateStatus(
+                jobId = job.id,
+                newStatus = target,
+                startedAt = if (setStartedAt) now else null,
+                completedAt = if (setCompletedAt) now else null,
+            ).fold(
+                onSuccess = { updated ->
+                    _state.update { it.copy(updatingStatus = false, job = updated) }
+                    _messages.send(successMessage)
+                },
+                onFailure = { ex ->
+                    _state.update { it.copy(updatingStatus = false) }
+                    _messages.send(ex.toUserMessage())
+                },
+            )
+        }
+    }
+
     private fun load() {
         _state.update { it.copy(loading = true, errorMessage = null, notFound = false) }
         viewModelScope.launch {
+            val selfId = (authRepository.sessionState.firstOrNull() as? AuthSession.SignedIn)?.userId
             val jobResult = jobRepository.fetchById(jobId)
             val bidResult = bidRepository.fetchOwnBidForJob(jobId)
             jobResult.fold(
                 onSuccess = { job ->
+                    val role = resolveViewerRole(job, selfId)
                     _state.update {
                         it.copy(
                             loading = false,
                             job = job,
                             notFound = job == null,
                             ownBid = bidResult.getOrNull(),
+                            viewerRole = role,
                         )
                     }
                 },
@@ -198,6 +295,15 @@ class RepairJobDetailViewModel @Inject constructor(
                     }
                 },
             )
+        }
+    }
+
+    private fun resolveViewerRole(job: RepairJob?, selfId: String?): ViewerRole {
+        if (job == null || selfId.isNullOrBlank()) return ViewerRole.Other
+        return when (selfId) {
+            job.hospitalUserId -> ViewerRole.Hospital
+            job.engineerId -> ViewerRole.Engineer
+            else -> ViewerRole.Other
         }
     }
 }

@@ -31,6 +31,37 @@ data class RepairJobDto(
     @SerialName("estimated_cost") val estimatedCost: Double? = null,
     @SerialName("scheduled_date") val scheduledDate: String? = null,
     @SerialName("scheduled_time_slot") val scheduledTimeSlot: String? = null,
+    @SerialName("started_at") val startedAt: String? = null,
+    @SerialName("completed_at") val completedAt: String? = null,
+    @SerialName("hospital_rating") val hospitalRating: Int? = null,
+    @SerialName("hospital_review") val hospitalReview: String? = null,
+    @SerialName("engineer_rating") val engineerRating: Int? = null,
+    @SerialName("engineer_review") val engineerReview: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
+)
+
+/**
+ * Sparse-update payload for status transitions + timestamps. We only send the
+ * columns that are actually changing so we don't race other writers over fields
+ * we don't own.
+ */
+@Serializable
+internal data class RepairJobStatusPatchDto(
+    val status: String,
+    @SerialName("started_at") val startedAt: String? = null,
+    @SerialName("completed_at") val completedAt: String? = null,
+)
+
+/**
+ * Sparse patch that writes exactly one side's rating + review. We rely on the
+ * caller picking the correct column pair (hospital_* vs engineer_*) via
+ * [RatingRole] — the DTO itself doesn't try to validate that.
+ */
+@Serializable
+internal data class RepairJobRatingPatchDto(
+    @SerialName("hospital_rating") val hospitalRating: Int? = null,
+    @SerialName("hospital_review") val hospitalReview: String? = null,
+    @SerialName("engineer_rating") val engineerRating: Int? = null,
+    @SerialName("engineer_review") val engineerReview: String? = null,
 )

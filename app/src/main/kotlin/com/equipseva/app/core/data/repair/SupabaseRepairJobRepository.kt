@@ -4,6 +4,7 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -72,6 +73,47 @@ class SupabaseRepairJobRepository @Inject constructor(
             filter { eq("hospital_user_id", hospitalUserId) }
             order("created_at", order = Order.DESCENDING)
         }.decodeList<RepairJobDto>().map(RepairJobDto::toDomain)
+    }
+
+    override suspend fun updateStatus(
+        jobId: String,
+        newStatus: RepairJobStatus,
+        startedAt: Instant?,
+        completedAt: Instant?,
+    ): Result<RepairJob> = runCatching {
+        val patch = RepairJobStatusPatchDto(
+            status = newStatus.storageKey,
+            startedAt = startedAt?.toString(),
+            completedAt = completedAt?.toString(),
+        )
+        client.from(TABLE).update(patch) {
+            filter { eq("id", jobId) }
+            select()
+        }.decodeSingle<RepairJobDto>().toDomain()
+    }
+
+    override suspend fun submitRating(
+        jobId: String,
+        role: RatingRole,
+        stars: Int,
+        review: String?,
+    ): Result<RepairJob> = runCatching {
+        require(stars in 1..5) { "Rating must be 1..5" }
+        val trimmedReview = review?.trim()?.takeIf { it.isNotBlank() }
+        val patch = when (role) {
+            RatingRole.HospitalRatesEngineer -> RepairJobRatingPatchDto(
+                hospitalRating = stars,
+                hospitalReview = trimmedReview,
+            )
+            RatingRole.EngineerRatesHospital -> RepairJobRatingPatchDto(
+                engineerRating = stars,
+                engineerReview = trimmedReview,
+            )
+        }
+        client.from(TABLE).update(patch) {
+            filter { eq("id", jobId) }
+            select()
+        }.decodeSingle<RepairJobDto>().toDomain()
     }
 
     override suspend fun create(draft: RepairJobDraft): Result<RepairJob> = runCatching {
