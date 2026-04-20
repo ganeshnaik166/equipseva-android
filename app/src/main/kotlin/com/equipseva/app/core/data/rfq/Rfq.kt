@@ -24,6 +24,12 @@ data class Rfq(
 
     val createdAtInstant: Instant?
         get() = createdAtIso?.let { runCatching { Instant.parse(it) }.getOrNull() }
+
+    val deadlineInstant: Instant?
+        get() = runCatching { Instant.parse(deadlineIso) }.getOrNull()
+
+    val deliveryDeadlineInstant: Instant?
+        get() = deliveryDeadlineIso?.let { runCatching { Instant.parse(it) }.getOrNull() }
 }
 
 internal fun RfqDto.toDomain(): Rfq = Rfq(
