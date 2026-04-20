@@ -41,10 +41,21 @@ internal fun LogisticsJobCard(job: LogisticsJob) {
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
                 )
-                StatusChip(
-                    label = job.status.replaceFirstChar { it.uppercase() },
-                    tone = job.status.toTone(),
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (job.jobType.isNotBlank()) {
+                        StatusChip(
+                            label = job.jobType.replace('_', ' ').replaceFirstChar { it.uppercase() },
+                            tone = StatusTone.Neutral,
+                        )
+                    }
+                    StatusChip(
+                        label = job.status.replaceFirstChar { it.uppercase() },
+                        tone = job.status.toTone(),
+                    )
+                }
             }
             job.equipmentDescription?.takeIf { it.isNotBlank() }?.let {
                 Text(
