@@ -51,7 +51,6 @@ class KycViewModel @Inject constructor(
 
     sealed interface Effect {
         data class ShowMessage(val text: String) : Effect
-        data object Saved : Effect
     }
 
     private val _state = MutableStateFlow(UiState())
@@ -248,7 +247,6 @@ class KycViewModel @Inject constructor(
                     hydrate(engineer)
                     _state.update { it.copy(saving = false) }
                     _effects.send(Effect.ShowMessage("Verification details saved"))
-                    _effects.send(Effect.Saved)
                 },
                 onFailure = { ex ->
                     _state.update { it.copy(saving = false) }
