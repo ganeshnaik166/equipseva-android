@@ -79,6 +79,11 @@ class RepairJobDetailViewModel @Inject constructor(
          * hospital viewer so each bid row can show who placed it.
          */
         val engineerNames: Map<String, String> = emptyMap(),
+        /**
+         * Display name of the hospital/requester, shown on the banner so the
+         * engineer knows who posted the job before bidding.
+         */
+        val hospitalName: String? = null,
     )
 
     private val jobId: String =
@@ -408,6 +413,14 @@ class RepairJobDetailViewModel @Inject constructor(
                     } else {
                         emptyMap()
                     }
+                    val hospitalName = if (role != ViewerRole.Hospital) {
+                        job?.hospitalUserId?.let { hospitalId ->
+                            profileRepository.fetchDisplayNames(listOf(hospitalId))
+                                .getOrNull()?.get(hospitalId)
+                        }
+                    } else {
+                        null
+                    }
                     _state.update {
                         it.copy(
                             loading = false,
@@ -417,6 +430,7 @@ class RepairJobDetailViewModel @Inject constructor(
                             bids = bids,
                             viewerRole = role,
                             engineerNames = engineerNames,
+                            hospitalName = hospitalName,
                         )
                     }
                 },
