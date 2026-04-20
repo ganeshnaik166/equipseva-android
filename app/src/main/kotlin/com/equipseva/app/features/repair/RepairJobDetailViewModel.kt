@@ -169,6 +169,51 @@ class RepairJobDetailViewModel @Inject constructor(
         }
     }
 
+    fun openChatWithEngineer() {
+        val snap = _state.value
+        val job = snap.job ?: return
+        if (snap.openingChat) return
+        // Hospital side of the pair: counterparty is the engineer whose bid was accepted.
+        // Before acceptance there's no single engineer to chat with, so the UI hides the CTA.
+        val engineerUserId = snap.bids
+            .firstOrNull { it.status == RepairBidStatus.Accepted }
+            ?.engineerUserId
+        if (engineerUserId.isNullOrBlank()) {
+            _messages.trySend("No engineer assigned yet")
+            return
+        }
+        _state.update { it.copy(openingChat = true) }
+        viewModelScope.launch {
+            val session = authRepository.sessionState
+                .filterIsInstance<AuthSession.SignedIn>()
+                .firstOrNull()
+            val selfId = session?.userId
+            if (selfId == null) {
+                _state.update { it.copy(openingChat = false) }
+                _messages.send("Please sign in to start a chat")
+                return@launch
+            }
+            if (selfId == engineerUserId) {
+                _state.update { it.copy(openingChat = false) }
+                _messages.send("You're the engineer on this job")
+                return@launch
+            }
+            chatRepository.getOrCreateForRepairJob(
+                jobId = job.id,
+                participantUserIds = listOf(selfId, engineerUserId),
+            ).fold(
+                onSuccess = { convo ->
+                    _state.update { it.copy(openingChat = false) }
+                    _effects.send(Effect.NavigateToChat(convo.id))
+                },
+                onFailure = { ex ->
+                    _state.update { it.copy(openingChat = false) }
+                    _messages.send(ex.toUserMessage())
+                },
+            )
+        }
+    }
+
     fun withdrawBid() {
         val bid = _state.value.ownBid ?: return
         if (bid.status != RepairBidStatus.Pending) return
