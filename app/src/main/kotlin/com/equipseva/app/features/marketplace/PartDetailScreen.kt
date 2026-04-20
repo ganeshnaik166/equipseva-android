@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,8 +18,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,7 +28,6 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -63,7 +59,6 @@ import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.QuantityStepper
-import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreenDark
@@ -221,10 +216,6 @@ private fun PartBody(
             onToggle = { specsOpen = !specsOpen },
         )
 
-        // Related parts rail (placeholder — no related-parts endpoint yet)
-        SectionHeader(title = "Related parts")
-        RelatedPartsRail(part = part)
-
         Spacer(Modifier.height(Spacing.xl))
     }
 }
@@ -309,49 +300,13 @@ private fun OverlayIconButton(
 }
 
 /* ------------------------------------------------------------------ */
-/* Rating + stock chip                                                */
+/* Stock chip                                                         */
 /* ------------------------------------------------------------------ */
 
 @Composable
 private fun RatingAndStockRow(part: SparePart) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(3.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Star,
-                contentDescription = null,
-                tint = Color(0xFFF5A623),
-                modifier = Modifier.size(14.dp),
-            )
-            // Ratings not in schema yet — static placeholder.
-            Text(
-                text = "4.7",
-                fontSize = 13.sp,
-                lineHeight = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Ink900,
-            )
-            Text(
-                text = "(241)",
-                fontSize = 12.sp,
-                lineHeight = 15.sp,
-                color = Ink500,
-            )
-        }
-        Box(
-            modifier = Modifier
-                .size(4.dp)
-                .clip(CircleShape)
-                .background(Ink500.copy(alpha = 0.5f)),
-        )
-        val (tone, icon, label) = stockStatus(part)
-        StatusChip(label = label, tone = tone, icon = icon)
-    }
+    val (tone, icon, label) = stockStatus(part)
+    StatusChip(label = label, tone = tone, icon = icon)
 }
 
 /* ------------------------------------------------------------------ */
@@ -566,47 +521,6 @@ private fun SpecificationsSection(
                     lineHeight = 18.sp,
                     color = Ink700,
                     modifier = Modifier.padding(top = Spacing.sm, bottom = 8.dp),
-                )
-            }
-        }
-    }
-}
-
-/* ------------------------------------------------------------------ */
-/* Related rail (placeholder tiles)                                   */
-/* ------------------------------------------------------------------ */
-
-@Composable
-private fun RelatedPartsRail(part: SparePart) {
-    // We don't have a related-parts API yet; render three hue-shifted tiles using
-    // the current part's data so the rail looks alive.
-    val seeds = listOf(200, 280, 330)
-    LazyRow(
-        contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        items(items = seeds, key = { it }) { hue ->
-            Column(modifier = Modifier.width(130.dp)) {
-                GradientTile(
-                    icon = categoryIcon(part.category),
-                    hue = hue,
-                    size = 130.dp,
-                )
-                Text(
-                    text = part.name,
-                    fontSize = 12.sp,
-                    lineHeight = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Ink900,
-                    maxLines = 2,
-                    modifier = Modifier.padding(top = 6.dp),
-                )
-                Text(
-                    text = formatRupees(part.priceRupees),
-                    fontSize = 13.sp,
-                    lineHeight = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = BrandGreenDark,
                 )
             }
         }
