@@ -240,36 +240,26 @@ private fun OrderTimelineCard(order: Order) {
 
 @Composable
 private fun OrderItemsCard(order: Order) {
-    // Fallback to two placeholder rows if the order has no line items surfaced in state.
-    val rows: List<OrderLineItem> = order.lineItems.ifEmpty {
-        listOf(
-            OrderLineItem(
-                partId = "placeholder-1",
-                name = "ECG electrodes Ag/AgCl 50pk",
-                partNumber = null,
-                quantity = 2,
-                unitPriceRupees = 1299.0,
-            ),
-            OrderLineItem(
-                partId = "placeholder-2",
-                name = "SpO₂ sensor adult",
-                partNumber = null,
-                quantity = 1,
-                unitPriceRupees = 4650.0,
-            ),
-        )
-    }
     OutlinedSurfaceCard(modifier = Modifier.padding(horizontal = Spacing.lg)) {
-        Column {
-            rows.forEachIndexed { i, line ->
-                LineItemRow(line = line)
-                if (i < rows.lastIndex) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(Surface100),
-                    )
+        if (order.lineItems.isEmpty()) {
+            Text(
+                text = "Line-item details weren't available for this order.",
+                fontSize = 13.sp,
+                color = Ink500,
+                modifier = Modifier.padding(Spacing.md),
+            )
+        } else {
+            Column {
+                order.lineItems.forEachIndexed { i, line ->
+                    LineItemRow(line = line)
+                    if (i < order.lineItems.lastIndex) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(Surface100),
+                        )
+                    }
                 }
             }
         }
