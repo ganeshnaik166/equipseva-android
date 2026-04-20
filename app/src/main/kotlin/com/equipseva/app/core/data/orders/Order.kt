@@ -2,6 +2,7 @@ package com.equipseva.app.core.data.orders
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import java.time.Instant
 
 data class Order(
     val id: String,
@@ -30,6 +31,9 @@ data class Order(
             .filter { it.isNotBlank() }
             .joinToString(", ")
             .ifBlank { null }
+
+    val createdAtInstant: Instant?
+        get() = createdAtIso?.let { runCatching { Instant.parse(it) }.getOrNull() }
 }
 
 private val lineItemJson = Json { ignoreUnknownKeys = true; isLenient = true }
