@@ -175,6 +175,11 @@ dependencies {
     // Razorpay Standard Checkout
     implementation(libs.razorpay.checkout)
 
+    // SQLCipher for Room at-rest encryption.
+    // Passphrase lives in Android Keystore (see DbPassphraseStore).
+    implementation(libs.sqlcipher.android)
+    implementation(libs.androidx.sqlite)
+
     // Test
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
