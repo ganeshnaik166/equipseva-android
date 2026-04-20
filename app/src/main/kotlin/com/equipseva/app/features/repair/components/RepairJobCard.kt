@@ -33,6 +33,7 @@ import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.components.StatusTone
@@ -113,6 +114,13 @@ fun RepairJobCard(
                         StatusChip(
                             label = "You bid ${formatRupees(ownBid.amountRupees)}",
                             tone = tone,
+                        )
+                    }
+                    job.createdAtInstant?.let { posted ->
+                        Text(
+                            text = "· ${relativeLabel(posted)} ago",
+                            fontSize = 12.sp,
+                            color = Ink500,
                         )
                     }
                 }

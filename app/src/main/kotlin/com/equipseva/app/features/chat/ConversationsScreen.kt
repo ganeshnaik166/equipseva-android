@@ -43,12 +43,11 @@ import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
+import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.designsystem.theme.Surface100
-import java.time.Duration
-import java.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -190,14 +189,3 @@ private fun InitialsAvatar(name: String) {
     }
 }
 
-private fun relativeLabel(instant: Instant): String {
-    val now = Instant.now()
-    val mins = Duration.between(instant, now).toMinutes()
-    return when {
-        mins < 1 -> "now"
-        mins < 60 -> "${mins}m"
-        mins < 60 * 24 -> "${mins / 60}h"
-        mins < 60 * 24 * 7 -> "${mins / (60 * 24)}d"
-        else -> "${mins / (60 * 24 * 7)}w"
-    }
-}
