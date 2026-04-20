@@ -26,10 +26,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equipseva.app.core.data.repair.RepairBid
+import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.data.repair.RepairJobUrgency
+import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.components.StatusTone
@@ -43,6 +46,7 @@ fun RepairJobCard(
     job: RepairJob,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    ownBid: RepairBid? = null,
 ) {
     val shape = MaterialTheme.shapes.medium
     Box(
@@ -98,6 +102,19 @@ fun RepairJobCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     StatusChip(label = job.status.displayName, tone = job.status.toTone())
+                    if (ownBid != null && ownBid.status != RepairBidStatus.Withdrawn) {
+                        val tone = when (ownBid.status) {
+                            RepairBidStatus.Accepted -> StatusTone.Success
+                            RepairBidStatus.Rejected -> StatusTone.Danger
+                            RepairBidStatus.Pending -> StatusTone.Info
+                            RepairBidStatus.Withdrawn,
+                            RepairBidStatus.Unknown -> StatusTone.Neutral
+                        }
+                        StatusChip(
+                            label = "You bid ${formatRupees(ownBid.amountRupees)}",
+                            tone = tone,
+                        )
+                    }
                 }
             }
         }

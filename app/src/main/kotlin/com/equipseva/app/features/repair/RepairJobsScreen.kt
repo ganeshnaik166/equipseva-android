@@ -128,7 +128,11 @@ fun RepairJobsScreen(
                         verticalArrangement = Arrangement.spacedBy(Spacing.md),
                     ) {
                         items(items = filtered, key = { it.id }) { job ->
-                            RepairJobCard(job = job, onClick = { onJobClick(job.id) })
+                            RepairJobCard(
+                                job = job,
+                                onClick = { onJobClick(job.id) },
+                                ownBid = state.ownBidsByJob[job.id],
+                            )
                         }
                         if (state.loadingMore) {
                             item("loading_more") {

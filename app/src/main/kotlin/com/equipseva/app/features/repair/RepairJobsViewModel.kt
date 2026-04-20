@@ -2,12 +2,14 @@ package com.equipseva.app.features.repair
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.core.data.repair.RepairBidRepository
 import com.equipseva.app.core.data.repair.RepairJobRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.features.repair.state.RepairJobsUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +30,7 @@ private const val SEARCH_DEBOUNCE_MS = 300L
 @HiltViewModel
 class RepairJobsViewModel @Inject constructor(
     private val repository: RepairJobRepository,
+    private val bidRepository: RepairBidRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RepairJobsUiState())
@@ -74,15 +77,18 @@ class RepairJobsViewModel @Inject constructor(
         }
         pageJob = viewModelScope.launch {
             val current = _state.value
-            repository.fetchOpenJobs(
-                page = 0,
-                pageSize = PAGE_SIZE,
-                query = current.query,
-            ).fold(
+            val jobsDeferred = async {
+                repository.fetchOpenJobs(page = 0, pageSize = PAGE_SIZE, query = current.query)
+            }
+            val bidsDeferred = async { bidRepository.fetchMyBids() }
+            jobsDeferred.await().fold(
                 onSuccess = { rows ->
+                    val ownBids = bidsDeferred.await().getOrNull().orEmpty()
+                        .associateBy { it.repairJobId }
                     _state.update {
                         it.copy(
                             items = rows,
+                            ownBidsByJob = ownBids,
                             initialLoading = false,
                             refreshing = false,
                             endReached = rows.size < PAGE_SIZE,
