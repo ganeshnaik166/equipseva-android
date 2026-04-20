@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Debug-only override. Lives in src/debug/res so it never ships in release.
+
+    - Allows user-installed CAs so Charles / Proxyman / mitmproxy can inspect
+      Supabase + Razorpay traffic during engineering.
+    - Keeps TLS pins in place for release builds (defined in src/main/res/xml).
+
+    Android's merge rule picks the debug variant resource over the main one for
+    this file in debug builds. Release builds don't see this file at all.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

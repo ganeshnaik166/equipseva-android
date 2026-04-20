@@ -1,14 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Explicit network security policy.
+    Production-shape network security policy.
 
-    - base-config blocks cleartext end-to-end on release builds.
-    - debug-overrides allows cleartext to emulator loopback so local Supabase / Razorpay
-      stubs keep working in debug builds (and adds user-installed CAs for mitmproxy /
-      Charles during engineering).
-    - pin-set stanzas are stubbed out pending a cert-pinning runbook. Turning them on
-      without key rotation in place risks a DoS-by-cert-rotation; enable only after we
-      document the pin refresh flow.
+    - base-config: no cleartext, system CAs only. User-installed CAs (mitm tools,
+      corporate MITM) are rejected.
+    - pin-set stanzas: pin the intermediate CA + its root as backup for each
+      domain. Leaf certs rotate frequently (60–90d); intermediates are stable
+      for years. Pinning at the intermediate level survives leaf rotation.
+    - debug-overrides intentionally omitted from main resources; they live in
+      src/debug/res/xml so they physically cannot ship in release APKs (even
+      if an attacker flips android:debuggable via apktool).
+
+    Rotation runbook:
+    - Generate a new pin with:
+        openssl s_client -connect <host>:443 -servername <host> -showcerts \
+          | openssl x509 -pubkey -noout \
+          | openssl pkey -pubin -outform DER \
+          | openssl dgst -sha256 -binary | base64
+    - Keep expiration ≥ 6 months ahead of the next planned release.
 -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="false">
@@ -17,27 +26,23 @@
         </trust-anchors>
     </base-config>
 
-    <debug-overrides>
-        <trust-anchors>
-            <certificates src="system" />
-            <certificates src="user" />
-        </trust-anchors>
-    </debug-overrides>
-
-    <!--
-    <domain-config>
+    <domain-config includeSubdomains="true">
         <domain includeSubdomains="true">supabase.co</domain>
-        <pin-set>
-            <pin digest="SHA-256">BASE64-PIN-PRIMARY</pin>
-            <pin digest="SHA-256">BASE64-PIN-BACKUP</pin>
+        <pin-set expiration="2027-12-31">
+            <!-- Google Trust Services WE1 intermediate (current Supabase issuer). -->
+            <pin digest="SHA-256">kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=</pin>
+            <!-- GTS Root R4 — backup so intermediate rotation within the same root survives. -->
+            <pin digest="SHA-256">mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c=</pin>
         </pin-set>
     </domain-config>
-    <domain-config>
+
+    <domain-config includeSubdomains="true">
         <domain includeSubdomains="true">razorpay.com</domain>
-        <pin-set>
-            <pin digest="SHA-256">BASE64-PIN-PRIMARY</pin>
-            <pin digest="SHA-256">BASE64-PIN-BACKUP</pin>
+        <pin-set expiration="2027-12-31">
+            <!-- RapidSSL TLS RSA CA G1 intermediate (current Razorpay issuer, DigiCert). -->
+            <pin digest="SHA-256">E3tYcwo9CiqATmKtpMLW5V+pzIq+ZoDmpXSiJlXGmTo=</pin>
+            <!-- DigiCert Global Root G2 — backup for intermediate rotation within DigiCert. -->
+            <pin digest="SHA-256">i7WTqTvh0OioIruIfFR4kMPnBqrS2rdiVPl/s2uC/CY=</pin>
         </pin-set>
     </domain-config>
-    -->
 </network-security-config>
