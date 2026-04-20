@@ -28,9 +28,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,7 +36,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,6 +51,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.cart.CartItem
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.QuantityStepper
@@ -69,7 +67,6 @@ import com.equipseva.app.designsystem.theme.Surface50
 import androidx.compose.material.icons.filled.MedicalServices
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CartScreen(
     onBack: () -> Unit,
@@ -96,27 +93,9 @@ fun CartScreen(
     val deliveryRupees = 0.0
     val totalRupees = subtotalRupees + gstRupees + deliveryRupees
 
+    val title = if (state.items.isNotEmpty()) "Cart · ${state.items.size}" else "Cart"
     Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Cart", fontWeight = FontWeight.Bold)
-                        if (state.items.isNotEmpty()) {
-                            Text(
-                                text = "${state.items.size} items",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-            )
-        },
+        topBar = { ESBackTopBar(title = title, onBack = onBack) },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Surface50,
         bottomBar = {
@@ -182,8 +161,6 @@ fun CartScreen(
             }
         }
     }
-    // onBack accepted but not invoked (top bar has no back affordance in Phase 1).
-    @Suppress("UNUSED_EXPRESSION") onBack
 }
 
 /* ------------------------------------------------------------------ */
