@@ -23,8 +23,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.outlined.Payments
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -191,27 +189,6 @@ private fun EarningsHero(paidTotal: Double, pendingTotal: Double) {
                         .background(Color.White.copy(alpha = 0.2f)),
                 )
                 HeroStat(label = "Pending", value = formatRupees(pendingTotal))
-            }
-            Spacer(Modifier.height(14.dp))
-            Button(
-                onClick = { /* no-op: payout flow lives in the ViewModel's future scope */ },
-                enabled = pendingTotal > 0,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White.copy(alpha = 0.2f),
-                    contentColor = Color.White,
-                    disabledContainerColor = Color.White.copy(alpha = 0.1f),
-                    disabledContentColor = Color.White.copy(alpha = 0.5f),
-                ),
-                shape = RoundedCornerShape(50),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp),
-            ) {
-                Text(
-                    text = "Request payout · ${formatRupees(pendingTotal)}",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
             }
         }
     }
