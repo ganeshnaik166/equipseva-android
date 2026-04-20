@@ -64,8 +64,6 @@ class CartViewModel @Inject constructor(
 
     fun onRemove(partId: String) = mutate { cartRepository.remove(partId) }
 
-    fun onClear() = mutate { cartRepository.clear() }
-
     fun onCheckout() {
         if (_state.value.items.isEmpty()) {
             viewModelScope.launch { _effects.send(Effect.ShowMessage("Your cart is empty")) }
