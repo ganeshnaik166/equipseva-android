@@ -201,7 +201,6 @@ fun MainNavGraph(
                                 restoreState = true
                             }
                             subRoute != null -> navController.navigate(subRoute)
-                            else -> showSnackbar("Coming soon")
                         }
                     },
                 )
