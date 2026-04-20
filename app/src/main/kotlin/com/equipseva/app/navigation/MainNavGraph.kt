@@ -41,6 +41,7 @@ import com.equipseva.app.features.engineerprofile.EngineerProfileScreen
 import com.equipseva.app.features.favorites.FavoritesScreen
 import com.equipseva.app.features.home.HomeScreen
 import com.equipseva.app.features.hospital.CreateRfqScreen
+import com.equipseva.app.features.hospital.HospitalActiveJobsScreen
 import com.equipseva.app.features.hospital.RequestServiceScreen
 import com.equipseva.app.features.kyc.KycScreen
 import com.equipseva.app.features.logistics.ActiveDeliveriesScreen
@@ -102,6 +103,7 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.ENGINEER_PROFILE,
     Routes.SUPPLIER_ADD_LISTING,
     Routes.HOSPITAL_CREATE_RFQ,
+    Routes.HOSPITAL_ACTIVE_JOBS,
     Routes.FAVORITES,
 )
 
@@ -167,13 +169,14 @@ fun MainNavGraph(
                     onCardClick = { key ->
                         val tabRoute = when (key) {
                             "browse_parts" -> Routes.MARKETPLACE
-                            "active_jobs", "jobs_nearby" -> Routes.REPAIR
+                            "jobs_nearby" -> Routes.REPAIR
                             "order_history" -> Routes.ORDERS
                             else -> null
                         }
                         val subRoute = when (key) {
                             "request_service" -> Routes.REQUEST_SERVICE
                             "hospital_create_rfq" -> Routes.HOSPITAL_CREATE_RFQ
+                            "active_jobs" -> Routes.HOSPITAL_ACTIVE_JOBS
                             "my_bids" -> Routes.MY_BIDS
                             "earnings" -> Routes.EARNINGS
                             "active_work" -> Routes.ACTIVE_WORK
@@ -403,6 +406,12 @@ fun MainNavGraph(
             composable(Routes.HOSPITAL_CREATE_RFQ) {
                 CreateRfqScreen(
                     onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.HOSPITAL_ACTIVE_JOBS) {
+                HospitalActiveJobsScreen(
+                    onBack = { navController.popBackStack() },
+                    onJobClick = { jobId -> navController.navigate(Routes.repairJobDetailRoute(jobId)) },
                 )
             }
             composable(Routes.ENGINEER_PROFILE) {

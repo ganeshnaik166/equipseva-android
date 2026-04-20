@@ -88,4 +88,5 @@ object Routes {
     // Hospital-side sub-routes.
     const val REQUEST_SERVICE = "hospital/request_service"
     const val HOSPITAL_CREATE_RFQ = "hospital/create_rfq"
+    const val HOSPITAL_ACTIVE_JOBS = "hospital/active_jobs"
 }
