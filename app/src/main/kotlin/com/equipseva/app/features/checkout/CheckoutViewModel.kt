@@ -193,6 +193,21 @@ class CheckoutViewModel @Inject constructor(
                         PaymentVerificationRepository.CreateRequest(orderId = order.id),
                     )
                         .onSuccess { created ->
+                            val expectedPaise = (snap.totalRupees * 100).toLong()
+                            if (kotlin.math.abs(created.amount - expectedPaise) > 1L) {
+                                // Server saw a different total than the client tallied — either
+                                // a price drift between cart view and checkout, or tampering.
+                                // Either way, stop and make the user refresh.
+                                orderRepository.cancelOrder(order.id)
+                                _state.update {
+                                    it.copy(
+                                        submitting = false,
+                                        errorMessage = "Price changed, please retry",
+                                    )
+                                }
+                                emit(Effect.ShowMessage("Price changed, please retry"))
+                                return@onSuccess
+                            }
                             val request = RazorpayLauncher.CheckoutRequest(
                                 orderId = order.id,
                                 razorpayOrderId = created.razorpayOrderId,
