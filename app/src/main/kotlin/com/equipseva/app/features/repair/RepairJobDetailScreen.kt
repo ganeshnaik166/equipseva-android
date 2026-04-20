@@ -22,7 +22,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Directions
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.StarOutline
@@ -546,11 +545,6 @@ private fun LocationCard() {
                 color = Ink700,
                 modifier = Modifier.padding(top = 4.dp),
             )
-        }
-        OutlinedButton(onClick = {}) {
-            Icon(Icons.Outlined.Directions, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(6.dp))
-            Text("Directions")
         }
     }
 }
