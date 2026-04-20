@@ -20,6 +20,7 @@ data class Order(
     val shippingPincode: String?,
     val trackingNumber: String?,
     val estimatedDelivery: String?,
+    val deliveredAtIso: String?,
     val notes: String?,
     val createdAtIso: String?,
 ) {
@@ -56,6 +57,7 @@ internal fun OrderDto.toDomain(): Order {
         shippingPincode = shippingPincode,
         trackingNumber = trackingNumber,
         estimatedDelivery = estimatedDelivery,
+        deliveredAtIso = deliveredAt,
         notes = notes,
         createdAtIso = createdAt,
     )

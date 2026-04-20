@@ -214,7 +214,7 @@ private fun OrderTimelineCard(order: Order) {
             ),
         )
         add(StepperStep(title = "Out for delivery", time = order.estimatedDelivery))
-        add(StepperStep(title = "Delivered"))
+        add(StepperStep(title = "Delivered", time = order.deliveredAtIso?.take(10)))
     }
     val currentIndex = when (order.status) {
         OrderStatus.PLACED -> 0
