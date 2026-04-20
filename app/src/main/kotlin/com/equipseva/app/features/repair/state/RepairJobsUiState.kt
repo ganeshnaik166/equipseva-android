@@ -21,4 +21,12 @@ data class RepairJobsUiState(
      * the viewer has already bid on the job without an extra network hop.
      */
     val ownBidsByJob: Map<String, RepairBid> = emptyMap(),
+    /**
+     * Jobs assigned to the engineer across all statuses. Separate list because
+     * the open-feed query deliberately filters out jobs that have already
+     * moved past Requested, so the "My jobs" tab would otherwise be empty.
+     */
+    val mineItems: List<RepairJob> = emptyList(),
+    val mineLoading: Boolean = true,
+    val mineErrorMessage: String? = null,
 )

@@ -90,26 +90,37 @@ fun RepairJobsScreen(
         }
     }
 
-    LaunchedEffect(reachedEnd, state.items.size) {
-        if (reachedEnd) viewModel.onReachEnd()
+    LaunchedEffect(reachedEnd, state.items.size, selectedTab) {
+        if (reachedEnd && selectedTab == EngineerJobsTab.Available) viewModel.onReachEnd()
     }
 
-    val filtered: List<RepairJob> = remember(state.items, selectedTab) {
+    val filtered: List<RepairJob> = remember(state.items, state.mineItems, selectedTab) {
         when (selectedTab) {
             EngineerJobsTab.Available -> state.items.filter { it.status == RepairJobStatus.Requested }
-            EngineerJobsTab.Mine -> state.items.filter { it.isAssignedToEngineer }
+            EngineerJobsTab.Mine -> state.mineItems
         }
+    }
+
+    val showLoading = when (selectedTab) {
+        EngineerJobsTab.Available -> state.initialLoading
+        EngineerJobsTab.Mine -> state.mineLoading
+    }
+    val bannerMessage = when (selectedTab) {
+        EngineerJobsTab.Available -> state.errorMessage
+        EngineerJobsTab.Mine -> state.mineErrorMessage
     }
 
     Scaffold(topBar = { ESTopBar(title = "Jobs") }) { inner ->
         Column(modifier = Modifier.fillMaxSize().padding(inner)) {
             EngineerTabBar(selected = selectedTab, onSelect = { selectedTab = it })
-            SearchHeader(
-                query = state.query,
-                onQueryChange = viewModel::onQueryChange,
-            )
+            if (selectedTab == EngineerJobsTab.Available) {
+                SearchHeader(
+                    query = state.query,
+                    onQueryChange = viewModel::onQueryChange,
+                )
+            }
             ErrorBanner(
-                message = state.errorMessage,
+                message = bannerMessage,
                 modifier = Modifier.padding(horizontal = Spacing.lg),
             )
 
@@ -119,7 +130,7 @@ fun RepairJobsScreen(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
             ) {
                 when {
-                    state.initialLoading -> InitialShimmerList()
+                    showLoading -> InitialShimmerList()
                     filtered.isEmpty() -> EmptyState(query = state.query, tab = selectedTab)
                     else -> LazyColumn(
                         state = listState,
@@ -134,28 +145,30 @@ fun RepairJobsScreen(
                                 ownBid = state.ownBidsByJob[job.id],
                             )
                         }
-                        if (state.loadingMore) {
-                            item("loading_more") {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().padding(Spacing.md),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(24.dp),
-                                        strokeWidth = 2.dp,
+                        if (selectedTab == EngineerJobsTab.Available) {
+                            if (state.loadingMore) {
+                                item("loading_more") {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(Spacing.md),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            strokeWidth = 2.dp,
+                                        )
+                                    }
+                                }
+                            } else if (state.endReached && state.items.isNotEmpty()) {
+                                item("end") {
+                                    Text(
+                                        text = "That's all the open jobs we have right now.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(Spacing.md),
                                     )
                                 }
-                            }
-                        } else if (state.endReached && state.items.isNotEmpty()) {
-                            item("end") {
-                                Text(
-                                    text = "That's all the open jobs we have right now.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(Spacing.md),
-                                )
                             }
                         }
                     }

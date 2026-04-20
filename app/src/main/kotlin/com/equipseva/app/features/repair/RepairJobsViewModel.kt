@@ -73,6 +73,8 @@ class RepairJobsViewModel @Inject constructor(
                 refreshing = viaPullToRefresh,
                 endReached = false,
                 errorMessage = null,
+                mineLoading = it.mineItems.isEmpty() && !viaPullToRefresh,
+                mineErrorMessage = null,
             )
         }
         pageJob = viewModelScope.launch {
@@ -81,6 +83,7 @@ class RepairJobsViewModel @Inject constructor(
                 repository.fetchOpenJobs(page = 0, pageSize = PAGE_SIZE, query = current.query)
             }
             val bidsDeferred = async { bidRepository.fetchMyBids() }
+            val mineDeferred = async { repository.fetchAssignedToMe() }
             jobsDeferred.await().fold(
                 onSuccess = { rows ->
                     val ownBids = bidsDeferred.await().getOrNull().orEmpty()
@@ -102,6 +105,18 @@ class RepairJobsViewModel @Inject constructor(
                             refreshing = false,
                             errorMessage = ex.toUserMessage(),
                         )
+                    }
+                },
+            )
+            mineDeferred.await().fold(
+                onSuccess = { rows ->
+                    _state.update {
+                        it.copy(mineItems = rows, mineLoading = false, mineErrorMessage = null)
+                    }
+                },
+                onFailure = { ex ->
+                    _state.update {
+                        it.copy(mineLoading = false, mineErrorMessage = ex.toUserMessage())
                     }
                 },
             )
