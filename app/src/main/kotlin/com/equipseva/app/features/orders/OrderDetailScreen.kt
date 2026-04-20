@@ -48,8 +48,6 @@ import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.SectionHeader
-import com.equipseva.app.designsystem.components.StatusChip
-import com.equipseva.app.designsystem.components.StatusTone
 import com.equipseva.app.designsystem.components.StepperStep
 import com.equipseva.app.designsystem.components.VerticalStepper
 import com.equipseva.app.designsystem.theme.Ink500
@@ -319,10 +317,6 @@ private fun DeliveryCard(order: Order) {
     }
 }
 
-@Composable
-private fun OrderStatusChipRow(order: Order) {
-    StatusChip(label = order.status.displayName, tone = order.status.toTone())
-}
 
 @Composable
 private fun OutlinedSurfaceCard(
@@ -340,14 +334,6 @@ private fun OutlinedSurfaceCard(
     ) {
         content()
     }
-}
-
-private fun OrderStatus.toTone(): StatusTone = when (this) {
-    OrderStatus.PLACED, OrderStatus.CONFIRMED -> StatusTone.Info
-    OrderStatus.SHIPPED -> StatusTone.Warn
-    OrderStatus.DELIVERED -> StatusTone.Success
-    OrderStatus.CANCELLED, OrderStatus.RETURNED -> StatusTone.Danger
-    OrderStatus.UNKNOWN -> StatusTone.Neutral
 }
 
 private fun iconFor(name: String): Pair<Int, ImageVector> {
