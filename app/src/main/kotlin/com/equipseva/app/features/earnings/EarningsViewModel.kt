@@ -35,7 +35,6 @@ class EarningsViewModel @Inject constructor(
         val refreshing: Boolean = false,
         val paidTotal: Double = 0.0,
         val pendingTotal: Double = 0.0,
-        val acceptedThisMonth: Int = 0,
         val rows: List<EarningRow> = emptyList(),
         val errorMessage: String? = null,
     )
@@ -80,7 +79,6 @@ class EarningsViewModel @Inject constructor(
                             refreshing = false,
                             paidTotal = paid,
                             pendingTotal = pending,
-                            acceptedThisMonth = accepted.size,
                             rows = rows,
                             errorMessage = null,
                         )
