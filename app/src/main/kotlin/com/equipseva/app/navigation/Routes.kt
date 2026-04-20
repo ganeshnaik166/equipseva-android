@@ -3,7 +3,6 @@ package com.equipseva.app.navigation
 object Routes {
     // Top-level graph IDs (sub-graphs wrapped under these names).
     const val AUTH_GRAPH = "auth_graph"
-    const val ROLE_SELECT = "role_select"
 
     // Auth sub-routes.
     const val AUTH_WELCOME = "auth/welcome"
