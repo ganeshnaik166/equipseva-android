@@ -32,7 +32,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Verified
@@ -327,12 +326,6 @@ private fun buildSettingsRows(
             onClick = onOpenMessages,
         )
     }
-    rows += SettingsRow(
-        icon = Icons.Outlined.Notifications,
-        label = "Notifications",
-        trailing = "Coming soon",
-        enabled = false,
-    )
     rows += SettingsRow(
         icon = Icons.Filled.Translate,
         label = "Language",
