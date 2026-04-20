@@ -97,6 +97,18 @@ fun RepairJobCard(
                         modifier = Modifier.padding(top = 2.dp),
                     )
                 }
+                val schedule = listOfNotNull(job.scheduledDate, job.scheduledTimeSlot).joinToString(" ").trim()
+                if (schedule.isNotBlank()) {
+                    Text(
+                        text = "Scheduled $schedule",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Ink900,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
                 Row(
                     modifier = Modifier.padding(top = Spacing.sm),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
