@@ -280,8 +280,16 @@ private fun LineItemRow(line: OrderLineItem) {
                 color = Ink900,
                 maxLines = 2,
             )
+            line.partNumber?.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    text = "Part #$it",
+                    fontSize = 11.sp,
+                    color = Ink500,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
             Text(
-                text = "Qty ${line.quantity}",
+                text = "Qty ${line.quantity} · ${formatRupees(line.unitPriceRupees)} each",
                 fontSize = 12.sp,
                 color = Ink500,
                 modifier = Modifier.padding(top = 2.dp),
