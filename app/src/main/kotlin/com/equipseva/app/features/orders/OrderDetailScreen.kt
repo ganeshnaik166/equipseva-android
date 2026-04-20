@@ -178,6 +178,12 @@ private fun OrderDetailBody(
         item("delivery_header") { SectionHeader(title = "Delivery") }
         item("delivery_card") { DeliveryCard(order) }
 
+        val notes = order.notes?.takeIf { it.isNotBlank() }
+        if (notes != null) {
+            item("notes_header") { SectionHeader(title = "Notes") }
+            item("notes_card") { NotesCard(notes) }
+        }
+
         if (order.status == OrderStatus.PLACED || order.status == OrderStatus.CONFIRMED) {
             item("cancel") {
                 OutlinedButton(
@@ -317,6 +323,19 @@ private fun DeliveryCard(order: Order) {
     }
 }
 
+
+@Composable
+private fun NotesCard(notes: String) {
+    OutlinedSurfaceCard(modifier = Modifier.padding(horizontal = Spacing.lg)) {
+        Text(
+            text = notes,
+            fontSize = 13.sp,
+            lineHeight = 18.sp,
+            color = Ink700,
+            modifier = Modifier.padding(Spacing.lg),
+        )
+    }
+}
 
 @Composable
 private fun OutlinedSurfaceCard(
