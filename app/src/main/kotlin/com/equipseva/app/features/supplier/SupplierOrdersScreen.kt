@@ -36,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.orders.Order
 import com.equipseva.app.core.data.orders.OrderStatus
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
@@ -132,8 +133,9 @@ private fun SupplierOrderCard(
                 )
             }
             val itemLine = if (order.lineItemCount == 1) "1 item" else "${order.lineItemCount} items"
+            val placedLine = order.createdAtInstant?.let { "· Placed ${relativeLabel(it)} ago" }.orEmpty()
             Text(
-                text = itemLine,
+                text = "$itemLine $placedLine".trimEnd(),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
