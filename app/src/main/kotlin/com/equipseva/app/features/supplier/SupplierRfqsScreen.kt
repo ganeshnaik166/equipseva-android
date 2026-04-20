@@ -33,8 +33,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.rfq.Rfq
+import com.equipseva.app.core.util.countdownLabel
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.relativeLabel
+import java.time.Instant
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
@@ -145,6 +147,17 @@ internal fun RfqListCard(rfq: Rfq) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            rfq.deadlineInstant?.let { deadline ->
+                val now = Instant.now()
+                val overdue = deadline.isBefore(now)
+                Text(
+                    text = countdownLabel(deadline, now) + " to quote",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (overdue) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
         }
     }
 }
