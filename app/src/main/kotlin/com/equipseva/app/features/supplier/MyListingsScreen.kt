@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -160,6 +161,26 @@ private fun ListingCard(
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
                     )
+                    val mrp = part.mrpRupees
+                    if (mrp != null && mrp > part.priceRupees) {
+                        Text(
+                            text = formatRupees(mrp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textDecoration = TextDecoration.LineThrough,
+                        )
+                    }
+                    if (part.discountPercent > 0) {
+                        StatusChip(
+                            label = "${part.discountPercent}% OFF",
+                            tone = StatusTone.Success,
+                        )
+                    }
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     val (label, tone) = when {
                         part.stockQuantity == 0 -> "Out of stock" to StatusTone.Danger
                         part.stockQuantity <= 5 -> "Low (${part.stockQuantity})" to StatusTone.Warn
