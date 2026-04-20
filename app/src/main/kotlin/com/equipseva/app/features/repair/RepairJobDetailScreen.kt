@@ -14,24 +14,30 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.Directions
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,8 +50,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.repair.RepairBid
@@ -55,9 +65,22 @@ import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.PrimaryButton
+import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.components.StatusChip
+import com.equipseva.app.designsystem.components.StepperStep
+import com.equipseva.app.designsystem.components.VerticalStepper
+import com.equipseva.app.designsystem.theme.BrandGreen
+import com.equipseva.app.designsystem.theme.BrandGreen50
+import com.equipseva.app.designsystem.theme.BrandGreenDark
+import com.equipseva.app.designsystem.theme.Ink500
+import com.equipseva.app.designsystem.theme.Ink700
+import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Surface200
+import com.equipseva.app.designsystem.theme.Surface50
+import com.equipseva.app.features.repair.components.iconForEquipment
 import com.equipseva.app.features.repair.components.toTone
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,12 +88,20 @@ import com.equipseva.app.features.repair.components.toTone
 fun RepairJobDetailScreen(
     onBack: () -> Unit,
     onShowMessage: (String) -> Unit,
+    onOpenChat: (String) -> Unit,
     viewModel: RepairJobDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(viewModel) {
         viewModel.messages.collect { onShowMessage(it) }
+    }
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is RepairJobDetailViewModel.Effect.NavigateToChat -> onOpenChat(effect.conversationId)
+            }
+        }
     }
 
     Scaffold(
@@ -82,7 +113,26 @@ fun RepairJobDetailScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
             )
+        },
+        bottomBar = {
+            val job = state.job
+            if (job != null) {
+                StickyBottomBar(
+                    job = job,
+                    ownBid = state.ownBid,
+                    withdrawing = state.withdrawingBid,
+                    openingChat = state.openingChat,
+                    onMessageHospital = viewModel::openChatWithHospital,
+                    onPlaceBid = viewModel::openBidComposer,
+                    onWithdraw = viewModel::withdrawBid,
+                )
+            }
         },
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
@@ -99,9 +149,6 @@ fun RepairJobDetailScreen(
                 state.job != null -> JobBody(
                     job = state.job!!,
                     ownBid = state.ownBid,
-                    withdrawing = state.withdrawingBid,
-                    onPlaceBid = viewModel::openBidComposer,
-                    onWithdraw = viewModel::withdrawBid,
                 )
             }
         }
@@ -121,218 +168,390 @@ fun RepairJobDetailScreen(
 private fun JobBody(
     job: RepairJob,
     ownBid: RepairBid?,
-    withdrawing: Boolean,
-    onPlaceBid: () -> Unit,
-    onWithdraw: () -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            .padding(bottom = Spacing.xl),
     ) {
-        Text(job.equipmentLabel, style = MaterialTheme.typography.headlineSmall)
-        val brandModel = listOfNotNull(job.equipmentBrand, job.equipmentModel).joinToString(" ")
-        if (brandModel.isNotBlank() && brandModel != job.equipmentLabel) {
-            Text(
-                text = brandModel,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        EquipmentBannerCard(job = job)
 
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            StatusChip(label = job.status.displayName, tone = job.status.toTone())
-            if (job.urgency != RepairJobUrgency.Unknown) {
-                StatusChip(label = job.urgency.displayName, tone = job.urgency.toTone())
-            }
-        }
+        SectionHeader(title = "Issue described")
+        IssueCard(job = job)
 
-        SectionTitle("Progress")
-        JobTimeline(currentStatus = job.status)
+        SectionHeader(title = "Location")
+        LocationCard()
 
-        SectionTitle("Issue")
-        Text(job.issueDescription, style = MaterialTheme.typography.bodyMedium)
+        SectionHeader(title = "Your bid")
+        YourBidCard(ownBid = ownBid)
 
-        val schedule = listOfNotNull(job.scheduledDate, job.scheduledTimeSlot).joinToString(" ")
-        if (schedule.isNotBlank()) {
-            SectionTitle("Scheduled")
-            Text(schedule, style = MaterialTheme.typography.bodyMedium)
-        }
-
-        job.estimatedCostRupees?.let { cost ->
-            SectionTitle("Estimated cost")
-            Text("₹%.0f".format(cost), style = MaterialTheme.typography.bodyMedium)
-        }
-
-        HorizontalDivider()
-
-        SectionTitle("Your bid")
-        if (ownBid == null) {
-            Text(
-                "You haven't bid on this job yet.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            OwnBidCard(ownBid)
-        }
-
-        BidActions(
-            job = job,
-            ownBid = ownBid,
-            withdrawing = withdrawing,
-            onPlaceBid = onPlaceBid,
-            onWithdraw = onWithdraw,
-        )
+        SectionHeader(title = "Status")
+        StatusStepperCard(job = job)
     }
 }
 
 @Composable
-private fun JobTimeline(currentStatus: RepairJobStatus) {
-    val steps = listOf("Requested", "Assigned", "In progress", "Completed")
-    val currentIndex = when (currentStatus) {
+private fun EquipmentBannerCard(job: RepairJob) {
+    val shape = MaterialTheme.shapes.medium
+    Column(
+        modifier = Modifier
+            .padding(Spacing.lg)
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface, shape)
+            .border(1.dp, Surface200, shape),
+    ) {
+        // Banner — simple tinted surface with centered equipment pill.
+        // Fallback layout used in place of diagonal-line pattern (see deviation notes).
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFFF2F6F4),
+                            Color(0xFFE7EEEB),
+                        ),
+                    ),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Row(
+                modifier = Modifier
+                    .background(Color(0xD9FFFFFF), RoundedCornerShape(8.dp))
+                    .border(1.dp, Color(0x260B6E4F), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 18.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val (hue, icon) = iconForEquipment(job)
+                GradientTile(icon = icon, hue = hue, size = 28.dp)
+                Text(
+                    text = job.equipmentCategory.displayName.uppercase(),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 1.sp,
+                    color = Ink700,
+                )
+            }
+        }
+        Column(modifier = Modifier.padding(Spacing.md)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = job.equipmentLabel,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Ink900,
+                )
+                if (job.urgency != RepairJobUrgency.Unknown) {
+                    StatusChip(
+                        label = job.urgency.displayName,
+                        tone = job.urgency.toTone(),
+                    )
+                }
+            }
+            val modelLine = listOfNotNull(job.equipmentBrand, job.equipmentModel)
+                .joinToString(" ")
+                .ifBlank { null }
+            if (modelLine != null && modelLine != job.equipmentLabel) {
+                Text(
+                    text = modelLine,
+                    fontSize = 13.sp,
+                    color = Ink500,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+            val schedule = listOfNotNull(job.scheduledDate, job.scheduledTimeSlot).joinToString(" ")
+            if (schedule.isNotBlank()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.padding(top = 10.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.LocationOn,
+                        contentDescription = null,
+                        tint = BrandGreen,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        text = schedule,
+                        fontSize = 13.sp,
+                        color = Ink700,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun IssueCard(job: RepairJob) {
+    val shape = MaterialTheme.shapes.medium
+    Column(
+        modifier = Modifier
+            .padding(horizontal = Spacing.lg)
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface, shape)
+            .border(1.dp, Surface200, shape)
+            .padding(Spacing.md),
+    ) {
+        Text(
+            text = job.issueDescription,
+            fontSize = 14.sp,
+            lineHeight = 20.sp,
+            color = Ink900,
+        )
+        // Placeholder photo grid — the VM does not surface attached photos yet.
+        Row(
+            modifier = Modifier.padding(top = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            listOf(150, 40, 200).forEach { hue ->
+                GradientTile(icon = Icons.Outlined.Image, hue = hue, size = 60.dp)
+            }
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .background(Surface50, RoundedCornerShape(5.dp))
+                    .border(1.dp, Surface200, RoundedCornerShape(5.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "+2",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Ink500,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LocationCard() {
+    // Map rendering intentionally skipped — see deviations. Show the address row + Directions button.
+    val shape = MaterialTheme.shapes.medium
+    Row(
+        modifier = Modifier
+            .padding(horizontal = Spacing.lg)
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface, shape)
+            .border(1.dp, Surface200, shape)
+            .padding(Spacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Icon(
+                    imageVector = Icons.Outlined.LocationOn,
+                    contentDescription = null,
+                    tint = BrandGreen,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = "Service site",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Ink700,
+                )
+            }
+            Text(
+                text = "Address will be shared once the bid is accepted.",
+                fontSize = 13.sp,
+                color = Ink700,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+        OutlinedButton(onClick = {}) {
+            Icon(Icons.Outlined.Directions, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Directions")
+        }
+    }
+}
+
+@Composable
+private fun YourBidCard(ownBid: RepairBid?) {
+    val shape = MaterialTheme.shapes.medium
+    if (ownBid == null) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = Spacing.lg)
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface, shape)
+                .border(1.dp, Surface200, shape)
+                .padding(Spacing.md),
+        ) {
+            Text(
+                text = "You haven't placed a bid on this job yet.",
+                fontSize = 13.sp,
+                color = Ink500,
+            )
+        }
+    } else {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = Spacing.lg)
+                .fillMaxWidth()
+                .background(BrandGreen50, shape)
+                .padding(Spacing.md),
+        ) {
+            Text(
+                text = "Your bid",
+                fontSize = 13.sp,
+                color = Ink500,
+            )
+            Text(
+                text = buildString {
+                    append(formatRupees(ownBid.amountRupees))
+                    ownBid.etaHours?.let { append(" · ETA ${it}h") }
+                },
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = BrandGreenDark,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+            Text(
+                text = "Status: ${ownBid.status.displayName}",
+                fontSize = 12.sp,
+                color = Ink700,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            if (!ownBid.note.isNullOrBlank()) {
+                Text(
+                    text = "Note: ${ownBid.note}",
+                    fontSize = 12.sp,
+                    color = Ink700,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatusStepperCard(job: RepairJob) {
+    val shape = MaterialTheme.shapes.medium
+    val steps = listOf(
+        StepperStep(title = "Open · awaiting bids"),
+        StepperStep(title = "Bids received"),
+        StepperStep(title = "Accepted"),
+        StepperStep(title = "En route"),
+        StepperStep(title = "On site"),
+        StepperStep(title = "Completed"),
+    )
+    val current = when (job.status) {
         RepairJobStatus.Requested -> 0
-        RepairJobStatus.Assigned -> 1
-        RepairJobStatus.EnRoute, RepairJobStatus.InProgress -> 2
-        RepairJobStatus.Completed -> 3
+        RepairJobStatus.Assigned -> 2
+        RepairJobStatus.EnRoute -> 3
+        RepairJobStatus.InProgress -> 4
+        RepairJobStatus.Completed -> 5
         RepairJobStatus.Cancelled, RepairJobStatus.Disputed, RepairJobStatus.Unknown -> -1
     }
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        steps.forEachIndexed { index, label ->
-            TimelineRow(
-                label = label,
-                state = when {
-                    currentIndex < 0 -> TimelineState.Future
-                    index < currentIndex -> TimelineState.Completed
-                    index == currentIndex -> TimelineState.Current
-                    else -> TimelineState.Future
-                },
-                showConnector = index != steps.lastIndex,
-            )
-        }
-    }
-}
-
-private enum class TimelineState { Completed, Current, Future }
-
-@Composable
-private fun TimelineRow(label: String, state: TimelineState, showConnector: Boolean) {
-    val primary = MaterialTheme.colorScheme.primary
-    val outline = MaterialTheme.colorScheme.outline
-    val outlineVariant = MaterialTheme.colorScheme.outlineVariant
-
-    Row(verticalAlignment = Alignment.Top) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            when (state) {
-                TimelineState.Current -> Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .background(color = primary, shape = CircleShape),
-                )
-                TimelineState.Completed -> Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .background(color = primary.copy(alpha = 0.6f), shape = CircleShape),
-                )
-                TimelineState.Future -> Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .border(width = 1.dp, color = outline, shape = CircleShape),
-                )
-            }
-            if (showConnector) {
-                Box(
-                    modifier = Modifier
-                        .width(2.dp)
-                        .height(28.dp)
-                        .background(outlineVariant),
-                )
-            }
-        }
-        Spacer(Modifier.width(Spacing.md))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.titleSmall,
-            color = when (state) {
-                TimelineState.Current -> MaterialTheme.colorScheme.onSurface
-                TimelineState.Completed -> MaterialTheme.colorScheme.onSurface
-                TimelineState.Future -> MaterialTheme.colorScheme.onSurfaceVariant
-            },
-            modifier = Modifier.padding(top = 0.dp),
-        )
+    Column(
+        modifier = Modifier
+            .padding(horizontal = Spacing.lg)
+            .padding(bottom = Spacing.xl)
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface, shape)
+            .border(1.dp, Surface200, shape)
+            .padding(Spacing.md),
+    ) {
+        VerticalStepper(steps = steps, current = current)
     }
 }
 
 @Composable
-private fun OwnBidCard(bid: RepairBid) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Text(formatRupees(bid.amountRupees), style = MaterialTheme.typography.titleLarge)
-        Text(
-            text = "Status: ${bid.status.displayName}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        bid.etaHours?.let {
-            Text("ETA: $it hours", style = MaterialTheme.typography.bodyMedium)
-        }
-        if (!bid.note.isNullOrBlank()) {
-            Text("Note: ${bid.note}", style = MaterialTheme.typography.bodyMedium)
-        }
-    }
-}
-
-@Composable
-private fun BidActions(
+private fun StickyBottomBar(
     job: RepairJob,
     ownBid: RepairBid?,
     withdrawing: Boolean,
+    openingChat: Boolean,
+    onMessageHospital: () -> Unit,
     onPlaceBid: () -> Unit,
     onWithdraw: () -> Unit,
 ) {
     val acceptsBids = job.status == RepairJobStatus.Requested
-
-    when {
-        !acceptsBids -> Text(
-            text = "Bidding closed for this job",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        ownBid == null -> PrimaryButton(
-            label = "Place bid",
-            onClick = onPlaceBid,
-        )
-        ownBid.status == RepairBidStatus.Pending -> {
-            PrimaryButton(
-                label = "Update bid",
-                onClick = onPlaceBid,
-                enabled = !withdrawing,
-            )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, Surface200)
+            .padding(Spacing.lg),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (job.hospitalUserId != null) {
+                OutlinedButton(
+                    onClick = onMessageHospital,
+                    enabled = !openingChat,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text(if (openingChat) "Opening…" else "Message")
+                }
+            }
+            when {
+                !acceptsBids -> Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "Bidding closed",
+                        fontSize = 13.sp,
+                        color = Ink500,
+                    )
+                }
+                ownBid == null -> Button(
+                    onClick = onPlaceBid,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BrandGreen,
+                        contentColor = Color.White,
+                    ),
+                ) { Text("Place bid") }
+                ownBid.status == RepairBidStatus.Pending -> Button(
+                    onClick = onPlaceBid,
+                    enabled = !withdrawing,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BrandGreen,
+                        contentColor = Color.White,
+                    ),
+                ) { Text("Edit bid") }
+                else -> Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "Bid ${ownBid.status.displayName.lowercase()}",
+                        fontSize = 13.sp,
+                        color = Ink500,
+                    )
+                }
+            }
+        }
+        if (ownBid?.status == RepairBidStatus.Pending) {
             TextButton(
                 onClick = onWithdraw,
                 enabled = !withdrawing,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .fillMaxWidth(),
             ) {
-                Text(if (withdrawing) "Withdrawing…" else "Withdraw")
+                Text(if (withdrawing) "Withdrawing…" else "Withdraw bid")
             }
         }
-        else -> Text(
-            text = "Bidding closed for this job",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
-}
-
-@Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium,
-        modifier = Modifier.padding(top = Spacing.sm),
-    )
 }
 
 @Composable

@@ -25,6 +25,13 @@ sentry.properties
 *.ipr
 captures/
 
+# VS Code & Kotlin language server
+.vscode/
+.kotlin/
+
+# Claude Code local project cache
+.claude/
+
 # OS
 .DS_Store
 Thumbs.db

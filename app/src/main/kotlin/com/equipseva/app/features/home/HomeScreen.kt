@@ -1,20 +1,15 @@
 package com.equipseva.app.features.home
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -57,6 +52,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.designsystem.components.ESTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
+import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.HeroBanner
 import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.theme.Spacing
@@ -65,6 +61,7 @@ import com.equipseva.app.features.auth.UserRole
 @Composable
 fun HomeScreen(
     onShowMessage: (String) -> Unit,
+    onCardClick: (String) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -99,7 +96,7 @@ fun HomeScreen(
                     HomeContent(
                         greetingName = state.greetingName,
                         role = state.role,
-                        onCardClick = { /* stub — nav wiring owner will fill in */ },
+                        onCardClick = onCardClick,
                     )
                 }
             }
@@ -142,6 +139,7 @@ private fun HomeContent(
                     icon = entry.icon,
                     title = entry.title,
                     subtitle = entry.subtitle,
+                    hue = entry.hue,
                     onClick = { onCardClick(entry.key) },
                 )
             }
@@ -154,36 +152,40 @@ private data class HomeCardEntry(
     val icon: ImageVector,
     val title: String,
     val subtitle: String,
+    val hue: Int,
 )
 
 private fun cardsFor(role: UserRole?): List<HomeCardEntry> = when (role) {
     UserRole.HOSPITAL -> listOf(
-        HomeCardEntry("browse_parts", Icons.Filled.Search, "Browse parts", "Find compatible parts for your equipment"),
-        HomeCardEntry("active_jobs", Icons.Filled.Build, "Active repair jobs", "Track ongoing repairs"),
-        HomeCardEntry("order_history", Icons.Filled.History, "Order history", "Review past purchases and invoices"),
-        HomeCardEntry("request_service", Icons.Filled.Assignment, "Request a service", "Post a new repair request"),
+        HomeCardEntry("browse_parts", Icons.Filled.Search, "Browse parts", "Find compatible parts for your equipment", hue = 200),
+        HomeCardEntry("active_jobs", Icons.Filled.Build, "Active repair jobs", "Track ongoing repairs", hue = 150),
+        HomeCardEntry("order_history", Icons.Filled.History, "Order history", "Review past purchases and invoices", hue = 40),
+        HomeCardEntry("request_service", Icons.Filled.Assignment, "Request a service", "Post a new repair request", hue = 280),
+        HomeCardEntry("hospital_create_rfq", Icons.Filled.Description, "Create an RFQ", "Request quotations from suppliers", hue = 330),
     )
     UserRole.ENGINEER -> listOf(
-        HomeCardEntry("jobs_nearby", Icons.Filled.LocationOn, "Open jobs near me", "Jobs posted in your area"),
-        HomeCardEntry("my_bids", Icons.Filled.Description, "My bids", "Track bids you've placed"),
-        HomeCardEntry("active_work", Icons.Filled.Work, "Active work", "Jobs you're currently on"),
-        HomeCardEntry("earnings", Icons.Filled.Paid, "Earnings summary", "Payouts and pending amounts"),
+        HomeCardEntry("jobs_nearby", Icons.Filled.LocationOn, "Open jobs near me", "Jobs posted in your area", hue = 150),
+        HomeCardEntry("my_bids", Icons.Filled.Description, "My bids", "Track bids you've placed", hue = 40),
+        HomeCardEntry("active_work", Icons.Filled.Work, "Active work", "Jobs you're currently on", hue = 200),
+        HomeCardEntry("earnings", Icons.Filled.Paid, "Earnings summary", "Payouts and pending amounts", hue = 280),
+        HomeCardEntry("engineer_profile", Icons.Outlined.Badge, "My engineer profile", "Rates, service areas, specializations", hue = 330),
     )
     UserRole.SUPPLIER -> listOf(
-        HomeCardEntry("incoming_orders", Icons.Filled.ShoppingCart, "Incoming orders", "New and pending orders"),
-        HomeCardEntry("my_listings", Icons.Filled.Store, "My listings", "Manage parts you sell"),
-        HomeCardEntry("stock_alerts", Icons.Filled.Warning, "Stock alerts", "Low or out-of-stock items"),
-        HomeCardEntry("rfqs", Icons.Filled.Description, "RFQs", "Requests for quotation"),
+        HomeCardEntry("incoming_orders", Icons.Filled.ShoppingCart, "Incoming orders", "New and pending orders", hue = 150),
+        HomeCardEntry("my_listings", Icons.Filled.Store, "My listings", "Manage parts you sell", hue = 200),
+        HomeCardEntry("supplier_add_listing", Icons.Filled.Inventory2, "Add a listing", "Publish a new spare part", hue = 40),
+        HomeCardEntry("stock_alerts", Icons.Filled.Warning, "Stock alerts", "Low or out-of-stock items", hue = 0),
+        HomeCardEntry("rfqs", Icons.Filled.Description, "RFQs", "Requests for quotation", hue = 280),
     )
     UserRole.MANUFACTURER -> listOf(
-        HomeCardEntry("rfqs_assigned", Icons.Filled.Assignment, "RFQs assigned", "Quotation requests for you"),
-        HomeCardEntry("lead_pipeline", Icons.Filled.TrendingUp, "Lead pipeline", "Leads in progress"),
-        HomeCardEntry("analytics", Icons.Filled.Analytics, "Analytics", "Performance and trends"),
+        HomeCardEntry("rfqs_assigned", Icons.Filled.Assignment, "RFQs assigned", "Quotation requests for you", hue = 280),
+        HomeCardEntry("lead_pipeline", Icons.Filled.TrendingUp, "Lead pipeline", "Leads in progress", hue = 200),
+        HomeCardEntry("analytics", Icons.Filled.Analytics, "Analytics", "Performance and trends", hue = 150),
     )
     UserRole.LOGISTICS -> listOf(
-        HomeCardEntry("pickup_queue", Icons.Filled.Inventory2, "Pickup queue", "Shipments awaiting pickup"),
-        HomeCardEntry("active_deliveries", Icons.Filled.LocalShipping, "Active deliveries", "Currently on the road"),
-        HomeCardEntry("completed_today", Icons.Filled.Inventory, "Completed today", "Deliveries closed today"),
+        HomeCardEntry("pickup_queue", Icons.Filled.Inventory2, "Pickup queue", "Shipments awaiting pickup", hue = 40),
+        HomeCardEntry("active_deliveries", Icons.Filled.LocalShipping, "Active deliveries", "Currently on the road", hue = 200),
+        HomeCardEntry("completed_today", Icons.Filled.Inventory, "Completed today", "Deliveries closed today", hue = 150),
     )
     null -> emptyList()
 }
@@ -193,61 +195,43 @@ private fun HomeActionCard(
     icon: ImageVector,
     title: String,
     subtitle: String,
+    hue: Int,
     onClick: () -> Unit,
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min)
             .clickable(onClick = onClick),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Min),
+                .padding(Spacing.lg),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .fillMaxHeight()
-                    .background(MaterialTheme.colorScheme.primary),
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Spacing.lg),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            GradientTile(icon = icon, hue = hue, size = 48.dp)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp),
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
                 )
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
-                ) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Icon(
-                    imageVector = Icons.Filled.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            Icon(
+                imageVector = Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

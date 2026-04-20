@@ -5,9 +5,9 @@ import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
 val EquipSevaShapes = Shapes(
-    extraSmall = RoundedCornerShape(6.dp),
-    small = RoundedCornerShape(10.dp),
-    medium = RoundedCornerShape(14.dp),
-    large = RoundedCornerShape(18.dp),
-    extraLarge = RoundedCornerShape(28.dp),
+    extraSmall = RoundedCornerShape(5.dp),
+    small = RoundedCornerShape(5.dp),
+    medium = RoundedCornerShape(5.dp),
+    large = RoundedCornerShape(5.dp),
+    extraLarge = RoundedCornerShape(5.dp),
 )

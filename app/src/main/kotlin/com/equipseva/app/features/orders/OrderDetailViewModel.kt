@@ -8,9 +8,11 @@ import com.equipseva.app.core.data.orders.OrderRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -26,7 +28,13 @@ class OrderDetailViewModel @Inject constructor(
         val order: Order? = null,
         val notFound: Boolean = false,
         val errorMessage: String? = null,
+        val cancellationInFlight: Boolean = false,
+        val cancellationError: String? = null,
     )
+
+    sealed interface Effect {
+        data class ShowMessage(val text: String) : Effect
+    }
 
     private val orderId: String = requireNotNull(savedStateHandle[Routes.ORDER_DETAIL_ARG_ID]) {
         "Missing orderId nav arg"
@@ -35,26 +43,58 @@ class OrderDetailViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
+    private val _effects = Channel<Effect>(Channel.BUFFERED)
+    val effects = _effects.receiveAsFlow()
+
     init { refresh() }
 
     fun refresh() {
         _state.update { it.copy(loading = true, errorMessage = null, notFound = false) }
         viewModelScope.launch {
-            orderRepository.fetchById(orderId)
-                .onSuccess { order ->
-                    _state.update {
-                        it.copy(
-                            loading = false,
-                            order = order,
-                            notFound = order == null,
-                        )
-                    }
+            loadOrder()
+        }
+    }
+
+    fun onCancelOrder() {
+        val current = _state.value
+        if (current.cancellationInFlight) return
+        val targetId = current.order?.id ?: return
+        _state.update { it.copy(cancellationInFlight = true, cancellationError = null) }
+        viewModelScope.launch {
+            orderRepository.cancelOrder(targetId)
+                .onSuccess {
+                    // Re-fetch so the UI sees the new status; the cancel button hides itself
+                    // once order.status is no longer PLACED/CONFIRMED.
+                    loadOrder()
+                    _state.update { it.copy(cancellationInFlight = false, cancellationError = null) }
+                    _effects.send(Effect.ShowMessage("Order cancelled"))
                 }
                 .onFailure { error ->
                     _state.update {
-                        it.copy(loading = false, errorMessage = error.toUserMessage())
+                        it.copy(
+                            cancellationInFlight = false,
+                            cancellationError = error.toUserMessage(),
+                        )
                     }
                 }
         }
+    }
+
+    private suspend fun loadOrder() {
+        orderRepository.fetchById(orderId)
+            .onSuccess { order ->
+                _state.update {
+                    it.copy(
+                        loading = false,
+                        order = order,
+                        notFound = order == null,
+                    )
+                }
+            }
+            .onFailure { error ->
+                _state.update {
+                    it.copy(loading = false, errorMessage = error.toUserMessage())
+                }
+            }
     }
 }

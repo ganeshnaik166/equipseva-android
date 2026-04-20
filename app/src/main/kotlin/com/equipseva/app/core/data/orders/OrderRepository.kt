@@ -10,6 +10,9 @@ interface OrderRepository {
     /** Fetch a single order by id. Null when nothing matches / not visible under RLS. */
     suspend fun fetchById(id: String): Result<Order?>
 
+    /** Orders placed against this supplier org — supplier-side dashboard view. */
+    suspend fun fetchForSupplier(supplierOrgId: String): Result<List<Order>>
+
     /**
      * Record a non-terminal payment outcome (failed / cancelled / pending). The server-side
      * trigger in 20260419000000_razorpay_verification_rls.sql refuses anon-role writes that
@@ -21,6 +24,13 @@ interface OrderRepository {
         paymentStatus: NonTerminalPaymentStatus,
         orderStatus: NonTerminalOrderStatus?,
     ): Result<Unit>
+
+    /**
+     * Cancel an order placed by the buyer. Sets both `order_status` and `payment_status` to
+     * `cancelled`. Server-side trigger in 20260419000000_razorpay_verification_rls.sql allows
+     * the anon role to flip to these non-terminal cancelled states.
+     */
+    suspend fun cancelOrder(orderId: String): Result<Unit>
 }
 
 enum class NonTerminalPaymentStatus(val storageKey: String) {

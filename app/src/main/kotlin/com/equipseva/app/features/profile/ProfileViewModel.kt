@@ -40,6 +40,11 @@ class ProfileViewModel @Inject constructor(
         val roleEditorSelected: UserRole? = null,
         val roleUpdating: Boolean = false,
         val signingOut: Boolean = false,
+        val editProfileOpen: Boolean = false,
+        val editFullName: String = "",
+        val editPhone: String = "",
+        val editSaving: Boolean = false,
+        val editError: String? = null,
     )
 
     sealed interface Effect {
@@ -137,6 +142,70 @@ class ProfileViewModel @Inject constructor(
                 .onFailure { error ->
                     _state.update { it.copy(roleUpdating = false) }
                     _effects.send(Effect.ShowMessage(error.toUserMessage()))
+                }
+        }
+    }
+
+    fun onOpenEditProfile() {
+        val profile = _state.value.profile ?: return
+        _state.update {
+            it.copy(
+                editProfileOpen = true,
+                editFullName = profile.fullName.orEmpty(),
+                editPhone = profile.phone.orEmpty(),
+                editError = null,
+            )
+        }
+    }
+
+    fun onDismissEditProfile() {
+        if (_state.value.editSaving) return
+        _state.update { it.copy(editProfileOpen = false, editError = null) }
+    }
+
+    fun onEditFullNameChange(value: String) {
+        _state.update { it.copy(editFullName = value, editError = null) }
+    }
+
+    fun onEditPhoneChange(value: String) {
+        _state.update { it.copy(editPhone = value.filter { c -> c.isDigit() || c == '+' }, editError = null) }
+    }
+
+    fun onSaveEditProfile() {
+        val current = _state.value
+        if (current.editSaving) return
+        val profile = current.profile ?: return
+        val trimmedName = current.editFullName.trim()
+        val trimmedPhone = current.editPhone.trim()
+        if (trimmedName.isBlank()) {
+            _state.update { it.copy(editError = "Name can't be empty.") }
+            return
+        }
+        if (trimmedPhone.isNotBlank() && trimmedPhone.filter { it.isDigit() }.length !in 10..15) {
+            _state.update { it.copy(editError = "Enter a valid phone number.") }
+            return
+        }
+        val nextName = trimmedName
+        val nextPhone = trimmedPhone.ifBlank { null }
+        if (nextName == profile.fullName.orEmpty() && nextPhone == profile.phone) {
+            _state.update { it.copy(editProfileOpen = false) }
+            return
+        }
+        _state.update { it.copy(editSaving = true, editError = null) }
+        viewModelScope.launch {
+            profileRepository.updateBasicInfo(profile.id, nextName, nextPhone)
+                .onSuccess {
+                    _state.update {
+                        it.copy(
+                            editSaving = false,
+                            editProfileOpen = false,
+                            profile = it.profile?.copy(fullName = nextName, phone = nextPhone),
+                        )
+                    }
+                    _effects.send(Effect.ShowMessage("Profile updated"))
+                }
+                .onFailure { error ->
+                    _state.update { it.copy(editSaving = false, editError = error.toUserMessage()) }
                 }
         }
     }

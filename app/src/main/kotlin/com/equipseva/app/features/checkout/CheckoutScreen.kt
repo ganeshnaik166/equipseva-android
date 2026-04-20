@@ -1,10 +1,14 @@
 package com.equipseva.app.features.checkout
 
 import android.app.Activity
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,46 +16,68 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.util.formatRupees
-import com.equipseva.app.designsystem.components.PrimaryButton
+import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.SectionHeader
+import com.equipseva.app.designsystem.theme.BrandGreen
+import com.equipseva.app.designsystem.theme.BrandGreen50
+import com.equipseva.app.designsystem.theme.BrandGreenDark
+import com.equipseva.app.designsystem.theme.Ink300
+import com.equipseva.app.designsystem.theme.Ink500
+import com.equipseva.app.designsystem.theme.Ink700
+import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Surface0
+import com.equipseva.app.designsystem.theme.Surface100
+import com.equipseva.app.designsystem.theme.Surface200
+import com.equipseva.app.designsystem.theme.Surface50
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,23 +109,15 @@ fun CheckoutScreen(
         }
     }
 
+    // Address starts expanded if the form isn't already complete (newly-minted session).
+    var addressExpanded by remember { mutableStateOf(true) }
+    var selectedSlot by remember { mutableStateOf(0) }
+    var selectedPayment by remember { mutableStateOf("upi") }
+
     Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Checkout") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-            )
-        },
+        topBar = { ESBackTopBar(title = "Checkout", onBack = onBack) },
         snackbarHost = { SnackbarHost(snackbarHost) },
+        containerColor = Surface50,
         bottomBar = {
             CheckoutBottomBar(
                 totalRupees = state.totalRupees,
@@ -114,54 +132,150 @@ fun CheckoutScreen(
                 .padding(inner)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .imePadding(),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                .imePadding()
+                .background(Surface50),
+            verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
             if (state.supplierConflict) {
                 Surface(
                     color = MaterialTheme.colorScheme.errorContainer,
                     contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    shape = RoundedCornerShape(Spacing.md),
+                    shape = RoundedCornerShape(5.dp),
                     modifier = Modifier
-                        .padding(horizontal = Spacing.lg)
+                        .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
                         .fillMaxWidth(),
                 ) {
                     Text(
-                        text = "Your cart has items from more than one supplier. Remove some lines to continue — multi-supplier orders aren't supported yet.",
+                        text = "Your cart has items from more than one supplier. " +
+                            "Remove some lines to continue — multi-supplier orders aren't supported yet.",
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(Spacing.md),
                     )
                 }
             }
 
+            // Delivery address
             SectionHeader(
-                title = "Shipping address",
-                modifier = Modifier.padding(horizontal = Spacing.lg),
+                title = "Delivery address",
+                actionLabel = if (addressExpanded) "Done" else "Change",
+                onAction = { addressExpanded = !addressExpanded },
             )
-            AddressForm(
-                form = state.form,
-                showErrors = state.showValidationErrors,
-                onFullNameChange = viewModel::onFullNameChange,
-                onPhoneChange = viewModel::onPhoneChange,
-                onAddressChange = viewModel::onAddressChange,
-                onCityChange = viewModel::onCityChange,
-                onStateChange = viewModel::onStateChange,
-                onPincodeChange = viewModel::onPincodeChange,
+            AddressCard(form = state.form)
+
+            AnimatedVisibility(visible = addressExpanded) {
+                AddressFormFields(
+                    form = state.form,
+                    showErrors = state.showValidationErrors,
+                    onFullNameChange = viewModel::onFullNameChange,
+                    onPhoneChange = viewModel::onPhoneChange,
+                    onAddressChange = viewModel::onAddressChange,
+                    onCityChange = viewModel::onCityChange,
+                    onStateChange = viewModel::onStateChange,
+                    onPincodeChange = viewModel::onPincodeChange,
+                )
+            }
+
+            // Delivery slot
+            SectionHeader(title = "Delivery slot")
+            DeliverySlotRow(
+                selected = selectedSlot,
+                onSelect = { selectedSlot = it },
             )
 
-            SectionHeader(
-                title = "Order summary",
-                modifier = Modifier.padding(horizontal = Spacing.lg),
+            // Payment method
+            SectionHeader(title = "Payment method")
+            PaymentMethodList(
+                selected = selectedPayment,
+                onSelect = { selectedPayment = it },
             )
+
+            // Order summary
+            SectionHeader(title = "Order summary")
             OrderSummaryCard(state = state)
 
-            Spacer(Modifier.height(Spacing.lg))
+            Spacer(Modifier.height(Spacing.xl))
         }
     }
 }
 
+/* ------------------------------------------------------------------ */
+/* Address card                                                       */
+/* ------------------------------------------------------------------ */
+
 @Composable
-private fun AddressForm(
+private fun AddressCard(form: CheckoutViewModel.FormState) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg),
+        shape = RoundedCornerShape(5.dp),
+        colors = CardDefaults.cardColors(containerColor = Surface0),
+        border = BorderStroke(1.dp, Surface200),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.LocationOn,
+                contentDescription = null,
+                tint = BrandGreen,
+                modifier = Modifier
+                    .size(24.dp)
+                    .padding(top = 2.dp),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                val name = form.fullName.ifBlank { "Delivery contact" }
+                Text(
+                    text = name,
+                    fontSize = 14.sp,
+                    lineHeight = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Ink900,
+                )
+                val addressBits = listOfNotNull(
+                    form.addressLine.takeIf { it.isNotBlank() },
+                    listOf(form.city, form.state, form.pincode)
+                        .filter { it.isNotBlank() }
+                        .joinToString(", ")
+                        .takeIf { it.isNotBlank() },
+                    form.phone.takeIf { it.isNotBlank() }?.let { "+91 $it" },
+                )
+                val addressText = if (addressBits.isNotEmpty()) addressBits.joinToString(" · ")
+                    else "Enter a delivery address to continue."
+                Text(
+                    text = addressText,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp,
+                    color = Ink700,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+                Box(
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(BrandGreen50)
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                ) {
+                    Text(
+                        text = "Default",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = BrandGreenDark,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Address form (inline, beneath the card)                            */
+/* ------------------------------------------------------------------ */
+
+@Composable
+private fun AddressFormFields(
     form: CheckoutViewModel.FormState,
     showErrors: Boolean,
     onFullNameChange: (String) -> Unit,
@@ -174,7 +288,7 @@ private fun AddressForm(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.lg),
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         OutlinedTextField(
@@ -182,8 +296,13 @@ private fun AddressForm(
             onValueChange = onFullNameChange,
             label = { Text("Full name") },
             isError = showErrors && form.fullNameError != null,
-            supportingText = { form.fullNameError?.takeIf { showErrors }?.let { Text(it) } },
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
+            supportingText = {
+                form.fullNameError?.takeIf { showErrors }?.let { Text(it) }
+            },
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Words,
+                imeAction = ImeAction.Next,
+            ),
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -192,8 +311,13 @@ private fun AddressForm(
             onValueChange = onPhoneChange,
             label = { Text("Phone (10 digits)") },
             isError = showErrors && form.phoneError != null,
-            supportingText = { form.phoneError?.takeIf { showErrors }?.let { Text(it) } },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
+            supportingText = {
+                form.phoneError?.takeIf { showErrors }?.let { Text(it) }
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Phone,
+                imeAction = ImeAction.Next,
+            ),
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -202,8 +326,13 @@ private fun AddressForm(
             onValueChange = onAddressChange,
             label = { Text("Street address") },
             isError = showErrors && form.addressError != null,
-            supportingText = { form.addressError?.takeIf { showErrors }?.let { Text(it) } },
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
+            supportingText = {
+                form.addressError?.takeIf { showErrors }?.let { Text(it) }
+            },
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Words,
+                imeAction = ImeAction.Next,
+            ),
             modifier = Modifier.fillMaxWidth(),
         )
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -212,8 +341,13 @@ private fun AddressForm(
                 onValueChange = onCityChange,
                 label = { Text("City") },
                 isError = showErrors && form.cityError != null,
-                supportingText = { form.cityError?.takeIf { showErrors }?.let { Text(it) } },
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
+                supportingText = {
+                    form.cityError?.takeIf { showErrors }?.let { Text(it) }
+                },
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Words,
+                    imeAction = ImeAction.Next,
+                ),
                 singleLine = true,
                 modifier = Modifier.weight(1f),
             )
@@ -222,8 +356,13 @@ private fun AddressForm(
                 onValueChange = onStateChange,
                 label = { Text("State") },
                 isError = showErrors && form.stateError != null,
-                supportingText = { form.stateError?.takeIf { showErrors }?.let { Text(it) } },
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
+                supportingText = {
+                    form.stateError?.takeIf { showErrors }?.let { Text(it) }
+                },
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Words,
+                    imeAction = ImeAction.Next,
+                ),
                 singleLine = true,
                 modifier = Modifier.weight(1f),
             )
@@ -233,60 +372,254 @@ private fun AddressForm(
             onValueChange = onPincodeChange,
             label = { Text("PIN code") },
             isError = showErrors && form.pincodeError != null,
-            supportingText = { form.pincodeError?.takeIf { showErrors }?.let { Text(it) } },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
+            supportingText = {
+                form.pincodeError?.takeIf { showErrors }?.let { Text(it) }
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.NumberPassword,
+                imeAction = ImeAction.Done,
+            ),
             singleLine = true,
-            modifier = Modifier.fillMaxWidth().width(200.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .width(200.dp),
         )
     }
 }
 
+/* ------------------------------------------------------------------ */
+/* Delivery slot                                                      */
+/* ------------------------------------------------------------------ */
+
+private data class SlotEntry(val label: String, val time: String)
+
 @Composable
-private fun OrderSummaryCard(state: CheckoutViewModel.UiState) {
-    OutlinedCard(
+private fun DeliverySlotRow(selected: Int, onSelect: (Int) -> Unit) {
+    // No delivery-slot state in the VM yet; purely visual (local state only).
+    val slots = listOf(
+        SlotEntry("Tomorrow", "10am – 2pm"),
+        SlotEntry("Sat", "10am – 2pm"),
+        SlotEntry("Sun", "3pm – 7pm"),
+    )
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Column(
-            modifier = Modifier.padding(Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        slots.forEachIndexed { i, slot ->
+            val isSelected = i == selected
+            val bg = if (isSelected) BrandGreen50 else Surface0
+            val border = if (isSelected) BrandGreen else Surface200
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(5.dp))
+                    .background(bg)
+                    .border(1.5.dp, border, RoundedCornerShape(5.dp))
+                    .clickable { onSelect(i) }
+                    .padding(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = slot.label,
+                    fontSize = 13.sp,
+                    lineHeight = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isSelected) BrandGreenDark else Ink900,
+                )
+                Text(
+                    text = slot.time,
+                    fontSize = 11.sp,
+                    lineHeight = 14.sp,
+                    color = Ink500,
+                )
+            }
+        }
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Payment method                                                     */
+/* ------------------------------------------------------------------ */
+
+private data class PayOption(val id: String, val label: String, val sub: String, val icon: ImageVector)
+
+@Composable
+private fun PaymentMethodList(selected: String, onSelect: (String) -> Unit) {
+    val options = listOf(
+        PayOption("upi", "UPI", "GPay, PhonePe, Paytm", Icons.Filled.AccountBalance),
+        PayOption("card", "Card", "Visa, Mastercard, Rupay", Icons.Filled.CreditCard),
+        PayOption("nb", "Net banking", "All major Indian banks", Icons.Filled.AccountBalanceWallet),
+    )
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg),
+        shape = RoundedCornerShape(5.dp),
+        colors = CardDefaults.cardColors(containerColor = Surface0),
+        border = BorderStroke(1.dp, Surface200),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column {
+            options.forEachIndexed { i, option ->
+                PaymentRow(
+                    option = option,
+                    selected = option.id == selected,
+                    onClick = { onSelect(option.id) },
+                )
+                if (i < options.size - 1) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(Surface100),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PaymentRow(option: PayOption, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(5.dp))
+                .background(BrandGreen50),
+            contentAlignment = Alignment.Center,
         ) {
+            Icon(
+                imageVector = option.icon,
+                contentDescription = null,
+                tint = BrandGreenDark,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = option.label,
+                fontSize = 14.sp,
+                lineHeight = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Ink900,
+            )
+            Text(
+                text = option.sub,
+                fontSize = 12.sp,
+                lineHeight = 15.sp,
+                color = Ink500,
+            )
+        }
+        Radio(selected = selected)
+    }
+}
+
+@Composable
+private fun Radio(selected: Boolean) {
+    Box(
+        modifier = Modifier
+            .size(22.dp)
+            .clip(CircleShape)
+            .background(if (selected) BrandGreen else Color.Transparent)
+            .border(
+                width = 2.dp,
+                color = if (selected) BrandGreen else Ink300,
+                shape = CircleShape,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (selected) {
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(Color.White),
+            )
+        }
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Summary                                                            */
+/* ------------------------------------------------------------------ */
+
+@Composable
+private fun OrderSummaryCard(state: CheckoutViewModel.UiState) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg),
+        shape = RoundedCornerShape(5.dp),
+        colors = CardDefaults.cardColors(containerColor = Surface0),
+        border = BorderStroke(1.dp, Surface200),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
             state.snapshot.forEach { line ->
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 5.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = "${line.part.name} × ${line.item.quantity}",
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = "${line.item.quantity}× ${line.part.name}",
+                        fontSize = 13.sp,
+                        lineHeight = 16.sp,
+                        color = Ink700,
                         modifier = Modifier.weight(1f),
                     )
                     Text(
                         text = formatRupees(line.lineSubtotalRupees),
-                        style = MaterialTheme.typography.bodyMedium,
+                        fontSize = 13.sp,
+                        lineHeight = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Ink900,
                     )
                 }
             }
-            HorizontalDivider()
-            TotalRow("Subtotal", formatRupees(state.subtotalRupees))
-            TotalRow("GST", formatRupees(state.gstRupees))
-            TotalRow("Shipping", if (state.shippingRupees == 0.0) "Free" else formatRupees(state.shippingRupees))
-            HorizontalDivider()
+            SummaryRow("GST", formatRupees(state.gstRupees))
+            SummaryRow(
+                "Delivery",
+                if (state.shippingRupees == 0.0) "FREE" else formatRupees(state.shippingRupees),
+            )
+            Spacer(Modifier.height(Spacing.xs))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Surface200),
+            )
+            Spacer(Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text = "Total",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    lineHeight = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Ink900,
                 )
                 Text(
                     text = formatRupees(state.totalRupees),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 18.sp,
+                    lineHeight = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = BrandGreenDark,
                 )
             }
         }
@@ -294,19 +627,27 @@ private fun OrderSummaryCard(state: CheckoutViewModel.UiState) {
 }
 
 @Composable
-private fun TotalRow(label: String, value: String) {
+private fun SummaryRow(label: String, value: String) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 5.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
+        Text(text = label, fontSize = 13.sp, lineHeight = 16.sp, color = Ink700)
         Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            text = value,
+            fontSize = 13.sp,
+            lineHeight = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Ink900,
         )
-        Text(text = value, style = MaterialTheme.typography.bodyMedium)
     }
 }
+
+/* ------------------------------------------------------------------ */
+/* Bottom CTA                                                         */
+/* ------------------------------------------------------------------ */
 
 @Composable
 private fun CheckoutBottomBar(
@@ -315,42 +656,33 @@ private fun CheckoutBottomBar(
     enabled: Boolean,
     onSubmit: () -> Unit,
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 3.dp,
-        modifier = Modifier.fillMaxWidth(),
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Surface0)
+            .border(1.dp, Surface200, RoundedCornerShape(0.dp))
+            .padding(16.dp),
     ) {
-        Column {
-            HorizontalDivider()
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "Pay with Razorpay",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = formatRupees(totalRupees),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-                PrimaryButton(
-                    label = "Place order",
-                    enabled = enabled,
-                    loading = submitting,
-                    onClick = onSubmit,
-                )
-            }
+        Button(
+            onClick = onSubmit,
+            enabled = enabled && !submitting,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(50),
+            colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
+        ) {
+            Text(
+                text = if (submitting) "Processing…" else "Pay ${formatRupees(totalRupees)}",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                imageVector = Icons.Filled.Lock,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
         }
     }
 }

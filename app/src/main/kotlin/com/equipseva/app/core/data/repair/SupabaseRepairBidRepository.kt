@@ -3,6 +3,7 @@ package com.equipseva.app.core.data.repair
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Order
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -51,6 +52,16 @@ class SupabaseRepairBidRepository @Inject constructor(
             }
         }
         Unit
+    }
+
+    override suspend fun fetchMyBids(): Result<List<RepairBid>> = runCatching {
+        val userId = requireNotNull(client.auth.currentUserOrNull()?.id) {
+            "No authenticated user"
+        }
+        client.from(TABLE).select {
+            filter { eq("engineer_user_id", userId) }
+            order("created_at", order = Order.DESCENDING)
+        }.decodeList<RepairBidDto>().map(RepairBidDto::toDomain)
     }
 
     private companion object {

@@ -37,7 +37,7 @@ data class OtpFormState(
     val form: FormUiState = FormUiState(),
 ) {
     val canSubmit: Boolean
-        get() = !form.submitting && code.length == 6
+        get() = !form.submitting && code.length in 6..10
     val canResend: Boolean
         get() = !form.submitting && resendSecondsRemaining == 0
 }

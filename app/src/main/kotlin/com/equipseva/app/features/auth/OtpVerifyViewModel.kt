@@ -45,8 +45,8 @@ class OtpVerifyViewModel @Inject constructor(
     fun onSubmit() {
         val current = _state.value
         if (current.form.submitting) return
-        if (!Validators.otpIsSixDigit(current.code)) {
-            _state.update { it.copy(codeError = "Enter the 6-digit code") }
+        if (!Validators.otpIsValid(current.code)) {
+            _state.update { it.copy(codeError = "Enter the code from your email") }
             return
         }
         _state.update { it.copy(form = FormUiState(submitting = true)) }

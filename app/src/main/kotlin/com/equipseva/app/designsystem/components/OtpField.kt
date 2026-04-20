@@ -14,9 +14,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 
 /**
- * Single-line 6-digit code entry. Stays a single field rather than 6 boxes — easier to paste,
- * easier for autofill, easier for accessibility, and avoids the focus-ping-pong UX bug
- * that plagues homemade OTP grids.
+ * Single-line numeric OTP entry. Accepts 6–10 digits to match Supabase's configurable OTP length.
+ * Stays a single field rather than separate boxes — easier to paste, easier for autofill.
  */
 @Composable
 fun OtpField(
@@ -31,13 +30,12 @@ fun OtpField(
     OutlinedTextField(
         value = value,
         onValueChange = { new ->
-            // Restrict to 6 digits, strip everything else.
-            onValueChange(new.filter { it.isDigit() }.take(6))
+            onValueChange(new.filter { it.isDigit() }.take(10))
         },
         modifier = modifier.fillMaxWidth(),
         enabled = enabled,
         singleLine = true,
-        label = { Text("6-digit code") },
+        label = { Text("Verification code") },
         isError = isError,
         supportingText = errorText?.let { { Text(it) } },
         textStyle = TextStyle(fontSize = 22.sp, textAlign = TextAlign.Center, letterSpacing = 6.sp),

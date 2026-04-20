@@ -1,6 +1,7 @@
 package com.equipseva.app.core.data.repair
 
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
 import javax.inject.Inject
@@ -47,6 +48,45 @@ class SupabaseRepairJobRepository @Inject constructor(
             }
             limit(count = 1)
         }.decodeList<RepairJobDto>().firstOrNull()?.toDomain()
+    }
+
+    override suspend fun fetchAssignedToMe(): Result<List<RepairJob>> = runCatching {
+        val userId = requireNotNull(client.auth.currentUserOrNull()?.id) {
+            "No authenticated user"
+        }
+        client.from(TABLE).select {
+            filter { eq("engineer_id", userId) }
+            order("updated_at", order = Order.DESCENDING)
+        }.decodeList<RepairJobDto>().map(RepairJobDto::toDomain)
+    }
+
+    override suspend fun fetchByIds(jobIds: Collection<String>): Result<List<RepairJob>> = runCatching {
+        if (jobIds.isEmpty()) return@runCatching emptyList<RepairJob>()
+        client.from(TABLE).select {
+            filter { isIn("id", jobIds.toList()) }
+        }.decodeList<RepairJobDto>().map(RepairJobDto::toDomain)
+    }
+
+    override suspend fun fetchByHospitalUser(hospitalUserId: String): Result<List<RepairJob>> = runCatching {
+        client.from(TABLE).select {
+            filter { eq("hospital_user_id", hospitalUserId) }
+            order("created_at", order = Order.DESCENDING)
+        }.decodeList<RepairJobDto>().map(RepairJobDto::toDomain)
+    }
+
+    override suspend fun create(draft: RepairJobDraft): Result<RepairJob> = runCatching {
+        val payload = RepairJobInsertDto(
+            hospitalUserId = draft.hospitalUserId,
+            hospitalOrgId = draft.hospitalOrgId?.takeIf { it.isNotBlank() },
+            equipmentType = draft.equipmentCategory.storageKey,
+            equipmentBrand = draft.equipmentBrand?.takeIf { it.isNotBlank() },
+            equipmentModel = draft.equipmentModel?.takeIf { it.isNotBlank() },
+            urgency = draft.urgency.storageKey.takeIf { it.isNotBlank() },
+            issueDescription = draft.issueDescription,
+        )
+        client.from(TABLE).insert(payload) {
+            select()
+        }.decodeSingle<RepairJobDto>().toDomain()
     }
 
     private fun String.sanitizeForIlike(): String =

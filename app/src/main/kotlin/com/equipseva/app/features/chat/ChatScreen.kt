@@ -1,5 +1,7 @@
 package com.equipseva.app.features.chat
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,49 +9,60 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.chat.ChatMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.theme.BrandGreen
+import com.equipseva.app.designsystem.theme.BrandGreen50
+import com.equipseva.app.designsystem.theme.Ink500
+import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Surface100
+import com.equipseva.app.designsystem.theme.Surface200
+import com.equipseva.app.designsystem.theme.Surface50
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
     onBack: () -> Unit,
@@ -74,20 +87,9 @@ fun ChatScreen(
     }
 
     Scaffold(
+        containerColor = Surface50,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(state.title) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-            )
+            ChatTopBar(title = state.title, onBack = onBack)
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
@@ -121,10 +123,10 @@ fun ChatScreen(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
-                        horizontal = Spacing.lg,
+                        horizontal = 14.dp,
                         vertical = Spacing.md,
                     ),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     items(items = state.messages, key = { it.id }) { msg ->
                         MessageRow(
@@ -139,17 +141,81 @@ fun ChatScreen(
 }
 
 @Composable
+private fun ChatTopBar(title: String, onBack: () -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp,
+    ) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Ink900,
+                    )
+                }
+                InitialsAvatar(name = title, size = 38.dp)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Ink900,
+                        maxLines = 1,
+                    )
+                    Text(
+                        text = "Online",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = BrandGreen,
+                    )
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Surface200),
+            )
+        }
+    }
+}
+
+@Composable
+private fun InitialsAvatar(name: String, size: androidx.compose.ui.unit.Dp) {
+    val initials = name
+        .split(" ", limit = 2)
+        .mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
+        .joinToString("")
+        .take(2)
+        .ifBlank { "?" }
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(BrandGreen50),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = initials,
+            fontSize = (size.value * 0.32f).sp,
+            fontWeight = FontWeight.Bold,
+            color = BrandGreen,
+        )
+    }
+}
+
+@Composable
 private fun MessageRow(message: ChatMessage, isSelf: Boolean) {
-    val bubbleColor = if (isSelf) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.surfaceVariant
-    }
-    val textColor = if (isSelf) {
-        MaterialTheme.colorScheme.onPrimary
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
+    val bubbleColor = if (isSelf) BrandGreen else MaterialTheme.colorScheme.surface
+    val textColor = if (isSelf) Color.White else Ink900
     val shape = if (isSelf) {
         RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 4.dp)
     } else {
@@ -159,24 +225,32 @@ private fun MessageRow(message: ChatMessage, isSelf: Boolean) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isSelf) Arrangement.End else Arrangement.Start,
     ) {
-        Surface(
-            color = bubbleColor,
-            shape = shape,
-            tonalElevation = 0.dp,
-            modifier = Modifier.widthIn(max = 280.dp),
+        Box(
+            modifier = Modifier
+                .widthIn(max = 280.dp)
+                .clip(shape)
+                .background(bubbleColor)
+                .then(
+                    if (!isSelf) Modifier.border(1.dp, Surface200, shape) else Modifier,
+                )
+                .padding(horizontal = 14.dp, vertical = 10.dp),
         ) {
-            Column(modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
+            Column {
                 Text(
                     text = message.message,
-                    style = MaterialTheme.typography.bodyMedium,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
                     color = textColor,
                 )
                 val timeLabel = formatTime(message.createdAtIso)
                 if (!timeLabel.isNullOrBlank()) {
                     Text(
                         text = timeLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = textColor.copy(alpha = 0.7f),
+                        fontSize = 10.sp,
+                        color = if (isSelf) Color.White.copy(alpha = 0.8f) else Ink500,
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(top = 2.dp),
                     )
                 }
             }
@@ -193,32 +267,72 @@ private fun ChatInputBar(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 3.dp,
+        tonalElevation = 0.dp,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            OutlinedTextField(
-                value = draft,
-                onValueChange = onDraftChange,
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Type a message") },
-                maxLines = 4,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                shape = RoundedCornerShape(24.dp),
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Surface200),
             )
-            FilledIconButton(
-                onClick = onSend,
-                enabled = canSend,
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Send",
-                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(42.dp)
+                        .clip(CircleShape)
+                        .border(1.dp, Surface200, CircleShape)
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    if (draft.isEmpty()) {
+                        Text(
+                            text = "Message…",
+                            fontSize = 14.sp,
+                            color = Ink500,
+                        )
+                    }
+                    BasicTextField(
+                        value = draft,
+                        onValueChange = onDraftChange,
+                        textStyle = TextStyle(
+                            fontSize = 14.sp,
+                            color = Ink900,
+                        ),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions = KeyboardActions(onSend = { if (canSend) onSend() }),
+                        cursorBrush = androidx.compose.ui.graphics.SolidColor(BrandGreen),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(if (canSend) BrandGreen else Surface100)
+                        .padding(10.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    IconButton(
+                        onClick = onSend,
+                        enabled = canSend,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "Send",
+                            tint = if (canSend) Color.White else Ink500,
+                        )
+                    }
+                }
             }
         }
     }

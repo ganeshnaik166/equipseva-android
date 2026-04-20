@@ -49,6 +49,32 @@ class SupabaseSparePartsRepository @Inject constructor(
         }.decodeList<SparePartDto>().firstOrNull()?.toDomain()
     }
 
+    override suspend fun fetchBySupplier(supplierOrgId: String): Result<List<SparePart>> = runCatching {
+        client.from(TABLE).select {
+            filter { eq("supplier_org_id", supplierOrgId) }
+            order("created_at", order = Order.DESCENDING)
+        }.decodeList<SparePartDto>().map(SparePartDto::toDomain)
+    }
+
+    override suspend fun fetchLowStockBySupplier(
+        supplierOrgId: String,
+        threshold: Int,
+    ): Result<List<SparePart>> = runCatching {
+        client.from(TABLE).select {
+            filter {
+                eq("supplier_org_id", supplierOrgId)
+                lte("stock_quantity", threshold)
+            }
+            order("stock_quantity", order = Order.ASCENDING)
+        }.decodeList<SparePartDto>().map(SparePartDto::toDomain)
+    }
+
+    override suspend fun insertListing(dto: SparePartInsertDto): Result<SparePart> = runCatching {
+        client.from(TABLE).insert(dto) {
+            select()
+        }.decodeSingle<SparePartDto>().toDomain()
+    }
+
     private fun String.sanitizeForIlike(): String =
         replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
