@@ -162,21 +162,14 @@ private fun ChatTopBar(title: String, onBack: () -> Unit) {
                     )
                 }
                 InitialsAvatar(name = title, size = 38.dp)
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = title,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Ink900,
-                        maxLines = 1,
-                    )
-                    Text(
-                        text = "Online",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = BrandGreen,
-                    )
-                }
+                Text(
+                    text = title,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Ink900,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f),
+                )
             }
             Box(
                 modifier = Modifier
