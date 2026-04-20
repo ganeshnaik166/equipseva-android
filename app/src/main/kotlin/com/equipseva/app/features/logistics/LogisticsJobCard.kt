@@ -72,9 +72,31 @@ internal fun LogisticsJobCard(job: LogisticsJob) {
             }
             job.preferredDateIso?.takeIf { it.isNotBlank() }?.let {
                 Text(
-                    text = "Preferred $it",
+                    text = "Preferred ${it.take(10)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            job.actualPickupAtIso?.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    text = "Picked up ${it.take(10)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            job.actualDeliveryAtIso?.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    text = "Delivered ${it.take(10)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            job.specialInstructions?.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
                 )
             }
         }
