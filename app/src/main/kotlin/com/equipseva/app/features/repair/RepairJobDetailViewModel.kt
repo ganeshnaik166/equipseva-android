@@ -257,6 +257,13 @@ class RepairJobDetailViewModel @Inject constructor(
         setCompletedAt = true,
     )
 
+    fun cancelJob() = transitionStatus(
+        target = RepairJobStatus.Cancelled,
+        allowedFrom = setOf(RepairJobStatus.Requested, RepairJobStatus.Assigned),
+        requireHospital = true,
+        successMessage = "Job cancelled",
+    )
+
     fun submitRating(stars: Int, review: String?) {
         val snap = _state.value
         val job = snap.job ?: return
@@ -291,8 +298,9 @@ class RepairJobDetailViewModel @Inject constructor(
     private fun transitionStatus(
         target: RepairJobStatus,
         allowedFrom: Set<RepairJobStatus>,
-        requireEngineer: Boolean,
         successMessage: String,
+        requireEngineer: Boolean = false,
+        requireHospital: Boolean = false,
         setStartedAt: Boolean = false,
         setCompletedAt: Boolean = false,
     ) {
@@ -300,6 +308,7 @@ class RepairJobDetailViewModel @Inject constructor(
         val job = snap.job ?: return
         if (snap.updatingStatus) return
         if (requireEngineer && snap.viewerRole != ViewerRole.Engineer) return
+        if (requireHospital && snap.viewerRole != ViewerRole.Hospital) return
         if (job.status !in allowedFrom) return
         _state.update { it.copy(updatingStatus = true) }
         viewModelScope.launch {
