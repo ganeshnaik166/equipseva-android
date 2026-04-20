@@ -157,10 +157,12 @@ fun RepairJobDetailScreen(
                     updatingStatus = state.updatingStatus,
                     submittingRating = state.submittingRating,
                     acceptingBidId = state.acceptingBidId,
+                    openingChat = state.openingChat,
                     onCheckIn = viewModel::checkIn,
                     onMarkDone = viewModel::markDone,
                     onSubmitRating = viewModel::submitRating,
                     onAcceptBid = viewModel::acceptBid,
+                    onMessageEngineer = viewModel::openChatWithEngineer,
                 )
             }
         }
@@ -185,10 +187,12 @@ private fun JobBody(
     updatingStatus: Boolean,
     submittingRating: Boolean,
     acceptingBidId: String?,
+    openingChat: Boolean,
     onCheckIn: () -> Unit,
     onMarkDone: () -> Unit,
     onSubmitRating: (Int, String?) -> Unit,
     onAcceptBid: (String) -> Unit,
+    onMessageEngineer: () -> Unit,
 ) {
     val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
     Column(
@@ -220,7 +224,9 @@ private fun JobBody(
                 job = job,
                 bids = bids,
                 acceptingBidId = acceptingBidId,
+                openingChat = openingChat,
                 onAcceptBid = onAcceptBid,
+                onMessageEngineer = onMessageEngineer,
             )
         } else {
             SectionHeader(title = "Your bid")
@@ -554,7 +560,9 @@ private fun HospitalBidsList(
     job: RepairJob,
     bids: List<RepairBid>,
     acceptingBidId: String?,
+    openingChat: Boolean,
     onAcceptBid: (String) -> Unit,
+    onMessageEngineer: () -> Unit,
 ) {
     val shape = MaterialTheme.shapes.medium
     if (bids.isEmpty()) {
@@ -587,7 +595,9 @@ private fun HospitalBidsList(
                 canAccept = canAccept,
                 accepting = acceptingBidId == bid.id,
                 anyAccepting = acceptingBidId != null,
+                openingChat = openingChat,
                 onAcceptBid = onAcceptBid,
+                onMessageEngineer = onMessageEngineer,
             )
         }
     }
@@ -599,7 +609,9 @@ private fun HospitalBidRow(
     canAccept: Boolean,
     accepting: Boolean,
     anyAccepting: Boolean,
+    openingChat: Boolean,
     onAcceptBid: (String) -> Unit,
+    onMessageEngineer: () -> Unit,
 ) {
     val shape = MaterialTheme.shapes.medium
     val isAccepted = bid.status == RepairBidStatus.Accepted
@@ -653,6 +665,23 @@ private fun HospitalBidRow(
                 ),
             ) {
                 Text(if (accepting) "Accepting…" else "Accept bid")
+            }
+        }
+        if (isAccepted) {
+            OutlinedButton(
+                onClick = onMessageEngineer,
+                enabled = !openingChat,
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .fillMaxWidth(),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.ChatBubbleOutline,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(if (openingChat) "Opening…" else "Message engineer")
             }
         }
     }
