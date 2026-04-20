@@ -41,6 +41,7 @@ import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.parts.SparePart
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.BrandedPlaceholder
+import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.StatusChip
@@ -57,16 +58,7 @@ fun MyListingsScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("My listings") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-            )
-        },
+        topBar = { ESBackTopBar(title = "My listings", onBack = onBack) },
     ) { inner ->
         Column(
             modifier = Modifier

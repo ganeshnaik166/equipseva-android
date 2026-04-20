@@ -58,6 +58,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.data.repair.RepairJobUrgency
+import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.HorizontalStepper
@@ -106,18 +107,9 @@ fun RequestServiceScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Request service") },
-                navigationIcon = {
-                    IconButton(onClick = { if (step == 0) onBack() else step -= 1 }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
+            ESBackTopBar(
+                title = "Request service",
+                onBack = { if (step == 0) onBack() else step -= 1 },
             )
         },
         bottomBar = {
