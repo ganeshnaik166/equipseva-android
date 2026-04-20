@@ -111,7 +111,6 @@ fun CheckoutScreen(
 
     // Address starts expanded if the form isn't already complete (newly-minted session).
     var addressExpanded by remember { mutableStateOf(true) }
-    var selectedSlot by remember { mutableStateOf(0) }
     var selectedPayment by remember { mutableStateOf("upi") }
 
     Scaffold(
@@ -174,13 +173,6 @@ fun CheckoutScreen(
                     onPincodeChange = viewModel::onPincodeChange,
                 )
             }
-
-            // Delivery slot
-            SectionHeader(title = "Delivery slot")
-            DeliverySlotRow(
-                selected = selectedSlot,
-                onSelect = { selectedSlot = it },
-            )
 
             // Payment method
             SectionHeader(title = "Payment method")
@@ -384,59 +376,6 @@ private fun AddressFormFields(
                 .fillMaxWidth()
                 .width(200.dp),
         )
-    }
-}
-
-/* ------------------------------------------------------------------ */
-/* Delivery slot                                                      */
-/* ------------------------------------------------------------------ */
-
-private data class SlotEntry(val label: String, val time: String)
-
-@Composable
-private fun DeliverySlotRow(selected: Int, onSelect: (Int) -> Unit) {
-    // No delivery-slot state in the VM yet; purely visual (local state only).
-    val slots = listOf(
-        SlotEntry("Tomorrow", "10am – 2pm"),
-        SlotEntry("Sat", "10am – 2pm"),
-        SlotEntry("Sun", "3pm – 7pm"),
-    )
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        slots.forEachIndexed { i, slot ->
-            val isSelected = i == selected
-            val bg = if (isSelected) BrandGreen50 else Surface0
-            val border = if (isSelected) BrandGreen else Surface200
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(5.dp))
-                    .background(bg)
-                    .border(1.5.dp, border, RoundedCornerShape(5.dp))
-                    .clickable { onSelect(i) }
-                    .padding(12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = slot.label,
-                    fontSize = 13.sp,
-                    lineHeight = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isSelected) BrandGreenDark else Ink900,
-                )
-                Text(
-                    text = slot.time,
-                    fontSize = 11.sp,
-                    lineHeight = 14.sp,
-                    color = Ink500,
-                )
-            }
-        }
     }
 }
 
