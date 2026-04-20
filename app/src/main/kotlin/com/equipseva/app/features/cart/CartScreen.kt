@@ -58,7 +58,6 @@ import com.equipseva.app.designsystem.components.QuantityStepper
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreenDark
 import com.equipseva.app.designsystem.theme.Ink500
-import com.equipseva.app.designsystem.theme.Ink700
 import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.designsystem.theme.Surface0
@@ -87,11 +86,10 @@ fun CartScreen(
         }
     }
 
-    // Tax + delivery lines (mirror the design's summary; ViewModel only exposes raw total).
+    // Cart only shows the item subtotal. Per-line GST depends on each part's
+    // gstRatePercent and is computed in CheckoutViewModel; delivery is chosen
+    // there too. Showing a fabricated flat 12% here drifted from the real total.
     val subtotalRupees = state.totalInPaise / 100.0
-    val gstRupees = Math.round(subtotalRupees * 0.12).toDouble()
-    val deliveryRupees = 0.0
-    val totalRupees = subtotalRupees + gstRupees + deliveryRupees
 
     val title = if (state.items.isNotEmpty()) "Cart · ${state.items.size}" else "Cart"
     Scaffold(
@@ -101,7 +99,7 @@ fun CartScreen(
         bottomBar = {
             if (state.items.isNotEmpty()) {
                 CheckoutBottomBar(
-                    totalRupees = totalRupees,
+                    subtotalRupees = subtotalRupees,
                     onCheckout = viewModel::onCheckout,
                 )
             }
@@ -147,12 +145,7 @@ fun CartScreen(
                         )
                     }
                     item("summary") {
-                        SummaryCard(
-                            subtotal = subtotalRupees,
-                            gst = gstRupees,
-                            delivery = deliveryRupees,
-                            total = totalRupees,
-                        )
+                        SummaryCard(subtotal = subtotalRupees)
                     }
                     item("trailing_spacer") {
                         Spacer(Modifier.height(Spacing.md))
@@ -284,7 +277,7 @@ private fun CouponRow(onClick: () -> Unit) {
 /* ------------------------------------------------------------------ */
 
 @Composable
-private fun SummaryCard(subtotal: Double, gst: Double, delivery: Double, total: Double) {
+private fun SummaryCard(subtotal: Double) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(5.dp),
@@ -293,57 +286,34 @@ private fun SummaryCard(subtotal: Double, gst: Double, delivery: Double, total: 
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            SummaryRow("Subtotal", formatRupees(subtotal))
-            SummaryRow("GST (12%)", formatRupees(gst))
-            SummaryRow("Delivery", if (delivery == 0.0) "FREE" else formatRupees(delivery))
-            Spacer(Modifier.height(Spacing.xs))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(Surface200),
-            )
-            Spacer(Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Total",
+                    text = "Subtotal",
                     fontSize = 14.sp,
                     lineHeight = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = Ink900,
                 )
                 Text(
-                    text = formatRupees(total),
+                    text = formatRupees(subtotal),
                     fontSize = 18.sp,
                     lineHeight = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = BrandGreenDark,
                 )
             }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = "GST and delivery are calculated at checkout.",
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                color = Ink500,
+            )
         }
-    }
-}
-
-@Composable
-private fun SummaryRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(text = label, fontSize = 13.sp, lineHeight = 16.sp, color = Ink700)
-        Text(
-            text = value,
-            fontSize = 13.sp,
-            lineHeight = 16.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = Ink900,
-        )
     }
 }
 
@@ -352,7 +322,7 @@ private fun SummaryRow(label: String, value: String) {
 /* ------------------------------------------------------------------ */
 
 @Composable
-private fun CheckoutBottomBar(totalRupees: Double, onCheckout: () -> Unit) {
+private fun CheckoutBottomBar(subtotalRupees: Double, onCheckout: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -369,7 +339,7 @@ private fun CheckoutBottomBar(totalRupees: Double, onCheckout: () -> Unit) {
             colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
         ) {
             Text(
-                text = "Checkout \u00b7 ${formatRupees(totalRupees)}",
+                text = "Checkout \u00b7 ${formatRupees(subtotalRupees)}",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
             )
