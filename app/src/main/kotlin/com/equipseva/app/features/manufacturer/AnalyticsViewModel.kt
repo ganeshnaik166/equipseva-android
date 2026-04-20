@@ -29,7 +29,6 @@ class AnalyticsViewModel @Inject constructor(
 
     data class UiState(
         val loading: Boolean = true,
-        val refreshing: Boolean = false,
         val bidsSubmitted: Int = 0,
         val bidsAwarded: Int = 0,
         val bidsOpen: Int = 0,
@@ -63,31 +62,30 @@ class AnalyticsViewModel @Inject constructor(
         val uid = userId ?: return
         _state.update {
             it.copy(
-                loading = initial, refreshing = !initial,
+                loading = initial,
                 errorMessage = null, noManufacturerWarning = false,
             )
         }
         viewModelScope.launch {
             val orgId = profileRepository.fetchById(uid).getOrNull()?.organizationId
             if (orgId.isNullOrBlank()) {
-                _state.update { it.copy(loading = false, refreshing = false, noManufacturerWarning = true) }
+                _state.update { it.copy(loading = false, noManufacturerWarning = true) }
                 return@launch
             }
             val manufacturerId = orgRoleRepository.manufacturerIdForOrg(orgId).getOrNull()
             if (manufacturerId.isNullOrBlank()) {
-                _state.update { it.copy(loading = false, refreshing = false, noManufacturerWarning = true) }
+                _state.update { it.copy(loading = false, noManufacturerWarning = true) }
                 return@launch
             }
             rfqRepository.fetchBidsByManufacturer(manufacturerId)
                 .onSuccess { bids ->
                     val totals = summarize(bids)
-                    _state.update { totals.copy(loading = false, refreshing = false) }
+                    _state.update { totals.copy(loading = false) }
                 }
                 .onFailure { error ->
                     _state.update {
                         it.copy(
                             loading = false,
-                            refreshing = false,
                             errorMessage = error.toUserMessage(),
                         )
                     }
