@@ -27,7 +27,6 @@ import androidx.compose.material.icons.filled.Engineering
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Translate
@@ -64,8 +63,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -80,8 +77,6 @@ import com.equipseva.app.designsystem.components.ESTopBar
 import com.equipseva.app.designsystem.components.SettingsSheet
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.components.StatusTone
-import com.equipseva.app.designsystem.theme.BrandGreen
-import com.equipseva.app.designsystem.theme.BrandGreenDark
 import com.equipseva.app.designsystem.theme.ErrorBg
 import com.equipseva.app.designsystem.theme.ErrorRed
 import com.equipseva.app.designsystem.theme.Ink500
@@ -208,26 +203,16 @@ private fun ProfileContent(
             .background(Surface50)
             .verticalScroll(rememberScrollState()),
     ) {
-        // Header card with edit icon, avatar, name, role + verified chips, secondary line, and
-        // engineer-only 3-up stats grid.
+        // Header card with edit icon, avatar, name, role + verified chips, and secondary line.
         ProfileHeaderCard(
             displayName = profile.displayName,
             avatarUrl = profile.avatarUrl,
             role = profile.role,
             secondaryLine = buildSecondaryLine(profile, isEngineer),
             verified = profile.roleConfirmed,
-            showEngineerStats = isEngineer,
             onEdit = onEditProfile,
         )
-
-        // Engineer-only pending payout gradient card.
-        if (isEngineer) {
-            Box(modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
-                PendingPayoutCard(amountLabel = "₹8,500", onWithdraw = onOpenMessages)
-            }
-        } else {
-            Spacer(Modifier.height(Spacing.md))
-        }
+        Spacer(Modifier.height(Spacing.md))
 
         // Role switcher block (keeps existing functionality).
         Box(modifier = Modifier.padding(horizontal = Spacing.lg)) {
@@ -376,7 +361,6 @@ private fun ProfileHeaderCard(
     role: UserRole?,
     secondaryLine: String?,
     verified: Boolean,
-    showEngineerStats: Boolean,
     onEdit: () -> Unit,
 ) {
     Box(
@@ -471,99 +455,6 @@ private fun ProfileHeaderCard(
                     color = Ink500,
                 )
             }
-            if (showEngineerStats) {
-                Spacer(Modifier.height(Spacing.md))
-                EngineerStatsGrid(
-                    modifier = Modifier.padding(horizontal = Spacing.lg),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun EngineerStatsGrid(modifier: Modifier = Modifier) {
-    // Illustrative placeholders — engineer aggregate metrics aren't in ProfileViewModel state.
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        StatTile(value = "142", label = "Jobs", modifier = Modifier.weight(1f))
-        StatTile(value = "4.8 ★", label = "Rating", modifier = Modifier.weight(1f))
-        StatTile(value = "96%", label = "On-time", modifier = Modifier.weight(1f))
-    }
-}
-
-@Composable
-private fun StatTile(value: String, label: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(Surface50)
-            .padding(10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        Text(
-            text = value,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            color = Ink900,
-        )
-        Text(
-            text = label,
-            fontSize = 11.sp,
-            color = Ink500,
-        )
-    }
-}
-
-@Composable
-private fun PendingPayoutCard(amountLabel: String, onWithdraw: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(BrandGreen, BrandGreenDark),
-                    start = Offset(0f, 0f),
-                    end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY),
-                ),
-            )
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Payments,
-            contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.size(28.dp),
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "Pending payout",
-                fontSize = 12.sp,
-                color = Color.White.copy(alpha = 0.85f),
-            )
-            Text(
-                text = amountLabel,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-            )
-        }
-        Button(
-            onClick = onWithdraw,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.White.copy(alpha = 0.2f),
-                contentColor = Color.White,
-            ),
-            shape = RoundedCornerShape(50),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-        ) {
-            Text("Withdraw", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }
