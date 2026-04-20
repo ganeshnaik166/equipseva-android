@@ -41,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -48,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.chat.ChatMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
@@ -229,12 +231,33 @@ private fun MessageRow(message: ChatMessage, isSelf: Boolean) {
                 .padding(horizontal = 14.dp, vertical = 10.dp),
         ) {
             Column {
-                Text(
-                    text = message.message,
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp,
-                    color = textColor,
-                )
+                val images = message.attachments.filter { it.isImageUrl() }
+                if (images.isNotEmpty()) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.padding(bottom = if (message.message.isNotBlank()) 6.dp else 0.dp),
+                    ) {
+                        images.forEach { url ->
+                            AsyncImage(
+                                model = url,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .widthIn(max = 220.dp)
+                                    .height(160.dp)
+                                    .clip(RoundedCornerShape(12.dp)),
+                            )
+                        }
+                    }
+                }
+                if (message.message.isNotBlank()) {
+                    Text(
+                        text = message.message,
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp,
+                        color = textColor,
+                    )
+                }
                 val timeLabel = formatTime(message.createdAtIso)
                 if (!timeLabel.isNullOrBlank()) {
                     Text(
@@ -335,3 +358,9 @@ private val timeFormatter = DateTimeFormatter.ofPattern("h:mm a").withZone(ZoneI
 
 private fun formatTime(iso: String?): String? =
     iso?.let { runCatching { timeFormatter.format(java.time.Instant.parse(it)) }.getOrNull() }
+
+private fun String.isImageUrl(): Boolean {
+    val lower = substringBefore('?').lowercase()
+    return lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") ||
+        lower.endsWith(".webp") || lower.endsWith(".gif") || lower.endsWith(".heic")
+}
