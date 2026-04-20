@@ -21,11 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.AddAPhoto
 import androidx.compose.material.icons.outlined.Flag
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.MedicalServices
-import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.PriorityHigh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -60,20 +56,17 @@ import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.ErrorBanner
-import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.HorizontalStepper
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
 import com.equipseva.app.designsystem.theme.BrandGreenDark
 import com.equipseva.app.designsystem.theme.ErrorRed
-import com.equipseva.app.designsystem.theme.Ink300
 import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Ink700
 import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.designsystem.theme.Success
 import com.equipseva.app.designsystem.theme.Surface200
-import com.equipseva.app.designsystem.theme.Surface50
 import com.equipseva.app.designsystem.theme.Warning
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -103,7 +96,7 @@ fun RequestServiceScreen(
         }
     }
 
-    val stepLabels = listOf("Equipment", "Issue", "Photos", "Schedule")
+    val stepLabels = listOf("Equipment", "Issue", "Schedule")
 
     Scaffold(
         topBar = {
@@ -161,8 +154,7 @@ fun RequestServiceScreen(
                         onIssue = viewModel::onIssueChange,
                         onUrgency = viewModel::onUrgencyChange,
                     )
-                    2 -> StepPhotos()
-                    3 -> StepSchedule(
+                    2 -> StepSchedule(
                         selectedSlot = selectedSlot,
                         onSelectSlot = { selectedSlot = it },
                         siteLocation = siteLocation,
@@ -330,85 +322,6 @@ private fun SeverityTile(
             color = Ink900,
             modifier = Modifier.padding(top = 4.dp),
         )
-    }
-}
-
-@Composable
-private fun StepPhotos() {
-    StepHeadline("Add photos")
-    Text(
-        text = "Up to 5 photos. Helps engineers bid accurately.",
-        fontSize = 13.sp,
-        color = Ink500,
-    )
-    // Placeholder photo grid — VM doesn't surface photos yet.
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        Box(modifier = Modifier.weight(1f)) {
-            GradientTile(
-                icon = Icons.Outlined.MedicalServices,
-                hue = 200,
-                size = 100.dp,
-            )
-        }
-        Box(modifier = Modifier.weight(1f)) {
-            GradientTile(
-                icon = Icons.Outlined.Image,
-                hue = 40,
-                size = 100.dp,
-            )
-        }
-        Box(modifier = Modifier.weight(1f)) {
-            AddPhotoTile()
-        }
-    }
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        OutlinedButton(
-            onClick = {},
-            modifier = Modifier.weight(1f),
-        ) {
-            Icon(Icons.Outlined.PhotoCamera, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(6.dp))
-            Text("Camera")
-        }
-        OutlinedButton(
-            onClick = {},
-            modifier = Modifier.weight(1f),
-        ) {
-            Icon(Icons.Outlined.Image, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(6.dp))
-            Text("Gallery")
-        }
-    }
-}
-
-@Composable
-private fun AddPhotoTile() {
-    Box(
-        modifier = Modifier
-            .size(100.dp)
-            .background(Surface50, RoundedCornerShape(12.dp))
-            .border(1.5.dp, Ink300, RoundedCornerShape(12.dp))
-            .clickable { },
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = Icons.Outlined.AddAPhoto,
-                contentDescription = null,
-                tint = BrandGreen,
-                modifier = Modifier.size(24.dp),
-            )
-            Text(
-                text = "Add",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = BrandGreen,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
     }
 }
 
