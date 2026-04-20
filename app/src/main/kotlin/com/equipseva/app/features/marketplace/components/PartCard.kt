@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -111,7 +112,7 @@ fun PartCard(
                 )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.padding(top = 4.dp),
                 ) {
                     Text(
@@ -121,6 +122,27 @@ fun PartCard(
                         fontWeight = FontWeight.Bold,
                         color = BrandGreenDark,
                     )
+                    val mrp = part.mrpRupees
+                    if (mrp != null && mrp > part.priceRupees) {
+                        Text(
+                            text = formatRupees(mrp),
+                            fontSize = 11.sp,
+                            lineHeight = 14.sp,
+                            color = Ink500,
+                            textDecoration = TextDecoration.LineThrough,
+                        )
+                    }
+                    if (part.discountPercent > 0) {
+                        StatusChip(
+                            label = "${part.discountPercent}% OFF",
+                            tone = StatusTone.Success,
+                        )
+                    }
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 4.dp),
+                ) {
                     val (tone, icon, label) = stockStatus(part)
                     StatusChip(label = label, tone = tone, icon = icon)
                 }
