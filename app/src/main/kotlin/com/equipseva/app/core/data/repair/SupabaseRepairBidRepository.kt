@@ -3,7 +3,10 @@ package com.equipseva.app.core.data.repair
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -13,12 +16,26 @@ class SupabaseRepairBidRepository @Inject constructor(
 ) : RepairBidRepository {
 
     override suspend fun fetchOwnBidForJob(jobId: String): Result<RepairBid?> = runCatching {
+        val userId = client.auth.currentUserOrNull()?.id
         client.from(TABLE).select {
             filter {
                 eq("repair_job_id", jobId)
+                if (!userId.isNullOrBlank()) {
+                    // Narrow to own row even when RLS would allow more (hospital
+                    // side sees every bid on their job). The engineer-detail
+                    // screen only ever wants its own row.
+                    eq("engineer_user_id", userId)
+                }
             }
             limit(count = 1)
         }.decodeList<RepairBidDto>().firstOrNull()?.toDomain()
+    }
+
+    override suspend fun fetchBidsForJob(jobId: String): Result<List<RepairBid>> = runCatching {
+        client.from(TABLE).select {
+            filter { eq("repair_job_id", jobId) }
+            order("created_at", order = Order.ASCENDING)
+        }.decodeList<RepairBidDto>().map(RepairBidDto::toDomain)
     }
 
     override suspend fun placeBid(
@@ -51,6 +68,14 @@ class SupabaseRepairBidRepository @Inject constructor(
                 eq("id", bidId)
             }
         }
+        Unit
+    }
+
+    override suspend fun acceptBid(bidId: String): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "accept_repair_bid",
+            parameters = buildJsonObject { put("p_bid_id", bidId) },
+        )
         Unit
     }
 
