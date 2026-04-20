@@ -27,7 +27,6 @@ class CartViewModel @Inject constructor(
         val items: List<CartItem> = emptyList(),
         val totalInPaise: Long = 0L,
         val loading: Boolean = true,
-        val errorMessage: String? = null,
     )
 
     sealed interface Effect {
@@ -49,12 +48,11 @@ class CartViewModel @Inject constructor(
                         items = items,
                         totalInPaise = items.sumOf { line -> line.unitPriceInPaise * line.quantity },
                         loading = false,
-                        errorMessage = null,
                     )
                 }
             }
             .catch { error ->
-                _state.update { it.copy(loading = false, errorMessage = error.toUserMessage()) }
+                _state.update { it.copy(loading = false) }
                 _effects.send(Effect.ShowMessage(error.toUserMessage()))
             }
             .launchIn(viewModelScope)
