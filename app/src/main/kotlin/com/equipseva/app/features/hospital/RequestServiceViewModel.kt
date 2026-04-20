@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
@@ -71,7 +72,7 @@ class RequestServiceViewModel @Inject constructor(
     fun onModelChange(value: String) = _state.update { it.copy(model = value) }
     fun onIssueChange(value: String) = _state.update { it.copy(issue = value, issueError = null) }
 
-    fun onSubmit() {
+    fun onSubmit(selectedSlot: Int = -1) {
         val uid = userId
         if (uid == null) {
             _state.update { it.copy(errorMessage = "Sign in again and retry.") }
@@ -83,6 +84,13 @@ class RequestServiceViewModel @Inject constructor(
             _state.update { it.copy(issueError = "Please describe the issue (10 characters or more).") }
             return
         }
+        val today = LocalDate.now()
+        val (scheduledDate, scheduledTimeSlot) = when (selectedSlot) {
+            0 -> today.toString() to "evening"
+            1 -> today.plusDays(1).toString() to "morning"
+            2 -> today.plusDays(1).toString() to "afternoon"
+            else -> null to null
+        }
         _state.update { it.copy(submitting = true, errorMessage = null) }
         viewModelScope.launch {
             val draft = RepairJobDraft(
@@ -93,6 +101,8 @@ class RequestServiceViewModel @Inject constructor(
                 equipmentBrand = current.brand.trim().ifBlank { null },
                 equipmentModel = current.model.trim().ifBlank { null },
                 urgency = current.urgency.takeIf { it != RepairJobUrgency.Unknown } ?: RepairJobUrgency.Scheduled,
+                scheduledDate = scheduledDate,
+                scheduledTimeSlot = scheduledTimeSlot,
             )
             jobRepository.create(draft)
                 .onSuccess {

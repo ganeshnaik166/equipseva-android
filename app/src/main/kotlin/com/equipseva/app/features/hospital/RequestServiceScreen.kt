@@ -88,8 +88,8 @@ fun RequestServiceScreen(
     var step by rememberSaveable { mutableStateOf(0) }
     // UI-only field — VM doesn't persist serials yet.
     var serial by rememberSaveable { mutableStateOf("") }
-    // UI-only — VM doesn't persist schedule slots yet.
     var selectedSlot by rememberSaveable { mutableStateOf(-1) }
+    // UI-only — VM doesn't persist site location yet (no schema column).
     var siteLocation by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(viewModel) {
@@ -118,7 +118,7 @@ fun RequestServiceScreen(
                 submitting = state.submitting,
                 onBack = { if (step > 0) step -= 1 },
                 onNext = { if (step < stepLabels.lastIndex) step += 1 },
-                onSubmit = viewModel::onSubmit,
+                onSubmit = { viewModel.onSubmit(selectedSlot) },
             )
         },
     ) { inner ->
