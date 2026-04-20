@@ -155,6 +155,7 @@ fun RepairJobDetailScreen(
                     job = state.job!!,
                     ownBid = state.ownBid,
                     bids = state.bids,
+                    engineerNames = state.engineerNames,
                     viewerRole = state.viewerRole,
                     updatingStatus = state.updatingStatus,
                     submittingRating = state.submittingRating,
@@ -186,6 +187,7 @@ private fun JobBody(
     job: RepairJob,
     ownBid: RepairBid?,
     bids: List<RepairBid>,
+    engineerNames: Map<String, String>,
     viewerRole: RepairJobDetailViewModel.ViewerRole,
     updatingStatus: Boolean,
     submittingRating: Boolean,
@@ -231,6 +233,7 @@ private fun JobBody(
             HospitalBidsList(
                 job = job,
                 bids = bids,
+                engineerNames = engineerNames,
                 acceptingBidId = acceptingBidId,
                 openingChat = openingChat,
                 onAcceptBid = onAcceptBid,
@@ -637,6 +640,7 @@ private fun LocationCard() {
 private fun HospitalBidsList(
     job: RepairJob,
     bids: List<RepairBid>,
+    engineerNames: Map<String, String>,
     acceptingBidId: String?,
     openingChat: Boolean,
     onAcceptBid: (String) -> Unit,
@@ -670,6 +674,7 @@ private fun HospitalBidsList(
         bids.forEach { bid ->
             HospitalBidRow(
                 bid = bid,
+                engineerName = engineerNames[bid.engineerUserId],
                 canAccept = canAccept,
                 accepting = acceptingBidId == bid.id,
                 anyAccepting = acceptingBidId != null,
@@ -684,6 +689,7 @@ private fun HospitalBidsList(
 @Composable
 private fun HospitalBidRow(
     bid: RepairBid,
+    engineerName: String?,
     canAccept: Boolean,
     accepting: Boolean,
     anyAccepting: Boolean,
@@ -706,13 +712,20 @@ private fun HospitalBidRow(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = formatRupees(bid.amountRupees),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isAccepted) BrandGreenDark else Ink900,
-                modifier = Modifier.weight(1f),
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = engineerName ?: "Engineer",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Ink700,
+                )
+                Text(
+                    text = formatRupees(bid.amountRupees),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isAccepted) BrandGreenDark else Ink900,
+                )
+            }
             StatusChip(
                 label = bid.status.displayName,
                 tone = bid.status.toTone(),

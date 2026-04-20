@@ -7,6 +7,7 @@ import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.chat.ChatRepository
 import com.equipseva.app.core.data.engineers.EngineerRepository
+import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.data.repair.RatingRole
 import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairBidRepository
@@ -38,6 +39,7 @@ class RepairJobDetailViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
     private val authRepository: AuthRepository,
     private val engineerRepository: EngineerRepository,
+    private val profileRepository: ProfileRepository,
 ) : ViewModel() {
 
     sealed interface Effect {
@@ -72,6 +74,11 @@ class RepairJobDetailViewModel @Inject constructor(
         val bids: List<RepairBid> = emptyList(),
         /** Bid id currently being accepted; used to disable UI while the RPC is in-flight. */
         val acceptingBidId: String? = null,
+        /**
+         * Map of engineer user id → display name, populated lazily for the
+         * hospital viewer so each bid row can show who placed it.
+         */
+        val engineerNames: Map<String, String> = emptyMap(),
     )
 
     private val jobId: String =
@@ -344,11 +351,21 @@ class RepairJobDetailViewModel @Inject constructor(
                     // accepted/rejected statuses in one shot.
                     val refreshedJob = jobRepository.fetchById(jobId).getOrNull()
                     val refreshedBids = bidRepository.fetchBidsForJob(jobId).getOrNull().orEmpty()
+                    val known = _state.value.engineerNames
+                    val missing = refreshedBids
+                        .map { it.engineerUserId }
+                        .filter { it !in known }
+                    val refreshedNames = if (missing.isNotEmpty()) {
+                        known + profileRepository.fetchDisplayNames(missing).getOrNull().orEmpty()
+                    } else {
+                        known
+                    }
                     _state.update {
                         it.copy(
                             job = refreshedJob ?: it.job,
                             bids = refreshedBids,
                             acceptingBidId = null,
+                            engineerNames = refreshedNames,
                         )
                     }
                     _messages.send("Bid accepted — engineer notified")
@@ -384,6 +401,13 @@ class RepairJobDetailViewModel @Inject constructor(
                         ViewerRole.Hospital -> bids.firstOrNull { it.engineerUserId == selfId }
                         ViewerRole.Other -> bidRepository.fetchOwnBidForJob(jobId).getOrNull()
                     }
+                    val engineerNames = if (role == ViewerRole.Hospital && bids.isNotEmpty()) {
+                        profileRepository.fetchDisplayNames(
+                            bids.map { it.engineerUserId },
+                        ).getOrNull().orEmpty()
+                    } else {
+                        emptyMap()
+                    }
                     _state.update {
                         it.copy(
                             loading = false,
@@ -392,6 +416,7 @@ class RepairJobDetailViewModel @Inject constructor(
                             ownBid = ownBid,
                             bids = bids,
                             viewerRole = role,
+                            engineerNames = engineerNames,
                         )
                     }
                 },
