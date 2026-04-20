@@ -46,7 +46,6 @@ import com.equipseva.app.designsystem.theme.BrandGreen50
 import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
-import com.equipseva.app.designsystem.theme.Success
 import com.equipseva.app.designsystem.theme.Surface100
 import java.time.Duration
 import java.time.Instant
@@ -187,14 +186,6 @@ private fun InitialsAvatar(name: String) {
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
             color = BrandGreen,
-        )
-        Box(
-            modifier = Modifier
-                .size(12.dp)
-                .align(Alignment.BottomEnd)
-                .clip(CircleShape)
-                .background(Success)
-                .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
         )
     }
 }
