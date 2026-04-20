@@ -765,13 +765,15 @@ private fun YourBidCard(ownBid: RepairBid?) {
 @Composable
 private fun StatusStepperCard(job: RepairJob) {
     val shape = MaterialTheme.shapes.medium
+    val onSiteTime = job.startedAtInstant?.let { "${relativeLabel(it)} ago" }
+    val completedTime = job.completedAtInstant?.let { "${relativeLabel(it)} ago" }
     val steps = listOf(
         StepperStep(title = "Open · awaiting bids"),
         StepperStep(title = "Bids received"),
         StepperStep(title = "Accepted"),
         StepperStep(title = "En route"),
-        StepperStep(title = "On site"),
-        StepperStep(title = "Completed"),
+        StepperStep(title = "On site", time = onSiteTime),
+        StepperStep(title = "Completed", time = completedTime),
     )
     val current = when (job.status) {
         RepairJobStatus.Requested -> 0
