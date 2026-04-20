@@ -11,6 +11,7 @@ data class ChatConversation(
     val lastMessage: String?,
     val lastMessageAtIso: String?,
     val createdAtIso: String?,
+    val unreadCount: Int = 0,
 ) {
     val lastMessageInstant: Instant?
         get() = lastMessageAtIso?.let {

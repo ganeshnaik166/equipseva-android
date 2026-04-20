@@ -21,3 +21,8 @@ internal data class MessageInsertDto(
     val message: String,
     val attachments: List<String>? = null,
 )
+
+@Serializable
+internal data class UnreadRowDto(
+    @SerialName("conversation_id") val conversationId: String,
+)
