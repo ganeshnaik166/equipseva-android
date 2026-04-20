@@ -41,11 +41,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.cart.CartItem
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.ESBackTopBar
@@ -166,11 +168,23 @@ private fun CartLineRow(
                 .padding(12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            GradientTile(
-                icon = Icons.Filled.MedicalServices,
-                hue = 40,
-                size = 72.dp,
-            )
+            val imageUrl = item.imageUrl?.takeIf { it.isNotBlank() }
+            if (imageUrl != null) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(RoundedCornerShape(5.dp)),
+                )
+            } else {
+                GradientTile(
+                    icon = Icons.Filled.MedicalServices,
+                    hue = 40,
+                    size = 72.dp,
+                )
+            }
 
             Column(
                 modifier = Modifier.weight(1f),
