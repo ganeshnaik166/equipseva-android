@@ -39,7 +39,6 @@ class ConversationsViewModel @Inject constructor(
 
     data class UiState(
         val loading: Boolean = true,
-        val selfUserId: String? = null,
         val rows: List<Row> = emptyList(),
         val errorMessage: String? = null,
     )
@@ -55,7 +54,6 @@ class ConversationsViewModel @Inject constructor(
             val session = authRepository.sessionState
                 .filterIsInstance<AuthSession.SignedIn>()
                 .first()
-            _state.update { it.copy(selfUserId = session.userId) }
             chatRepository.observeConversations(session.userId)
                 .onEach { list -> buildRows(session.userId, list) }
                 .catch { error ->
