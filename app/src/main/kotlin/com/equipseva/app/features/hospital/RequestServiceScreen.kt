@@ -61,7 +61,6 @@ import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
 import com.equipseva.app.designsystem.theme.BrandGreenDark
 import com.equipseva.app.designsystem.theme.ErrorRed
-import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Ink700
 import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
@@ -432,7 +431,7 @@ private fun WizardBottomBar(
                     .height(Spacing.MinTouchTarget),
             ) { Text("Back") }
         }
-        val isLast = step == 3
+        val isLast = step == 2
         Button(
             onClick = if (isLast) onSubmit else onNext,
             enabled = !submitting,
