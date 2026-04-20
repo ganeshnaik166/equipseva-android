@@ -66,6 +66,7 @@ import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.PrimaryButton
@@ -638,6 +639,13 @@ private fun HospitalBidRow(
             StatusChip(
                 label = bid.status.displayName,
                 tone = bid.status.toTone(),
+            )
+        }
+        bid.createdAtInstant?.let { placed ->
+            Text(
+                text = "Placed ${relativeLabel(placed)} ago",
+                fontSize = 12.sp,
+                color = Ink500,
             )
         }
         val meta = buildString {
