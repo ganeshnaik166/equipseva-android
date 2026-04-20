@@ -175,6 +175,9 @@ private fun OrderDetailBody(
         item("items_header") { SectionHeader(title = "Items") }
         item("items_card") { OrderItemsCard(order) }
 
+        item("summary_header") { SectionHeader(title = "Order summary") }
+        item("summary_card") { OrderSummaryCard(order) }
+
         item("delivery_header") { SectionHeader(title = "Delivery") }
         item("delivery_card") { DeliveryCard(order) }
 
@@ -333,6 +336,66 @@ private fun NotesCard(notes: String) {
             lineHeight = 18.sp,
             color = Ink700,
             modifier = Modifier.padding(Spacing.lg),
+        )
+    }
+}
+
+@Composable
+private fun OrderSummaryCard(order: Order) {
+    OutlinedSurfaceCard(modifier = Modifier.padding(horizontal = Spacing.lg)) {
+        Column(
+            modifier = Modifier.padding(Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            SummaryRow(label = "Subtotal", value = formatRupees(order.subtotal))
+            if (order.gstAmount > 0.0) {
+                SummaryRow(label = "GST", value = formatRupees(order.gstAmount))
+            }
+            if (order.shippingCost > 0.0) {
+                SummaryRow(label = "Shipping", value = formatRupees(order.shippingCost))
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Surface100),
+            )
+            SummaryRow(
+                label = "Total",
+                value = formatRupees(order.totalAmount),
+                emphasized = true,
+            )
+            val paymentLabel = order.paymentStatus?.takeIf { it.isNotBlank() }
+                ?.replaceFirstChar { it.uppercase() }
+            if (paymentLabel != null) {
+                Text(
+                    text = "Payment · $paymentLabel",
+                    fontSize = 12.sp,
+                    color = Ink500,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SummaryRow(label: String, value: String, emphasized: Boolean = false) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = label,
+            fontSize = if (emphasized) 14.sp else 13.sp,
+            fontWeight = if (emphasized) FontWeight.Bold else FontWeight.Normal,
+            color = if (emphasized) Ink900 else Ink700,
+        )
+        Text(
+            text = value,
+            fontSize = if (emphasized) 14.sp else 13.sp,
+            fontWeight = if (emphasized) FontWeight.Bold else FontWeight.SemiBold,
+            color = if (emphasized) Ink900 else Ink700,
         )
     }
 }
