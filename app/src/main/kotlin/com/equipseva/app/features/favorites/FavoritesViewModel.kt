@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -37,10 +36,6 @@ class FavoritesViewModel @Inject constructor(
                 .distinctUntilChanged()
                 .collect { ids -> reload(ids) }
         }
-    }
-
-    fun retry() {
-        viewModelScope.launch { reload(userPrefs.favorites.first()) }
     }
 
     fun onRemove(partId: String) {
