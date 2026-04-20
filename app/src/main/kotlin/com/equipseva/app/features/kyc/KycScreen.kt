@@ -22,12 +22,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.HourglassTop
@@ -257,26 +255,6 @@ private fun KycForm(
                     "Uploaded (${state.certDocPaths.size})"
                 } else null,
                 onClick = onPickCertificate,
-            )
-            // Supplementary static slots from design (PAN / Profile photo) to keep visual parity —
-            // these aren't tracked in KycViewModel state so they render as "optional / coming soon".
-            DocumentRow(
-                title = "PAN card",
-                uploaded = false,
-                uploading = false,
-                icon = Icons.Filled.CreditCard,
-                hue = 40,
-                subtitleOverride = "Optional",
-                onClick = null,
-            )
-            DocumentRow(
-                title = "Profile photo",
-                uploaded = false,
-                uploading = false,
-                icon = Icons.Filled.AccountCircle,
-                hue = 200,
-                subtitleOverride = "Optional",
-                onClick = null,
             )
         }
 
