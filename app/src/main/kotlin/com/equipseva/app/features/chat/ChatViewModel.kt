@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
-import com.equipseva.app.core.data.chat.ChatConversation
 import com.equipseva.app.core.data.chat.ChatMessage
 import com.equipseva.app.core.data.chat.ChatRepository
 import com.equipseva.app.core.data.profile.Profile
@@ -38,7 +37,6 @@ class ChatViewModel @Inject constructor(
     data class UiState(
         val loading: Boolean = true,
         val selfUserId: String? = null,
-        val conversation: ChatConversation? = null,
         val counterpart: Profile? = null,
         val messages: List<ChatMessage> = emptyList(),
         val draft: String = "",
@@ -101,7 +99,6 @@ class ChatViewModel @Inject constructor(
     private suspend fun loadConversationMeta(selfUserId: String) {
         chatRepository.fetchById(conversationId)
             .onSuccess { convo ->
-                _state.update { it.copy(conversation = convo) }
                 val otherId = convo?.counterpartId(selfUserId)
                 if (otherId != null) {
                     profileRepository.fetchById(otherId)
