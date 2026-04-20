@@ -51,6 +51,7 @@ import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.SecureScreen
 import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.components.StatusTone
@@ -72,6 +73,7 @@ fun EarningsScreen(
     onJobClick: (String) -> Unit,
     viewModel: EarningsViewModel = hiltViewModel(),
 ) {
+    SecureScreen()
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     Scaffold(

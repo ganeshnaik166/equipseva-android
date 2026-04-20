@@ -71,6 +71,7 @@ import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.designsystem.components.AppProgress
 import com.equipseva.app.designsystem.components.GradientTile
+import com.equipseva.app.designsystem.components.SecureScreen
 import com.equipseva.app.designsystem.theme.ErrorBg
 import com.equipseva.app.designsystem.theme.ErrorRed
 import com.equipseva.app.designsystem.theme.Info
@@ -101,6 +102,7 @@ fun KycScreen(
     onShowMessage: (String) -> Unit,
     viewModel: KycViewModel = hiltViewModel(),
 ) {
+    SecureScreen()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
 

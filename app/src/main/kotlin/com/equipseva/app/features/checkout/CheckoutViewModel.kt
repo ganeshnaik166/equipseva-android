@@ -134,6 +134,7 @@ class CheckoutViewModel @Inject constructor(
 
     fun onPlaceOrder() {
         val snap = _state.value
+        if (snap.submitting) return
         if (!snap.form.isValid) {
             _state.update { it.copy(showValidationErrors = true) }
             return

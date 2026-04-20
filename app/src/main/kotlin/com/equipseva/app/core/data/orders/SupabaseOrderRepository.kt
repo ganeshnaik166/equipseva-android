@@ -3,6 +3,7 @@ package com.equipseva.app.core.data.orders
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
+import java.security.SecureRandom
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -10,6 +11,8 @@ import javax.inject.Singleton
 class SupabaseOrderRepository @Inject constructor(
     private val client: SupabaseClient,
 ) : OrderRepository {
+
+    private val secureRandom = SecureRandom()
 
     override suspend fun fetchMine(userId: String, page: Int, pageSize: Int): Result<List<com.equipseva.app.core.data.orders.Order>> = runCatching {
         val from = page.coerceAtLeast(0).toLong() * pageSize
@@ -84,7 +87,7 @@ class SupabaseOrderRepository @Inject constructor(
 
     private fun mintOrderNumber(): String {
         val epochSeconds = System.currentTimeMillis() / 1000
-        val suffix = (Math.random() * 9000 + 1000).toInt()
+        val suffix = secureRandom.nextInt(9000) + 1000
         return "ES-$epochSeconds-$suffix"
     }
 

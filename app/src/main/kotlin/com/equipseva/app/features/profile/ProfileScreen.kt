@@ -73,6 +73,7 @@ import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.prefs.ThemeMode
 import com.equipseva.app.designsystem.components.BrandedPlaceholder
 import com.equipseva.app.designsystem.components.ESTopBar
+import com.equipseva.app.designsystem.components.SecureScreen
 import com.equipseva.app.designsystem.components.SettingsSheet
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.components.StatusTone
@@ -96,6 +97,7 @@ fun ProfileScreen(
     onOpenFavorites: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
+    SecureScreen()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val settingsOpen by viewModel.settingsOpen.collectAsStateWithLifecycle()

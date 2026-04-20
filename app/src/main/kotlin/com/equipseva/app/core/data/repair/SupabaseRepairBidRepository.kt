@@ -44,6 +44,12 @@ class SupabaseRepairBidRepository @Inject constructor(
         etaHours: Int?,
         note: String?,
     ): Result<RepairBid> = runCatching {
+        require(amountRupees.isFinite() && amountRupees in 1.0..10_000_000.0) {
+            "Bid amount must be between ₹1 and ₹1 crore"
+        }
+        require(etaHours == null || etaHours in 1..720) {
+            "ETA must be between 1 and 720 hours"
+        }
         val userId = requireNotNull(client.auth.currentUserOrNull()?.id) {
             "No authenticated user"
         }
