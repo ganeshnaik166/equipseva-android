@@ -48,6 +48,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.SectionHeader
@@ -281,6 +282,16 @@ private fun TransactionRow(
                 color = Ink500,
                 maxLines = 1,
             )
+            val timestamp = if (paid) row.job?.completedAtInstant else row.bid.createdAtInstant
+            timestamp?.let {
+                val prefix = if (paid) "Paid" else "Quoted"
+                Text(
+                    text = "$prefix ${relativeLabel(it)} ago",
+                    fontSize = 11.sp,
+                    color = Ink500,
+                    maxLines = 1,
+                )
+            }
         }
         Column(
             horizontalAlignment = Alignment.End,
