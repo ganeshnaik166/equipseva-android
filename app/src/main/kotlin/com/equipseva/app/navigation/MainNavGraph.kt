@@ -279,7 +279,6 @@ fun MainNavGraph(
             composable(Routes.ABOUT) {
                 AboutScreen(
                     onBack = { navController.popBackStack() },
-                    onShowMessage = showSnackbar,
                 )
             }
             composable(Routes.CART) {
