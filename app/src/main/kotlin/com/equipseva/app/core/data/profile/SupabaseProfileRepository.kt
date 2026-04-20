@@ -53,6 +53,21 @@ class SupabaseProfileRepository @Inject constructor(
         Unit
     }
 
+    override suspend fun fetchDisplayNames(
+        userIds: List<String>,
+    ): Result<Map<String, String>> = runCatching {
+        val distinct = userIds.filter { it.isNotBlank() }.distinct()
+        if (distinct.isEmpty()) return@runCatching emptyMap()
+        client.from(TABLE).select(columns = Columns.list("id", "full_name", "email")) {
+            filter { isIn("id", distinct) }
+        }.decodeList<ProfileDto>().associate { dto ->
+            val label = dto.fullName?.takeIf { it.isNotBlank() }
+                ?: dto.email?.substringBefore('@')
+                ?: "User"
+            dto.id to label
+        }
+    }
+
     private companion object {
         const val TABLE = "profiles"
         const val BASE_COLUMNS =

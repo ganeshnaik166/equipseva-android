@@ -14,4 +14,11 @@ interface ProfileRepository {
 
     /** Update the signed-in user's display name + phone. Either can be null to clear. */
     suspend fun updateBasicInfo(userId: String, fullName: String?, phone: String?): Result<Unit>
+
+    /**
+     * Bulk-resolve display names for a set of user ids. Missing ids are simply
+     * absent from the returned map. Used by hospital-side bid lists to label
+     * each bid with the engineer's name.
+     */
+    suspend fun fetchDisplayNames(userIds: List<String>): Result<Map<String, String>>
 }
