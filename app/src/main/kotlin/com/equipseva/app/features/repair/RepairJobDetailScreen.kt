@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.StarOutline
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -161,6 +162,7 @@ fun RepairJobDetailScreen(
                     openingChat = state.openingChat,
                     onCheckIn = viewModel::checkIn,
                     onMarkDone = viewModel::markDone,
+                    onCancelJob = viewModel::cancelJob,
                     onSubmitRating = viewModel::submitRating,
                     onAcceptBid = viewModel::acceptBid,
                     onMessageEngineer = viewModel::openChatWithEngineer,
@@ -191,11 +193,16 @@ private fun JobBody(
     openingChat: Boolean,
     onCheckIn: () -> Unit,
     onMarkDone: () -> Unit,
+    onCancelJob: () -> Unit,
     onSubmitRating: (Int, String?) -> Unit,
     onAcceptBid: (String) -> Unit,
     onMessageEngineer: () -> Unit,
 ) {
     val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
+    val canHospitalCancel = isHospital && job.status in setOf(
+        RepairJobStatus.Requested,
+        RepairJobStatus.Assigned,
+    )
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -248,6 +255,68 @@ private fun JobBody(
                 onSubmit = onSubmitRating,
             )
         }
+
+        if (canHospitalCancel) {
+            CancelJobSection(
+                updating = updatingStatus,
+                onConfirm = onCancelJob,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CancelJobSection(
+    updating: Boolean,
+    onConfirm: () -> Unit,
+) {
+    var confirmOpen by rememberSaveable { mutableStateOf(false) }
+    Box(
+        modifier = Modifier
+            .padding(horizontal = Spacing.lg)
+            .padding(bottom = Spacing.md)
+            .fillMaxWidth(),
+        contentAlignment = Alignment.Center,
+    ) {
+        TextButton(
+            onClick = { confirmOpen = true },
+            enabled = !updating,
+        ) {
+            Text(
+                text = if (updating) "Cancelling…" else "Cancel this job",
+                color = MaterialTheme.colorScheme.error,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
+    if (confirmOpen) {
+        AlertDialog(
+            onDismissRequest = { confirmOpen = false },
+            title = { Text("Cancel this job?") },
+            text = {
+                Text(
+                    "The engineer will be notified. You can post a new request later if you still need help.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmOpen = false
+                        onConfirm()
+                    },
+                ) {
+                    Text(
+                        text = "Cancel job",
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmOpen = false }) {
+                    Text("Keep it")
+                }
+            },
+        )
     }
 }
 
