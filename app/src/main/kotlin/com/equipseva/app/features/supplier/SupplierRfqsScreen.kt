@@ -34,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.rfq.Rfq
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
@@ -138,8 +139,9 @@ internal fun RfqListCard(rfq: Rfq) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            val posted = rfq.createdAtInstant?.let { "· Posted ${relativeLabel(it)} ago" } ?: ""
             Text(
-                text = "Qty ${rfq.quantity} · ${rfq.bidsCount} bid(s)",
+                text = "Qty ${rfq.quantity} · ${rfq.bidsCount} bid(s) $posted".trimEnd(),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

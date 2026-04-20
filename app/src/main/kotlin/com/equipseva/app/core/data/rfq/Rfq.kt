@@ -1,5 +1,7 @@
 package com.equipseva.app.core.data.rfq
 
+import java.time.Instant
+
 data class Rfq(
     val id: String,
     val rfqNumber: String?,
@@ -19,6 +21,9 @@ data class Rfq(
 ) {
     val isOpen: Boolean
         get() = status.equals("open", ignoreCase = true) || status.equals("published", ignoreCase = true)
+
+    val createdAtInstant: Instant?
+        get() = createdAtIso?.let { runCatching { Instant.parse(it) }.getOrNull() }
 }
 
 internal fun RfqDto.toDomain(): Rfq = Rfq(
