@@ -83,8 +83,4 @@ class WelcomeViewModel @Inject constructor(
             }
         }
     }
-
-    fun dismissError() {
-        _state.update { it.copy(form = it.form.copy(errorMessage = null)) }
-    }
 }
