@@ -69,6 +69,7 @@ import coil3.compose.AsyncImage
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.GradientTile
+import com.equipseva.app.designsystem.components.SecureScreen
 import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
@@ -91,6 +92,7 @@ fun CheckoutScreen(
     onOrderPlaced: (orderId: String) -> Unit,
     viewModel: CheckoutViewModel = hiltViewModel(),
 ) {
+    SecureScreen()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()

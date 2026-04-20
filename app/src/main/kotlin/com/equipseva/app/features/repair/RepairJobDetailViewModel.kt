@@ -117,6 +117,14 @@ class RepairJobDetailViewModel @Inject constructor(
 
     fun submitBid(amountRupees: Double, etaHours: Int?, note: String?) {
         if (_state.value.placingBid) return
+        if (!amountRupees.isFinite() || amountRupees !in 1.0..10_000_000.0) {
+            viewModelScope.launch { _messages.send("Enter a bid between ₹1 and ₹1 crore") }
+            return
+        }
+        if (etaHours != null && etaHours !in 1..720) {
+            viewModelScope.launch { _messages.send("ETA must be 1\u2013720 hours") }
+            return
+        }
         val hadPending = _state.value.ownBid?.status == RepairBidStatus.Pending
         _state.update { it.copy(placingBid = true) }
         viewModelScope.launch {

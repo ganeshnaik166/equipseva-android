@@ -51,6 +51,7 @@ import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.GradientTile
+import com.equipseva.app.designsystem.components.SecureScreen
 import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.components.StepperStep
 import com.equipseva.app.designsystem.components.VerticalStepper
@@ -67,6 +68,7 @@ fun OrderDetailScreen(
     onShowMessage: (String) -> Unit = {},
     viewModel: OrderDetailViewModel = hiltViewModel(),
 ) {
+    SecureScreen()
     val state by viewModel.state.collectAsStateWithLifecycle()
     var cancelDialogOpen by rememberSaveable { mutableStateOf(false) }
 
