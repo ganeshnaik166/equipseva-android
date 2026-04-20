@@ -14,13 +14,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ChatBubbleOutline
-import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Inventory
 import androidx.compose.material.icons.outlined.MedicalServices
-import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -184,14 +180,6 @@ private fun OrderDetailBody(
         item("delivery_header") { SectionHeader(title = "Delivery") }
         item("delivery_card") { DeliveryCard(order) }
 
-        item("actions") {
-            OrderActionButtons(
-                onInvoice = {},
-                onContactSeller = {},
-                onReorder = {},
-            )
-        }
-
         if (order.status == OrderStatus.PLACED || order.status == OrderStatus.CONFIRMED) {
             item("cancel") {
                 OutlinedButton(
@@ -327,54 +315,6 @@ private fun DeliveryCard(order: Order) {
                     color = Ink700,
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun OrderActionButtons(
-    onInvoice: () -> Unit,
-    onContactSeller: () -> Unit,
-    onReorder: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
-            .fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            OutlinedButton(
-                onClick = onInvoice,
-                modifier = Modifier.weight(1f),
-            ) {
-                Icon(Icons.Outlined.Download, contentDescription = null)
-                Spacer(Modifier.padding(end = 6.dp))
-                Text("Invoice")
-            }
-            OutlinedButton(
-                onClick = onContactSeller,
-                modifier = Modifier.weight(1f),
-            ) {
-                Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = null)
-                Spacer(Modifier.padding(end = 6.dp))
-                Text("Contact seller")
-            }
-        }
-        Button(
-            onClick = onReorder,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            ),
-        ) {
-            Icon(Icons.Outlined.Refresh, contentDescription = null)
-            Spacer(Modifier.padding(end = 6.dp))
-            Text("Reorder")
         }
     }
 }
