@@ -3,8 +3,10 @@ package com.equipseva.app.core.data.repair
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import java.time.Instant
+import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -12,6 +14,9 @@ import javax.inject.Singleton
 class SupabaseRepairJobRepository @Inject constructor(
     private val client: SupabaseClient,
 ) : RepairJobRepository {
+
+    @Serializable
+    private data class EngineerIdRow(val id: String)
 
     override suspend fun fetchOpenJobs(
         page: Int,
@@ -55,8 +60,18 @@ class SupabaseRepairJobRepository @Inject constructor(
         val userId = requireNotNull(client.auth.currentUserOrNull()?.id) {
             "No authenticated user"
         }
+        // repair_jobs.engineer_id FKs to engineers.id (not auth.uid). Resolve the
+        // engineer row for this user first; an engineer who hasn't onboarded yet
+        // (no row in `engineers`) simply has nothing assigned.
+        val engineerId = client.from("engineers")
+            .select(columns = Columns.raw("id")) {
+                filter { eq("user_id", userId) }
+                limit(count = 1)
+            }
+            .decodeList<EngineerIdRow>().firstOrNull()?.id
+            ?: return@runCatching emptyList()
         client.from(TABLE).select {
-            filter { eq("engineer_id", userId) }
+            filter { eq("engineer_id", engineerId) }
             order("updated_at", order = Order.DESCENDING)
         }.decodeList<RepairJobDto>().map(RepairJobDto::toDomain)
     }
