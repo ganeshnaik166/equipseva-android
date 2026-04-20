@@ -198,6 +198,14 @@ private fun CartLineRow(
                     color = Ink900,
                     maxLines = 2,
                 )
+                if (item.quantity > 1) {
+                    Text(
+                        text = "${formatRupees(item.unitPriceInPaise / 100.0)} each",
+                        fontSize = 11.sp,
+                        lineHeight = 14.sp,
+                        color = Ink500,
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
