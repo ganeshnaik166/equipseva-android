@@ -36,7 +36,7 @@ fun SignUpScreen(
 
     AuthScaffold(
         title = "Create your account",
-        subtitle = "Enter your email — we'll send you a verification code to sign in.",
+        subtitle = "Enter your email and we'll send a verification code to get you started.",
     ) {
         ErrorBanner(message = state.form.errorMessage)
 
