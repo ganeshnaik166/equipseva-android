@@ -474,6 +474,14 @@ private fun EquipmentBannerCard(job: RepairJob) {
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
+            job.createdAtInstant?.let { posted ->
+                Text(
+                    text = "Posted ${relativeLabel(posted)} ago",
+                    fontSize = 12.sp,
+                    color = Ink500,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
             val schedule = listOfNotNull(job.scheduledDate, job.scheduledTimeSlot).joinToString(" ")
             if (schedule.isNotBlank()) {
                 Row(
