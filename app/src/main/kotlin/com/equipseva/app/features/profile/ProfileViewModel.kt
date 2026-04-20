@@ -33,7 +33,6 @@ class ProfileViewModel @Inject constructor(
 
     data class UiState(
         val loading: Boolean = true,
-        val refreshing: Boolean = false,
         val profile: Profile? = null,
         val errorMessage: String? = null,
         val roleEditorOpen: Boolean = false,
@@ -92,7 +91,6 @@ class ProfileViewModel @Inject constructor(
     fun onRefresh() {
         val session = _state.value.profile?.id ?: return
         viewModelScope.launch {
-            _state.update { it.copy(refreshing = true) }
             load(session, initial = false)
         }
     }
@@ -230,7 +228,6 @@ class ProfileViewModel @Inject constructor(
                 _state.update {
                     it.copy(
                         loading = false,
-                        refreshing = false,
                         profile = profile,
                         errorMessage = if (profile == null) "Profile not found" else null,
                     )
@@ -240,7 +237,6 @@ class ProfileViewModel @Inject constructor(
                 _state.update {
                     it.copy(
                         loading = false,
-                        refreshing = false,
                         errorMessage = error.toUserMessage(),
                     )
                 }
