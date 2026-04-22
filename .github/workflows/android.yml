@@ -1,0 +1,75 @@
+name: android
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build (debug + release R8)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', 'gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # BuildConfig fields fall back to empty strings when the key isn't set,
+      # which is fine for a compile-only CI — no network is made. The placeholder
+      # google-services.json in the repo covers the Firebase Gradle plugin.
+      - name: Seed local.properties
+        run: |
+          cat > local.properties <<'EOF'
+          SUPABASE_URL=
+          SUPABASE_ANON_KEY=
+          SENTRY_DSN=
+          RAZORPAY_KEY=
+          GOOGLE_WEB_CLIENT_ID=
+          EXPECTED_CERT_SHA256=
+          EOF
+
+      - name: Grant gradlew execute
+        run: chmod +x ./gradlew
+
+      - name: assembleDebug
+        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+
+      # Validates R8 full-mode + ProGuard rules catch new shrink/obfuscate
+      # regressions before they hit main. Release build is unsigned (signing
+      # config lands with the Play Console access blocker).
+      - name: assembleRelease (R8 validation)
+        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
+
+      - name: Upload debug APK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: warn
+
+      - name: Upload R8 mapping
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-mapping
+          path: app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: warn
