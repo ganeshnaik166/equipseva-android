@@ -319,12 +319,26 @@ private fun OrderCard(
                     }
                 }
             }
-            Text(
-                text = formatRupees(order.totalAmount),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = formatRupees(order.totalAmount),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                order.paymentStatus
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { raw ->
+                        StatusChip(
+                            label = raw.replaceFirstChar { it.uppercase() },
+                            tone = raw.toPaymentTone(),
+                        )
+                    }
+            }
         }
     }
 }
@@ -335,6 +349,13 @@ private fun OrderStatus.toTone(): StatusTone = when (this) {
     OrderStatus.DELIVERED -> StatusTone.Success
     OrderStatus.CANCELLED, OrderStatus.RETURNED -> StatusTone.Danger
     OrderStatus.UNKNOWN -> StatusTone.Neutral
+}
+
+private fun String.toPaymentTone(): StatusTone = when (lowercase()) {
+    "paid", "captured", "authorized", "success" -> StatusTone.Success
+    "pending", "created", "processing" -> StatusTone.Warn
+    "failed", "cancelled", "refunded" -> StatusTone.Danger
+    else -> StatusTone.Neutral
 }
 
 private val orderDateFormatter = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH)
