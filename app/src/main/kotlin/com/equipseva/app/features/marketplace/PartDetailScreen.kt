@@ -195,10 +195,11 @@ private fun PartBody(
             )
         }
 
-        // Compatible models
-        val models = part.compatibleModels
-        if (models.isNotEmpty()) {
-            CompatibilitySection(models = models)
+        // Compatible brands + models
+        val brands = part.compatibleBrands.filter { it.isNotBlank() }
+        val models = part.compatibleModels.filter { it.isNotBlank() }
+        if (brands.isNotEmpty() || models.isNotEmpty()) {
+            CompatibilitySection(brands = brands, models = models)
         }
 
         // Quantity
@@ -354,7 +355,7 @@ private fun PriceRow(part: SparePart) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CompatibilitySection(models: List<String>) {
+private fun CompatibilitySection(brands: List<String>, models: List<String>) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -368,12 +369,40 @@ private fun CompatibilitySection(models: List<String>) {
             color = Ink900,
             modifier = Modifier.padding(bottom = 8.dp),
         )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            models.forEach { model ->
-                NeutralChip(label = model)
+        if (brands.isNotEmpty()) {
+            Text(
+                text = "Brands",
+                fontSize = 11.sp,
+                lineHeight = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Ink500,
+                modifier = Modifier.padding(bottom = 6.dp),
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                brands.forEach { brand ->
+                    NeutralChip(label = brand)
+                }
+            }
+        }
+        if (models.isNotEmpty()) {
+            Text(
+                text = "Models",
+                fontSize = 11.sp,
+                lineHeight = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Ink500,
+                modifier = Modifier.padding(top = if (brands.isNotEmpty()) 10.dp else 0.dp, bottom = 6.dp),
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                models.forEach { model ->
+                    NeutralChip(label = model)
+                }
             }
         }
     }
