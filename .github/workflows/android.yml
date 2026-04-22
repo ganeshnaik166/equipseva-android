@@ -33,8 +33,10 @@ jobs:
             ${{ runner.os }}-gradle-
 
       # BuildConfig fields fall back to empty strings when the key isn't set,
-      # which is fine for a compile-only CI — no network is made. The placeholder
-      # google-services.json in the repo covers the Firebase Gradle plugin.
+      # which is fine for a compile-only CI — no network is made. The real
+      # google-services.json is gitignored, so we seed a syntactically valid
+      # placeholder that satisfies the Firebase Gradle plugin for both the
+      # release (com.equipseva.app) and debug (.debug suffix) application IDs.
       - name: Seed local.properties
         run: |
           cat > local.properties <<'EOF'
@@ -44,6 +46,35 @@ jobs:
           RAZORPAY_KEY=
           GOOGLE_WEB_CLIENT_ID=
           EXPECTED_CERT_SHA256=
+          EOF
+
+      - name: Seed placeholder google-services.json
+        run: |
+          cat > app/google-services.json <<'EOF'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "equipseva-ci-placeholder",
+              "storage_bucket": "equipseva-ci-placeholder.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": { "package_name": "com.equipseva.app" }
+                },
+                "api_key": [{ "current_key": "AIzaSyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }]
+              },
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": { "package_name": "com.equipseva.app.debug" }
+                },
+                "api_key": [{ "current_key": "AIzaSyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }]
+              }
+            ],
+            "configuration_version": "1"
+          }
           EOF
 
       - name: Grant gradlew execute
