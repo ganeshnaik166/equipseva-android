@@ -1,0 +1,47 @@
+name: supabase keepalive
+
+# Supabase free-tier projects pause after ~7 days without activity.
+# This workflow pings the project's REST API once a week to reset the idle
+# timer. A simple `GET /rest/v1/` with the anon apikey counts as activity
+# and returns a small JSON payload (the OpenAPI root).
+#
+# Required repo secrets:
+#   SUPABASE_URL       e.g. https://xxxxxxxxxxxx.supabase.co
+#   SUPABASE_ANON_KEY  the publishable anon key (same one that ships in the APK)
+
+on:
+  schedule:
+    # Every Monday 07:00 UTC (12:30 IST). Weekly cadence leaves headroom
+    # before the 7-day pause window closes.
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping Supabase REST
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::SUPABASE_URL or SUPABASE_ANON_KEY secret missing"
+            exit 1
+          fi
+          status=$(curl -sS -o /tmp/body -w "%{http_code}" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/")
+          echo "HTTP $status"
+          head -c 200 /tmp/body || true
+          echo
+          case "$status" in
+            2??) echo "ok" ;;
+            *) echo "::error::unexpected status $status"; exit 1 ;;
+          esac
