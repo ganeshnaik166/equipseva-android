@@ -39,6 +39,13 @@ android {
         buildConfigField("String", "SENTRY_DSN", "\"${localOrEnv("SENTRY_DSN")}\"")
         buildConfigField("String", "RAZORPAY_KEY", "\"${localOrEnv("RAZORPAY_KEY")}\"")
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localOrEnv("GOOGLE_WEB_CLIENT_ID")}\"")
+
+        // Base64(SHA-256(signing cert DER)). Blank until the release keystore
+        // is provisioned — SignatureVerifier skips the check when empty so
+        // debug builds and CI don't fail before the Play Console blocker
+        // clears. Fill from keystore.properties / CI secret once the upload
+        // key lands; SignatureVerifier flips to enforce on release then.
+        buildConfigField("String", "EXPECTED_CERT_SHA256", "\"${localOrEnv("EXPECTED_CERT_SHA256")}\"")
     }
 
     buildTypes {
