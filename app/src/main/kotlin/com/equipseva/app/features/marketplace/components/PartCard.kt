@@ -61,7 +61,7 @@ internal fun categoryHue(category: PartCategory): Int = when (category) {
 
 internal fun stockStatus(part: SparePart): Triple<StatusTone, ImageVector?, String> = when {
     !part.inStock -> Triple(StatusTone.Danger, null, "Out of stock")
-    part.stockQuantity < 10 -> Triple(StatusTone.Warn, null, "Low stock")
+    part.stockQuantity < 10 -> Triple(StatusTone.Warn, null, "Only ${part.stockQuantity} left")
     else -> Triple(StatusTone.Success, null, "In stock")
 }
 
