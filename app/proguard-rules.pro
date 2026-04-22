@@ -22,9 +22,27 @@
 # Hilt
 -keep class dagger.hilt.** { *; }
 -keep class * extends dagger.hilt.android.internal.managers.** { *; }
+# R8 full-mode: Hilt generates classes by reflection at init; keep their
+# constructors and generated modules intact so DI resolves at runtime.
+-keep class * extends dagger.hilt.android.components.** { *; }
+-keep @dagger.hilt.android.HiltAndroidApp class * { <init>(...); }
+-keep @dagger.hilt.android.AndroidEntryPoint class * { <init>(...); }
+-keep @dagger.hilt.InstallIn class * { *; }
+-keep @dagger.hilt.components.SingletonComponent class * { *; }
 
 # Room
 -keep class androidx.room.** { *; }
+
+# SQLCipher native bindings are JNI-linked; R8 full-mode will otherwise strip
+# the class that the .so resolves symbols against.
+-keep class net.sqlcipher.** { *; }
+-keep class net.sqlcipher.database.** { *; }
+
+# Anti-tamper runtime checks — called reflectively via the obfuscated
+# Application subclass, but keep the public API intact for clarity.
+-keep class com.equipseva.app.core.security.SignatureVerifier { *; }
+-keep class com.equipseva.app.core.security.DeviceIntegrityCheck { *; }
+-keep class com.equipseva.app.core.security.DeviceIntegrityCheck$Verdict { *; }
 
 # Sentry (mappings are uploaded separately)
 -keep class io.sentry.** { *; }
