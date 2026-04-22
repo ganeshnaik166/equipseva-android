@@ -157,6 +157,7 @@ fun RepairJobDetailScreen(
                     bids = state.bids,
                     engineerNames = state.engineerNames,
                     hospitalName = state.hospitalName,
+                    hospitalLocation = state.hospitalLocation,
                     viewerRole = state.viewerRole,
                     updatingStatus = state.updatingStatus,
                     submittingRating = state.submittingRating,
@@ -190,6 +191,7 @@ private fun JobBody(
     bids: List<RepairBid>,
     engineerNames: Map<String, String>,
     hospitalName: String?,
+    hospitalLocation: String?,
     viewerRole: RepairJobDetailViewModel.ViewerRole,
     updatingStatus: Boolean,
     submittingRating: Boolean,
@@ -213,7 +215,11 @@ private fun JobBody(
             .verticalScroll(rememberScrollState())
             .padding(bottom = Spacing.xl),
     ) {
-        EquipmentBannerCard(job = job, hospitalName = hospitalName.takeIf { !isHospital })
+        EquipmentBannerCard(
+            job = job,
+            hospitalName = hospitalName.takeIf { !isHospital },
+            hospitalLocation = hospitalLocation.takeIf { !isHospital },
+        )
 
         if (viewerRole == RepairJobDetailViewModel.ViewerRole.Engineer) {
             EngineerActionStrip(
@@ -475,7 +481,7 @@ private fun RatingCard(
 }
 
 @Composable
-private fun EquipmentBannerCard(job: RepairJob, hospitalName: String?) {
+private fun EquipmentBannerCard(job: RepairJob, hospitalName: String?, hospitalLocation: String?) {
     val shape = MaterialTheme.shapes.medium
     Column(
         modifier = Modifier
@@ -563,6 +569,14 @@ private fun EquipmentBannerCard(job: RepairJob, hospitalName: String?) {
                     fontSize = 12.sp,
                     color = Ink500,
                     modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            if (!hospitalLocation.isNullOrBlank()) {
+                Text(
+                    text = hospitalLocation,
+                    fontSize = 12.sp,
+                    color = Ink500,
+                    modifier = Modifier.padding(top = 2.dp),
                 )
             }
             val schedule = listOfNotNull(job.scheduledDate, job.scheduledTimeSlot).joinToString(" ")

@@ -84,6 +84,11 @@ class RepairJobDetailViewModel @Inject constructor(
          * engineer knows who posted the job before bidding.
          */
         val hospitalName: String? = null,
+        /**
+         * "City, State" for the hospital's organization — shown next to the
+         * name so an engineer can judge travel distance before bidding.
+         */
+        val hospitalLocation: String? = null,
     )
 
     private val jobId: String =
@@ -421,10 +426,9 @@ class RepairJobDetailViewModel @Inject constructor(
                     } else {
                         emptyMap()
                     }
-                    val hospitalName = if (role != ViewerRole.Hospital) {
+                    val hospitalProfile = if (role != ViewerRole.Hospital) {
                         job?.hospitalUserId?.let { hospitalId ->
-                            profileRepository.fetchDisplayNames(listOf(hospitalId))
-                                .getOrNull()?.get(hospitalId)
+                            profileRepository.fetchById(hospitalId).getOrNull()
                         }
                     } else {
                         null
@@ -438,7 +442,8 @@ class RepairJobDetailViewModel @Inject constructor(
                             bids = bids,
                             viewerRole = role,
                             engineerNames = engineerNames,
-                            hospitalName = hospitalName,
+                            hospitalName = hospitalProfile?.displayName,
+                            hospitalLocation = hospitalProfile?.locationLine,
                         )
                     }
                 },
