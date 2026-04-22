@@ -36,6 +36,8 @@ junit = "4.13.2"
 junitExt = "1.2.1"
 espresso = "3.6.1"
 razorpay = "1.6.41"
+sqlcipher = "4.5.4"
+sqliteAndroidx = "2.4.0"
 
 [libraries]
 # AndroidX core
@@ -115,6 +117,10 @@ sentry-android = { module = "io.sentry:sentry-android", version.ref = "sentry" }
 
 # Razorpay Standard Checkout (Android SDK)
 razorpay-checkout = { module = "com.razorpay:checkout", version.ref = "razorpay" }
+
+# SQLCipher for Room at-rest encryption
+sqlcipher-android = { module = "net.zetetic:android-database-sqlcipher", version.ref = "sqlcipher" }
+androidx-sqlite = { module = "androidx.sqlite:sqlite", version.ref = "sqliteAndroidx" }
 
 # Test
 junit = { module = "junit:junit", version.ref = "junit" }
