@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.ESBackTopBar
+import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.StatusChip
@@ -117,10 +118,19 @@ private fun BidRowCard(
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
                 )
-                StatusChip(
-                    label = row.bid.status.displayName,
-                    tone = row.bid.status.toTone(),
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val urgency = row.job?.urgency
+                    if (urgency != null && urgency != RepairJobUrgency.Unknown) {
+                        StatusChip(label = urgency.displayName, tone = urgency.toTone())
+                    }
+                    StatusChip(
+                        label = row.bid.status.displayName,
+                        tone = row.bid.status.toTone(),
+                    )
+                }
             }
             row.job?.equipmentLabel?.let {
                 Text(
