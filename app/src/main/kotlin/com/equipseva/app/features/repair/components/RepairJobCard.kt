@@ -109,6 +109,15 @@ fun RepairJobCard(
                         modifier = Modifier.padding(top = 4.dp),
                     )
                 }
+                job.estimatedCostRupees?.let { budget ->
+                    Text(
+                        text = "Budget ~ ${formatRupees(budget)}",
+                        fontSize = 12.sp,
+                        color = Ink500,
+                        maxLines = 1,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
                 Row(
                     modifier = Modifier.padding(top = Spacing.sm),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),

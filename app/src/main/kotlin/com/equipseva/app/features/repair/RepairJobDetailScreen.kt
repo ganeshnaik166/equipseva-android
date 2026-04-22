@@ -585,6 +585,15 @@ private fun EquipmentBannerCard(job: RepairJob, hospitalName: String?) {
                     )
                 }
             }
+            job.estimatedCostRupees?.let { budget ->
+                Text(
+                    text = "Budget ~ ${formatRupees(budget)}",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Ink700,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
         }
     }
 }
