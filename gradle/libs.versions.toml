@@ -38,6 +38,7 @@ espresso = "3.6.1"
 razorpay = "1.6.41"
 sqlcipher = "4.5.4"
 sqliteAndroidx = "2.4.0"
+securityCrypto = "1.1.0-alpha06"
 
 [libraries]
 # AndroidX core
@@ -121,6 +122,9 @@ razorpay-checkout = { module = "com.razorpay:checkout", version.ref = "razorpay"
 # SQLCipher for Room at-rest encryption
 sqlcipher-android = { module = "net.zetetic:android-database-sqlcipher", version.ref = "sqlcipher" }
 androidx-sqlite = { module = "androidx.sqlite:sqlite", version.ref = "sqliteAndroidx" }
+
+# EncryptedSharedPreferences (Keystore-backed AEAD) for UserPrefs
+androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
 
 # Test
 junit = { module = "junit:junit", version.ref = "junit" }

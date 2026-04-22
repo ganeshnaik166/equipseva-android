@@ -11,15 +11,25 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
 private val Context.prefsStore by preferencesDataStore(name = "equipseva_prefs")
 
+/**
+ * `activeRole`, `onboardingDone`, and `favorites` are read from [SecurePrefs]
+ * first; any value still in the legacy DataStore is surfaced as a fallback.
+ * Writes land in [SecurePrefs] and clear the legacy DataStore key in the same
+ * operation, so installs migrate silently on the first set/toggle. `theme`
+ * stays in DataStore — not sensitive, keeping the theme toggle cheap.
+ */
 @Singleton
 class UserPrefs @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val securePrefs: SecurePrefs,
 ) {
     private object Keys {
         val ACTIVE_ROLE = stringPreferencesKey("active_role")
@@ -28,17 +38,38 @@ class UserPrefs @Inject constructor(
         val FAVORITES = stringSetPreferencesKey("favorites")
     }
 
-    val activeRole: Flow<String?> = context.prefsStore.data.map { it[Keys.ACTIVE_ROLE] }
+    private object SecureKeys {
+        const val ACTIVE_ROLE = "active_role"
+        const val ONBOARDING_DONE = "onboarding_done"
+        const val FAVORITES = "favorites"
+    }
+
+    val activeRole: Flow<String?> = combine(
+        securePrefs.stringFlow(SecureKeys.ACTIVE_ROLE),
+        context.prefsStore.data.map { it[Keys.ACTIVE_ROLE] },
+    ) { secure, legacy -> secure ?: legacy }
+
     val theme: Flow<String?> = context.prefsStore.data.map { it[Keys.THEME] }
-    val themeMode: Flow<ThemeMode> = context.prefsStore.data.map { ThemeMode.fromKey(it[Keys.THEME]) }
-    val onboardingDone: Flow<Boolean> = context.prefsStore.data.map { it[Keys.ONBOARDING_DONE] == "1" }
-    val favorites: Flow<Set<String>> = context.prefsStore.data.map { it[Keys.FAVORITES].orEmpty() }
+    val themeMode: Flow<ThemeMode> =
+        context.prefsStore.data.map { ThemeMode.fromKey(it[Keys.THEME]) }
+
+    val onboardingDone: Flow<Boolean> = combine(
+        securePrefs.stringFlow(SecureKeys.ONBOARDING_DONE),
+        context.prefsStore.data.map { it[Keys.ONBOARDING_DONE] == "1" },
+    ) { secure, legacy -> secure == "1" || legacy }
+
+    val favorites: Flow<Set<String>> = combine(
+        securePrefs.stringSetFlow(SecureKeys.FAVORITES),
+        context.prefsStore.data.map { it[Keys.FAVORITES].orEmpty() },
+    ) { secure, legacy -> if (secure.isNotEmpty()) secure else legacy }
 
     suspend fun setActiveRole(role: String) {
-        context.prefsStore.edit { it[Keys.ACTIVE_ROLE] = role }
+        securePrefs.putString(SecureKeys.ACTIVE_ROLE, role)
+        context.prefsStore.edit { it.remove(Keys.ACTIVE_ROLE) }
     }
 
     suspend fun clearActiveRole() {
+        securePrefs.putString(SecureKeys.ACTIVE_ROLE, null)
         context.prefsStore.edit { it.remove(Keys.ACTIVE_ROLE) }
     }
 
@@ -47,18 +78,20 @@ class UserPrefs @Inject constructor(
     }
 
     suspend fun markOnboardingDone() {
-        context.prefsStore.edit { it[Keys.ONBOARDING_DONE] = "1" }
+        securePrefs.putString(SecureKeys.ONBOARDING_DONE, "1")
+        context.prefsStore.edit { it.remove(Keys.ONBOARDING_DONE) }
     }
 
     suspend fun toggleFavorite(partId: String) {
-        context.prefsStore.edit { prefs ->
-            val cur = prefs[Keys.FAVORITES].orEmpty()
-            prefs[Keys.FAVORITES] = if (partId in cur) cur - partId else cur + partId
-        }
+        val cur = favorites.first()
+        val next = if (partId in cur) cur - partId else cur + partId
+        securePrefs.putStringSet(SecureKeys.FAVORITES, next)
+        context.prefsStore.edit { it.remove(Keys.FAVORITES) }
     }
 
     suspend fun setFavorites(ids: Set<String>) {
-        context.prefsStore.edit { it[Keys.FAVORITES] = ids }
+        securePrefs.putStringSet(SecureKeys.FAVORITES, ids)
+        context.prefsStore.edit { it.remove(Keys.FAVORITES) }
     }
 }
 
@@ -67,5 +100,8 @@ class UserPrefs @Inject constructor(
 object PrefsModule {
     @Provides
     @Singleton
-    fun provideUserPrefs(@ApplicationContext context: Context): UserPrefs = UserPrefs(context)
+    fun provideUserPrefs(
+        @ApplicationContext context: Context,
+        securePrefs: SecurePrefs,
+    ): UserPrefs = UserPrefs(context, securePrefs)
 }

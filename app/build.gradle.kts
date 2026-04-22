@@ -180,6 +180,9 @@ dependencies {
     implementation(libs.sqlcipher.android)
     implementation(libs.androidx.sqlite)
 
+    // EncryptedSharedPreferences for role + onboarding + favorites (see SecurePrefs).
+    implementation(libs.androidx.security.crypto)
+
     // Test
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
