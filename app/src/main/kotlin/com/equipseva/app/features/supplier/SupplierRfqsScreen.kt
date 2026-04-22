@@ -158,6 +158,13 @@ internal fun RfqListCard(rfq: Rfq) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            rfq.deliveryDeadlineIso?.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    text = "Deliver by $it",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             val posted = rfq.createdAtInstant?.let { "· Posted ${relativeLabel(it)} ago" } ?: ""
             Text(
                 text = "Qty ${rfq.quantity} · ${rfq.bidsCount} bid(s) $posted".trimEnd(),
