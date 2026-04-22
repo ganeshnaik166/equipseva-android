@@ -20,4 +20,5 @@ internal data class RepairJobInsertDto(
     @SerialName("issue_description") val issueDescription: String,
     @SerialName("scheduled_date") val scheduledDate: String? = null,
     @SerialName("scheduled_time_slot") val scheduledTimeSlot: String? = null,
+    @SerialName("estimated_cost") val estimatedCost: Double? = null,
 )

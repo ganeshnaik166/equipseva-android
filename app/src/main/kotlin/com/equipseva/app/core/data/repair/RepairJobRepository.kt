@@ -80,4 +80,5 @@ data class RepairJobDraft(
     val urgency: RepairJobUrgency,
     val scheduledDate: String? = null,
     val scheduledTimeSlot: String? = null,
+    val estimatedCostRupees: Double? = null,
 )

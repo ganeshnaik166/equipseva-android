@@ -142,6 +142,7 @@ class SupabaseRepairJobRepository @Inject constructor(
             issueDescription = draft.issueDescription,
             scheduledDate = draft.scheduledDate?.takeIf { it.isNotBlank() },
             scheduledTimeSlot = draft.scheduledTimeSlot?.takeIf { it.isNotBlank() },
+            estimatedCost = draft.estimatedCostRupees?.takeIf { it > 0.0 },
         )
         client.from(TABLE).insert(payload) {
             select()
