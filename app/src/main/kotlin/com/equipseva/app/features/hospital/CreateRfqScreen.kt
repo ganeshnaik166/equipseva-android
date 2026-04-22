@@ -206,6 +206,23 @@ fun CreateRfqScreen(
                 }
             }
 
+            SectionHeader(title = "Delivery location (optional)")
+
+            OutlinedTextField(
+                value = state.deliveryLocation,
+                onValueChange = viewModel::onDeliveryLocationChange,
+                label = { Text("Ship to") },
+                placeholder = { Text("e.g. Chennai, Tamil Nadu") },
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Words,
+                    imeAction = ImeAction.Next,
+                ),
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.lg),
+            )
+
             SectionHeader(title = "Expected delivery")
 
             Column(
