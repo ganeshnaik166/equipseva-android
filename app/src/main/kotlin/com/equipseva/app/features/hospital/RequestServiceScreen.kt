@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.PriorityHigh
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,6 +37,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -158,6 +160,9 @@ fun RequestServiceScreen(
                         onSelectSlot = { selectedSlot = it },
                         siteLocation = siteLocation,
                         onSiteLocation = { siteLocation = it },
+                        budget = state.budget,
+                        budgetError = state.budgetError,
+                        onBudget = viewModel::onBudgetChange,
                     )
                 }
             }
@@ -330,6 +335,9 @@ private fun StepSchedule(
     onSelectSlot: (Int) -> Unit,
     siteLocation: String,
     onSiteLocation: (String) -> Unit,
+    budget: String,
+    budgetError: String?,
+    onBudget: (String) -> Unit,
 ) {
     StepHeadline("Schedule & location")
     Text(
@@ -375,6 +383,17 @@ private fun StepSchedule(
         label = { Text("Site location") },
         placeholder = { Text("Ward · Department · Floor") },
         singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = budget,
+        onValueChange = { onBudget(it.filter { c -> c.isDigit() || c == '.' }) },
+        label = { Text("Budget (₹, optional)") },
+        placeholder = { Text("e.g. 5000") },
+        isError = budgetError != null,
+        supportingText = budgetError?.let { { Text(it) } },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         modifier = Modifier.fillMaxWidth(),
     )
 }

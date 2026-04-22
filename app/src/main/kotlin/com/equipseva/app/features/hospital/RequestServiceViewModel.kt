@@ -36,6 +36,8 @@ class RequestServiceViewModel @Inject constructor(
         val brand: String = "",
         val model: String = "",
         val issue: String = "",
+        val budget: String = "",
+        val budgetError: String? = null,
         val submitting: Boolean = false,
         val errorMessage: String? = null,
         val issueError: String? = null,
@@ -71,6 +73,7 @@ class RequestServiceViewModel @Inject constructor(
     fun onBrandChange(value: String) = _state.update { it.copy(brand = value) }
     fun onModelChange(value: String) = _state.update { it.copy(model = value) }
     fun onIssueChange(value: String) = _state.update { it.copy(issue = value, issueError = null) }
+    fun onBudgetChange(value: String) = _state.update { it.copy(budget = value, budgetError = null) }
 
     fun onSubmit(selectedSlot: Int = -1) {
         val uid = userId
@@ -83,6 +86,17 @@ class RequestServiceViewModel @Inject constructor(
         if (issue.length < 10) {
             _state.update { it.copy(issueError = "Please describe the issue (10 characters or more).") }
             return
+        }
+        val budgetText = current.budget.trim()
+        val estimatedCost: Double? = if (budgetText.isBlank()) {
+            null
+        } else {
+            val parsed = budgetText.toDoubleOrNull()
+            if (parsed == null || parsed <= 0.0) {
+                _state.update { it.copy(budgetError = "Enter a valid amount.") }
+                return
+            }
+            parsed
         }
         val today = LocalDate.now()
         val (scheduledDate, scheduledTimeSlot) = when (selectedSlot) {
@@ -103,6 +117,7 @@ class RequestServiceViewModel @Inject constructor(
                 urgency = current.urgency.takeIf { it != RepairJobUrgency.Unknown } ?: RepairJobUrgency.Scheduled,
                 scheduledDate = scheduledDate,
                 scheduledTimeSlot = scheduledTimeSlot,
+                estimatedCostRupees = estimatedCost,
             )
             jobRepository.create(draft)
                 .onSuccess {
