@@ -2,8 +2,11 @@ name: supabase keepalive
 
 # Supabase free-tier projects pause after ~7 days without activity.
 # This workflow pings the project's REST API once a week to reset the idle
-# timer. A simple `GET /rest/v1/` with the anon apikey counts as activity
-# and returns a small JSON payload (the OpenAPI root).
+# timer. We hit `/rest/v1/repair_jobs?select=id&limit=1` with the anon
+# apikey — a real PostgREST query that exercises the DB (so it counts as
+# activity for Supabase's idle heuristic) and returns a tiny JSON array.
+#
+# The root `/rest/v1/` endpoint requires service_role, so don't use it.
 #
 # Required repo secrets:
 #   SUPABASE_URL       e.g. https://xxxxxxxxxxxx.supabase.co
@@ -37,7 +40,7 @@ jobs:
           status=$(curl -sS -o /tmp/body -w "%{http_code}" \
             -H "apikey: $SUPABASE_ANON_KEY" \
             -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
-            "$SUPABASE_URL/rest/v1/")
+            "$SUPABASE_URL/rest/v1/repair_jobs?select=id&limit=1")
           echo "HTTP $status"
           head -c 200 /tmp/body || true
           echo
