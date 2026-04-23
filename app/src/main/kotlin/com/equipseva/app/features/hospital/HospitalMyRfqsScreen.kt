@@ -1,5 +1,6 @@
 package com.equipseva.app.features.hospital
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,6 +32,7 @@ import com.equipseva.app.features.supplier.RfqListCard
 @Composable
 fun HospitalMyRfqsScreen(
     onBack: () -> Unit,
+    onRfqClick: (String) -> Unit = {},
     viewModel: HospitalMyRfqsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -72,7 +74,9 @@ fun HospitalMyRfqsScreen(
                         verticalArrangement = Arrangement.spacedBy(Spacing.md),
                     ) {
                         items(items = state.rfqs, key = { it.id }) { rfq ->
-                            RfqListCard(rfq = rfq)
+                            Box(modifier = Modifier.clickable { onRfqClick(rfq.id) }) {
+                                RfqListCard(rfq = rfq)
+                            }
                         }
                     }
                 }
