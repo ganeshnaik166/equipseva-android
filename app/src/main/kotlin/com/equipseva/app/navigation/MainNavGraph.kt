@@ -445,6 +445,11 @@ fun MainNavGraph(
             composable(Routes.SCAN_EQUIPMENT) {
                 ScanEquipmentScreen(
                     onBack = { navController.popBackStack() },
+                    onFindParts = {
+                        navController.navigate(Routes.MARKETPLACE) {
+                            popUpTo(Routes.HOME)
+                        }
+                    },
                 )
             }
             composable(Routes.ENGINEER_PROFILE) {
