@@ -95,6 +95,7 @@ fun RepairJobDetailScreen(
     viewModel: RepairJobDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var withdrawConfirmOpen by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
         viewModel.messages.collect { onShowMessage(it) }
@@ -135,7 +136,7 @@ fun RepairJobDetailScreen(
                     openingChat = state.openingChat,
                     onMessageHospital = viewModel::openChatWithHospital,
                     onPlaceBid = viewModel::openBidComposer,
-                    onWithdraw = viewModel::withdrawBid,
+                    onWithdraw = { withdrawConfirmOpen = true },
                 )
             }
         },
@@ -180,6 +181,34 @@ fun RepairJobDetailScreen(
             placingBid = state.placingBid,
             onDismiss = viewModel::closeBidComposer,
             onSubmit = viewModel::submitBid,
+        )
+    }
+
+    if (withdrawConfirmOpen) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!state.withdrawingBid) withdrawConfirmOpen = false
+            },
+            title = { Text("Withdraw this bid?") },
+            text = { Text("The hospital will no longer see your quote. You can re-bid while the job is still open.") },
+            confirmButton = {
+                TextButton(
+                    enabled = !state.withdrawingBid,
+                    onClick = {
+                        withdrawConfirmOpen = false
+                        viewModel.withdrawBid()
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) { Text("Withdraw") }
+            },
+            dismissButton = {
+                TextButton(
+                    enabled = !state.withdrawingBid,
+                    onClick = { withdrawConfirmOpen = false },
+                ) { Text("Keep bid") }
+            },
         )
     }
 }
