@@ -6,6 +6,7 @@ import com.equipseva.app.core.data.cart.CartRepository
 import com.equipseva.app.core.data.parts.MarketplaceSort
 import com.equipseva.app.core.data.parts.PartCategory
 import com.equipseva.app.core.data.parts.SparePartsRepository
+import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.features.marketplace.state.MarketplaceUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,6 +35,7 @@ private const val SEARCH_DEBOUNCE_MS = 300L
 class MarketplaceViewModel @Inject constructor(
     private val repository: SparePartsRepository,
     cartRepository: CartRepository,
+    private val userPrefs: UserPrefs,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(MarketplaceUiState())
@@ -41,6 +43,13 @@ class MarketplaceViewModel @Inject constructor(
 
     val cartCount: StateFlow<Int> = cartRepository.observeCount()
         .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+
+    val favorites: StateFlow<Set<String>> = userPrefs.favorites
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+
+    fun onToggleFavorite(partId: String) {
+        viewModelScope.launch { userPrefs.toggleFavorite(partId) }
+    }
 
     /** Tracks the in-flight query/category combination so stale results get dropped. */
     private var pageJob: Job? = null
