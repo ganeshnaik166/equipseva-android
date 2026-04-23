@@ -359,6 +359,13 @@ private fun LineItemRow(line: OrderLineItem) {
 
 @Composable
 private fun DeliveryCard(order: Order) {
+    val context = LocalContext.current
+    val fullAddress = listOfNotNull(
+        order.locationLine?.takeIf { it.isNotBlank() },
+        order.shippingAddress?.takeIf { it.isNotBlank() },
+        order.shippingPincode?.takeIf { it.isNotBlank() },
+    ).joinToString(", ")
+
     OutlinedSurfaceCard(modifier = Modifier.padding(horizontal = Spacing.lg)) {
         Column(
             modifier = Modifier.padding(Spacing.lg),
@@ -382,6 +389,21 @@ private fun DeliveryCard(order: Order) {
                     lineHeight = 18.sp,
                     color = Ink700,
                 )
+            }
+            if (fullAddress.isNotBlank()) {
+                OutlinedButton(
+                    onClick = {
+                        val encoded = java.net.URLEncoder.encode(fullAddress, Charsets.UTF_8.name())
+                        val intent = Intent(
+                            Intent.ACTION_VIEW,
+                            android.net.Uri.parse("geo:0,0?q=$encoded"),
+                        )
+                        runCatching { context.startActivity(intent) }
+                    },
+                    modifier = Modifier.padding(top = Spacing.sm),
+                ) {
+                    Text("View on map")
+                }
             }
         }
     }
