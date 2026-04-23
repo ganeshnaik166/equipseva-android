@@ -448,6 +448,9 @@ fun MainNavGraph(
             ) {
                 HospitalRfqDetailScreen(
                     onBack = { navController.popBackStack() },
+                    onNavigateToChat = { conversationId ->
+                        navController.navigate(Routes.chatRoute(conversationId))
+                    },
                 )
             }
             composable(Routes.SCAN_EQUIPMENT) {
