@@ -12,4 +12,7 @@ interface LogisticsJobRepository {
 
     /** All jobs for the given partner, regardless of status. */
     suspend fun fetchAllByPartner(logisticsPartnerId: String): Result<List<LogisticsJob>>
+
+    /** Claim a pending job — sets logistics_partner_id and flips status to assigned. */
+    suspend fun acceptJob(jobId: String, logisticsPartnerId: String): Result<LogisticsJob>
 }
