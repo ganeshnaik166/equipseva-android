@@ -15,4 +15,10 @@ interface LogisticsJobRepository {
 
     /** Claim a pending job — sets logistics_partner_id and flips status to assigned. */
     suspend fun acceptJob(jobId: String, logisticsPartnerId: String): Result<LogisticsJob>
+
+    /** Flip an assigned job into in_transit. Guarded so only `assigned` rows are touched. */
+    suspend fun markInTransit(jobId: String): Result<LogisticsJob>
+
+    /** Mark an in-transit job as delivered and stamp actual_delivery_date. */
+    suspend fun markDelivered(jobId: String): Result<LogisticsJob>
 }

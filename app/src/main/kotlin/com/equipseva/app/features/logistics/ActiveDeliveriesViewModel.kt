@@ -9,11 +9,13 @@ import com.equipseva.app.core.data.logistics.LogisticsJobRepository
 import com.equipseva.app.core.data.orgroles.OrgRoleRepository
 import com.equipseva.app.core.network.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -31,10 +33,18 @@ class ActiveDeliveriesViewModel @Inject constructor(
         val jobs: List<LogisticsJob> = emptyList(),
         val errorMessage: String? = null,
         val noPartnerWarning: Boolean = false,
+        val actingJobId: String? = null,
     )
+
+    sealed interface Effect {
+        data class ShowMessage(val text: String) : Effect
+    }
 
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
+
+    private val _effects = Channel<Effect>(Channel.BUFFERED)
+    val effects = _effects.receiveAsFlow()
 
     private var userId: String? = null
 
@@ -51,6 +61,49 @@ class ActiveDeliveriesViewModel @Inject constructor(
     }
 
     fun onRefresh() = load(initial = false)
+
+    fun onMarkInTransit(job: LogisticsJob) {
+        if (_state.value.actingJobId != null) return
+        _state.update { it.copy(actingJobId = job.id) }
+        viewModelScope.launch {
+            logisticsRepository.markInTransit(job.id)
+                .onSuccess { updated ->
+                    _state.update { snap ->
+                        snap.copy(
+                            actingJobId = null,
+                            jobs = snap.jobs.map { if (it.id == updated.id) updated else it },
+                        )
+                    }
+                    emit(Effect.ShowMessage("Marked in transit"))
+                }
+                .onFailure { error ->
+                    _state.update { it.copy(actingJobId = null) }
+                    emit(Effect.ShowMessage(error.toUserMessage()))
+                }
+        }
+    }
+
+    fun onMarkDelivered(job: LogisticsJob) {
+        if (_state.value.actingJobId != null) return
+        _state.update { it.copy(actingJobId = job.id) }
+        viewModelScope.launch {
+            logisticsRepository.markDelivered(job.id)
+                .onSuccess {
+                    // Once delivered, drop the row from the active list.
+                    _state.update { snap ->
+                        snap.copy(
+                            actingJobId = null,
+                            jobs = snap.jobs.filterNot { it.id == job.id },
+                        )
+                    }
+                    emit(Effect.ShowMessage("Marked delivered"))
+                }
+                .onFailure { error ->
+                    _state.update { it.copy(actingJobId = null) }
+                    emit(Effect.ShowMessage(error.toUserMessage()))
+                }
+        }
+    }
 
     private fun load(initial: Boolean) {
         val uid = userId ?: return
@@ -76,7 +129,13 @@ class ActiveDeliveriesViewModel @Inject constructor(
             )
                 .onSuccess { jobs ->
                     _state.update {
-                        UiState(loading = false, refreshing = false, jobs = jobs)
+                        it.copy(
+                            loading = false,
+                            refreshing = false,
+                            jobs = jobs,
+                            errorMessage = null,
+                            noPartnerWarning = false,
+                        )
                     }
                 }
                 .onFailure { error ->
@@ -89,5 +148,9 @@ class ActiveDeliveriesViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    private fun emit(effect: Effect) {
+        viewModelScope.launch { _effects.send(effect) }
     }
 }
