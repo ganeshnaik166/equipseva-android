@@ -10,25 +10,34 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.RequestQuote
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -41,6 +50,7 @@ import java.time.Instant
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.PrimaryButton
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.components.StatusTone
 import com.equipseva.app.designsystem.theme.Spacing
@@ -52,9 +62,20 @@ fun SupplierRfqsScreen(
     viewModel: SupplierRfqsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val snackbarHost = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is SupplierRfqsViewModel.Effect.ShowMessage ->
+                    snackbarHost.showSnackbar(effect.text)
+            }
+        }
+    }
 
     Scaffold(
         topBar = { ESBackTopBar(title = "Open RFQs", onBack = onBack) },
+        snackbarHost = { SnackbarHost(snackbarHost) },
     ) { inner ->
         Column(
             modifier = Modifier
@@ -85,17 +106,45 @@ fun SupplierRfqsScreen(
                         verticalArrangement = Arrangement.spacedBy(Spacing.md),
                     ) {
                         items(items = state.rfqs, key = { it.id }) { rfq ->
-                            RfqListCard(rfq = rfq)
+                            RfqListCard(
+                                rfq = rfq,
+                                onPlaceBid = { viewModel.onOpenBid(rfq) },
+                            )
                         }
                     }
                 }
             }
         }
     }
+
+    val bidForm = state.bidForm
+    if (bidForm != null) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = viewModel::onDismissBid,
+            sheetState = sheetState,
+        ) {
+            BidComposer(
+                form = bidForm,
+                submitting = state.submittingBid,
+                onUnitPriceChange = viewModel::onUnitPriceChange,
+                onDeliveryChange = viewModel::onDeliveryTimelineChange,
+                onWarrantyChange = viewModel::onWarrantyMonthsChange,
+                onInstallChange = viewModel::onIncludesInstallationChange,
+                onTrainingChange = viewModel::onIncludesTrainingChange,
+                onNotesChange = viewModel::onNotesChange,
+                onSubmit = viewModel::onSubmitBid,
+                onCancel = viewModel::onDismissBid,
+            )
+        }
+    }
 }
 
 @Composable
-internal fun RfqListCard(rfq: Rfq) {
+internal fun RfqListCard(
+    rfq: Rfq,
+    onPlaceBid: (() -> Unit)? = null,
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
@@ -182,6 +231,143 @@ internal fun RfqListCard(rfq: Rfq) {
                     fontWeight = FontWeight.SemiBold,
                 )
             }
+            if (onPlaceBid != null && rfq.isOpen) {
+                PrimaryButton(
+                    label = "Place bid",
+                    onClick = onPlaceBid,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BidComposer(
+    form: SupplierRfqsViewModel.BidForm,
+    submitting: Boolean,
+    onUnitPriceChange: (String) -> Unit,
+    onDeliveryChange: (String) -> Unit,
+    onWarrantyChange: (String) -> Unit,
+    onInstallChange: (Boolean) -> Unit,
+    onTrainingChange: (Boolean) -> Unit,
+    onNotesChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Text(
+            text = "Place a bid",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = "Quantity: ${form.quantity}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        OutlinedTextField(
+            value = form.unitPriceText,
+            onValueChange = onUnitPriceChange,
+            label = { Text("Unit price (INR) *") },
+            isError = form.showValidationErrors && form.unitPriceError != null,
+            supportingText = {
+                form.unitPriceError?.takeIf { form.showValidationErrors }?.let { Text(it) }
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Decimal,
+                imeAction = ImeAction.Next,
+            ),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (form.unitPriceText.toDoubleOrNull() != null) {
+            Text(
+                text = "Total: ${formatRupees(form.totalPrice)}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            OutlinedTextField(
+                value = form.deliveryTimelineDaysText,
+                onValueChange = onDeliveryChange,
+                label = { Text("Delivery (days)") },
+                isError = form.deliveryTimelineError != null,
+                supportingText = { form.deliveryTimelineError?.let { Text(it) } },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Next,
+                ),
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+            OutlinedTextField(
+                value = form.warrantyMonthsText,
+                onValueChange = onWarrantyChange,
+                label = { Text("Warranty (months)") },
+                isError = form.warrantyMonthsError != null,
+                supportingText = { form.warrantyMonthsError?.let { Text(it) } },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Next,
+                ),
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Includes installation", style = MaterialTheme.typography.bodyMedium)
+            Switch(checked = form.includesInstallation, onCheckedChange = onInstallChange)
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Includes training", style = MaterialTheme.typography.bodyMedium)
+            Switch(checked = form.includesTraining, onCheckedChange = onTrainingChange)
+        }
+
+        OutlinedTextField(
+            value = form.notes,
+            onValueChange = onNotesChange,
+            label = { Text("Notes") },
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Sentences,
+                imeAction = ImeAction.Done,
+            ),
+            minLines = 2,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            TextButton(
+                onClick = onCancel,
+                enabled = !submitting,
+                modifier = Modifier.weight(1f),
+            ) { Text("Cancel") }
+            PrimaryButton(
+                label = "Submit bid",
+                loading = submitting,
+                enabled = !submitting,
+                onClick = onSubmit,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }

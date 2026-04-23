@@ -15,4 +15,7 @@ interface RfqRepository {
 
     /** Insert a new RFQ row and return the decoded domain model. */
     suspend fun createRfq(insert: RfqInsertDto): Result<Rfq>
+
+    /** Submit a bid on an RFQ from a manufacturer/supplier. */
+    suspend fun placeBid(insert: RfqBidInsertDto): Result<RfqBid>
 }
