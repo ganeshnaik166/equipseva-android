@@ -25,6 +25,7 @@ class OrderDetailViewModel @Inject constructor(
 
     data class UiState(
         val loading: Boolean = true,
+        val refreshing: Boolean = false,
         val order: Order? = null,
         val notFound: Boolean = false,
         val errorMessage: String? = null,
@@ -49,9 +50,18 @@ class OrderDetailViewModel @Inject constructor(
     init { refresh() }
 
     fun refresh() {
-        _state.update { it.copy(loading = true, errorMessage = null, notFound = false) }
+        val hasOrder = _state.value.order != null
+        _state.update {
+            it.copy(
+                loading = !hasOrder,
+                refreshing = hasOrder,
+                errorMessage = null,
+                notFound = false,
+            )
+        }
         viewModelScope.launch {
             loadOrder()
+            _state.update { it.copy(refreshing = false) }
         }
     }
 
