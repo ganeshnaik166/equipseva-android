@@ -18,10 +18,14 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -35,6 +39,7 @@ import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.PrimaryButton
 import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.components.StatusTone
@@ -48,9 +53,20 @@ fun HospitalRfqDetailScreen(
     viewModel: HospitalRfqDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val snackbarHost = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is HospitalRfqDetailViewModel.Effect.ShowMessage ->
+                    snackbarHost.showSnackbar(effect.text)
+            }
+        }
+    }
 
     Scaffold(
         topBar = { ESBackTopBar(title = "RFQ details", onBack = onBack) },
+        snackbarHost = { SnackbarHost(snackbarHost) },
     ) { inner ->
         Column(
             modifier = Modifier
@@ -78,7 +94,12 @@ fun HospitalRfqDetailScreen(
                         subtitle = "The RFQ may have been removed.",
                     )
 
-                    else -> RfqDetailContent(rfq = state.rfq!!, bids = state.bids)
+                    else -> RfqDetailContent(
+                        rfq = state.rfq!!,
+                        bids = state.bids,
+                        acceptingBidId = state.acceptingBidId,
+                        onAcceptBid = viewModel::onAcceptBid,
+                    )
                 }
             }
         }
@@ -86,7 +107,12 @@ fun HospitalRfqDetailScreen(
 }
 
 @Composable
-private fun RfqDetailContent(rfq: Rfq, bids: List<RfqBid>) {
+private fun RfqDetailContent(
+    rfq: Rfq,
+    bids: List<RfqBid>,
+    acceptingBidId: String?,
+    onAcceptBid: (RfqBid) -> Unit,
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.md),
@@ -106,7 +132,13 @@ private fun RfqDetailContent(rfq: Rfq, bids: List<RfqBid>) {
             }
         } else {
             items(items = bids, key = { it.id }) { bid ->
-                BidCard(bid = bid)
+                BidCard(
+                    bid = bid,
+                    rfqIsOpen = rfq.isOpen,
+                    accepting = acceptingBidId == bid.id,
+                    acceptEnabled = acceptingBidId == null,
+                    onAccept = { onAcceptBid(bid) },
+                )
             }
         }
     }
@@ -194,7 +226,13 @@ private fun RfqSummaryCard(rfq: Rfq) {
 }
 
 @Composable
-private fun BidCard(bid: RfqBid) {
+private fun BidCard(
+    bid: RfqBid,
+    rfqIsOpen: Boolean,
+    accepting: Boolean,
+    acceptEnabled: Boolean,
+    onAccept: () -> Unit,
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
@@ -266,6 +304,14 @@ private fun BidCard(bid: RfqBid) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+            if (rfqIsOpen && bid.status.equals("submitted", ignoreCase = true)) {
+                PrimaryButton(
+                    label = "Accept bid",
+                    loading = accepting,
+                    enabled = acceptEnabled && !accepting,
+                    onClick = onAccept,
+                )
             }
         }
     }
