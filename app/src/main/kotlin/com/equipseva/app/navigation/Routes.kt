@@ -88,4 +88,9 @@ object Routes {
     const val HOSPITAL_CREATE_RFQ = "hospital/create_rfq"
     const val HOSPITAL_ACTIVE_JOBS = "hospital/active_jobs"
     const val HOSPITAL_MY_RFQS = "hospital/my_rfqs"
+
+    // Hospital RFQ detail (read-only view with received bids).
+    const val HOSPITAL_RFQ_DETAIL = "hospital/rfq/detail"
+    const val HOSPITAL_RFQ_DETAIL_ARG_ID = "rfqId"
+    fun hospitalRfqDetailRoute(rfqId: String): String = "$HOSPITAL_RFQ_DETAIL/$rfqId"
 }

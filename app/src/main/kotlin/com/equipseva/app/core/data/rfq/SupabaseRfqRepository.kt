@@ -35,6 +35,20 @@ class SupabaseRfqRepository @Inject constructor(
         }.decodeList<RfqBidDto>().map(RfqBidDto::toDomain)
     }
 
+    override suspend fun fetchBidsForRfq(rfqId: String): Result<List<RfqBid>> = runCatching {
+        client.from(RFQ_BIDS).select {
+            filter { eq("rfq_id", rfqId) }
+            order("unit_price", order = Order.ASCENDING)
+        }.decodeList<RfqBidDto>().map(RfqBidDto::toDomain)
+    }
+
+    override suspend fun fetchRfqById(rfqId: String): Result<Rfq> = runCatching {
+        client.from(RFQS).select {
+            filter { eq("id", rfqId) }
+            limit(1)
+        }.decodeSingle<RfqDto>().toDomain()
+    }
+
     override suspend fun fetchRfqsByIds(ids: Collection<String>): Result<List<Rfq>> = runCatching {
         if (ids.isEmpty()) return@runCatching emptyList<Rfq>()
         client.from(RFQS).select {

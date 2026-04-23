@@ -43,6 +43,7 @@ import com.equipseva.app.features.home.HomeScreen
 import com.equipseva.app.features.hospital.CreateRfqScreen
 import com.equipseva.app.features.hospital.HospitalActiveJobsScreen
 import com.equipseva.app.features.hospital.HospitalMyRfqsScreen
+import com.equipseva.app.features.hospital.HospitalRfqDetailScreen
 import com.equipseva.app.features.hospital.RequestServiceScreen
 import com.equipseva.app.features.kyc.KycScreen
 import com.equipseva.app.features.logistics.ActiveDeliveriesScreen
@@ -106,6 +107,7 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.HOSPITAL_CREATE_RFQ,
     Routes.HOSPITAL_ACTIVE_JOBS,
     Routes.HOSPITAL_MY_RFQS,
+    Routes.HOSPITAL_RFQ_DETAIL,
     Routes.FAVORITES,
 )
 
@@ -421,6 +423,19 @@ fun MainNavGraph(
             }
             composable(Routes.HOSPITAL_MY_RFQS) {
                 HospitalMyRfqsScreen(
+                    onBack = { navController.popBackStack() },
+                    onRfqClick = { rfqId ->
+                        navController.navigate(Routes.hospitalRfqDetailRoute(rfqId))
+                    },
+                )
+            }
+            composable(
+                route = "${Routes.HOSPITAL_RFQ_DETAIL}/{${Routes.HOSPITAL_RFQ_DETAIL_ARG_ID}}",
+                arguments = listOf(
+                    navArgument(Routes.HOSPITAL_RFQ_DETAIL_ARG_ID) { type = NavType.StringType },
+                ),
+            ) {
+                HospitalRfqDetailScreen(
                     onBack = { navController.popBackStack() },
                 )
             }

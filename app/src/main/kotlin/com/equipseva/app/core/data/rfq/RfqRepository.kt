@@ -10,6 +10,12 @@ interface RfqRepository {
     /** All bids placed by the given manufacturer — manufacturer lead pipeline. */
     suspend fun fetchBidsByManufacturer(manufacturerId: String): Result<List<RfqBid>>
 
+    /** All bids received on the given RFQ — hospital-side detail view. */
+    suspend fun fetchBidsForRfq(rfqId: String): Result<List<RfqBid>>
+
+    /** Fetch a single RFQ by id. */
+    suspend fun fetchRfqById(rfqId: String): Result<Rfq>
+
     /** Bulk-fetch RFQs by id — used to decorate manufacturer bids with parent-RFQ context. */
     suspend fun fetchRfqsByIds(ids: Collection<String>): Result<List<Rfq>>
 
