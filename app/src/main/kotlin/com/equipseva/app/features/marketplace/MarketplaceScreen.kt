@@ -95,6 +95,7 @@ fun MarketplaceScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val cartCount by viewModel.cartCount.collectAsStateWithLifecycle()
+    val favorites by viewModel.favorites.collectAsStateWithLifecycle()
 
     val reachedEnd by remember {
         derivedStateOf {
@@ -145,6 +146,8 @@ fun MarketplaceScreen(
                 isFilteringOrSearching -> SearchResultsList(
                     state = state,
                     listState = listState,
+                    favorites = favorites,
+                    onToggleFavorite = viewModel::onToggleFavorite,
                     onPartClick = onPartClick,
                 )
                 else -> MarketplaceHome(
@@ -505,6 +508,8 @@ private fun ManufacturerGrid(items: List<SparePart>) {
 private fun SearchResultsList(
     state: com.equipseva.app.features.marketplace.state.MarketplaceUiState,
     listState: androidx.compose.foundation.lazy.LazyListState,
+    favorites: Set<String>,
+    onToggleFavorite: (String) -> Unit,
     onPartClick: (String) -> Unit,
 ) {
     LazyColumn(
@@ -524,7 +529,12 @@ private fun SearchResultsList(
             )
         }
         items(items = state.items, key = { it.id }) { part ->
-            PartCard(part = part, onClick = { onPartClick(part.id) })
+            PartCard(
+                part = part,
+                isFavorite = part.id in favorites,
+                onToggleFavorite = { onToggleFavorite(part.id) },
+                onClick = { onPartClick(part.id) },
+            )
         }
         if (state.loadingMore) {
             item("loading_more") {
