@@ -3,6 +3,8 @@ package com.equipseva.app.core.data.logistics
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -37,6 +39,30 @@ class SupabaseLogisticsJobRepository @Inject constructor(
             order("created_at", order = Order.DESCENDING)
         }.decodeList<LogisticsJobDto>().map(LogisticsJobDto::toDomain)
     }
+
+    override suspend fun acceptJob(
+        jobId: String,
+        logisticsPartnerId: String,
+    ): Result<LogisticsJob> = runCatching {
+        client.from(TABLE).update(
+            AcceptPatch(
+                logisticsPartnerId = logisticsPartnerId,
+                status = "assigned",
+            ),
+        ) {
+            filter {
+                eq("id", jobId)
+                isIn("status", listOf("pending", "quoted"))
+            }
+            select()
+        }.decodeSingle<LogisticsJobDto>().toDomain()
+    }
+
+    @Serializable
+    private data class AcceptPatch(
+        @SerialName("logistics_partner_id") val logisticsPartnerId: String,
+        val status: String,
+    )
 
     private companion object {
         const val TABLE = "logistics_jobs"

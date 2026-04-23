@@ -16,12 +16,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.equipseva.app.core.data.logistics.LogisticsJob
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.designsystem.components.PrimaryButton
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.components.StatusTone
 import com.equipseva.app.designsystem.theme.Spacing
 
 @Composable
-internal fun LogisticsJobCard(job: LogisticsJob) {
+internal fun LogisticsJobCard(
+    job: LogisticsJob,
+    onAccept: (() -> Unit)? = null,
+    acceptLoading: Boolean = false,
+    acceptEnabled: Boolean = true,
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
@@ -108,6 +114,14 @@ internal fun LogisticsJobCard(job: LogisticsJob) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
+                )
+            }
+            if (onAccept != null) {
+                PrimaryButton(
+                    label = "Accept job",
+                    loading = acceptLoading,
+                    enabled = acceptEnabled && !acceptLoading,
+                    onClick = onAccept,
                 )
             }
         }
