@@ -1,5 +1,6 @@
 package com.equipseva.app.features.marketplace.state
 
+import com.equipseva.app.core.data.parts.MarketplaceSort
 import com.equipseva.app.core.data.parts.PartCategory
 import com.equipseva.app.core.data.parts.SparePart
 
@@ -11,6 +12,7 @@ import com.equipseva.app.core.data.parts.SparePart
 data class MarketplaceUiState(
     val query: String = "",
     val selectedCategory: PartCategory? = null,
+    val sort: MarketplaceSort = MarketplaceSort.Relevance,
     val items: List<SparePart> = emptyList(),
     val initialLoading: Boolean = true,
     val refreshing: Boolean = false,

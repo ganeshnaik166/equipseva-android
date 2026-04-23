@@ -14,6 +14,7 @@ class SupabaseSparePartsRepository @Inject constructor(
     override suspend fun fetchAvailable(
         query: String?,
         category: PartCategory?,
+        sort: MarketplaceSort,
         page: Int,
         pageSize: Int,
     ): Result<List<SparePart>> = runCatching {
@@ -32,9 +33,16 @@ class SupabaseSparePartsRepository @Inject constructor(
                     }
                 }
             }
-            // Cheap "relevance": in-stock first, then most recent.
-            order("stock_quantity", order = Order.DESCENDING)
-            order("created_at", order = Order.DESCENDING)
+            when (sort) {
+                MarketplaceSort.Relevance -> {
+                    // Cheap relevance: in-stock first, then most recent.
+                    order("stock_quantity", order = Order.DESCENDING)
+                    order("created_at", order = Order.DESCENDING)
+                }
+                MarketplaceSort.PriceAsc -> order("price", order = Order.ASCENDING)
+                MarketplaceSort.PriceDesc -> order("price", order = Order.DESCENDING)
+                MarketplaceSort.Newest -> order("created_at", order = Order.DESCENDING)
+            }
             range(from, to)
         }.decodeList<SparePartDto>().map(SparePartDto::toDomain)
     }

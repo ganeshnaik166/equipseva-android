@@ -3,6 +3,7 @@ package com.equipseva.app.features.marketplace
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.cart.CartRepository
+import com.equipseva.app.core.data.parts.MarketplaceSort
 import com.equipseva.app.core.data.parts.PartCategory
 import com.equipseva.app.core.data.parts.SparePartsRepository
 import com.equipseva.app.core.network.toUserMessage
@@ -69,6 +70,12 @@ class MarketplaceViewModel @Inject constructor(
         refresh()
     }
 
+    fun onSortSelected(sort: MarketplaceSort) {
+        if (_state.value.sort == sort) return
+        _state.update { it.copy(sort = sort, errorMessage = null) }
+        refresh()
+    }
+
     fun onRefresh() = refresh(viaPullToRefresh = true)
 
     fun onReachEnd() {
@@ -92,6 +99,7 @@ class MarketplaceViewModel @Inject constructor(
             repository.fetchAvailable(
                 query = current.query,
                 category = current.selectedCategory,
+                sort = current.sort,
                 page = 0,
                 pageSize = PAGE_SIZE,
             ).fold(
@@ -126,6 +134,7 @@ class MarketplaceViewModel @Inject constructor(
             repository.fetchAvailable(
                 query = current.query,
                 category = current.selectedCategory,
+                sort = current.sort,
                 page = page,
                 pageSize = PAGE_SIZE,
             ).fold(
