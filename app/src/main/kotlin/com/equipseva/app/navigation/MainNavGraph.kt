@@ -60,6 +60,7 @@ import com.equipseva.app.features.orders.OrdersScreen
 import com.equipseva.app.features.profile.ProfileScreen
 import com.equipseva.app.features.repair.RepairJobDetailScreen
 import com.equipseva.app.features.repair.RepairJobsScreen
+import com.equipseva.app.features.scan.ScanEquipmentScreen
 import com.equipseva.app.features.supplier.AddListingScreen
 import com.equipseva.app.features.supplier.MyListingsScreen
 import com.equipseva.app.features.supplier.StockAlertsScreen
@@ -108,6 +109,7 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.HOSPITAL_ACTIVE_JOBS,
     Routes.HOSPITAL_MY_RFQS,
     Routes.HOSPITAL_RFQ_DETAIL,
+    Routes.SCAN_EQUIPMENT,
     Routes.FAVORITES,
 )
 
@@ -186,6 +188,7 @@ fun MainNavGraph(
                             "hospital_create_rfq" -> Routes.HOSPITAL_CREATE_RFQ
                             "active_jobs" -> Routes.HOSPITAL_ACTIVE_JOBS
                             "my_rfqs", "hospital_rfqs" -> Routes.HOSPITAL_MY_RFQS
+                            "scan_equipment" -> Routes.SCAN_EQUIPMENT
                             "my_bids" -> Routes.MY_BIDS
                             "earnings" -> Routes.EARNINGS
                             "active_work" -> Routes.ACTIVE_WORK
@@ -436,6 +439,11 @@ fun MainNavGraph(
                 ),
             ) {
                 HospitalRfqDetailScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.SCAN_EQUIPMENT) {
+                ScanEquipmentScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
