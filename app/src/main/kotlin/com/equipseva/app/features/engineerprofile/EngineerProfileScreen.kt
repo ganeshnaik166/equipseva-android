@@ -147,11 +147,24 @@ private fun EngineerProfileForm(
 
         SectionHeader(title = "About you")
 
+        val bioLen = state.bio.trim().length
+        val bioShort = bioLen < BIO_MIN_LEN
         OutlinedTextField(
             value = state.bio,
             onValueChange = onBioChange,
             label = { Text("Bio") },
-            supportingText = { Text("Min 20 characters. Hospitals see this on your profile.") },
+            supportingText = {
+                Text(
+                    text = if (bioShort) {
+                        "$bioLen/$BIO_MIN_LEN characters — ${BIO_MIN_LEN - bioLen} more to go"
+                    } else {
+                        "$bioLen characters. Hospitals see this on your profile."
+                    },
+                    color = if (bioShort) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            isError = bioShort && state.bio.isNotEmpty(),
             enabled = !state.saving,
             minLines = 4,
             modifier = Modifier.fillMaxWidth(),
