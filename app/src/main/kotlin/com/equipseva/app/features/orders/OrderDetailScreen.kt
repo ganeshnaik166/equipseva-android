@@ -17,15 +17,21 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Inventory
 import androidx.compose.material.icons.outlined.MedicalServices
+import android.content.Intent
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -62,6 +68,7 @@ import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.designsystem.theme.Surface100
 import com.equipseva.app.designsystem.theme.Surface200
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrderDetailScreen(
     onBack: () -> Unit,
@@ -70,6 +77,7 @@ fun OrderDetailScreen(
 ) {
     SecureScreen()
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     var cancelDialogOpen by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
@@ -85,38 +93,65 @@ fun OrderDetailScreen(
             ESBackTopBar(
                 title = state.order?.orderNumber?.let { "Order #$it" } ?: "Order",
                 onBack = onBack,
+                actions = {
+                    val order = state.order
+                    if (order != null) {
+                        IconButton(onClick = {
+                            val shareText = buildString {
+                                append("Order #${order.orderNumber}")
+                                append("\nStatus: ${order.status.name.lowercase().replaceFirstChar { it.uppercase() }}")
+                                append("\nTotal: ${formatRupees(order.totalAmount)}")
+                                append("\n\nShared from EquipSeva")
+                            }
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_SUBJECT, "Order #${order.orderNumber}")
+                                putExtra(Intent.EXTRA_TEXT, shareText)
+                            }
+                            context.startActivity(Intent.createChooser(intent, "Share order"))
+                        }) {
+                            Icon(Icons.Filled.Share, contentDescription = "Share")
+                        }
+                    }
+                },
             )
         },
     ) { inner ->
-        when {
-            state.loading -> Box(
-                modifier = Modifier.padding(inner).fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) { CircularProgressIndicator() }
+        PullToRefreshBox(
+            isRefreshing = state.refreshing,
+            onRefresh = viewModel::refresh,
+            modifier = Modifier.padding(inner).fillMaxSize(),
+        ) {
+            when {
+                state.loading -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) { CircularProgressIndicator() }
 
-            state.notFound -> Box(
-                modifier = Modifier.padding(inner).fillMaxSize(),
-            ) {
-                EmptyStateView(
-                    icon = Icons.Outlined.Inventory,
-                    title = "Order not found",
-                    subtitle = "It may have been removed or is not visible to you.",
+                state.notFound -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    EmptyStateView(
+                        icon = Icons.Outlined.Inventory,
+                        title = "Order not found",
+                        subtitle = "It may have been removed or is not visible to you.",
+                    )
+                }
+
+                state.order != null -> OrderDetailBody(
+                    order = state.order!!,
+                    padding = PaddingValues(0.dp),
+                    errorMessage = state.errorMessage ?: state.cancellationError,
+                    cancellationInFlight = state.cancellationInFlight,
+                    onRequestCancel = { cancelDialogOpen = true },
                 )
-            }
 
-            state.order != null -> OrderDetailBody(
-                order = state.order!!,
-                padding = inner,
-                errorMessage = state.errorMessage ?: state.cancellationError,
-                cancellationInFlight = state.cancellationInFlight,
-                onRequestCancel = { cancelDialogOpen = true },
-            )
-
-            else -> Column(Modifier.padding(inner).fillMaxSize()) {
-                ErrorBanner(
-                    message = state.errorMessage,
-                    modifier = Modifier.padding(horizontal = Spacing.lg),
-                )
+                else -> Column(Modifier.fillMaxSize()) {
+                    ErrorBanner(
+                        message = state.errorMessage,
+                        modifier = Modifier.padding(horizontal = Spacing.lg),
+                    )
+                }
             }
         }
     }
