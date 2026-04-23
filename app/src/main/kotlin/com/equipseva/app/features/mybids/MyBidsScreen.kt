@@ -1,6 +1,7 @@
 package com.equipseva.app.features.mybids
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,12 +12,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Gavel
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -32,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.ESBackTopBar
+import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
@@ -60,11 +64,18 @@ fun MyBidsScreen(
                 message = state.errorMessage,
                 modifier = Modifier.padding(horizontal = Spacing.lg),
             )
+            if (state.rows.isNotEmpty()) {
+                StatusFilterRow(
+                    selected = state.statusFilter,
+                    onSelect = viewModel::onStatusFilterChange,
+                )
+            }
             PullToRefreshBox(
                 isRefreshing = state.refreshing,
                 onRefresh = viewModel::onRefresh,
                 modifier = Modifier.fillMaxSize(),
             ) {
+                val visibleRows = state.visibleRows
                 when {
                     state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
@@ -74,12 +85,17 @@ fun MyBidsScreen(
                         title = "No bids yet",
                         subtitle = "Bids you place on repair jobs will appear here.",
                     )
+                    visibleRows.isEmpty() -> EmptyStateView(
+                        icon = Icons.Outlined.Gavel,
+                        title = "No bids match this filter",
+                        subtitle = "Try switching the status filter above.",
+                    )
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.md),
                         verticalArrangement = Arrangement.spacedBy(Spacing.md),
                     ) {
-                        items(items = state.rows, key = { it.bid.id }) { row ->
+                        items(items = visibleRows, key = { it.bid.id }) { row ->
                             BidRowCard(
                                 row = row,
                                 onClick = { onJobClick(row.bid.repairJobId) },
@@ -173,6 +189,35 @@ private fun BidRowCard(
                     maxLines = 2,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun StatusFilterRow(
+    selected: RepairBidStatus?,
+    onSelect: (RepairBidStatus?) -> Unit,
+) {
+    val filters = listOf(
+        null to "All",
+        RepairBidStatus.Pending to RepairBidStatus.Pending.displayName,
+        RepairBidStatus.Accepted to RepairBidStatus.Accepted.displayName,
+        RepairBidStatus.Rejected to RepairBidStatus.Rejected.displayName,
+        RepairBidStatus.Withdrawn to RepairBidStatus.Withdrawn.displayName,
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = Spacing.lg, vertical = Spacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        filters.forEach { (status, label) ->
+            FilterChip(
+                selected = selected == status,
+                onClick = { onSelect(status) },
+                label = { Text(label) },
+            )
         }
     }
 }
