@@ -43,6 +43,9 @@ class AddListingViewModel @Inject constructor(
         val isGenuine: Boolean = false,
         val isOem: Boolean = false,
         val discountPercentText: String = "0",
+        val compatibleBrandsText: String = "",
+        val compatibleModelsText: String = "",
+        val compatibleEquipmentCategoriesText: String = "",
     ) {
         val nameError: String?
             get() = if (name.isBlank()) "Required" else null
@@ -145,6 +148,10 @@ class AddListingViewModel @Inject constructor(
     fun onIsOemChange(value: Boolean) = updateForm { it.copy(isOem = value) }
     fun onDiscountPercentChange(value: String) =
         updateForm { it.copy(discountPercentText = value.filter { c -> c.isDigit() }.take(2)) }
+    fun onCompatibleBrandsChange(value: String) = updateForm { it.copy(compatibleBrandsText = value) }
+    fun onCompatibleModelsChange(value: String) = updateForm { it.copy(compatibleModelsText = value) }
+    fun onCompatibleEquipmentCategoriesChange(value: String) =
+        updateForm { it.copy(compatibleEquipmentCategoriesText = value) }
 
     fun onSave() {
         val snap = _state.value
@@ -161,6 +168,9 @@ class AddListingViewModel @Inject constructor(
             price = form.priceText.toDouble(),
             stockQuantity = form.stockQuantityText.toInt(),
             description = form.description.trim().takeIf { it.isNotBlank() },
+            compatibleBrands = form.compatibleBrandsText.toTagList().takeIf { it.isNotEmpty() },
+            compatibleModels = form.compatibleModelsText.toTagList().takeIf { it.isNotEmpty() },
+            compatibleEquipmentCategories = form.compatibleEquipmentCategoriesText.toTagList().takeIf { it.isNotEmpty() },
             mrp = form.mrpText.toDoubleOrNull(),
             gstRate = form.gstRateText.toDoubleOrNull() ?: 18.0,
             warrantyMonths = form.warrantyMonthsText.toIntOrNull() ?: 0,
@@ -196,6 +206,10 @@ class AddListingViewModel @Inject constructor(
     private fun emit(effect: Effect) {
         viewModelScope.launch { _effects.send(effect) }
     }
+
+    /** Split a comma-separated string into a trimmed, non-blank list of tags. */
+    private fun String.toTagList(): List<String> =
+        split(',').map { it.trim() }.filter { it.isNotBlank() }
 
     /** Keep digits and at most one decimal point — guards against bogus input. */
     private fun String.filterDecimal(): String {
