@@ -26,15 +26,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandMore
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -561,6 +566,7 @@ private fun SpecificationsSection(
             )
         }
         if (open) {
+            val copyableKeys = setOf("Part number", "SKU")
             val rows = buildList {
                 if (part.partNumber.isNotBlank()) add("Part number" to part.partNumber)
                 if (part.sku.isNotBlank()) add("SKU" to part.sku)
@@ -571,6 +577,8 @@ private fun SpecificationsSection(
                 add("Min order" to "${part.minimumOrderQuantity} ${part.unit}")
                 add("GST" to "${part.gstRatePercent.toInt()}%")
             }
+            val clipboard = LocalClipboardManager.current
+            val context = LocalContext.current
             Column(
                 modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -579,15 +587,34 @@ private fun SpecificationsSection(
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(text = k, fontSize = 13.sp, lineHeight = 16.sp, color = Ink500)
-                        Text(
-                            text = v,
-                            fontSize = 13.sp,
-                            lineHeight = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Ink700,
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = v,
+                                fontSize = 13.sp,
+                                lineHeight = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Ink700,
+                            )
+                            if (k in copyableKeys) {
+                                IconButton(
+                                    onClick = {
+                                        clipboard.setText(AnnotatedString(v))
+                                        Toast.makeText(context, "$k copied", Toast.LENGTH_SHORT).show()
+                                    },
+                                    modifier = Modifier.size(28.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.ContentCopy,
+                                        contentDescription = "Copy $k",
+                                        tint = Ink500,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
