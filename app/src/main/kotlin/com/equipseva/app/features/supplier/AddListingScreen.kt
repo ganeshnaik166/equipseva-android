@@ -28,8 +28,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -233,6 +235,19 @@ fun AddListingScreen(
                             modifier = Modifier.weight(1f),
                         )
                     }
+                    OutlinedTextField(
+                        value = state.form.discountPercentText,
+                        onValueChange = viewModel::onDiscountPercentChange,
+                        label = { Text("Discount %") },
+                        isError = state.form.discountPercentError != null,
+                        supportingText = { state.form.discountPercentError?.let { Text(it) } },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Next,
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
 
@@ -263,6 +278,28 @@ fun AddListingScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Genuine part", style = MaterialTheme.typography.bodyMedium)
+                        Switch(
+                            checked = state.form.isGenuine,
+                            onCheckedChange = viewModel::onIsGenuineChange,
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("OEM part", style = MaterialTheme.typography.bodyMedium)
+                        Switch(
+                            checked = state.form.isOem,
+                            onCheckedChange = viewModel::onIsOemChange,
+                        )
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         OutlinedTextField(
                             value = state.form.sku,

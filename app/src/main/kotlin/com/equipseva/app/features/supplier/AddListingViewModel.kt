@@ -40,6 +40,9 @@ class AddListingViewModel @Inject constructor(
         val warrantyMonthsText: String = "0",
         val sku: String = "",
         val hsnCode: String = "",
+        val isGenuine: Boolean = false,
+        val isOem: Boolean = false,
+        val discountPercentText: String = "0",
     ) {
         val nameError: String?
             get() = if (name.isBlank()) "Required" else null
@@ -70,10 +73,19 @@ class AddListingViewModel @Inject constructor(
             get() = if (warrantyMonthsText.isBlank()) null
             else if (warrantyMonthsText.toIntOrNull() == null) "Enter a whole number" else null
 
+        val discountPercentError: String?
+            get() = if (discountPercentText.isBlank()) null
+            else {
+                val v = discountPercentText.toIntOrNull()
+                if (v == null) "Enter a whole number"
+                else if (v !in 0..99) "Must be 0–99"
+                else null
+            }
+
         val isValid: Boolean
             get() = listOf(
                 nameError, partNumberError, priceError, stockQuantityError,
-                mrpError, gstRateError, warrantyMonthsError,
+                mrpError, gstRateError, warrantyMonthsError, discountPercentError,
             ).all { it == null }
     }
 
@@ -129,6 +141,10 @@ class AddListingViewModel @Inject constructor(
         updateForm { it.copy(warrantyMonthsText = value.filter { c -> c.isDigit() }) }
     fun onSkuChange(value: String) = updateForm { it.copy(sku = value) }
     fun onHsnCodeChange(value: String) = updateForm { it.copy(hsnCode = value) }
+    fun onIsGenuineChange(value: Boolean) = updateForm { it.copy(isGenuine = value) }
+    fun onIsOemChange(value: Boolean) = updateForm { it.copy(isOem = value) }
+    fun onDiscountPercentChange(value: String) =
+        updateForm { it.copy(discountPercentText = value.filter { c -> c.isDigit() }.take(2)) }
 
     fun onSave() {
         val snap = _state.value
@@ -150,6 +166,9 @@ class AddListingViewModel @Inject constructor(
             warrantyMonths = form.warrantyMonthsText.toIntOrNull() ?: 0,
             sku = form.sku.trim().takeIf { it.isNotBlank() },
             hsnCode = form.hsnCode.trim().takeIf { it.isNotBlank() },
+            isGenuine = form.isGenuine,
+            isOem = form.isOem,
+            discountPercentage = form.discountPercentText.toIntOrNull() ?: 0,
         )
 
         _state.update { it.copy(submitting = true, errorMessage = null) }
