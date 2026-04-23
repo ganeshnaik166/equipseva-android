@@ -96,4 +96,7 @@ object Routes {
 
     // AI-powered equipment scanner — capture a photo, identify the equipment, link to parts.
     const val SCAN_EQUIPMENT = "scan/equipment"
+
+    // Notifications inbox — stub UI for now, backend integration to follow.
+    const val NOTIFICATIONS = "notifications"
 }

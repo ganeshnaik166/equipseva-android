@@ -52,6 +52,7 @@ import com.equipseva.app.features.logistics.PickupQueueScreen
 import com.equipseva.app.features.manufacturer.AnalyticsScreen
 import com.equipseva.app.features.manufacturer.LeadPipelineScreen
 import com.equipseva.app.features.manufacturer.RfqsAssignedScreen
+import com.equipseva.app.features.notifications.NotificationsScreen
 import com.equipseva.app.features.marketplace.MarketplaceScreen
 import com.equipseva.app.features.marketplace.PartDetailScreen
 import com.equipseva.app.features.mybids.MyBidsScreen
@@ -110,6 +111,7 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.HOSPITAL_MY_RFQS,
     Routes.HOSPITAL_RFQ_DETAIL,
     Routes.SCAN_EQUIPMENT,
+    Routes.NOTIFICATIONS,
     Routes.FAVORITES,
 )
 
@@ -282,6 +284,12 @@ fun MainNavGraph(
                     onOpenVerification = { navController.navigate(Routes.KYC) },
                     onOpenAbout = { navController.navigate(Routes.ABOUT) },
                     onOpenFavorites = { navController.navigate(Routes.FAVORITES) },
+                    onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
+                )
+            }
+            composable(Routes.NOTIFICATIONS) {
+                NotificationsScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.KYC) {

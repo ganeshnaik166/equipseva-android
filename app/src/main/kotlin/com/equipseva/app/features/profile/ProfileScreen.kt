@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Verified
@@ -95,6 +96,7 @@ fun ProfileScreen(
     onOpenVerification: () -> Unit = {},
     onOpenAbout: () -> Unit = {},
     onOpenFavorites: () -> Unit = {},
+    onOpenNotifications: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     SecureScreen()
@@ -142,6 +144,7 @@ fun ProfileScreen(
                         onOpenVerification = onOpenVerification,
                         onOpenAbout = onOpenAbout,
                         onOpenFavorites = onOpenFavorites,
+                        onOpenNotifications = onOpenNotifications,
                     )
                 }
             }
@@ -193,6 +196,7 @@ private fun ProfileContent(
     onOpenVerification: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenFavorites: () -> Unit,
+    onOpenNotifications: () -> Unit,
 ) {
     val profile = state.profile!!
     val isEngineer = profile.role == UserRole.ENGINEER
@@ -249,6 +253,7 @@ private fun ProfileContent(
                     onOpenMessages = onOpenMessages,
                     onOpenAbout = onOpenAbout,
                     onOpenFavorites = onOpenFavorites,
+                    onOpenNotifications = onOpenNotifications,
                     onSignOut = onSignOut,
                     signingOut = state.signingOut,
                 ),
@@ -279,6 +284,7 @@ private fun buildSettingsRows(
     onOpenMessages: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenFavorites: () -> Unit,
+    onOpenNotifications: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
 ): List<SettingsRow> {
@@ -287,6 +293,11 @@ private fun buildSettingsRows(
         icon = Icons.Filled.Person,
         label = "Personal info",
         onClick = onOpenMessages, // messages row retained as generic "open" target for now
+    )
+    rows += SettingsRow(
+        icon = Icons.Outlined.Notifications,
+        label = "Notifications",
+        onClick = onOpenNotifications,
     )
     if (isEngineer) {
         rows += SettingsRow(
