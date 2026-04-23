@@ -93,4 +93,7 @@ object Routes {
     const val HOSPITAL_RFQ_DETAIL = "hospital/rfq/detail"
     const val HOSPITAL_RFQ_DETAIL_ARG_ID = "rfqId"
     fun hospitalRfqDetailRoute(rfqId: String): String = "$HOSPITAL_RFQ_DETAIL/$rfqId"
+
+    // AI-powered equipment scanner — capture a photo, identify the equipment, link to parts.
+    const val SCAN_EQUIPMENT = "scan/equipment"
 }
