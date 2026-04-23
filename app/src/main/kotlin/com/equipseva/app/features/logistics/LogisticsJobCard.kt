@@ -27,6 +27,9 @@ internal fun LogisticsJobCard(
     onAccept: (() -> Unit)? = null,
     acceptLoading: Boolean = false,
     acceptEnabled: Boolean = true,
+    onMarkInTransit: (() -> Unit)? = null,
+    onMarkDelivered: (() -> Unit)? = null,
+    loading: Boolean = false,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -116,12 +119,25 @@ internal fun LogisticsJobCard(
                     maxLines = 2,
                 )
             }
-            if (onAccept != null) {
-                PrimaryButton(
+            // Lifecycle actions — one at a time based on call site.
+            when {
+                onAccept != null -> PrimaryButton(
                     label = "Accept job",
                     loading = acceptLoading,
                     enabled = acceptEnabled && !acceptLoading,
                     onClick = onAccept,
+                )
+                onMarkInTransit != null -> PrimaryButton(
+                    label = "Mark in transit",
+                    loading = loading,
+                    enabled = !loading,
+                    onClick = onMarkInTransit,
+                )
+                onMarkDelivered != null -> PrimaryButton(
+                    label = "Mark delivered",
+                    loading = loading,
+                    enabled = !loading,
+                    onClick = onMarkDelivered,
                 )
             }
         }

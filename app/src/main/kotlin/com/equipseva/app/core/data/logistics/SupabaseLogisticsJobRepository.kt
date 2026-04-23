@@ -5,6 +5,7 @@ import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -58,10 +59,48 @@ class SupabaseLogisticsJobRepository @Inject constructor(
         }.decodeSingle<LogisticsJobDto>().toDomain()
     }
 
+    override suspend fun markInTransit(jobId: String): Result<LogisticsJob> = runCatching {
+        client.from(TABLE).update(
+            InTransitPatch(status = "in_transit"),
+        ) {
+            filter {
+                eq("id", jobId)
+                eq("status", "assigned")
+            }
+            select()
+        }.decodeSingle<LogisticsJobDto>().toDomain()
+    }
+
+    override suspend fun markDelivered(jobId: String): Result<LogisticsJob> = runCatching {
+        client.from(TABLE).update(
+            DeliveredPatch(
+                status = "delivered",
+                actualDeliveryDate = Instant.now().toString(),
+            ),
+        ) {
+            filter {
+                eq("id", jobId)
+                isIn("status", listOf("in_transit", "picked_up"))
+            }
+            select()
+        }.decodeSingle<LogisticsJobDto>().toDomain()
+    }
+
     @Serializable
     private data class AcceptPatch(
         @SerialName("logistics_partner_id") val logisticsPartnerId: String,
         val status: String,
+    )
+
+    @Serializable
+    private data class InTransitPatch(
+        val status: String,
+    )
+
+    @Serializable
+    private data class DeliveredPatch(
+        val status: String,
+        @SerialName("actual_delivery_date") val actualDeliveryDate: String,
     )
 
     private companion object {
