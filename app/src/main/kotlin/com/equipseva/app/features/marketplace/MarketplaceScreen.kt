@@ -41,6 +41,7 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -62,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.core.data.parts.MarketplaceSort
 import com.equipseva.app.core.data.parts.PartCategory
 import com.equipseva.app.core.data.parts.SparePart
 import com.equipseva.app.core.util.formatRupees
@@ -122,6 +124,10 @@ fun MarketplaceScreen(
         CategoryRow(
             selected = state.selectedCategory,
             onCategorySelected = viewModel::onCategorySelected,
+        )
+        SortRow(
+            selected = state.sort,
+            onSortSelected = viewModel::onSortSelected,
         )
         ErrorBanner(
             message = state.errorMessage,
@@ -570,4 +576,33 @@ private fun EmptyState() {
         title = "No parts found",
         subtitle = "Try clearing filters or searching a different term.",
     )
+}
+
+@Composable
+private fun SortRow(
+    selected: MarketplaceSort,
+    onSortSelected: (MarketplaceSort) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Surface0)
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = Spacing.lg, vertical = Spacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "Sort",
+            style = MaterialTheme.typography.labelMedium,
+            color = Ink500,
+        )
+        MarketplaceSort.entries.forEach { sort ->
+            FilterChip(
+                selected = selected == sort,
+                onClick = { onSortSelected(sort) },
+                label = { Text(sort.displayName) },
+            )
+        }
+    }
 }

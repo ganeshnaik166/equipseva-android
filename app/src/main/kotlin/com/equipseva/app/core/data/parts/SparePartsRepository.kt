@@ -12,6 +12,7 @@ interface SparePartsRepository {
     suspend fun fetchAvailable(
         query: String? = null,
         category: PartCategory? = null,
+        sort: MarketplaceSort = MarketplaceSort.Relevance,
         page: Int = 0,
         pageSize: Int = 20,
     ): Result<List<SparePart>>
