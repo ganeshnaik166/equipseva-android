@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material.icons.outlined.Badge
+import androidx.compose.material.icons.outlined.RequestQuote
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -162,6 +163,7 @@ private fun cardsFor(role: UserRole?): List<HomeCardEntry> = when (role) {
         HomeCardEntry("order_history", Icons.Filled.History, "Order history", "Review past purchases and invoices", hue = 40),
         HomeCardEntry("request_service", Icons.Filled.Assignment, "Request a service", "Post a new repair request", hue = 280),
         HomeCardEntry("hospital_create_rfq", Icons.Filled.Description, "Create an RFQ", "Request quotations from suppliers", hue = 330),
+        HomeCardEntry("my_rfqs", Icons.Outlined.RequestQuote, "My RFQs", "Track your open and past quotation requests", hue = 200),
     )
     UserRole.ENGINEER -> listOf(
         HomeCardEntry("jobs_nearby", Icons.Filled.LocationOn, "Open jobs near me", "Jobs posted in your area", hue = 150),
