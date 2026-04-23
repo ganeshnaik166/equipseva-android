@@ -25,7 +25,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandMore
+import android.content.Intent
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Button
@@ -139,6 +142,22 @@ private fun PartBody(
 ) {
     var quantity by remember { mutableStateOf(1) }
     var specsOpen by remember { mutableStateOf(true) }
+    val context = LocalContext.current
+
+    val onShare = {
+        val shareText = buildString {
+            append(part.name)
+            if (part.partNumber.isNotBlank()) append("\nPart #${part.partNumber}")
+            append("\nPrice: ${formatRupees(part.priceRupees)}")
+            append("\n\nShared from EquipSeva")
+        }
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, part.name)
+            putExtra(Intent.EXTRA_TEXT, shareText)
+        }
+        context.startActivity(Intent.createChooser(intent, "Share part"))
+    }
 
     Column(
         modifier = Modifier
@@ -151,6 +170,7 @@ private fun PartBody(
             onBack = onBack,
             onOpenCart = onOpenCart,
             onToggleFavorite = onToggleFavorite,
+            onShare = onShare,
         )
 
         // Title block
@@ -236,6 +256,7 @@ private fun Hero(
     onBack: () -> Unit,
     onOpenCart: () -> Unit,
     onToggleFavorite: () -> Unit,
+    onShare: () -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxWidth()) {
         GradientTile(
@@ -274,6 +295,14 @@ private fun Hero(
                     imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                     contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
                     tint = if (isFavorite) BrandGreen else Ink900,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            OverlayIconButton(onClick = onShare) {
+                Icon(
+                    imageVector = Icons.Filled.Share,
+                    contentDescription = "Share",
+                    tint = Ink900,
                     modifier = Modifier.size(20.dp),
                 )
             }
