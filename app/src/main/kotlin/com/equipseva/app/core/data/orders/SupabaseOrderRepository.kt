@@ -85,6 +85,30 @@ class SupabaseOrderRepository @Inject constructor(
         Unit
     }
 
+    override suspend fun confirmOrder(orderId: String): Result<Unit> = runCatching {
+        client.from(TABLE).update({
+            set("order_status", OrderStatus.CONFIRMED.storageKey)
+        }) {
+            filter {
+                eq("id", orderId)
+                eq("order_status", OrderStatus.PLACED.storageKey)
+            }
+        }
+        Unit
+    }
+
+    override suspend fun markShipped(orderId: String): Result<Unit> = runCatching {
+        client.from(TABLE).update({
+            set("order_status", OrderStatus.SHIPPED.storageKey)
+        }) {
+            filter {
+                eq("id", orderId)
+                eq("order_status", OrderStatus.CONFIRMED.storageKey)
+            }
+        }
+        Unit
+    }
+
     private fun mintOrderNumber(): String {
         val epochSeconds = System.currentTimeMillis() / 1000
         val suffix = secureRandom.nextInt(9000) + 1000

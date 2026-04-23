@@ -6,14 +6,17 @@ import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.orders.Order
 import com.equipseva.app.core.data.orders.OrderRepository
+import com.equipseva.app.core.data.orders.OrderStatus
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -31,10 +34,19 @@ class SupplierOrdersViewModel @Inject constructor(
         val orders: List<Order> = emptyList(),
         val errorMessage: String? = null,
         val noOrgWarning: Boolean = false,
+        /** Non-null while a confirm/ship PATCH is in flight for this order id; disables the button. */
+        val actingOrderId: String? = null,
     )
+
+    sealed interface Effect {
+        data class ShowMessage(val text: String) : Effect
+    }
 
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
+
+    private val _effects = Channel<Effect>(Channel.BUFFERED)
+    val effects = _effects.receiveAsFlow()
 
     private var userId: String? = null
 
@@ -51,6 +63,46 @@ class SupplierOrdersViewModel @Inject constructor(
     }
 
     fun onRefresh() = load(initial = false)
+
+    fun onConfirmOrder(order: Order) {
+        if (order.status != OrderStatus.PLACED) return
+        runAction(order.id) {
+            orderRepository.confirmOrder(order.id)
+                .onSuccess {
+                    emit(Effect.ShowMessage("Order confirmed"))
+                    load(initial = false)
+                }
+                .onFailure { error -> emit(Effect.ShowMessage(error.toUserMessage())) }
+        }
+    }
+
+    fun onMarkShipped(order: Order) {
+        if (order.status != OrderStatus.CONFIRMED) return
+        runAction(order.id) {
+            orderRepository.markShipped(order.id)
+                .onSuccess {
+                    emit(Effect.ShowMessage("Marked shipped"))
+                    load(initial = false)
+                }
+                .onFailure { error -> emit(Effect.ShowMessage(error.toUserMessage())) }
+        }
+    }
+
+    private fun runAction(orderId: String, block: suspend () -> Unit) {
+        if (_state.value.actingOrderId != null) return
+        _state.update { it.copy(actingOrderId = orderId) }
+        viewModelScope.launch {
+            try {
+                block()
+            } finally {
+                _state.update { it.copy(actingOrderId = null) }
+            }
+        }
+    }
+
+    private fun emit(effect: Effect) {
+        viewModelScope.launch { _effects.send(effect) }
+    }
 
     private fun load(initial: Boolean) {
         val uid = userId ?: return
@@ -73,10 +125,12 @@ class SupplierOrdersViewModel @Inject constructor(
             orderRepository.fetchForSupplier(orgId)
                 .onSuccess { orders ->
                     _state.update {
-                        UiState(
+                        it.copy(
                             loading = false,
                             refreshing = false,
                             orders = orders,
+                            errorMessage = null,
+                            noOrgWarning = false,
                         )
                     }
                 }
