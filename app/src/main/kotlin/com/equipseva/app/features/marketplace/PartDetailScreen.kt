@@ -195,11 +195,16 @@ private fun PartBody(
             )
         }
 
-        // Compatible brands + models
+        // Compatible brands + models + equipment categories
         val brands = part.compatibleBrands.filter { it.isNotBlank() }
         val models = part.compatibleModels.filter { it.isNotBlank() }
-        if (brands.isNotEmpty() || models.isNotEmpty()) {
-            CompatibilitySection(brands = brands, models = models)
+        val equipmentCategories = part.compatibleEquipmentCategories.filter { it.isNotBlank() }
+        if (brands.isNotEmpty() || models.isNotEmpty() || equipmentCategories.isNotEmpty()) {
+            CompatibilitySection(
+                brands = brands,
+                models = models,
+                equipmentCategories = equipmentCategories,
+            )
         }
 
         // Quantity
@@ -355,7 +360,11 @@ private fun PriceRow(part: SparePart) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CompatibilitySection(brands: List<String>, models: List<String>) {
+private fun CompatibilitySection(
+    brands: List<String>,
+    models: List<String>,
+    equipmentCategories: List<String>,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -402,6 +411,25 @@ private fun CompatibilitySection(brands: List<String>, models: List<String>) {
             ) {
                 models.forEach { model ->
                     NeutralChip(label = model)
+                }
+            }
+        }
+        if (equipmentCategories.isNotEmpty()) {
+            val hasPrior = brands.isNotEmpty() || models.isNotEmpty()
+            Text(
+                text = "Equipment categories",
+                fontSize = 11.sp,
+                lineHeight = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Ink500,
+                modifier = Modifier.padding(top = if (hasPrior) 10.dp else 0.dp, bottom = 6.dp),
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                equipmentCategories.forEach { category ->
+                    NeutralChip(label = category)
                 }
             }
         }

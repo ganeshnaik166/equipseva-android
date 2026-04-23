@@ -251,6 +251,51 @@ fun AddListingScreen(
                 }
             }
 
+            item { SectionHeader(title = "Compatibility") }
+            item {
+                FormColumn {
+                    OutlinedTextField(
+                        value = state.form.compatibleBrandsText,
+                        onValueChange = viewModel::onCompatibleBrandsChange,
+                        label = { Text("Compatible brands") },
+                        placeholder = { Text("e.g. GE, Philips, Siemens") },
+                        supportingText = { Text("Separate multiple values with a comma") },
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Words,
+                            imeAction = ImeAction.Next,
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = state.form.compatibleModelsText,
+                        onValueChange = viewModel::onCompatibleModelsChange,
+                        label = { Text("Compatible models") },
+                        placeholder = { Text("e.g. Innova 2100, LOGIQ E9") },
+                        supportingText = { Text("Separate multiple values with a comma") },
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Words,
+                            imeAction = ImeAction.Next,
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = state.form.compatibleEquipmentCategoriesText,
+                        onValueChange = viewModel::onCompatibleEquipmentCategoriesChange,
+                        label = { Text("Equipment categories") },
+                        placeholder = { Text("e.g. MRI, CT Scanner, Ultrasound") },
+                        supportingText = { Text("Separate multiple values with a comma") },
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Words,
+                            imeAction = ImeAction.Next,
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+
             item { SectionHeader(title = "Details") }
             item {
                 FormColumn {
