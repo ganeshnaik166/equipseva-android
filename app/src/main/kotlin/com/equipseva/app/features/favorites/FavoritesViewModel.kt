@@ -7,10 +7,12 @@ import com.equipseva.app.core.data.parts.SparePartsRepository
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.network.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -30,6 +32,9 @@ class FavoritesViewModel @Inject constructor(
     private val _state = MutableStateFlow(FavoritesState())
     val state: StateFlow<FavoritesState> = _state.asStateFlow()
 
+    private val _removedEvents = Channel<String>(capacity = Channel.BUFFERED)
+    val removedEvents = _removedEvents.receiveAsFlow()
+
     init {
         viewModelScope.launch {
             userPrefs.favorites
@@ -39,6 +44,13 @@ class FavoritesViewModel @Inject constructor(
     }
 
     fun onRemove(partId: String) {
+        viewModelScope.launch {
+            userPrefs.toggleFavorite(partId)
+            _removedEvents.send(partId)
+        }
+    }
+
+    fun undoRemove(partId: String) {
         viewModelScope.launch { userPrefs.toggleFavorite(partId) }
     }
 
