@@ -1,5 +1,6 @@
 package com.equipseva.app.designsystem.components
 
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -42,6 +43,7 @@ fun ESBackTopBar(
     title: String,
     onBack: () -> Unit,
     backEnabled: Boolean = true,
+    actions: @Composable RowScope.() -> Unit = {},
 ) {
     CenterAlignedTopAppBar(
         title = {
@@ -62,6 +64,7 @@ fun ESBackTopBar(
                 )
             }
         },
+        actions = actions,
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),

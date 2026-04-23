@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.ShoppingCartCheckout
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -31,13 +32,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -73,6 +77,7 @@ fun CartScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    var confirmClearOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
@@ -90,7 +95,19 @@ fun CartScreen(
 
     val title = if (state.items.isNotEmpty()) "Cart · ${state.items.size}" else "Cart"
     Scaffold(
-        topBar = { ESBackTopBar(title = title, onBack = onBack) },
+        topBar = {
+            ESBackTopBar(
+                title = title,
+                onBack = onBack,
+                actions = {
+                    if (state.items.isNotEmpty()) {
+                        TextButton(onClick = { confirmClearOpen = true }) {
+                            Text("Clear")
+                        }
+                    }
+                },
+            )
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Surface50,
         bottomBar = {
@@ -141,6 +158,25 @@ fun CartScreen(
                 }
             }
         }
+    }
+
+    if (confirmClearOpen) {
+        AlertDialog(
+            onDismissRequest = { confirmClearOpen = false },
+            title = { Text("Clear cart?") },
+            text = { Text("All ${state.items.size} item(s) will be removed. This cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.onClearCart()
+                        confirmClearOpen = false
+                    },
+                ) { Text("Clear") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmClearOpen = false }) { Text("Cancel") }
+            },
+        )
     }
 }
 
