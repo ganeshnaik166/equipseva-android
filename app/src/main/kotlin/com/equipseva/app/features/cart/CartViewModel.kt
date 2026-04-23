@@ -3,6 +3,7 @@ package com.equipseva.app.features.cart
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.cart.CartItem
+import com.equipseva.app.core.data.cart.CartItemEntity
 import com.equipseva.app.core.data.cart.CartRepository
 import com.equipseva.app.core.network.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -31,6 +32,7 @@ class CartViewModel @Inject constructor(
 
     sealed interface Effect {
         data class ShowMessage(val text: String) : Effect
+        data class ItemRemoved(val item: CartItem) : Effect
         data object OpenCheckout : Effect
     }
 
@@ -62,7 +64,36 @@ class CartViewModel @Inject constructor(
 
     fun onDecrement(partId: String) = mutate { cartRepository.decrement(partId) }
 
-    fun onRemove(partId: String) = mutate { cartRepository.remove(partId) }
+    fun onRemove(partId: String) {
+        val snapshot = _state.value.items.firstOrNull { it.partId == partId } ?: return
+        viewModelScope.launch {
+            cartRepository.remove(partId)
+                .onSuccess { _effects.send(Effect.ItemRemoved(snapshot)) }
+                .onFailure { _effects.send(Effect.ShowMessage(it.toUserMessage())) }
+        }
+    }
+
+    fun onUndoRemove(item: CartItem) {
+        viewModelScope.launch {
+            cartRepository.addOrIncrement(
+                CartItemEntity(
+                    partId = item.partId,
+                    name = item.name,
+                    unitPriceInPaise = item.unitPriceInPaise,
+                    quantity = 1,
+                    imageUrl = item.imageUrl,
+                    addedAtEpochMs = item.addedAtEpochMs,
+                ),
+            ).onFailure {
+                _effects.send(Effect.ShowMessage(it.toUserMessage()))
+                return@launch
+            }
+            if (item.quantity > 1) {
+                cartRepository.setQuantity(item.partId, item.quantity)
+                    .onFailure { _effects.send(Effect.ShowMessage(it.toUserMessage())) }
+            }
+        }
+    }
 
     fun onClearCart() {
         if (_state.value.items.isEmpty()) return

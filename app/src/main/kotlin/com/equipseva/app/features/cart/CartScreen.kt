@@ -35,6 +35,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -83,6 +84,17 @@ fun CartScreen(
         viewModel.effects.collect { effect ->
             when (effect) {
                 is CartViewModel.Effect.ShowMessage -> snackbarHostState.showSnackbar(effect.text)
+                is CartViewModel.Effect.ItemRemoved -> {
+                    snackbarHostState.currentSnackbarData?.dismiss()
+                    val result = snackbarHostState.showSnackbar(
+                        message = "${effect.item.name} removed",
+                        actionLabel = "Undo",
+                        withDismissAction = true,
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        viewModel.onUndoRemove(effect.item)
+                    }
+                }
                 CartViewModel.Effect.OpenCheckout -> onCheckout()
             }
         }
