@@ -36,6 +36,7 @@ class CreateRfqViewModel @Inject constructor(
         val budgetMax: String = "",
         // ISO-8601 date string ("yyyy-MM-dd") or null when not set.
         val expectedDeliveryIso: String? = null,
+        val deliveryLocation: String = "",
         val submitting: Boolean = false,
         val showValidationErrors: Boolean = false,
         val errorMessage: String? = null,
@@ -94,6 +95,9 @@ class CreateRfqViewModel @Inject constructor(
 
     fun onDeliveryDateSelected(iso: String?) =
         _state.update { it.copy(expectedDeliveryIso = iso, deliveryError = null, errorMessage = null) }
+
+    fun onDeliveryLocationChange(value: String) =
+        _state.update { it.copy(deliveryLocation = value, errorMessage = null) }
 
     fun onSubmit() {
         val current = _state.value
@@ -178,6 +182,7 @@ class CreateRfqViewModel @Inject constructor(
                 budgetRangeMax = budgetMax,
                 deliveryDeadline = deliveryIso,
                 deadline = deliveryIso!!,
+                deliveryLocation = current.deliveryLocation.trim().ifBlank { null },
             )
             rfqRepository.createRfq(payload)
                 .onSuccess {
