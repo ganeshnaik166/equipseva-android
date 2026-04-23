@@ -24,4 +24,7 @@ interface RfqRepository {
 
     /** Submit a bid on an RFQ from a manufacturer/supplier. */
     suspend fun placeBid(insert: RfqBidInsertDto): Result<RfqBid>
+
+    /** Hospital accepts a bid — flips bid status to 'accepted' and RFQ status to 'awarded'. */
+    suspend fun acceptBid(bidId: String, rfqId: String): Result<RfqBid>
 }

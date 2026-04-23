@@ -3,6 +3,7 @@ package com.equipseva.app.core.data.rfq
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -67,6 +68,27 @@ class SupabaseRfqRepository @Inject constructor(
             select()
         }.decodeSingle<RfqBidDto>().toDomain()
     }
+
+    override suspend fun acceptBid(bidId: String, rfqId: String): Result<RfqBid> = runCatching {
+        // Flip parent RFQ to 'awarded' first so no more bids can be accepted concurrently.
+        client.from(RFQS).update(StatusPatch(status = "awarded")) {
+            filter {
+                eq("id", rfqId)
+                isIn("status", listOf("open", "published"))
+            }
+        }
+        // Then flip the chosen bid. Separate filter on rfq_id prevents cross-RFQ mistakes.
+        client.from(RFQ_BIDS).update(StatusPatch(status = "accepted")) {
+            filter {
+                eq("id", bidId)
+                eq("rfq_id", rfqId)
+            }
+            select()
+        }.decodeSingle<RfqBidDto>().toDomain()
+    }
+
+    @Serializable
+    private data class StatusPatch(val status: String)
 
     private companion object {
         const val RFQS = "rfqs"
