@@ -25,4 +25,7 @@ data class SparePartInsertDto(
     @SerialName("warranty_months") val warrantyMonths: Int = 0,
     val sku: String? = null,
     @SerialName("hsn_code") val hsnCode: String? = null,
+    @SerialName("is_genuine") val isGenuine: Boolean = false,
+    @SerialName("is_oem") val isOem: Boolean = false,
+    @SerialName("discount_percentage") val discountPercentage: Int = 0,
 )
