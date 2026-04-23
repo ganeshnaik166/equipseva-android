@@ -48,6 +48,12 @@ class SupabaseRfqRepository @Inject constructor(
         }.decodeSingle<RfqDto>().toDomain()
     }
 
+    override suspend fun placeBid(insert: RfqBidInsertDto): Result<RfqBid> = runCatching {
+        client.from(RFQ_BIDS).insert(insert) {
+            select()
+        }.decodeSingle<RfqBidDto>().toDomain()
+    }
+
     private companion object {
         const val RFQS = "rfqs"
         const val RFQ_BIDS = "rfq_bids"
