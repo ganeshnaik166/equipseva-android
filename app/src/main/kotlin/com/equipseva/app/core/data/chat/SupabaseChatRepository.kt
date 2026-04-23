@@ -117,6 +117,31 @@ class SupabaseChatRepository @Inject constructor(
         dto.toDomain()
     }
 
+    override suspend fun getOrCreateForRfqBid(
+        bidId: String,
+        participantUserIds: List<String>,
+    ): Result<ChatConversation> = runCatching {
+        require(participantUserIds.size == 2) { "RFQ bid chat needs exactly two participants" }
+
+        val existing = client.from(CONVERSATIONS_TABLE).select {
+            filter {
+                eq("related_entity_type", "rfq_bid")
+                eq("related_entity_id", bidId)
+            }
+            limit(count = 1)
+        }.decodeList<ConversationDto>().firstOrNull()
+
+        val dto = existing ?: client.from(CONVERSATIONS_TABLE).insert(
+            ConversationInsertDto(
+                participantUserIds = participantUserIds,
+                relatedEntityType = "rfq_bid",
+                relatedEntityId = bidId,
+            ),
+        ) { select() }.decodeSingle<ConversationDto>()
+
+        dto.toDomain()
+    }
+
     override suspend fun markConversationRead(
         conversationId: String,
         readerUserId: String,

@@ -26,6 +26,15 @@ interface ChatRepository {
         participantUserIds: List<String>,
     ): Result<ChatConversation>
 
+    /**
+     * Returns an existing conversation linked to this RFQ bid between the given participants,
+     * or inserts a new one. Participants must contain exactly two user ids (hospital + supplier).
+     */
+    suspend fun getOrCreateForRfqBid(
+        bidId: String,
+        participantUserIds: List<String>,
+    ): Result<ChatConversation>
+
     /** Mark inbound messages (not authored by the reader) as read. */
     suspend fun markConversationRead(conversationId: String, readerUserId: String): Result<Unit>
 

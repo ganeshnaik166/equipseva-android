@@ -15,8 +15,10 @@ import androidx.compose.material.icons.outlined.RequestQuote
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -50,6 +52,7 @@ import java.time.Instant
 @Composable
 fun HospitalRfqDetailScreen(
     onBack: () -> Unit,
+    onNavigateToChat: (String) -> Unit = {},
     viewModel: HospitalRfqDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -60,6 +63,8 @@ fun HospitalRfqDetailScreen(
             when (effect) {
                 is HospitalRfqDetailViewModel.Effect.ShowMessage ->
                     snackbarHost.showSnackbar(effect.text)
+                is HospitalRfqDetailViewModel.Effect.NavigateToChat ->
+                    onNavigateToChat(effect.conversationId)
             }
         }
     }
@@ -98,7 +103,9 @@ fun HospitalRfqDetailScreen(
                         rfq = state.rfq!!,
                         bids = state.bids,
                         acceptingBidId = state.acceptingBidId,
+                        openingChatForBidId = state.openingChatForBidId,
                         onAcceptBid = viewModel::onAcceptBid,
+                        onMessageBid = viewModel::onMessageSupplier,
                     )
                 }
             }
@@ -111,7 +118,9 @@ private fun RfqDetailContent(
     rfq: Rfq,
     bids: List<RfqBid>,
     acceptingBidId: String?,
+    openingChatForBidId: String?,
     onAcceptBid: (RfqBid) -> Unit,
+    onMessageBid: (RfqBid) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -137,7 +146,9 @@ private fun RfqDetailContent(
                     rfqIsOpen = rfq.isOpen,
                     accepting = acceptingBidId == bid.id,
                     acceptEnabled = acceptingBidId == null,
+                    openingChat = openingChatForBidId == bid.id,
                     onAccept = { onAcceptBid(bid) },
+                    onMessage = { onMessageBid(bid) },
                 )
             }
         }
@@ -231,7 +242,9 @@ private fun BidCard(
     rfqIsOpen: Boolean,
     accepting: Boolean,
     acceptEnabled: Boolean,
+    openingChat: Boolean,
     onAccept: () -> Unit,
+    onMessage: () -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -312,6 +325,20 @@ private fun BidCard(
                     enabled = acceptEnabled && !accepting,
                     onClick = onAccept,
                 )
+            }
+            OutlinedButton(
+                onClick = onMessage,
+                enabled = !openingChat,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (openingChat) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Text("Message supplier")
+                }
             }
         }
     }

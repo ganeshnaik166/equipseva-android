@@ -3,6 +3,9 @@ package com.equipseva.app.features.hospital
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.core.auth.AuthRepository
+import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.data.chat.ChatRepository
 import com.equipseva.app.core.data.rfq.Rfq
 import com.equipseva.app.core.data.rfq.RfqBid
 import com.equipseva.app.core.data.rfq.RfqRepository
@@ -15,6 +18,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -24,6 +29,8 @@ import javax.inject.Inject
 class HospitalRfqDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val rfqRepository: RfqRepository,
+    private val chatRepository: ChatRepository,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     data class UiState(
@@ -32,11 +39,13 @@ class HospitalRfqDetailViewModel @Inject constructor(
         val rfq: Rfq? = null,
         val bids: List<RfqBid> = emptyList(),
         val acceptingBidId: String? = null,
+        val openingChatForBidId: String? = null,
         val errorMessage: String? = null,
     )
 
     sealed interface Effect {
         data class ShowMessage(val text: String) : Effect
+        data class NavigateToChat(val conversationId: String) : Effect
     }
 
     private val rfqId: String = checkNotNull(savedStateHandle[Routes.HOSPITAL_RFQ_DETAIL_ARG_ID])
@@ -52,6 +61,37 @@ class HospitalRfqDetailViewModel @Inject constructor(
     }
 
     fun onRefresh() = load(initial = false)
+
+    fun onMessageSupplier(bid: RfqBid) {
+        if (_state.value.openingChatForBidId != null) return
+        _state.update { it.copy(openingChatForBidId = bid.id) }
+        viewModelScope.launch {
+            val session = authRepository.sessionState
+                .filterIsInstance<AuthSession.SignedIn>()
+                .firstOrNull()
+            val selfId = session?.userId
+            if (selfId == null) {
+                _state.update { it.copy(openingChatForBidId = null) }
+                emit(Effect.ShowMessage("Sign in to start a chat"))
+                return@launch
+            }
+            if (selfId == bid.manufacturerId) {
+                _state.update { it.copy(openingChatForBidId = null) }
+                emit(Effect.ShowMessage("You are the supplier on this bid"))
+                return@launch
+            }
+            chatRepository.getOrCreateForRfqBid(
+                bidId = bid.id,
+                participantUserIds = listOf(selfId, bid.manufacturerId),
+            ).onSuccess { convo ->
+                _state.update { it.copy(openingChatForBidId = null) }
+                emit(Effect.NavigateToChat(convo.id))
+            }.onFailure { error ->
+                _state.update { it.copy(openingChatForBidId = null) }
+                emit(Effect.ShowMessage(error.toUserMessage()))
+            }
+        }
+    }
 
     fun onAcceptBid(bid: RfqBid) {
         if (_state.value.acceptingBidId != null) return
