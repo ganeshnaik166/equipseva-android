@@ -6,6 +6,7 @@ import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairBidRepository
+import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobRepository
 import com.equipseva.app.core.network.toUserMessage
@@ -32,11 +33,20 @@ class MyBidsViewModel @Inject constructor(
         val loading: Boolean = true,
         val refreshing: Boolean = false,
         val rows: List<MyBidRow> = emptyList(),
+        val statusFilter: RepairBidStatus? = null,
         val errorMessage: String? = null,
-    )
+    ) {
+        val visibleRows: List<MyBidRow>
+            get() = if (statusFilter == null) rows
+            else rows.filter { it.bid.status == statusFilter }
+    }
 
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
+
+    fun onStatusFilterChange(filter: RepairBidStatus?) {
+        _state.update { it.copy(statusFilter = filter) }
+    }
 
     init {
         viewModelScope.launch {
@@ -66,7 +76,7 @@ class MyBidsViewModel @Inject constructor(
                         .getOrElse { emptyList() }
                         .associateBy { it.id }
                     _state.update {
-                        UiState(
+                        it.copy(
                             loading = false,
                             refreshing = false,
                             rows = bids.map { bid -> MyBidRow(bid, jobsById[bid.repairJobId]) },
