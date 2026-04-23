@@ -87,4 +87,5 @@ object Routes {
     const val REQUEST_SERVICE = "hospital/request_service"
     const val HOSPITAL_CREATE_RFQ = "hospital/create_rfq"
     const val HOSPITAL_ACTIVE_JOBS = "hospital/active_jobs"
+    const val HOSPITAL_MY_RFQS = "hospital/my_rfqs"
 }
