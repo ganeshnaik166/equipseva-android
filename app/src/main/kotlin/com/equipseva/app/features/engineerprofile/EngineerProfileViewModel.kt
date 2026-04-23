@@ -169,7 +169,7 @@ class EngineerProfileViewModel @Inject constructor(
 
 }
 
-private const val BIO_MIN_LEN = 20
+internal const val BIO_MIN_LEN = 20
 
 private fun parseList(raw: String): List<String> =
     raw.split(',').map { it.trim() }.filter { it.isNotBlank() }
