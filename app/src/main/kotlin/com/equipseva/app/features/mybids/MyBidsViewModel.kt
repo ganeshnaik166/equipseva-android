@@ -4,18 +4,22 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.data.dao.OutboxDao
 import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairBidRepository
 import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobRepository
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.sync.OutboxKinds
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,6 +29,7 @@ class MyBidsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val bidRepository: RepairBidRepository,
     private val jobRepository: RepairJobRepository,
+    private val outboxDao: OutboxDao,
 ) : ViewModel() {
 
     data class MyBidRow(val bid: RepairBid, val job: RepairJob?)
@@ -34,6 +39,7 @@ class MyBidsViewModel @Inject constructor(
         val refreshing: Boolean = false,
         val rows: List<MyBidRow> = emptyList(),
         val statusFilter: RepairBidStatus? = null,
+        val queuedBidCount: Int = 0,
         val errorMessage: String? = null,
     ) {
         val visibleRows: List<MyBidRow>
@@ -55,6 +61,9 @@ class MyBidsViewModel @Inject constructor(
                 .distinctUntilChangedBy { it.userId }
                 .collect { load(initial = true) }
         }
+        outboxDao.observePendingCountByKind(OutboxKinds.REPAIR_BID)
+            .onEach { count -> _state.update { it.copy(queuedBidCount = count) } }
+            .launchIn(viewModelScope)
     }
 
     fun onRefresh() = load(initial = false)
