@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.outlined.Notifications
@@ -89,7 +89,7 @@ private data class DemoNotification(
 private fun demoNotifications(): List<DemoNotification> = listOf(
     DemoNotification(
         id = "demo-1",
-        icon = Icons.Filled.Assignment,
+        icon = Icons.AutoMirrored.Filled.Assignment,
         title = "New bid received",
         body = "A supplier quoted ₹45,000 on your ultrasound RFQ.",
         timeAgo = "2m ago",

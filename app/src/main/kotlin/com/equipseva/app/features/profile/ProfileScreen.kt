@@ -26,7 +26,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Engineering
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Translate
@@ -341,7 +341,7 @@ private fun buildSettingsRows(
         onClick = onOpenAbout,
     )
     rows += SettingsRow(
-        icon = Icons.Filled.Logout,
+        icon = Icons.AutoMirrored.Filled.Logout,
         label = if (signingOut) "Signing out…" else "Sign out",
         danger = true,
         enabled = !signingOut,
@@ -679,7 +679,7 @@ private fun ProfileErrorView(
             onClick = onSignOut,
             enabled = !signingOut,
         ) {
-            Icon(Icons.Filled.Logout, contentDescription = null)
+            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
             Spacer(Modifier.size(Spacing.sm))
             Text(if (signingOut) "Signing out…" else "Sign out")
         }
