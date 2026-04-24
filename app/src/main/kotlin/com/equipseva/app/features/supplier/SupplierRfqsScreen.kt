@@ -1,24 +1,33 @@
 package com.equipseva.app.features.supplier
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.RequestQuote
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -40,20 +49,30 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.rfq.Rfq
 import com.equipseva.app.core.util.countdownLabel
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.relativeLabel
+import java.time.Duration
 import java.time.Instant
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.PrimaryButton
+import com.equipseva.app.designsystem.components.SecondaryButton
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.components.StatusTone
+import com.equipseva.app.designsystem.theme.BrandGreenDark
+import com.equipseva.app.designsystem.theme.Ink500
+import com.equipseva.app.designsystem.theme.Ink700
+import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Surface0
+import com.equipseva.app.designsystem.theme.Surface200
+import com.equipseva.app.designsystem.theme.Surface50
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,11 +95,13 @@ fun SupplierRfqsScreen(
     Scaffold(
         topBar = { ESBackTopBar(title = "Open RFQs", onBack = onBack) },
         snackbarHost = { SnackbarHost(snackbarHost) },
+        containerColor = Surface50,
     ) { inner ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(inner),
+                .padding(inner)
+                .background(Surface50),
         ) {
             ErrorBanner(
                 message = state.errorMessage,
@@ -102,7 +123,10 @@ fun SupplierRfqsScreen(
                     )
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.md),
+                        contentPadding = PaddingValues(
+                            horizontal = Spacing.lg,
+                            vertical = Spacing.md,
+                        ),
                         verticalArrangement = Arrangement.spacedBy(Spacing.md),
                     ) {
                         items(items = state.rfqs, key = { it.id }) { rfq ->
@@ -147,91 +171,132 @@ internal fun RfqListCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Surface0),
+        border = BorderStroke(1.dp, Surface200),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
-            modifier = Modifier.padding(Spacing.lg),
+            modifier = Modifier.padding(Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
             ) {
-                Text(
-                    text = rfq.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f),
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = rfq.title,
+                        fontSize = 15.sp,
+                        lineHeight = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Ink900,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    rfq.rfqNumber?.let {
+                        Text(
+                            text = "#$it",
+                            fontSize = 11.sp,
+                            lineHeight = 14.sp,
+                            color = Ink500,
+                        )
+                    }
+                }
                 StatusChip(
                     label = rfq.status.replaceFirstChar { it.uppercase() },
                     tone = if (rfq.isOpen) StatusTone.Info else StatusTone.Neutral,
                 )
             }
-            rfq.rfqNumber?.let {
-                Text(
-                    text = "#$it",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+
+            // Chip row: equipment category + budget
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 2.dp),
+            ) {
+                rfq.equipmentCategory?.takeIf { it.isNotBlank() }?.let { cat ->
+                    StatusChip(label = cat, tone = StatusTone.Neutral)
+                }
+                val budget = formatBudget(rfq.budgetMinRupees, rfq.budgetMaxRupees)
+                if (budget != null) {
+                    StatusChip(label = "Budget $budget", tone = StatusTone.Info)
+                }
             }
-            rfq.equipmentCategory?.takeIf { it.isNotBlank() }?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+
             rfq.description?.takeIf { it.isNotBlank() }?.let {
                 Text(
                     text = it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    color = Ink700,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            val budget = formatBudget(rfq.budgetMinRupees, rfq.budgetMaxRupees)
-            if (budget != null) {
-                Text(
-                    text = "Budget $budget",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            rfq.deliveryLocation?.takeIf { it.isNotBlank() }?.let {
-                Text(
-                    text = "Ship to $it",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            rfq.deliveryLocation?.takeIf { it.isNotBlank() }?.let { loc ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.LocationOn,
+                        contentDescription = null,
+                        tint = Ink500,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text(
+                        text = loc,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        color = Ink500,
+                    )
+                }
             }
             rfq.deliveryDeadlineIso?.takeIf { it.isNotBlank() }?.let {
                 Text(
                     text = "Deliver by $it",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.sp,
+                    lineHeight = 14.sp,
+                    color = Ink500,
                 )
             }
-            val posted = rfq.createdAtInstant?.let { "· Posted ${relativeLabel(it)} ago" } ?: ""
+            val posted = rfq.createdAtInstant?.let { " · Posted ${relativeLabel(it)} ago" }.orEmpty()
             Text(
-                text = "Qty ${rfq.quantity} · ${rfq.bidsCount} bid(s) $posted".trimEnd(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = "Qty ${rfq.quantity} · ${rfq.bidsCount} bid(s)$posted",
+                fontSize = 11.sp,
+                lineHeight = 14.sp,
+                color = Ink500,
             )
             rfq.deadlineInstant?.let { deadline ->
                 val now = Instant.now()
                 val overdue = deadline.isBefore(now)
-                Text(
-                    text = countdownLabel(deadline, now) + " to quote",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (overdue) MaterialTheme.colorScheme.error
-                    else MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                val soon = !overdue && Duration.between(now, deadline).toHours() < 24
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Schedule,
+                        contentDescription = null,
+                        tint = if (overdue) MaterialTheme.colorScheme.error
+                            else if (soon) MaterialTheme.colorScheme.tertiary
+                            else BrandGreenDark,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    StatusChip(
+                        label = countdownLabel(deadline, now) + " to quote",
+                        tone = when {
+                            overdue -> StatusTone.Danger
+                            soon -> StatusTone.Warn
+                            else -> StatusTone.Success
+                        },
+                    )
+                }
             }
             if (onPlaceBid != null && rfq.isOpen) {
+                Spacer(Modifier.height(4.dp))
                 PrimaryButton(
                     label = "Place bid",
                     onClick = onPlaceBid,
@@ -264,11 +329,12 @@ private fun BidComposer(
             text = "Place a bid",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
+            color = Ink900,
         )
         Text(
             text = "Quantity: ${form.quantity}",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = Ink500,
         )
 
         OutlinedTextField(
@@ -284,6 +350,7 @@ private fun BidComposer(
                 imeAction = ImeAction.Next,
             ),
             singleLine = true,
+            shape = RoundedCornerShape(8.dp),
             modifier = Modifier.fillMaxWidth(),
         )
         if (form.unitPriceText.toDoubleOrNull() != null) {
@@ -291,6 +358,7 @@ private fun BidComposer(
                 text = "Total: ${formatRupees(form.totalPrice)}",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
+                color = BrandGreenDark,
             )
         }
 
@@ -306,6 +374,7 @@ private fun BidComposer(
                     imeAction = ImeAction.Next,
                 ),
                 singleLine = true,
+                shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.weight(1f),
             )
             OutlinedTextField(
@@ -319,6 +388,7 @@ private fun BidComposer(
                     imeAction = ImeAction.Next,
                 ),
                 singleLine = true,
+                shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.weight(1f),
             )
         }
@@ -328,7 +398,11 @@ private fun BidComposer(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Includes installation", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = "Includes installation",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Ink900,
+            )
             Switch(checked = form.includesInstallation, onCheckedChange = onInstallChange)
         }
         Row(
@@ -336,7 +410,11 @@ private fun BidComposer(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Includes training", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = "Includes training",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Ink900,
+            )
             Switch(checked = form.includesTraining, onCheckedChange = onTrainingChange)
         }
 
@@ -348,19 +426,23 @@ private fun BidComposer(
                 capitalization = KeyboardCapitalization.Sentences,
                 imeAction = ImeAction.Done,
             ),
-            minLines = 2,
+            minLines = 3,
+            shape = RoundedCornerShape(8.dp),
             modifier = Modifier.fillMaxWidth(),
         )
 
         Row(
-            modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = Spacing.sm),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            TextButton(
+            SecondaryButton(
+                label = "Cancel",
                 onClick = onCancel,
                 enabled = !submitting,
                 modifier = Modifier.weight(1f),
-            ) { Text("Cancel") }
+            )
             PrimaryButton(
                 label = "Submit bid",
                 loading = submitting,

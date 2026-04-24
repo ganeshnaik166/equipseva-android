@@ -1,6 +1,8 @@
 package com.equipseva.app.features.supplier
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -8,19 +10,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
@@ -30,27 +32,35 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.parts.PartCategory
 import com.equipseva.app.designsystem.components.ESBackTopBar
+import com.equipseva.app.designsystem.components.EquipmentArt
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.PrimaryButton
 import com.equipseva.app.designsystem.components.SectionHeader
+import com.equipseva.app.designsystem.theme.BrandGreenDark
+import com.equipseva.app.designsystem.theme.Ink500
+import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Surface0
+import com.equipseva.app.designsystem.theme.Surface50
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,18 +84,23 @@ fun AddListingScreen(
     Scaffold(
         topBar = { ESBackTopBar(title = "Add listing", onBack = onBack) },
         snackbarHost = { SnackbarHost(snackbarHost) },
+        containerColor = Surface50,
         bottomBar = {
             Surface(
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 3.dp,
+                color = Surface0,
+                tonalElevation = 0.dp,
+                shadowElevation = 8.dp,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column {
-                    HorizontalDivider()
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(Spacing.lg),
+                            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
                     ) {
                         PrimaryButton(
                             label = "Save listing",
@@ -102,16 +117,17 @@ fun AddListingScreen(
             modifier = Modifier
                 .padding(inner)
                 .fillMaxSize()
+                .background(Surface50)
                 .imePadding(),
-            contentPadding = PaddingValues(vertical = Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            contentPadding = PaddingValues(bottom = Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             if (state.noOrgWarning) {
                 item {
                     ErrorBanner(
                         message = "Your account isn't linked to a supplier organization. " +
                             "Ask your admin to link it before publishing listings.",
-                        modifier = Modifier.padding(horizontal = Spacing.lg),
+                        modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
                     )
                 }
             }
@@ -119,8 +135,63 @@ fun AddListingScreen(
                 item {
                     ErrorBanner(
                         message = state.errorMessage,
-                        modifier = Modifier.padding(horizontal = Spacing.lg),
+                        modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
                     )
+                }
+            }
+
+            // Photo upload placeholder
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                    ) {
+                        Box {
+                            GradientTile(
+                                art = EquipmentArt.Image,
+                                hue = 160,
+                                size = 64.dp,
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .size(22.dp)
+                                    .background(
+                                        color = BrandGreenDark,
+                                        shape = RoundedCornerShape(percent = 50),
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.PhotoCamera,
+                                    contentDescription = null,
+                                    tint = Surface0,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                            }
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Add photos",
+                                fontSize = 14.sp,
+                                lineHeight = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Ink900,
+                            )
+                            Text(
+                                text = "Photo upload coming soon",
+                                fontSize = 11.sp,
+                                lineHeight = 14.sp,
+                                color = Ink500,
+                            )
+                        }
+                    }
                 }
             }
 
@@ -142,6 +213,7 @@ fun AddListingScreen(
                             imeAction = ImeAction.Next,
                         ),
                         singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth(),
                     )
                     OutlinedTextField(
@@ -159,6 +231,7 @@ fun AddListingScreen(
                             imeAction = ImeAction.Next,
                         ),
                         singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth(),
                     )
                     CategoryDropdown(
@@ -187,6 +260,7 @@ fun AddListingScreen(
                                 imeAction = ImeAction.Next,
                             ),
                             singleLine = true,
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.weight(1f),
                         )
                         OutlinedTextField(
@@ -200,6 +274,7 @@ fun AddListingScreen(
                                 imeAction = ImeAction.Next,
                             ),
                             singleLine = true,
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -219,6 +294,7 @@ fun AddListingScreen(
                                 imeAction = ImeAction.Next,
                             ),
                             singleLine = true,
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.weight(1f),
                         )
                         OutlinedTextField(
@@ -232,6 +308,7 @@ fun AddListingScreen(
                                 imeAction = ImeAction.Next,
                             ),
                             singleLine = true,
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -246,6 +323,7 @@ fun AddListingScreen(
                             imeAction = ImeAction.Next,
                         ),
                         singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -265,6 +343,7 @@ fun AddListingScreen(
                             imeAction = ImeAction.Next,
                         ),
                         singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth(),
                     )
                     OutlinedTextField(
@@ -278,6 +357,7 @@ fun AddListingScreen(
                             imeAction = ImeAction.Next,
                         ),
                         singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth(),
                     )
                     OutlinedTextField(
@@ -291,6 +371,7 @@ fun AddListingScreen(
                             imeAction = ImeAction.Next,
                         ),
                         singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -308,6 +389,7 @@ fun AddListingScreen(
                             imeAction = ImeAction.Next,
                         ),
                         minLines = 3,
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth(),
                     )
                     OutlinedTextField(
@@ -321,29 +403,30 @@ fun AddListingScreen(
                             imeAction = ImeAction.Next,
                         ),
                         singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    Row(
+                    Surface(
+                        color = Surface0,
+                        shape = RoundedCornerShape(8.dp),
+                        tonalElevation = 0.dp,
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("Genuine part", style = MaterialTheme.typography.bodyMedium)
-                        Switch(
-                            checked = state.form.isGenuine,
-                            onCheckedChange = viewModel::onIsGenuineChange,
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text("OEM part", style = MaterialTheme.typography.bodyMedium)
-                        Switch(
-                            checked = state.form.isOem,
-                            onCheckedChange = viewModel::onIsOemChange,
-                        )
+                        Column {
+                            ToggleRow(
+                                label = "Genuine part",
+                                checked = state.form.isGenuine,
+                                onChange = viewModel::onIsGenuineChange,
+                            )
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant,
+                            )
+                            ToggleRow(
+                                label = "OEM part",
+                                checked = state.form.isOem,
+                                onChange = viewModel::onIsOemChange,
+                            )
+                        }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         OutlinedTextField(
@@ -355,6 +438,7 @@ fun AddListingScreen(
                                 imeAction = ImeAction.Next,
                             ),
                             singleLine = true,
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.weight(1f),
                         )
                         OutlinedTextField(
@@ -366,12 +450,36 @@ fun AddListingScreen(
                                 imeAction = ImeAction.Done,
                             ),
                             singleLine = true,
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.weight(1f),
                         )
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ToggleRow(
+    label: String,
+    checked: Boolean,
+    onChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = Ink900,
+        )
+        Switch(checked = checked, onCheckedChange = onChange)
     }
 }
 
@@ -405,6 +513,7 @@ private fun CategoryDropdown(
             label = { Text("Category") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+            shape = RoundedCornerShape(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),

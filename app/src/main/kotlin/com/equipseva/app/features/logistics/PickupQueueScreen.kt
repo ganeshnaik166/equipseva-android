@@ -28,6 +28,7 @@ import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Surface50
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,6 +51,7 @@ fun PickupQueueScreen(
     Scaffold(
         topBar = { ESBackTopBar(title = "Pickup queue", onBack = onBack) },
         snackbarHost = { SnackbarHost(snackbarHost) },
+        containerColor = Surface50,
     ) { inner ->
         Column(
             modifier = Modifier

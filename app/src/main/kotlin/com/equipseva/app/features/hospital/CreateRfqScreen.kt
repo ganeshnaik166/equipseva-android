@@ -1,5 +1,7 @@
 package com.equipseva.app.features.hospital
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,9 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,7 +28,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.designsystem.components.ESBackTopBar
@@ -47,6 +47,9 @@ import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.PrimaryButton
 import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Surface0
+import com.equipseva.app.designsystem.theme.Surface200
+import com.equipseva.app.designsystem.theme.Surface50
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -74,6 +77,23 @@ fun CreateRfqScreen(
     Scaffold(
         topBar = { ESBackTopBar(title = "Create RFQ", onBack = onBack) },
         snackbarHost = { SnackbarHost(snackbarHost) },
+        containerColor = Surface50,
+        bottomBar = {
+            // Sticky submit bar — matches the design's bottom-CTA for long forms.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Surface0)
+                    .border(width = 1.dp, color = Surface200)
+                    .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+            ) {
+                PrimaryButton(
+                    label = "Submit RFQ",
+                    loading = state.submitting,
+                    onClick = viewModel::onSubmit,
+                )
+            }
+        },
     ) { inner ->
         Column(
             modifier = Modifier
@@ -83,13 +103,13 @@ fun CreateRfqScreen(
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            SectionHeader(title = "RFQ details")
-
             ErrorBanner(
                 message = state.errorMessage,
                 modifier = Modifier.padding(horizontal = Spacing.lg),
             )
 
+            // ── RFQ basics ─────────────────────────────────────────────
+            SectionHeader(title = "RFQ basics")
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -109,6 +129,7 @@ fun CreateRfqScreen(
                         imeAction = ImeAction.Next,
                     ),
                     singleLine = true,
+                    shape = MaterialTheme.shapes.medium,
                     modifier = Modifier.fillMaxWidth(),
                 )
 
@@ -126,6 +147,7 @@ fun CreateRfqScreen(
                     ),
                     minLines = 4,
                     maxLines = 8,
+                    shape = MaterialTheme.shapes.medium,
                     modifier = Modifier.fillMaxWidth(),
                 )
 
@@ -143,9 +165,19 @@ fun CreateRfqScreen(
                         imeAction = ImeAction.Next,
                     ),
                     singleLine = true,
+                    shape = MaterialTheme.shapes.medium,
                     modifier = Modifier.fillMaxWidth(),
                 )
+            }
 
+            // ── Quantity & budget ─────────────────────────────────────
+            SectionHeader(title = "Quantity & budget")
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
                 OutlinedTextField(
                     value = state.quantity,
                     onValueChange = viewModel::onQuantityChange,
@@ -159,18 +191,9 @@ fun CreateRfqScreen(
                         imeAction = ImeAction.Next,
                     ),
                     singleLine = true,
+                    shape = MaterialTheme.shapes.medium,
                     modifier = Modifier.fillMaxWidth(),
                 )
-            }
-
-            SectionHeader(title = "Budget (optional)")
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     OutlinedTextField(
                         value = state.budgetMin,
@@ -182,6 +205,7 @@ fun CreateRfqScreen(
                             imeAction = ImeAction.Next,
                         ),
                         singleLine = true,
+                        shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.weight(1f),
                     )
                     OutlinedTextField(
@@ -194,6 +218,7 @@ fun CreateRfqScreen(
                             imeAction = ImeAction.Done,
                         ),
                         singleLine = true,
+                        shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -206,31 +231,28 @@ fun CreateRfqScreen(
                 }
             }
 
-            SectionHeader(title = "Delivery location (optional)")
-
-            OutlinedTextField(
-                value = state.deliveryLocation,
-                onValueChange = viewModel::onDeliveryLocationChange,
-                label = { Text("Ship to") },
-                placeholder = { Text("e.g. Chennai, Tamil Nadu") },
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Words,
-                    imeAction = ImeAction.Next,
-                ),
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.lg),
-            )
-
-            SectionHeader(title = "Expected delivery")
-
+            // ── Delivery ──────────────────────────────────────────────
+            SectionHeader(title = "Delivery")
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
+                OutlinedTextField(
+                    value = state.deliveryLocation,
+                    onValueChange = viewModel::onDeliveryLocationChange,
+                    label = { Text("Ship to") },
+                    placeholder = { Text("e.g. Chennai, Tamil Nadu") },
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        imeAction = ImeAction.Next,
+                    ),
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
                 OutlinedTextField(
                     value = state.expectedDeliveryIso.orEmpty(),
                     onValueChange = { /* read-only */ },
@@ -247,18 +269,10 @@ fun CreateRfqScreen(
                         state.deliveryError?.takeIf { state.showValidationErrors }?.let { Text(it) }
                     },
                     singleLine = true,
+                    shape = MaterialTheme.shapes.medium,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-
-            Spacer(Modifier.height(Spacing.md))
-
-            PrimaryButton(
-                label = "Submit RFQ",
-                loading = state.submitting,
-                onClick = viewModel::onSubmit,
-                modifier = Modifier.padding(horizontal = Spacing.lg),
-            )
 
             Spacer(Modifier.height(Spacing.lg))
         }

@@ -26,7 +26,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Surface50
 import com.equipseva.app.features.marketplace.components.PartCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,6 +57,7 @@ fun FavoritesScreen(
     Scaffold(
         topBar = { ESBackTopBar(title = "Favorites", onBack = onBack) },
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = Surface50,
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             when {
@@ -78,6 +81,9 @@ fun FavoritesScreen(
                     ) {
                         if (err != null) {
                             item("error") { ErrorBanner(message = err) }
+                        }
+                        item("header") {
+                            SectionHeader(title = "Saved parts (${state.items.size})")
                         }
                         items(items = state.items, key = { it.id }) { part ->
                             PartCard(

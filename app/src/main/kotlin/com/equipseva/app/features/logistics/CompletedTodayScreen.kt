@@ -9,15 +9,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,7 +24,10 @@ import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.SectionHeader
+import com.equipseva.app.designsystem.components.StatusBanner
+import com.equipseva.app.designsystem.components.StatusBannerTone
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Surface50
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +39,7 @@ fun CompletedTodayScreen(
 
     Scaffold(
         topBar = { ESBackTopBar(title = "Completed", onBack = onBack) },
+        containerColor = Surface50,
     ) { inner ->
         Column(
             modifier = Modifier
@@ -51,6 +50,15 @@ fun CompletedTodayScreen(
                 message = state.errorMessage,
                 modifier = Modifier.padding(horizontal = Spacing.lg),
             )
+            if (state.noPartnerWarning) {
+                StatusBanner(
+                    title = "Logistics partner not registered",
+                    message = "Completed jobs will appear after you're registered.",
+                    tone = StatusBannerTone.Warn,
+                    leadingIcon = Icons.Outlined.TaskAlt,
+                    modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                )
+            }
             PullToRefreshBox(
                 isRefreshing = state.refreshing,
                 onRefresh = viewModel::onRefresh,
@@ -60,20 +68,16 @@ fun CompletedTodayScreen(
                     state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
-                    state.noPartnerWarning -> EmptyStateView(
-                        icon = Icons.Outlined.TaskAlt,
-                        title = "Logistics partner not registered",
-                        subtitle = "Completed jobs will appear after you're registered.",
-                    )
-                    state.completedToday.isEmpty() && state.earlierCompleted.isEmpty() -> EmptyStateView(
+                    state.completedToday.isEmpty() && state.earlierCompleted.isEmpty() && !state.noPartnerWarning -> EmptyStateView(
                         icon = Icons.Outlined.TaskAlt,
                         title = "No completed jobs yet",
                         subtitle = "Your delivery history will show up here.",
                     )
+                    state.completedToday.isEmpty() && state.earlierCompleted.isEmpty() -> Box(Modifier)
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(vertical = Spacing.md),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        contentPadding = PaddingValues(bottom = Spacing.lg),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.md),
                     ) {
                         if (state.completedToday.isNotEmpty()) {
                             item("today_header") { SectionHeader(title = "Today") }

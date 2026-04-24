@@ -1,5 +1,7 @@
 package com.equipseva.app.features.hospital
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,13 +14,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.RequestQuote
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -30,7 +28,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,6 +38,7 @@ import com.equipseva.app.core.data.rfq.Rfq
 import com.equipseva.app.core.data.rfq.RfqBid
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.relativeLabel
+import com.equipseva.app.designsystem.components.BidCard
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
@@ -45,7 +46,14 @@ import com.equipseva.app.designsystem.components.PrimaryButton
 import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.components.StatusTone
+import com.equipseva.app.designsystem.components.TonalButton
+import com.equipseva.app.designsystem.theme.Ink500
+import com.equipseva.app.designsystem.theme.Ink700
+import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Surface0
+import com.equipseva.app.designsystem.theme.Surface200
+import com.equipseva.app.designsystem.theme.Surface50
 import java.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,6 +80,7 @@ fun HospitalRfqDetailScreen(
     Scaffold(
         topBar = { ESBackTopBar(title = "RFQ details", onBack = onBack) },
         snackbarHost = { SnackbarHost(snackbarHost) },
+        containerColor = Surface50,
     ) { inner ->
         Column(
             modifier = Modifier
@@ -122,6 +131,13 @@ private fun RfqDetailContent(
     onAcceptBid: (RfqBid) -> Unit,
     onMessageBid: (RfqBid) -> Unit,
 ) {
+    // Identify the leading bid (lowest total price) so the BidCard can flag it
+    // as the top match.
+    val topMatchId = bids
+        .filter { it.totalPriceRupees > 0 }
+        .minByOrNull { it.totalPriceRupees }
+        ?.id
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.md),
@@ -129,7 +145,7 @@ private fun RfqDetailContent(
     ) {
         item { RfqSummaryCard(rfq) }
 
-        item { SectionHeader(title = "Bids (${bids.size})") }
+        item { SectionHeader(title = "Bids received (${bids.size})") }
 
         if (bids.isEmpty()) {
             item {
@@ -141,8 +157,9 @@ private fun RfqDetailContent(
             }
         } else {
             items(items = bids, key = { it.id }) { bid ->
-                BidCard(
+                SupplierBidSection(
                     bid = bid,
+                    isTopMatch = bid.id == topMatchId,
                     rfqIsOpen = rfq.isOpen,
                     accepting = acceptingBidId == bid.id,
                     acceptEnabled = acceptingBidId == null,
@@ -157,88 +174,99 @@ private fun RfqDetailContent(
 
 @Composable
 private fun RfqSummaryCard(rfq: Rfq) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    val shape = MaterialTheme.shapes.large
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Surface0)
+            .border(1.dp, Surface200, shape)
+            .padding(Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        Column(
-            modifier = Modifier.padding(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = rfq.title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f),
+                    color = Ink900,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                StatusChip(
-                    label = rfq.status.replaceFirstChar { it.uppercase() },
-                    tone = if (rfq.isOpen) StatusTone.Info else StatusTone.Neutral,
-                )
+                rfq.rfqNumber?.takeIf { it.isNotBlank() }?.let {
+                    Text(
+                        text = "#$it",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Ink500,
+                    )
+                }
             }
-            rfq.rfqNumber?.let {
-                Text(
-                    text = "#$it",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            rfq.equipmentCategory?.takeIf { it.isNotBlank() }?.let {
-                Text(text = it, style = MaterialTheme.typography.bodyMedium)
-            }
-            rfq.description?.takeIf { it.isNotBlank() }?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Text(
-                text = "Quantity: ${rfq.quantity}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            StatusChip(
+                label = rfq.status.replaceFirstChar { it.uppercase() },
+                tone = if (rfq.isOpen) StatusTone.Info else StatusTone.Neutral,
             )
-            val budget = formatBudgetRange(rfq.budgetMinRupees, rfq.budgetMaxRupees)
-            if (budget != null) {
-                Text(
-                    text = "Budget: $budget",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+        }
+
+        rfq.equipmentCategory?.takeIf { it.isNotBlank() }?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Ink700,
+            )
+        }
+
+        // Chip strip: budget · qty · deadline
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = Spacing.xs),
+        ) {
+            formatBudgetRange(rfq.budgetMinRupees, rfq.budgetMaxRupees)?.let { budget ->
+                StatusChip(label = budget, tone = StatusTone.Success)
             }
-            rfq.deliveryLocation?.takeIf { it.isNotBlank() }?.let {
-                Text(
-                    text = "Ship to: $it",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            StatusChip(label = "Qty ${rfq.quantity}", tone = StatusTone.Neutral)
             rfq.deliveryDeadlineIso?.takeIf { it.isNotBlank() }?.let {
-                Text(
-                    text = "Deliver by: $it",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                StatusChip(label = "By $it", tone = StatusTone.Warn)
             }
-            rfq.createdAtInstant?.let {
-                Text(
-                    text = "Posted ${relativeLabel(it)} ago",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        }
+
+        rfq.description?.takeIf { it.isNotBlank() }?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Ink700,
+                modifier = Modifier.padding(top = Spacing.xs),
+            )
+        }
+
+        rfq.deliveryLocation?.takeIf { it.isNotBlank() }?.let {
+            Text(
+                text = "Ship to: $it",
+                style = MaterialTheme.typography.labelMedium,
+                color = Ink500,
+            )
+        }
+        rfq.createdAtInstant?.let {
+            Text(
+                text = "Posted ${relativeLabel(it)} ago",
+                style = MaterialTheme.typography.labelMedium,
+                color = Ink500,
+            )
         }
     }
 }
 
 @Composable
-private fun BidCard(
+private fun SupplierBidSection(
     bid: RfqBid,
+    isTopMatch: Boolean,
     rfqIsOpen: Boolean,
     accepting: Boolean,
     acceptEnabled: Boolean,
@@ -246,107 +274,99 @@ private fun BidCard(
     onAccept: () -> Unit,
     onMessage: () -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-    ) {
-        Column(
-            modifier = Modifier.padding(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        // BidCard primitive — supplier maps to the "engineer" param. RfqBid has
+        // no supplier name / rating yet, so we synthesize a stable id-based
+        // label and zero rating; isVerified reflects accepted/awarded status.
+        BidCard(
+            engineerName = supplierLabel(bid.manufacturerId),
+            rating = 0f,
+            ratingCount = 0,
+            amountRupees = bid.totalPriceRupees,
+            etaHours = null,
+            isVerified = bid.status.equals("accepted", ignoreCase = true) ||
+                bid.status.equals("awarded", ignoreCase = true),
+            isTopMatch = isTopMatch,
+        )
+
+        BidMetaRow(bid = bid)
+
+        if (rfqIsOpen && bid.status.equals("submitted", ignoreCase = true)) {
+            PrimaryButton(
+                label = "Accept bid",
+                loading = accepting,
+                enabled = acceptEnabled && !accepting,
+                onClick = onAccept,
+            )
+        }
+        TonalButton(
+            label = if (openingChat) "Opening…" else "Message supplier",
+            enabled = !openingChat,
+            onClick = onMessage,
+        )
+    }
+}
+
+@Composable
+private fun BidMetaRow(bid: RfqBid) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = formatRupees(bid.totalPriceRupees),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                StatusChip(
-                    label = bid.status.replaceFirstChar { it.uppercase() },
-                    tone = when (bid.status.lowercase()) {
-                        "accepted", "awarded" -> StatusTone.Success
-                        "rejected" -> StatusTone.Danger
-                        else -> StatusTone.Info
-                    },
-                )
-            }
-            Text(
-                text = "${formatRupees(bid.unitPriceRupees)} / unit",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            StatusChip(
+                label = "${formatRupees(bid.unitPriceRupees)} / unit",
+                tone = StatusTone.Neutral,
             )
             bid.deliveryTimelineDays?.let {
-                Text(
-                    text = "Delivery in $it day(s)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                StatusChip(label = "${it}d delivery", tone = StatusTone.Info)
             }
             bid.warrantyMonths?.let {
+                StatusChip(label = "${it}mo warranty", tone = StatusTone.Success)
+            }
+        }
+        val extras = buildList {
+            if (bid.includesInstallation) add("Installation")
+            if (bid.includesTraining) add("Training")
+        }
+        if (extras.isNotEmpty()) {
+            Text(
+                text = "Includes: ${extras.joinToString(", ")}",
+                style = MaterialTheme.typography.labelMedium,
+                color = Ink500,
+                modifier = Modifier.padding(horizontal = Spacing.xs),
+            )
+        }
+        bid.notes?.takeIf { it.isNotBlank() }?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodySmall,
+                color = Ink700,
+                modifier = Modifier.padding(horizontal = Spacing.xs),
+            )
+        }
+        bid.createdAtIso?.let { iso ->
+            runCatching { Instant.parse(iso) }.getOrNull()?.let {
                 Text(
-                    text = "Warranty: $it month(s)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = "Received ${relativeLabel(it)} ago",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Ink500,
+                    modifier = Modifier.padding(horizontal = Spacing.xs),
                 )
-            }
-            val extras = buildList {
-                if (bid.includesInstallation) add("Installation")
-                if (bid.includesTraining) add("Training")
-            }
-            if (extras.isNotEmpty()) {
-                Text(
-                    text = "Includes: ${extras.joinToString(", ")}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            bid.notes?.takeIf { it.isNotBlank() }?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            bid.createdAtIso?.let { iso ->
-                runCatching { Instant.parse(iso) }.getOrNull()?.let {
-                    Text(
-                        text = "Received ${relativeLabel(it)} ago",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            if (rfqIsOpen && bid.status.equals("submitted", ignoreCase = true)) {
-                PrimaryButton(
-                    label = "Accept bid",
-                    loading = accepting,
-                    enabled = acceptEnabled && !accepting,
-                    onClick = onAccept,
-                )
-            }
-            OutlinedButton(
-                onClick = onMessage,
-                enabled = !openingChat,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (openingChat) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                    )
-                } else {
-                    Text("Message supplier")
-                }
             }
         }
     }
 }
 
+private fun supplierLabel(manufacturerId: String): String =
+    "Supplier ${manufacturerId.take(6).uppercase()}"
+
 private fun formatBudgetRange(min: Double?, max: Double?): String? = when {
     min != null && max != null && max > min -> "${formatRupees(min)} – ${formatRupees(max)}"
-    max != null -> "up to ${formatRupees(max)}"
-    min != null -> "from ${formatRupees(min)}"
+    max != null -> "Up to ${formatRupees(max)}"
+    min != null -> "From ${formatRupees(min)}"
     else -> null
 }

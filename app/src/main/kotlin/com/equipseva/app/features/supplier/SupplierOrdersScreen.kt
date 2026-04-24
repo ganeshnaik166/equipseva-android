@@ -1,5 +1,7 @@
 package com.equipseva.app.features.supplier
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Inventory
 import androidx.compose.material3.Card
@@ -31,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.orders.Order
@@ -43,7 +47,13 @@ import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.PrimaryButton
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.components.StatusTone
+import com.equipseva.app.designsystem.theme.BrandGreenDark
+import com.equipseva.app.designsystem.theme.Ink500
+import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Surface0
+import com.equipseva.app.designsystem.theme.Surface200
+import com.equipseva.app.designsystem.theme.Surface50
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,11 +77,13 @@ fun SupplierOrdersScreen(
     Scaffold(
         topBar = { ESBackTopBar(title = "Incoming orders", onBack = onBack) },
         snackbarHost = { SnackbarHost(snackbarHost) },
+        containerColor = Surface50,
     ) { inner ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(inner),
+                .padding(inner)
+                .background(Surface50),
         ) {
             ErrorBanner(
                 message = state.errorMessage,
@@ -98,7 +110,10 @@ fun SupplierOrdersScreen(
                     )
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.md),
+                        contentPadding = PaddingValues(
+                            horizontal = Spacing.lg,
+                            vertical = Spacing.md,
+                        ),
                         verticalArrangement = Arrangement.spacedBy(Spacing.md),
                     ) {
                         items(items = state.orders, key = { it.id }) { order ->
@@ -131,10 +146,13 @@ private fun SupplierOrderCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Surface0),
+        border = BorderStroke(1.dp, Surface200),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
-            modifier = Modifier.padding(Spacing.lg),
+            modifier = Modifier.padding(Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             Row(
@@ -144,8 +162,10 @@ private fun SupplierOrderCard(
             ) {
                 Text(
                     text = order.orderNumber?.let { "#$it" } ?: "Order",
-                    style = MaterialTheme.typography.titleMedium,
+                    fontSize = 15.sp,
+                    lineHeight = 20.sp,
                     fontWeight = FontWeight.SemiBold,
+                    color = Ink900,
                 )
                 StatusChip(
                     label = order.status.displayName,
@@ -153,17 +173,19 @@ private fun SupplierOrderCard(
                 )
             }
             val itemLine = if (order.lineItemCount == 1) "1 item" else "${order.lineItemCount} items"
-            val placedLine = order.createdAtInstant?.let { "· Placed ${relativeLabel(it)} ago" }.orEmpty()
+            val placedLine = order.createdAtInstant?.let { " · Placed ${relativeLabel(it)} ago" }.orEmpty()
             Text(
-                text = "$itemLine $placedLine".trimEnd(),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = "$itemLine$placedLine",
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                color = Ink500,
             )
             order.locationLine?.let {
                 Text(
                     text = "Ship to $it",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    color = Ink500,
                 )
             }
             Row(
@@ -174,8 +196,8 @@ private fun SupplierOrderCard(
                 Text(
                     text = formatRupees(order.totalAmount),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                    color = BrandGreenDark,
                 )
                 order.paymentStatus
                     ?.takeIf { it.isNotBlank() }

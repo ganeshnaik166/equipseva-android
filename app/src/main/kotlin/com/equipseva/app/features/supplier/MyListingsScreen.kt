@@ -1,5 +1,7 @@
 package com.equipseva.app.features.supplier
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,18 +16,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,19 +33,29 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.parts.SparePart
 import com.equipseva.app.core.util.formatRupees
-import com.equipseva.app.designsystem.components.BrandedPlaceholder
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.components.StatusTone
+import com.equipseva.app.designsystem.theme.BrandGreenDark
+import com.equipseva.app.designsystem.theme.Ink500
+import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Surface0
+import com.equipseva.app.designsystem.theme.Surface200
+import com.equipseva.app.designsystem.theme.Surface50
+import com.equipseva.app.features.marketplace.components.categoryArt
+import com.equipseva.app.features.marketplace.components.categoryHue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,11 +68,13 @@ fun MyListingsScreen(
 
     Scaffold(
         topBar = { ESBackTopBar(title = "My listings", onBack = onBack) },
+        containerColor = Surface50,
     ) { inner ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(inner),
+                .padding(inner)
+                .background(Surface50),
         ) {
             ErrorBanner(
                 message = state.errorMessage,
@@ -91,7 +101,10 @@ fun MyListingsScreen(
                     )
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.md),
+                        contentPadding = PaddingValues(
+                            horizontal = Spacing.lg,
+                            vertical = Spacing.md,
+                        ),
                         verticalArrangement = Arrangement.spacedBy(Spacing.md),
                     ) {
                         items(items = state.parts, key = { it.id }) { part ->
@@ -113,11 +126,15 @@ private fun ListingCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Surface0),
+        border = BorderStroke(1.dp, Surface200),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(
             modifier = Modifier.padding(Spacing.md),
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             val imageUrl = part.primaryImageUrl
             if (!imageUrl.isNullOrBlank()) {
@@ -127,46 +144,53 @@ private fun ListingCard(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(72.dp)
-                        .clip(RoundedCornerShape(Spacing.sm)),
+                        .clip(RoundedCornerShape(8.dp)),
                 )
             } else {
-                BrandedPlaceholder(
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clip(RoundedCornerShape(Spacing.sm)),
+                GradientTile(
+                    art = categoryArt(part.category),
+                    hue = categoryHue(part.category),
+                    size = 72.dp,
                 )
             }
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
                     text = part.name,
-                    style = MaterialTheme.typography.titleMedium,
+                    fontSize = 14.sp,
+                    lineHeight = 18.sp,
                     fontWeight = FontWeight.SemiBold,
+                    color = Ink900,
                     maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = "#${part.partNumber}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.sp,
+                    lineHeight = 14.sp,
+                    color = Ink500,
                 )
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 4.dp),
                 ) {
                     Text(
                         text = formatRupees(part.priceRupees),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        fontSize = 15.sp,
+                        lineHeight = 18.sp,
                         fontWeight = FontWeight.Bold,
+                        color = BrandGreenDark,
                     )
                     val mrp = part.mrpRupees
                     if (mrp != null && mrp > part.priceRupees) {
                         Text(
                             text = formatRupees(mrp),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp,
+                            lineHeight = 14.sp,
+                            color = Ink500,
                             textDecoration = TextDecoration.LineThrough,
                         )
                     }
@@ -178,8 +202,9 @@ private fun ListingCard(
                     }
                 }
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 4.dp),
                 ) {
                     val (label, tone) = when {
                         part.stockQuantity == 0 -> "Out of stock" to StatusTone.Danger

@@ -27,7 +27,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.StatusBanner
+import com.equipseva.app.designsystem.components.StatusBannerTone
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Surface50
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,6 +53,7 @@ fun ActiveDeliveriesScreen(
     Scaffold(
         topBar = { ESBackTopBar(title = "Active deliveries", onBack = onBack) },
         snackbarHost = { SnackbarHost(snackbarHost) },
+        containerColor = Surface50,
     ) { inner ->
         Column(
             modifier = Modifier
@@ -60,6 +64,15 @@ fun ActiveDeliveriesScreen(
                 message = state.errorMessage,
                 modifier = Modifier.padding(horizontal = Spacing.lg),
             )
+            if (state.noPartnerWarning) {
+                StatusBanner(
+                    title = "Logistics partner not registered",
+                    message = "Register as a logistics partner to see assigned jobs.",
+                    tone = StatusBannerTone.Warn,
+                    leadingIcon = Icons.Outlined.LocalShipping,
+                    modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                )
+            }
             PullToRefreshBox(
                 isRefreshing = state.refreshing,
                 onRefresh = viewModel::onRefresh,
@@ -69,16 +82,12 @@ fun ActiveDeliveriesScreen(
                     state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
-                    state.noPartnerWarning -> EmptyStateView(
-                        icon = Icons.Outlined.LocalShipping,
-                        title = "Logistics partner not registered",
-                        subtitle = "Register as a logistics partner to see assigned jobs.",
-                    )
-                    state.jobs.isEmpty() -> EmptyStateView(
+                    state.jobs.isEmpty() && !state.noPartnerWarning -> EmptyStateView(
                         icon = Icons.Outlined.LocalShipping,
                         title = "No active deliveries",
                         subtitle = "Jobs in transit will appear here.",
                     )
+                    state.jobs.isEmpty() -> Box(Modifier) // banner already shown above
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.md),
