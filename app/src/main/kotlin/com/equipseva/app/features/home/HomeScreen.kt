@@ -18,7 +18,6 @@ import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Inventory
@@ -159,7 +158,7 @@ private data class HomeCardEntry(
 
 private fun cardsFor(role: UserRole?): List<HomeCardEntry> = when (role) {
     UserRole.HOSPITAL -> listOf(
-        HomeCardEntry("scan_equipment", Icons.Filled.DocumentScanner, "Scan equipment", "Identify equipment with AI and find matching parts", hue = 260),
+        // Scan-equipment entry point hidden for v1 — Claude Vision wiring pending.
         HomeCardEntry("browse_parts", Icons.Filled.Search, "Browse parts", "Find compatible parts for your equipment", hue = 200),
         HomeCardEntry("active_jobs", Icons.Filled.Build, "Active repair jobs", "Track ongoing repairs", hue = 150),
         HomeCardEntry("order_history", Icons.Filled.History, "Order history", "Review past purchases and invoices", hue = 40),
@@ -168,7 +167,7 @@ private fun cardsFor(role: UserRole?): List<HomeCardEntry> = when (role) {
         HomeCardEntry("my_rfqs", Icons.Outlined.RequestQuote, "My RFQs", "Track your open and past quotation requests", hue = 200),
     )
     UserRole.ENGINEER -> listOf(
-        HomeCardEntry("scan_equipment", Icons.Filled.DocumentScanner, "Scan equipment", "Identify equipment on-site and look up parts", hue = 260),
+        // Scan-equipment entry point hidden for v1 — Claude Vision wiring pending.
         HomeCardEntry("jobs_nearby", Icons.Filled.LocationOn, "Open jobs near me", "Jobs posted in your area", hue = 150),
         HomeCardEntry("my_bids", Icons.Filled.Description, "My bids", "Track bids you've placed", hue = 40),
         HomeCardEntry("active_work", Icons.Filled.Work, "Active work", "Jobs you're currently on", hue = 200),
