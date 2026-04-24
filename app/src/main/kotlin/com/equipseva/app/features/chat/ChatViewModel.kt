@@ -12,6 +12,7 @@ import com.equipseva.app.core.data.dao.OutboxDao
 import com.equipseva.app.core.data.moderation.ContentReportReason
 import com.equipseva.app.core.data.moderation.ContentReportRepository
 import com.equipseva.app.core.data.moderation.ContentReportTarget
+import com.equipseva.app.core.data.moderation.UserBlockRepository
 import com.equipseva.app.core.data.profile.Profile
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
@@ -43,6 +45,7 @@ class ChatViewModel @Inject constructor(
     private val outboxEnqueuer: OutboxEnqueuer,
     private val outboxDao: OutboxDao,
     private val reportRepository: ContentReportRepository,
+    private val userBlockRepository: UserBlockRepository,
     private val json: Json,
 ) : ViewModel() {
 
@@ -56,12 +59,14 @@ class ChatViewModel @Inject constructor(
         val queuedCount: Int = 0,
         val reportingMessageId: String? = null,
         val submittingReport: Boolean = false,
+        val counterpartBlocked: Boolean = false,
+        val togglingBlock: Boolean = false,
         val errorMessage: String? = null,
     ) {
         val title: String
             get() = counterpart?.displayName ?: "Chat"
         val canSend: Boolean
-            get() = draft.trim().isNotEmpty() && !sending && selfUserId != null
+            get() = draft.trim().isNotEmpty() && !sending && selfUserId != null && !counterpartBlocked
     }
 
     sealed interface Effect {
@@ -112,6 +117,31 @@ class ChatViewModel @Inject constructor(
                 .onSuccess {
                     _state.update { it.copy(sending = false) }
                 }
+        }
+    }
+
+    fun onToggleBlock() {
+        val snap = _state.value
+        val other = snap.counterpart?.id ?: return
+        if (snap.togglingBlock) return
+        _state.update { it.copy(togglingBlock = true) }
+        viewModelScope.launch {
+            val result = if (snap.counterpartBlocked) {
+                userBlockRepository.unblock(other)
+            } else {
+                userBlockRepository.block(other)
+            }
+            result.onSuccess {
+                _state.update { it.copy(togglingBlock = false) }
+                _effects.send(
+                    Effect.ShowMessage(
+                        if (snap.counterpartBlocked) "User unblocked" else "User blocked",
+                    ),
+                )
+            }.onFailure { err ->
+                _state.update { it.copy(togglingBlock = false) }
+                _effects.send(Effect.ShowMessage(err.toUserMessage()))
+            }
         }
     }
 
@@ -173,7 +203,19 @@ class ChatViewModel @Inject constructor(
     }
 
     private fun observeMessages(selfUserId: String) {
-        chatRepository.observeMessages(conversationId)
+        combine(
+            chatRepository.observeMessages(conversationId),
+            userBlockRepository.observeBlockedUserIds(),
+        ) { list, blocked ->
+            val other = _state.value.counterpart?.id
+            val blockedNow = other != null && other in blocked
+            _state.update { it.copy(counterpartBlocked = blockedNow) }
+            if (blockedNow) {
+                list.filter { msg -> msg.senderUserId == selfUserId }
+            } else {
+                list
+            }
+        }
             .onEach { list ->
                 _state.update { it.copy(loading = false, messages = list, errorMessage = null) }
                 viewModelScope.launch { chatRepository.markConversationRead(conversationId, selfUserId) }
