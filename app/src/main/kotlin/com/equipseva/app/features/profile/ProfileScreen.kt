@@ -73,6 +73,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.prefs.ThemeMode
 import com.equipseva.app.designsystem.components.BrandedPlaceholder
+import com.equipseva.app.designsystem.components.EarningsHeroCard
 import com.equipseva.app.designsystem.components.ESTopBar
 import com.equipseva.app.designsystem.components.SecureScreen
 import com.equipseva.app.designsystem.components.SettingsSheet
@@ -215,9 +216,23 @@ private fun ProfileContent(
             role = profile.role,
             secondaryLine = buildSecondaryLine(profile, isEngineer),
             verified = profile.roleConfirmed,
+            isEngineer = isEngineer,
             onEdit = onEditProfile,
         )
         Spacer(Modifier.height(Spacing.md))
+
+        // Engineer-only pending-payout hero (visual placeholder; payout numbers live elsewhere).
+        if (isEngineer) {
+            Box(modifier = Modifier.padding(horizontal = Spacing.lg)) {
+                EarningsHeroCard(
+                    totalRupees = 24500.0,
+                    paidRupees = 16000.0,
+                    pendingRupees = 8500.0,
+                    onWithdraw = {},
+                )
+            }
+            Spacer(Modifier.height(Spacing.md))
+        }
 
         // Role switcher block (keeps existing functionality).
         Box(modifier = Modifier.padding(horizontal = Spacing.lg)) {
@@ -367,6 +382,7 @@ private fun ProfileHeaderCard(
     role: UserRole?,
     secondaryLine: String?,
     verified: Boolean,
+    isEngineer: Boolean,
     onEdit: () -> Unit,
 ) {
     Box(
@@ -407,7 +423,7 @@ private fun ProfileHeaderCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            val avatarSize = 80.dp
+            val avatarSize = 88.dp
             if (!avatarUrl.isNullOrBlank()) {
                 AsyncImage(
                     model = avatarUrl,
@@ -423,13 +439,13 @@ private fun ProfileHeaderCard(
                         .size(avatarSize)
                         .clip(CircleShape),
                     shape = CircleShape,
-                    logoSize = 44.dp,
+                    logoSize = 48.dp,
                 )
             }
             Text(
                 text = displayName,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
                 color = Ink900,
             )
             Row(
@@ -461,7 +477,51 @@ private fun ProfileHeaderCard(
                     color = Ink500,
                 )
             }
+            if (isEngineer) {
+                Spacer(Modifier.height(Spacing.sm))
+                StatGridCard(
+                    modifier = Modifier.padding(horizontal = Spacing.lg),
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun StatGridCard(modifier: Modifier = Modifier) {
+    // Visual stat-grid (Jobs / Rating / On-time) — placeholder values; metrics live elsewhere.
+    Row(
+        modifier = modifier
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        StatCell(value = "142", label = "Jobs", modifier = Modifier.weight(1f))
+        StatCell(value = "4.8 ★", label = "Rating", modifier = Modifier.weight(1f))
+        StatCell(value = "96%", label = "On-time", modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun StatCell(value: String, label: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .clip(MaterialTheme.shapes.medium)
+            .background(Surface50)
+            .padding(vertical = 10.dp, horizontal = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = value,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = Ink900,
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            color = Ink500,
+        )
     }
 }
 
@@ -470,9 +530,9 @@ private fun SettingsList(rows: List<SettingsRow>) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(MaterialTheme.shapes.large)
             .background(Surface0)
-            .border(1.dp, Surface200, RoundedCornerShape(14.dp)),
+            .border(1.dp, Surface200, MaterialTheme.shapes.large),
     ) {
         rows.forEachIndexed { index, row ->
             SettingsRowItem(row = row)

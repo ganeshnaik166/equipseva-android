@@ -22,8 +22,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Inventory
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -62,7 +60,9 @@ import com.equipseva.app.designsystem.theme.BrandGreenDark
 import com.equipseva.app.designsystem.theme.Ink300
 import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Ink700
+import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Surface0
 import com.equipseva.app.designsystem.theme.Surface200
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -183,15 +183,15 @@ private fun OrdersTabBar(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, Surface200)
-            .padding(horizontal = Spacing.lg),
+            .background(Surface0)
+            .border(1.dp, Surface200),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = Spacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             OrdersTab.entries.forEach { tab ->
                 OrdersTabPill(
@@ -213,18 +213,18 @@ private fun OrdersTabPill(
     Column(
         modifier = Modifier
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = Spacing.sm, vertical = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             text = label,
-            fontSize = 13.sp,
+            style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
             color = if (selected) BrandGreenDark else Ink500,
         )
         Box(
             modifier = Modifier
-                .padding(top = 8.dp)
+                .padding(top = Spacing.xs)
                 .height(2.dp)
                 .fillMaxWidth()
                 .background(if (selected) BrandGreen else androidx.compose.ui.graphics.Color.Transparent),
@@ -239,29 +239,28 @@ private fun OrderCard(
     onClick: () -> Unit,
 ) {
     val clipboardManager = LocalClipboardManager.current
-    Card(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            .background(Surface0, MaterialTheme.shapes.medium)
+            .border(1.dp, Surface200, MaterialTheme.shapes.medium)
+            .clickable { onClick() }
+            .padding(Spacing.lg),
     ) {
         Column(
-            modifier = Modifier.padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
                 order.orderNumber?.let { num ->
                     Text(
                         text = num,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.3.sp,
-                        color = Ink700,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Ink900,
                     )
                 }
                 formatOrderDate(order.createdAtIso)?.let { date ->
@@ -272,7 +271,7 @@ private fun OrderCard(
                     )
                     Text(
                         text = date,
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.labelMedium,
                         color = Ink500,
                     )
                 }
@@ -286,13 +285,13 @@ private fun OrderCard(
             Text(
                 text = itemLine,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Ink700,
             )
             order.locationLine?.let {
                 Text(
                     text = "Ship to $it",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Ink500,
                 )
             }
             order.trackingNumber?.takeIf { it.isNotBlank() }?.let { tracking ->
@@ -303,7 +302,7 @@ private fun OrderCard(
                     Text(
                         text = "Tracking: $tracking",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = Ink500,
                         modifier = Modifier.weight(1f),
                     )
                     IconButton(
@@ -315,6 +314,7 @@ private fun OrderCard(
                         Icon(
                             imageVector = Icons.Outlined.ContentCopy,
                             contentDescription = "Copy tracking number",
+                            tint = Ink500,
                         )
                     }
                 }
@@ -327,8 +327,8 @@ private fun OrderCard(
                 Text(
                     text = formatRupees(order.totalAmount),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                    color = BrandGreenDark,
                 )
                 order.paymentStatus
                     ?.takeIf { it.isNotBlank() }

@@ -15,9 +15,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -41,14 +42,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
-import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Success
+import com.equipseva.app.designsystem.theme.Surface0
 import com.equipseva.app.designsystem.theme.Surface100
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,6 +79,15 @@ fun ConversationsScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
+                            tint = Ink900,
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { /* search hook (visual polish only) */ }) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
                             tint = Ink900,
                         )
                     }
@@ -131,17 +143,17 @@ private fun ConversationRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = Spacing.md, vertical = Spacing.sm + 4.dp),
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm + 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        InitialsAvatar(name = row.title)
+        AvatarWithPresence(name = row.title)
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = row.title,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
                     color = Ink900,
                     maxLines = 1,
                     modifier = Modifier.weight(1f),
@@ -159,10 +171,11 @@ private fun ConversationRow(
             Row(
                 modifier = Modifier.padding(top = 3.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
                     text = row.preview,
-                    fontSize = 13.sp,
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = if (row.conversation.unreadCount > 0) FontWeight.SemiBold else FontWeight.Normal,
                     color = if (row.conversation.unreadCount > 0) Ink900 else Ink500,
                     maxLines = 1,
@@ -181,7 +194,6 @@ private fun UnreadBadge(count: Int) {
     val label = if (count > 99) "99+" else count.toString()
     Box(
         modifier = Modifier
-            .padding(start = 8.dp)
             .size(20.dp)
             .clip(CircleShape)
             .background(BrandGreen),
@@ -197,6 +209,29 @@ private fun UnreadBadge(count: Int) {
 }
 
 @Composable
+private fun AvatarWithPresence(name: String) {
+    Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+        InitialsAvatar(name = name)
+        // Online dot — Surface0 stroke (2dp), Success fill, anchored bottom-right.
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .size(12.dp)
+                .clip(CircleShape)
+                .background(Surface0),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(Success),
+            )
+        }
+    }
+}
+
+@Composable
 private fun InitialsAvatar(name: String) {
     val initials = name
         .split(" ", limit = 2)
@@ -206,7 +241,7 @@ private fun InitialsAvatar(name: String) {
         .ifBlank { "?" }
     Box(
         modifier = Modifier
-            .size(48.dp)
+            .size(44.dp)
             .clip(CircleShape)
             .background(BrandGreen50)
             .border(1.dp, Color(0x14000000), CircleShape),
@@ -248,4 +283,3 @@ private fun QueuedPill(count: Int) {
         )
     }
 }
-

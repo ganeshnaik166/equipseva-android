@@ -9,34 +9,27 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.PriorityHigh
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,17 +50,23 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.designsystem.components.ESBackTopBar
+import com.equipseva.app.designsystem.components.EquipmentArt
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.HorizontalStepper
+import com.equipseva.app.designsystem.components.PrimaryButton
+import com.equipseva.app.designsystem.components.SecondaryButton
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
 import com.equipseva.app.designsystem.theme.BrandGreenDark
 import com.equipseva.app.designsystem.theme.ErrorRed
+import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Ink700
 import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.designsystem.theme.Success
+import com.equipseva.app.designsystem.theme.Surface50
 import com.equipseva.app.designsystem.theme.Surface200
+import com.equipseva.app.designsystem.theme.Ink300
 import com.equipseva.app.designsystem.theme.Warning
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -97,7 +96,10 @@ fun RequestServiceScreen(
         }
     }
 
-    val stepLabels = listOf("Equipment", "Issue", "Schedule")
+    // 4-step wizard mirrors Claude Design (Equipment → Issue → Photos → Schedule).
+    // Photos is UI-only — VM doesn't persist photos yet (parity with serial / siteLocation).
+    val stepLabels = listOf("Equipment", "Issue", "Photos", "Schedule")
+    val lastStep = stepLabels.lastIndex
 
     Scaffold(
         topBar = {
@@ -109,9 +111,10 @@ fun RequestServiceScreen(
         bottomBar = {
             WizardBottomBar(
                 step = step,
+                lastStep = lastStep,
                 submitting = state.submitting,
                 onBack = { if (step > 0) step -= 1 },
-                onNext = { if (step < stepLabels.lastIndex) step += 1 },
+                onNext = { if (step < lastStep) step += 1 },
                 onSubmit = { viewModel.onSubmit(selectedSlot) },
             )
         },
@@ -155,7 +158,8 @@ fun RequestServiceScreen(
                         onIssue = viewModel::onIssueChange,
                         onUrgency = viewModel::onUrgencyChange,
                     )
-                    2 -> StepSchedule(
+                    2 -> StepPhotos()
+                    3 -> StepSchedule(
                         selectedSlot = selectedSlot,
                         onSelectSlot = { selectedSlot = it },
                         siteLocation = siteLocation,
@@ -171,15 +175,26 @@ fun RequestServiceScreen(
 }
 
 @Composable
-private fun StepHeadline(text: String) {
-    Text(
-        text = text,
-        fontSize = 24.sp,
-        lineHeight = 30.sp,
-        fontWeight = FontWeight.Bold,
-        color = Ink900,
-        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
-    )
+private fun StepHeadline(text: String, subtitle: String? = null) {
+    Column(modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)) {
+        // Display-style headline matches design's `f-display` 26sp -0.4 tracking.
+        Text(
+            text = text,
+            fontSize = 26.sp,
+            lineHeight = 32.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = (-0.4).sp,
+            color = Ink900,
+        )
+        if (subtitle != null) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = subtitle,
+                fontSize = 13.sp,
+                color = Ink500,
+            )
+        }
+    }
 }
 
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
@@ -329,6 +344,99 @@ private fun SeverityTile(
     }
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun StepPhotos() {
+    // UI-only step — photo upload not yet wired to VM. Mirrors design's 3-col grid
+    // with two GradientTile previews + a dashed-bordered "Add" tile.
+    StepHeadline(
+        text = "Add photos",
+        subtitle = "Up to 5 photos. Helps engineers bid accurately.",
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        PhotoThumbTile(
+            art = EquipmentArt.MedicalServices,
+            hue = 200,
+            modifier = Modifier.weight(1f).aspectRatio(1f),
+        )
+        PhotoThumbTile(
+            art = EquipmentArt.Error,
+            hue = 40,
+            modifier = Modifier.weight(1f).aspectRatio(1f),
+        )
+        AddPhotoTile(modifier = Modifier.weight(1f).aspectRatio(1f))
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        SecondaryButton(
+            label = "Camera",
+            onClick = { /* UI-only: photo capture not wired yet */ },
+            modifier = Modifier.weight(1f),
+        )
+        SecondaryButton(
+            label = "Gallery",
+            onClick = { /* UI-only: gallery picker not wired yet */ },
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun PhotoThumbTile(art: EquipmentArt, hue: Int, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(12.dp)
+    val h = hue.toFloat().coerceIn(0f, 360f)
+    val bg = Color.hsl(h, saturation = 0.22f, lightness = 0.94f)
+    val strokeColor = Color.hsl(h, saturation = 0.30f, lightness = 0.88f)
+    Box(
+        modifier = modifier
+            .background(bg, shape)
+            .border(1.dp, strokeColor, shape)
+            .padding(8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        com.equipseva.app.designsystem.components.EquipmentIllustration(
+            art = art,
+            hue = hue,
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
+}
+
+@Composable
+private fun AddPhotoTile(modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(12.dp)
+    Column(
+        modifier = modifier
+            .background(Surface50, shape)
+            .border(1.5.dp, Ink300, shape)
+            .clickable { /* UI-only */ }
+            .padding(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Spacer(Modifier.weight(1f))
+        Icon(
+            imageVector = Icons.Filled.AddAPhoto,
+            contentDescription = null,
+            tint = BrandGreen,
+            modifier = Modifier.size(24.dp),
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = "Add",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = BrandGreen,
+        )
+        Spacer(Modifier.weight(1f))
+    }
+}
+
 @Composable
 private fun StepSchedule(
     selectedSlot: Int,
@@ -428,6 +536,7 @@ private fun SlotTile(
 @Composable
 private fun WizardBottomBar(
     step: Int,
+    lastStep: Int,
     submitting: Boolean,
     onBack: () -> Unit,
     onNext: () -> Unit,
@@ -443,32 +552,23 @@ private fun WizardBottomBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (step > 0) {
-            OutlinedButton(
+            SecondaryButton(
+                label = "Back",
                 onClick = onBack,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(Spacing.MinTouchTarget),
-            ) { Text("Back") }
+                modifier = Modifier.weight(1f),
+            )
         }
-        val isLast = step == 2
-        Button(
+        val isLast = step == lastStep
+        PrimaryButton(
+            label = when {
+                isLast && submitting -> "Submitting…"
+                isLast -> "Submit request"
+                else -> "Next"
+            },
             onClick = if (isLast) onSubmit else onNext,
             enabled = !submitting,
-            modifier = Modifier
-                .weight(1f)
-                .height(Spacing.MinTouchTarget),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = BrandGreen,
-                contentColor = Color.White,
-            ),
-        ) {
-            if (isLast) {
-                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(if (submitting) "Submitting…" else "Submit request")
-            } else {
-                Text("Next")
-            }
-        }
+            loading = isLast && submitting,
+            modifier = Modifier.weight(1f),
+        )
     }
 }

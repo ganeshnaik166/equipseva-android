@@ -1,17 +1,26 @@
 package com.equipseva.app.features.engineerprofile
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -22,14 +31,21 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.designsystem.components.BrandedPlaceholder
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.PrimaryButton
 import com.equipseva.app.designsystem.components.SectionHeader
+import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Surface0
+import com.equipseva.app.designsystem.theme.Surface200
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,6 +73,25 @@ fun EngineerProfileScreen(
                 backEnabled = !state.saving,
             )
         },
+        bottomBar = {
+            if (!state.loading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Surface0)
+                        .border(1.dp, Surface200, MaterialTheme.shapes.extraSmall)
+                        .padding(Spacing.lg),
+                ) {
+                    PrimaryButton(
+                        label = if (state.saving) "Saving…" else "Save changes",
+                        onClick = viewModel::onSave,
+                        enabled = state.canSave,
+                        loading = state.saving,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        },
     ) { inner ->
         Box(
             modifier = Modifier
@@ -76,7 +111,6 @@ fun EngineerProfileScreen(
                     onSpecializationsChange = viewModel::onSpecializationsChange,
                     onBioChange = viewModel::onBioChange,
                     onAvailableChange = viewModel::onAvailableChange,
-                    onSave = viewModel::onSave,
                 )
             }
         }
@@ -92,7 +126,6 @@ private fun EngineerProfileForm(
     onSpecializationsChange: (String) -> Unit,
     onBioChange: (String) -> Unit,
     onAvailableChange: (Boolean) -> Unit,
-    onSave: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -101,6 +134,8 @@ private fun EngineerProfileForm(
             .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
+        AvatarHeader()
+
         SectionHeader(title = "Rates & experience")
 
         OutlinedTextField(
@@ -191,13 +226,42 @@ private fun EngineerProfileForm(
         }
 
         ErrorBanner(message = state.errorMessage)
-
-        PrimaryButton(
-            label = if (state.saving) "Saving…" else "Save",
-            onClick = onSave,
-            enabled = state.canSave,
-            loading = state.saving,
-            modifier = Modifier.fillMaxWidth(),
-        )
     }
+}
+
+@Composable
+private fun AvatarHeader() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = Spacing.xs, bottom = Spacing.lg),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(modifier = Modifier.size(96.dp), contentAlignment = Alignment.BottomEnd) {
+            BrandedPlaceholder(
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(CircleShape),
+                shape = CircleShape,
+                logoSize = 52.dp,
+            )
+            // Camera overlay button — brand-600 bg, white border, white icon.
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(BrandGreen)
+                    .border(2.dp, Color.White, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.PhotoCamera,
+                    contentDescription = "Change photo",
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+    }
+    Spacer(Modifier.height(Spacing.xs))
 }

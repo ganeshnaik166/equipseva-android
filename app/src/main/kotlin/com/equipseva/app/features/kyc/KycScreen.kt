@@ -72,22 +72,18 @@ import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.designsystem.components.AppProgress
 import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.SecureScreen
-import com.equipseva.app.designsystem.theme.ErrorBg
-import com.equipseva.app.designsystem.theme.ErrorRed
-import com.equipseva.app.designsystem.theme.Info
-import com.equipseva.app.designsystem.theme.InfoBg
+import com.equipseva.app.designsystem.components.StatusBanner
+import com.equipseva.app.designsystem.components.StatusBannerTone
+import com.equipseva.app.designsystem.components.TonalButton
 import com.equipseva.app.designsystem.theme.Ink300
 import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Ink700
 import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.designsystem.theme.Success
-import com.equipseva.app.designsystem.theme.SuccessBg
 import com.equipseva.app.designsystem.theme.Surface0
 import com.equipseva.app.designsystem.theme.Surface50
 import com.equipseva.app.designsystem.theme.Surface200
-import com.equipseva.app.designsystem.theme.Warning
-import com.equipseva.app.designsystem.theme.WarningBg
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
@@ -225,7 +221,7 @@ private fun KycForm(
             .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
-        StatusBanner(status = state.verificationStatus, aadhaarVerified = state.aadhaarVerified)
+        KycStatusBanner(status = state.verificationStatus, aadhaarVerified = state.aadhaarVerified)
 
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             AppProgress(value = uploadedCount, total = required)
@@ -367,78 +363,49 @@ private fun KycForm(
 }
 
 @Composable
-private fun StatusBanner(status: VerificationStatus, aadhaarVerified: Boolean) {
-    // Map domain statuses to the design's banner palette.
-    val (bg, fg, label, subtitle, icon) = when (status) {
-        VerificationStatus.Verified -> BannerStyle(
-            bg = SuccessBg,
-            fg = Success,
-            label = "Verified",
-            subtitle = "You can accept jobs.",
-            icon = Icons.Filled.Verified,
+private fun KycStatusBanner(status: VerificationStatus, aadhaarVerified: Boolean) {
+    val (tone, title, message, icon) = when (status) {
+        VerificationStatus.Verified -> Quad(
+            StatusBannerTone.Success,
+            "Verified",
+            "You can accept jobs.",
+            Icons.Filled.Verified,
         )
-        VerificationStatus.Rejected -> BannerStyle(
-            bg = ErrorBg,
-            fg = ErrorRed,
-            label = "Rejected",
-            subtitle = "Re-upload the flagged documents.",
-            icon = Icons.Filled.Error,
+        VerificationStatus.Rejected -> Quad(
+            StatusBannerTone.Danger,
+            "Rejected",
+            "Re-upload the flagged documents.",
+            Icons.Filled.Error,
         )
         VerificationStatus.Pending -> if (aadhaarVerified) {
-            BannerStyle(
-                bg = InfoBg,
-                fg = Info,
-                label = "Submitted for review",
-                subtitle = "Typically takes 24 hours.",
-                icon = Icons.Filled.HourglassTop,
+            Quad(
+                StatusBannerTone.Info,
+                "Submitted for review",
+                "Typically takes 24 hours.",
+                Icons.Filled.HourglassTop,
             )
         } else {
-            BannerStyle(
-                bg = WarningBg,
-                fg = Warning,
-                label = "In progress",
-                subtitle = "Upload required documents to continue.",
-                icon = Icons.Filled.HourglassTop,
+            Quad(
+                StatusBannerTone.Warn,
+                "In progress",
+                "Upload required documents to continue.",
+                Icons.Filled.HourglassTop,
             )
         }
     }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(bg)
-            .padding(14.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = fg,
-            modifier = Modifier.size(24.dp),
-        )
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                text = label,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = fg,
-            )
-            Text(
-                text = subtitle,
-                fontSize = 13.sp,
-                color = Ink700,
-            )
-        }
-    }
+    StatusBanner(
+        title = title,
+        message = message,
+        tone = tone,
+        leadingIcon = icon,
+    )
 }
 
-private data class BannerStyle(
-    val bg: Color,
-    val fg: Color,
-    val label: String,
-    val subtitle: String,
+private data class Quad(
+    val tone: StatusBannerTone,
+    val title: String,
+    val message: String,
     val icon: ImageVector,
 )
 
@@ -584,10 +551,10 @@ private fun KycBottomBar(
     onSave: () -> Unit,
 ) {
     val allUploaded = aadhaarUploaded && certUploaded
-    val label = when {
-        status == VerificationStatus.Verified -> "Verified"
-        status == VerificationStatus.Pending && aadhaarUploaded && certUploaded -> "Submit for review"
-        else -> "Submit for review"
+    val label = when (status) {
+        VerificationStatus.Verified -> "Verified ✓"
+        VerificationStatus.Rejected -> "Re-upload + resubmit"
+        VerificationStatus.Pending -> "Submit for review"
     }
     val enabled = !saving && allUploaded && status != VerificationStatus.Verified
     Box(

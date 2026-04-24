@@ -70,12 +70,17 @@ import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.relativeLabel
+import com.equipseva.app.designsystem.components.BidCard
+import com.equipseva.app.designsystem.components.EquipmentBanner
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.GradientTile
+import com.equipseva.app.designsystem.components.MapPlaceholder
 import com.equipseva.app.designsystem.components.PrimaryButton
+import com.equipseva.app.designsystem.components.SecondaryButton
 import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.components.StepperStep
+import com.equipseva.app.designsystem.components.TonalButton
 import com.equipseva.app.designsystem.components.VerticalStepper
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50

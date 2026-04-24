@@ -21,8 +21,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.NearMe
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -118,6 +121,8 @@ fun RepairJobsScreen(
                     query = state.query,
                     onQueryChange = viewModel::onQueryChange,
                 )
+                // Sticky filter chip strip from design (visual-only — UI taps don't filter yet).
+                FilterChipStrip()
             }
             ErrorBanner(
                 message = bannerMessage,
@@ -261,6 +266,52 @@ private fun SearchHeader(query: String, onQueryChange: (String) -> Unit) {
 }
 
 @Composable
+private fun FilterChipStrip() {
+    // Display-only filter chips — backend filtering not wired yet (UI parity with design).
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = Spacing.lg)
+            .padding(bottom = Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        FilterPill(label = "10 km", icon = Icons.Filled.NearMe, selected = true)
+        FilterPill(label = "Severity", icon = Icons.Outlined.Tune)
+        FilterPill(label = "Equipment", icon = Icons.Outlined.Tune)
+        FilterPill(label = "Pay range", icon = Icons.Filled.Payments)
+    }
+}
+
+@Composable
+private fun FilterPill(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    selected: Boolean = false,
+) {
+    val bg = if (selected) BrandGreen else MaterialTheme.colorScheme.surface
+    val fg = if (selected) Color.White else BrandGreenDark
+    val border = if (selected) BrandGreen else Surface200
+    Row(
+        modifier = Modifier
+            .height(32.dp)
+            .background(bg, androidx.compose.foundation.shape.RoundedCornerShape(50))
+            .border(1.dp, border, androidx.compose.foundation.shape.RoundedCornerShape(50))
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(icon, contentDescription = null, tint = fg, modifier = Modifier.size(14.dp))
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = fg,
+        )
+    }
+}
+
+@Composable
 private fun InitialShimmerList() {
     Column(modifier = Modifier.fillMaxSize()) {
         repeat(4) { ShimmerListItem() }
@@ -282,8 +333,8 @@ private fun EmptyState(query: String, tab: EngineerJobsTab) {
         )
         else -> EmptyStateView(
             icon = Icons.Outlined.Build,
-            title = "No open jobs nearby",
-            subtitle = "Posted jobs will show up here.",
+            title = "No jobs in your radius",
+            subtitle = "Try widening your radius or check again soon.",
         )
     }
 }

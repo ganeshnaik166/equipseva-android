@@ -24,6 +24,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,10 +47,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -52,17 +61,22 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.chat.ChatMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
+import com.equipseva.app.designsystem.components.EquipmentArt
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.GradientTile
+import com.equipseva.app.designsystem.components.TypingIndicator
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
 import com.equipseva.app.designsystem.theme.Ink500
+import com.equipseva.app.designsystem.theme.Ink700
 import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Success
 import com.equipseva.app.designsystem.theme.Surface100
 import com.equipseva.app.designsystem.theme.Surface200
 import com.equipseva.app.designsystem.theme.Surface50
-import androidx.compose.material.icons.outlined.ChatBubbleOutline
-import androidx.compose.material.icons.outlined.CloudSync
+import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -88,6 +102,9 @@ fun ChatScreen(
             listState.animateScrollToItem(state.messages.lastIndex)
         }
     }
+
+    // Visual polish: typing indicator stub. ViewModel does not currently expose typing state.
+    val isTyping = false
 
     Scaffold(
         containerColor = Surface50,
@@ -123,25 +140,65 @@ fun ChatScreen(
                     title = "Say hello",
                     subtitle = "This is the start of your conversation.",
                 )
-                else -> LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        horizontal = 14.dp,
-                        vertical = Spacing.md,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    items(items = state.messages, key = { it.id }) { msg ->
-                        MessageRow(
-                            message = msg,
-                            isSelf = msg.senderUserId == state.selfUserId,
-                        )
+                else -> {
+                    val grouped = remember(state.messages) { groupByDay(state.messages) }
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            horizontal = 14.dp,
+                            vertical = Spacing.md,
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        grouped.forEach { (label, msgs) ->
+                            item(key = "header_$label") {
+                                DayHeader(label = label)
+                            }
+                            items(items = msgs, key = { it.id }) { msg ->
+                                MessageRow(
+                                    message = msg,
+                                    isSelf = msg.senderUserId == state.selfUserId,
+                                )
+                            }
+                        }
+                        if (isTyping) {
+                            item(key = "typing") {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = Spacing.sm),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    TypingIndicator()
+                                    Text(
+                                        text = "typing…",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Ink500,
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun DayHeader(label: String) {
+    Text(
+        text = label.uppercase(),
+        style = MaterialTheme.typography.labelSmall,
+        color = Ink500,
+        fontWeight = FontWeight.SemiBold,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = Spacing.sm),
+    )
 }
 
 @Composable
@@ -182,9 +239,9 @@ private fun ChatTopBar(title: String, onBack: () -> Unit) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                    .padding(horizontal = Spacing.sm, vertical = Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
                 IconButton(onClick = onBack) {
                     Icon(
@@ -193,15 +250,47 @@ private fun ChatTopBar(title: String, onBack: () -> Unit) {
                         tint = Ink900,
                     )
                 }
-                InitialsAvatar(name = title, size = 38.dp)
-                Text(
-                    text = title,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Ink900,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f),
-                )
+                InitialsAvatar(name = title, size = 32.dp)
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = title,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Ink900,
+                            maxLines = 1,
+                        )
+                        Icon(
+                            imageVector = Icons.Default.Verified,
+                            contentDescription = "Verified",
+                            tint = BrandGreen,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
+                    Text(
+                        text = "Online",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Success,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                IconButton(onClick = { /* call hook (visual polish only) */ }) {
+                    Icon(
+                        imageVector = Icons.Default.Call,
+                        contentDescription = "Call",
+                        tint = Ink700,
+                    )
+                }
+                IconButton(onClick = { /* more hook (visual polish only) */ }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More",
+                        tint = Ink700,
+                    )
+                }
             }
             Box(
                 modifier = Modifier
@@ -214,7 +303,7 @@ private fun ChatTopBar(title: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun InitialsAvatar(name: String, size: androidx.compose.ui.unit.Dp) {
+private fun InitialsAvatar(name: String, size: Dp) {
     val initials = name
         .split(" ", limit = 2)
         .mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
@@ -230,7 +319,7 @@ private fun InitialsAvatar(name: String, size: androidx.compose.ui.unit.Dp) {
     ) {
         Text(
             text = initials,
-            fontSize = (size.value * 0.32f).sp,
+            fontSize = (size.value * 0.36f).sp,
             fontWeight = FontWeight.Bold,
             color = BrandGreen,
         )
@@ -239,7 +328,7 @@ private fun InitialsAvatar(name: String, size: androidx.compose.ui.unit.Dp) {
 
 @Composable
 private fun MessageRow(message: ChatMessage, isSelf: Boolean) {
-    val bubbleColor = if (isSelf) BrandGreen else MaterialTheme.colorScheme.surface
+    val bubbleColor = if (isSelf) BrandGreen else BrandGreen50
     val textColor = if (isSelf) Color.White else Ink900
     val shape = if (isSelf) {
         RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 4.dp)
@@ -255,28 +344,37 @@ private fun MessageRow(message: ChatMessage, isSelf: Boolean) {
                 .widthIn(max = 280.dp)
                 .clip(shape)
                 .background(bubbleColor)
-                .then(
-                    if (!isSelf) Modifier.border(1.dp, Surface200, shape) else Modifier,
-                )
                 .padding(horizontal = 14.dp, vertical = 10.dp),
         ) {
             Column {
                 val images = message.attachments.filter { it.isImageUrl() }
                 if (images.isNotEmpty()) {
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.padding(bottom = if (message.message.isNotBlank()) 6.dp else 0.dp),
                     ) {
                         images.forEach { url ->
-                            AsyncImage(
-                                model = url,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
+                            Box(
                                 modifier = Modifier
-                                    .widthIn(max = 220.dp)
-                                    .height(160.dp)
+                                    .size(200.dp)
                                     .clip(RoundedCornerShape(12.dp)),
-                            )
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                // Placeholder gradient art behind the actual image (matches design tile).
+                                GradientTile(
+                                    art = EquipmentArt.Image,
+                                    hue = 160,
+                                    size = 200.dp,
+                                )
+                                AsyncImage(
+                                    model = url,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(200.dp)
+                                        .clip(RoundedCornerShape(12.dp)),
+                                )
+                            }
                         }
                     }
                 }
@@ -327,16 +425,30 @@ private fun ChatInputBar(
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
+                // Leading attachment / add button — circular surface.
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Surface50),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Attach",
+                        tint = Ink700,
+                    )
+                }
+                // Rounded input pill (24dp), multi-line capable.
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(42.dp)
-                        .clip(CircleShape)
-                        .border(1.dp, Surface200, CircleShape)
+                        .clip(RoundedCornerShape(24.dp))
+                        .border(1.dp, Surface200, RoundedCornerShape(24.dp))
                         .background(MaterialTheme.colorScheme.surface)
-                        .padding(horizontal = 14.dp),
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
                     if (draft.isEmpty()) {
@@ -352,19 +464,21 @@ private fun ChatInputBar(
                         textStyle = TextStyle(
                             fontSize = 14.sp,
                             color = Ink900,
+                            lineHeight = 20.sp,
                         ),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                         keyboardActions = KeyboardActions(onSend = { if (canSend) onSend() }),
-                        cursorBrush = androidx.compose.ui.graphics.SolidColor(BrandGreen),
+                        cursorBrush = SolidColor(BrandGreen),
+                        maxLines = 5,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
+                // Circular send button (48dp brand-600 with white arrow).
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
-                        .background(if (canSend) BrandGreen else Surface100)
-                        .padding(10.dp),
+                        .background(if (canSend) BrandGreen else Surface100),
                     contentAlignment = Alignment.Center,
                 ) {
                     IconButton(
@@ -387,10 +501,32 @@ private fun ChatInputBar(
 private val timeFormatter = DateTimeFormatter.ofPattern("h:mm a").withZone(ZoneId.systemDefault())
 
 private fun formatTime(iso: String?): String? =
-    iso?.let { runCatching { timeFormatter.format(java.time.Instant.parse(it)) }.getOrNull() }
+    iso?.let { runCatching { timeFormatter.format(Instant.parse(it)) }.getOrNull() }
 
 private fun String.isImageUrl(): Boolean {
     val lower = substringBefore('?').lowercase()
     return lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") ||
         lower.endsWith(".webp") || lower.endsWith(".gif") || lower.endsWith(".heic")
+}
+
+// Group messages by day label ("Today", "Yesterday", or "MMM d") preserving insertion order.
+private fun groupByDay(messages: List<ChatMessage>): List<Pair<String, List<ChatMessage>>> {
+    val zone = ZoneId.systemDefault()
+    val today = LocalDate.now(zone)
+    val yesterday = today.minusDays(1)
+    val dayFormatter = DateTimeFormatter.ofPattern("MMM d")
+    val out = linkedMapOf<String, MutableList<ChatMessage>>()
+    messages.forEach { msg ->
+        val instant = msg.createdAtInstant
+        val label = if (instant != null) {
+            val d = instant.atZone(zone).toLocalDate()
+            when (d) {
+                today -> "Today"
+                yesterday -> "Yesterday"
+                else -> d.format(dayFormatter)
+            }
+        } else "Today"
+        out.getOrPut(label) { mutableListOf() }.add(msg)
+    }
+    return out.map { (k, v) -> k to v.toList() }
 }

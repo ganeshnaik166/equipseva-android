@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Inventory
-import androidx.compose.material.icons.outlined.MedicalServices
 import android.content.Intent
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -45,11 +43,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
@@ -59,12 +55,17 @@ import com.equipseva.app.core.data.orders.OrderStatus
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
+import com.equipseva.app.designsystem.components.EquipmentArt
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.GradientTile
+import com.equipseva.app.designsystem.components.MapPlaceholder
+import com.equipseva.app.designsystem.components.PrimaryButton
 import com.equipseva.app.designsystem.components.SecureScreen
 import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.components.StepperStep
+import com.equipseva.app.designsystem.components.TonalButton
 import com.equipseva.app.designsystem.components.VerticalStepper
+import com.equipseva.app.designsystem.theme.BrandGreenDark
 import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Ink700
 import com.equipseva.app.designsystem.theme.Ink900
@@ -241,6 +242,26 @@ private fun OrderDetailBody(
             item("notes_card") { NotesCard(notes) }
         }
 
+        item("actions") {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                TonalButton(
+                    label = "View invoice",
+                    onClick = { /* invoice not yet wired */ },
+                    modifier = Modifier.weight(1f),
+                )
+                PrimaryButton(
+                    label = "Reorder",
+                    onClick = { /* reorder not yet wired */ },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
         if (order.status == OrderStatus.PLACED || order.status == OrderStatus.CONFIRMED) {
             item("cancel") {
                 OutlinedButton(
@@ -293,7 +314,7 @@ private fun OrderItemsCard(order: Order) {
         if (order.lineItems.isEmpty()) {
             Text(
                 text = "Line-item details weren't available for this order.",
-                fontSize = 13.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 color = Ink500,
                 modifier = Modifier.padding(Spacing.md),
             )
@@ -317,7 +338,7 @@ private fun OrderItemsCard(order: Order) {
 
 @Composable
 private fun LineItemRow(line: OrderLineItem) {
-    val (hue, icon) = iconFor(line.name)
+    val (hue, art) = iconFor(line.name)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -336,12 +357,12 @@ private fun LineItemRow(line: OrderLineItem) {
                     .clip(MaterialTheme.shapes.small),
             )
         } else {
-            GradientTile(icon = icon, hue = hue, size = 56.dp)
+            GradientTile(art = art, hue = hue, size = 56.dp)
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = line.name,
-                fontSize = 13.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = Ink900,
                 maxLines = 2,
@@ -349,22 +370,22 @@ private fun LineItemRow(line: OrderLineItem) {
             line.partNumber?.takeIf { it.isNotBlank() }?.let {
                 Text(
                     text = "Part #$it",
-                    fontSize = 11.sp,
+                    style = MaterialTheme.typography.labelSmall,
                     color = Ink500,
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
             Text(
                 text = "Qty ${line.quantity} · ${formatRupees(line.unitPriceRupees)} each",
-                fontSize = 12.sp,
+                style = MaterialTheme.typography.labelMedium,
                 color = Ink500,
                 modifier = Modifier.padding(top = 2.dp),
             )
         }
         Text(
             text = formatRupees(line.lineSubtotalRupees),
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
             color = Ink900,
         )
     }
@@ -379,18 +400,14 @@ private fun DeliveryCard(order: Order) {
         order.shippingPincode?.takeIf { it.isNotBlank() },
     ).joinToString(", ")
 
+    val locationHeadline = order.locationLine?.takeIf { it.isNotBlank() } ?: "Delivery address"
+
     OutlinedSurfaceCard(modifier = Modifier.padding(horizontal = Spacing.lg)) {
         Column(
             modifier = Modifier.padding(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            val locationHeadline = order.locationLine?.takeIf { it.isNotBlank() } ?: "Delivery address"
-            Text(
-                text = locationHeadline,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = Ink900,
-            )
+            MapPlaceholder(addressLine = locationHeadline)
             val addressParts = listOfNotNull(
                 order.shippingAddress?.takeIf { it.isNotBlank() },
                 order.shippingPincode?.takeIf { it.isNotBlank() }?.let { "PIN $it" },
@@ -398,8 +415,7 @@ private fun DeliveryCard(order: Order) {
             if (addressParts.isNotEmpty()) {
                 Text(
                     text = addressParts.joinToString(", "),
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = Ink700,
                 )
             }
@@ -413,7 +429,7 @@ private fun DeliveryCard(order: Order) {
                         )
                         runCatching { context.startActivity(intent) }
                     },
-                    modifier = Modifier.padding(top = Spacing.sm),
+                    modifier = Modifier.padding(top = Spacing.xs),
                 ) {
                     Text("View on map")
                 }
@@ -428,8 +444,7 @@ private fun NotesCard(notes: String) {
     OutlinedSurfaceCard(modifier = Modifier.padding(horizontal = Spacing.lg)) {
         Text(
             text = notes,
-            fontSize = 13.sp,
-            lineHeight = 18.sp,
+            style = MaterialTheme.typography.bodyMedium,
             color = Ink700,
             modifier = Modifier.padding(Spacing.lg),
         )
@@ -466,9 +481,9 @@ private fun OrderSummaryCard(order: Order) {
             if (paymentLabel != null) {
                 Text(
                     text = "Payment · $paymentLabel",
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.labelMedium,
                     color = Ink500,
-                    modifier = Modifier.padding(top = 4.dp),
+                    modifier = Modifier.padding(top = Spacing.xs),
                 )
             }
         }
@@ -480,18 +495,19 @@ private fun SummaryRow(label: String, value: String, emphasized: Boolean = false
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = label,
-            fontSize = if (emphasized) 14.sp else 13.sp,
-            fontWeight = if (emphasized) FontWeight.Bold else FontWeight.Normal,
+            style = if (emphasized) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
+            fontWeight = if (emphasized) FontWeight.SemiBold else FontWeight.Normal,
             color = if (emphasized) Ink900 else Ink700,
         )
         Text(
             text = value,
-            fontSize = if (emphasized) 14.sp else 13.sp,
-            fontWeight = if (emphasized) FontWeight.Bold else FontWeight.SemiBold,
-            color = if (emphasized) Ink900 else Ink700,
+            style = if (emphasized) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = if (emphasized) BrandGreenDark else Ink700,
         )
     }
 }
@@ -514,14 +530,14 @@ private fun OutlinedSurfaceCard(
     }
 }
 
-private fun iconFor(name: String): Pair<Int, ImageVector> {
+private fun iconFor(name: String): Pair<Int, EquipmentArt> {
     val n = name.lowercase()
     return when {
-        "ecg" in n || "electrode" in n || "monitor" in n -> 40 to Icons.Outlined.MedicalServices
-        "spo" in n || "sensor" in n -> 330 to Icons.Outlined.MedicalServices
-        "mri" in n || "ct" in n || "x-ray" in n || "xray" in n || "ultrasound" in n -> 200 to Icons.Outlined.MedicalServices
-        "pump" in n || "tubing" in n -> 280 to Icons.Outlined.MedicalServices
-        "ventilator" in n -> 0 to Icons.Outlined.MedicalServices
-        else -> 150 to Icons.Outlined.MedicalServices
+        "ecg" in n || "electrode" in n || "monitor" in n -> 40 to EquipmentArt.MonitorHeart
+        "spo" in n || "sensor" in n -> 330 to EquipmentArt.MedicalServices
+        "mri" in n || "ct" in n || "x-ray" in n || "xray" in n || "ultrasound" in n -> 200 to EquipmentArt.Radiology
+        "pump" in n || "tubing" in n -> 280 to EquipmentArt.MedicalServices
+        "ventilator" in n -> 0 to EquipmentArt.Air
+        else -> 150 to EquipmentArt.MedicalServices
     }
 }
