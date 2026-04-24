@@ -58,6 +58,7 @@ import com.equipseva.app.features.marketplace.PartDetailScreen
 import com.equipseva.app.features.mybids.MyBidsScreen
 import com.equipseva.app.features.orders.OrderDetailScreen
 import com.equipseva.app.features.orders.OrdersScreen
+import com.equipseva.app.features.orders.RateOrderScreen
 import com.equipseva.app.features.profile.ProfileScreen
 import com.equipseva.app.features.repair.RepairJobDetailScreen
 import com.equipseva.app.features.repair.RepairJobsScreen
@@ -87,6 +88,7 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.CART,
     Routes.CHECKOUT,
     Routes.ORDER_DETAIL,
+    Routes.RATE_ORDER,
     Routes.REPAIR_DETAIL,
     Routes.CONVERSATIONS,
     Routes.CHAT_DETAIL,
@@ -258,6 +260,20 @@ fun MainNavGraph(
                 ),
             ) {
                 OrderDetailScreen(
+                    onBack = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
+                    onRateOrder = { orderId ->
+                        navController.navigate(Routes.rateOrderRoute(orderId))
+                    },
+                )
+            }
+            composable(
+                route = "${Routes.RATE_ORDER}/{${Routes.RATE_ORDER_ARG_ID}}",
+                arguments = listOf(
+                    navArgument(Routes.RATE_ORDER_ARG_ID) { type = NavType.StringType },
+                ),
+            ) {
+                RateOrderScreen(
                     onBack = { navController.popBackStack() },
                     onShowMessage = showSnackbar,
                 )

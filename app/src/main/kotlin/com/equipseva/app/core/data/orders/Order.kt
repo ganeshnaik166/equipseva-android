@@ -7,6 +7,7 @@ import java.time.Instant
 data class Order(
     val id: String,
     val orderNumber: String?,
+    val supplierOrgId: String?,
     val status: OrderStatus,
     val paymentStatus: String?,
     val paymentId: String?,
@@ -47,6 +48,7 @@ internal fun OrderDto.toDomain(): Order {
     return Order(
         id = id,
         orderNumber = orderNumber,
+        supplierOrgId = supplierOrgId,
         status = OrderStatus.fromKey(orderStatus),
         paymentStatus = paymentStatus,
         paymentId = paymentId,

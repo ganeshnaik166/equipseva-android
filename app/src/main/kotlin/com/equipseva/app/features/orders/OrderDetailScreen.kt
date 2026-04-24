@@ -73,6 +73,7 @@ import com.equipseva.app.designsystem.theme.Surface200
 fun OrderDetailScreen(
     onBack: () -> Unit,
     onShowMessage: (String) -> Unit = {},
+    onRateOrder: (String) -> Unit = {},
     viewModel: OrderDetailViewModel = hiltViewModel(),
 ) {
     SecureScreen()
@@ -151,7 +152,9 @@ fun OrderDetailScreen(
                     padding = PaddingValues(0.dp),
                     errorMessage = state.errorMessage ?: state.cancellationError,
                     cancellationInFlight = state.cancellationInFlight,
+                    canRateOrder = state.canRateOrder,
                     onRequestCancel = viewModel::onRequestCancel,
+                    onRateOrder = { onRateOrder(state.order!!.id) },
                 )
 
                 else -> Column(Modifier.fillMaxSize()) {
@@ -181,7 +184,9 @@ private fun OrderDetailBody(
     padding: PaddingValues,
     errorMessage: String?,
     cancellationInFlight: Boolean,
+    canRateOrder: Boolean,
     onRequestCancel: () -> Unit,
+    onRateOrder: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier
@@ -214,6 +219,19 @@ private fun OrderDetailBody(
         if (notes != null) {
             item("notes_header") { SectionHeader(title = "Notes") }
             item("notes_card") { NotesCard(notes) }
+        }
+
+        if (canRateOrder) {
+            item("rate") {
+                OutlinedButton(
+                    onClick = onRateOrder,
+                    modifier = Modifier
+                        .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
+                        .fillMaxWidth(),
+                ) {
+                    Text("Rate this order")
+                }
+            }
         }
 
         if (order.status == OrderStatus.PLACED || order.status == OrderStatus.CONFIRMED) {
