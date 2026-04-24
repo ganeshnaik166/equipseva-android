@@ -1,7 +1,9 @@
 package com.equipseva.app.features.chat
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,6 +55,7 @@ import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.chat.ChatMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.ReportContentSheet
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
 import com.equipseva.app.designsystem.theme.Ink500
@@ -136,11 +139,21 @@ fun ChatScreen(
                         MessageRow(
                             message = msg,
                             isSelf = msg.senderUserId == state.selfUserId,
+                            onReport = viewModel::onOpenReport,
                         )
                     }
                 }
             }
         }
+    }
+
+    if (state.reportingMessageId != null) {
+        ReportContentSheet(
+            titleLabel = "Report this message",
+            submitting = state.submittingReport,
+            onDismiss = viewModel::onDismissReport,
+            onSubmit = viewModel::onSubmitReport,
+        )
     }
 }
 
@@ -237,8 +250,13 @@ private fun InitialsAvatar(name: String, size: androidx.compose.ui.unit.Dp) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun MessageRow(message: ChatMessage, isSelf: Boolean) {
+private fun MessageRow(
+    message: ChatMessage,
+    isSelf: Boolean,
+    onReport: (String) -> Unit = {},
+) {
     val bubbleColor = if (isSelf) BrandGreen else MaterialTheme.colorScheme.surface
     val textColor = if (isSelf) Color.White else Ink900
     val shape = if (isSelf) {
@@ -257,6 +275,10 @@ private fun MessageRow(message: ChatMessage, isSelf: Boolean) {
                 .background(bubbleColor)
                 .then(
                     if (!isSelf) Modifier.border(1.dp, Surface200, shape) else Modifier,
+                )
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = if (!isSelf) { { onReport(message.id) } } else null,
                 )
                 .padding(horizontal = 14.dp, vertical = 10.dp),
         ) {

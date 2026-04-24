@@ -9,6 +9,9 @@ import com.equipseva.app.core.data.chat.ChatMessage
 import com.equipseva.app.core.data.chat.ChatMessagePayload
 import com.equipseva.app.core.data.chat.ChatRepository
 import com.equipseva.app.core.data.dao.OutboxDao
+import com.equipseva.app.core.data.moderation.ContentReportReason
+import com.equipseva.app.core.data.moderation.ContentReportRepository
+import com.equipseva.app.core.data.moderation.ContentReportTarget
 import com.equipseva.app.core.data.profile.Profile
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
@@ -39,6 +42,7 @@ class ChatViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val outboxEnqueuer: OutboxEnqueuer,
     private val outboxDao: OutboxDao,
+    private val reportRepository: ContentReportRepository,
     private val json: Json,
 ) : ViewModel() {
 
@@ -50,6 +54,8 @@ class ChatViewModel @Inject constructor(
         val draft: String = "",
         val sending: Boolean = false,
         val queuedCount: Int = 0,
+        val reportingMessageId: String? = null,
+        val submittingReport: Boolean = false,
         val errorMessage: String? = null,
     ) {
         val title: String
@@ -106,6 +112,35 @@ class ChatViewModel @Inject constructor(
                 .onSuccess {
                     _state.update { it.copy(sending = false) }
                 }
+        }
+    }
+
+    fun onOpenReport(messageId: String) {
+        _state.update { it.copy(reportingMessageId = messageId) }
+    }
+
+    fun onDismissReport() {
+        if (_state.value.submittingReport) return
+        _state.update { it.copy(reportingMessageId = null) }
+    }
+
+    fun onSubmitReport(reason: ContentReportReason, notes: String?) {
+        val id = _state.value.reportingMessageId ?: return
+        if (_state.value.submittingReport) return
+        _state.update { it.copy(submittingReport = true) }
+        viewModelScope.launch {
+            reportRepository.submitReport(
+                target = ContentReportTarget.ChatMessage,
+                targetId = id,
+                reason = reason,
+                notes = notes,
+            ).onSuccess {
+                _state.update { it.copy(submittingReport = false, reportingMessageId = null) }
+                _effects.send(Effect.ShowMessage("Thanks — our team will review this."))
+            }.onFailure { err ->
+                _state.update { it.copy(submittingReport = false) }
+                _effects.send(Effect.ShowMessage(err.toUserMessage()))
+            }
         }
     }
 
