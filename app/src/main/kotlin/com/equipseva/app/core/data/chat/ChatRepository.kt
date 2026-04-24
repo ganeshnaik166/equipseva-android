@@ -6,6 +6,13 @@ interface ChatRepository {
     /** Emits the latest list of conversations the user participates in, ordered newest-first. */
     fun observeConversations(userId: String): Flow<List<ChatConversation>>
 
+    /**
+     * One-shot fetch of the conversations list for pull-to-refresh / manual reload.
+     * Mirrors the same server query used by [observeConversations]. Safe to call while
+     * the realtime channel is active — it does not interfere with the subscription.
+     */
+    suspend fun refreshConversations(userId: String): Result<List<ChatConversation>>
+
     /** Emits the message list for a conversation; re-emits on realtime inserts. */
     fun observeMessages(conversationId: String): Flow<List<ChatMessage>>
 

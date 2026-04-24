@@ -47,6 +47,10 @@ class SupabaseChatRepository @Inject constructor(
         }
     }.flowOn(Dispatchers.IO)
 
+    override suspend fun refreshConversations(userId: String): Result<List<ChatConversation>> = runCatching {
+        fetchConversationsFor(userId)
+    }
+
     override fun observeMessages(conversationId: String): Flow<List<ChatMessage>> = callbackFlow {
         suspend fun refresh() {
             runCatching { fetchMessagesFor(conversationId) }.onSuccess { trySend(it) }
