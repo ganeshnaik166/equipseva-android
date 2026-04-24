@@ -18,7 +18,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Inventory
 import androidx.compose.material.icons.outlined.MedicalServices
 import android.content.Intent
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,7 +27,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.ContentCopy
@@ -39,9 +37,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,6 +52,7 @@ import com.equipseva.app.core.data.orders.Order
 import com.equipseva.app.core.data.orders.OrderLineItem
 import com.equipseva.app.core.data.orders.OrderStatus
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.designsystem.components.CancelOrderSheet
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
@@ -82,7 +78,6 @@ fun OrderDetailScreen(
     SecureScreen()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    var cancelDialogOpen by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
@@ -156,7 +151,7 @@ fun OrderDetailScreen(
                     padding = PaddingValues(0.dp),
                     errorMessage = state.errorMessage ?: state.cancellationError,
                     cancellationInFlight = state.cancellationInFlight,
-                    onRequestCancel = { cancelDialogOpen = true },
+                    onRequestCancel = viewModel::onRequestCancel,
                 )
 
                 else -> Column(Modifier.fillMaxSize()) {
@@ -169,33 +164,13 @@ fun OrderDetailScreen(
         }
     }
 
-    if (cancelDialogOpen) {
-        AlertDialog(
-            onDismissRequest = {
-                if (!state.cancellationInFlight) cancelDialogOpen = false
-            },
-            title = { Text("Cancel this order?") },
-            text = {
-                Text("This cannot be undone. Any payment will be refunded per supplier policy.")
-            },
-            confirmButton = {
-                TextButton(
-                    enabled = !state.cancellationInFlight,
-                    onClick = {
-                        cancelDialogOpen = false
-                        viewModel.onCancelOrder()
-                    },
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
-                    ),
-                ) { Text("Cancel order") }
-            },
-            dismissButton = {
-                TextButton(
-                    enabled = !state.cancellationInFlight,
-                    onClick = { cancelDialogOpen = false },
-                ) { Text("Keep order") }
-            },
+    if (state.cancelSheetOpen) {
+        CancelOrderSheet(
+            reason = state.cancelReasonDraft,
+            cancelling = state.cancellationInFlight,
+            onReasonChange = viewModel::onCancelReasonChange,
+            onConfirm = viewModel::onConfirmCancel,
+            onDismiss = viewModel::onDismissCancelSheet,
         )
     }
 }

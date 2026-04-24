@@ -29,8 +29,12 @@ interface OrderRepository {
      * Cancel an order placed by the buyer. Sets both `order_status` and `payment_status` to
      * `cancelled`. Server-side trigger in 20260419000000_razorpay_verification_rls.sql allows
      * the anon role to flip to these non-terminal cancelled states.
+     *
+     * [reason] is an optional free-text note the buyer can provide when cancelling. Null / blank
+     * leaves the existing `cancel_reason` column unset. Capped at 500 chars server-side
+     * (migration 20260424121059_spare_part_orders_cancel_reason.sql).
      */
-    suspend fun cancelOrder(orderId: String): Result<Unit>
+    suspend fun cancelOrder(orderId: String, reason: String? = null): Result<Unit>
 
     /**
      * Supplier acknowledges an incoming order, moving `order_status` from `placed` to

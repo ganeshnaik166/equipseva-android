@@ -31,6 +31,8 @@ class OrderDetailViewModel @Inject constructor(
         val errorMessage: String? = null,
         val cancellationInFlight: Boolean = false,
         val cancellationError: String? = null,
+        val cancelSheetOpen: Boolean = false,
+        val cancelReasonDraft: String = "",
     )
 
     sealed interface Effect {
@@ -65,18 +67,47 @@ class OrderDetailViewModel @Inject constructor(
         }
     }
 
-    fun onCancelOrder() {
+    fun onRequestCancel() {
+        if (_state.value.cancellationInFlight) return
+        _state.update {
+            it.copy(
+                cancelSheetOpen = true,
+                cancelReasonDraft = "",
+                cancellationError = null,
+            )
+        }
+    }
+
+    fun onCancelReasonChange(next: String) {
+        if (_state.value.cancellationInFlight) return
+        _state.update { it.copy(cancelReasonDraft = next.take(MAX_CANCEL_REASON_LEN)) }
+    }
+
+    fun onDismissCancelSheet() {
+        if (_state.value.cancellationInFlight) return
+        _state.update { it.copy(cancelSheetOpen = false) }
+    }
+
+    fun onConfirmCancel() {
         val current = _state.value
         if (current.cancellationInFlight) return
         val targetId = current.order?.id ?: return
+        val reason = current.cancelReasonDraft.trim().takeIf { it.isNotEmpty() }
         _state.update { it.copy(cancellationInFlight = true, cancellationError = null) }
         viewModelScope.launch {
-            orderRepository.cancelOrder(targetId)
+            orderRepository.cancelOrder(targetId, reason)
                 .onSuccess {
                     // Re-fetch so the UI sees the new status; the cancel button hides itself
                     // once order.status is no longer PLACED/CONFIRMED.
                     loadOrder()
-                    _state.update { it.copy(cancellationInFlight = false, cancellationError = null) }
+                    _state.update {
+                        it.copy(
+                            cancellationInFlight = false,
+                            cancellationError = null,
+                            cancelSheetOpen = false,
+                            cancelReasonDraft = "",
+                        )
+                    }
                     _effects.send(Effect.ShowMessage("Order cancelled"))
                 }
                 .onFailure { error ->
@@ -106,5 +137,10 @@ class OrderDetailViewModel @Inject constructor(
                     it.copy(loading = false, errorMessage = error.toUserMessage())
                 }
             }
+    }
+
+    private companion object {
+        // Matches the server-side check constraint spare_part_orders_cancel_reason_len.
+        const val MAX_CANCEL_REASON_LEN = 500
     }
 }
