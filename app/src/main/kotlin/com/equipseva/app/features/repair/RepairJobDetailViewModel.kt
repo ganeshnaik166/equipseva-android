@@ -10,12 +10,15 @@ import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.data.repair.RatingRole
 import com.equipseva.app.core.data.repair.RepairBid
+import com.equipseva.app.core.data.repair.RepairBidPayload
 import com.equipseva.app.core.data.repair.RepairBidRepository
 import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobRepository
 import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.sync.OutboxEnqueuer
+import com.equipseva.app.core.sync.OutboxKinds
 import com.equipseva.app.navigation.Routes
 import java.time.Instant
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,6 +32,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
 @HiltViewModel
@@ -40,6 +44,8 @@ class RepairJobDetailViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val engineerRepository: EngineerRepository,
     private val profileRepository: ProfileRepository,
+    private val outboxEnqueuer: OutboxEnqueuer,
+    private val json: Json,
 ) : ViewModel() {
 
     sealed interface Effect {
@@ -150,11 +156,29 @@ class RepairJobDetailViewModel @Inject constructor(
                     _messages.send(if (hadPending) "Bid updated" else "Bid submitted")
                 },
                 onFailure = { ex ->
-                    _state.update { it.copy(placingBid = false) }
-                    _messages.send(ex.toUserMessage())
+                    queueBidForRetry(amountRupees, etaHours, note)
+                    _state.update { it.copy(placingBid = false, bidComposerOpen = false) }
+                    _messages.send("Offline — bid will submit when back online")
                 },
             )
         }
+    }
+
+    private suspend fun queueBidForRetry(
+        amountRupees: Double,
+        etaHours: Int?,
+        note: String?,
+    ) {
+        val payload = json.encodeToString(
+            RepairBidPayload.serializer(),
+            RepairBidPayload(
+                jobId = jobId,
+                amountRupees = amountRupees,
+                etaHours = etaHours,
+                note = note,
+            ),
+        )
+        outboxEnqueuer.enqueue(OutboxKinds.REPAIR_BID, payload)
     }
 
     fun openChatWithHospital() {
