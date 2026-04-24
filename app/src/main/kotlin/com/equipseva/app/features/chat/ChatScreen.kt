@@ -62,6 +62,7 @@ import com.equipseva.app.designsystem.theme.Surface100
 import com.equipseva.app.designsystem.theme.Surface200
 import com.equipseva.app.designsystem.theme.Surface50
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.CloudSync
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -112,6 +113,7 @@ fun ChatScreen(
                 message = state.errorMessage,
                 modifier = Modifier.padding(horizontal = Spacing.lg),
             )
+            QueuedPill(count = state.queuedCount)
             when {
                 state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
@@ -139,6 +141,34 @@ fun ChatScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun QueuedPill(count: Int) {
+    if (count <= 0) return
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg, vertical = Spacing.xs)
+            .clip(RoundedCornerShape(12.dp))
+            .background(BrandGreen50)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.CloudSync,
+            contentDescription = null,
+            tint = BrandGreen,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = if (count == 1) "1 message queued — will send when back online"
+            else "$count messages queued — will send when back online",
+            style = MaterialTheme.typography.bodySmall,
+            color = Ink900,
+        )
     }
 }
 
