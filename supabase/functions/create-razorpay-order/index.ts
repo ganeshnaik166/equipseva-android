@@ -107,6 +107,19 @@ serve(async (req) => {
     currency: string;
   };
 
+  // Persist the Razorpay order id so verify-razorpay-payment can require
+  // a match between the client-submitted razorpay_order_id and the one we
+  // actually issued. Without this binding, an attacker could replay a
+  // signature from a cheaper Razorpay order to complete an expensive
+  // Supabase order (same buyer, different amounts).
+  const { error: persistErr } = await admin
+    .from("spare_part_orders")
+    .update({ razorpay_order_id: rzpOrder.id })
+    .eq("id", orderId);
+  if (persistErr) {
+    return bad("server_error", `failed to persist razorpay_order_id: ${persistErr.message}`, 500);
+  }
+
   return json(200, {
     ok: true,
     razorpay_order_id: rzpOrder.id,

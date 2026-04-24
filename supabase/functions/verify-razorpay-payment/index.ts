@@ -116,12 +116,26 @@ serve(async (req) => {
   const admin = createClient(supabaseUrl, serviceKey);
   const { data: order, error: fetchErr } = await admin
     .from("spare_part_orders")
-    .select("id, buyer_user_id, payment_status, order_status, total_amount")
+    .select("id, buyer_user_id, payment_status, order_status, total_amount, razorpay_order_id")
     .eq("id", order_id)
     .maybeSingle();
   if (fetchErr) return bad("server_error", fetchErr.message, 500);
   if (!order) return bad("order_not_found", "order missing", 404);
   if (order.buyer_user_id !== userId) return bad("unauthenticated", "not owner", 403);
+
+  // Require the client-submitted razorpay_order_id to match the one
+  // create-razorpay-order persisted. Without this check, HMAC alone only
+  // proves that the (razorpay_order_id, razorpay_payment_id) pair is a real
+  // signed pair — not that the pair belongs to THIS spare_part_orders row.
+  // Replay attack: attacker pays cheap order A via Razorpay, then calls
+  // verify with (our_order=B, rzp_order=rzp_A, rzp_payment=rzp_pay_A,
+  // signature=sig_A). HMAC passes, but the binding check fails.
+  if (!order.razorpay_order_id) {
+    return bad("invalid_signature", "order is not bound to a razorpay order; call create-razorpay-order first");
+  }
+  if (order.razorpay_order_id !== razorpay_order_id) {
+    return bad("invalid_signature", "razorpay_order_id does not match the order binding");
+  }
 
   // Idempotent: if already completed, return the current state.
   if (order.payment_status === "completed") {
