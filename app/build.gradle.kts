@@ -233,9 +233,15 @@ dependencies {
 //   SENTRY_PROJECT      — Sentry project slug
 // Do NOT commit a .sentryclirc with real tokens. Locally, leave them unset and
 // the plugin will skip the upload step.
+// Gate upload on env vars so local + PR-branch builds don't fail when the
+// secrets aren't wired. Plugin still generates the mapping; only the upload
+// step is skipped. When CI has SENTRY_AUTH_TOKEN + SENTRY_ORG + SENTRY_PROJECT
+// set, `autoUploadProguardMapping` flips true and deobfuscation works.
+val hasSentryCreds: Boolean = listOf("SENTRY_AUTH_TOKEN", "SENTRY_ORG", "SENTRY_PROJECT")
+    .all { (System.getenv(it) ?: "").isNotBlank() }
 sentry {
-    includeProguardMapping.set(true)
-    autoUploadProguardMapping.set(true)
+    includeProguardMapping.set(hasSentryCreds)
+    autoUploadProguardMapping.set(hasSentryCreds)
     // Native is not shipped from this module.
     uploadNativeSymbols.set(false)
     includeNativeSources.set(false)
