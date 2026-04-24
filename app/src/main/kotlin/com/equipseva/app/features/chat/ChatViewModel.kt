@@ -6,10 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.chat.ChatMessage
+import com.equipseva.app.core.data.chat.ChatMessagePayload
 import com.equipseva.app.core.data.chat.ChatRepository
 import com.equipseva.app.core.data.profile.Profile
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.sync.OutboxEnqueuer
+import com.equipseva.app.core.sync.OutboxKinds
 import com.equipseva.app.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -24,6 +27,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
 @HiltViewModel
@@ -32,6 +36,8 @@ class ChatViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val chatRepository: ChatRepository,
     private val profileRepository: ProfileRepository,
+    private val outboxEnqueuer: OutboxEnqueuer,
+    private val json: Json,
 ) : ViewModel() {
 
     data class UiState(
@@ -87,13 +93,26 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             chatRepository.sendMessage(conversationId, self, text)
                 .onFailure { error ->
-                    _state.update { it.copy(sending = false, draft = text) }
-                    _effects.send(Effect.ShowMessage(error.toUserMessage()))
+                    queueForRetry(self, text)
+                    _state.update { it.copy(sending = false) }
+                    _effects.send(Effect.ShowMessage("Offline — message will send when back online"))
                 }
                 .onSuccess {
                     _state.update { it.copy(sending = false) }
                 }
         }
+    }
+
+    private suspend fun queueForRetry(selfUserId: String, text: String) {
+        val payload = json.encodeToString(
+            ChatMessagePayload.serializer(),
+            ChatMessagePayload(
+                conversationId = conversationId,
+                senderUserId = selfUserId,
+                body = text,
+            ),
+        )
+        outboxEnqueuer.enqueue(OutboxKinds.CHAT_MESSAGE, payload)
     }
 
     private suspend fun loadConversationMeta(selfUserId: String) {

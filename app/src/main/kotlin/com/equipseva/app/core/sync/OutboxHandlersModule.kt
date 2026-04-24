@@ -1,23 +1,22 @@
 package com.equipseva.app.core.sync
 
 import dagger.Module
-import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import dagger.multibindings.Multibinds
 
 /**
  * Registry for [OutboxKindHandler]s. Feature modules contribute their own
- * handlers by adding another provider method to this module (or by creating
- * a sibling module that merges the same map).
+ * handlers via @IntoMap + @StringKey(<one of [OutboxKinds]>) bindings into
+ * the same [Map] declared here.
  *
- * This starter module intentionally provides an empty map — unknown kinds are
- * routed to "give up" by the worker so a stale entry can't livelock the queue.
- * Wire real handlers as each feature's offline support lands.
+ * Entries whose `kind` has no registered handler are dropped by the worker
+ * so a stale entry from an older build can't livelock the queue.
  */
 @Module
 @InstallIn(SingletonComponent::class)
-object OutboxHandlersModule {
+abstract class OutboxHandlersModule {
 
-    @Provides
-    fun provideHandlers(): Map<String, @JvmSuppressWildcards OutboxKindHandler> = emptyMap()
+    @Multibinds
+    abstract fun handlers(): Map<String, @JvmSuppressWildcards OutboxKindHandler>
 }
