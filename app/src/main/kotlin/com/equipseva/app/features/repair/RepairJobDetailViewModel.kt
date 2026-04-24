@@ -8,6 +8,7 @@ import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.chat.ChatRepository
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.profile.ProfileRepository
+import com.equipseva.app.core.data.repair.JobStatusPayload
 import com.equipseva.app.core.data.repair.RatingRole
 import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairBidPayload
@@ -373,11 +374,40 @@ class RepairJobDetailViewModel @Inject constructor(
                     _messages.send(successMessage)
                 },
                 onFailure = { ex ->
-                    _state.update { it.copy(updatingStatus = false) }
-                    _messages.send(ex.toUserMessage())
+                    queueStatusForRetry(
+                        jobId = job.id,
+                        target = target,
+                        startedAtEpochMs = if (setStartedAt) now.toEpochMilli() else null,
+                        completedAtEpochMs = if (setCompletedAt) now.toEpochMilli() else null,
+                    )
+                    _state.update {
+                        it.copy(
+                            updatingStatus = false,
+                            job = it.job?.copy(status = target),
+                        )
+                    }
+                    _messages.send("Offline — status change will apply when back online")
                 },
             )
         }
+    }
+
+    private suspend fun queueStatusForRetry(
+        jobId: String,
+        target: RepairJobStatus,
+        startedAtEpochMs: Long?,
+        completedAtEpochMs: Long?,
+    ) {
+        val payload = json.encodeToString(
+            JobStatusPayload.serializer(),
+            JobStatusPayload(
+                jobId = jobId,
+                newStatus = target.name,
+                startedAtEpochMs = startedAtEpochMs,
+                completedAtEpochMs = completedAtEpochMs,
+            ),
+        )
+        outboxEnqueuer.enqueue(OutboxKinds.JOB_STATUS, payload)
     }
 
     fun acceptBid(bidId: String) {

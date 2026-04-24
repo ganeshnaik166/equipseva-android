@@ -25,4 +25,9 @@ abstract class RepairModule {
     @IntoMap
     @StringKey(OutboxKinds.REPAIR_BID)
     abstract fun bindRepairBidOutboxHandler(impl: RepairBidOutboxHandler): OutboxKindHandler
+
+    @Binds
+    @IntoMap
+    @StringKey(OutboxKinds.JOB_STATUS)
+    abstract fun bindJobStatusOutboxHandler(impl: JobStatusOutboxHandler): OutboxKindHandler
 }
