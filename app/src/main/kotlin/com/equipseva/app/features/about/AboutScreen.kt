@@ -62,10 +62,9 @@ fun AboutScreen(
         ) {
             Spacer(Modifier.height(Spacing.md))
 
-            Image(
-                painter = painterResource(id = R.drawable.ic_logo_mark),
+            com.equipseva.app.designsystem.components.EquipSevaLogo(
+                height = 96.dp,
                 contentDescription = null,
-                modifier = Modifier.size(96.dp),
             )
 
             Column(

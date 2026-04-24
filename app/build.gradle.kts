@@ -53,11 +53,16 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
             isDebuggable = true
+            // Demo seed: when true, repos in core/data/demo/ shadow Supabase impls so
+            // the app renders rich sample lists without backend writes. Flip to false
+            // (or rebuild release) to hit the real Supabase project.
+            buildConfigField("boolean", "DEMO_MODE", "true")
         }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            buildConfigField("boolean", "DEMO_MODE", "false")
             // Signing config wired when keystore + Play Console access land (memory blocker).
         }
     }

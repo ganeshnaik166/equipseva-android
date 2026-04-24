@@ -2,18 +2,19 @@ package com.equipseva.app.designsystem.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Brand — matches tokens.css --brand-*
-val BrandGreen = Color(0xFF0B6E4F)        // --brand-600
-val BrandGreenDark = Color(0xFF075A40)    // --brand-700
-val BrandGreenLight = Color(0xFF2E8B6E)
-val BrandGreen50 = Color(0xFFE6F2ED)      // --brand-50
-val BrandGreen100 = Color(0xFFCFE4DB)     // --brand-100
+// Brand — deep forest green (matches design tokens.css --brand-*)
+val BrandGreen = Color(0xFF054A35)        // --brand-600
+val BrandGreenDark = Color(0xFF033524)    // --brand-700  (pressed / heading color)
+val BrandGreen800 = Color(0xFF022418)     // --brand-800
+val BrandGreenLight = Color(0xFF9FC8B6)   // --brand-200
+val BrandGreen50 = Color(0xFFE3EEE9)      // --brand-50
+val BrandGreen100 = Color(0xFFC2DCD1)     // --brand-100
 
 // Back-compat alias
 val Color98Green = BrandGreen50
 
 // Neutrals — matches tokens.css --n-*
-val Ink900 = Color(0xFF111418)            // --n-900
+val Ink900 = Color(0xFF0F1410)            // --n-900
 val Ink800 = Color(0xFF1B1F26)            // --n-800
 val Ink700 = Color(0xFF3F4650)            // --n-700
 val Ink500 = Color(0xFF6B7280)            // --n-500

@@ -34,16 +34,16 @@ private val LightColors = lightColorScheme(
 )
 
 private val DarkColors = darkColorScheme(
-    primary = BrandGreenLight,
-    onPrimary = Ink900,
+    primary = BrandGreen100,
+    onPrimary = BrandGreen800,
     primaryContainer = BrandGreenDark,
-    onPrimaryContainer = Surface0,
-    secondary = BrandGreen,
-    onSecondary = Surface0,
+    onPrimaryContainer = BrandGreen50,
+    secondary = BrandGreenLight,
+    onSecondary = BrandGreen800,
     secondaryContainer = Ink700,
     onSecondaryContainer = Surface0,
-    tertiary = BrandGreenLight,
-    onTertiary = Ink900,
+    tertiary = BrandGreen100,
+    onTertiary = BrandGreen800,
     background = Ink900,
     onBackground = Surface0,
     surface = InkSurface,

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -32,7 +33,9 @@ fun PrimaryButton(
             .fillMaxWidth()
             .height(Spacing.MinTouchTarget)
             .semantics { contentDescription = if (loading) "$label, loading" else label },
+        shape = RoundedCornerShape(percent = 50),
         colors = ButtonDefaults.buttonColors(),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,

@@ -117,10 +117,9 @@ fun WelcomeScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_logo_mark),
+                        com.equipseva.app.designsystem.components.EquipSevaLogo(
+                            height = 44.dp,
                             contentDescription = "EquipSeva logo",
-                            modifier = Modifier.size(44.dp),
                         )
                         Text(
                             text = "EquipSeva",

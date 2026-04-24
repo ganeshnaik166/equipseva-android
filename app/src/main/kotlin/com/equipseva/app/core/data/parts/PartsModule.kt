@@ -1,15 +1,22 @@
 package com.equipseva.app.core.data.parts
 
-import dagger.Binds
+import com.equipseva.app.BuildConfig
 import dagger.Module
+import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Provider
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-abstract class PartsModule {
-    @Binds
+object PartsModule {
+
+    @Provides
     @Singleton
-    abstract fun bindSparePartsRepository(impl: SupabaseSparePartsRepository): SparePartsRepository
+    fun provideSparePartsRepository(
+        supabase: Provider<SupabaseSparePartsRepository>,
+        fake: Provider<FakeSparePartsRepository>,
+    ): SparePartsRepository =
+        if (BuildConfig.DEMO_MODE) fake.get() else supabase.get()
 }

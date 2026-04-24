@@ -34,9 +34,9 @@ fun GradientTile(
     Box(
         modifier = modifier
             .size(size)
-            .clip(RoundedCornerShape(5.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(bg)
-            .border(1.dp, strokeColor, RoundedCornerShape(5.dp)),
+            .border(1.dp, strokeColor, RoundedCornerShape(8.dp)),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
