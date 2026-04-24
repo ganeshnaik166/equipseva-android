@@ -16,8 +16,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -93,6 +95,7 @@ fun ConversationsScreen(
                 message = state.errorMessage,
                 modifier = Modifier.padding(horizontal = Spacing.lg),
             )
+            QueuedPill(count = state.queuedCount)
             when {
                 state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
@@ -214,6 +217,34 @@ private fun InitialsAvatar(name: String) {
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
             color = BrandGreen,
+        )
+    }
+}
+
+@Composable
+private fun QueuedPill(count: Int) {
+    if (count <= 0) return
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg, vertical = Spacing.xs)
+            .clip(RoundedCornerShape(12.dp))
+            .background(BrandGreen50)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.CloudSync,
+            contentDescription = null,
+            tint = BrandGreen,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = if (count == 1) "1 message queued — will send when back online"
+            else "$count messages queued — will send when back online",
+            fontSize = 13.sp,
+            color = Ink900,
         )
     }
 }

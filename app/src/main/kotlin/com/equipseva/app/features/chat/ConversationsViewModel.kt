@@ -6,9 +6,11 @@ import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.chat.ChatConversation
 import com.equipseva.app.core.data.chat.ChatRepository
+import com.equipseva.app.core.data.dao.OutboxDao
 import com.equipseva.app.core.data.profile.Profile
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.sync.OutboxKinds
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +29,7 @@ class ConversationsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val chatRepository: ChatRepository,
     private val profileRepository: ProfileRepository,
+    private val outboxDao: OutboxDao,
 ) : ViewModel() {
 
     data class Row(
@@ -40,6 +43,7 @@ class ConversationsViewModel @Inject constructor(
     data class UiState(
         val loading: Boolean = true,
         val rows: List<Row> = emptyList(),
+        val queuedCount: Int = 0,
         val errorMessage: String? = null,
     )
 
@@ -61,6 +65,9 @@ class ConversationsViewModel @Inject constructor(
                 }
                 .launchIn(viewModelScope)
         }
+        outboxDao.observePendingCountByKind(OutboxKinds.CHAT_MESSAGE)
+            .onEach { count -> _state.update { it.copy(queuedCount = count) } }
+            .launchIn(viewModelScope)
     }
 
     private suspend fun buildRows(selfUserId: String, list: List<ChatConversation>) {
