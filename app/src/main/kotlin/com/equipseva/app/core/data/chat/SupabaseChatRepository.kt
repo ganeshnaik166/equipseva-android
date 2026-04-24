@@ -2,6 +2,7 @@ package com.equipseva.app.core.data.chat
 
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.realtime.PostgresAction
@@ -14,6 +15,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -163,6 +167,17 @@ class SupabaseChatRepository @Inject constructor(
             filter { eq("id", conversationId) }
             limit(count = 1)
         }.decodeList<ConversationDto>().firstOrNull()?.toDomain()
+    }
+
+    override suspend fun deleteMessage(messageId: String): Result<Unit> = runCatching {
+        // Ownership + "only deleted_at/message/attachments" guard live inside the
+        // delete_my_chat_message RPC (SECURITY DEFINER). The function raises if
+        // the row is not ours or is already tombstoned.
+        client.postgrest.rpc(
+            function = "delete_my_chat_message",
+            parameters = buildJsonObject { put("p_message_id", JsonPrimitive(messageId)) },
+        )
+        Unit
     }
 
     private suspend fun fetchConversationsFor(userId: String): List<ChatConversation> {

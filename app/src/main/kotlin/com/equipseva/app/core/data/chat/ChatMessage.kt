@@ -11,6 +11,7 @@ data class ChatMessage(
     val attachments: List<String>,
     val isRead: Boolean,
     val createdAtIso: String?,
+    val deletedAtIso: String? = null,
 ) {
     val createdAtInstant: Instant?
         get() = createdAtIso?.let {
@@ -22,6 +23,10 @@ data class ChatMessage(
                 null
             }
         }
+
+    /** True when the sender has soft-deleted this message. Body and attachments are hidden. */
+    val isDeleted: Boolean
+        get() = deletedAtIso != null
 }
 
 internal fun MessageDto.toDomain(): ChatMessage = ChatMessage(
@@ -32,4 +37,5 @@ internal fun MessageDto.toDomain(): ChatMessage = ChatMessage(
     attachments = attachments.orEmpty(),
     isRead = isRead ?: false,
     createdAtIso = createdAt,
+    deletedAtIso = deletedAt,
 )
