@@ -57,6 +57,9 @@ object Routes {
     // About screen (version, licenses, links — sub-route entered from Profile).
     const val ABOUT = "profile/about"
 
+    // Change password (sub-route entered from Profile — signed-in user changes their Supabase password).
+    const val CHANGE_PASSWORD = "profile/change_password"
+
     // Favorites (saved parts) — sub-route entered from Profile.
     const val FAVORITES = "profile/favorites"
 
