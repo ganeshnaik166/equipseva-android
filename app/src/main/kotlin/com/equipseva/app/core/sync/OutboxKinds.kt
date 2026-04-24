@@ -10,4 +10,5 @@ object OutboxKinds {
     const val REPAIR_BID = "repair_bid"
     const val JOB_STATUS = "job_status"
     const val PHOTO_UPLOAD = "photo_upload"
+    const val CART_MUTATION = "cart_mutation"
 }
