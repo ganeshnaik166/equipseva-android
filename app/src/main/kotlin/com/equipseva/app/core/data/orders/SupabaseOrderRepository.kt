@@ -75,10 +75,12 @@ class SupabaseOrderRepository @Inject constructor(
         Unit
     }
 
-    override suspend fun cancelOrder(orderId: String): Result<Unit> = runCatching {
+    override suspend fun cancelOrder(orderId: String, reason: String?): Result<Unit> = runCatching {
+        val trimmedReason = reason?.trim()?.takeIf { it.isNotEmpty() }?.take(MAX_CANCEL_REASON_LEN)
         client.from(TABLE).update({
             set("order_status", "cancelled")
             set("payment_status", "cancelled")
+            if (trimmedReason != null) set("cancel_reason", trimmedReason)
         }) {
             filter { eq("id", orderId) }
         }
@@ -117,5 +119,7 @@ class SupabaseOrderRepository @Inject constructor(
 
     private companion object {
         const val TABLE = "spare_part_orders"
+        // Matches the server-side check constraint spare_part_orders_cancel_reason_len.
+        const val MAX_CANCEL_REASON_LEN = 500
     }
 }
