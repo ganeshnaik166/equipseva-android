@@ -27,6 +27,16 @@ import javax.inject.Singleton
  * plain SharedPreferences in the app-private sandbox. Prefs here are low-value
  * (role toggle, onboarding flag, favorites) — not payment or PII — so the
  * fallback is a pragmatic trade.
+ *
+ * INVARIANT — DO NOT store any of the following in [SecurePrefs]:
+ *   - Supabase access tokens / refresh tokens (the Supabase SDK manages its own
+ *     session storage).
+ *   - Razorpay payment data (signatures, payment ids, order ids).
+ *   - PII beyond the role string (email, phone, full name, address).
+ *   - Anything that grants access if exfiltrated.
+ * The plain-prefs fallback above means a Keystore failure leaves any value
+ * here readable to any process that gains app-data access. Keep this file for
+ * cache-grade UI state only.
  */
 @Singleton
 class SecurePrefs @Inject constructor(@ApplicationContext context: Context) {

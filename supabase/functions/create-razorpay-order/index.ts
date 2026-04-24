@@ -37,17 +37,23 @@ serve(async (req) => {
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const rzpKeyId = Deno.env.get("RAZORPAY_KEY_ID");
   const rzpSecret = Deno.env.get("RAZORPAY_KEY_SECRET");
-  if (!supabaseUrl || !serviceKey || !rzpKeyId || !rzpSecret) {
+  if (!supabaseUrl || !anonKey || !serviceKey || !rzpKeyId || !rzpSecret) {
     return bad("server_error", "edge function not configured", 500);
   }
 
-  const userClient = createClient(supabaseUrl, serviceKey, {
+  // Identity check uses an anon-key client carrying the caller's bearer header so
+  // the JWT is decoded under the role it was issued for. We deliberately do NOT
+  // mix the service-role key with the caller's header — if a future supabase-js
+  // changes precedence, that pattern could silently grant service-role identity
+  // to any caller with a valid token.
+  const identityClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },
   });
-  const { data: userData, error: userErr } = await userClient.auth.getUser();
+  const { data: userData, error: userErr } = await identityClient.auth.getUser();
   if (userErr || !userData?.user?.id) {
     return bad("unauthenticated", "invalid token", 401);
   }
