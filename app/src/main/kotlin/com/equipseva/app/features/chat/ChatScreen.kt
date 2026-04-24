@@ -26,7 +26,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,7 +41,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -95,7 +100,13 @@ fun ChatScreen(
     Scaffold(
         containerColor = Surface50,
         topBar = {
-            ChatTopBar(title = state.title, onBack = onBack)
+            ChatTopBar(
+                title = state.title,
+                counterpartBlocked = state.counterpartBlocked,
+                canBlock = state.counterpart != null && !state.togglingBlock,
+                onBack = onBack,
+                onToggleBlock = viewModel::onToggleBlock,
+            )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
@@ -186,7 +197,14 @@ private fun QueuedPill(count: Int) {
 }
 
 @Composable
-private fun ChatTopBar(title: String, onBack: () -> Unit) {
+private fun ChatTopBar(
+    title: String,
+    counterpartBlocked: Boolean,
+    canBlock: Boolean,
+    onBack: () -> Unit,
+    onToggleBlock: () -> Unit,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
     Surface(
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
@@ -215,6 +233,24 @@ private fun ChatTopBar(title: String, onBack: () -> Unit) {
                     maxLines = 1,
                     modifier = Modifier.weight(1f),
                 )
+                if (canBlock) {
+                    Box {
+                        IconButton(onClick = { menuOpen = true }) {
+                            Icon(Icons.Filled.MoreVert, contentDescription = "More", tint = Ink900)
+                        }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(if (counterpartBlocked) "Unblock user" else "Block user")
+                                },
+                                onClick = {
+                                    menuOpen = false
+                                    onToggleBlock()
+                                },
+                            )
+                        }
+                    }
+                }
             }
             Box(
                 modifier = Modifier

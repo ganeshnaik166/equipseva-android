@@ -14,4 +14,10 @@ abstract class ModerationModule {
     abstract fun bindContentReportRepository(
         impl: SupabaseContentReportRepository,
     ): ContentReportRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUserBlockRepository(
+        impl: SupabaseUserBlockRepository,
+    ): UserBlockRepository
 }

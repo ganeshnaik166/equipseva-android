@@ -7,6 +7,7 @@ import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.chat.ChatConversation
 import com.equipseva.app.core.data.chat.ChatRepository
 import com.equipseva.app.core.data.dao.OutboxDao
+import com.equipseva.app.core.data.moderation.UserBlockRepository
 import com.equipseva.app.core.data.profile.Profile
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
@@ -30,6 +32,7 @@ class ConversationsViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
     private val profileRepository: ProfileRepository,
     private val outboxDao: OutboxDao,
+    private val userBlockRepository: UserBlockRepository,
 ) : ViewModel() {
 
     data class Row(
@@ -58,7 +61,15 @@ class ConversationsViewModel @Inject constructor(
             val session = authRepository.sessionState
                 .filterIsInstance<AuthSession.SignedIn>()
                 .first()
-            chatRepository.observeConversations(session.userId)
+            combine(
+                chatRepository.observeConversations(session.userId),
+                userBlockRepository.observeBlockedUserIds(),
+            ) { list, blocked ->
+                list.filter { convo ->
+                    val other = convo.counterpartId(session.userId)
+                    other == null || other !in blocked
+                }
+            }
                 .onEach { list -> buildRows(session.userId, list) }
                 .catch { error ->
                     _state.update { it.copy(loading = false, errorMessage = error.toUserMessage()) }
