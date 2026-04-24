@@ -40,4 +40,11 @@ interface ChatRepository {
 
     /** Fetch a conversation by id; null when not visible under RLS or missing. */
     suspend fun fetchById(conversationId: String): Result<ChatConversation?>
+
+    /**
+     * Soft-delete a message the caller sent. Server-side the row is preserved but
+     * the body is tombstoned and attachments cleared. Fails if the caller is not
+     * the sender or the message was already deleted.
+     */
+    suspend fun deleteMessage(messageId: String): Result<Unit>
 }

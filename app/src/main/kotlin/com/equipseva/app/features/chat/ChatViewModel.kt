@@ -149,6 +149,26 @@ class ChatViewModel @Inject constructor(
         _state.update { it.copy(reportingMessageId = messageId) }
     }
 
+    /**
+     * Soft-delete one of the caller's own messages. No-ops for counterpart messages
+     * or ones already tombstoned — the UI should not expose the affordance in those
+     * cases, but we re-check here to avoid racey taps.
+     */
+    fun onDeleteMessage(messageId: String) {
+        val snap = _state.value
+        val self = snap.selfUserId ?: return
+        val msg = snap.messages.firstOrNull { it.id == messageId } ?: return
+        if (msg.senderUserId != self || msg.isDeleted) return
+        viewModelScope.launch {
+            chatRepository.deleteMessage(messageId)
+                .onFailure { err ->
+                    _effects.send(Effect.ShowMessage(err.toUserMessage()))
+                }
+            // On success the realtime subscription refreshes the row with
+            // deleted_at populated, so no local state mutation is needed.
+        }
+    }
+
     fun onDismissReport() {
         if (_state.value.submittingReport) return
         _state.update { it.copy(reportingMessageId = null) }

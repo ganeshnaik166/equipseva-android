@@ -12,6 +12,7 @@ data class MessageDto(
     val attachments: List<String>? = null,
     @SerialName("is_read") val isRead: Boolean? = null,
     @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("deleted_at") val deletedAt: String? = null,
 )
 
 @Serializable

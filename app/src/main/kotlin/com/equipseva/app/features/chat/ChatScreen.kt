@@ -50,6 +50,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -151,6 +152,7 @@ fun ChatScreen(
                             message = msg,
                             isSelf = msg.senderUserId == state.selfUserId,
                             onReport = viewModel::onOpenReport,
+                            onDelete = viewModel::onDeleteMessage,
                         )
                     }
                 }
@@ -292,69 +294,122 @@ private fun MessageRow(
     message: ChatMessage,
     isSelf: Boolean,
     onReport: (String) -> Unit = {},
+    onDelete: (String) -> Unit = {},
 ) {
-    val bubbleColor = if (isSelf) BrandGreen else MaterialTheme.colorScheme.surface
-    val textColor = if (isSelf) Color.White else Ink900
+    val isDeleted = message.isDeleted
+    // Deleted bubbles fall back to a muted surface so the tombstone reads as disabled,
+    // regardless of sender.
+    val bubbleColor = when {
+        isDeleted -> Surface100
+        isSelf -> BrandGreen
+        else -> MaterialTheme.colorScheme.surface
+    }
+    val textColor = when {
+        isDeleted -> Ink500
+        isSelf -> Color.White
+        else -> Ink900
+    }
     val shape = if (isSelf) {
         RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 4.dp)
     } else {
         RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 16.dp)
     }
+
+    var menuOpen by remember { mutableStateOf(false) }
+
+    // Long-press is used for per-message actions. Counterpart messages can be reported;
+    // own messages can be deleted (soft). Deleted messages cannot be acted on further.
+    val onLongClick: (() -> Unit)? = when {
+        isDeleted -> null
+        !isSelf -> { { onReport(message.id) } }
+        else -> { { menuOpen = true } }
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isSelf) Arrangement.End else Arrangement.Start,
     ) {
-        Box(
-            modifier = Modifier
-                .widthIn(max = 280.dp)
-                .clip(shape)
-                .background(bubbleColor)
-                .then(
-                    if (!isSelf) Modifier.border(1.dp, Surface200, shape) else Modifier,
-                )
-                .combinedClickable(
-                    onClick = {},
-                    onLongClick = if (!isSelf) { { onReport(message.id) } } else null,
-                )
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-        ) {
-            Column {
-                val images = message.attachments.filter { it.isImageUrl() }
-                if (images.isNotEmpty()) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.padding(bottom = if (message.message.isNotBlank()) 6.dp else 0.dp),
-                    ) {
-                        images.forEach { url ->
-                            AsyncImage(
-                                model = url,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .widthIn(max = 220.dp)
-                                    .height(160.dp)
-                                    .clip(RoundedCornerShape(12.dp)),
+        Box {
+            Box(
+                modifier = Modifier
+                    .widthIn(max = 280.dp)
+                    .clip(shape)
+                    .background(bubbleColor)
+                    .then(
+                        if (!isSelf || isDeleted) Modifier.border(1.dp, Surface200, shape) else Modifier,
+                    )
+                    .combinedClickable(
+                        onClick = {},
+                        onLongClick = onLongClick,
+                    )
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+            ) {
+                Column {
+                    if (isDeleted) {
+                        Text(
+                            text = "Message deleted",
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp,
+                            color = textColor,
+                            fontStyle = FontStyle.Italic,
+                        )
+                    } else {
+                        val images = message.attachments.filter { it.isImageUrl() }
+                        if (images.isNotEmpty()) {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.padding(bottom = if (message.message.isNotBlank()) 6.dp else 0.dp),
+                            ) {
+                                images.forEach { url ->
+                                    AsyncImage(
+                                        model = url,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .widthIn(max = 220.dp)
+                                            .height(160.dp)
+                                            .clip(RoundedCornerShape(12.dp)),
+                                    )
+                                }
+                            }
+                        }
+                        if (message.message.isNotBlank()) {
+                            Text(
+                                text = message.message,
+                                fontSize = 14.sp,
+                                lineHeight = 20.sp,
+                                color = textColor,
                             )
                         }
                     }
+                    val timeLabel = formatTime(message.createdAtIso)
+                    if (!timeLabel.isNullOrBlank()) {
+                        Text(
+                            text = timeLabel,
+                            fontSize = 10.sp,
+                            color = when {
+                                isDeleted -> Ink500
+                                isSelf -> Color.White.copy(alpha = 0.8f)
+                                else -> Ink500
+                            },
+                            modifier = Modifier
+                                .align(Alignment.End)
+                                .padding(top = 2.dp),
+                        )
+                    }
                 }
-                if (message.message.isNotBlank()) {
-                    Text(
-                        text = message.message,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp,
-                        color = textColor,
-                    )
-                }
-                val timeLabel = formatTime(message.createdAtIso)
-                if (!timeLabel.isNullOrBlank()) {
-                    Text(
-                        text = timeLabel,
-                        fontSize = 10.sp,
-                        color = if (isSelf) Color.White.copy(alpha = 0.8f) else Ink500,
-                        modifier = Modifier
-                            .align(Alignment.End)
-                            .padding(top = 2.dp),
+            }
+            if (isSelf && !isDeleted) {
+                DropdownMenu(
+                    expanded = menuOpen,
+                    onDismissRequest = { menuOpen = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Delete") },
+                        onClick = {
+                            menuOpen = false
+                            onDelete(message.id)
+                        },
                     )
                 }
             }
