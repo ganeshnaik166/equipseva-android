@@ -6,6 +6,7 @@ out/
 
 # Local configuration & secrets
 local.properties
+keystore.properties
 *.keystore
 *.jks
 *.aab

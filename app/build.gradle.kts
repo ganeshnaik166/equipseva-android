@@ -20,6 +20,13 @@ val localProps = Properties().apply {
 fun localOrEnv(key: String, default: String = ""): String =
     localProps.getProperty(key) ?: System.getenv(key) ?: default
 
+val keystoreProps = Properties().apply {
+    val f = project.file("keystore.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+val hasReleaseKeystore: Boolean =
+    keystoreProps.getProperty("storeFile")?.let { project.file(it).exists() } == true
+
 android {
     namespace = "com.equipseva.app"
     compileSdk = 35
@@ -48,6 +55,17 @@ android {
         buildConfigField("String", "EXPECTED_CERT_SHA256", "\"${localOrEnv("EXPECTED_CERT_SHA256")}\"")
     }
 
+    signingConfigs {
+        if (hasReleaseKeystore) {
+            create("release") {
+                storeFile = project.file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
@@ -58,7 +76,13 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Signing config wired when keystore + Play Console access land (memory blocker).
+            // Sign with the upload key when keystore.properties + *.jks are
+            // present locally. CI seeds an empty keystore.properties so the
+            // release build still goes through R8 with default debug-signing;
+            // those APKs are never published.
+            if (hasReleaseKeystore) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
