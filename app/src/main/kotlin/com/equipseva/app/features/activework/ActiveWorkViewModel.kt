@@ -4,16 +4,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.data.dao.OutboxDao
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobRepository
 import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.sync.OutboxKinds
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -22,6 +26,7 @@ import javax.inject.Inject
 class ActiveWorkViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val jobRepository: RepairJobRepository,
+    private val outboxDao: OutboxDao,
 ) : ViewModel() {
 
     data class UiState(
@@ -29,6 +34,7 @@ class ActiveWorkViewModel @Inject constructor(
         val refreshing: Boolean = false,
         val activeJobs: List<RepairJob> = emptyList(),
         val completedJobs: List<RepairJob> = emptyList(),
+        val queuedStatusCount: Int = 0,
         val errorMessage: String? = null,
     )
 
@@ -42,6 +48,9 @@ class ActiveWorkViewModel @Inject constructor(
                 .distinctUntilChangedBy { it.userId }
                 .collect { load(initial = true) }
         }
+        outboxDao.observePendingCountByKind(OutboxKinds.JOB_STATUS)
+            .onEach { count -> _state.update { it.copy(queuedStatusCount = count) } }
+            .launchIn(viewModelScope)
     }
 
     fun onRefresh() = load(initial = false)
@@ -64,7 +73,7 @@ class ActiveWorkViewModel @Inject constructor(
                         it.status in listOf(RepairJobStatus.Completed, RepairJobStatus.Cancelled)
                     }
                     _state.update {
-                        UiState(
+                        it.copy(
                             loading = false,
                             refreshing = false,
                             activeJobs = active,
