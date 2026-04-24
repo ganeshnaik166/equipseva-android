@@ -124,6 +124,7 @@ fun ChatScreen(
                         onCancel = viewModel::onCancelEdit,
                     )
                 }
+                TypingIndicatorRow(visible = state.typingUserIds.isNotEmpty())
                 ChatInputBar(
                     draft = state.draft,
                     canSend = state.canSend,
@@ -181,6 +182,41 @@ fun ChatScreen(
             submitting = state.submittingReport,
             onDismiss = viewModel::onDismissReport,
             onSubmit = viewModel::onSubmitReport,
+        )
+    }
+}
+
+@Composable
+private fun TypingIndicatorRow(visible: Boolean) {
+    if (!visible) return
+    // Low-res tick (~450ms) drives a three-dot phase; good enough to read as "alive"
+    // without burning a recomposition per frame. Re-emits while the indicator is shown.
+    val phase = remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    androidx.compose.runtime.LaunchedEffect(visible) {
+        while (true) {
+            kotlinx.coroutines.delay(450)
+            phase.intValue = (phase.intValue + 1) % 3
+        }
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        repeat(3) { i ->
+            Box(
+                modifier = Modifier
+                    .size(5.dp)
+                    .clip(CircleShape)
+                    .background(if (i == phase.intValue) BrandGreen else Surface200),
+            )
+        }
+        Text(
+            text = "typing…",
+            style = MaterialTheme.typography.bodySmall,
+            color = Ink500,
         )
     }
 }

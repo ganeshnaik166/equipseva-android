@@ -54,4 +54,18 @@ interface ChatRepository {
      * the window has elapsed, or the new body is empty / over 4000 chars.
      */
     suspend fun editMessage(messageId: String, newBody: String): Result<Unit>
+
+    /**
+     * Emits the set of other users currently typing in this conversation. Each emission
+     * is the union of unique user ids whose last "typing" broadcast is within a short TTL
+     * (~3s). State is purely client-side — nothing is persisted server-side — and the
+     * caller's own id is filtered out.
+     */
+    fun observeTyping(conversationId: String, selfUserId: String): kotlinx.coroutines.flow.Flow<Set<String>>
+
+    /**
+     * Fire-and-forget presence broadcast announcing the caller is typing. Debouncing is
+     * the caller's responsibility — this is a pure send on the typing presence channel.
+     */
+    suspend fun broadcastTyping(conversationId: String, selfUserId: String)
 }

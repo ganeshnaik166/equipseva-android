@@ -6,15 +6,19 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.broadcast
+import io.github.jan.supabase.realtime.broadcastFlow
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -194,6 +198,87 @@ class SupabaseChatRepository @Inject constructor(
         Unit
     }
 
+    override fun observeTyping(
+        conversationId: String,
+        selfUserId: String,
+    ): Flow<Set<String>> = callbackFlow {
+        // Separate channel from the messages sub so realtime payloads can't cross-talk.
+        val channel = client.channel("chat:typing:$conversationId")
+        val events = channel.broadcastFlow<TypingPayload>(event = TYPING_EVENT)
+
+        // Last-seen timestamp (epoch ms) per userId. A user counts as "typing" while
+        // we've heard from them within TYPING_TTL_MS. Everything client-side: the
+        // server never knows about typing state.
+        val lastSeen = mutableMapOf<String, Long>()
+        var emitted: Set<String> = emptySet()
+
+        fun recompute(): Set<String> {
+            val now = System.currentTimeMillis()
+            val iter = lastSeen.entries.iterator()
+            while (iter.hasNext()) {
+                val (_, ts) = iter.next()
+                if (now - ts > TYPING_TTL_MS) iter.remove()
+            }
+            return lastSeen.keys.toSet()
+        }
+
+        fun maybeEmit() {
+            val next = recompute()
+            if (next != emitted) {
+                emitted = next
+                trySend(next)
+            }
+        }
+
+        // Prime with empty so consumers don't have to handle the null-before-first-event case.
+        trySend(emptySet())
+
+        val recvJob = launch {
+            events.collect { payload ->
+                if (payload.userId != selfUserId) {
+                    lastSeen[payload.userId] = System.currentTimeMillis()
+                    maybeEmit()
+                }
+            }
+        }
+
+        // TTL sweep — re-emit an empty set once last typist falls out of the window.
+        val tickJob = launch {
+            while (true) {
+                delay(TYPING_TICK_MS)
+                if (lastSeen.isNotEmpty()) maybeEmit()
+            }
+        }
+
+        channel.subscribe()
+
+        awaitClose {
+            recvJob.cancel()
+            tickJob.cancel()
+            launch { client.realtime.removeChannel(channel) }
+        }
+    }.flowOn(Dispatchers.IO)
+
+    override suspend fun broadcastTyping(conversationId: String, selfUserId: String) {
+        // Caller is expected to throttle — we intentionally don't debounce here so the
+        // repo stays stateless per call. Errors are swallowed: a missed typing frame is
+        // not worth surfacing to the user.
+        runCatching {
+            val channel = client.channel("chat:typing:$conversationId")
+            channel.subscribe()
+            channel.broadcast(
+                event = TYPING_EVENT,
+                message = TypingPayload(userId = selfUserId, t = System.currentTimeMillis()),
+            )
+        }
+    }
+
+    @Serializable
+    internal data class TypingPayload(
+        @kotlinx.serialization.SerialName("user_id") val userId: String,
+        @kotlinx.serialization.SerialName("t") val t: Long,
+    )
+
     private suspend fun fetchConversationsFor(userId: String): List<ChatConversation> {
         // participant_user_ids is a uuid[]; use Postgrest "contains" to filter server-side.
         val conversations = client.from(CONVERSATIONS_TABLE).select {
@@ -233,5 +318,10 @@ class SupabaseChatRepository @Inject constructor(
     private companion object {
         const val CONVERSATIONS_TABLE = "chat_conversations"
         const val MESSAGES_TABLE = "chat_messages"
+        const val TYPING_EVENT = "typing"
+        // A typist is considered "active" while the last frame from them is within this
+        // window. Tick cadence is separate so the set re-emits empty promptly on fall-off.
+        const val TYPING_TTL_MS = 3_000L
+        const val TYPING_TICK_MS = 1_000L
     }
 }
