@@ -67,8 +67,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.designsystem.components.DeliverySlotTile
 import com.equipseva.app.designsystem.components.ESBackTopBar
+import com.equipseva.app.designsystem.components.EquipmentArt
 import com.equipseva.app.designsystem.components.GradientTile
+import com.equipseva.app.designsystem.components.PaymentMethodTile
 import com.equipseva.app.designsystem.components.SecureScreen
 import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.theme.BrandGreen
@@ -118,6 +121,9 @@ fun CheckoutScreen(
     // Address starts expanded if the form isn't already complete (newly-minted session).
     var addressExpanded by remember { mutableStateOf(true) }
     var selectedPayment by remember { mutableStateOf("upi") }
+    // Visual-only delivery slot picker — the actual order does not yet send a slot
+    // to the backend, so this is purely UI sugar that mirrors the design prototype.
+    var selectedSlot by remember { mutableStateOf(0) }
 
     Scaffold(
         topBar = { ESBackTopBar(title = "Checkout", onBack = onBack) },
@@ -179,6 +185,13 @@ fun CheckoutScreen(
                     onPincodeChange = viewModel::onPincodeChange,
                 )
             }
+
+            // Delivery slot — three pill tiles (Today / Tomorrow / Day after).
+            SectionHeader(title = "Delivery slot")
+            DeliverySlotRow(
+                selectedIndex = selectedSlot,
+                onSelect = { selectedSlot = it },
+            )
 
             // Payment method
             SectionHeader(title = "Payment method")
@@ -393,103 +406,55 @@ private data class PayOption(val id: String, val label: String, val sub: String,
 
 @Composable
 private fun PaymentMethodList(selected: String, onSelect: (String) -> Unit) {
+    // Use the design-system PaymentMethodTile primitive — selected = brand-50 bg + brand-600 border.
     val options = listOf(
         PayOption("upi", "UPI", "GPay, PhonePe, Paytm", Icons.Filled.AccountBalance),
         PayOption("card", "Card", "Visa, Mastercard, Rupay", Icons.Filled.CreditCard),
         PayOption("nb", "Net banking", "All major Indian banks", Icons.Filled.AccountBalanceWallet),
+        PayOption("wallet", "Wallet", "Paytm, Mobikwik, Amazon Pay", Icons.Filled.AccountBalanceWallet),
     )
-    Card(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.lg),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Surface0),
-        border = BorderStroke(1.dp, Surface200),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Column {
-            options.forEachIndexed { i, option ->
-                PaymentRow(
-                    option = option,
-                    selected = option.id == selected,
-                    onClick = { onSelect(option.id) },
-                )
-                if (i < options.size - 1) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(Surface100),
-                    )
-                }
-            }
+        options.forEach { option ->
+            PaymentMethodTile(
+                icon = option.icon,
+                title = option.label,
+                subtitle = option.sub,
+                selected = option.id == selected,
+                onSelect = { onSelect(option.id) },
+            )
         }
     }
 }
 
+/* ------------------------------------------------------------------ */
+/* Delivery slot row                                                  */
+/* ------------------------------------------------------------------ */
+
 @Composable
-private fun PaymentRow(option: PayOption, selected: Boolean, onClick: () -> Unit) {
+private fun DeliverySlotRow(selectedIndex: Int, onSelect: (Int) -> Unit) {
+    val slots = listOf(
+        "Today" to "6pm – 9pm",
+        "Tomorrow" to "10am – 2pm",
+        "Day after" to "10am – 2pm",
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(horizontal = Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(BrandGreen50),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = option.icon,
-                contentDescription = null,
-                tint = BrandGreenDark,
-                modifier = Modifier.size(20.dp),
-            )
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = option.label,
-                fontSize = 14.sp,
-                lineHeight = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Ink900,
-            )
-            Text(
-                text = option.sub,
-                fontSize = 12.sp,
-                lineHeight = 15.sp,
-                color = Ink500,
-            )
-        }
-        Radio(selected = selected)
-    }
-}
-
-@Composable
-private fun Radio(selected: Boolean) {
-    Box(
-        modifier = Modifier
-            .size(22.dp)
-            .clip(CircleShape)
-            .background(if (selected) BrandGreen else Color.Transparent)
-            .border(
-                width = 2.dp,
-                color = if (selected) BrandGreen else Ink300,
-                shape = CircleShape,
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (selected) {
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .clip(CircleShape)
-                    .background(Color.White),
+        slots.forEachIndexed { i, (date, range) ->
+            DeliverySlotTile(
+                date = date,
+                timeRange = range,
+                selected = i == selectedIndex,
+                onSelect = { onSelect(i) },
+                modifier = Modifier.weight(1f),
             )
         }
     }
@@ -531,7 +496,7 @@ private fun OrderSummaryCard(state: CheckoutViewModel.UiState) {
                         )
                     } else {
                         GradientTile(
-                            icon = Icons.Filled.MedicalServices,
+                            art = EquipmentArt.MedicalServices,
                             hue = 40,
                             size = 40.dp,
                         )

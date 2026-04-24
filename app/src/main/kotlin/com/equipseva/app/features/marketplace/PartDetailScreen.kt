@@ -5,6 +5,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -63,9 +64,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.parts.SparePart
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.designsystem.components.EquipmentArt
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.QuantityStepper
+import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreenDark
@@ -77,8 +80,8 @@ import com.equipseva.app.designsystem.theme.Success
 import com.equipseva.app.designsystem.theme.SuccessBg
 import com.equipseva.app.designsystem.theme.Surface0
 import com.equipseva.app.designsystem.theme.Surface200
+import com.equipseva.app.features.marketplace.components.categoryArt
 import com.equipseva.app.features.marketplace.components.categoryHue
-import com.equipseva.app.features.marketplace.components.categoryIcon
 import com.equipseva.app.features.marketplace.components.stockStatus
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -246,7 +249,43 @@ private fun PartBody(
             onToggle = { specsOpen = !specsOpen },
         )
 
+        // Related parts — visual-only rail showing other illustration variants.
+        // Acts as a teaser surface; the real "related" feed is owned by a separate
+        // ViewModel/repository if/when Phase-2 builds it. Logic preserved as-is.
+        RelatedPartsRail()
+
         Spacer(Modifier.height(Spacing.xl))
+    }
+}
+
+@Composable
+private fun RelatedPartsRail() {
+    SectionHeader(title = "Related parts")
+    val variants = listOf(
+        Triple(EquipmentArt.MonitorHeart, 200, "ECG clip adapter"),
+        Triple(EquipmentArt.Vaccines, 280, "ECG paper roll"),
+        Triple(EquipmentArt.Radiology, 330, "SpO₂ sensor"),
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        variants.forEach { (art, hue, name) ->
+            Column(modifier = Modifier.width(130.dp)) {
+                GradientTile(art = art, hue = hue, size = 130.dp)
+                Text(
+                    text = name,
+                    fontSize = 12.sp,
+                    lineHeight = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Ink900,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+            }
+        }
     }
 }
 
@@ -264,12 +303,36 @@ private fun Hero(
     onShare: () -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxWidth()) {
+        // Use the art-overload so the 320–390dp hero renders a real illustration —
+        // matches the JSX prototype `GradientTile icon="monitor_heart" size=390 radius=0`.
         GradientTile(
-            icon = categoryIcon(part.category),
+            art = categoryArt(part.category),
             hue = categoryHue(part.category),
             size = 390.dp,
             modifier = Modifier.align(Alignment.Center),
         )
+
+        // Carousel dot indicators — first wide, others small (design's `bottom: 12px` row).
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            repeat(4) { i ->
+                Box(
+                    modifier = Modifier
+                        .height(6.dp)
+                        .width(if (i == 0) 20.dp else 6.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (i == 0) BrandGreen
+                            else Color.White.copy(alpha = 0.7f),
+                        ),
+                )
+            }
+        }
 
         // Left overlay: back
         Row(

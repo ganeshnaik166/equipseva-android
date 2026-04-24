@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -68,6 +67,7 @@ import com.equipseva.app.core.data.parts.PartCategory
 import com.equipseva.app.core.data.parts.SparePart
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.EmptyStateView
+import com.equipseva.app.designsystem.components.EquipmentArt
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.SectionHeader
@@ -82,8 +82,8 @@ import com.equipseva.app.designsystem.theme.Surface0
 import com.equipseva.app.designsystem.theme.Surface200
 import com.equipseva.app.designsystem.theme.Surface50
 import com.equipseva.app.features.marketplace.components.PartCard
+import com.equipseva.app.features.marketplace.components.categoryArt
 import com.equipseva.app.features.marketplace.components.categoryHue
-import com.equipseva.app.features.marketplace.components.categoryIcon
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -407,8 +407,10 @@ private fun FeaturedCard(part: SparePart, onClick: () -> Unit) {
             .border(1.dp, Surface200, RoundedCornerShape(8.dp))
             .clickable(onClick = onClick),
     ) {
+        // Use the art-overload so the hero tile renders a real illustration
+        // (not a flat material icon) — matches the JSX `GradientTile` prototype.
         GradientTile(
-            icon = categoryIcon(part.category),
+            art = categoryArt(part.category),
             hue = categoryHue(part.category),
             size = 170.dp,
         )
@@ -461,6 +463,13 @@ private fun ManufacturerGrid(items: List<SparePart>) {
         "Siemens", "Philips", "GE", "Dräger", "Masimo", "Mindray",
     )
 
+    // Spread brand-name hash across a hue palette so each tile gets a distinct pastel.
+    // Stable per brand (same brand always gets same hue across recompositions).
+    fun hueFor(brand: String): Int {
+        val palette = intArrayOf(0, 40, 120, 160, 200, 260, 280, 330)
+        return palette[(brand.hashCode().let { if (it < 0) -it else it }) % palette.size]
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -473,15 +482,22 @@ private fun ManufacturerGrid(items: List<SparePart>) {
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 row.forEach { brand ->
-                    Box(
+                    Column(
                         modifier = Modifier
                             .weight(1f)
-                            .aspectRatio(1.4f)
                             .clip(RoundedCornerShape(8.dp))
                             .background(Surface0)
-                            .border(1.dp, Surface200, RoundedCornerShape(8.dp)),
-                        contentAlignment = Alignment.Center,
+                            .border(1.dp, Surface200, RoundedCornerShape(8.dp))
+                            .padding(vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
+                        // Small art tile per the design's "Shop by manufacturer" grid.
+                        GradientTile(
+                            art = EquipmentArt.PrecisionManufacturing,
+                            hue = hueFor(brand),
+                            size = 44.dp,
+                        )
                         Text(
                             text = brand,
                             fontSize = 13.sp,

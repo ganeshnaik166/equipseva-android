@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.outlined.ShoppingCartCheckout
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -46,7 +47,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -57,17 +62,18 @@ import com.equipseva.app.core.data.cart.CartItem
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
+import com.equipseva.app.designsystem.components.EquipmentArt
 import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.QuantityStepper
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreenDark
+import com.equipseva.app.designsystem.theme.Ink300
 import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.designsystem.theme.Surface0
 import com.equipseva.app.designsystem.theme.Surface200
 import com.equipseva.app.designsystem.theme.Surface50
-import androidx.compose.material.icons.filled.MedicalServices
 
 @Composable
 fun CartScreen(
@@ -161,6 +167,9 @@ fun CartScreen(
                             onRemove = { viewModel.onRemove(line.partId) },
                         )
                     }
+                    item("coupon") {
+                        CouponRow()
+                    }
                     item("summary") {
                         SummaryCard(subtotal = subtotalRupees)
                     }
@@ -227,8 +236,10 @@ private fun CartLineRow(
                         .clip(RoundedCornerShape(8.dp)),
                 )
             } else {
+                // Use the art-overload so cart-line thumbnails render the design's
+                // pastel illustration rather than a flat material icon.
                 GradientTile(
-                    icon = Icons.Filled.MedicalServices,
+                    art = EquipmentArt.MedicalServices,
                     hue = 40,
                     size = 72.dp,
                 )
@@ -284,6 +295,57 @@ private fun CartLineRow(
                 )
             }
         }
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Coupon row (visual only — no logic yet)                            */
+/* ------------------------------------------------------------------ */
+
+@Composable
+private fun CouponRow() {
+    // Dashed-bordered pill with leading offer icon, placeholder text, and brand "Apply".
+    // Pure presentation — promo-code logic is owned by a future PromosViewModel and is
+    // intentionally not wired here so we don't introduce dead code paths.
+    val dashStroke = Stroke(
+        width = with(LocalDensity.current) { 1.5.dp.toPx() },
+        pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 6f), 0f),
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .clip(RoundedCornerShape(50))
+            .background(Surface0)
+            .drawBehind {
+                drawRoundRect(
+                    color = Ink300,
+                    style = dashStroke,
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.height / 2f),
+                )
+            }
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.LocalOffer,
+            contentDescription = null,
+            tint = BrandGreen,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            text = "Have a coupon?",
+            fontSize = 14.sp,
+            color = Ink500,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = "Apply",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = BrandGreen,
+        )
     }
 }
 

@@ -36,6 +36,7 @@ import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.parts.PartCategory
 import com.equipseva.app.core.data.parts.SparePart
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.designsystem.components.EquipmentArt
 import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.components.StatusTone
@@ -60,6 +61,19 @@ internal fun categoryHue(category: PartCategory): Int = when (category) {
     PartCategory.PatientMonitoring -> 40
     PartCategory.Sterilization -> 280
     PartCategory.Other -> 330
+}
+
+/**
+ * Maps a part's category to one of the [EquipmentArt] illustrations from the design.
+ * Used by GradientTile's art-overload so thumbnails show real artwork instead of a flat icon.
+ */
+internal fun categoryArt(category: PartCategory): EquipmentArt = when (category) {
+    PartCategory.Cardiology -> EquipmentArt.MonitorHeart
+    PartCategory.ImagingRadiology -> EquipmentArt.Radiology
+    PartCategory.LifeSupport -> EquipmentArt.Air
+    PartCategory.PatientMonitoring -> EquipmentArt.MonitorHeart
+    PartCategory.Sterilization -> EquipmentArt.Vaccines
+    PartCategory.Other -> EquipmentArt.MedicalServices
 }
 
 internal fun stockStatus(part: SparePart): Triple<StatusTone, ImageVector?, String> = when {
@@ -101,7 +115,7 @@ fun PartCard(
                 )
             } else {
                 GradientTile(
-                    icon = categoryIcon(part.category),
+                    art = categoryArt(part.category),
                     hue = categoryHue(part.category),
                     size = 72.dp,
                 )
