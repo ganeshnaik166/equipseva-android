@@ -228,6 +228,11 @@ private fun KycForm(
             .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
+        KycStatusTimeline(
+            status = state.verificationStatus,
+            submitted = state.aadhaarVerified,
+        )
+
         StatusBanner(status = state.verificationStatus, aadhaarVerified = state.aadhaarVerified)
 
         if (state.verificationStatus == VerificationStatus.Rejected) {
