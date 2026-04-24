@@ -32,6 +32,7 @@ import com.equipseva.app.features.repair.components.RepairJobCard
 fun HospitalActiveJobsScreen(
     onBack: () -> Unit,
     onJobClick: (String) -> Unit,
+    onRequestRepair: () -> Unit = {},
     viewModel: HospitalActiveJobsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -63,6 +64,8 @@ fun HospitalActiveJobsScreen(
                         icon = Icons.AutoMirrored.Outlined.Assignment,
                         title = "No repair jobs yet",
                         subtitle = "Jobs you post will appear here so you can track bids and progress.",
+                        ctaLabel = "Request repair",
+                        onCta = onRequestRepair,
                     )
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),

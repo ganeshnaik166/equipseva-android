@@ -251,6 +251,13 @@ fun MainNavGraph(
                     onOrderClick = { orderId ->
                         navController.navigate(Routes.orderDetailRoute(orderId))
                     },
+                    onShopMarketplace = {
+                        navController.navigate(Routes.MARKETPLACE) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
                 )
             }
             composable(
@@ -464,6 +471,7 @@ fun MainNavGraph(
                 HospitalActiveJobsScreen(
                     onBack = { navController.popBackStack() },
                     onJobClick = { jobId -> navController.navigate(Routes.repairJobDetailRoute(jobId)) },
+                    onRequestRepair = { navController.navigate(Routes.REQUEST_SERVICE) },
                 )
             }
             composable(Routes.HOSPITAL_MY_RFQS) {
@@ -472,6 +480,7 @@ fun MainNavGraph(
                     onRfqClick = { rfqId ->
                         navController.navigate(Routes.hospitalRfqDetailRoute(rfqId))
                     },
+                    onCreateRfq = { navController.navigate(Routes.HOSPITAL_CREATE_RFQ) },
                 )
             }
             composable(
@@ -513,6 +522,13 @@ fun MainNavGraph(
                     onBack = { navController.popBackStack() },
                     onOpenPart = { partId ->
                         navController.navigate(Routes.marketplaceDetailRoute(partId))
+                    },
+                    onFindParts = {
+                        navController.navigate(Routes.MARKETPLACE) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     },
                 )
             }

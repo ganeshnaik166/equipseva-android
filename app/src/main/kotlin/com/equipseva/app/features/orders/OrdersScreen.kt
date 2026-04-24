@@ -80,6 +80,7 @@ private enum class OrdersTab(val label: String) {
 fun OrdersScreen(
     onShowMessage: (String) -> Unit = {},
     onOrderClick: (String) -> Unit = {},
+    onShopMarketplace: () -> Unit = {},
     viewModel: OrdersViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -133,7 +134,7 @@ fun OrdersScreen(
                     state.initialLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
-                    filtered.isEmpty() -> EmptyOrders()
+                    filtered.isEmpty() -> EmptyOrders(onShopMarketplace = onShopMarketplace)
                     else -> LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
@@ -368,10 +369,12 @@ private fun formatOrderDate(iso: String?): String? {
 }
 
 @Composable
-private fun EmptyOrders() {
+private fun EmptyOrders(onShopMarketplace: () -> Unit) {
     EmptyStateView(
         icon = Icons.Outlined.Inventory,
         title = "No orders yet",
         subtitle = "Completed purchases will appear here.",
+        ctaLabel = "Shop marketplace",
+        onCta = onShopMarketplace,
     )
 }
