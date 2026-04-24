@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 import com.equipseva.app.core.data.cart.CartDao
 import com.equipseva.app.core.data.cart.CartItemEntity
 import com.equipseva.app.core.data.dao.DeviceTokenDao
@@ -28,6 +29,20 @@ import net.sqlcipher.database.SupportFactory
 import java.io.File
 import javax.inject.Singleton
 
+/**
+ * Local Room cache + outbox.
+ *
+ * Schema versioning rules — read before bumping `version`:
+ *   1. Bump `version` by exactly 1.
+ *   2. Write a `Migration(N, N+1)` and add it to [APP_MIGRATIONS] below.
+ *   3. The KSP processor auto-emits the new schema JSON to
+ *      `app/schemas/com.equipseva.app.core.data.AppDatabase/<version>.json`
+ *      — diff against the previous version to derive the SQL.
+ *   4. Cover the migration with a Room `MigrationTestHelper` test before
+ *      shipping. We are NOT using `fallbackToDestructiveMigration()` — a
+ *      missing migration is a hard crash, not a silent wipe of cart /
+ *      outbox / message-cache rows.
+ */
 @Database(
     entities = [
         CartItemEntity::class,
@@ -74,9 +89,16 @@ object DatabaseModule {
         val factory = SupportFactory(passphrase, null, /* clearPassphrase = */ true)
         return Room.databaseBuilder(context, AppDatabase::class.java, DB_NAME)
             .openHelperFactory(factory)
-            .fallbackToDestructiveMigration()
+            .addMigrations(*APP_MIGRATIONS)
             .build()
     }
+
+    /**
+     * Real `Migration` paths registered with Room. Empty until the first
+     * post-launch schema change ships — see the docstring on [AppDatabase]
+     * for the workflow.
+     */
+    internal val APP_MIGRATIONS: Array<Migration> = emptyArray()
 
     private const val DB_NAME = "equipseva.db"
     private const val TAG = "AppDatabase"

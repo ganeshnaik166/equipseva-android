@@ -223,16 +223,16 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
 }
 
+// Room schema export. JSONs land in `app/schemas/<db-fqcn>/<version>.json`
+// and are committed to source so future Migration(N, N+1) can be derived
+// from a real diff. See AppDatabase.kt for the bump workflow.
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.incremental", "true")
+}
+
 // Sentry Android Gradle plugin — R8/ProGuard mapping upload.
 //
-// The plugin only uploads when a minified mapping.txt is produced, i.e. only
-// on the `release` variant (debug has isMinifyEnabled = false, so no mapping).
-// Uploads require the following env vars in CI:
-//   SENTRY_AUTH_TOKEN   — Sentry internal integration / user auth token
-//   SENTRY_ORG          — Sentry org slug
-//   SENTRY_PROJECT      — Sentry project slug
-// Do NOT commit a .sentryclirc with real tokens. Locally, leave them unset and
-// the plugin will skip the upload step.
 // Gate upload on env vars so local + PR-branch builds don't fail when the
 // secrets aren't wired. Plugin still generates the mapping; only the upload
 // step is skipped. When CI has SENTRY_AUTH_TOKEN + SENTRY_ORG + SENTRY_PROJECT
