@@ -151,6 +151,8 @@ private class FakeAuthRepository(userId: String) : AuthRepository {
     override suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?) = Result.success(Unit)
     override suspend fun signOut() = Result.success(Unit)
     override suspend fun sendPasswordResetEmail(email: String) = Result.success(Unit)
+    override suspend fun updatePassword(newPassword: String) = Result.success(Unit)
+    override suspend fun updateEmail(newEmail: String) = Result.success(Unit)
 }
 
 private class FakeEngineerRepository : EngineerRepository {
