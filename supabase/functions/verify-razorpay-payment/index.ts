@@ -72,18 +72,22 @@ serve(async (req) => {
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const razorpaySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
-  if (!supabaseUrl || !serviceKey || !razorpaySecret) {
+  if (!supabaseUrl || !anonKey || !serviceKey || !razorpaySecret) {
     return bad("server_error", "edge function not configured", 500);
   }
 
-  // Verify the caller's JWT and extract user id. Uses anon-role read-only client
-  // since all we need is identity; the subsequent write uses service-role.
-  const userClient = createClient(supabaseUrl, serviceKey, {
+  // Verify the caller's JWT and extract user id under an anon-key client. We do
+  // NOT mix the service-role key with the caller's bearer header on the same
+  // client — that pattern relies on supabase-js header precedence and could
+  // silently grant service-role identity if precedence ever changes. The
+  // privileged write below uses a separate service-role client.
+  const identityClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },
   });
-  const { data: userData, error: userErr } = await userClient.auth.getUser();
+  const { data: userData, error: userErr } = await identityClient.auth.getUser();
   if (userErr || !userData?.user?.id) {
     return bad("unauthenticated", "invalid token", 401);
   }

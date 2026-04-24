@@ -14,7 +14,9 @@ supabase secrets set RAZORPAY_KEY_SECRET=<from razorpay dashboard>
 supabase secrets set RAZORPAY_KEY_ID=<rzp_test_... or rzp_live_...>
 ```
 
-`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are auto-injected.
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are auto-injected.
+Identity check uses the anon key + caller bearer header; the privileged write uses
+service-role on a separate client.
 
 ## Contract
 
