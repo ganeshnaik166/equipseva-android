@@ -223,7 +223,31 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
 }
 
+// Sentry Android Gradle plugin — R8/ProGuard mapping upload.
+//
+// The plugin only uploads when a minified mapping.txt is produced, i.e. only
+// on the `release` variant (debug has isMinifyEnabled = false, so no mapping).
+// Uploads require the following env vars in CI:
+//   SENTRY_AUTH_TOKEN   — Sentry internal integration / user auth token
+//   SENTRY_ORG          — Sentry org slug
+//   SENTRY_PROJECT      — Sentry project slug
+// Do NOT commit a .sentryclirc with real tokens. Locally, leave them unset and
+// the plugin will skip the upload step.
+// Gate upload on env vars so local + PR-branch builds don't fail when the
+// secrets aren't wired. Plugin still generates the mapping; only the upload
+// step is skipped. When CI has SENTRY_AUTH_TOKEN + SENTRY_ORG + SENTRY_PROJECT
+// set, `autoUploadProguardMapping` flips true and deobfuscation works.
+val hasSentryCreds: Boolean = listOf("SENTRY_AUTH_TOKEN", "SENTRY_ORG", "SENTRY_PROJECT")
+    .all { (System.getenv(it) ?: "").isNotBlank() }
 sentry {
-    autoUploadProguardMapping.set(false)
-    includeProguardMapping.set(true)
+    includeProguardMapping.set(hasSentryCreds)
+    autoUploadProguardMapping.set(hasSentryCreds)
+    // Native is not shipped from this module.
+    uploadNativeSymbols.set(false)
+    includeNativeSources.set(false)
+    // The runtime SDK is already declared in `dependencies`; don't let the
+    // plugin re-add it.
+    autoInstallation {
+        enabled.set(false)
+    }
 }
