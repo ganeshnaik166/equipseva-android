@@ -53,10 +53,10 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
             isDebuggable = true
-            // Demo seed: when true, repos in core/data/demo/ shadow Supabase impls so
-            // the app renders rich sample lists without backend writes. Flip to false
-            // (or rebuild release) to hit the real Supabase project.
-            buildConfigField("boolean", "DEMO_MODE", "true")
+            // Demo seed: when true, repos in core/data/demo/ shadow Supabase impls
+            // with rich sample lists. Flipped OFF — debug now hits live Supabase
+            // like release. Set to "true" to demo offline / without backend writes.
+            buildConfigField("boolean", "DEMO_MODE", "false")
         }
         release {
             isMinifyEnabled = true
