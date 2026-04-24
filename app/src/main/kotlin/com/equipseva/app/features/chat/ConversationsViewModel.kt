@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 @HiltViewModel
@@ -45,6 +46,7 @@ class ConversationsViewModel @Inject constructor(
 
     data class UiState(
         val loading: Boolean = true,
+        val refreshing: Boolean = false,
         val rows: List<Row> = emptyList(),
         val queuedCount: Int = 0,
         val errorMessage: String? = null,
@@ -56,11 +58,16 @@ class ConversationsViewModel @Inject constructor(
     // Cache counterpart profiles so we don't re-fetch on every realtime tick.
     private val profileCache = mutableMapOf<String, Profile?>()
 
+    // Captured once session is known; used by the manual refresh path.
+    @Volatile
+    private var currentUserId: String? = null
+
     init {
         viewModelScope.launch {
             val session = authRepository.sessionState
                 .filterIsInstance<AuthSession.SignedIn>()
                 .first()
+            currentUserId = session.userId
             combine(
                 chatRepository.observeConversations(session.userId),
                 userBlockRepository.observeBlockedUserIds(),
@@ -70,15 +77,44 @@ class ConversationsViewModel @Inject constructor(
                     other == null || other !in blocked
                 }
             }
-                .onEach { list -> buildRows(session.userId, list) }
+                .onEach { list ->
+                    buildRows(session.userId, list)
+                    // Data arrived — drop the refresh spinner if one was in flight.
+                    _state.update { if (it.refreshing) it.copy(refreshing = false) else it }
+                }
                 .catch { error ->
-                    _state.update { it.copy(loading = false, errorMessage = error.toUserMessage()) }
+                    _state.update {
+                        it.copy(loading = false, refreshing = false, errorMessage = error.toUserMessage())
+                    }
                 }
                 .launchIn(viewModelScope)
         }
         outboxDao.observePendingCountByKind(OutboxKinds.CHAT_MESSAGE)
             .onEach { count -> _state.update { it.copy(queuedCount = count) } }
             .launchIn(viewModelScope)
+    }
+
+    /**
+     * Pull-to-refresh entry point. Runs the same server query the realtime channel triggers;
+     * results flow back through [chatRepository.observeConversations] which clears [UiState.refreshing].
+     * A 3s safety timeout guarantees the spinner releases even if the network call stalls.
+     */
+    fun refresh() {
+        val userId = currentUserId ?: return
+        if (_state.value.refreshing) return
+        _state.update { it.copy(refreshing = true) }
+        viewModelScope.launch {
+            val outcome = withTimeoutOrNull(REFRESH_TIMEOUT_MS) {
+                chatRepository.refreshConversations(userId)
+            }
+            _state.update { current ->
+                val err = outcome?.exceptionOrNull()?.toUserMessage()
+                current.copy(
+                    refreshing = false,
+                    errorMessage = err ?: current.errorMessage,
+                )
+            }
+        }
     }
 
     private suspend fun buildRows(selfUserId: String, list: List<ChatConversation>) {
@@ -91,5 +127,9 @@ class ConversationsViewModel @Inject constructor(
             Row(convo, profile)
         }
         _state.update { it.copy(loading = false, rows = rows, errorMessage = null) }
+    }
+
+    private companion object {
+        const val REFRESH_TIMEOUT_MS = 3_000L
     }
 }

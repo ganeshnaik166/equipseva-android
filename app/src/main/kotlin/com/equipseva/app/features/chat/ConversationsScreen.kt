@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -105,16 +106,22 @@ fun ConversationsScreen(
                     title = "No conversations yet",
                     subtitle = "Reach out from a repair job to start chatting.",
                 )
-                else -> LazyColumn(
+                else -> PullToRefreshBox(
+                    isRefreshing = state.refreshing,
+                    onRefresh = viewModel::refresh,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 0.dp),
                 ) {
-                    items(items = state.rows, key = { it.conversation.id }) { row ->
-                        ConversationRow(
-                            row = row,
-                            onClick = { onConversationClick(row.conversation.id) },
-                        )
-                        HorizontalDivider(color = Surface100, thickness = 1.dp)
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(vertical = 0.dp),
+                    ) {
+                        items(items = state.rows, key = { it.conversation.id }) { row ->
+                            ConversationRow(
+                                row = row,
+                                onClick = { onConversationClick(row.conversation.id) },
+                            )
+                            HorizontalDivider(color = Surface100, thickness = 1.dp)
+                        }
                     }
                 }
             }
