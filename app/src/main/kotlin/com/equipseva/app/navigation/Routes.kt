@@ -60,6 +60,9 @@ object Routes {
     // Change password (sub-route entered from Profile — signed-in user changes their Supabase password).
     const val CHANGE_PASSWORD = "profile/change_password"
 
+    // Change email (sub-route entered from Profile — Supabase sends confirmation link to new address).
+    const val CHANGE_EMAIL = "profile/change_email"
+
     // Favorites (saved parts) — sub-route entered from Profile.
     const val FAVORITES = "profile/favorites"
 

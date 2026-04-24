@@ -11,6 +11,7 @@ interface AuthRepository {
     suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?): Result<Unit>
     suspend fun sendPasswordResetEmail(email: String): Result<Unit>
     suspend fun updatePassword(newPassword: String): Result<Unit>
+    suspend fun updateEmail(newEmail: String): Result<Unit>
     suspend fun signOut(): Result<Unit>
 }
 
