@@ -190,7 +190,7 @@ fun MainNavGraph(
                             "hospital_create_rfq" -> Routes.HOSPITAL_CREATE_RFQ
                             "active_jobs" -> Routes.HOSPITAL_ACTIVE_JOBS
                             "my_rfqs", "hospital_rfqs" -> Routes.HOSPITAL_MY_RFQS
-                            "scan_equipment" -> Routes.SCAN_EQUIPMENT
+                            // "scan_equipment" entry hidden for v1 — route kept registered for deep links.
                             "my_bids" -> Routes.MY_BIDS
                             "earnings" -> Routes.EARNINGS
                             "active_work" -> Routes.ACTIVE_WORK
