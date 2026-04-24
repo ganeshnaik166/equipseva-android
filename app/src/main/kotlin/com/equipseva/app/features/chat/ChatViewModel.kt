@@ -65,6 +65,7 @@ class ChatViewModel @Inject constructor(
         val editDraft: String = "",
         val editing: Boolean = false,
         val errorMessage: String? = null,
+        val typingUserIds: Set<String> = emptySet(),
     ) {
         val title: String
             get() = counterpart?.displayName ?: "Chat"
@@ -89,6 +90,11 @@ class ChatViewModel @Inject constructor(
     private val _effects = Channel<Effect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
 
+    // Client-side throttle on typing broadcasts so a fast typist doesn't flood the
+    // realtime channel. Paired with repo-side TTL, this gives ~2s granularity which is
+    // plenty for rendering a "typing…" chip.
+    private var lastTypingBroadcastAtMs: Long = 0L
+
     init {
         viewModelScope.launch {
             val session = authRepository.sessionState
@@ -97,6 +103,7 @@ class ChatViewModel @Inject constructor(
             _state.update { it.copy(selfUserId = session.userId) }
             loadConversationMeta(session.userId)
             observeMessages(session.userId)
+            observeTyping(session.userId)
         }
         outboxDao.observePendingCountByKind(OutboxKinds.CHAT_MESSAGE)
             .onEach { count -> _state.update { it.copy(queuedCount = count) } }
@@ -105,6 +112,16 @@ class ChatViewModel @Inject constructor(
 
     fun onDraftChange(value: String) {
         _state.update { it.copy(draft = value) }
+        val self = _state.value.selfUserId ?: return
+        // Only announce typing while there's actual content — clearing the field shouldn't
+        // read as "still typing" to the other side.
+        if (value.isBlank()) return
+        val now = System.currentTimeMillis()
+        if (now - lastTypingBroadcastAtMs < TYPING_BROADCAST_MIN_INTERVAL_MS) return
+        lastTypingBroadcastAtMs = now
+        viewModelScope.launch {
+            chatRepository.broadcastTyping(conversationId, self)
+        }
     }
 
     fun onSend() {
@@ -276,6 +293,13 @@ class ChatViewModel @Inject constructor(
             }
     }
 
+    private fun observeTyping(selfUserId: String) {
+        chatRepository.observeTyping(conversationId, selfUserId)
+            .onEach { ids -> _state.update { it.copy(typingUserIds = ids) } }
+            .catch { /* typing is non-critical; swallow to keep the chat screen alive */ }
+            .launchIn(viewModelScope)
+    }
+
     private fun observeMessages(selfUserId: String) {
         combine(
             chatRepository.observeMessages(conversationId),
@@ -298,5 +322,11 @@ class ChatViewModel @Inject constructor(
                 _state.update { it.copy(loading = false, errorMessage = error.toUserMessage()) }
             }
             .launchIn(viewModelScope)
+    }
+
+    private companion object {
+        // Min interval between typing broadcasts per client. Repo-side TTL is ~3s, so
+        // pinging every 2s keeps the "typing…" pill stable without flooding realtime.
+        const val TYPING_BROADCAST_MIN_INTERVAL_MS = 2_000L
     }
 }
