@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.data.account.AccountDeletionRepository
 import com.equipseva.app.core.data.prefs.ThemeMode
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.Profile
@@ -29,6 +30,7 @@ class ProfileViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
     private val userPrefs: UserPrefs,
+    private val accountDeletionRepository: AccountDeletionRepository,
 ) : ViewModel() {
 
     data class UiState(
@@ -44,6 +46,9 @@ class ProfileViewModel @Inject constructor(
         val editPhone: String = "",
         val editSaving: Boolean = false,
         val editError: String? = null,
+        val deleteAccountOpen: Boolean = false,
+        val deleteReason: String = "",
+        val deletingAccount: Boolean = false,
     )
 
     sealed interface Effect {
@@ -204,6 +209,44 @@ class ProfileViewModel @Inject constructor(
                 }
                 .onFailure { error ->
                     _state.update { it.copy(editSaving = false, editError = error.toUserMessage()) }
+                }
+        }
+    }
+
+    fun onOpenDeleteAccount() {
+        if (_state.value.deletingAccount) return
+        _state.update { it.copy(deleteAccountOpen = true, deleteReason = "") }
+    }
+
+    fun onDismissDeleteAccount() {
+        if (_state.value.deletingAccount) return
+        _state.update { it.copy(deleteAccountOpen = false, deleteReason = "") }
+    }
+
+    fun onDeleteReasonChange(value: String) {
+        _state.update { it.copy(deleteReason = value.take(500)) }
+    }
+
+    fun onConfirmDeleteAccount() {
+        if (_state.value.deletingAccount) return
+        val reason = _state.value.deleteReason
+        _state.update { it.copy(deletingAccount = true) }
+        viewModelScope.launch {
+            accountDeletionRepository.deleteMyAccount(reason)
+                .onSuccess {
+                    authRepository.signOut()
+                    _state.update {
+                        it.copy(
+                            deletingAccount = false,
+                            deleteAccountOpen = false,
+                            deleteReason = "",
+                        )
+                    }
+                    _effects.send(Effect.ShowMessage("Account deleted. You have been signed out."))
+                }
+                .onFailure { error ->
+                    _state.update { it.copy(deletingAccount = false) }
+                    _effects.send(Effect.ShowMessage(error.toUserMessage()))
                 }
         }
     }

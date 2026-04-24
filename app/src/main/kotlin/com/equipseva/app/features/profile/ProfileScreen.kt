@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
@@ -73,6 +74,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.prefs.ThemeMode
 import com.equipseva.app.designsystem.components.BrandedPlaceholder
+import com.equipseva.app.designsystem.components.DeleteAccountSheet
 import com.equipseva.app.designsystem.components.ESTopBar
 import com.equipseva.app.designsystem.components.SecureScreen
 import com.equipseva.app.designsystem.components.SettingsSheet
@@ -145,6 +147,7 @@ fun ProfileScreen(
                         onOpenAbout = onOpenAbout,
                         onOpenFavorites = onOpenFavorites,
                         onOpenNotifications = onOpenNotifications,
+                        onDeleteAccount = viewModel::onOpenDeleteAccount,
                     )
                 }
             }
@@ -167,6 +170,16 @@ fun ProfileScreen(
             currentMode = themeMode,
             onSelectMode = viewModel::onThemeModeChange,
             onDismiss = viewModel::onDismissSettings,
+        )
+    }
+
+    if (state.deleteAccountOpen) {
+        DeleteAccountSheet(
+            reason = state.deleteReason,
+            deleting = state.deletingAccount,
+            onReasonChange = viewModel::onDeleteReasonChange,
+            onConfirm = viewModel::onConfirmDeleteAccount,
+            onDismiss = viewModel::onDismissDeleteAccount,
         )
     }
 
@@ -197,6 +210,7 @@ private fun ProfileContent(
     onOpenAbout: () -> Unit,
     onOpenFavorites: () -> Unit,
     onOpenNotifications: () -> Unit,
+    onDeleteAccount: () -> Unit,
 ) {
     val profile = state.profile!!
     val isEngineer = profile.role == UserRole.ENGINEER
@@ -256,6 +270,8 @@ private fun ProfileContent(
                     onOpenNotifications = onOpenNotifications,
                     onSignOut = onSignOut,
                     signingOut = state.signingOut,
+                    onDeleteAccount = onDeleteAccount,
+                    deletingAccount = state.deletingAccount,
                 ),
             )
         }
@@ -287,6 +303,8 @@ private fun buildSettingsRows(
     onOpenNotifications: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
+    onDeleteAccount: () -> Unit,
+    deletingAccount: Boolean,
 ): List<SettingsRow> {
     val rows = mutableListOf<SettingsRow>()
     rows += SettingsRow(
@@ -346,6 +364,13 @@ private fun buildSettingsRows(
         danger = true,
         enabled = !signingOut,
         onClick = onSignOut,
+    )
+    rows += SettingsRow(
+        icon = Icons.Filled.DeleteForever,
+        label = if (deletingAccount) "Deleting account…" else "Delete account",
+        danger = true,
+        enabled = !deletingAccount,
+        onClick = onDeleteAccount,
     )
     return rows
 }
