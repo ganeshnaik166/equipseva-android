@@ -10,16 +10,21 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.Gavel
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -28,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -40,6 +46,9 @@ import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.StatusChip
+import com.equipseva.app.designsystem.theme.BrandGreen
+import com.equipseva.app.designsystem.theme.BrandGreen50
+import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.features.repair.components.toTone
 
@@ -64,6 +73,7 @@ fun MyBidsScreen(
                 message = state.errorMessage,
                 modifier = Modifier.padding(horizontal = Spacing.lg),
             )
+            QueuedBidPill(count = state.queuedBidCount)
             if (state.rows.isNotEmpty()) {
                 StatusFilterRow(
                     selected = state.statusFilter,
@@ -219,6 +229,34 @@ private fun StatusFilterRow(
                 label = { Text(label) },
             )
         }
+    }
+}
+
+@Composable
+private fun QueuedBidPill(count: Int) {
+    if (count <= 0) return
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg, vertical = Spacing.xs)
+            .clip(RoundedCornerShape(12.dp))
+            .background(BrandGreen50)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.CloudSync,
+            contentDescription = null,
+            tint = BrandGreen,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = if (count == 1) "1 bid queued — will submit when back online"
+            else "$count bids queued — will submit when back online",
+            style = MaterialTheme.typography.bodySmall,
+            color = Ink900,
+        )
     }
 }
 
