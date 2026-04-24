@@ -40,6 +40,12 @@ object Routes {
     const val ORDER_DETAIL_ARG_ID = "orderId"
     fun orderDetailRoute(orderId: String): String = "$ORDER_DETAIL/$orderId"
 
+    // Rate a delivered spare-part order (sub-route, full-screen). The orderId
+    // is a path arg so the screen is restorable after process death / share.
+    const val RATE_ORDER = "orders/rate"
+    const val RATE_ORDER_ARG_ID = "orderId"
+    fun rateOrderRoute(orderId: String): String = "$RATE_ORDER/$orderId"
+
     // Repair job detail (sub-route, full-screen — bottom nav hidden).
     const val REPAIR_DETAIL = "repair/detail"
     const val REPAIR_DETAIL_ARG_ID = "jobId"

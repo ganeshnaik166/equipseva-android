@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.orders.Order
 import com.equipseva.app.core.data.orders.OrderRepository
+import com.equipseva.app.core.data.orders.OrderStatus
+import com.equipseva.app.core.data.reviews.OrderReviewRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,6 +23,7 @@ import javax.inject.Inject
 class OrderDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val orderRepository: OrderRepository,
+    private val reviewRepository: OrderReviewRepository,
 ) : ViewModel() {
 
     data class UiState(
@@ -33,7 +36,21 @@ class OrderDetailViewModel @Inject constructor(
         val cancellationError: String? = null,
         val cancelSheetOpen: Boolean = false,
         val cancelReasonDraft: String = "",
-    )
+        /**
+         * True once we've confirmed the signed-in buyer already rated this
+         * order. Used to hide the "Rate this order" CTA so we don't prompt
+         * a duplicate submission — there is no unique constraint on
+         * `reviews(reviewer_user_id, related_entity_id)` today, so the guard
+         * is purely client-side.
+         */
+        val hasRating: Boolean = false,
+    ) {
+        /** CTA visible only on a delivered order the buyer hasn't rated yet. */
+        val canRateOrder: Boolean
+            get() = order != null &&
+                order.status == OrderStatus.DELIVERED &&
+                !hasRating
+    }
 
     sealed interface Effect {
         data class ShowMessage(val text: String) : Effect
@@ -130,6 +147,13 @@ class OrderDetailViewModel @Inject constructor(
                         order = order,
                         notFound = order == null,
                     )
+                }
+                // Only bother asking Supabase for an existing review once the
+                // order is actually delivered — other statuses don't render
+                // the rating CTA anyway, so the round-trip would be wasted.
+                if (order != null && order.status == OrderStatus.DELIVERED) {
+                    val existing = reviewRepository.fetchMineForOrder(order.id).getOrNull()
+                    _state.update { it.copy(hasRating = existing != null) }
                 }
             }
             .onFailure { error ->
