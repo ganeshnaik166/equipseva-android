@@ -157,6 +157,24 @@ class KycViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Clears the locally-tracked KYC doc paths so the rejected engineer is forced to
+     * re-pick fresh files before Submit is enabled. The old rows on the engineer
+     * record are overwritten on the next successful save (upsert replaces the
+     * `certificates` array entirely).
+     */
+    fun startReupload() {
+        _state.update {
+            it.copy(
+                aadhaarDocPath = null,
+                certDocPaths = emptyList(),
+            )
+        }
+        viewModelScope.launch {
+            _effects.send(Effect.ShowMessage("Please re-upload your documents"))
+        }
+    }
+
     fun uploadAadhaarDoc(fileName: String, bytes: ByteArray, contentType: String?) {
         val uid = userId ?: return
         if (_state.value.uploadingAadhaar) return
@@ -307,6 +325,10 @@ class KycViewModel @Inject constructor(
                 city = snap.city.takeIf { it.isNotBlank() },
                 state = snap.state.takeIf { it.isNotBlank() },
                 certificates = certificates,
+                // Re-submitting after rejection must flip the row back into the
+                // review queue so the admin sees it again.
+                resetVerificationToPending =
+                    snap.verificationStatus == VerificationStatus.Rejected,
             ).fold(
                 onSuccess = { engineer ->
                     hydrate(engineer)

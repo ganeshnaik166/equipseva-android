@@ -30,6 +30,7 @@ class SupabaseEngineerRepository @Inject constructor(
         city: String?,
         state: String?,
         certificates: List<EngineerCertificate>,
+        resetVerificationToPending: Boolean,
     ): Result<Engineer> = runCatching {
         val payload = EngineerUpsertDto(
             userId = userId,
@@ -41,6 +42,11 @@ class SupabaseEngineerRepository @Inject constructor(
             city = city?.takeIf { it.isNotBlank() },
             state = state?.takeIf { it.isNotBlank() },
             certificates = certificates.ifEmpty { null },
+            verificationStatus = if (resetVerificationToPending) {
+                VerificationStatus.Pending.storageKey
+            } else {
+                null
+            },
         )
         client.from(TABLE).upsert(payload) {
             onConflict = "user_id"

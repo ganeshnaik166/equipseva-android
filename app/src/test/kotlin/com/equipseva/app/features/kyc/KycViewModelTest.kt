@@ -180,6 +180,8 @@ private class FakeEngineerRepository : EngineerRepository {
     override suspend fun fetchByUserId(userId: String): Result<Engineer?> =
         Result.success(fetched)
 
+    var lastResetVerificationToPending: Boolean = false
+
     override suspend fun upsert(
         userId: String,
         aadhaarNumber: String?,
@@ -190,9 +192,11 @@ private class FakeEngineerRepository : EngineerRepository {
         city: String?,
         state: String?,
         certificates: List<EngineerCertificate>,
+        resetVerificationToPending: Boolean,
     ): Result<Engineer> {
         upsertCalls++
         lastCertificates = certificates
+        lastResetVerificationToPending = resetVerificationToPending
         upsertError?.let { return Result.failure(it) }
         return Result.success(
             Engineer(

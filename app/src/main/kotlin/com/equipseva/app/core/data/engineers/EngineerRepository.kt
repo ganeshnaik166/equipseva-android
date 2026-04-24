@@ -15,6 +15,9 @@ interface EngineerRepository {
         city: String?,
         state: String?,
         certificates: List<EngineerCertificate>,
+        // When true, flips verification_status back to "pending" so a rejected
+        // engineer's re-submission re-enters the admin review queue.
+        resetVerificationToPending: Boolean = false,
     ): Result<Engineer>
 
     /**

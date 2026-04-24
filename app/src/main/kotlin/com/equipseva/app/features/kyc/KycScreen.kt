@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material.icons.outlined.CloudUpload
@@ -189,6 +190,7 @@ fun KycScreen(
                     onPickCertificate = {
                         certPicker.launch(arrayOf("application/pdf", "image/jpeg", "image/png", "image/webp"))
                     },
+                    onStartReupload = viewModel::startReupload,
                 )
             }
         }
@@ -210,6 +212,7 @@ private fun KycForm(
     onToggleSpecialization: (RepairEquipmentCategory) -> Unit,
     onPickAadhaar: () -> Unit,
     onPickCertificate: () -> Unit,
+    onStartReupload: () -> Unit,
 ) {
     val aadhaarUploaded = !state.aadhaarDocPath.isNullOrBlank()
     val certUploaded = state.certDocPaths.isNotEmpty()
@@ -226,6 +229,10 @@ private fun KycForm(
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
         StatusBanner(status = state.verificationStatus, aadhaarVerified = state.aadhaarVerified)
+
+        if (state.verificationStatus == VerificationStatus.Rejected) {
+            ReuploadCta(onClick = onStartReupload)
+        }
 
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             AppProgress(value = uploadedCount, total = required)
@@ -442,6 +449,56 @@ private data class BannerStyle(
     val icon: ImageVector,
 )
 
+/**
+ * Prominent CTA shown only when verification_status = "rejected". Tapping it clears
+ * the previously-submitted doc paths from the UI state, so the user is forced to
+ * re-pick fresh files before the bottom "Re-submit for review" button re-enables.
+ */
+@Composable
+private fun ReuploadCta(onClick: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = ErrorBg),
+        shape = RoundedCornerShape(14.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = "Your documents were rejected",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = ErrorRed,
+            )
+            Text(
+                text = "Please re-upload your Aadhaar and qualification certificate. " +
+                    "Your submission will go back into review once saved.",
+                fontSize = 13.sp,
+                color = Ink700,
+            )
+            Button(
+                onClick = onClick,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = ErrorRed,
+                    contentColor = Color.White,
+                ),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Refresh,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.size(Spacing.sm))
+                Text("Re-upload documents")
+            }
+        }
+    }
+}
+
 @Composable
 private fun DocumentRow(
     title: String,
@@ -584,10 +641,10 @@ private fun KycBottomBar(
     onSave: () -> Unit,
 ) {
     val allUploaded = aadhaarUploaded && certUploaded
-    val label = when {
-        status == VerificationStatus.Verified -> "Verified"
-        status == VerificationStatus.Pending && aadhaarUploaded && certUploaded -> "Submit for review"
-        else -> "Submit for review"
+    val label = when (status) {
+        VerificationStatus.Verified -> "Verified"
+        VerificationStatus.Rejected -> "Re-submit for review"
+        VerificationStatus.Pending -> "Submit for review"
     }
     val enabled = !saving && allUploaded && status != VerificationStatus.Verified
     Box(
