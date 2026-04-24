@@ -47,3 +47,33 @@ fun GradientTile(
         )
     }
 }
+
+/**
+ * Pastel tile that wraps an [EquipmentIllustration] from the design's SVG art set.
+ * The illustration occupies ~68% of the tile, matching the React prototype layout.
+ */
+@Composable
+fun GradientTile(
+    art: EquipmentArt,
+    hue: Int = 150,
+    modifier: Modifier = Modifier,
+    size: Dp = 48.dp,
+) {
+    val h = hue.toFloat().coerceIn(0f, 360f)
+    val bg = Color.hsl(h, saturation = 0.22f, lightness = 0.94f)
+    val strokeColor = Color.hsl(h, saturation = 0.30f, lightness = 0.88f)
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(RoundedCornerShape(8.dp))
+            .background(bg)
+            .border(1.dp, strokeColor, RoundedCornerShape(8.dp)),
+        contentAlignment = Alignment.Center,
+    ) {
+        EquipmentIllustration(
+            art = art,
+            hue = hue,
+            modifier = Modifier.size(size * 0.68f),
+        )
+    }
+}

@@ -79,7 +79,7 @@ fun PartCard(
     Card(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(5.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, Surface200),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -97,7 +97,7 @@ fun PartCard(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(72.dp)
-                        .clip(RoundedCornerShape(5.dp)),
+                        .clip(RoundedCornerShape(8.dp)),
                 )
             } else {
                 GradientTile(

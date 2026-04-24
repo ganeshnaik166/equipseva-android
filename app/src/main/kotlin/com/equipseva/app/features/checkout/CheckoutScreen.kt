@@ -145,7 +145,7 @@ fun CheckoutScreen(
                 Surface(
                     color = MaterialTheme.colorScheme.errorContainer,
                     contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    shape = RoundedCornerShape(5.dp),
+                    shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
                         .fillMaxWidth(),
@@ -206,7 +206,7 @@ private fun AddressCard(form: CheckoutViewModel.FormState) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.lg),
-        shape = RoundedCornerShape(5.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = Surface0),
         border = BorderStroke(1.dp, Surface200),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -402,7 +402,7 @@ private fun PaymentMethodList(selected: String, onSelect: (String) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.lg),
-        shape = RoundedCornerShape(5.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = Surface0),
         border = BorderStroke(1.dp, Surface200),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -440,7 +440,7 @@ private fun PaymentRow(option: PayOption, selected: Boolean, onClick: () -> Unit
         Box(
             modifier = Modifier
                 .size(36.dp)
-                .clip(RoundedCornerShape(5.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .background(BrandGreen50),
             contentAlignment = Alignment.Center,
         ) {
@@ -505,7 +505,7 @@ private fun OrderSummaryCard(state: CheckoutViewModel.UiState) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.lg),
-        shape = RoundedCornerShape(5.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = Surface0),
         border = BorderStroke(1.dp, Surface200),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -527,7 +527,7 @@ private fun OrderSummaryCard(state: CheckoutViewModel.UiState) {
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .size(40.dp)
-                                .clip(RoundedCornerShape(5.dp)),
+                                .clip(RoundedCornerShape(8.dp)),
                         )
                     } else {
                         GradientTile(

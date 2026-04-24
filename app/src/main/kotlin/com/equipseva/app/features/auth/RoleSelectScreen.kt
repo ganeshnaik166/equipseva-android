@@ -115,7 +115,7 @@ private fun RoleCard(
     OutlinedCard(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(5.dp),
+        shape = RoundedCornerShape(8.dp),
         border = border,
         colors = CardDefaults.outlinedCardColors(
             containerColor = MaterialTheme.colorScheme.surface,

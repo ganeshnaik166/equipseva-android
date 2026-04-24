@@ -455,7 +455,7 @@ private fun DocumentRow(
     Card(
         colors = CardDefaults.cardColors(containerColor = Surface0),
         border = androidx.compose.foundation.BorderStroke(1.dp, Surface200),
-        shape = RoundedCornerShape(5.dp),
+        shape = RoundedCornerShape(8.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -556,7 +556,7 @@ private fun KycSectionCard(title: String, content: @Composable () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Surface0),
         border = androidx.compose.foundation.BorderStroke(1.dp, Surface200),
-        shape = RoundedCornerShape(5.dp),
+        shape = RoundedCornerShape(8.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(

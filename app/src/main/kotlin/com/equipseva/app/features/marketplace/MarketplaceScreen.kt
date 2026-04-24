@@ -402,9 +402,9 @@ private fun FeaturedCard(part: SparePart, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .width(170.dp)
-            .clip(RoundedCornerShape(5.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(Surface0)
-            .border(1.dp, Surface200, RoundedCornerShape(5.dp))
+            .border(1.dp, Surface200, RoundedCornerShape(8.dp))
             .clickable(onClick = onClick),
     ) {
         GradientTile(
@@ -477,9 +477,9 @@ private fun ManufacturerGrid(items: List<SparePart>) {
                         modifier = Modifier
                             .weight(1f)
                             .aspectRatio(1.4f)
-                            .clip(RoundedCornerShape(5.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .background(Surface0)
-                            .border(1.dp, Surface200, RoundedCornerShape(5.dp)),
+                            .border(1.dp, Surface200, RoundedCornerShape(8.dp)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
@@ -573,7 +573,7 @@ private fun MarketplaceShimmerList() {
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
                     .height(120.dp),
-                shape = RoundedCornerShape(5.dp),
+                shape = RoundedCornerShape(8.dp),
             )
         }
     }

@@ -205,7 +205,7 @@ private fun CartLineRow(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(5.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = Surface0),
         border = BorderStroke(1.dp, Surface200),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -224,7 +224,7 @@ private fun CartLineRow(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(72.dp)
-                        .clip(RoundedCornerShape(5.dp)),
+                        .clip(RoundedCornerShape(8.dp)),
                 )
             } else {
                 GradientTile(
@@ -295,7 +295,7 @@ private fun CartLineRow(
 private fun SummaryCard(subtotal: Double) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(5.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = Surface0),
         border = BorderStroke(1.5.dp, Surface200),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
