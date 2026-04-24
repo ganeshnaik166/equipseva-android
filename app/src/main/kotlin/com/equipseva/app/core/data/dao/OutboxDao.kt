@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import com.equipseva.app.core.data.entities.OutboxEntryEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface OutboxDao {
@@ -21,4 +22,7 @@ interface OutboxDao {
 
     @Query("SELECT COUNT(*) FROM outbox")
     suspend fun pendingCount(): Int
+
+    @Query("SELECT COUNT(*) FROM outbox WHERE kind = :kind")
+    fun observePendingCountByKind(kind: String): Flow<Int>
 }

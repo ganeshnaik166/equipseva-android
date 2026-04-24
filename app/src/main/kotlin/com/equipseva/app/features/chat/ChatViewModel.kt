@@ -8,6 +8,7 @@ import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.chat.ChatMessage
 import com.equipseva.app.core.data.chat.ChatMessagePayload
 import com.equipseva.app.core.data.chat.ChatRepository
+import com.equipseva.app.core.data.dao.OutboxDao
 import com.equipseva.app.core.data.profile.Profile
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
@@ -37,6 +38,7 @@ class ChatViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
     private val profileRepository: ProfileRepository,
     private val outboxEnqueuer: OutboxEnqueuer,
+    private val outboxDao: OutboxDao,
     private val json: Json,
 ) : ViewModel() {
 
@@ -47,6 +49,7 @@ class ChatViewModel @Inject constructor(
         val messages: List<ChatMessage> = emptyList(),
         val draft: String = "",
         val sending: Boolean = false,
+        val queuedCount: Int = 0,
         val errorMessage: String? = null,
     ) {
         val title: String
@@ -78,6 +81,9 @@ class ChatViewModel @Inject constructor(
             loadConversationMeta(session.userId)
             observeMessages(session.userId)
         }
+        outboxDao.observePendingCountByKind(OutboxKinds.CHAT_MESSAGE)
+            .onEach { count -> _state.update { it.copy(queuedCount = count) } }
+            .launchIn(viewModelScope)
     }
 
     fun onDraftChange(value: String) {
