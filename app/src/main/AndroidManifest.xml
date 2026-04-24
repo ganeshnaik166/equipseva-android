@@ -78,6 +78,17 @@
             </intent-filter>
         </service>
 
+        <!-- FileProvider for sharing user-data exports out of cacheDir/exports. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <!-- Hilt's WorkManager initializer; disable default to let Hilt take over. -->
         <provider
             android:name="androidx.startup.InitializationProvider"

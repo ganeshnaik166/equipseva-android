@@ -1,10 +1,12 @@
 package com.equipseva.app.features.profile
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.account.AccountDeletionRepository
+import com.equipseva.app.core.data.account.DataExportRepository
 import com.equipseva.app.core.data.prefs.ThemeMode
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.Profile
@@ -12,6 +14,8 @@ import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.features.auth.UserRole
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,6 +35,8 @@ class ProfileViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val userPrefs: UserPrefs,
     private val accountDeletionRepository: AccountDeletionRepository,
+    private val dataExportRepository: DataExportRepository,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     data class UiState(
@@ -49,10 +55,12 @@ class ProfileViewModel @Inject constructor(
         val deleteAccountOpen: Boolean = false,
         val deleteReason: String = "",
         val deletingAccount: Boolean = false,
+        val exportingData: Boolean = false,
     )
 
     sealed interface Effect {
         data class ShowMessage(val text: String) : Effect
+        data class ShareExport(val path: String) : Effect
     }
 
     private val _state = MutableStateFlow(UiState())
@@ -209,6 +217,23 @@ class ProfileViewModel @Inject constructor(
                 }
                 .onFailure { error ->
                     _state.update { it.copy(editSaving = false, editError = error.toUserMessage()) }
+                }
+        }
+    }
+
+    fun onExportMyData() {
+        if (_state.value.exportingData) return
+        _state.update { it.copy(exportingData = true) }
+        viewModelScope.launch {
+            val targetDir = File(appContext.cacheDir, "exports")
+            dataExportRepository.exportToFile(targetDir)
+                .onSuccess { file ->
+                    _state.update { it.copy(exportingData = false) }
+                    _effects.send(Effect.ShareExport(file.absolutePath))
+                }
+                .onFailure { error ->
+                    _state.update { it.copy(exportingData = false) }
+                    _effects.send(Effect.ShowMessage(error.toUserMessage()))
                 }
         }
     }

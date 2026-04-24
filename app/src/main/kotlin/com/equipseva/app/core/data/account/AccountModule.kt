@@ -14,4 +14,10 @@ abstract class AccountModule {
     abstract fun bindAccountDeletionRepository(
         impl: SupabaseAccountDeletionRepository,
     ): AccountDeletionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindDataExportRepository(
+        impl: SupabaseDataExportRepository,
+    ): DataExportRepository
 }

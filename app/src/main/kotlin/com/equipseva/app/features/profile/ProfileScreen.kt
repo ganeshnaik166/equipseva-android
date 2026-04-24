@@ -1,5 +1,8 @@
 package com.equipseva.app.features.profile
 
+import android.content.Context
+import android.content.Intent
+import androidx.core.content.FileProvider
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
@@ -105,11 +109,13 @@ fun ProfileScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val settingsOpen by viewModel.settingsOpen.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 is ProfileViewModel.Effect.ShowMessage -> onShowMessage(effect.text)
+                is ProfileViewModel.Effect.ShareExport -> shareExportFile(context, effect.path)
             }
         }
     }
@@ -148,6 +154,7 @@ fun ProfileScreen(
                         onOpenFavorites = onOpenFavorites,
                         onOpenNotifications = onOpenNotifications,
                         onDeleteAccount = viewModel::onOpenDeleteAccount,
+                        onExportData = viewModel::onExportMyData,
                     )
                 }
             }
@@ -211,6 +218,7 @@ private fun ProfileContent(
     onOpenFavorites: () -> Unit,
     onOpenNotifications: () -> Unit,
     onDeleteAccount: () -> Unit,
+    onExportData: () -> Unit,
 ) {
     val profile = state.profile!!
     val isEngineer = profile.role == UserRole.ENGINEER
@@ -272,6 +280,8 @@ private fun ProfileContent(
                     signingOut = state.signingOut,
                     onDeleteAccount = onDeleteAccount,
                     deletingAccount = state.deletingAccount,
+                    onExportData = onExportData,
+                    exportingData = state.exportingData,
                 ),
             )
         }
@@ -305,6 +315,8 @@ private fun buildSettingsRows(
     signingOut: Boolean,
     onDeleteAccount: () -> Unit,
     deletingAccount: Boolean,
+    onExportData: () -> Unit,
+    exportingData: Boolean,
 ): List<SettingsRow> {
     val rows = mutableListOf<SettingsRow>()
     rows += SettingsRow(
@@ -357,6 +369,12 @@ private fun buildSettingsRows(
         icon = Icons.Outlined.Info,
         label = "About",
         onClick = onOpenAbout,
+    )
+    rows += SettingsRow(
+        icon = Icons.Filled.CloudDownload,
+        label = if (exportingData) "Preparing export…" else "Export my data",
+        enabled = !exportingData,
+        onClick = onExportData,
     )
     rows += SettingsRow(
         icon = Icons.AutoMirrored.Filled.Logout,
@@ -926,4 +944,23 @@ private fun EditProfileSheet(
             }
         }
     }
+}
+
+private fun shareExportFile(context: Context, absolutePath: String) {
+    val file = java.io.File(absolutePath)
+    val uri = FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.fileprovider",
+        file,
+    )
+    val share = Intent(Intent.ACTION_SEND).apply {
+        type = "application/json"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        putExtra(Intent.EXTRA_SUBJECT, "EquipSeva data export")
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    val chooser = Intent.createChooser(share, "Share my data export").apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    context.startActivity(chooser)
 }
