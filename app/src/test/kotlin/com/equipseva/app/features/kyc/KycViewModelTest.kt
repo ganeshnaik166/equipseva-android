@@ -119,7 +119,6 @@ class KycViewModelTest {
 
     private fun KycViewModel.Effect.text(): String = when (this) {
         is KycViewModel.Effect.ShowMessage -> text
-        KycViewModel.Effect.Saved -> "saved"
     }
 
     private fun engineer(
