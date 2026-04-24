@@ -22,6 +22,7 @@ class StorageRepository @Inject constructor(
      *   - MIME type allowlist (per [UploadValidator])
      *   - size ceiling (per [UploadValidator])
      *   - EXIF/metadata scrub for JPEG images (via [ExifScrubber])
+     *   - path safety: rejects "..", absolute paths, control chars, backslashes
      *
      * Callers should catch [UploadError] and surface a human-readable message; the bucket
      * policy in Supabase enforces the same rules server-side as a backstop.
@@ -32,6 +33,7 @@ class StorageRepository @Inject constructor(
         bytes: ByteArray,
         contentType: String? = null,
     ): Result<Unit> = runCatching {
+        validatePath(path).getOrThrow()
         val policy = UploadValidator.validate(bucket, contentType, bytes.size.toLong()).getOrThrow()
         val scrubbed = ExifScrubber.strip(bytes, contentType)
         supabase.storage.from(bucket).upload(path, scrubbed) {
@@ -43,6 +45,28 @@ class StorageRepository @Inject constructor(
         val _p = policy
     }
 
-    suspend fun signedUrl(bucket: String, path: String, expiresInMinutes: Int = 15): String =
-        supabase.storage.from(bucket).createSignedUrl(path, expiresInMinutes.minutes)
+    suspend fun signedUrl(bucket: String, path: String, expiresInMinutes: Int = 15): String {
+        validatePath(path).getOrThrow()
+        return supabase.storage.from(bucket).createSignedUrl(path, expiresInMinutes.minutes)
+    }
+
+    // Defense-in-depth path guard. Callers (e.g. KycViewModel.timestampedName) already
+    // sanitize the file-name segment, but we re-check at the repository so a future
+    // caller can't accidentally route user input straight into an object key. Supabase
+    // Storage object keys are S3-style, but `storage.foldername()`-based RLS policies
+    // typically key on the first segment — a leading slash or `..` could collapse the
+    // owner prefix and route writes to another user's folder.
+    private fun validatePath(path: String): Result<Unit> {
+        if (path.isBlank()) return Result.failure(UploadError.InvalidPath(path, "empty"))
+        if (path.startsWith('/')) return Result.failure(UploadError.InvalidPath(path, "absolute"))
+        if (path.contains('\\')) return Result.failure(UploadError.InvalidPath(path, "backslash"))
+        if (path.any { it.code < 0x20 || it.code == 0x7F }) {
+            return Result.failure(UploadError.InvalidPath(path, "control char"))
+        }
+        val segments = path.split('/')
+        if (segments.any { it == ".." || it == "." }) {
+            return Result.failure(UploadError.InvalidPath(path, "traversal segment"))
+        }
+        return Result.success(Unit)
+    }
 }

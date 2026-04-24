@@ -51,4 +51,6 @@ sealed class UploadError(message: String) : RuntimeException(message) {
     ) : UploadError("mime '$received' not allowed for $bucket (allowed=${allowed.joinToString()})")
     class TooLarge(val bucket: String, val size: Long, val max: Long) :
         UploadError("upload size $size exceeds $max bytes for $bucket")
+    class InvalidPath(val path: String, val reason: String) :
+        UploadError("invalid storage path: $reason")
 }
