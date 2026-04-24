@@ -61,12 +61,18 @@ class ChatViewModel @Inject constructor(
         val submittingReport: Boolean = false,
         val counterpartBlocked: Boolean = false,
         val togglingBlock: Boolean = false,
+        val editingMessageId: String? = null,
+        val editDraft: String = "",
+        val editing: Boolean = false,
         val errorMessage: String? = null,
     ) {
         val title: String
             get() = counterpart?.displayName ?: "Chat"
         val canSend: Boolean
             get() = draft.trim().isNotEmpty() && !sending && selfUserId != null && !counterpartBlocked
+        val canSubmitEdit: Boolean
+            get() = editingMessageId != null && editDraft.trim().isNotEmpty() &&
+                editDraft.length <= 4000 && !editing
     }
 
     sealed interface Effect {
@@ -166,6 +172,54 @@ class ChatViewModel @Inject constructor(
                 }
             // On success the realtime subscription refreshes the row with
             // deleted_at populated, so no local state mutation is needed.
+        }
+    }
+
+    /**
+     * Open the inline edit bar pre-filled with the message body. No client-side time
+     * check — the 15-minute window is enforced by edit_my_chat_message RPC so the UI
+     * would get stale trying to track it. We only gate on "own, non-deleted".
+     */
+    fun onOpenEdit(messageId: String) {
+        val snap = _state.value
+        val self = snap.selfUserId ?: return
+        val msg = snap.messages.firstOrNull { it.id == messageId } ?: return
+        if (msg.senderUserId != self || msg.isDeleted) return
+        _state.update {
+            it.copy(
+                editingMessageId = messageId,
+                editDraft = msg.message,
+            )
+        }
+    }
+
+    fun onEditDraftChange(value: String) {
+        _state.update { it.copy(editDraft = value) }
+    }
+
+    fun onCancelEdit() {
+        if (_state.value.editing) return
+        _state.update { it.copy(editingMessageId = null, editDraft = "") }
+    }
+
+    fun onSubmitEdit() {
+        val snap = _state.value
+        val id = snap.editingMessageId ?: return
+        val body = snap.editDraft.trim()
+        if (body.isEmpty() || body.length > 4000 || snap.editing) return
+        _state.update { it.copy(editing = true) }
+        viewModelScope.launch {
+            chatRepository.editMessage(id, body)
+                .onSuccess {
+                    _state.update {
+                        it.copy(editing = false, editingMessageId = null, editDraft = "")
+                    }
+                    // Realtime subscription will refresh the row with message + edited_at.
+                }
+                .onFailure { err ->
+                    _state.update { it.copy(editing = false) }
+                    _effects.send(Effect.ShowMessage(err.toUserMessage()))
+                }
         }
     }
 

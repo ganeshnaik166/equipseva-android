@@ -33,11 +33,13 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -111,12 +113,24 @@ fun ChatScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            ChatInputBar(
-                draft = state.draft,
-                canSend = state.canSend,
-                onDraftChange = viewModel::onDraftChange,
-                onSend = viewModel::onSend,
-            )
+            Column {
+                if (state.editingMessageId != null) {
+                    EditMessageBar(
+                        draft = state.editDraft,
+                        canSubmit = state.canSubmitEdit,
+                        submitting = state.editing,
+                        onDraftChange = viewModel::onEditDraftChange,
+                        onSubmit = viewModel::onSubmitEdit,
+                        onCancel = viewModel::onCancelEdit,
+                    )
+                }
+                ChatInputBar(
+                    draft = state.draft,
+                    canSend = state.canSend,
+                    onDraftChange = viewModel::onDraftChange,
+                    onSend = viewModel::onSend,
+                )
+            }
         },
     ) { padding ->
         Column(
@@ -153,6 +167,7 @@ fun ChatScreen(
                             isSelf = msg.senderUserId == state.selfUserId,
                             onReport = viewModel::onOpenReport,
                             onDelete = viewModel::onDeleteMessage,
+                            onEdit = viewModel::onOpenEdit,
                         )
                     }
                 }
@@ -295,6 +310,7 @@ private fun MessageRow(
     isSelf: Boolean,
     onReport: (String) -> Unit = {},
     onDelete: (String) -> Unit = {},
+    onEdit: (String) -> Unit = {},
 ) {
     val isDeleted = message.isDeleted
     // Deleted bubbles fall back to a muted surface so the tombstone reads as disabled,
@@ -384,18 +400,32 @@ private fun MessageRow(
                     }
                     val timeLabel = formatTime(message.createdAtIso)
                     if (!timeLabel.isNullOrBlank()) {
-                        Text(
-                            text = timeLabel,
-                            fontSize = 10.sp,
-                            color = when {
-                                isDeleted -> Ink500
-                                isSelf -> Color.White.copy(alpha = 0.8f)
-                                else -> Ink500
-                            },
+                        val metaColor = when {
+                            isDeleted -> Ink500
+                            isSelf -> Color.White.copy(alpha = 0.8f)
+                            else -> Ink500
+                        }
+                        Row(
                             modifier = Modifier
                                 .align(Alignment.End)
                                 .padding(top = 2.dp),
-                        )
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (message.isEdited && !isDeleted) {
+                                Text(
+                                    text = "(edited)",
+                                    fontSize = 10.sp,
+                                    fontStyle = FontStyle.Italic,
+                                    color = metaColor,
+                                )
+                            }
+                            Text(
+                                text = timeLabel,
+                                fontSize = 10.sp,
+                                color = metaColor,
+                            )
+                        }
                     }
                 }
             }
@@ -404,6 +434,13 @@ private fun MessageRow(
                     expanded = menuOpen,
                     onDismissRequest = { menuOpen = false },
                 ) {
+                    DropdownMenuItem(
+                        text = { Text("Edit") },
+                        onClick = {
+                            menuOpen = false
+                            onEdit(message.id)
+                        },
+                    )
                     DropdownMenuItem(
                         text = { Text("Delete") },
                         onClick = {
@@ -491,6 +528,56 @@ private fun ChatInputBar(
                             tint = if (canSend) Color.White else Ink500,
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditMessageBar(
+    draft: String,
+    canSubmit: Boolean,
+    submitting: Boolean,
+    onDraftChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    Surface(
+        color = BrandGreen50,
+        tonalElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = "Edit message",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = BrandGreen,
+            )
+            OutlinedTextField(
+                value = draft,
+                onValueChange = onDraftChange,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = false,
+                maxLines = 4,
+                enabled = !submitting,
+                textStyle = TextStyle(fontSize = 14.sp, color = Ink900),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = onCancel, enabled = !submitting) {
+                    Text("Cancel")
+                }
+                TextButton(onClick = onSubmit, enabled = canSubmit) {
+                    Text(if (submitting) "Saving…" else "Save")
                 }
             }
         }
