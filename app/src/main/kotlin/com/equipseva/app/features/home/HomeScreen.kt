@@ -14,7 +14,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
-import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DocumentScanner
@@ -29,7 +30,6 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Store
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material.icons.outlined.Badge
@@ -163,7 +163,7 @@ private fun cardsFor(role: UserRole?): List<HomeCardEntry> = when (role) {
         HomeCardEntry("browse_parts", Icons.Filled.Search, "Browse parts", "Find compatible parts for your equipment", hue = 200),
         HomeCardEntry("active_jobs", Icons.Filled.Build, "Active repair jobs", "Track ongoing repairs", hue = 150),
         HomeCardEntry("order_history", Icons.Filled.History, "Order history", "Review past purchases and invoices", hue = 40),
-        HomeCardEntry("request_service", Icons.Filled.Assignment, "Request a service", "Post a new repair request", hue = 280),
+        HomeCardEntry("request_service", Icons.AutoMirrored.Filled.Assignment, "Request a service", "Post a new repair request", hue = 280),
         HomeCardEntry("hospital_create_rfq", Icons.Filled.Description, "Create an RFQ", "Request quotations from suppliers", hue = 330),
         HomeCardEntry("my_rfqs", Icons.Outlined.RequestQuote, "My RFQs", "Track your open and past quotation requests", hue = 200),
     )
@@ -183,8 +183,8 @@ private fun cardsFor(role: UserRole?): List<HomeCardEntry> = when (role) {
         HomeCardEntry("rfqs", Icons.Filled.Description, "RFQs", "Requests for quotation", hue = 280),
     )
     UserRole.MANUFACTURER -> listOf(
-        HomeCardEntry("rfqs_assigned", Icons.Filled.Assignment, "RFQs assigned", "Quotation requests for you", hue = 280),
-        HomeCardEntry("lead_pipeline", Icons.Filled.TrendingUp, "Lead pipeline", "Leads in progress", hue = 200),
+        HomeCardEntry("rfqs_assigned", Icons.AutoMirrored.Filled.Assignment, "RFQs assigned", "Quotation requests for you", hue = 280),
+        HomeCardEntry("lead_pipeline", Icons.AutoMirrored.Filled.TrendingUp, "Lead pipeline", "Leads in progress", hue = 200),
         HomeCardEntry("analytics", Icons.Filled.Analytics, "Analytics", "Performance and trends", hue = 150),
     )
     UserRole.LOGISTICS -> listOf(
