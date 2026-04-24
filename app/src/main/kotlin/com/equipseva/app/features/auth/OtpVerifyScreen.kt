@@ -107,7 +107,7 @@ fun OtpVerifyScreen(
             OtpDigitField(
                 value = state.code,
                 onValueChange = viewModel::onCodeChange,
-                length = 6,
+                length = 8,
                 error = state.codeError,
             )
 
