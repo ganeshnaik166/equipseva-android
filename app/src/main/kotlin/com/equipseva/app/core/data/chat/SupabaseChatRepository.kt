@@ -180,6 +180,20 @@ class SupabaseChatRepository @Inject constructor(
         Unit
     }
 
+    override suspend fun editMessage(messageId: String, newBody: String): Result<Unit> = runCatching {
+        // Ownership, column set (message + edited_at only), body length 1..4000, and
+        // the 15-minute window are all enforced by edit_my_chat_message (SECURITY
+        // DEFINER). Server is authoritative; we don't recheck the time on the client.
+        client.postgrest.rpc(
+            function = "edit_my_chat_message",
+            parameters = buildJsonObject {
+                put("p_message_id", JsonPrimitive(messageId))
+                put("p_new_body", JsonPrimitive(newBody))
+            },
+        )
+        Unit
+    }
+
     private suspend fun fetchConversationsFor(userId: String): List<ChatConversation> {
         // participant_user_ids is a uuid[]; use Postgrest "contains" to filter server-side.
         val conversations = client.from(CONVERSATIONS_TABLE).select {

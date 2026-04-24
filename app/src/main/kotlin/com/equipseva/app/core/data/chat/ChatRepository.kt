@@ -47,4 +47,11 @@ interface ChatRepository {
      * the sender or the message was already deleted.
      */
     suspend fun deleteMessage(messageId: String): Result<Unit>
+
+    /**
+     * Edit the body of a message the caller sent, within the 15-minute window enforced
+     * by the server. Fails if the caller is not the sender, the message is deleted,
+     * the window has elapsed, or the new body is empty / over 4000 chars.
+     */
+    suspend fun editMessage(messageId: String, newBody: String): Result<Unit>
 }

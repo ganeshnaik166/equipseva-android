@@ -13,6 +13,7 @@ data class MessageDto(
     @SerialName("is_read") val isRead: Boolean? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("deleted_at") val deletedAt: String? = null,
+    @SerialName("edited_at") val editedAt: String? = null,
 )
 
 @Serializable
