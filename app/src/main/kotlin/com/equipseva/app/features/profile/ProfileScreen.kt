@@ -35,6 +35,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
@@ -105,6 +106,7 @@ fun ProfileScreen(
     onOpenFavorites: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     onOpenChangePassword: () -> Unit = {},
+    onOpenChangeEmail: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     SecureScreen()
@@ -158,6 +160,7 @@ fun ProfileScreen(
                         onDeleteAccount = viewModel::onOpenDeleteAccount,
                         onExportData = viewModel::onExportMyData,
                         onOpenChangePassword = onOpenChangePassword,
+                        onOpenChangeEmail = onOpenChangeEmail,
                     )
                 }
             }
@@ -223,6 +226,7 @@ private fun ProfileContent(
     onDeleteAccount: () -> Unit,
     onExportData: () -> Unit,
     onOpenChangePassword: () -> Unit,
+    onOpenChangeEmail: () -> Unit,
 ) {
     val profile = state.profile!!
     val isEngineer = profile.role == UserRole.ENGINEER
@@ -281,6 +285,7 @@ private fun ProfileContent(
                     onOpenFavorites = onOpenFavorites,
                     onOpenNotifications = onOpenNotifications,
                     onOpenChangePassword = onOpenChangePassword,
+                    onOpenChangeEmail = onOpenChangeEmail,
                     onSignOut = onSignOut,
                     signingOut = state.signingOut,
                     onDeleteAccount = onDeleteAccount,
@@ -317,6 +322,7 @@ private fun buildSettingsRows(
     onOpenFavorites: () -> Unit,
     onOpenNotifications: () -> Unit,
     onOpenChangePassword: () -> Unit,
+    onOpenChangeEmail: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
     onDeleteAccount: () -> Unit,
@@ -375,6 +381,11 @@ private fun buildSettingsRows(
         icon = Icons.Outlined.Lock,
         label = "Change password",
         onClick = onOpenChangePassword,
+    )
+    rows += SettingsRow(
+        icon = Icons.Outlined.Email,
+        label = "Change email",
+        onClick = onOpenChangeEmail,
     )
     rows += SettingsRow(
         icon = Icons.Outlined.Info,

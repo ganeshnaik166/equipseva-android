@@ -73,6 +73,13 @@ class SupabaseAuthRepository @Inject constructor(
         Unit
     }
 
+    override suspend fun updateEmail(newEmail: String): Result<Unit> = runCatching {
+        client.auth.updateUser {
+            email = newEmail
+        }
+        Unit
+    }
+
     override suspend fun signOut(): Result<Unit> = runCatching {
         client.auth.signOut()
     }
