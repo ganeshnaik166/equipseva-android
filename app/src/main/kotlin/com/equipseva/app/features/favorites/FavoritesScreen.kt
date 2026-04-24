@@ -34,6 +34,7 @@ import com.equipseva.app.features.marketplace.components.PartCard
 fun FavoritesScreen(
     onBack: () -> Unit,
     onOpenPart: (String) -> Unit,
+    onFindParts: () -> Unit = {},
     viewModel: FavoritesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -67,6 +68,8 @@ fun FavoritesScreen(
                     icon = Icons.Outlined.FavoriteBorder,
                     title = "No favorites yet",
                     subtitle = "Tap the heart on any part to save it here for later.",
+                    ctaLabel = "Find parts",
+                    onCta = onFindParts,
                 )
 
                 else -> {

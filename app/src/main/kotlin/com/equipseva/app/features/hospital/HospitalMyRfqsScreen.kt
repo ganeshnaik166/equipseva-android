@@ -33,6 +33,7 @@ import com.equipseva.app.features.supplier.RfqListCard
 fun HospitalMyRfqsScreen(
     onBack: () -> Unit,
     onRfqClick: (String) -> Unit = {},
+    onCreateRfq: () -> Unit = {},
     viewModel: HospitalMyRfqsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -67,6 +68,8 @@ fun HospitalMyRfqsScreen(
                         icon = Icons.Outlined.RequestQuote,
                         title = "No RFQs yet",
                         subtitle = "RFQs you post for bulk equipment will appear here.",
+                        ctaLabel = "Create RFQ",
+                        onCta = onCreateRfq,
                     )
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
