@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.outlined.CloudSync
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -141,7 +143,11 @@ fun RepairJobDetailScreen(
             }
         },
     ) { padding ->
-        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+            QueuedOutboxPill(
+                bidCount = state.queuedBidCount,
+                statusCount = state.queuedStatusCount,
+            )
             when {
                 state.loading -> Box(
                     modifier = Modifier.fillMaxSize(),
@@ -1172,5 +1178,36 @@ private fun BidComposerSheet(
                 Text("Cancel")
             }
         }
+    }
+}
+
+@Composable
+private fun QueuedOutboxPill(bidCount: Int, statusCount: Int) {
+    if (bidCount <= 0 && statusCount <= 0) return
+    val parts = buildList {
+        if (bidCount > 0) add(if (bidCount == 1) "1 bid" else "$bidCount bids")
+        if (statusCount > 0) add(if (statusCount == 1) "1 status change" else "$statusCount status changes")
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg, vertical = Spacing.xs)
+            .clip(RoundedCornerShape(12.dp))
+            .background(BrandGreen50)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.CloudSync,
+            contentDescription = null,
+            tint = BrandGreen,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = "${parts.joinToString(" + ")} queued — will sync when back online",
+            style = MaterialTheme.typography.bodySmall,
+            color = Ink900,
+        )
     }
 }

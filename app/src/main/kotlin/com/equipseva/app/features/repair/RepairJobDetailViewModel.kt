@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.chat.ChatRepository
+import com.equipseva.app.core.data.dao.OutboxDao
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.data.repair.JobStatusPayload
@@ -30,6 +31,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -46,6 +49,7 @@ class RepairJobDetailViewModel @Inject constructor(
     private val engineerRepository: EngineerRepository,
     private val profileRepository: ProfileRepository,
     private val outboxEnqueuer: OutboxEnqueuer,
+    private val outboxDao: OutboxDao,
     private val json: Json,
 ) : ViewModel() {
 
@@ -96,6 +100,10 @@ class RepairJobDetailViewModel @Inject constructor(
          * name so an engineer can judge travel distance before bidding.
          */
         val hospitalLocation: String? = null,
+        /** Count of queued bid writes waiting on the outbox to drain. */
+        val queuedBidCount: Int = 0,
+        /** Count of queued status transitions waiting on the outbox to drain. */
+        val queuedStatusCount: Int = 0,
     )
 
     private val jobId: String =
@@ -114,6 +122,12 @@ class RepairJobDetailViewModel @Inject constructor(
 
     init {
         load()
+        outboxDao.observePendingCountByKind(OutboxKinds.REPAIR_BID)
+            .onEach { count -> _state.update { it.copy(queuedBidCount = count) } }
+            .launchIn(viewModelScope)
+        outboxDao.observePendingCountByKind(OutboxKinds.JOB_STATUS)
+            .onEach { count -> _state.update { it.copy(queuedStatusCount = count) } }
+            .launchIn(viewModelScope)
     }
 
     fun retry() = load()
