@@ -99,15 +99,58 @@ class HospitalRfqDetailViewModel @Inject constructor(
         viewModelScope.launch {
             rfqRepository.acceptBid(bid.id, bid.rfqId)
                 .onSuccess {
-                    _state.update { it.copy(acceptingBidId = null) }
-                    emit(Effect.ShowMessage("Bid accepted"))
+                    // Refresh the list so the accepted/rejected chips flip before we
+                    // (best-effort) drop the buyer into the chat with the supplier.
                     load(initial = false)
+                    val navigated = openChatAfterAccept(bid)
+                    _state.update { it.copy(acceptingBidId = null) }
+                    if (!navigated) {
+                        emit(Effect.ShowMessage("Bid accepted"))
+                    }
                 }
                 .onFailure { error ->
                     _state.update { it.copy(acceptingBidId = null) }
                     emit(Effect.ShowMessage(error.toUserMessage()))
                 }
         }
+    }
+
+    /**
+     * Mirrors the repair-bid accept flow: after the bid flips to accepted we
+     * land the buyer in a 1:1 conversation with the supplier on that bid.
+     *
+     * Returns `true` if a NavigateToChat effect was emitted. Any failure here
+     * is non-fatal — the accept has already committed — so we surface a
+     * toast and fall back to the standard "Bid accepted" snackbar.
+     */
+    private suspend fun openChatAfterAccept(bid: RfqBid): Boolean {
+        val session = authRepository.sessionState
+            .filterIsInstance<AuthSession.SignedIn>()
+            .firstOrNull()
+        val selfId = session?.userId
+        if (selfId.isNullOrBlank()) {
+            emit(Effect.ShowMessage("Bid accepted — sign in again to message the supplier"))
+            return false
+        }
+        val supplierUserId = bid.manufacturerId
+        if (supplierUserId.isBlank() || supplierUserId == selfId) {
+            // Degenerate case — mirrors onMessageSupplier guards.
+            emit(Effect.ShowMessage("Bid accepted"))
+            return false
+        }
+        return chatRepository.getOrCreateForRfqBid(
+            bidId = bid.id,
+            participantUserIds = listOf(selfId, supplierUserId),
+        ).fold(
+            onSuccess = { convo ->
+                emit(Effect.NavigateToChat(convo.id))
+                true
+            },
+            onFailure = { error ->
+                emit(Effect.ShowMessage("Bid accepted — ${error.toUserMessage()}"))
+                false
+            },
+        )
     }
 
     private fun emit(effect: Effect) {
