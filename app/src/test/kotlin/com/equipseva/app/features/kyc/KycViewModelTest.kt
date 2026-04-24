@@ -7,6 +7,7 @@ import com.equipseva.app.core.data.engineers.EngineerCertificate
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
+import com.equipseva.app.core.sync.handlers.PhotoUploadStash
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -34,7 +35,7 @@ class KycViewModelTest {
     @Test fun `save rejects when aadhaar number is present but not 12 digits`() = runTest {
         val auth = FakeAuthRepository(userId = "user-1")
         val repo = FakeEngineerRepository()
-        val vm = KycViewModel(auth, repo)
+        val vm = KycViewModel(auth, repo, FakePhotoUploadStash())
         vm.toggleSpecialization(RepairEquipmentCategory.ImagingRadiology)
         vm.onAadhaarNumberChange("12345")
 
@@ -47,7 +48,7 @@ class KycViewModelTest {
     @Test fun `save rejects when no specialization selected`() = runTest {
         val auth = FakeAuthRepository(userId = "user-1")
         val repo = FakeEngineerRepository()
-        val vm = KycViewModel(auth, repo)
+        val vm = KycViewModel(auth, repo, FakePhotoUploadStash())
 
         val effect = async(vm) { vm.save() }
 
@@ -58,7 +59,7 @@ class KycViewModelTest {
     @Test fun `save persists certificates with type discriminator`() = runTest {
         val auth = FakeAuthRepository(userId = "user-1")
         val repo = FakeEngineerRepository()
-        val vm = KycViewModel(auth, repo)
+        val vm = KycViewModel(auth, repo, FakePhotoUploadStash())
         vm.toggleSpecialization(RepairEquipmentCategory.ImagingRadiology)
 
         // simulate prior uploads populating both slots
@@ -87,7 +88,7 @@ class KycViewModelTest {
                 ),
             )
         }
-        val vm = KycViewModel(auth, repo)
+        val vm = KycViewModel(auth, repo, FakePhotoUploadStash())
 
         // wait for load() to complete
         val state = vm.state.first { !it.loading }
@@ -99,7 +100,7 @@ class KycViewModelTest {
     @Test fun `save surfaces repository failure as user message`() = runTest {
         val auth = FakeAuthRepository(userId = "user-1")
         val repo = FakeEngineerRepository().apply { upsertError = RuntimeException("boom") }
-        val vm = KycViewModel(auth, repo)
+        val vm = KycViewModel(auth, repo, FakePhotoUploadStash())
         vm.toggleSpecialization(RepairEquipmentCategory.ImagingRadiology)
 
         val effect = async(vm) { vm.save() }
@@ -151,6 +152,23 @@ private class FakeAuthRepository(userId: String) : AuthRepository {
     override suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?) = Result.success(Unit)
     override suspend fun signOut() = Result.success(Unit)
     override suspend fun sendPasswordResetEmail(email: String) = Result.success(Unit)
+    override suspend fun updatePassword(newPassword: String) = Result.success(Unit)
+    override suspend fun updateEmail(newEmail: String) = Result.success(Unit)
+}
+
+private class FakePhotoUploadStash : PhotoUploadStash {
+    val calls = mutableListOf<String>()
+    override suspend fun enqueue(
+        bucket: String,
+        objectPath: String,
+        bytes: ByteArray,
+        mimeType: String,
+        contextType: String,
+        contextId: String,
+        uploaderUserId: String,
+    ) {
+        calls += objectPath
+    }
 }
 
 private class FakeEngineerRepository : EngineerRepository {

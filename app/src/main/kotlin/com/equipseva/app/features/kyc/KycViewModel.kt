@@ -10,6 +10,9 @@ import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.storage.StorageRepository
+import com.equipseva.app.core.sync.handlers.PhotoUploadPayload
+import com.equipseva.app.core.sync.handlers.PhotoUploadStash
 import kotlinx.datetime.Clock
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -27,6 +30,7 @@ import javax.inject.Inject
 class KycViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val engineerRepository: EngineerRepository,
+    private val photoUploadStash: PhotoUploadStash,
 ) : ViewModel() {
 
     data class UiState(
@@ -158,9 +162,10 @@ class KycViewModel @Inject constructor(
         if (_state.value.uploadingAadhaar) return
         _state.update { it.copy(uploadingAadhaar = true) }
         viewModelScope.launch {
+            val stored = "aadhaar-${timestampedName(fileName)}"
             engineerRepository.uploadKycDoc(
                 userId = uid,
-                fileName = "aadhaar-${timestampedName(fileName)}",
+                fileName = stored,
                 bytes = bytes,
                 contentType = contentType,
             ).fold(
@@ -169,8 +174,22 @@ class KycViewModel @Inject constructor(
                     _effects.send(Effect.ShowMessage("Aadhaar document uploaded"))
                 },
                 onFailure = { ex ->
-                    _state.update { it.copy(uploadingAadhaar = false) }
-                    _effects.send(Effect.ShowMessage(ex.toUserMessage()))
+                    // Weak-network fallback: stash bytes + enqueue so the worker re-uploads
+                    // the doc when we're back online. UI optimistically pins the path the
+                    // drain will land on (StorageRepository uses "$uid/$fileName").
+                    val queued = tryQueuePhotoUpload(
+                        uid = uid,
+                        bytes = bytes,
+                        storedFileName = stored,
+                        contentType = contentType,
+                    )
+                    if (queued != null) {
+                        _state.update { it.copy(uploadingAadhaar = false, aadhaarDocPath = queued) }
+                        _effects.send(Effect.ShowMessage("Aadhaar will upload when back online"))
+                    } else {
+                        _state.update { it.copy(uploadingAadhaar = false) }
+                        _effects.send(Effect.ShowMessage(ex.toUserMessage()))
+                    }
                 },
             )
         }
@@ -181,9 +200,10 @@ class KycViewModel @Inject constructor(
         if (_state.value.uploadingCert) return
         _state.update { it.copy(uploadingCert = true) }
         viewModelScope.launch {
+            val stored = "cert-${timestampedName(fileName)}"
             engineerRepository.uploadKycDoc(
                 userId = uid,
-                fileName = "cert-${timestampedName(fileName)}",
+                fileName = stored,
                 bytes = bytes,
                 contentType = contentType,
             ).fold(
@@ -197,11 +217,56 @@ class KycViewModel @Inject constructor(
                     _effects.send(Effect.ShowMessage("Certificate uploaded"))
                 },
                 onFailure = { ex ->
-                    _state.update { it.copy(uploadingCert = false) }
-                    _effects.send(Effect.ShowMessage(ex.toUserMessage()))
+                    val queued = tryQueuePhotoUpload(
+                        uid = uid,
+                        bytes = bytes,
+                        storedFileName = stored,
+                        contentType = contentType,
+                    )
+                    if (queued != null) {
+                        _state.update {
+                            it.copy(
+                                uploadingCert = false,
+                                certDocPaths = it.certDocPaths + queued,
+                            )
+                        }
+                        _effects.send(Effect.ShowMessage("Certificate will upload when back online"))
+                    } else {
+                        _state.update { it.copy(uploadingCert = false) }
+                        _effects.send(Effect.ShowMessage(ex.toUserMessage()))
+                    }
                 },
             )
         }
+    }
+
+    /**
+     * Stashes [bytes] on disk and enqueues a [PhotoUploadPayload] for the
+     * outbox worker. Returns the target object path on success so the UI can
+     * pin it into state; returns `null` if we couldn't even enqueue (bad MIME,
+     * oversized, missing user id, disk write failure). In that last case the
+     * caller surfaces the original upload error instead.
+     */
+    private suspend fun tryQueuePhotoUpload(
+        uid: String,
+        bytes: ByteArray,
+        storedFileName: String,
+        contentType: String?,
+    ): String? {
+        val mime = contentType?.substringBefore(';')?.trim() ?: return null
+        val objectPath = "$uid/$storedFileName"
+        return runCatching {
+            photoUploadStash.enqueue(
+                bucket = StorageRepository.Buckets.KYC_DOCS,
+                objectPath = objectPath,
+                bytes = bytes,
+                mimeType = mime,
+                contextType = PhotoUploadPayload.CONTEXT_KYC_DOC,
+                contextId = uid,
+                uploaderUserId = uid,
+            )
+            objectPath
+        }.getOrNull()
     }
 
     fun save() {
