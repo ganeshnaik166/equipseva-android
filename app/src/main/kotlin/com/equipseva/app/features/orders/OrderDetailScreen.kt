@@ -31,7 +31,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.outlined.ContentCopy
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -96,6 +100,15 @@ fun OrderDetailScreen(
                 actions = {
                     val order = state.order
                     if (order != null) {
+                        val clipboard = LocalClipboardManager.current
+                        order.orderNumber?.takeIf { it.isNotBlank() }?.let { num ->
+                            IconButton(onClick = {
+                                clipboard.setText(AnnotatedString(num))
+                                Toast.makeText(context, "Order number copied", Toast.LENGTH_SHORT).show()
+                            }) {
+                                Icon(Icons.Outlined.ContentCopy, contentDescription = "Copy order number")
+                            }
+                        }
                         IconButton(onClick = {
                             val shareText = buildString {
                                 append("Order #${order.orderNumber}")
