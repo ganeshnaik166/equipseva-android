@@ -36,6 +36,7 @@ class UserPrefs @Inject constructor(
         val THEME = stringPreferencesKey("theme")
         val ONBOARDING_DONE = stringPreferencesKey("onboarding_done")
         val FAVORITES = stringSetPreferencesKey("favorites")
+        val MUTED_PUSH_CATEGORIES = stringSetPreferencesKey("muted_push_categories")
     }
 
     private object SecureKeys {
@@ -92,6 +93,25 @@ class UserPrefs @Inject constructor(
     suspend fun setFavorites(ids: Set<String>) {
         securePrefs.putStringSet(SecureKeys.FAVORITES, ids)
         context.prefsStore.edit { it.remove(Keys.FAVORITES) }
+    }
+
+    /**
+     * Set of push notification channel ids the user has muted in Settings.
+     * Empty set means no categories muted. Values align with
+     * [com.equipseva.app.core.push.NotificationChannels] ids so
+     * `EquipSevaMessagingService` can drop incoming messages client-side.
+     */
+    fun observeMutedPushCategories(): Flow<Set<String>> =
+        context.prefsStore.data.map { it[Keys.MUTED_PUSH_CATEGORIES].orEmpty() }
+
+    suspend fun setMutedPushCategories(categories: Set<String>) {
+        context.prefsStore.edit { prefs ->
+            if (categories.isEmpty()) {
+                prefs.remove(Keys.MUTED_PUSH_CATEGORIES)
+            } else {
+                prefs[Keys.MUTED_PUSH_CATEGORIES] = categories
+            }
+        }
     }
 }
 

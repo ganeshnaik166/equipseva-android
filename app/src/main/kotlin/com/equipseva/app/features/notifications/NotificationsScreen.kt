@@ -20,55 +20,121 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.theme.Spacing
 
 /**
- * Notifications inbox. Stub UI for now — backend table `notifications` and a
- * realtime subscription land in a follow-up PR. The demo rows below are static
- * so the entry point, navigation, and layout can ship independently.
+ * Notifications inbox + per-category push settings. The inbox rows below are
+ * still static demo data (backend `notifications` table lands in a follow-up);
+ * the "Push categories" block at the top is live and persists mute choices to
+ * DataStore via [NotificationSettingsViewModel].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationsScreen(
     onBack: () -> Unit,
+    settingsViewModel: NotificationSettingsViewModel = hiltViewModel(),
 ) {
+    val categories by settingsViewModel.categories.collectAsStateWithLifecycle()
     Scaffold(
         topBar = { ESBackTopBar(title = "Notifications", onBack = onBack) },
     ) { inner ->
         val demo = demoNotifications()
-        if (demo.isEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(inner),
-            ) {
-                EmptyStateView(
-                    icon = Icons.Outlined.Notifications,
-                    title = "You're all caught up",
-                    subtitle = "New bids, order updates, and messages will show up here.",
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(inner),
+            contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            item(key = "settings-header") {
+                Text(
+                    text = "Push categories",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(top = Spacing.xs, bottom = Spacing.xxs),
                 )
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(inner),
-                contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.md),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
+            items(items = categories, key = { "toggle-" + it.channelId }) { toggle ->
+                PushCategoryToggleRow(
+                    toggle = toggle,
+                    onToggle = { settingsViewModel.toggle(toggle.channelId) },
+                )
+            }
+            item(key = "inbox-header") {
+                Text(
+                    text = "Inbox",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.xxs),
+                )
+            }
+            if (demo.isEmpty()) {
+                item(key = "inbox-empty") {
+                    EmptyStateView(
+                        icon = Icons.Outlined.Notifications,
+                        title = "You're all caught up",
+                        subtitle = "New bids, order updates, and messages will show up here.",
+                    )
+                }
+            } else {
                 items(items = demo, key = { it.id }) { item ->
                     NotificationCard(item)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PushCategoryToggleRow(
+    toggle: PushCategoryToggle,
+    onToggle: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
+            ) {
+                Text(
+                    text = toggle.label,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = toggle.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            // `muted = true` means the toggle reads "off" to the user (push is
+            // silenced). Invert so the Switch visual matches expectations.
+            Switch(
+                checked = !toggle.muted,
+                onCheckedChange = { onToggle() },
+            )
         }
     }
 }
