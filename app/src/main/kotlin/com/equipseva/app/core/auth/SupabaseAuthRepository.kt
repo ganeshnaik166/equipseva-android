@@ -66,6 +66,13 @@ class SupabaseAuthRepository @Inject constructor(
         client.auth.resetPasswordForEmail(email)
     }
 
+    override suspend fun updatePassword(newPassword: String): Result<Unit> = runCatching {
+        client.auth.updateUser {
+            password = newPassword
+        }
+        Unit
+    }
+
     override suspend fun signOut(): Result<Unit> = runCatching {
         client.auth.signOut()
     }

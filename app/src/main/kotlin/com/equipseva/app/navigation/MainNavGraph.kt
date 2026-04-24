@@ -62,6 +62,7 @@ import com.equipseva.app.features.profile.ProfileScreen
 import com.equipseva.app.features.repair.RepairJobDetailScreen
 import com.equipseva.app.features.repair.RepairJobsScreen
 import com.equipseva.app.features.scan.ScanEquipmentScreen
+import com.equipseva.app.features.security.ChangePasswordScreen
 import com.equipseva.app.features.supplier.AddListingScreen
 import com.equipseva.app.features.supplier.MyListingsScreen
 import com.equipseva.app.features.supplier.StockAlertsScreen
@@ -90,6 +91,7 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.CHAT_DETAIL,
     Routes.KYC,
     Routes.ABOUT,
+    Routes.CHANGE_PASSWORD,
     Routes.MY_BIDS,
     Routes.EARNINGS,
     Routes.ACTIVE_WORK,
@@ -285,6 +287,7 @@ fun MainNavGraph(
                     onOpenAbout = { navController.navigate(Routes.ABOUT) },
                     onOpenFavorites = { navController.navigate(Routes.FAVORITES) },
                     onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
+                    onOpenChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
                 )
             }
             composable(Routes.NOTIFICATIONS) {
@@ -301,6 +304,12 @@ fun MainNavGraph(
             composable(Routes.ABOUT) {
                 AboutScreen(
                     onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.CHANGE_PASSWORD) {
+                ChangePasswordScreen(
+                    onBack = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
                 )
             }
             composable(Routes.CART) {
