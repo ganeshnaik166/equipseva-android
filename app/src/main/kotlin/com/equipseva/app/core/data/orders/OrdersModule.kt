@@ -1,15 +1,22 @@
 package com.equipseva.app.core.data.orders
 
-import dagger.Binds
+import com.equipseva.app.BuildConfig
 import dagger.Module
+import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Provider
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-abstract class OrdersModule {
-    @Binds
+object OrdersModule {
+
+    @Provides
     @Singleton
-    abstract fun bindOrderRepository(impl: SupabaseOrderRepository): OrderRepository
+    fun provideOrderRepository(
+        supabase: Provider<SupabaseOrderRepository>,
+        fake: Provider<FakeOrderRepository>,
+    ): OrderRepository =
+        if (BuildConfig.DEMO_MODE) fake.get() else supabase.get()
 }
