@@ -42,6 +42,9 @@ internal data class EngineerUpsertDto(
     val city: String? = null,
     val state: String? = null,
     val certificates: List<EngineerCertificate>? = null,
+    // Only serialized when re-submitting after rejection so we don't clobber an
+    // already-verified row back to pending.
+    @SerialName("verification_status") val verificationStatus: String? = null,
 )
 
 /**
