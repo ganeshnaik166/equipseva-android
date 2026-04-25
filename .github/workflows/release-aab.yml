@@ -1,0 +1,197 @@
+name: release-aab
+
+# Builds a signed AAB on tag push (v*) and attaches it to a GitHub Release.
+# Download the AAB from the Release page and upload to Play Console.
+#
+# Required repo secrets (workflow no-ops with a clear log if any are missing):
+#   KEYSTORE_BASE64           base64 of the upload keystore .jks file
+#   KEYSTORE_STORE_PASSWORD   store password
+#   KEYSTORE_KEY_ALIAS        alias inside the keystore
+#   KEYSTORE_KEY_PASSWORD     key password (often same as store password)
+#
+# Optional BuildConfig secrets (treated as empty strings if unset):
+#   SUPABASE_URL
+#   SUPABASE_ANON_KEY
+#   SENTRY_DSN
+#   RAZORPAY_KEY
+#   GOOGLE_WEB_CLIENT_ID
+#   EXPECTED_CERT_SHA256
+#
+# Optional Sentry mapping-upload secrets (mapping is generated either way):
+#   SENTRY_AUTH_TOKEN
+#   SENTRY_ORG
+#   SENTRY_PROJECT
+#
+# Optional Firebase secret (a placeholder is seeded if unset; required for
+# real FCM push at runtime, but a placeholder lets the build succeed):
+#   GOOGLE_SERVICES_JSON_BASE64
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', 'gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Verify required secrets
+        env:
+          KS_B64: ${{ secrets.KEYSTORE_BASE64 }}
+          KS_PW: ${{ secrets.KEYSTORE_STORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.KEYSTORE_KEY_ALIAS }}
+          KS_KEY_PW: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
+        run: |
+          missing=()
+          [ -z "$KS_B64" ] && missing+=("KEYSTORE_BASE64")
+          [ -z "$KS_PW" ] && missing+=("KEYSTORE_STORE_PASSWORD")
+          [ -z "$KS_ALIAS" ] && missing+=("KEYSTORE_KEY_ALIAS")
+          [ -z "$KS_KEY_PW" ] && missing+=("KEYSTORE_KEY_PASSWORD")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            echo "Set them in Settings → Secrets and variables → Actions, then re-tag."
+            exit 1
+          fi
+
+      - name: Decode upload keystore
+        env:
+          KS_B64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/keystore"
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/keystore/upload.jks"
+          ls -la "$RUNNER_TEMP/keystore/upload.jks"
+
+      - name: Write keystore.properties
+        env:
+          KS_PW: ${{ secrets.KEYSTORE_STORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.KEYSTORE_KEY_ALIAS }}
+          KS_KEY_PW: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
+        run: |
+          cat > app/keystore.properties <<EOF
+          storeFile=$RUNNER_TEMP/keystore/upload.jks
+          storePassword=$KS_PW
+          keyAlias=$KS_ALIAS
+          keyPassword=$KS_KEY_PW
+          EOF
+
+      - name: Write local.properties (BuildConfig)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          RAZORPAY_KEY: ${{ secrets.RAZORPAY_KEY }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          EXPECTED_CERT_SHA256: ${{ secrets.EXPECTED_CERT_SHA256 }}
+        run: |
+          cat > local.properties <<EOF
+          SUPABASE_URL=$SUPABASE_URL
+          SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+          SENTRY_DSN=$SENTRY_DSN
+          RAZORPAY_KEY=$RAZORPAY_KEY
+          GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID
+          EXPECTED_CERT_SHA256=$EXPECTED_CERT_SHA256
+          EOF
+
+      - name: Write google-services.json
+        env:
+          GS_B64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ -n "$GS_B64" ]; then
+            echo "$GS_B64" | base64 -d > app/google-services.json
+            echo "Real google-services.json written from secret."
+          else
+            echo "::warning::GOOGLE_SERVICES_JSON_BASE64 not set — seeding placeholder. FCM will not deliver."
+            cat > app/google-services.json <<'EOF'
+            {
+              "project_info": {
+                "project_number": "000000000000",
+                "project_id": "equipseva-ci-placeholder",
+                "storage_bucket": "equipseva-ci-placeholder.appspot.com"
+              },
+              "client": [
+                {
+                  "client_info": {
+                    "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                    "android_client_info": { "package_name": "com.equipseva.app" }
+                  },
+                  "api_key": [{ "current_key": "AIzaSyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }]
+                },
+                {
+                  "client_info": {
+                    "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                    "android_client_info": { "package_name": "com.equipseva.app.debug" }
+                  },
+                  "api_key": [{ "current_key": "AIzaSyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }]
+                }
+              ],
+              "configuration_version": "1"
+            }
+            EOF
+          fi
+
+      - name: Grant gradlew execute
+        run: chmod +x ./gradlew
+
+      - name: Build signed AAB
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        run: ./gradlew :app:bundleRelease --no-daemon --stacktrace
+
+      - name: Locate AAB + mapping
+        id: artifacts
+        run: |
+          aab=$(find app/build/outputs/bundle/release -name '*.aab' | head -1)
+          map=$(find app/build/outputs/mapping/release -name 'mapping.txt' | head -1)
+          if [ -z "$aab" ]; then
+            echo "::error::No AAB produced."
+            exit 1
+          fi
+          echo "aab=$aab" >> "$GITHUB_OUTPUT"
+          echo "mapping=$map" >> "$GITHUB_OUTPUT"
+          ls -la "$aab"
+          [ -n "$map" ] && ls -la "$map" || echo "no mapping (R8 disabled?)"
+
+      - name: Compute AAB SHA-256
+        id: sha
+        run: |
+          sha=$(sha256sum "${{ steps.artifacts.outputs.aab }}" | awk '{print $1}')
+          echo "sha256=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 \
+            || gh release create "$TAG" \
+                 --title "$TAG" \
+                 --notes "Signed AAB built from \`$TAG\`. SHA-256: \`${{ steps.sha.outputs.sha256 }}\`. Upload to Play Console → Production → Create new release."
+
+          gh release upload "$TAG" "${{ steps.artifacts.outputs.aab }}" --clobber
+          if [ -n "${{ steps.artifacts.outputs.mapping }}" ]; then
+            gh release upload "$TAG" "${{ steps.artifacts.outputs.mapping }}" --clobber
+          fi
