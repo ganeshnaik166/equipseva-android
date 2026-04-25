@@ -44,15 +44,12 @@ App Link binding for the Razorpay payment-return deep link (`https://equipseva.c
 
 - **Notion** — paste each MD file into a public page (loses the assetlinks endpoint).
 - **Vercel** — point a project at `docs/` with `framework: jekyll`. Set `equipseva.com` as the production domain. Same DNS records, different vendor.
-- [ ] Edit the placeholders before publishing:
-  - `[FILL IN]` Grievance Officer name + email + postal address (Privacy Policy §1, §11; ToS §16; Refund Policy §5).
-  - `[FILL IN]` Registered office postal address.
-  - `[FILL IN]` City of jurisdiction (ToS §14).
-- [ ] Publish:
-  - Privacy Policy → `https://equipseva.com/privacy` (or wherever)
-  - Terms of Service → `https://equipseva.com/terms`
-  - Refund Policy → `https://equipseva.com/refunds`
-- [ ] Note the URLs — you'll paste them into Play Console below.
+
+### Before publishing — fill in placeholders
+
+- [ ] `[FILL IN]` Grievance Officer name + email + postal address (Privacy Policy §1, §11; ToS §16; Refund Policy §5).
+- [ ] `[FILL IN]` Registered office postal address.
+- [ ] `[FILL IN]` City of jurisdiction (ToS §14).
 
 Source files:
 - [PRIVACY_POLICY.md](./PRIVACY_POLICY.md)

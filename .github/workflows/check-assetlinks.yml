@@ -1,0 +1,67 @@
+name: Check assetlinks.json
+
+on:
+  pull_request:
+    paths:
+      - 'docs/.well-known/assetlinks.json'
+      - '.github/workflows/check-assetlinks.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/.well-known/assetlinks.json'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate JSON shape and SHA-256 format
+        run: |
+          python3 - <<'PY'
+          import json, re, sys
+
+          with open("docs/.well-known/assetlinks.json") as f:
+              data = json.load(f)
+
+          if not isinstance(data, list) or not data:
+              sys.exit("assetlinks.json must be a non-empty array")
+
+          sha_re = re.compile(r"^([0-9A-Fa-f]{2}:){31}[0-9A-Fa-f]{2}$")
+          seen_packages = set()
+
+          for i, entry in enumerate(data):
+              tgt = entry.get("target", {})
+              if entry.get("relation") != ["delegate_permission/common.handle_all_urls"]:
+                  sys.exit(f"entry {i}: wrong relation; expected delegate_permission/common.handle_all_urls")
+              if tgt.get("namespace") != "android_app":
+                  sys.exit(f"entry {i}: namespace must be android_app")
+              pkg = tgt.get("package_name", "")
+              if pkg in seen_packages:
+                  sys.exit(f"entry {i}: duplicate package_name {pkg}")
+              seen_packages.add(pkg)
+              fingerprints = tgt.get("sha256_cert_fingerprints", [])
+              if not fingerprints:
+                  sys.exit(f"entry {i}: missing sha256_cert_fingerprints")
+              for fp in fingerprints:
+                  if not sha_re.match(fp):
+                      sys.exit(f"entry {i}: bad SHA-256 format: {fp!r}")
+
+          print(f"assetlinks.json valid — {len(data)} entries, packages: {sorted(seen_packages)}")
+          PY
+
+      - name: Probe live URL after main pushes (best-effort)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        continue-on-error: true
+        run: |
+          # Pages publishes asynchronously; a short retry keeps this non-flaky
+          # without blocking on a slow CDN propagation.
+          for i in 1 2 3 4 5; do
+            if curl -fsSL --max-time 10 https://equipseva.com/.well-known/assetlinks.json -o /tmp/live.json; then
+              break
+            fi
+            sleep 20
+          done
+          diff <(jq -S . docs/.well-known/assetlinks.json) <(jq -S . /tmp/live.json) \
+            && echo "Live JSON matches the committed file." \
+            || echo "Live JSON differs from committed file (Pages may still be publishing)."
