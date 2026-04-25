@@ -146,6 +146,7 @@ object Routes {
     const val PROFILE_VEHICLE_DETAILS = "profile/vehicle_details"
     const val PROFILE_LICENCE = "profile/licence"
     const val PROFILE_SERVICE_AREAS = "profile/service_areas"
+    const val PROFILE_SELLER_VERIFICATION = "profile/seller_verification"
 
     const val FOUNDER_DASHBOARD = "founder/dashboard"
     const val FOUNDER_KYC_QUEUE = "founder/kyc"

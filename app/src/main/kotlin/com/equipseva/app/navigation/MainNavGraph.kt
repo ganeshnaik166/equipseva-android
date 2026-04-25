@@ -135,7 +135,7 @@ private fun tabsForRole(role: com.equipseva.app.features.auth.UserRole?): List<T
     // Hospital + null/unknown fall through to the buyer layout.
     else -> listOf(
         TabItem(Routes.HOME, "Home", Icons.Filled.Home),
-        TabItem(Routes.MARKETPLACE, "Marketplace", Icons.Filled.Storefront),
+        TabItem(Routes.MARKETPLACE, "Buy/Sell", Icons.Filled.Storefront),
         TabItem(Routes.SPARE_PARTS, "Parts", Icons.Filled.Inventory2),
         TabItem(Routes.REPAIR, "Repair", Icons.Filled.Build),
         TabItem(Routes.PROFILE, "Profile", Icons.Filled.Person),
@@ -190,6 +190,7 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.PROFILE_VEHICLE_DETAILS,
     Routes.PROFILE_LICENCE,
     Routes.PROFILE_SERVICE_AREAS,
+    Routes.PROFILE_SELLER_VERIFICATION,
 )
 
 @Composable
@@ -481,6 +482,7 @@ fun MainNavGraph(
                     onOpenAddresses = { navController.navigate(Routes.PROFILE_ADDRESSES) },
                     onOpenHospitalSettings = { navController.navigate(Routes.PROFILE_HOSPITAL_SETTINGS) },
                     onOpenOrders = { navController.navigate(Routes.ORDERS) },
+                    onOpenSellerVerification = { navController.navigate(Routes.PROFILE_SELLER_VERIFICATION) },
                 )
             }
             composable(Routes.NOTIFICATIONS) {
@@ -828,6 +830,12 @@ fun MainNavGraph(
             }
             composable(Routes.PROFILE_SERVICE_AREAS) {
                 com.equipseva.app.features.profile.forms.ServiceAreasScreen(
+                    onBack = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
+                )
+            }
+            composable(Routes.PROFILE_SELLER_VERIFICATION) {
+                com.equipseva.app.features.profile.seller.SellerVerificationScreen(
                     onBack = { navController.popBackStack() },
                     onShowMessage = showSnackbar,
                 )

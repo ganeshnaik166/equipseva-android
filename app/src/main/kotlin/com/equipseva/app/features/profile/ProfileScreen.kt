@@ -118,6 +118,7 @@ fun ProfileScreen(
     onOpenChangePassword: () -> Unit = {},
     onOpenChangeEmail: () -> Unit = {},
     onOpenOrders: () -> Unit = {},
+    onOpenSellerVerification: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     SecureScreen()
@@ -177,6 +178,7 @@ fun ProfileScreen(
                         onOpenChangePassword = onOpenChangePassword,
                         onOpenChangeEmail = onOpenChangeEmail,
                         onOpenOrders = onOpenOrders,
+                        onOpenSellerVerification = onOpenSellerVerification,
                     )
                 }
             }
@@ -248,6 +250,7 @@ private fun ProfileContent(
     onOpenChangePassword: () -> Unit,
     onOpenChangeEmail: () -> Unit,
     onOpenOrders: () -> Unit,
+    onOpenSellerVerification: () -> Unit,
 ) {
     val profile = state.profile!!
     val isEngineer = profile.role == UserRole.ENGINEER
@@ -304,6 +307,7 @@ private fun ProfileContent(
             onOpenChangePassword = onOpenChangePassword,
             onOpenChangeEmail = onOpenChangeEmail,
             onOpenOrders = onOpenOrders,
+            onOpenSellerVerification = onOpenSellerVerification,
             onSignOut = onSignOut,
             signingOut = state.signingOut,
             onDeleteAccount = onDeleteAccount,
@@ -424,6 +428,7 @@ private fun buildProfileSections(
     onOpenChangePassword: () -> Unit,
     onOpenChangeEmail: () -> Unit,
     onOpenOrders: () -> Unit,
+    onOpenSellerVerification: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
     onDeleteAccount: () -> Unit,
@@ -461,10 +466,24 @@ private fun buildProfileSections(
             add(SettingsRow(icon = Icons.Filled.LocalHospital, label = "Hospital settings", onClick = onOpenHospitalSettings))
         }
         if (isSupplier) {
+            add(SettingsRow(
+                icon = Icons.Outlined.VerifiedUser,
+                label = "Seller verification",
+                chipLabel = "GST + licence",
+                chipTone = StatusTone.Warn,
+                onClick = onOpenSellerVerification,
+            ))
             add(SettingsRow(icon = Icons.Filled.Storefront, label = "Storefront", onClick = onOpenHospitalSettings))
             add(SettingsRow(icon = Icons.Filled.AccountBalance, label = "Bank details", onClick = onOpenBankDetails))
         }
         if (isManufacturer) {
+            add(SettingsRow(
+                icon = Icons.Outlined.VerifiedUser,
+                label = "Seller verification",
+                chipLabel = "GST + licence",
+                chipTone = StatusTone.Warn,
+                onClick = onOpenSellerVerification,
+            ))
             add(SettingsRow(icon = Icons.Filled.Factory, label = "Brand portfolio", onClick = onOpenHospitalSettings))
             add(SettingsRow(icon = Icons.Filled.AccountBalance, label = "Bank details", onClick = onOpenBankDetails))
         }
