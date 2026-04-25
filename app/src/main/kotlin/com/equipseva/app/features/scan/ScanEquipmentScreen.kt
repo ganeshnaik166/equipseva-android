@@ -17,10 +17,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DocumentScanner
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,6 +40,11 @@ import com.equipseva.app.designsystem.components.PrimaryButton
 import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.theme.Spacing
 
+/**
+ * Capture a photo for the user's reference and let them type the brand/model
+ * to search the parts marketplace. The Vision Edge Function isn't live yet —
+ * we ask rather than fabricate identifications.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScanEquipmentScreen(
@@ -65,20 +70,30 @@ fun ScanEquipmentScreen(
                 .padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            when {
-                state.result != null -> ResultCard(
+            if (state.captured) {
+                EntryCard(
                     thumbnail = state.thumbnail,
-                    result = state.result!!,
-                    onFindParts = onFindParts,
-                    onRetake = {
+                    entry = state.entry,
+                    onBrandChange = viewModel::onBrandChange,
+                    onModelChange = viewModel::onModelChange,
+                )
+                PrimaryButton(
+                    label = "Find matching parts",
+                    onClick = onFindParts,
+                    enabled = state.entry.canSearch,
+                )
+                OutlinedButton(
+                    onClick = {
                         viewModel.onRetake()
                         launcher.launch(null)
                     },
-                )
-
-                state.scanning -> ScanningCard(thumbnail = state.thumbnail)
-
-                else -> CapturePrompt(onCapture = { launcher.launch(null) })
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Retake photo")
+                }
+                Box(modifier = Modifier.height(Spacing.md))
+            } else {
+                CapturePrompt(onCapture = { launcher.launch(null) })
             }
         }
     }
@@ -88,57 +103,22 @@ fun ScanEquipmentScreen(
 private fun CapturePrompt(onCapture: () -> Unit) {
     EmptyStateView(
         icon = Icons.Outlined.DocumentScanner,
-        title = "Identify equipment with AI",
-        subtitle = "Point your camera at the nameplate or model sticker. We'll suggest " +
-            "matching brand, model, and spare parts.",
+        title = "Find spare parts by photo",
+        subtitle = "Snap a picture of the nameplate or model sticker. " +
+            "Then type the brand and model so we can show matching parts.",
     )
     PrimaryButton(
         label = "Capture photo",
         onClick = onCapture,
     )
-    Text(
-        text = "Phase 2 preview — identification is mocked. Real AI arrives in the next update.",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
 }
 
 @Composable
-private fun ScanningCard(thumbnail: android.graphics.Bitmap?) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Spacing.lg),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            thumbnail?.let {
-                Image(
-                    bitmap = it.asImageBitmap(),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(220.dp)
-                        .clip(RoundedCornerShape(12.dp)),
-                    contentScale = ContentScale.Crop,
-                )
-            }
-            CircularProgressIndicator()
-            Text("Identifying equipment…", style = MaterialTheme.typography.bodyMedium)
-        }
-    }
-}
-
-@Composable
-private fun ResultCard(
+private fun EntryCard(
     thumbnail: android.graphics.Bitmap?,
-    result: ScanEquipmentViewModel.ScanResult,
-    onFindParts: () -> Unit,
-    onRetake: () -> Unit,
+    entry: ScanEquipmentViewModel.ManualEntry,
+    onBrandChange: (String) -> Unit,
+    onModelChange: (String) -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -161,37 +141,32 @@ private fun ResultCard(
                     contentScale = ContentScale.Crop,
                 )
             }
-            SectionHeader(title = "AI-identified — please verify")
+            SectionHeader(title = "Equipment details")
             Text(
-                text = result.brand,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = result.model,
-                style = MaterialTheme.typography.titleMedium,
+                text = "Read the brand and model off the nameplate, then type them in.",
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Text(
-                text = result.category,
-                style = MaterialTheme.typography.bodyMedium,
+            OutlinedTextField(
+                value = entry.brand,
+                onValueChange = onBrandChange,
+                label = { Text("Brand") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = entry.model,
+                onValueChange = onModelChange,
+                label = { Text("Model") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
             )
             Text(
-                text = "Confidence: ${(result.confidence * 100).toInt()}%",
+                text = "Tip: confidence is highest when you fill in both fields.",
                 style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Normal,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
-    PrimaryButton(
-        label = "Find matching parts",
-        onClick = onFindParts,
-    )
-    OutlinedButton(
-        onClick = onRetake,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text("Retake photo")
-    }
-    Box(modifier = Modifier.height(Spacing.md))
 }

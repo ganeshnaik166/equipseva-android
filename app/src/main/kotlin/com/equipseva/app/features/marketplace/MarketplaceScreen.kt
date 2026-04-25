@@ -455,17 +455,26 @@ private fun FeaturedCard(part: SparePart, onClick: () -> Unit) {
 private fun ManufacturerGrid(items: List<SparePart>) {
     // Adaptive column count: 2 on phones, 3 on small tablets, 4 on large tablets.
     val cols = adaptiveGridColumns(compact = 2, medium = 3, expanded = 4)
-    // Derive brand list from the data. Falls back to a static list if nothing we can use.
-    // Take enough rows to fill at least 2 lines on the widest layout.
-    val derived = items
+    // Derive brand list strictly from the data — no fabricated fallback names.
+    val brands = items
         .flatMap { it.compatibleBrands }
         .filter { it.isNotBlank() }
         .distinct()
         .take(cols * 2)
-    val fallback = listOf(
-        "Siemens", "Philips", "GE", "Dräger", "Masimo", "Mindray", "Drägerwerk", "Nihon Kohden",
-    )
-    val brands = (if (derived.size >= 3) derived else fallback).take(cols * 2)
+
+    if (brands.isEmpty()) {
+        // Real catalogue hasn't been seeded with brand-tagged parts yet. Show a
+        // neutral note rather than fake brand tiles so the user isn't misled.
+        Text(
+            text = "Brand tiles will appear here once parts with compatible-brand tags are listed.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        )
+        return
+    }
 
     Column(
         modifier = Modifier
