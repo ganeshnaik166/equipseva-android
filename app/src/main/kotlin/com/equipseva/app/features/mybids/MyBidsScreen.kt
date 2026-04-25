@@ -3,7 +3,6 @@ package com.equipseva.app.features.mybids
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -21,7 +20,6 @@ import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.Gavel
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -45,6 +43,7 @@ import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.ListSkeleton
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
@@ -87,9 +86,7 @@ fun MyBidsScreen(
             ) {
                 val visibleRows = state.visibleRows
                 when {
-                    state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
+                    state.loading && state.rows.isEmpty() -> ListSkeleton(rows = 8)
                     state.rows.isEmpty() -> EmptyStateView(
                         icon = Icons.Outlined.Gavel,
                         title = "No bids yet",

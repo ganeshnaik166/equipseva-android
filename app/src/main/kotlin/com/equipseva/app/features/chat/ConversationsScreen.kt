@@ -23,7 +23,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -47,6 +46,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.ListSkeleton
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
 import com.equipseva.app.core.util.relativeLabel
@@ -120,9 +120,7 @@ fun ConversationsScreen(
                 )
             }
             when {
-                state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+                state.loading && state.rows.isEmpty() -> ListSkeleton(rows = 8)
                 state.rows.isEmpty() -> EmptyStateView(
                     icon = Icons.Outlined.ChatBubbleOutline,
                     title = "No conversations yet",

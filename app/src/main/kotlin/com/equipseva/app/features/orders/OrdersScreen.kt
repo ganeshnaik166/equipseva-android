@@ -55,6 +55,7 @@ import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.ESTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.ListSkeleton
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.components.StatusTone
 import com.equipseva.app.designsystem.theme.BrandGreen
@@ -131,9 +132,7 @@ fun OrdersScreen(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 when {
-                    state.initialLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
+                    state.initialLoading && state.items.isEmpty() -> ListSkeleton(rows = 8)
                     filtered.isEmpty() -> EmptyOrders(onShopMarketplace = onShopMarketplace)
                     else -> LazyColumn(
                         state = listState,
