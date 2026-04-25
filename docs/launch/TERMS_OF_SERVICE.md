@@ -1,3 +1,13 @@
+---
+title: Terms of Service
+permalink: /terms/
+redirect_from:
+  - /tos/
+  - /terms-of-service/
+  - /launch/TERMS_OF_SERVICE/
+  - /launch/TERMS_OF_SERVICE.html
+---
+
 # Terms of Service — EquipSeva
 
 **Effective:** 2026-04-25

@@ -9,15 +9,21 @@ plugins:
   - jekyll-readme-index
   - jekyll-default-layout
   - jekyll-titles-from-headings
+  - jekyll-redirect-from
+  - jekyll-include-cache
 
 # Make `[link](file.md)` resolve to the published HTML page.
 relative_links:
   enabled: true
   collections: true
 
-# Render Markdown files even without Jekyll front matter.
+# Render Markdown files even without Jekyll front matter, and serve the
+# Android App Link assetlinks.json from .well-known/ (Jekyll skips dotfiles
+# by default — explicit include puts it back on the published site).
 include:
   - README.md
+  - .well-known
+  - .well-known/assetlinks.json
 
 # Hide internal repo folders from the published site.
 exclude:

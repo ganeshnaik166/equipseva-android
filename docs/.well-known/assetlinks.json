@@ -1,0 +1,22 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.equipseva.app",
+      "sha256_cert_fingerprints": [
+        "92:B9:05:A8:19:7D:0C:54:E2:91:8B:27:75:DD:9A:F8:C9:A6:F5:13:8F:8C:59:17:77:80:FD:DF:67:A2:D1:C1"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.equipseva.app.debug",
+      "sha256_cert_fingerprints": [
+        "D6:1A:FB:7E:6E:66:E1:7D:3E:C1:92:79:1C:DA:46:33:27:E5:CD:B2:5B:E1:8F:79:D5:10:A7:8E:B8:7B:35:BF"
+      ]
+    }
+  }
+]

@@ -6,11 +6,11 @@ Tick items as you complete them.
 
 ---
 
-## 1. Get the policy URLs hosted (~5 min, one toggle)
+## 1. Publish policies + assetlinks under equipseva.com (~10 min)
 
-We've drafted the three required docs. The repo is already wired to publish them via **GitHub Pages** with no code change — just flip a toggle.
+The repo is wired to publish via **GitHub Pages** at `equipseva.com` (CNAME shipped at `docs/CNAME`). After flipping the Pages toggle and pointing DNS, every URL below resolves automatically.
 
-### Fastest path: GitHub Pages from `docs/`
+### Step-by-step
 
 1. Open the repo on GitHub → **Settings** → **Pages**.
 2. Under **Build and deployment**:
@@ -18,17 +18,32 @@ We've drafted the three required docs. The repo is already wired to publish them
    - Branch: **`main`**
    - Folder: **`/docs`**
 3. Click **Save**. First build takes ~1–2 minutes.
-4. The published URLs will be:
-   - Index: `https://<owner>.github.io/<repo>/`
-   - Privacy: `https://<owner>.github.io/<repo>/launch/PRIVACY_POLICY`
-   - Terms: `https://<owner>.github.io/<repo>/launch/TERMS_OF_SERVICE`
-   - Refunds: `https://<owner>.github.io/<repo>/launch/REFUND_POLICY`
-5. (Optional) Add a CNAME at `docs/CNAME` pointing to `equipseva.com` to use a custom domain. Configure the DNS A/AAAA records per [GitHub's docs](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site).
+4. Under **Custom domain**, GitHub auto-detects `equipseva.com` from `docs/CNAME` and runs DNS verification.
+5. Configure the DNS at your registrar:
+   - A records for `equipseva.com` → `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
+   - AAAA records for `equipseva.com` → `2606:50c0:8000::153`, `2606:50c0:8001::153`, `2606:50c0:8002::153`, `2606:50c0:8003::153`
+   - CNAME for `www.equipseva.com` → `<owner>.github.io`
+   See [GitHub's apex-domain docs](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site#configuring-an-apex-domain) if anything looks unfamiliar.
+6. Wait for the Pages dashboard to mark the cert as **Issued** (~5–15 min once DNS resolves), then tick **Enforce HTTPS**.
+
+### Resulting public URLs (paste these into Play Console + the App)
+
+| Purpose | URL |
+|---|---|
+| Privacy Policy | `https://equipseva.com/privacy/` |
+| Terms of Service | `https://equipseva.com/terms/` |
+| Refund Policy | `https://equipseva.com/refunds/` |
+| App Links assetlinks | `https://equipseva.com/.well-known/assetlinks.json` |
+| Landing | `https://equipseva.com/` |
+
+### Why the assetlinks file matters
+
+App Link binding for the Razorpay payment-return deep link (`https://equipseva.com/pay/return`) requires the SHA-256 of the signing certificate to be served at `/.well-known/assetlinks.json`. The repo serves it from `docs/.well-known/assetlinks.json`. **After Step 7 of this runbook (post-first-Play-upload), update that file with the App-Signing SHA-256 from Play Console — see §7.**
 
 ### Alternative hosts (if you'd rather not use Pages)
 
-- **Notion** — paste each MD file into a public page.
-- **Vercel** — point a project at `docs/` with `framework: jekyll` (or just static).
+- **Notion** — paste each MD file into a public page (loses the assetlinks endpoint).
+- **Vercel** — point a project at `docs/` with `framework: jekyll`. Set `equipseva.com` as the production domain. Same DNS records, different vendor.
 - [ ] Edit the placeholders before publishing:
   - `[FILL IN]` Grievance Officer name + email + postal address (Privacy Policy §1, §11; ToS §16; Refund Policy §5).
   - `[FILL IN]` Registered office postal address.
