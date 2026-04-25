@@ -52,6 +52,7 @@ import com.equipseva.app.features.logistics.PickupQueueScreen
 import com.equipseva.app.features.manufacturer.AnalyticsScreen
 import com.equipseva.app.features.manufacturer.LeadPipelineScreen
 import com.equipseva.app.features.manufacturer.RfqsAssignedScreen
+import com.equipseva.app.features.notifications.NotificationSettingsScreen
 import com.equipseva.app.features.notifications.NotificationsScreen
 import com.equipseva.app.features.onboarding.TourScreen
 import com.equipseva.app.features.marketplace.MarketplaceScreen
@@ -119,6 +120,7 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.HOSPITAL_RFQ_DETAIL,
     Routes.SCAN_EQUIPMENT,
     Routes.NOTIFICATIONS,
+    Routes.NOTIFICATION_SETTINGS,
     Routes.FAVORITES,
     Routes.TOUR,
 )
@@ -346,6 +348,19 @@ fun MainNavGraph(
             composable(Routes.NOTIFICATIONS) {
                 NotificationsScreen(
                     onBack = { navController.popBackStack() },
+                    onOpenSettings = { navController.navigate(Routes.NOTIFICATION_SETTINGS) },
+                    onOpenDeepLink = { link ->
+                        // Best-effort routing for the inbox: only honour
+                        // app-internal deep-link shapes we already trust.
+                        // Anything else falls through silently — users still
+                        // got a row tap that marks the notification read.
+                        routeNotificationDeepLink(link, navController, showSnackbar)
+                    },
+                )
+            }
+            composable(Routes.NOTIFICATION_SETTINGS) {
+                NotificationSettingsScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.KYC) {
@@ -561,4 +576,64 @@ fun MainNavGraph(
             }
         }
     }
+}
+
+/**
+ * Resolve a notification's `data.deep_link` (or legacy `action_url`) into a
+ * concrete in-app navigation. The notification payload comes from server-side
+ * push code; we only honour shapes the app already understands and silently
+ * drop anything else so a malformed payload never crashes the inbox.
+ *
+ * Recognised forms:
+ *  - `app://orders/<orderId>`      → order detail
+ *  - `app://repair/<jobId>`        → repair job detail
+ *  - `app://chat/<conversationId>` → chat thread
+ *  - `app://rfq/<rfqId>`           → hospital RFQ detail
+ *  - `equipseva://...`             → same suffixes (alternative scheme)
+ *  - `<top-level route>`           → already a known route string (e.g. "orders")
+ */
+private fun routeNotificationDeepLink(
+    link: String,
+    navController: androidx.navigation.NavHostController,
+    showSnackbar: (String) -> Unit,
+) {
+    val trimmed = link.trim().ifBlank { return }
+
+    val uuidRegex =
+        Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+
+    val target = when {
+        trimmed.startsWith("app://") || trimmed.startsWith("equipseva://") -> {
+            val rest = trimmed.substringAfter("://")
+            val parts = rest.split('/').filter { it.isNotBlank() }
+            when {
+                parts.size >= 2 && parts[0] == "orders" && uuidRegex.matches(parts[1]) ->
+                    Routes.orderDetailRoute(parts[1])
+                parts.size >= 2 && parts[0] == "repair" && uuidRegex.matches(parts[1]) ->
+                    Routes.repairJobDetailRoute(parts[1])
+                parts.size >= 2 && parts[0] == "chat" && uuidRegex.matches(parts[1]) ->
+                    Routes.chatRoute(parts[1])
+                parts.size >= 2 && parts[0] == "rfq" && uuidRegex.matches(parts[1]) ->
+                    Routes.hospitalRfqDetailRoute(parts[1])
+                parts.size == 1 -> when (parts[0]) {
+                    "orders", "marketplace", "repair", "home", "profile" -> parts[0]
+                    "chat" -> Routes.CONVERSATIONS
+                    "favorites" -> Routes.FAVORITES
+                    else -> null
+                }
+                else -> null
+            }
+        }
+        trimmed in setOf(
+            Routes.HOME, Routes.ORDERS, Routes.MARKETPLACE, Routes.REPAIR,
+            Routes.PROFILE, Routes.CONVERSATIONS, Routes.FAVORITES,
+        ) -> trimmed
+        else -> null
+    }
+
+    if (target == null) {
+        showSnackbar("Couldn't open that link")
+        return
+    }
+    navController.navigate(target)
 }

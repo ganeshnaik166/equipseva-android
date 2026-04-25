@@ -109,10 +109,15 @@ object Routes {
     // AI-powered equipment scanner — capture a photo, identify the equipment, link to parts.
     const val SCAN_EQUIPMENT = "scan/equipment"
 
-    // Notifications inbox — stub UI for now, backend integration to follow.
+    // Notifications inbox (live feed of in-app notifications, realtime-backed).
     const val NOTIFICATIONS = "notifications"
 
     // First-run feature tour. Shown once per device install AFTER role pick,
     // before the user lands in MainNavGraph. Gated by `userPrefs.tourSeen`.
     const val TOUR = "onboarding/tour"
+
+    // Notification settings (per-category push mute toggles, persisted to
+    // DataStore). Split from the inbox so the two surfaces can evolve
+    // independently — the inbox is read-side data; settings is local prefs.
+    const val NOTIFICATION_SETTINGS = "notifications/settings"
 }
