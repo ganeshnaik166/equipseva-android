@@ -33,6 +33,19 @@ class FounderRepository @Inject constructor(
     )
 
     @Serializable
+    data class PendingReport(
+        @SerialName("report_id") val reportId: String,
+        @SerialName("reporter_user_id") val reporterUserId: String,
+        @SerialName("reporter_name") val reporterName: String? = null,
+        @SerialName("target_type") val targetType: String,
+        @SerialName("target_id") val targetId: String,
+        @SerialName("reason") val reason: String,
+        @SerialName("notes") val notes: String? = null,
+        @SerialName("status") val status: String,
+        @SerialName("created_at") val createdAt: String,
+    )
+
+    @Serializable
     data class PendingSellerVerification(
         @SerialName("request_id") val requestId: String,
         @SerialName("organization_id") val organizationId: String,
@@ -68,6 +81,25 @@ class FounderRepository @Inject constructor(
     suspend fun fetchPendingSellerVerifications(): Result<List<PendingSellerVerification>> = runCatching {
         client.postgrest.rpc(function = "admin_pending_seller_verifications")
             .decodeList<PendingSellerVerification>()
+    }
+
+    suspend fun fetchPendingReports(): Result<List<PendingReport>> = runCatching {
+        client.postgrest.rpc(function = "admin_pending_reports")
+            .decodeList<PendingReport>()
+    }
+
+    suspend fun resolveReport(
+        reportId: String,
+        status: String,
+    ): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "admin_resolve_report",
+            parameters = buildJsonObject {
+                put("p_report_id", JsonPrimitive(reportId))
+                put("p_status", JsonPrimitive(status))
+            },
+        )
+        Unit
     }
 
     suspend fun setOrgVerification(
