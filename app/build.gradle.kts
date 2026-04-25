@@ -231,6 +231,33 @@ ksp {
     arg("room.incremental", "true")
 }
 
+// APK size budget guardrail (PENDING.md #50).
+//
+// Floor for size regressions. Run `./gradlew :app:checkApkSize` after a
+// release build to fail loudly if the R8'd APK creeps past the budget.
+// Default budget lives in root `gradle.properties` so it can be bumped
+// without code changes when a genuinely larger build is acceptable.
+//
+// Not wired into CI by default — release builds need signing config and
+// take a long time. Team can opt in once stable.
+val apkSizeBudget = extra.properties.getOrDefault("apkSizeBudgetMb", "28").toString().toLong() * 1024 * 1024
+
+tasks.register("checkApkSize") {
+    group = "verification"
+    description = "Fail if release APK exceeds the size budget"
+    dependsOn("assembleRelease")
+    doLast {
+        val apk = layout.buildDirectory.file("outputs/apk/release/app-release.apk").get().asFile
+        require(apk.exists()) { "APK not found at ${apk.path}" }
+        val actual = apk.length()
+        println("Release APK: ${actual / 1024 / 1024} MB (budget ${apkSizeBudget / 1024 / 1024} MB)")
+        check(actual <= apkSizeBudget) {
+            "APK size ${actual / 1024 / 1024} MB exceeds budget ${apkSizeBudget / 1024 / 1024} MB. " +
+            "Investigate with ./gradlew :app:analyze before increasing apkSizeBudgetMb in gradle.properties."
+        }
+    }
+}
+
 // Sentry Android Gradle plugin — R8/ProGuard mapping upload.
 //
 // Gate upload on env vars so local + PR-branch builds don't fail when the
