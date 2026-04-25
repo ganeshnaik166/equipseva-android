@@ -26,6 +26,13 @@ class DeepLinkHost @Inject constructor(
     sealed interface VerifiedEvent {
         data class OpenOrder(val orderId: String) : VerifiedEvent
         data object OrderNotFound : VerifiedEvent
+
+        /**
+         * Pre-resolved in-app route from a notification tap. Forwarded as-is
+         * — the FCM service already mapped the (kind, data) payload, and a
+         * malformed kind is filtered out before we ever see it here.
+         */
+        data class OpenRoute(val route: String) : VerifiedEvent
     }
 
     private val _events = MutableSharedFlow<VerifiedEvent>(
@@ -40,6 +47,7 @@ class DeepLinkHost @Inject constructor(
             router.events.collect { raw ->
                 when (raw) {
                     is DeepLinkRouter.Event.OpenOrder -> verifyOrder(raw.orderId)
+                    is DeepLinkRouter.Event.OpenRoute -> _events.tryEmit(VerifiedEvent.OpenRoute(raw.route))
                 }
             }
         }

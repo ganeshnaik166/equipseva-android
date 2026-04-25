@@ -17,13 +17,27 @@ class DeepLinkRouter @Inject constructor() {
 
     sealed interface Event {
         data class OpenOrder(val orderId: String) : Event
+
+        /**
+         * A pre-resolved route string the nav graph can navigate directly to.
+         * Emitted when the activity launch intent carries [EXTRA_ROUTE], which
+         * the FCM messaging service stamps after running [NotificationDeepLink].
+         */
+        data class OpenRoute(val route: String) : Event
     }
 
     private val channel = Channel<Event>(Channel.BUFFERED)
     val events = channel.receiveAsFlow()
 
     fun dispatch(intent: Intent?) {
-        val data = intent?.data ?: return
+        if (intent == null) return
+        // Notification-tap intents stamp a fully-formed in-app route so the
+        // nav graph can jump straight there without re-parsing a URI.
+        intent.getStringExtra(EXTRA_ROUTE)
+            ?.takeIf { it.isNotBlank() }
+            ?.let { channel.trySend(Event.OpenRoute(it)) }
+
+        val data = intent.data ?: return
         parse(data)?.let { channel.trySend(it) }
     }
 
@@ -39,7 +53,14 @@ class DeepLinkRouter @Inject constructor() {
         }
     }
 
-    private companion object {
+    companion object {
+        /**
+         * Intent extra key carrying a pre-resolved in-app route string
+         * (e.g. `chat/detail/<uuid>`). Set by the FCM messaging service on
+         * the PendingIntent it builds for the system notification tap.
+         */
+        const val EXTRA_ROUTE = "com.equipseva.app.deeplink.ROUTE"
+
         /** RFC 4122 UUID, case-insensitive. Rejects anything else so we never route on junk. */
         private val UUID_REGEX =
             Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")

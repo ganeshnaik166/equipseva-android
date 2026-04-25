@@ -44,6 +44,7 @@ import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.navigation.NotificationDeepLink
 
 /**
  * Real notifications inbox — pulls rows from `public.notifications` via
@@ -54,15 +55,20 @@ import com.equipseva.app.designsystem.theme.Spacing
  * [NotificationSettingsScreen] (route `Routes.NOTIFICATION_SETTINGS`) so the
  * inbox stays a focused read-side surface.
  *
- * @param onOpenDeepLink invoked with the row's `data.deep_link` (or legacy
- *   `action_url`) when the user taps a row that has one. Caller is expected
- *   to forward the string to the existing nav graph; rows without a link
- *   are still tap-targets for "mark read".
+ * @param onOpenRoute invoked with a fully-formed in-app route string
+ *   (e.g. `chat/detail/<uuid>`) resolved from the row's `kind` + `data`
+ *   via [NotificationDeepLink]. Caller forwards directly to NavController.
+ * @param onOpenDeepLink legacy fallback — invoked with the row's
+ *   `data.deep_link` (or `action_url`) when [NotificationDeepLink] can't
+ *   resolve a route from the row's `kind`. Older notifications shipped
+ *   before PR #192 still flow through here. Rows with no link of either
+ *   kind remain tap-targets for "mark read" only.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationsScreen(
     onBack: () -> Unit,
+    onOpenRoute: (String) -> Unit = {},
     onOpenDeepLink: (String) -> Unit = {},
     onOpenSettings: () -> Unit = {},
     viewModel: NotificationsInboxViewModel = hiltViewModel(),
@@ -129,7 +135,16 @@ fun NotificationsScreen(
                                 notification = row,
                                 onClick = {
                                     if (row.isUnread) viewModel.markRead(row.id)
-                                    row.deepLink?.takeIf { it.isNotBlank() }?.let(onOpenDeepLink)
+                                    // Prefer the kind-based resolver — server PR #192 stamps
+                                    // every push row with a known kind + ids. Fall back to the
+                                    // legacy `data.deep_link` / `action_url` path so rows
+                                    // emitted before the trigger landed still route correctly.
+                                    val resolved = NotificationDeepLink.routeFor(row.kind, row.data)
+                                    if (resolved != null) {
+                                        onOpenRoute(resolved)
+                                    } else {
+                                        row.deepLink?.takeIf { it.isNotBlank() }?.let(onOpenDeepLink)
+                                    }
                                 },
                                 onMarkRead = { viewModel.markRead(row.id) },
                             )
