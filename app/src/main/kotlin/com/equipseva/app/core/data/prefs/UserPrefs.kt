@@ -1,6 +1,7 @@
 package com.equipseva.app.core.data.prefs
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
@@ -37,6 +38,7 @@ class UserPrefs @Inject constructor(
         val ONBOARDING_DONE = stringPreferencesKey("onboarding_done")
         val FAVORITES = stringSetPreferencesKey("favorites")
         val MUTED_PUSH_CATEGORIES = stringSetPreferencesKey("muted_push_categories")
+        val TOUR_SEEN = booleanPreferencesKey("tour_seen")
     }
 
     private object SecureKeys {
@@ -112,6 +114,18 @@ class UserPrefs @Inject constructor(
                 prefs[Keys.MUTED_PUSH_CATEGORIES] = categories
             }
         }
+    }
+
+    /**
+     * First-run feature tour. Independent from [onboardingDone] (which gates
+     * RoleSelect). Set once per device install — Skip and Get-started both
+     * flip this so the tour never reappears.
+     */
+    fun observeTourSeen(): Flow<Boolean> =
+        context.prefsStore.data.map { it[Keys.TOUR_SEEN] == true }
+
+    suspend fun setTourSeen() {
+        context.prefsStore.edit { it[Keys.TOUR_SEEN] = true }
     }
 }
 

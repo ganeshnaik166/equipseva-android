@@ -38,12 +38,14 @@ fun AppNavGraph(sessionViewModel: SessionViewModel = hiltViewModel()) {
         scope.launch { snackbarHost.showSnackbar(msg) }
     }
 
+    val tourSeen by sessionViewModel.tourSeen.collectAsStateWithLifecycle()
+
     Scaffold(snackbarHost = { SnackbarHost(snackbarHost) }) { _ ->
         when (sessionState) {
             SessionState.Loading -> SplashScreen()
             SessionState.SignedOut -> AuthHost(showSnackbar)
             is SessionState.NeedsRole -> RoleSelectScreen(onShowMessage = showSnackbar)
-            is SessionState.Ready -> MainNavGraph()
+            is SessionState.Ready -> MainNavGraph(showTour = !tourSeen)
         }
     }
 }

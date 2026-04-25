@@ -53,6 +53,12 @@ class SessionViewModel @Inject constructor(
         }
     }
 
+    val tourSeen: StateFlow<Boolean> = userPrefs.observeTourSeen().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = true, // assume seen until first emission so we don't flash the tour on splash
+    )
+
     val state: StateFlow<SessionState> =
         combine(
             authRepository.sessionState,

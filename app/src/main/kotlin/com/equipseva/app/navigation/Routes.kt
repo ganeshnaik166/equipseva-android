@@ -111,4 +111,8 @@ object Routes {
 
     // Notifications inbox — stub UI for now, backend integration to follow.
     const val NOTIFICATIONS = "notifications"
+
+    // First-run feature tour. Shown once per device install AFTER role pick,
+    // before the user lands in MainNavGraph. Gated by `userPrefs.tourSeen`.
+    const val TOUR = "onboarding/tour"
 }

@@ -53,6 +53,7 @@ import com.equipseva.app.features.manufacturer.AnalyticsScreen
 import com.equipseva.app.features.manufacturer.LeadPipelineScreen
 import com.equipseva.app.features.manufacturer.RfqsAssignedScreen
 import com.equipseva.app.features.notifications.NotificationsScreen
+import com.equipseva.app.features.onboarding.TourScreen
 import com.equipseva.app.features.marketplace.MarketplaceScreen
 import com.equipseva.app.features.marketplace.PartDetailScreen
 import com.equipseva.app.features.mybids.MyBidsScreen
@@ -119,10 +120,12 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.SCAN_EQUIPMENT,
     Routes.NOTIFICATIONS,
     Routes.FAVORITES,
+    Routes.TOUR,
 )
 
 @Composable
 fun MainNavGraph(
+    showTour: Boolean = false,
     deepLinkHost: DeepLinkHost = hiltViewModel<DeepLinkHost>(),
 ) {
     val navController = rememberNavController()
@@ -133,6 +136,16 @@ fun MainNavGraph(
 
     val showSnackbar: (String) -> Unit = { msg ->
         scope.launch { snackbarHost.showSnackbar(msg) }
+    }
+
+    // First-run tour: if user hasn't seen it yet, push it on top of HOME.
+    // Tour pops itself on finish/skip, leaving HOME as the root.
+    LaunchedEffect(showTour) {
+        if (showTour) {
+            navController.navigate(Routes.TOUR) {
+                launchSingleTop = true
+            }
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -181,6 +194,20 @@ fun MainNavGraph(
             startDestination = Routes.HOME,
             modifier = Modifier.padding(padding),
         ) {
+            composable(Routes.TOUR) {
+                TourScreen(
+                    onFinish = {
+                        // Pop tour off the stack — back to HOME. Pref flip in
+                        // VM also prevents the LaunchedEffect from re-pushing.
+                        if (!navController.popBackStack(Routes.TOUR, inclusive = true)) {
+                            navController.navigate(Routes.HOME) {
+                                popUpTo(Routes.HOME) { inclusive = false }
+                                launchSingleTop = true
+                            }
+                        }
+                    },
+                )
+            }
             composable(Routes.HOME) {
                 HomeScreen(
                     onShowMessage = showSnackbar,
