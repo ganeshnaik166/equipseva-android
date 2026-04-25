@@ -30,6 +30,9 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Engineering
+import androidx.compose.material.icons.filled.Factory
+import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -535,6 +538,9 @@ private fun ProfileHeaderCard(
                 val roleIcon = when (role) {
                     UserRole.ENGINEER -> Icons.Filled.Engineering
                     UserRole.HOSPITAL -> Icons.Filled.LocalHospital
+                    UserRole.SUPPLIER -> Icons.Filled.Storefront
+                    UserRole.MANUFACTURER -> Icons.Filled.Factory
+                    UserRole.LOGISTICS -> Icons.Filled.LocalShipping
                     else -> Icons.Filled.Person
                 }
                 StatusChip(
