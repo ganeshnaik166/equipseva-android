@@ -27,6 +27,7 @@ object Routes {
     // Main bottom-tab routes.
     const val HOME = "home"
     const val MARKETPLACE = "marketplace"
+    const val SPARE_PARTS = "spare_parts"
     const val ORDERS = "orders"
     const val REPAIR = "repair"
     const val PROFILE = "profile"
