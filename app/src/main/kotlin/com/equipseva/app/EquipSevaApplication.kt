@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.equipseva.app.core.data.cart.CartSyncBootstrap
 import com.equipseva.app.core.observability.SentryInitializer
 import com.equipseva.app.core.observability.StartupTelemetry
 import com.equipseva.app.core.push.NotificationChannels
@@ -18,6 +19,7 @@ class EquipSevaApplication : Application(), Configuration.Provider {
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var sentryInitializer: SentryInitializer
+    @Inject lateinit var cartSyncBootstrap: CartSyncBootstrap
 
     override fun onCreate() {
         super.onCreate()
@@ -29,6 +31,11 @@ class EquipSevaApplication : Application(), Configuration.Provider {
         NotificationChannels.register(this)
         // Warm the Razorpay WebView so the first checkout tap isn't blocked on asset load.
         Checkout.preload(applicationContext)
+
+        // Reconcile the server-side cart into Room once per session start so
+        // the basket survives reinstall and roams across devices. Mutations
+        // after this initial pull drain through the CART_MUTATION outbox.
+        cartSyncBootstrap.start()
 
         // Report-only anti-tamper: log signals on boot. Enforcement (wipe
         // session + show "not authorized" screen) flips on once the release
