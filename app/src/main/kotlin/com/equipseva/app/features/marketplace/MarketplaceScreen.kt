@@ -67,11 +67,13 @@ import com.equipseva.app.core.data.parts.MarketplaceSort
 import com.equipseva.app.core.data.parts.PartCategory
 import com.equipseva.app.core.data.parts.SparePart
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.designsystem.adaptiveGridColumns
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.components.ShimmerBox
+import com.equipseva.app.designsystem.maxContentWidth
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreenDark
 import com.equipseva.app.designsystem.theme.Ink500
@@ -451,15 +453,19 @@ private fun FeaturedCard(part: SparePart, onClick: () -> Unit) {
 
 @Composable
 private fun ManufacturerGrid(items: List<SparePart>) {
+    // Adaptive column count: 2 on phones, 3 on small tablets, 4 on large tablets.
+    val cols = adaptiveGridColumns(compact = 2, medium = 3, expanded = 4)
     // Derive brand list from the data. Falls back to a static list if nothing we can use.
+    // Take enough rows to fill at least 2 lines on the widest layout.
     val derived = items
         .flatMap { it.compatibleBrands }
         .filter { it.isNotBlank() }
         .distinct()
-        .take(6)
-    val brands = if (derived.size >= 3) derived else listOf(
-        "Siemens", "Philips", "GE", "Dräger", "Masimo", "Mindray",
+        .take(cols * 2)
+    val fallback = listOf(
+        "Siemens", "Philips", "GE", "Dräger", "Masimo", "Mindray", "Drägerwerk", "Nihon Kohden",
     )
+    val brands = (if (derived.size >= 3) derived else fallback).take(cols * 2)
 
     Column(
         modifier = Modifier
@@ -467,7 +473,7 @@ private fun ManufacturerGrid(items: List<SparePart>) {
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        brands.chunked(3).forEach { row ->
+        brands.chunked(cols).forEach { row ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -493,8 +499,8 @@ private fun ManufacturerGrid(items: List<SparePart>) {
                         )
                     }
                 }
-                // fill the row so remaining slots keep alignment if fewer than 3
-                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                // fill the row so remaining slots keep alignment if fewer than cols
+                repeat(cols - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }
@@ -529,12 +535,18 @@ private fun SearchResultsList(
             )
         }
         items(items = state.items, key = { it.id }) { part ->
-            PartCard(
-                part = part,
-                isFavorite = part.id in favorites,
-                onToggleFavorite = { onToggleFavorite(part.id) },
-                onClick = { onPartClick(part.id) },
-            )
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                PartCard(
+                    part = part,
+                    isFavorite = part.id in favorites,
+                    onToggleFavorite = { onToggleFavorite(part.id) },
+                    onClick = { onPartClick(part.id) },
+                    modifier = Modifier.maxContentWidth(),
+                )
+            }
         }
         if (state.loadingMore) {
             item("loading_more") {
