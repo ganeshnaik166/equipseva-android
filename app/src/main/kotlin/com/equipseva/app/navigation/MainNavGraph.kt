@@ -336,19 +336,29 @@ fun MainNavGraph(
                 )
             }
             composable(Routes.MARKETPLACE) {
+                val vm: com.equipseva.app.features.marketplace.MarketplaceViewModel = hiltViewModel()
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    vm.setListingTypeFilter("equipment")
+                }
                 MarketplaceScreen(
                     onPartClick = { partId ->
                         navController.navigate(Routes.marketplaceDetailRoute(partId))
                     },
                     onOpenCart = { navController.navigate(Routes.CART) },
+                    viewModel = vm,
                 )
             }
             composable(Routes.SPARE_PARTS) {
+                val vm: com.equipseva.app.features.marketplace.MarketplaceViewModel = hiltViewModel()
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    vm.setListingTypeFilter("spare_part")
+                }
                 MarketplaceScreen(
                     onPartClick = { partId ->
                         navController.navigate(Routes.marketplaceDetailRoute(partId))
                     },
                     onOpenCart = { navController.navigate(Routes.CART) },
+                    viewModel = vm,
                 )
             }
             composable(

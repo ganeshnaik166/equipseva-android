@@ -99,6 +99,17 @@ class MarketplaceViewModel @Inject constructor(
 
     fun onRefresh() = refresh(viaPullToRefresh = true)
 
+    /**
+     * Set the listing-type filter and re-query. Called from the composable
+     * destination so Marketplace tab can show equipment, Parts tab can show
+     * spare-parts. Idempotent — re-setting the same value no-ops.
+     */
+    fun setListingTypeFilter(type: String?) {
+        if (_state.value.listingType == type) return
+        _state.update { it.copy(listingType = type, errorMessage = null) }
+        refresh()
+    }
+
     fun onReachEnd() {
         val current = _state.value
         if (current.loadingMore || current.refreshing || current.initialLoading || current.endReached) return
@@ -123,6 +134,7 @@ class MarketplaceViewModel @Inject constructor(
                 sort = current.sort,
                 page = 0,
                 pageSize = PAGE_SIZE,
+                listingType = current.listingType,
             ).fold(
                 onSuccess = { rows ->
                     _state.update {
@@ -158,6 +170,7 @@ class MarketplaceViewModel @Inject constructor(
                 sort = current.sort,
                 page = page,
                 pageSize = PAGE_SIZE,
+                listingType = current.listingType,
             ).fold(
                 onSuccess = { rows ->
                     _state.update {

@@ -14,6 +14,8 @@ data class MarketplaceUiState(
     val selectedCategory: PartCategory? = null,
     val sort: MarketplaceSort = MarketplaceSort.Relevance,
     val items: List<SparePart> = emptyList(),
+    /** "spare_part" / "equipment" / null = umbrella browse. Drives Marketplace vs Parts tab split. */
+    val listingType: String? = null,
     val initialLoading: Boolean = true,
     val refreshing: Boolean = false,
     val loadingMore: Boolean = false,
