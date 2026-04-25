@@ -29,6 +29,10 @@ data class EngineerDto(
     @SerialName("is_available") val isAvailable: Boolean? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
+    // Public stats — surface on the read-mode profile header.
+    @SerialName("rating_avg") val ratingAvg: Double? = null,
+    @SerialName("total_jobs") val totalJobs: Int? = null,
+    @SerialName("completion_rate") val completionRate: Double? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
 )

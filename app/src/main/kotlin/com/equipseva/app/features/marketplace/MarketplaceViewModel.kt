@@ -47,6 +47,18 @@ class MarketplaceViewModel @Inject constructor(
     val favorites: StateFlow<Set<String>> = userPrefs.favorites
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
 
+    /**
+     * Last 8 part IDs the user opened, hydrated to full SparePart rows so the
+     * Marketplace can render a "Recently viewed" rail. Skips IDs whose part has
+     * been deleted / made inactive — the rail just shrinks.
+     */
+    val recentlyViewed: StateFlow<List<com.equipseva.app.core.data.parts.SparePart>> =
+        userPrefs.recentlyViewedParts
+            .map { ids ->
+                ids.mapNotNull { id -> repository.fetchById(id).getOrNull() }
+            }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
     fun onToggleFavorite(partId: String) {
         viewModelScope.launch { userPrefs.toggleFavorite(partId) }
     }

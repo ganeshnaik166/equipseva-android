@@ -1,5 +1,6 @@
 package com.equipseva.app.features.engineerprofile
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
@@ -22,7 +24,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.designsystem.components.ESBackTopBar
@@ -101,6 +107,11 @@ private fun EngineerProfileForm(
             .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
+        StatsHeader(
+            jobs = state.totalJobs ?: 0,
+            rating = state.ratingAvg,
+            onTime = state.completionRate,
+        )
         SectionHeader(title = "Rates & experience")
 
         OutlinedTextField(
@@ -198,6 +209,56 @@ private fun EngineerProfileForm(
             enabled = state.canSave,
             loading = state.saving,
             modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@Composable
+private fun StatsHeader(jobs: Int, rating: Double?, onTime: Double?) {
+    androidx.compose.foundation.layout.Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        StatTile(
+            value = jobs.toString(),
+            label = "Jobs",
+            modifier = Modifier.weight(1f),
+        )
+        StatTile(
+            value = rating?.let { "%.1f".format(it) } ?: "—",
+            label = "Rating",
+            modifier = Modifier.weight(1f),
+        )
+        StatTile(
+            value = onTime?.let { "${(it * 100).toInt()}%" } ?: "—",
+            label = "On-time",
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun StatTile(value: String, label: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(com.equipseva.app.designsystem.theme.BrandGreen50)
+            .padding(vertical = 14.dp, horizontal = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = value,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = com.equipseva.app.designsystem.theme.BrandGreenDark,
+        )
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            color = com.equipseva.app.designsystem.theme.Ink500,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.4.sp,
         )
     }
 }

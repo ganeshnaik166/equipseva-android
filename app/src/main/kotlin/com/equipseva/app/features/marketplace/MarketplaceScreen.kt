@@ -98,6 +98,7 @@ fun MarketplaceScreen(
     val listState = rememberLazyListState()
     val cartCount by viewModel.cartCount.collectAsStateWithLifecycle()
     val favorites by viewModel.favorites.collectAsStateWithLifecycle()
+    val recentlyViewed by viewModel.recentlyViewed.collectAsStateWithLifecycle()
 
     val reachedEnd by remember {
         derivedStateOf {
@@ -154,6 +155,7 @@ fun MarketplaceScreen(
                 )
                 else -> MarketplaceHome(
                     items = state.items,
+                    recentlyViewed = recentlyViewed,
                     onPartClick = onPartClick,
                 )
             }
@@ -367,6 +369,7 @@ private fun CategoryChip(
 @Composable
 private fun MarketplaceHome(
     items: List<SparePart>,
+    recentlyViewed: List<SparePart>,
     onPartClick: (String) -> Unit,
 ) {
     LazyColumn(
@@ -374,6 +377,19 @@ private fun MarketplaceHome(
         contentPadding = PaddingValues(bottom = Spacing.xl),
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
+        if (recentlyViewed.isNotEmpty()) {
+            item("recent_header") { SectionHeader(title = "Recently viewed") }
+            item("recent_rail") {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = Spacing.lg),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                ) {
+                    items(items = recentlyViewed, key = { "r-${it.id}" }) { part ->
+                        FeaturedCard(part = part, onClick = { onPartClick(part.id) })
+                    }
+                }
+            }
+        }
         item("featured_header") {
             SectionHeader(title = "Featured parts")
         }

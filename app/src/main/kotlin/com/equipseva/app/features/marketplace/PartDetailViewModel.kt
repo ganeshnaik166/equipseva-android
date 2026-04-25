@@ -149,6 +149,7 @@ class PartDetailViewModel @Inject constructor(
                             notFound = part == null,
                         )
                     }
+                    if (part != null) userPrefs.addRecentlyViewedPart(part.id)
                 },
                 onFailure = { ex ->
                     _state.update { it.copy(loading = false, errorMessage = ex.toUserMessage()) }
