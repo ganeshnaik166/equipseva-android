@@ -111,15 +111,39 @@ Easiest path if no designer: use Figma's "Smart Animate" Play-Store templates + 
 
 ---
 
-## 7. One-shot anti-tamper wiring (~5 min after first upload)
+## 7. One-shot anti-tamper + App-Link wiring (~5 min after first upload)
 
-After the first AAB upload, Play Console shows the **App Signing certificate SHA-256**.
+After the first AAB upload, Play Console shows the **App Signing certificate SHA-256** under Setup → App integrity → App signing.
 
-- [ ] Copy the SHA-256 from Play Console → Setup → App integrity → App signing.
-- [ ] Convert to base64: `echo "<HEX_SHA>" | xxd -r -p | base64`
-- [ ] Add the value to **GitHub Actions secrets** as `EXPECTED_CERT_SHA256` for the release workflow.
-- [ ] Re-build the release AAB; `app/build.gradle.kts` already wires `EXPECTED_CERT_SHA256` into BuildConfig, and `SignatureVerifier.verify()` flips from report-only to enforce the moment the value is non-blank.
-- [ ] Upload the new build (you can do this as the very next release; Play accepts a same-version replacement before publication).
+The repo ships two helper scripts. Run them in order:
+
+```bash
+# 1. Convert the colon-hex Play Console SHA into the base64 form the
+#    BuildConfig + SignatureVerifier expects, plus all alternate forms.
+bash scripts/compute_signing_sha.sh --hex AB:CD:EF:01:23:...:FF
+# Outputs:
+#   hex_colon : AB:CD:EF:...   (already what Play gave you)
+#   hex_plain : abcdef...      (lowercase, no separators)
+#   base64    : K83v...        ← copy this into the GitHub secret
+
+# 2. Update docs/.well-known/assetlinks.json with the same SHA so the
+#    https://equipseva.com/pay/return App Link binds to the production APK.
+bash scripts/update_assetlinks.sh AB:CD:EF:01:23:...:FF
+
+# 3. Commit + push the assetlinks update.
+git add docs/.well-known/assetlinks.json
+git commit -m "Bind App Link to production signing SHA-256 (Play Console)"
+git push origin main
+```
+
+Then in GitHub:
+- [ ] **Settings → Secrets and variables → Actions** → add a new repository secret named `EXPECTED_CERT_SHA256` and paste the **base64** value from Step 1.
+- [ ] (Re-)trigger the release workflow. `app/build.gradle.kts` reads the secret into BuildConfig; `SignatureVerifier.verify()` flips from report-only to enforce the moment the value is non-blank.
+- [ ] Re-upload the release AAB. Play accepts a same-version replacement before publication.
+
+Verification:
+- [ ] `curl -sS https://equipseva.com/.well-known/assetlinks.json | python3 -m json.tool` returns the production SHA at the top.
+- [ ] On a real device, tap the Razorpay return URL — the OS jumps straight into the App without showing the browser disambiguator.
 
 ---
 
