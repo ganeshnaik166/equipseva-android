@@ -63,6 +63,8 @@ import com.equipseva.app.designsystem.theme.BrandGreenDark
 import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.designsystem.theme.Surface200
+import com.equipseva.app.features.repair.components.MapJob
+import com.equipseva.app.features.repair.components.NearbyJobsMap
 import com.equipseva.app.features.repair.components.RepairJobCard
 
 /**
@@ -124,6 +126,23 @@ fun RepairJobsScreen(
                     selected = state.radiusKm,
                     onSelect = viewModel::onRadiusChange,
                     modifier = Modifier.padding(horizontal = Spacing.lg),
+                )
+                NearbyJobsMap(
+                    baseLatitude = state.baseLatitude,
+                    baseLongitude = state.baseLongitude,
+                    radiusKm = state.radiusKm,
+                    jobs = remember(state.items, state.coordsByJobId, state.distanceByJobId) {
+                        state.items.mapNotNull { job ->
+                            val coord = state.coordsByJobId[job.id] ?: return@mapNotNull null
+                            MapJob(
+                                id = job.id,
+                                title = job.title,
+                                latitude = coord.first,
+                                longitude = coord.second,
+                                distanceKm = state.distanceByJobId[job.id] ?: 0.0,
+                            )
+                        }
+                    },
                 )
             }
             ErrorBanner(

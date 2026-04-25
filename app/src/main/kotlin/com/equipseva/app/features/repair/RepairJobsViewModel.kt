@@ -2,10 +2,15 @@ package com.equipseva.app.features.repair
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.core.auth.AuthRepository
+import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.repair.RepairBidRepository
 import com.equipseva.app.core.data.repair.RepairJobRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.features.repair.state.RepairJobsUiState
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.firstOrNull
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -31,6 +36,8 @@ private const val SEARCH_DEBOUNCE_MS = 300L
 class RepairJobsViewModel @Inject constructor(
     private val repository: RepairJobRepository,
     private val bidRepository: RepairBidRepository,
+    private val engineerRepository: EngineerRepository,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RepairJobsUiState())
@@ -41,6 +48,7 @@ class RepairJobsViewModel @Inject constructor(
 
     init {
         refresh()
+        loadEngineerBase()
 
         // Re-query when the typed query stabilises. Drop(1) skips the initial
         // empty-query emission which `refresh()` in init already handled.
@@ -51,6 +59,27 @@ class RepairJobsViewModel @Inject constructor(
             .debounce(SEARCH_DEBOUNCE_MS)
             .onEach { refresh() }
             .launchIn(viewModelScope)
+    }
+
+    /**
+     * Pulls the engineer's registered base coords once at startup so the
+     * map widget can centre on them and draw the radius circle. Gracefully
+     * leaves baseLatitude/Longitude null when the engineer hasn't completed
+     * KYC + location capture yet.
+     */
+    private fun loadEngineerBase() {
+        viewModelScope.launch {
+            val session = authRepository.sessionState
+                .filterIsInstance<AuthSession.SignedIn>()
+                .firstOrNull() ?: return@launch
+            val engineer = engineerRepository.fetchByUserId(session.userId).getOrNull() ?: return@launch
+            _state.update {
+                it.copy(
+                    baseLatitude = engineer.latitude,
+                    baseLongitude = engineer.longitude,
+                )
+            }
+        }
     }
 
     fun onQueryChange(value: String) {
@@ -114,6 +143,13 @@ class RepairJobsViewModel @Inject constructor(
                                 distanceByJobId = rows.associate { row ->
                                     row.job.id to row.distanceKm
                                 },
+                                coordsByJobId = rows
+                                    .mapNotNull { row ->
+                                        val lat = row.hospitalLatitude ?: return@mapNotNull null
+                                        val lng = row.hospitalLongitude ?: return@mapNotNull null
+                                        row.job.id to (lat to lng)
+                                    }
+                                    .toMap(),
                                 ownBidsByJob = ownBids,
                                 initialLoading = false,
                                 refreshing = false,
@@ -146,6 +182,7 @@ class RepairJobsViewModel @Inject constructor(
                             it.copy(
                                 items = rows,
                                 distanceByJobId = emptyMap(),
+                                coordsByJobId = emptyMap(),
                                 ownBidsByJob = ownBids,
                                 initialLoading = false,
                                 refreshing = false,

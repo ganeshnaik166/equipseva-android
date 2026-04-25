@@ -24,6 +24,8 @@ data class Engineer(
     val serviceAreas: List<String> = emptyList(),
     val bio: String? = null,
     val isAvailable: Boolean = true,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
 ) {
     val aadhaarDocPath: String? get() =
         certificates.lastOrNull { it.type == EngineerCertificate.TYPE_AADHAAR }?.path
@@ -52,4 +54,6 @@ internal fun EngineerDto.toDomain(): Engineer = Engineer(
     serviceAreas = serviceAreas.orEmpty(),
     bio = bio?.takeIf { it.isNotBlank() },
     isAvailable = isAvailable ?: true,
+    latitude = latitude,
+    longitude = longitude,
 )

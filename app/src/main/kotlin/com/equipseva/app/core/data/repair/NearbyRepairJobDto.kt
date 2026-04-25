@@ -54,5 +54,7 @@ internal fun NearbyRepairJobDto.toDomainWithDistance(): RepairJobWithDistance {
     return RepairJobWithDistance(
         job = baseDto.toDomain(),
         distanceKm = distanceKm,
+        hospitalLatitude = hospitalLatitude,
+        hospitalLongitude = hospitalLongitude,
     )
 }

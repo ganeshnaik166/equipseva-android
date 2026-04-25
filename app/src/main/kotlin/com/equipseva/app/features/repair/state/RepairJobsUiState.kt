@@ -37,4 +37,9 @@ data class RepairJobsUiState(
     val radiusKm: Int? = 50,
     /** Distance from engineer base coords to each open-feed job, by job id. */
     val distanceByJobId: Map<String, Double> = emptyMap(),
+    /** Hospital coords for each open-feed job, by job id. Used by the map. */
+    val coordsByJobId: Map<String, Pair<Double, Double>> = emptyMap(),
+    /** Engineer's registered base coords; null until KYC has them. */
+    val baseLatitude: Double? = null,
+    val baseLongitude: Double? = null,
 )

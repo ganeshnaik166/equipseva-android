@@ -27,6 +27,8 @@ data class EngineerDto(
     @SerialName("service_areas") val serviceAreas: List<String>? = null,
     val bio: String? = null,
     @SerialName("is_available") val isAvailable: Boolean? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
 )
