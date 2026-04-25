@@ -1153,23 +1153,61 @@ private fun BidComposerSheet(
                 style = MaterialTheme.typography.titleLarge,
             )
 
-            OutlinedTextField(
-                value = amount,
-                onValueChange = { amount = it.filter { ch -> ch.isDigit() || ch == '.' } },
-                label = { Text("Amount (₹)") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                isError = amountError,
-                supportingText = {
-                    if (amountError) Text("Enter a valid amount")
-                },
+            // Branded "YOUR PRICE" pill — matches design `screens-repair.jsx
+            // PlaceBidSheet`. The amount field reads as the primary action;
+            // ETA + note stay below as secondary details.
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .onFocusChanged { focusState ->
-                        if (!focusState.isFocused && amountFocused) amountTouched = true
-                        amountFocused = focusState.isFocused
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                    .background(com.equipseva.app.designsystem.theme.BrandGreen50)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "YOUR PRICE",
+                    fontSize = 11.sp,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    color = com.equipseva.app.designsystem.theme.BrandGreenDark,
+                    letterSpacing = 1.2.sp,
+                )
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { amount = it.filter { ch -> ch.isDigit() || ch == '.' } },
+                    placeholder = { Text("0", style = MaterialTheme.typography.headlineLarge) },
+                    leadingIcon = {
+                        Text(
+                            text = "₹",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = com.equipseva.app.designsystem.theme.BrandGreenDark,
+                        )
                     },
-            )
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    isError = amountError,
+                    textStyle = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { focusState ->
+                            if (!focusState.isFocused && amountFocused) amountTouched = true
+                            amountFocused = focusState.isFocused
+                        },
+                )
+                Text(
+                    text = "Market range: ₹2,800 – ₹4,500 for similar jobs",
+                    fontSize = 12.sp,
+                    color = com.equipseva.app.designsystem.theme.Ink700,
+                )
+                if (amountError) {
+                    Text(
+                        text = "Enter a valid amount",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
 
             OutlinedTextField(
                 value = eta,

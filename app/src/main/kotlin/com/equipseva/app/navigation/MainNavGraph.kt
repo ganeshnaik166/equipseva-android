@@ -2,8 +2,16 @@ package com.equipseva.app.navigation
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.CardTravel
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Factory
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.LocalHospital
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Payments
@@ -134,6 +142,16 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.FOUNDER_USERS,
     Routes.FOUNDER_PAYMENTS,
     Routes.FOUNDER_INTEGRITY,
+    Routes.PROFILE_BANK_DETAILS,
+    Routes.PROFILE_ADDRESSES,
+    Routes.PROFILE_HOSPITAL_SETTINGS,
+    Routes.PROFILE_STOREFRONT,
+    Routes.PROFILE_GST,
+    Routes.PROFILE_BRAND_PORTFOLIO,
+    Routes.PROFILE_TAX_DETAILS,
+    Routes.PROFILE_VEHICLE_DETAILS,
+    Routes.PROFILE_LICENCE,
+    Routes.PROFILE_SERVICE_AREAS,
 )
 
 @Composable
@@ -361,6 +379,9 @@ fun MainNavGraph(
                     onOpenChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
                     onOpenChangeEmail = { navController.navigate(Routes.CHANGE_EMAIL) },
                     onOpenFounderDashboard = { navController.navigate(Routes.FOUNDER_DASHBOARD) },
+                    onOpenBankDetails = { navController.navigate(Routes.PROFILE_BANK_DETAILS) },
+                    onOpenAddresses = { navController.navigate(Routes.PROFILE_ADDRESSES) },
+                    onOpenHospitalSettings = { navController.navigate(Routes.PROFILE_HOSPITAL_SETTINGS) },
                 )
             }
             composable(Routes.NOTIFICATIONS) {
@@ -648,6 +669,154 @@ fun MainNavGraph(
                     title = "Integrity flags",
                     subtitle = "Play-Integrity failures, signature mismatches, root/emulator hits.",
                     icon = Icons.Filled.Security,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // Per-role profile sub-screen placeholders. Each row in
+            // ProfileScreen now navigates to a real destination; the
+            // forms inside flesh out per-role next.
+            composable(Routes.PROFILE_BANK_DETAILS) {
+                com.equipseva.app.features.profile.RoleSubScreenPlaceholder(
+                    title = "Bank details",
+                    subtitle = "Where we send your payouts.",
+                    icon = Icons.Filled.AccountBalance,
+                    plannedFields = listOf(
+                        "Account holder name",
+                        "Account number",
+                        "IFSC code",
+                        "Branch + bank name (auto-filled from IFSC)",
+                        "Default account toggle",
+                    ),
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.PROFILE_ADDRESSES) {
+                com.equipseva.app.features.profile.RoleSubScreenPlaceholder(
+                    title = "Addresses",
+                    subtitle = "Shipping + service-call addresses.",
+                    icon = Icons.Filled.LocationOn,
+                    plannedFields = listOf(
+                        "Hospital wing / department",
+                        "Street + locality",
+                        "City + state + PIN",
+                        "Map pin (Google Maps)",
+                        "Default address toggle",
+                    ),
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.PROFILE_HOSPITAL_SETTINGS) {
+                com.equipseva.app.features.profile.RoleSubScreenPlaceholder(
+                    title = "Hospital settings",
+                    subtitle = "Org-wide preferences for buyers, billing, and approvals.",
+                    icon = Icons.Filled.LocalHospital,
+                    plannedFields = listOf(
+                        "Approval thresholds (auto-approve under ₹X)",
+                        "Departments + biomed contacts",
+                        "Billing email + GST",
+                        "Preferred suppliers shortlist",
+                    ),
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.PROFILE_STOREFRONT) {
+                com.equipseva.app.features.profile.RoleSubScreenPlaceholder(
+                    title = "Storefront settings",
+                    subtitle = "How your shop reads to hospital buyers.",
+                    icon = Icons.Filled.Store,
+                    plannedFields = listOf(
+                        "Storefront name + tagline",
+                        "About the supplier (long bio)",
+                        "Operating hours",
+                        "Auto-quote toggle for repeat buyers",
+                    ),
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.PROFILE_GST) {
+                com.equipseva.app.features.profile.RoleSubScreenPlaceholder(
+                    title = "GST details",
+                    subtitle = "Tax registration + invoice template.",
+                    icon = Icons.Filled.Receipt,
+                    plannedFields = listOf(
+                        "GSTIN",
+                        "Registered business name",
+                        "PAN",
+                        "Invoice prefix + numbering scheme",
+                    ),
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.PROFILE_BRAND_PORTFOLIO) {
+                com.equipseva.app.features.profile.RoleSubScreenPlaceholder(
+                    title = "Brand portfolio",
+                    subtitle = "Brands and product categories you manufacture.",
+                    icon = Icons.Filled.Factory,
+                    plannedFields = listOf(
+                        "Brands you make (multi-select)",
+                        "Equipment categories",
+                        "Distribution areas",
+                        "Catalog upload (PDF / CSV)",
+                    ),
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.PROFILE_TAX_DETAILS) {
+                com.equipseva.app.features.profile.RoleSubScreenPlaceholder(
+                    title = "Tax details",
+                    subtitle = "Manufacturer GST + import-export codes.",
+                    icon = Icons.Filled.Receipt,
+                    plannedFields = listOf(
+                        "GSTIN",
+                        "IEC (Importer Exporter Code)",
+                        "Tax certificate upload",
+                        "Default tax slab per category",
+                    ),
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.PROFILE_VEHICLE_DETAILS) {
+                com.equipseva.app.features.profile.RoleSubScreenPlaceholder(
+                    title = "Vehicle details",
+                    subtitle = "Logistics partner vehicle registration + capacity.",
+                    icon = Icons.Filled.DirectionsCar,
+                    plannedFields = listOf(
+                        "Vehicle plate number",
+                        "Vehicle type (bike / van / truck)",
+                        "Cargo capacity",
+                        "Insurance certificate upload",
+                        "RC document upload",
+                    ),
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.PROFILE_LICENCE) {
+                com.equipseva.app.features.profile.RoleSubScreenPlaceholder(
+                    title = "Driving licence",
+                    subtitle = "Verification status + expiry tracking.",
+                    icon = Icons.Filled.CardTravel,
+                    plannedFields = listOf(
+                        "Licence number",
+                        "Class of vehicle",
+                        "Issue date",
+                        "Expiry date",
+                        "Front + back photo",
+                    ),
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.PROFILE_SERVICE_AREAS) {
+                com.equipseva.app.features.profile.RoleSubScreenPlaceholder(
+                    title = "Service areas",
+                    subtitle = "Geographic coverage for deliveries.",
+                    icon = Icons.Filled.Map,
+                    plannedFields = listOf(
+                        "Coverage zones (city + PIN)",
+                        "Radius from base (km)",
+                        "Available days + hours",
+                        "Surge / peak-hour pricing",
+                    ),
                     onBack = { navController.popBackStack() },
                 )
             }
