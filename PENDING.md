@@ -89,7 +89,7 @@ Legend: 🔴 blocker · 🟠 needs attention · 🟡 nice-to-have · ⚪ beyond 
 54. **Pull-to-refresh on Conversations list** — realtime handles it but users expect the gesture.
 55. **Conversations search** — not implemented.
 56. **Onboarding / first-run tour** — no welcome coaching.
-57. **Tablet / large-screen layouts** — not tested.
+57. **Tablet / large-screen layouts** — minimum responsive fixes shipped (`rememberAdaptiveWidth`/`maxContentWidth` in `designsystem/AdaptiveWidth.kt`; marketplace manufacturer grid is 2/3/4 cols by width; marketplace search results + repair jobs list cap at 840dp). Compose bottom-nav/master-detail still TODO.
 58. **Dark mode** — theme exists, not stress-tested across all screens.
 
 ### Seed data / Content

@@ -56,6 +56,7 @@ import com.equipseva.app.designsystem.components.ESTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.ShimmerListItem
+import com.equipseva.app.designsystem.maxContentWidth
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreenDark
 import com.equipseva.app.designsystem.theme.Ink500
@@ -139,11 +140,17 @@ fun RepairJobsScreen(
                         verticalArrangement = Arrangement.spacedBy(Spacing.md),
                     ) {
                         items(items = filtered, key = { it.id }) { job ->
-                            RepairJobCard(
-                                job = job,
-                                onClick = { onJobClick(job.id) },
-                                ownBid = state.ownBidsByJob[job.id],
-                            )
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.TopCenter,
+                            ) {
+                                RepairJobCard(
+                                    job = job,
+                                    onClick = { onJobClick(job.id) },
+                                    ownBid = state.ownBidsByJob[job.id],
+                                    modifier = Modifier.maxContentWidth(),
+                                )
+                            }
                         }
                         if (selectedTab == EngineerJobsTab.Available) {
                             if (state.loadingMore) {
