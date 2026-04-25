@@ -1,5 +1,9 @@
 package com.equipseva.app.features.hospital
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import android.graphics.Bitmap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,6 +25,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.PriorityHigh
 import androidx.compose.foundation.text.KeyboardOptions
@@ -80,11 +87,42 @@ fun RequestServiceScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var step by rememberSaveable { mutableStateOf(0) }
-    // UI-only field — VM doesn't persist serials yet.
-    var serial by rememberSaveable { mutableStateOf("") }
     var selectedSlot by rememberSaveable { mutableStateOf(-1) }
-    // UI-only — VM doesn't persist site location yet (no schema column).
-    var siteLocation by rememberSaveable { mutableStateOf("") }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    // Camera capture (preview-resolution thumbnail). Encoded to JPEG bytes
+    // before handing to the VM so the upload payload is consistent.
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview(),
+    ) { bitmap: Bitmap? ->
+        if (bitmap != null) {
+            val bytes = java.io.ByteArrayOutputStream().use { stream ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
+                stream.toByteArray()
+            }
+            viewModel.onPhotoPicked(
+                fileName = "camera-${System.currentTimeMillis()}.jpg",
+                bytes = bytes,
+                contentType = "image/jpeg",
+            )
+        }
+    }
+
+    // Gallery pick (image/* only).
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri: android.net.Uri? ->
+        if (uri != null) {
+            val cr = context.contentResolver
+            val mime = cr.getType(uri) ?: "image/jpeg"
+            val bytes = cr.openInputStream(uri)?.use { it.readBytes() }
+            val fileName = uri.lastPathSegment ?: "gallery-${System.currentTimeMillis()}"
+            if (bytes != null) {
+                viewModel.onPhotoPicked(fileName, bytes, mime)
+            }
+        }
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
@@ -92,6 +130,9 @@ fun RequestServiceScreen(
                 RequestServiceViewModel.Effect.Submitted -> {
                     onShowMessage("Service request submitted")
                     onSubmitted()
+                }
+                is RequestServiceViewModel.Effect.ShowMessage -> {
+                    onShowMessage(effect.text)
                 }
             }
         }
@@ -142,24 +183,35 @@ fun RequestServiceScreen(
                         category = state.category,
                         brand = state.brand,
                         model = state.model,
-                        serial = serial,
+                        serial = state.serial,
                         onCategory = viewModel::onCategoryChange,
                         onBrand = viewModel::onBrandChange,
                         onModel = viewModel::onModelChange,
-                        onSerial = { serial = it },
+                        onSerial = viewModel::onSerialChange,
                     )
                     1 -> StepIssue(
                         issue = state.issue,
                         issueError = state.issueError,
                         urgency = state.urgency,
+                        photos = state.photos,
+                        uploadingPhoto = state.uploadingPhoto,
                         onIssue = viewModel::onIssueChange,
                         onUrgency = viewModel::onUrgencyChange,
+                        onTakePhoto = { cameraLauncher.launch(null) },
+                        onPickFromGallery = {
+                            galleryLauncher.launch(
+                                PickVisualMediaRequest(
+                                    ActivityResultContracts.PickVisualMedia.ImageOnly,
+                                ),
+                            )
+                        },
+                        onRemovePhoto = viewModel::onRemovePhoto,
                     )
                     2 -> StepSchedule(
                         selectedSlot = selectedSlot,
                         onSelectSlot = { selectedSlot = it },
-                        siteLocation = siteLocation,
-                        onSiteLocation = { siteLocation = it },
+                        siteLocation = state.siteLocation,
+                        onSiteLocation = viewModel::onSiteLocationChange,
                         budget = state.budget,
                         budgetError = state.budgetError,
                         onBudget = viewModel::onBudgetChange,
@@ -241,13 +293,20 @@ private fun StepEquipment(
     )
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
+@Suppress("LongParameterList")
 private fun StepIssue(
     issue: String,
     issueError: String?,
     urgency: RepairJobUrgency,
+    photos: List<String>,
+    uploadingPhoto: Boolean,
     onIssue: (String) -> Unit,
     onUrgency: (RepairJobUrgency) -> Unit,
+    onTakePhoto: () -> Unit,
+    onPickFromGallery: () -> Unit,
+    onRemovePhoto: (String) -> Unit,
 ) {
     StepHeadline("What's the issue?")
     OutlinedTextField(
@@ -259,6 +318,13 @@ private fun StepIssue(
         supportingText = issueError?.let { { Text(it) } },
         minLines = 5,
         modifier = Modifier.fillMaxWidth(),
+    )
+    PhotoPickerSection(
+        photos = photos,
+        uploading = uploadingPhoto,
+        onTakePhoto = onTakePhoto,
+        onPickFromGallery = onPickFromGallery,
+        onRemovePhoto = onRemovePhoto,
     )
     Text(
         text = "Severity",
@@ -291,6 +357,103 @@ private fun StepIssue(
             onClick = { onUrgency(RepairJobUrgency.Emergency) },
             modifier = Modifier.weight(1f),
         )
+    }
+}
+
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun PhotoPickerSection(
+    photos: List<String>,
+    uploading: Boolean,
+    onTakePhoto: () -> Unit,
+    onPickFromGallery: () -> Unit,
+    onRemovePhoto: (String) -> Unit,
+) {
+    Text(
+        text = "Photos (optional)",
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Medium,
+        color = Ink700,
+    )
+    Text(
+        text = "Attach photos of the nameplate or fault. Up to 5 images, JPEG/PNG/WEBP.",
+        fontSize = 12.sp,
+        color = Ink700,
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        OutlinedButton(
+            onClick = onTakePhoto,
+            enabled = !uploading && photos.size < 5,
+            modifier = Modifier.weight(1f),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.PhotoCamera,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text("Take photo")
+        }
+        OutlinedButton(
+            onClick = onPickFromGallery,
+            enabled = !uploading && photos.size < 5,
+            modifier = Modifier.weight(1f),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.PhotoLibrary,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text("From gallery")
+        }
+    }
+    if (uploading) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            androidx.compose.material3.CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                strokeWidth = 2.dp,
+            )
+            Text(
+                text = "Uploading…",
+                fontSize = 12.sp,
+                color = Ink700,
+            )
+        }
+    }
+    if (photos.isNotEmpty()) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            photos.forEach { path ->
+                Row(
+                    modifier = Modifier
+                        .background(BrandGreen50, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = path.substringAfterLast('/').take(26),
+                        fontSize = 12.sp,
+                        color = BrandGreenDark,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                    IconButton(onClick = { onRemovePhoto(path) }) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = "Remove",
+                            tint = BrandGreenDark,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
