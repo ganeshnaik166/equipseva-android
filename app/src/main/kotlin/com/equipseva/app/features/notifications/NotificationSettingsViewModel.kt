@@ -2,6 +2,7 @@ package com.equipseva.app.features.notifications
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.core.data.prefs.QuietHoursPrefs
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.push.NotificationChannels
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -41,12 +42,28 @@ class NotificationSettingsViewModel @Inject constructor(
             initialValue = buildCategories(emptySet()),
         )
 
+    val quietHours: StateFlow<QuietHoursPrefs> = userPrefs
+        .observeQuietHours()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = QuietHoursPrefs(enabled = false, startMinutes = 22 * 60, endMinutes = 7 * 60),
+        )
+
     fun toggle(channelId: String) {
         viewModelScope.launch {
             val current = userPrefs.observeMutedPushCategories().first()
             val next = if (channelId in current) current - channelId else current + channelId
             userPrefs.setMutedPushCategories(next)
         }
+    }
+
+    fun setQuietHoursEnabled(on: Boolean) {
+        viewModelScope.launch { userPrefs.setQuietHoursEnabled(on) }
+    }
+
+    fun setQuietHoursWindow(startMin: Int, endMin: Int) {
+        viewModelScope.launch { userPrefs.setQuietHoursWindow(startMin, endMin) }
     }
 
     private fun buildCategories(muted: Set<String>): List<PushCategoryToggle> = listOf(

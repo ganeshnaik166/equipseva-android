@@ -8,6 +8,7 @@ import androidx.core.content.getSystemService
 import com.equipseva.app.MainActivity
 import com.equipseva.app.R
 import com.equipseva.app.core.data.prefs.UserPrefs
+import com.equipseva.app.core.util.QuietHours
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
@@ -18,6 +19,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import java.time.LocalTime
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -44,6 +46,17 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
         // NotificationManager.notify call only.
         val muted = runBlocking { userPrefs.observeMutedPushCategories().first() }
         if (category in muted || channel in muted) return
+
+        // Quiet-hours / DND. Cheap per-category check runs first; only hit
+        // DataStore again for the time window if the message survived that.
+        val quietHours = runBlocking { userPrefs.observeQuietHours().first() }
+        if (quietHours.enabled) {
+            val now = LocalTime.now()
+            val nowMin = now.hour * 60 + now.minute
+            if (QuietHours.isWithinWindow(nowMin, quietHours.startMinutes, quietHours.endMinutes)) {
+                return
+            }
+        }
 
         val title = message.notification?.title ?: data["title"] ?: getString(R.string.app_name)
         val body = message.notification?.body ?: data["body"].orEmpty()

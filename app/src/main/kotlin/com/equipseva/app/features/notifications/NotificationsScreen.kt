@@ -1,5 +1,6 @@
 package com.equipseva.app.features.notifications
 
+import android.app.TimePickerDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -22,15 +23,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.core.data.prefs.QuietHoursPrefs
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.theme.Spacing
@@ -48,6 +52,7 @@ fun NotificationsScreen(
     settingsViewModel: NotificationSettingsViewModel = hiltViewModel(),
 ) {
     val categories by settingsViewModel.categories.collectAsStateWithLifecycle()
+    val quietHours by settingsViewModel.quietHours.collectAsStateWithLifecycle()
     Scaffold(
         topBar = { ESBackTopBar(title = "Notifications", onBack = onBack) },
     ) { inner ->
@@ -71,6 +76,21 @@ fun NotificationsScreen(
                 PushCategoryToggleRow(
                     toggle = toggle,
                     onToggle = { settingsViewModel.toggle(toggle.channelId) },
+                )
+            }
+            item(key = "quiet-hours-header") {
+                Text(
+                    text = "Quiet hours",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.xxs),
+                )
+            }
+            item(key = "quiet-hours-card") {
+                QuietHoursCard(
+                    prefs = quietHours,
+                    onEnabledChange = settingsViewModel::setQuietHoursEnabled,
+                    onWindowChange = settingsViewModel::setQuietHoursWindow,
                 )
             }
             item(key = "inbox-header") {
@@ -137,6 +157,99 @@ private fun PushCategoryToggleRow(
             )
         }
     }
+}
+
+@Composable
+private fun QuietHoursCard(
+    prefs: QuietHoursPrefs,
+    onEnabledChange: (Boolean) -> Unit,
+    onWindowChange: (Int, Int) -> Unit,
+) {
+    val context = LocalContext.current
+    val startLabel = formatMinutes(prefs.startMinutes)
+    val endLabel = formatMinutes(prefs.endMinutes)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
+                ) {
+                    Text(
+                        text = "Do Not Disturb",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = if (prefs.enabled) {
+                            "Silenced from $startLabel to $endLabel"
+                        } else {
+                            "Silently drop pushes during your chosen window."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = prefs.enabled,
+                    onCheckedChange = onEnabledChange,
+                )
+            }
+            if (prefs.enabled) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    TextButton(
+                        onClick = {
+                            TimePickerDialog(
+                                context,
+                                { _, hour, minute ->
+                                    onWindowChange(hour * 60 + minute, prefs.endMinutes)
+                                },
+                                prefs.startMinutes / 60,
+                                prefs.startMinutes % 60,
+                                true,
+                            ).show()
+                        },
+                    ) { Text("Start: $startLabel") }
+                    TextButton(
+                        onClick = {
+                            TimePickerDialog(
+                                context,
+                                { _, hour, minute ->
+                                    onWindowChange(prefs.startMinutes, hour * 60 + minute)
+                                },
+                                prefs.endMinutes / 60,
+                                prefs.endMinutes % 60,
+                                true,
+                            ).show()
+                        },
+                    ) { Text("End: $endLabel") }
+                }
+            }
+        }
+    }
+}
+
+private fun formatMinutes(minutes: Int): String {
+    val safe = minutes.coerceIn(0, 24 * 60 - 1)
+    val h = safe / 60
+    val m = safe % 60
+    return "%02d:%02d".format(h, m)
 }
 
 private data class DemoNotification(
