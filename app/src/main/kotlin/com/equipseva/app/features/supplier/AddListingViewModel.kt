@@ -46,6 +46,8 @@ class AddListingViewModel @Inject constructor(
         val compatibleBrandsText: String = "",
         val compatibleModelsText: String = "",
         val compatibleEquipmentCategoriesText: String = "",
+        /** "spare_part" or "equipment" — drives which fields are emphasised + DB column. */
+        val listingType: String = "spare_part",
     ) {
         val nameError: String?
             get() = if (name.isBlank()) "Required" else null
@@ -98,6 +100,8 @@ class AddListingViewModel @Inject constructor(
         val showValidationErrors: Boolean = false,
         val noOrgWarning: Boolean = false,
         val errorMessage: String? = null,
+        /** True after the verification gate fails (server says seller_can_list=false). */
+        val verificationGate: Boolean = false,
     )
 
     sealed interface Effect {
@@ -152,6 +156,8 @@ class AddListingViewModel @Inject constructor(
     fun onCompatibleModelsChange(value: String) = updateForm { it.copy(compatibleModelsText = value) }
     fun onCompatibleEquipmentCategoriesChange(value: String) =
         updateForm { it.copy(compatibleEquipmentCategoriesText = value) }
+    fun onListingTypeChange(type: String) =
+        updateForm { it.copy(listingType = if (type == "equipment") "equipment" else "spare_part") }
 
     fun onSave() {
         val snap = _state.value
@@ -179,6 +185,7 @@ class AddListingViewModel @Inject constructor(
             isGenuine = form.isGenuine,
             isOem = form.isOem,
             discountPercentage = form.discountPercentText.toIntOrNull() ?: 0,
+            listingType = form.listingType,
         )
 
         _state.update { it.copy(submitting = true, errorMessage = null) }

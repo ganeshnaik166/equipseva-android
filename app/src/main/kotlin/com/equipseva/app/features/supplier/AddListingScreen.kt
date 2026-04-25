@@ -124,6 +124,31 @@ fun AddListingScreen(
                 }
             }
 
+            item { SectionHeader(title = "Listing type") }
+            item {
+                FormColumn {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        listOf("spare_part" to "Spare part", "equipment" to "Equipment").forEach { (key, label) ->
+                            val selected = state.form.listingType == key
+                            if (selected) {
+                                androidx.compose.material3.Button(
+                                    onClick = { viewModel.onListingTypeChange(key) },
+                                    modifier = Modifier.weight(1f),
+                                ) { Text(label) }
+                            } else {
+                                androidx.compose.material3.OutlinedButton(
+                                    onClick = { viewModel.onListingTypeChange(key) },
+                                    modifier = Modifier.weight(1f),
+                                ) { Text(label) }
+                            }
+                        }
+                    }
+                }
+            }
+
             item { SectionHeader(title = "Basics") }
             item {
                 FormColumn {

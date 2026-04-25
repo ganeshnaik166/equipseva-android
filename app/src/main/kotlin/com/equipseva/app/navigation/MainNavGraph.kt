@@ -633,10 +633,7 @@ fun MainNavGraph(
                 )
             }
             composable(Routes.FOUNDER_KYC_QUEUE) {
-                com.equipseva.app.features.founder.FounderPlaceholderScreen(
-                    title = "KYC queue",
-                    subtitle = "Approve / reject pending engineer + supplier verifications.",
-                    icon = Icons.Filled.VerifiedUser,
+                com.equipseva.app.features.founder.FounderKycQueueScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
