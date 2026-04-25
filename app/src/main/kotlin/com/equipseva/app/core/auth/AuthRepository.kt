@@ -9,6 +9,12 @@ interface AuthRepository {
     suspend fun sendEmailOtp(email: String): Result<Unit>
     suspend fun verifyEmailOtp(email: String, token: String): Result<Unit>
     suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?): Result<Unit>
+    /**
+     * Send a 6-digit OTP to the given phone number (E.164 format, e.g. +919999999999).
+     * Requires the Supabase project to have a Phone provider (Twilio/MSG91) wired.
+     */
+    suspend fun sendPhoneOtp(phone: String): Result<Unit>
+    suspend fun verifyPhoneOtp(phone: String, token: String): Result<Unit>
     suspend fun sendPasswordResetEmail(email: String): Result<Unit>
     suspend fun updatePassword(newPassword: String): Result<Unit>
     suspend fun updateEmail(newEmail: String): Result<Unit>

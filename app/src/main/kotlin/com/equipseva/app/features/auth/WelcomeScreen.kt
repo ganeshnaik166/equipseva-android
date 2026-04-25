@@ -58,6 +58,7 @@ fun WelcomeScreen(
     onSignIn: () -> Unit,
     onSignUp: () -> Unit,
     onUseEmailCode: () -> Unit,
+    onUsePhone: () -> Unit = {},
     onShowMessage: (String) -> Unit,
     viewModel: WelcomeViewModel = hiltViewModel(),
 ) {
@@ -192,6 +193,11 @@ fun WelcomeScreen(
                     SecondaryButton(
                         label = "Use a one-time email code",
                         onClick = onUseEmailCode,
+                        enabled = !state.form.submitting,
+                    )
+                    SecondaryButton(
+                        label = "Continue with phone (OTP)",
+                        onClick = onUsePhone,
                         enabled = !state.form.submitting,
                     )
 

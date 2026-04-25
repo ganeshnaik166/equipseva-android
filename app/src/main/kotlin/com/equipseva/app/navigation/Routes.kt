@@ -17,6 +17,13 @@ object Routes {
     fun otpVerifyRoute(email: String): String =
         "$AUTH_OTP_VERIFY/${java.net.URLEncoder.encode(email, Charsets.UTF_8.name())}"
 
+    // Phone OTP — request screen collects E.164 phone, verify takes it as path arg.
+    const val AUTH_PHONE_OTP_REQUEST = "auth/phone_otp_request"
+    const val AUTH_PHONE_OTP_VERIFY = "auth/phone_otp_verify"
+    const val AUTH_PHONE_OTP_VERIFY_ARG_PHONE = "phone"
+    fun phoneOtpVerifyRoute(phone: String): String =
+        "$AUTH_PHONE_OTP_VERIFY/${java.net.URLEncoder.encode(phone, Charsets.UTF_8.name())}"
+
     // Main bottom-tab routes.
     const val HOME = "home"
     const val MARKETPLACE = "marketplace"

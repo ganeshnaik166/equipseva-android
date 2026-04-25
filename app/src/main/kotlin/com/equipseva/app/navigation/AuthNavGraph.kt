@@ -12,6 +12,8 @@ import com.equipseva.app.features.auth.OtpVerifyScreen
 import com.equipseva.app.features.auth.SignInScreen
 import com.equipseva.app.features.auth.SignUpScreen
 import com.equipseva.app.features.auth.WelcomeScreen
+import com.equipseva.app.features.auth.phone.PhoneOtpRequestScreen
+import com.equipseva.app.features.auth.phone.PhoneOtpVerifyScreen
 
 /**
  * Auth sub-graph wired into the root NavHost when the session is signed-out.
@@ -31,7 +33,26 @@ fun NavGraphBuilder.authNavGraph(
                 onSignIn = { navController.navigate(Routes.AUTH_SIGN_IN) },
                 onSignUp = { navController.navigate(Routes.AUTH_SIGN_UP) },
                 onUseEmailCode = { navController.navigate(Routes.AUTH_OTP_REQUEST) },
+                onUsePhone = { navController.navigate(Routes.AUTH_PHONE_OTP_REQUEST) },
                 onShowMessage = showSnackbar,
+            )
+        }
+        composable(Routes.AUTH_PHONE_OTP_REQUEST) {
+            PhoneOtpRequestScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToVerify = { phone ->
+                    navController.navigate(Routes.phoneOtpVerifyRoute(phone))
+                },
+            )
+        }
+        composable(
+            route = "${Routes.AUTH_PHONE_OTP_VERIFY}/{${Routes.AUTH_PHONE_OTP_VERIFY_ARG_PHONE}}",
+            arguments = listOf(
+                navArgument(Routes.AUTH_PHONE_OTP_VERIFY_ARG_PHONE) { type = NavType.StringType },
+            ),
+        ) {
+            PhoneOtpVerifyScreen(
+                onBack = { navController.popBackStack() },
             )
         }
         composable(Routes.AUTH_SIGN_IN) {
