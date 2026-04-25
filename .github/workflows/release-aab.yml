@@ -104,6 +104,7 @@ jobs:
           RAZORPAY_KEY: ${{ secrets.RAZORPAY_KEY }}
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
           EXPECTED_CERT_SHA256: ${{ secrets.EXPECTED_CERT_SHA256 }}
+          MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
         run: |
           cat > local.properties <<EOF
           SUPABASE_URL=$SUPABASE_URL
@@ -112,6 +113,7 @@ jobs:
           RAZORPAY_KEY=$RAZORPAY_KEY
           GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID
           EXPECTED_CERT_SHA256=$EXPECTED_CERT_SHA256
+          MAPS_API_KEY=$MAPS_API_KEY
           EOF
 
       - name: Write google-services.json

@@ -107,5 +107,12 @@
 
         <!-- Sentry auto-init requires a non-empty DSN; keep it off until a real DSN is wired. -->
         <meta-data android:name="io.sentry.auto-init" android:value="false" />
+
+        <!-- Google Maps SDK API key. Mobile SDK is in the always-free tier;
+             leave blank for CI / debug builds and the map renders empty
+             tiles gracefully rather than crashing. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
     </application>
 </manifest>
