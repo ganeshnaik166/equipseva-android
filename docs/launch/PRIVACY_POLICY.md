@@ -1,3 +1,12 @@
+---
+title: Privacy Policy
+permalink: /privacy/
+redirect_from:
+  - /privacy-policy/
+  - /launch/PRIVACY_POLICY/
+  - /launch/PRIVACY_POLICY.html
+---
+
 # Privacy Policy — EquipSeva
 
 **Effective:** 2026-04-25

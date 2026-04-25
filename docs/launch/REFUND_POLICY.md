@@ -1,3 +1,13 @@
+---
+title: Refund and Cancellation Policy
+permalink: /refunds/
+redirect_from:
+  - /refund/
+  - /refund-policy/
+  - /launch/REFUND_POLICY/
+  - /launch/REFUND_POLICY.html
+---
+
 # Refund and Cancellation Policy — EquipSeva
 
 **Effective:** 2026-04-25
