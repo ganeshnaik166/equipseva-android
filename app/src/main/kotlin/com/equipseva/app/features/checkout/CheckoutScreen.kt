@@ -476,10 +476,10 @@ private fun Radio(selected: Boolean) {
         modifier = Modifier
             .size(22.dp)
             .clip(CircleShape)
-            .background(if (selected) BrandGreen else Color.Transparent)
+            .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
             .border(
                 width = 2.dp,
-                color = if (selected) BrandGreen else Ink300,
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                 shape = CircleShape,
             ),
         contentAlignment = Alignment.Center,
@@ -489,7 +489,7 @@ private fun Radio(selected: Boolean) {
                 modifier = Modifier
                     .size(10.dp)
                     .clip(CircleShape)
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.onPrimary),
             )
         }
     }

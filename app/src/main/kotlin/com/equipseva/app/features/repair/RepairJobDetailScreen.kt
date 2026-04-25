@@ -2,6 +2,7 @@ package com.equipseva.app.features.repair
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -394,8 +395,8 @@ private fun EngineerActionStrip(
                 enabled = !updatingStatus,
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = BrandGreen,
-                    contentColor = Color.White,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
             ) {
                 Icon(Icons.Outlined.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -409,8 +410,8 @@ private fun EngineerActionStrip(
                 enabled = !updatingStatus,
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = BrandGreenDark,
-                    contentColor = Color.White,
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary,
                 ),
             ) {
                 Icon(Icons.Outlined.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -518,12 +519,20 @@ private fun RatingCard(
 @Composable
 private fun EquipmentBannerCard(job: RepairJob, hospitalName: String?, hospitalLocation: String?) {
     val shape = MaterialTheme.shapes.medium
+    val isDark = isSystemInDarkTheme()
+    val bannerGradient = if (isDark) {
+        listOf(Color(0xFF1F2A26), Color(0xFF18211E))
+    } else {
+        listOf(Color(0xFFF2F6F4), Color(0xFFE7EEEB))
+    }
+    val pillBg = if (isDark) Color(0xCC1B1F26) else Color(0xD9FFFFFF)
+    val pillBorder = if (isDark) Color(0x662E8B6E) else Color(0x260B6E4F)
     Column(
         modifier = Modifier
             .padding(Spacing.lg)
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface, shape)
-            .border(1.dp, Surface200, shape),
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape),
     ) {
         // Banner — simple tinted surface with centered equipment pill.
         // Fallback layout used in place of diagonal-line pattern (see deviation notes).
@@ -532,19 +541,14 @@ private fun EquipmentBannerCard(job: RepairJob, hospitalName: String?, hospitalL
                 .fillMaxWidth()
                 .height(180.dp)
                 .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFFF2F6F4),
-                            Color(0xFFE7EEEB),
-                        ),
-                    ),
+                    brush = Brush.verticalGradient(colors = bannerGradient),
                 ),
             contentAlignment = Alignment.Center,
         ) {
             Row(
                 modifier = Modifier
-                    .background(Color(0xD9FFFFFF), RoundedCornerShape(8.dp))
-                    .border(1.dp, Color(0x260B6E4F), RoundedCornerShape(8.dp))
+                    .background(pillBg, RoundedCornerShape(8.dp))
+                    .border(1.dp, pillBorder, RoundedCornerShape(8.dp))
                     .padding(horizontal = 18.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -827,8 +831,8 @@ private fun HospitalBidRow(
                     .padding(top = 4.dp)
                     .fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = BrandGreen,
-                    contentColor = Color.White,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
             ) {
                 Text(if (accepting) "Accepting…" else "Accept bid")
@@ -996,8 +1000,8 @@ private fun StickyBottomBar(
                     onClick = onPlaceBid,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = BrandGreen,
-                        contentColor = Color.White,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
                 ) { Text("Place bid") }
                 ownBid.status == RepairBidStatus.Pending -> Button(
@@ -1005,8 +1009,8 @@ private fun StickyBottomBar(
                     enabled = !withdrawing,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = BrandGreen,
-                        contentColor = Color.White,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
                 ) { Text("Edit bid") }
                 else -> Box(

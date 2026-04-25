@@ -458,8 +458,8 @@ private fun WizardBottomBar(
                 .weight(1f)
                 .height(Spacing.MinTouchTarget),
             colors = ButtonDefaults.buttonColors(
-                containerColor = BrandGreen,
-                contentColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
             ),
         ) {
             if (isLast) {
