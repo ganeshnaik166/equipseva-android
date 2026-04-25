@@ -89,6 +89,8 @@ import com.equipseva.app.designsystem.components.SecureScreen
 import com.equipseva.app.designsystem.components.SettingsSheet
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.components.StatusTone
+import com.equipseva.app.designsystem.theme.BrandGreen
+import com.equipseva.app.designsystem.theme.BrandGreenDark
 import com.equipseva.app.designsystem.theme.ErrorBg
 import com.equipseva.app.designsystem.theme.ErrorRed
 import com.equipseva.app.designsystem.theme.Ink500
@@ -246,6 +248,9 @@ private fun ProfileContent(
     val profile = state.profile!!
     val isEngineer = profile.role == UserRole.ENGINEER
     val isHospital = profile.role == UserRole.HOSPITAL
+    val isSupplier = profile.role == UserRole.SUPPLIER
+    val isManufacturer = profile.role == UserRole.MANUFACTURER
+    val isLogistics = profile.role == UserRole.LOGISTICS
     val isFounder = profile.isFounder()
 
     Column(
@@ -254,71 +259,132 @@ private fun ProfileContent(
             .background(Surface50)
             .verticalScroll(rememberScrollState()),
     ) {
-        // Header card with edit icon, avatar, name, role + verified chips, and secondary line.
-        ProfileHeaderCard(
+        ProfileHero(
             displayName = profile.displayName,
+            email = profile.email,
             avatarUrl = profile.avatarUrl,
             role = profile.role,
-            secondaryLine = buildSecondaryLine(profile, isEngineer),
             verified = profile.roleConfirmed,
+            isFounder = isFounder,
+            organizationName = profile.organizationName,
+            locationLine = profile.locationLine,
             onEdit = onEditProfile,
+            onChangeRole = onEditRole,
+            roleUpdating = state.roleUpdating,
         )
-        Spacer(Modifier.height(Spacing.md))
 
-        // Role switcher block (keeps existing functionality).
-        Box(modifier = Modifier.padding(horizontal = Spacing.lg)) {
-            RoleCard(
-                role = profile.role,
-                roleConfirmed = profile.roleConfirmed,
-                onEdit = onEditRole,
-                updating = state.roleUpdating,
-            )
-        }
-        Spacer(Modifier.height(Spacing.md))
-
-        // Organization (hospital/clinic) context if present.
-        if (profile.organizationName != null || profile.locationLine != null) {
-            Box(modifier = Modifier.padding(horizontal = Spacing.lg)) {
-                OrgCard(
-                    orgName = profile.organizationName,
-                    locationLine = profile.locationLine,
-                )
-            }
+        if (isFounder) {
             Spacer(Modifier.height(Spacing.md))
+            FounderCallout(onClick = onOpenFounderDashboard)
         }
 
-        // Settings rows list (role-specific).
-        Box(modifier = Modifier.padding(horizontal = Spacing.lg)) {
-            SettingsList(
-                rows = buildSettingsRows(
-                    isEngineer = isEngineer,
-                    isHospital = isHospital,
-                    isFounder = isFounder,
-                    themeMode = themeMode,
-                    onOpenSettings = onOpenSettings,
-                    onOpenVerification = onOpenVerification,
-                    onOpenMessages = onOpenMessages,
-                    onOpenAbout = onOpenAbout,
-                    onOpenFavorites = onOpenFavorites,
-                    onOpenNotifications = onOpenNotifications,
-                    onOpenPersonalInfo = onEditProfile,
-                    onOpenBankDetails = onOpenBankDetails,
-                    onOpenAddresses = onOpenAddresses,
-                    onOpenHospitalSettings = onOpenHospitalSettings,
-                    onOpenFounderDashboard = onOpenFounderDashboard,
-                    onOpenChangePassword = onOpenChangePassword,
-                    onOpenChangeEmail = onOpenChangeEmail,
-                    onSignOut = onSignOut,
-                    signingOut = state.signingOut,
-                    onDeleteAccount = onDeleteAccount,
-                    deletingAccount = state.deletingAccount,
-                    onExportData = onExportData,
-                    exportingData = state.exportingData,
-                ),
-            )
+        Spacer(Modifier.height(Spacing.md))
+
+        val sections = buildProfileSections(
+            isEngineer = isEngineer,
+            isHospital = isHospital,
+            isSupplier = isSupplier,
+            isManufacturer = isManufacturer,
+            isLogistics = isLogistics,
+            themeMode = themeMode,
+            onOpenSettings = onOpenSettings,
+            onOpenVerification = onOpenVerification,
+            onOpenMessages = onOpenMessages,
+            onOpenAbout = onOpenAbout,
+            onOpenFavorites = onOpenFavorites,
+            onOpenNotifications = onOpenNotifications,
+            onOpenPersonalInfo = onEditProfile,
+            onOpenBankDetails = onOpenBankDetails,
+            onOpenAddresses = onOpenAddresses,
+            onOpenHospitalSettings = onOpenHospitalSettings,
+            onOpenChangePassword = onOpenChangePassword,
+            onOpenChangeEmail = onOpenChangeEmail,
+            onSignOut = onSignOut,
+            signingOut = state.signingOut,
+            onDeleteAccount = onDeleteAccount,
+            deletingAccount = state.deletingAccount,
+            onExportData = onExportData,
+            exportingData = state.exportingData,
+        )
+
+        sections.forEachIndexed { index, section ->
+            ProfileSectionView(section)
+            if (index < sections.size - 1) Spacer(Modifier.height(Spacing.lg))
         }
 
         Spacer(Modifier.height(Spacing.xl))
+    }
+}
+
+private data class ProfileSection(
+    val title: String,
+    val rows: List<SettingsRow>,
+)
+
+@Composable
+private fun ProfileSectionView(section: ProfileSection) {
+    Column(modifier = Modifier.padding(horizontal = Spacing.lg)) {
+        Text(
+            section.title.uppercase(),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Ink500,
+            letterSpacing = 0.6.sp,
+            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+        )
+        SettingsList(rows = section.rows)
+    }
+}
+
+@Composable
+private fun FounderCallout(onClick: () -> Unit) {
+    Box(modifier = Modifier.padding(horizontal = Spacing.lg)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    androidx.compose.ui.graphics.Brush.horizontalGradient(
+                        listOf(BrandGreen, BrandGreenDark),
+                    ),
+                )
+                .clickable(onClick = onClick)
+                .padding(horizontal = Spacing.lg, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.18f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.AdminPanelSettings,
+                    contentDescription = null,
+                    tint = androidx.compose.ui.graphics.Color.White,
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Founder dashboard",
+                    color = androidx.compose.ui.graphics.Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                )
+                Text(
+                    "KYC, reports, users, payments",
+                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
+                    fontSize = 12.sp,
+                )
+            }
+            Icon(
+                Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = androidx.compose.ui.graphics.Color.White,
+            )
+        }
     }
 }
 
@@ -333,10 +399,12 @@ private data class SettingsRow(
     val onClick: (() -> Unit)? = null,
 )
 
-private fun buildSettingsRows(
+private fun buildProfileSections(
     isEngineer: Boolean,
     isHospital: Boolean,
-    isFounder: Boolean,
+    isSupplier: Boolean,
+    isManufacturer: Boolean,
+    isLogistics: Boolean,
     themeMode: ThemeMode,
     onOpenSettings: () -> Unit,
     onOpenVerification: () -> Unit,
@@ -348,7 +416,6 @@ private fun buildSettingsRows(
     onOpenBankDetails: () -> Unit,
     onOpenAddresses: () -> Unit,
     onOpenHospitalSettings: () -> Unit,
-    onOpenFounderDashboard: () -> Unit,
     onOpenChangePassword: () -> Unit,
     onOpenChangeEmail: () -> Unit,
     onSignOut: () -> Unit,
@@ -357,180 +424,191 @@ private fun buildSettingsRows(
     deletingAccount: Boolean,
     onExportData: () -> Unit,
     exportingData: Boolean,
-): List<SettingsRow> {
-    val rows = mutableListOf<SettingsRow>()
-    if (isFounder) {
-        rows += SettingsRow(
-            icon = Icons.Filled.AdminPanelSettings,
-            label = "Founder dashboard",
-            chipLabel = "Founder",
-            chipTone = StatusTone.Success,
-            onClick = onOpenFounderDashboard,
-        )
-    }
-    rows += SettingsRow(
-        icon = Icons.Filled.Person,
-        label = "Personal info",
-        // Routes to the existing edit-profile modal (full name, phone, avatar).
-        // Previously this row called onOpenMessages — wrong target.
-        onClick = onOpenPersonalInfo,
+): List<ProfileSection> {
+    val account = listOf(
+        SettingsRow(icon = Icons.Filled.Person, label = "Personal info", onClick = onOpenPersonalInfo),
+        SettingsRow(icon = Icons.Outlined.Notifications, label = "Notifications", onClick = onOpenNotifications),
+        SettingsRow(icon = Icons.Outlined.Lock, label = "Change password", onClick = onOpenChangePassword),
+        SettingsRow(icon = Icons.Outlined.Email, label = "Change email", onClick = onOpenChangeEmail),
+        SettingsRow(
+            icon = Icons.Outlined.Palette,
+            label = "Appearance",
+            trailing = themeMode.displayLabel(),
+            onClick = onOpenSettings,
+        ),
     )
-    rows += SettingsRow(
-        icon = Icons.Outlined.Notifications,
-        label = "Notifications",
-        onClick = onOpenNotifications,
-    )
-    if (isEngineer) {
-        rows += SettingsRow(
-            icon = Icons.Filled.AccountBalance,
-            label = "Bank details",
-            onClick = onOpenBankDetails,
-        )
-        rows += SettingsRow(
-            icon = Icons.Outlined.VerifiedUser,
-            label = "Verification (KYC)",
-            chipLabel = "Review",
-            chipTone = StatusTone.Warn,
-            onClick = onOpenVerification,
-        )
-    } else if (isHospital) {
-        rows += SettingsRow(
-            icon = Icons.Filled.LocationOn,
-            label = "Addresses",
-            onClick = onOpenAddresses,
-        )
-        rows += SettingsRow(
-            icon = Icons.Filled.LocalHospital,
-            label = "Hospital settings",
-            onClick = onOpenHospitalSettings,
-        )
-    }
-    rows += SettingsRow(
-        icon = Icons.Outlined.Palette,
-        label = "Appearance",
-        trailing = themeMode.displayLabel(),
-        onClick = onOpenSettings,
-    )
-    rows += SettingsRow(
-        icon = Icons.Outlined.Lock,
-        label = "Change password",
-        onClick = onOpenChangePassword,
-    )
-    rows += SettingsRow(
-        icon = Icons.Outlined.Email,
-        label = "Change email",
-        onClick = onOpenChangeEmail,
-    )
-    rows += SettingsRow(
-        icon = Icons.Outlined.Info,
-        label = "About",
-        onClick = onOpenAbout,
-    )
-    rows += SettingsRow(
-        icon = Icons.Filled.CloudDownload,
-        label = if (exportingData) "Preparing export…" else "Export my data",
-        enabled = !exportingData,
-        onClick = onExportData,
-    )
-    rows += SettingsRow(
-        icon = Icons.AutoMirrored.Filled.Logout,
-        label = if (signingOut) "Signing out…" else "Sign out",
-        danger = true,
-        enabled = !signingOut,
-        onClick = onSignOut,
-    )
-    rows += SettingsRow(
-        icon = Icons.Filled.DeleteForever,
-        label = if (deletingAccount) "Deleting account…" else "Delete account",
-        danger = true,
-        enabled = !deletingAccount,
-        onClick = onDeleteAccount,
-    )
-    return rows
-}
 
-private fun buildSecondaryLine(profile: com.equipseva.app.core.data.profile.Profile, isEngineer: Boolean): String? {
-    val parts = buildList {
-        profile.locationLine?.takeIf { it.isNotBlank() }?.let { add(it) }
-        profile.organizationName
-            ?.takeIf { !isEngineer && it.isNotBlank() && it != profile.locationLine }
-            ?.let { add(it) }
+    val business = mutableListOf<SettingsRow>().apply {
+        if (isEngineer) {
+            add(SettingsRow(
+                icon = Icons.Outlined.VerifiedUser,
+                label = "Verification (KYC)",
+                chipLabel = "Review",
+                chipTone = StatusTone.Warn,
+                onClick = onOpenVerification,
+            ))
+            add(SettingsRow(icon = Icons.Filled.AccountBalance, label = "Bank details", onClick = onOpenBankDetails))
+        }
+        if (isHospital) {
+            add(SettingsRow(icon = Icons.Filled.LocationOn, label = "Addresses", onClick = onOpenAddresses))
+            add(SettingsRow(icon = Icons.Filled.LocalHospital, label = "Hospital settings", onClick = onOpenHospitalSettings))
+        }
+        if (isSupplier) {
+            add(SettingsRow(icon = Icons.Filled.Storefront, label = "Storefront", onClick = onOpenHospitalSettings))
+            add(SettingsRow(icon = Icons.Filled.AccountBalance, label = "Bank details", onClick = onOpenBankDetails))
+        }
+        if (isManufacturer) {
+            add(SettingsRow(icon = Icons.Filled.Factory, label = "Brand portfolio", onClick = onOpenHospitalSettings))
+            add(SettingsRow(icon = Icons.Filled.AccountBalance, label = "Bank details", onClick = onOpenBankDetails))
+        }
+        if (isLogistics) {
+            add(SettingsRow(icon = Icons.Filled.LocalShipping, label = "Vehicle details", onClick = onOpenHospitalSettings))
+            add(SettingsRow(icon = Icons.Filled.AccountBalance, label = "Bank details", onClick = onOpenBankDetails))
+        }
     }
-    return parts.takeIf { it.isNotEmpty() }?.joinToString(" · ")
+
+    val support = listOf(
+        SettingsRow(icon = Icons.Outlined.Info, label = "About", onClick = onOpenAbout),
+        SettingsRow(
+            icon = Icons.Filled.CloudDownload,
+            label = if (exportingData) "Preparing export…" else "Export my data",
+            enabled = !exportingData,
+            onClick = onExportData,
+        ),
+    )
+
+    val danger = listOf(
+        SettingsRow(
+            icon = Icons.AutoMirrored.Filled.Logout,
+            label = if (signingOut) "Signing out…" else "Sign out",
+            danger = true,
+            enabled = !signingOut,
+            onClick = onSignOut,
+        ),
+        SettingsRow(
+            icon = Icons.Filled.DeleteForever,
+            label = if (deletingAccount) "Deleting account…" else "Delete account",
+            danger = true,
+            enabled = !deletingAccount,
+            onClick = onDeleteAccount,
+        ),
+    )
+
+    return buildList {
+        add(ProfileSection("Account", account))
+        if (business.isNotEmpty()) add(ProfileSection("Business", business))
+        add(ProfileSection("Support", support))
+        add(ProfileSection("Danger zone", danger))
+    }
 }
 
 @Composable
-private fun ProfileHeaderCard(
+private fun ProfileHero(
     displayName: String,
+    email: String?,
     avatarUrl: String?,
     role: UserRole?,
-    secondaryLine: String?,
     verified: Boolean,
+    isFounder: Boolean,
+    organizationName: String?,
+    locationLine: String?,
     onEdit: () -> Unit,
+    onChangeRole: () -> Unit,
+    roleUpdating: Boolean,
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Surface0)
-            .padding(top = 24.dp, bottom = 28.dp),
+            .background(
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    listOf(BrandGreen, BrandGreenDark),
+                ),
+            )
+            .padding(horizontal = Spacing.lg, vertical = 22.dp),
     ) {
-        // Bottom 1dp border approximated via an underlay strip.
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .height(1.dp)
-                .background(Surface200),
-        )
-
-        // Top-right edit button.
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(12.dp)
                 .size(40.dp)
                 .clip(CircleShape)
+                .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.18f))
                 .clickable(onClick = onEdit),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Filled.Edit,
+                Icons.Filled.Edit,
                 contentDescription = "Edit profile",
-                tint = Ink700,
+                tint = androidx.compose.ui.graphics.Color.White,
                 modifier = Modifier.size(20.dp),
             )
         }
 
         Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            val avatarSize = 80.dp
-            if (!avatarUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = avatarUrl,
-                    contentDescription = null,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                Box(
                     modifier = Modifier
-                        .size(avatarSize)
+                        .size(72.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                )
-            } else {
-                BrandedPlaceholder(
-                    modifier = Modifier
-                        .size(avatarSize)
-                        .clip(CircleShape),
-                    shape = CircleShape,
-                    logoSize = 44.dp,
-                )
+                        .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.18f))
+                        .border(2.dp, androidx.compose.ui.graphics.Color.White.copy(alpha = 0.5f), CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (!avatarUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = avatarUrl,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(72.dp)
+                                .clip(CircleShape),
+                        )
+                    } else {
+                        Text(
+                            text = displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
+                            color = androidx.compose.ui.graphics.Color.White,
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = displayName,
+                        color = androidx.compose.ui.graphics.Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    if (!email.isNullOrBlank()) {
+                        Text(
+                            text = email,
+                            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
+                            fontSize = 13.sp,
+                        )
+                    }
+                    val secondary = listOfNotNull(
+                        organizationName?.takeIf { it.isNotBlank() },
+                        locationLine?.takeIf { it.isNotBlank() },
+                    ).joinToString(" · ")
+                    if (secondary.isNotBlank()) {
+                        Text(
+                            text = secondary,
+                            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.75f),
+                            fontSize = 12.sp,
+                        )
+                    }
+                }
             }
-            Text(
-                text = displayName,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Ink900,
-            )
+
+            Spacer(Modifier.height(2.dp))
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
@@ -543,27 +621,60 @@ private fun ProfileHeaderCard(
                     UserRole.LOGISTICS -> Icons.Filled.LocalShipping
                     else -> Icons.Filled.Person
                 }
-                StatusChip(
+                HeroChip(
                     label = role?.displayName ?: "No role",
-                    tone = StatusTone.Info,
                     icon = roleIcon,
                 )
                 if (verified) {
-                    StatusChip(
+                    HeroChip(
                         label = "Verified",
-                        tone = StatusTone.Success,
                         icon = Icons.Outlined.Verified,
                     )
                 }
-            }
-            if (!secondaryLine.isNullOrBlank()) {
-                Text(
-                    text = secondaryLine,
-                    fontSize = 13.sp,
-                    color = Ink500,
+                if (isFounder) {
+                    HeroChip(
+                        label = "Founder",
+                        icon = Icons.Filled.AdminPanelSettings,
+                    )
+                }
+                Box(modifier = Modifier.weight(1f))
+                AssistChip(
+                    onClick = onChangeRole,
+                    enabled = !roleUpdating,
+                    label = { Text(if (role == null) "Choose role" else "Change", fontSize = 12.sp) },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = androidx.compose.ui.graphics.Color.White,
+                        labelColor = BrandGreenDark,
+                    ),
+                    border = null,
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun HeroChip(label: String, icon: ImageVector) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.18f))
+            .padding(horizontal = 10.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = androidx.compose.ui.graphics.Color.White,
+            modifier = Modifier.size(14.dp),
+        )
+        Text(
+            label,
+            color = androidx.compose.ui.graphics.Color.White,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }
 
@@ -647,105 +758,6 @@ private fun ThemeMode.displayLabel(): String = when (this) {
     ThemeMode.System -> "System"
     ThemeMode.Light -> "Light"
     ThemeMode.Dark -> "Dark"
-}
-
-@Composable
-private fun RoleCard(
-    role: UserRole?,
-    roleConfirmed: Boolean,
-    onEdit: () -> Unit,
-    updating: Boolean,
-) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Surface0),
-        border = BorderStroke(1.dp, Surface200),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Text(
-                "Role",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Ink500,
-                letterSpacing = 0.4.sp,
-            )
-            androidx.compose.foundation.layout.Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-                    Text(
-                        role?.displayName ?: "Not set",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Ink900,
-                    )
-                    if (role != null) {
-                        Text(
-                            role.description,
-                            fontSize = 12.sp,
-                            color = Ink500,
-                        )
-                    }
-                }
-                AssistChip(
-                    onClick = onEdit,
-                    enabled = !updating,
-                    label = { Text(if (role == null) "Choose" else "Change") },
-                    leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        labelColor = MaterialTheme.colorScheme.onPrimary,
-                        leadingIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-                    border = null,
-                )
-            }
-            if (!roleConfirmed && role != null) {
-                Text(
-                    "Role selection not yet confirmed on server.",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun OrgCard(orgName: String?, locationLine: String?) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Surface0),
-        border = BorderStroke(1.dp, Surface200),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            Text(
-                "Organization",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Ink500,
-                letterSpacing = 0.4.sp,
-            )
-            orgName?.takeIf { it.isNotBlank() }?.let {
-                Text(it, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Ink900)
-            }
-            locationLine?.let {
-                Text(
-                    it,
-                    fontSize = 13.sp,
-                    color = Ink500,
-                )
-            }
-        }
-    }
 }
 
 @Composable

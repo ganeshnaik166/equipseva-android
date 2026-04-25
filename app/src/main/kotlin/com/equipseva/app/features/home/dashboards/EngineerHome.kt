@@ -49,6 +49,7 @@ import com.equipseva.app.designsystem.theme.Surface50
 fun EngineerHome(
     name: String,
     verified: Boolean,
+    data: com.equipseva.app.features.home.HomeViewModel.DashboardData,
     onCardClick: (key: String) -> Unit,
 ) {
     Column(
@@ -70,7 +71,7 @@ fun EngineerHome(
 
         GradientHero(
             eyebrow = "Available jobs nearby",
-            bigValue = "12",
+            bigValue = data.nearbyJobsCount.toString(),
             valueSuffix = "within 10 km",
             body = "Tap to view feed, place bids, and earn.",
             cta = "View feed",
@@ -81,21 +82,21 @@ fun EngineerHome(
             tiles = listOf(
                 StatTile(
                     icon = Icons.Filled.Engineering,
-                    value = "3",
+                    value = data.activeWorkCount.toString(),
                     label = "Active work",
                     hue = 150,
                     onClick = { onCardClick("active_work") },
                 ),
                 StatTile(
                     icon = Icons.Filled.Gavel,
-                    value = "7",
+                    value = data.myBidsCount.toString(),
                     label = "My bids",
                     hue = 40,
                     onClick = { onCardClick("my_bids") },
                 ),
                 StatTile(
                     icon = Icons.Filled.Payments,
-                    value = "₹24.5k",
+                    value = formatRupees(data.earningsRupees),
                     label = "Earnings",
                     hue = 200,
                     onClick = { onCardClick("earnings") },

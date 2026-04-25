@@ -62,6 +62,20 @@ class SupabaseAuthRepository @Inject constructor(
         }
     }
 
+    override suspend fun sendPhoneOtp(phone: String): Result<Unit> = runCatching {
+        client.auth.signInWith(OTP) {
+            this.phone = phone
+        }
+    }
+
+    override suspend fun verifyPhoneOtp(phone: String, token: String): Result<Unit> = runCatching {
+        client.auth.verifyPhoneOtp(
+            type = io.github.jan.supabase.auth.OtpType.Phone.SMS,
+            phone = phone,
+            token = token,
+        )
+    }
+
     override suspend fun sendPasswordResetEmail(email: String): Result<Unit> = runCatching {
         client.auth.resetPasswordForEmail(email)
     }

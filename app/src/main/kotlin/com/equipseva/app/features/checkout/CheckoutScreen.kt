@@ -182,6 +182,17 @@ fun CheckoutScreen(
 
             // Payment method
             SectionHeader(title = "Payment method")
+            if (com.equipseva.app.BuildConfig.RAZORPAY_KEY.startsWith("rzp_test_")) {
+                androidx.compose.material3.AssistChip(
+                    onClick = {},
+                    label = { androidx.compose.material3.Text("Razorpay TEST mode — no real charge") },
+                    colors = androidx.compose.material3.AssistChipDefaults.assistChipColors(
+                        containerColor = com.equipseva.app.designsystem.theme.WarningBg,
+                        labelColor = com.equipseva.app.designsystem.theme.Warning,
+                    ),
+                )
+                Spacer(Modifier.height(Spacing.sm))
+            }
             PaymentMethodList(
                 selected = selectedPayment,
                 onSelect = { selectedPayment = it },

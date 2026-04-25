@@ -25,6 +25,7 @@ data class Order(
     val deliveredAtIso: String?,
     val notes: String?,
     val createdAtIso: String?,
+    val invoiceUrl: String? = null,
 ) {
     val lineItemCount: Int get() = lineItems.size
     val locationLine: String?
@@ -66,5 +67,6 @@ internal fun OrderDto.toDomain(): Order {
         deliveredAtIso = deliveredAt,
         notes = notes,
         createdAtIso = createdAt,
+        invoiceUrl = invoiceUrl,
     )
 }

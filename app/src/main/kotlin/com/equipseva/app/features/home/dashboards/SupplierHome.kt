@@ -25,6 +25,7 @@ import com.equipseva.app.designsystem.theme.Surface50
 fun SupplierHome(
     name: String,
     organization: String?,
+    data: com.equipseva.app.features.home.HomeViewModel.DashboardData,
     onCardClick: (key: String) -> Unit,
 ) {
     Column(
@@ -41,8 +42,8 @@ fun SupplierHome(
 
         GradientHero(
             eyebrow = "Today's revenue",
-            bigValue = "₹38.2k",
-            valueSuffix = "across 14 orders",
+            bigValue = formatRupees(data.todayRevenueRupees),
+            valueSuffix = "across ${data.pendingOrdersCount + data.listingsCount} listings",
             body = "Tap to see fulfilment status and pending shipments.",
             cta = "View orders",
             onClick = { onCardClick("incoming_orders") },
@@ -52,21 +53,21 @@ fun SupplierHome(
             tiles = listOf(
                 StatTile(
                     icon = Icons.Filled.ShoppingCart,
-                    value = "9",
+                    value = data.pendingOrdersCount.toString(),
                     label = "Pending orders",
                     hue = 150,
                     onClick = { onCardClick("incoming_orders") },
                 ),
                 StatTile(
                     icon = Icons.Filled.Warning,
-                    value = "3",
+                    value = data.stockAlertsCount.toString(),
                     label = "Stock alerts",
                     hue = 0,
                     onClick = { onCardClick("stock_alerts") },
                 ),
                 StatTile(
                     icon = Icons.Filled.Description,
-                    value = "5",
+                    value = data.rfqInboxCount.toString(),
                     label = "RFQ inbox",
                     hue = 280,
                     onClick = { onCardClick("rfqs") },

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.outlined.Inventory
 import androidx.compose.material.icons.outlined.MedicalServices
 import android.content.Intent
@@ -155,6 +156,7 @@ fun OrderDetailScreen(
                     canRateOrder = state.canRateOrder,
                     onRequestCancel = viewModel::onRequestCancel,
                     onRateOrder = { onRateOrder(state.order!!.id) },
+                    onDownloadInvoice = viewModel::onDownloadInvoice,
                 )
 
                 else -> Column(Modifier.fillMaxSize()) {
@@ -187,6 +189,7 @@ private fun OrderDetailBody(
     canRateOrder: Boolean,
     onRequestCancel: () -> Unit,
     onRateOrder: () -> Unit,
+    onDownloadInvoice: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier
@@ -210,7 +213,7 @@ private fun OrderDetailBody(
         item("items_card") { OrderItemsCard(order) }
 
         item("summary_header") { SectionHeader(title = "Order summary") }
-        item("summary_card") { OrderSummaryCard(order) }
+        item("summary_card") { OrderSummaryCard(order, onDownloadInvoice = onDownloadInvoice) }
 
         item("delivery_header") { SectionHeader(title = "Delivery") }
         item("delivery_card") { DeliveryCard(order) }
@@ -430,7 +433,7 @@ private fun NotesCard(notes: String) {
 }
 
 @Composable
-private fun OrderSummaryCard(order: Order) {
+private fun OrderSummaryCard(order: Order, onDownloadInvoice: () -> Unit) {
     OutlinedSurfaceCard(modifier = Modifier.padding(horizontal = Spacing.lg)) {
         Column(
             modifier = Modifier.padding(Spacing.lg),
@@ -463,6 +466,24 @@ private fun OrderSummaryCard(order: Order) {
                     color = Ink500,
                     modifier = Modifier.padding(top = 4.dp),
                 )
+            }
+            if (order.paymentStatus.equals("completed", ignoreCase = true)) {
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = onDownloadInvoice,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !order.invoiceUrl.isNullOrBlank(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.CloudDownload,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.size(Spacing.sm))
+                    Text(
+                        if (order.invoiceUrl.isNullOrBlank()) "Invoice generating…" else "Download invoice",
+                    )
+                }
             }
         }
     }

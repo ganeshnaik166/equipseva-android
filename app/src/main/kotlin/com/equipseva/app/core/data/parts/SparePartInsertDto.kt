@@ -31,4 +31,5 @@ data class SparePartInsertDto(
     @SerialName("is_genuine") val isGenuine: Boolean = false,
     @SerialName("is_oem") val isOem: Boolean = false,
     @SerialName("discount_percentage") val discountPercentage: Int = 0,
+    @SerialName("listing_type") val listingType: String = "spare_part",
 )

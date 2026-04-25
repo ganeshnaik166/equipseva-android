@@ -54,6 +54,7 @@ import com.equipseva.app.designsystem.theme.Surface50
 fun HospitalHome(
     name: String,
     organization: String?,
+    data: com.equipseva.app.features.home.HomeViewModel.DashboardData,
     onCardClick: (key: String) -> Unit,
 ) {
     Column(
@@ -79,21 +80,21 @@ fun HospitalHome(
             tiles = listOf(
                 StatTile(
                     icon = Icons.Filled.Build,
-                    value = "4",
+                    value = data.activeRequestsCount.toString(),
                     label = "Active requests",
                     hue = 150,
                     onClick = { onCardClick("active_jobs") },
                 ),
                 StatTile(
                     icon = Icons.Filled.LocalShipping,
-                    value = "2",
+                    value = data.recentOrdersCount.toString(),
                     label = "Recent orders",
                     hue = 40,
                     onClick = { onCardClick("order_history") },
                 ),
                 StatTile(
                     icon = Icons.Filled.Replay,
-                    value = "7",
+                    value = data.deliveredOrdersCount.toString(),
                     label = "Reorder",
                     hue = 200,
                     onClick = { onCardClick("browse_parts") },

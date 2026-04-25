@@ -23,6 +23,7 @@ import com.equipseva.app.designsystem.theme.Surface50
 @Composable
 fun LogisticsHome(
     name: String,
+    data: com.equipseva.app.features.home.HomeViewModel.DashboardData,
     onCardClick: (key: String) -> Unit,
 ) {
     Column(
@@ -38,7 +39,7 @@ fun LogisticsHome(
 
         GradientHero(
             eyebrow = "Today",
-            bigValue = "5",
+            bigValue = data.activeDeliveriesCount.toString(),
             valueSuffix = "deliveries to wrap",
             body = "Tap to start your route and see live pickup queue.",
             cta = "Start route",
@@ -49,21 +50,21 @@ fun LogisticsHome(
             tiles = listOf(
                 StatTile(
                     icon = Icons.Filled.Inventory2,
-                    value = "8",
+                    value = data.pickupQueueCount.toString(),
                     label = "Pickup queue",
                     hue = 40,
                     onClick = { onCardClick("pickup_queue") },
                 ),
                 StatTile(
                     icon = Icons.Filled.LocalShipping,
-                    value = "3",
+                    value = data.activeDeliveriesCount.toString(),
                     label = "Active",
                     hue = 200,
                     onClick = { onCardClick("active_deliveries") },
                 ),
                 StatTile(
                     icon = Icons.Filled.CheckCircle,
-                    value = "11",
+                    value = data.completedTodayCount.toString(),
                     label = "Completed today",
                     hue = 150,
                     onClick = { onCardClick("completed_today") },

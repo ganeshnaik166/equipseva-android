@@ -83,6 +83,7 @@ fun HomeScreen(
                     HomeDispatcher(
                         greetingName = state.greetingName,
                         role = state.role,
+                        data = state.dashboardData,
                         onCardClick = onCardClick,
                     )
                 }
@@ -95,31 +96,37 @@ fun HomeScreen(
 private fun HomeDispatcher(
     greetingName: String,
     role: UserRole?,
+    data: HomeViewModel.DashboardData,
     onCardClick: (String) -> Unit,
 ) {
     when (role) {
         UserRole.HOSPITAL -> HospitalHome(
             name = greetingName,
             organization = null,
+            data = data,
             onCardClick = onCardClick,
         )
         UserRole.ENGINEER -> EngineerHome(
             name = greetingName,
-            verified = false, // TODO wire from engineerRepository.fetchByUserId().verificationStatus
+            verified = data.verified,
+            data = data,
             onCardClick = onCardClick,
         )
         UserRole.SUPPLIER -> SupplierHome(
             name = greetingName,
             organization = null,
+            data = data,
             onCardClick = onCardClick,
         )
         UserRole.MANUFACTURER -> ManufacturerHome(
             name = greetingName,
             organization = null,
+            data = data,
             onCardClick = onCardClick,
         )
         UserRole.LOGISTICS -> LogisticsHome(
             name = greetingName,
+            data = data,
             onCardClick = onCardClick,
         )
         null -> NoRoleEmpty()
