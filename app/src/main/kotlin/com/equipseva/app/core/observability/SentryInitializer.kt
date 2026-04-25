@@ -20,11 +20,19 @@ class SentryInitializer @Inject constructor() {
             options.dsn = dsn
             options.environment = if (BuildConfig.DEBUG) "debug" else "release"
             options.release = "${BuildConfig.APPLICATION_ID}@${BuildConfig.VERSION_NAME}+${BuildConfig.VERSION_CODE}"
-            options.tracesSampleRate = if (BuildConfig.DEBUG) 1.0 else 0.2
-            options.isEnableUserInteractionTracing = true
+            // Crash-free SLO: turn on auto session tracking so sessions land
+            // alongside crashes and crash-free % becomes computable. 30s
+            // background-foreground gap matches Sentry's default for "new
+            // session". (PENDING.md #47)
+            options.isEnableAutoSessionTracking = true
+            options.sessionTrackingIntervalMillis = 30_000
+            options.tracesSampleRate = if (BuildConfig.DEBUG) 0.0 else 0.1
             options.isAttachScreenshot = false
             options.isAttachViewHierarchy = false
-            // Do not let Sentry add "data" fields that may contain tokens.
+            options.isEnableUserInteractionBreadcrumbs = true
+            options.isEnableUserInteractionTracing = false
+            // Do not let Sentry add "data" fields that may contain tokens
+            // and don't ship default PII (IPs, emails).
             options.isSendDefaultPii = false
             options.beforeSend = SentryOptions.BeforeSendCallback { event, _ -> scrubEvent(event) }
             options.beforeBreadcrumb = SentryOptions.BeforeBreadcrumbCallback { crumb, _ -> scrubCrumb(crumb) }

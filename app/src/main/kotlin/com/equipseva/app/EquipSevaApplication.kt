@@ -6,6 +6,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.equipseva.app.core.data.cart.CartSyncBootstrap
 import com.equipseva.app.core.observability.SentryInitializer
+import com.equipseva.app.core.observability.SentryUserBridge
 import com.equipseva.app.core.observability.StartupTelemetry
 import com.equipseva.app.core.push.NotificationChannels
 import com.equipseva.app.core.security.DeviceIntegrityCheck
@@ -19,6 +20,7 @@ class EquipSevaApplication : Application(), Configuration.Provider {
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var sentryInitializer: SentryInitializer
+    @Inject lateinit var sentryUserBridge: SentryUserBridge
     @Inject lateinit var cartSyncBootstrap: CartSyncBootstrap
 
     override fun onCreate() {
@@ -27,6 +29,9 @@ class EquipSevaApplication : Application(), Configuration.Provider {
         // cold-start transaction lands on a real hub rather than a NoOp
         // (assuming a DSN is wired). When DSN is blank both paths NoOp.
         sentryInitializer.init(this)
+        // Mirror auth state into Sentry user scope (user_id only). Safe before
+        // or after init() — bridge no-ops when DSN is blank.
+        sentryUserBridge.attach()
         StartupTelemetry.markStart()
         NotificationChannels.register(this)
         // Warm the Razorpay WebView so the first checkout tap isn't blocked on asset load.
