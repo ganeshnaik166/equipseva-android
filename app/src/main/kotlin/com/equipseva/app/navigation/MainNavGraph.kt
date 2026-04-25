@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Factory
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
@@ -93,7 +94,7 @@ private data class TabItem(val route: String, val label: String, val icon: Image
 private val tabs = listOf(
     TabItem(Routes.HOME, "Home", Icons.Filled.Home),
     TabItem(Routes.MARKETPLACE, "Marketplace", Icons.Filled.Storefront),
-    TabItem(Routes.SPARE_PARTS, "Spare parts", Icons.Filled.Inventory2),
+    TabItem(Routes.SPARE_PARTS, "Parts", Icons.Filled.Inventory2),
     TabItem(Routes.REPAIR, "Repair", Icons.Filled.Build),
     TabItem(Routes.PROFILE, "Profile", Icons.Filled.Person),
 )
@@ -212,10 +213,20 @@ fun MainNavGraph(
                         NavigationBarItem(
                             selected = selected,
                             onClick = {
+                                android.util.Log.d("BottomNav", "tab tapped: ${tab.route}")
                                 navController.navigate(tab.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                        // Profile screen owns transient sheets (Edit profile, Role
+                                        // editor) that should be closed on a re-tap rather than
+                                        // restored — saveState=false on the Profile destination
+                                        // forces a fresh ProfileScreen instance every tap so the
+                                        // screen never re-renders an inner sub-tree from another
+                                        // role's session.
+                                        inclusive = false
+                                    }
                                     launchSingleTop = true
-                                    restoreState = true
+                                    restoreState = (tab.route != Routes.PROFILE)
                                 }
                             },
                             icon = { Icon(tab.icon, contentDescription = tab.label) },
@@ -359,11 +370,45 @@ fun MainNavGraph(
                 )
             }
             composable(Routes.REPAIR) {
-                RepairJobsScreen(
-                    onJobClick = { jobId ->
-                        navController.navigate(Routes.repairJobDetailRoute(jobId))
-                    },
-                )
+                // Role-dispatched Repair tab. Engineers see the available-jobs
+                // feed; hospital users land on the active-requests list with a
+                // CTA to raise a new request; suppliers / manufacturers see an
+                // empty state because Repair isn't part of their workflow;
+                // logistics partners get redirected to their pickup queue.
+                val activeRoleKey by deepLinkHost.activeRole.collectAsStateWithLifecycle(initialValue = null)
+                val role = activeRoleKey?.let { com.equipseva.app.features.auth.UserRole.fromKey(it) }
+                when (role) {
+                    com.equipseva.app.features.auth.UserRole.ENGINEER, null ->
+                        RepairJobsScreen(
+                            onJobClick = { jobId ->
+                                navController.navigate(Routes.repairJobDetailRoute(jobId))
+                            },
+                        )
+                    com.equipseva.app.features.auth.UserRole.HOSPITAL ->
+                        HospitalActiveJobsScreen(
+                            onBack = {},
+                            onJobClick = { jobId ->
+                                navController.navigate(Routes.repairJobDetailRoute(jobId))
+                            },
+                            onRequestRepair = { navController.navigate(Routes.REQUEST_SERVICE) },
+                        )
+                    com.equipseva.app.features.auth.UserRole.LOGISTICS -> {
+                        androidx.compose.runtime.LaunchedEffect(Unit) {
+                            navController.navigate(Routes.PICKUP_QUEUE) {
+                                popUpTo(Routes.HOME) { saveState = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    }
+                    com.equipseva.app.features.auth.UserRole.SUPPLIER,
+                    com.equipseva.app.features.auth.UserRole.MANUFACTURER -> {
+                        com.equipseva.app.designsystem.components.EmptyStateView(
+                            icon = androidx.compose.material.icons.Icons.Filled.Build,
+                            title = "Repair isn't part of your workflow",
+                            subtitle = "Repair jobs are routed to engineers and hospitals. Use the Marketplace and Profile tabs.",
+                        )
+                    }
+                }
             }
             composable(
                 route = "${Routes.REPAIR_DETAIL}/{${Routes.REPAIR_DETAIL_ARG_ID}}",

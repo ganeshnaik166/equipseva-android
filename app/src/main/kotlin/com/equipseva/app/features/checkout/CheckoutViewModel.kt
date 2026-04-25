@@ -178,6 +178,12 @@ class CheckoutViewModel @Inject constructor(
                 emit(Effect.ShowMessage(PlayIntegrityClient.FAILURE_MESSAGE))
                 return@launch
             }
+            // Refresh the JWT before talking to create-razorpay-order; the
+            // session-status flow auto-refreshes in the background but isn't
+            // guaranteed to fire before THIS RPC. Best-effort — if refresh
+            // fails, the existing token will be used and Razorpay will return
+            // 401 only if it's actually expired.
+            runCatching { authRepository.refreshSession() }
             val draft = OrderDraft(
                 buyerUserId = uid,
                 supplierOrgId = supplierOrgId,

@@ -48,7 +48,9 @@ class PaymentVerificationRepository @Inject constructor(
     }
 
     private fun decodeError(status: HttpStatusCode, text: String): VerificationException {
-        val err = runCatching { json.decodeFromString(VerifyError.serializer(), text) }.getOrNull()
+        val err = runCatching { json.decodeFromString(VerifyError.serializer(), text) }
+            .onFailure { android.util.Log.w("PaymentVerification", "decodeError parse failed: ${it.message}; raw=$text") }
+            .getOrNull()
         return VerificationException(status, err?.code ?: "unknown", err?.message ?: text)
     }
 

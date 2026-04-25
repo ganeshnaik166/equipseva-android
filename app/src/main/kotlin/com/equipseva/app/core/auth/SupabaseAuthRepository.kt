@@ -7,6 +7,7 @@ import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.providers.builtin.IDToken
 import io.github.jan.supabase.auth.providers.builtin.OTP
 import io.github.jan.supabase.auth.status.SessionStatus
+import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -63,10 +64,25 @@ class SupabaseAuthRepository @Inject constructor(
     }
 
     override suspend fun sendPhoneOtp(phone: String): Result<Unit> = runCatching {
+        // Server-side rate-limit gate. Returns NULL when allowed; an int (seconds
+        // until next allowed) when the caller has hit 5 sends/hour for this phone.
+        val retryAfter = client.postgrest.rpc(
+            function = "phone_otp_can_request",
+            parameters = kotlinx.serialization.json.buildJsonObject {
+                put("p_phone", kotlinx.serialization.json.JsonPrimitive(phone))
+            },
+        ).data.toIntOrNull()
+        if (retryAfter != null) {
+            throw PhoneOtpRateLimitedException(retryAfterSeconds = retryAfter)
+        }
         client.auth.signInWith(OTP) {
             this.phone = phone
         }
     }
+
+    /** Raised when phone_otp_can_request RPC tells us the caller is throttled. */
+    class PhoneOtpRateLimitedException(val retryAfterSeconds: Int) :
+        RuntimeException("Too many OTP requests. Try again in ${retryAfterSeconds}s.")
 
     override suspend fun verifyPhoneOtp(phone: String, token: String): Result<Unit> = runCatching {
         client.auth.verifyPhoneOtp(
@@ -96,5 +112,9 @@ class SupabaseAuthRepository @Inject constructor(
 
     override suspend fun signOut(): Result<Unit> = runCatching {
         client.auth.signOut()
+    }
+
+    override suspend fun refreshSession(): Result<Unit> = runCatching {
+        client.auth.refreshCurrentSession()
     }
 }

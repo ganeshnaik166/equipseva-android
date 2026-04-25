@@ -46,6 +46,10 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
         // the visible notification. Any data-only side effects (WorkManager
         // enqueues triggered elsewhere) still run because we return before the
         // NotificationManager.notify call only.
+        //
+        // `runBlocking` here is safe: onMessageReceived runs on FCM's worker
+        // pool, not the main thread — see Firebase docs. We block to keep
+        // ordering relative to the synchronous notification post below.
         val muted = runBlocking { userPrefs.observeMutedPushCategories().first() }
         if (category in muted || channel in muted) return
 
