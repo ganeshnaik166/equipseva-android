@@ -747,26 +747,17 @@ fun MainNavGraph(
                 )
             }
             composable(Routes.FOUNDER_USERS) {
-                com.equipseva.app.features.founder.FounderPlaceholderScreen(
-                    title = "All users",
-                    subtitle = "Search profiles, see roles, force role changes.",
-                    icon = Icons.Filled.Group,
+                com.equipseva.app.features.founder.FounderUsersScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.FOUNDER_PAYMENTS) {
-                com.equipseva.app.features.founder.FounderPlaceholderScreen(
-                    title = "Payments",
-                    subtitle = "Razorpay transactions, refunds, payout queue.",
-                    icon = Icons.Filled.Payments,
+                com.equipseva.app.features.founder.FounderPaymentsScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.FOUNDER_INTEGRITY) {
-                com.equipseva.app.features.founder.FounderPlaceholderScreen(
-                    title = "Integrity flags",
-                    subtitle = "Play-Integrity failures, signature mismatches, root/emulator hits.",
-                    icon = Icons.Filled.Security,
+                com.equipseva.app.features.founder.FounderIntegrityScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
