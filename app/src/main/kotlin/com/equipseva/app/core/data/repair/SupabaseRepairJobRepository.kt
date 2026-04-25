@@ -3,9 +3,14 @@ package com.equipseva.app.core.data.repair
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.time.Instant
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -45,6 +50,20 @@ class SupabaseRepairJobRepository @Inject constructor(
             order("created_at", order = Order.DESCENDING)
             range(from, to)
         }.decodeList<RepairJobDto>().map(RepairJobDto::toDomain)
+    }
+
+    override suspend fun fetchNearbyJobs(
+        radiusKm: Double,
+        limit: Int,
+    ): Result<List<RepairJobWithDistance>> = runCatching {
+        val response = client.postgrest.rpc(
+            function = "list_nearby_repair_jobs",
+            parameters = buildJsonObject {
+                put("p_radius_km", JsonPrimitive(radiusKm))
+                put("p_limit", JsonPrimitive(limit))
+            },
+        )
+        response.decodeList<NearbyRepairJobDto>().map { it.toDomainWithDistance() }
     }
 
     override suspend fun fetchById(jobId: String): Result<RepairJob?> = runCatching {

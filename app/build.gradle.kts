@@ -53,6 +53,14 @@ android {
         // clears. Fill from keystore.properties / CI secret once the upload
         // key lands; SignatureVerifier flips to enforce on release then.
         buildConfigField("String", "EXPECTED_CERT_SHA256", "\"${localOrEnv("EXPECTED_CERT_SHA256")}\"")
+
+        // Google Maps API key — passed both as a BuildConfig string for the
+        // Kotlin side and via manifestPlaceholders so the Maps SDK picks it
+        // up at runtime via AndroidManifest meta-data. Blank when unset so
+        // CI / debug builds compile; the map widget renders empty tiles
+        // until a real key is wired in local.properties or env.
+        buildConfigField("String", "MAPS_API_KEY", "\"${localOrEnv("MAPS_API_KEY")}\"")
+        manifestPlaceholders["MAPS_API_KEY"] = localOrEnv("MAPS_API_KEY")
     }
 
     signingConfigs {
@@ -213,6 +221,12 @@ dependencies {
 
     // EncryptedSharedPreferences for role + onboarding + favorites (see SecurePrefs).
     implementation(libs.androidx.security.crypto)
+
+    // Google Maps Compose — engineer feed renders the 50 km service-area
+    // circle and nearby-job pins. Mobile SDK is in the always-free tier;
+    // user provides the API key via local.properties / MAPS_API_KEY env.
+    implementation(libs.maps.compose)
+    implementation(libs.play.services.maps)
 
     // Google Play Integrity API — client side of verify-play-integrity Edge Function.
     // Token request happens on-device, server-side decode happens in the Edge Function.

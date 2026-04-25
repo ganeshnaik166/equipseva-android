@@ -40,6 +40,8 @@ sqlcipher = "4.5.4"
 sqliteAndroidx = "2.4.0"
 securityCrypto = "1.1.0-alpha06"
 playIntegrity = "1.4.0"
+mapsCompose = "6.4.1"
+playServicesMaps = "19.0.0"
 
 [libraries]
 # AndroidX core
@@ -129,6 +131,12 @@ androidx-security-crypto = { module = "androidx.security:security-crypto", versi
 
 # Google Play Integrity API client (used by core/security/PlayIntegrityClient)
 play-integrity = { module = "com.google.android.play:integrity", version.ref = "playIntegrity" }
+
+# Google Maps Compose (mobile-SDK is in the always-free tier per
+# https://mapsplatform.google.com/pricing/, so the only cost is the API
+# key + bundle-id binding the user wires in Google Cloud Console).
+maps-compose = { module = "com.google.maps.android:maps-compose", version.ref = "mapsCompose" }
+play-services-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "playServicesMaps" }
 
 # Test
 junit = { module = "junit:junit", version.ref = "junit" }
