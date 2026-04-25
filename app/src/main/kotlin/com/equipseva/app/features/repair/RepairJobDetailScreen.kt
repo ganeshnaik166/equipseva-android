@@ -21,6 +21,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -31,6 +32,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -73,6 +76,7 @@ import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.PrimaryButton
+import com.equipseva.app.designsystem.components.ReportContentSheet
 import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.components.StepperStep
@@ -119,10 +123,34 @@ fun RepairJobDetailScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    if (state.canReport) {
+                        var menuOpen by rememberSaveable { mutableStateOf(false) }
+                        IconButton(onClick = { menuOpen = true }) {
+                            Icon(
+                                imageVector = Icons.Filled.MoreVert,
+                                contentDescription = "More",
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = menuOpen,
+                            onDismissRequest = { menuOpen = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Report job") },
+                                onClick = {
+                                    menuOpen = false
+                                    viewModel.onOpenReport()
+                                },
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
             )
         },
@@ -187,6 +215,15 @@ fun RepairJobDetailScreen(
             placingBid = state.placingBid,
             onDismiss = viewModel::closeBidComposer,
             onSubmit = viewModel::submitBid,
+        )
+    }
+
+    if (state.reportingTargetId != null) {
+        ReportContentSheet(
+            titleLabel = "Report this repair job",
+            submitting = state.submittingReport,
+            onDismiss = viewModel::onDismissReport,
+            onSubmit = viewModel::onSubmitReport,
         )
     }
 
