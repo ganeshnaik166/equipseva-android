@@ -6,14 +6,29 @@ Tick items as you complete them.
 
 ---
 
-## 1. Get the policy URLs hosted (~30 min)
+## 1. Get the policy URLs hosted (~5 min, one toggle)
 
-We've drafted the three required docs. You need to host them at public, stable URLs.
+We've drafted the three required docs. The repo is already wired to publish them via **GitHub Pages** with no code change — just flip a toggle.
 
-- [ ] Pick a host. Options:
-  - **Notion** — paste each MD file into a public page (fastest).
-  - **GitHub Pages** — push the three MD files as a Jekyll site.
-  - **A single-page Vercel deploy** — `equipseva.com/privacy`, `/terms`, `/refunds`.
+### Fastest path: GitHub Pages from `docs/`
+
+1. Open the repo on GitHub → **Settings** → **Pages**.
+2. Under **Build and deployment**:
+   - Source: **Deploy from a branch**
+   - Branch: **`main`**
+   - Folder: **`/docs`**
+3. Click **Save**. First build takes ~1–2 minutes.
+4. The published URLs will be:
+   - Index: `https://<owner>.github.io/<repo>/`
+   - Privacy: `https://<owner>.github.io/<repo>/launch/PRIVACY_POLICY`
+   - Terms: `https://<owner>.github.io/<repo>/launch/TERMS_OF_SERVICE`
+   - Refunds: `https://<owner>.github.io/<repo>/launch/REFUND_POLICY`
+5. (Optional) Add a CNAME at `docs/CNAME` pointing to `equipseva.com` to use a custom domain. Configure the DNS A/AAAA records per [GitHub's docs](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site).
+
+### Alternative hosts (if you'd rather not use Pages)
+
+- **Notion** — paste each MD file into a public page.
+- **Vercel** — point a project at `docs/` with `framework: jekyll` (or just static).
 - [ ] Edit the placeholders before publishing:
   - `[FILL IN]` Grievance Officer name + email + postal address (Privacy Policy §1, §11; ToS §16; Refund Policy §5).
   - `[FILL IN]` Registered office postal address.

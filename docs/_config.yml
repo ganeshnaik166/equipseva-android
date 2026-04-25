@@ -1,0 +1,34 @@
+title: EquipSeva
+description: India's marketplace for hospital equipment, spare parts, and biomedical engineers.
+theme: jekyll-theme-minimal
+remote_theme: pages-themes/minimal@v0.2.0
+plugins:
+  - jekyll-remote-theme
+  - jekyll-relative-links
+  - jekyll-optional-front-matter
+  - jekyll-readme-index
+  - jekyll-default-layout
+  - jekyll-titles-from-headings
+
+# Make `[link](file.md)` resolve to the published HTML page.
+relative_links:
+  enabled: true
+  collections: true
+
+# Render Markdown files even without Jekyll front matter.
+include:
+  - README.md
+
+# Hide internal repo folders from the published site.
+exclude:
+  - "*.gemspec"
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+  - node_modules
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
