@@ -57,6 +57,18 @@ class RepairJobsViewModel @Inject constructor(
         _state.update { it.copy(query = value, errorMessage = null) }
     }
 
+    /**
+     * Pick a new radius (or `null` for "All distances"). Triggers a fresh
+     * load through the proximity RPC when set, or the unfiltered list when
+     * null. Re-using `refresh()` keeps loading-state semantics consistent
+     * with the search-debounce path.
+     */
+    fun onRadiusChange(radiusKm: Int?) {
+        if (_state.value.radiusKm == radiusKm) return
+        _state.update { it.copy(radiusKm = radiusKm) }
+        refresh()
+    }
+
     fun onRefresh() = refresh(viaPullToRefresh = true)
 
     fun onReachEnd() {
@@ -79,35 +91,79 @@ class RepairJobsViewModel @Inject constructor(
         }
         pageJob = viewModelScope.launch {
             val current = _state.value
-            val jobsDeferred = async {
-                repository.fetchOpenJobs(page = 0, pageSize = PAGE_SIZE, query = current.query)
-            }
+            val radius = current.radiusKm
             val bidsDeferred = async { bidRepository.fetchMyBids() }
             val mineDeferred = async { repository.fetchAssignedToMe() }
-            jobsDeferred.await().fold(
-                onSuccess = { rows ->
-                    val ownBids = bidsDeferred.await().getOrNull().orEmpty()
-                        .associateBy { it.repairJobId }
-                    _state.update {
-                        it.copy(
-                            items = rows,
-                            ownBidsByJob = ownBids,
-                            initialLoading = false,
-                            refreshing = false,
-                            endReached = rows.size < PAGE_SIZE,
-                        )
-                    }
-                },
-                onFailure = { ex ->
-                    _state.update {
-                        it.copy(
-                            initialLoading = false,
-                            refreshing = false,
-                            errorMessage = ex.toUserMessage(),
-                        )
-                    }
-                },
-            )
+            // When a radius is set, prefer the proximity RPC which filters
+            // server-side and returns distance per row. The text query isn't
+            // wired into the RPC yet — fall back to unfiltered list when the
+            // user is searching, since the radius+text combo would need a
+            // bigger function signature than today's MVP justifies.
+            val useProximity = radius != null && current.query.isBlank()
+            if (useProximity) {
+                val proximityDeferred = async {
+                    repository.fetchNearbyJobs(radiusKm = radius!!.toDouble())
+                }
+                proximityDeferred.await().fold(
+                    onSuccess = { rows ->
+                        val ownBids = bidsDeferred.await().getOrNull().orEmpty()
+                            .associateBy { it.repairJobId }
+                        _state.update {
+                            it.copy(
+                                items = rows.map { row -> row.job },
+                                distanceByJobId = rows.associate { row ->
+                                    row.job.id to row.distanceKm
+                                },
+                                ownBidsByJob = ownBids,
+                                initialLoading = false,
+                                refreshing = false,
+                                // RPC is single-shot (no paging today); mark
+                                // endReached so the infinite-scroll path
+                                // doesn't try to load page 2.
+                                endReached = true,
+                            )
+                        }
+                    },
+                    onFailure = { ex ->
+                        _state.update {
+                            it.copy(
+                                initialLoading = false,
+                                refreshing = false,
+                                errorMessage = ex.toUserMessage(),
+                            )
+                        }
+                    },
+                )
+            } else {
+                val jobsDeferred = async {
+                    repository.fetchOpenJobs(page = 0, pageSize = PAGE_SIZE, query = current.query)
+                }
+                jobsDeferred.await().fold(
+                    onSuccess = { rows ->
+                        val ownBids = bidsDeferred.await().getOrNull().orEmpty()
+                            .associateBy { it.repairJobId }
+                        _state.update {
+                            it.copy(
+                                items = rows,
+                                distanceByJobId = emptyMap(),
+                                ownBidsByJob = ownBids,
+                                initialLoading = false,
+                                refreshing = false,
+                                endReached = rows.size < PAGE_SIZE,
+                            )
+                        }
+                    },
+                    onFailure = { ex ->
+                        _state.update {
+                            it.copy(
+                                initialLoading = false,
+                                refreshing = false,
+                                errorMessage = ex.toUserMessage(),
+                            )
+                        }
+                    },
+                )
+            }
             mineDeferred.await().fold(
                 onSuccess = { rows ->
                     _state.update {

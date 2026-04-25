@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -118,6 +119,11 @@ fun RepairJobsScreen(
                 SearchHeader(
                     query = state.query,
                     onQueryChange = viewModel::onQueryChange,
+                )
+                RadiusFilterRow(
+                    selected = state.radiusKm,
+                    onSelect = viewModel::onRadiusChange,
+                    modifier = Modifier.padding(horizontal = Spacing.lg),
                 )
             }
             ErrorBanner(
@@ -291,6 +297,35 @@ private fun EmptyState(query: String, tab: EngineerJobsTab) {
             icon = Icons.Outlined.Build,
             title = "No open jobs nearby",
             subtitle = "Posted jobs will show up here.",
+        )
+    }
+}
+
+@Composable
+private fun RadiusFilterRow(
+    selected: Int?,
+    onSelect: (Int?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val options = listOf(10, 25, 50, 100)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(bottom = Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        options.forEach { km ->
+            FilterChip(
+                selected = selected == km,
+                onClick = { onSelect(km) },
+                label = { Text("${km} km") },
+            )
+        }
+        FilterChip(
+            selected = selected == null,
+            onClick = { onSelect(null) },
+            label = { Text("All") },
         )
     }
 }

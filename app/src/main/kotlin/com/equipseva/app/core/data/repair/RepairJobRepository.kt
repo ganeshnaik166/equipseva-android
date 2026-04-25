@@ -18,6 +18,17 @@ interface RepairJobRepository {
         query: String? = null,
     ): Result<List<RepairJob>>
 
+    /**
+     * Engineer feed filtered by distance from the engineer's registered base
+     * coords. Returns each open job with its computed haversine distance to
+     * the engineer's home location. Uses the `list_nearby_repair_jobs` RPC
+     * which joins repair_jobs → organizations on hospital_org_id.
+     */
+    suspend fun fetchNearbyJobs(
+        radiusKm: Double = 50.0,
+        limit: Int = 100,
+    ): Result<List<RepairJobWithDistance>>
+
     /** Fetch a single job by id. Returns `null` if not found / not visible to caller. */
     suspend fun fetchById(jobId: String): Result<RepairJob?>
 
