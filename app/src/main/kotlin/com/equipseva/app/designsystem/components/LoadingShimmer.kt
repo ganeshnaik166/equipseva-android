@@ -97,3 +97,18 @@ fun ShimmerListItem(modifier: Modifier = Modifier) {
         }
     }
 }
+
+/**
+ * Generic skeleton loader for list screens. Renders [rows] shimmering list items
+ * shaped like an avatar + two text lines. Use as a stand-in for
+ * `CircularProgressIndicator` when initial-loading a list with no cached items.
+ */
+@Composable
+fun ListSkeleton(
+    modifier: Modifier = Modifier,
+    rows: Int = 8,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        repeat(rows) { ShimmerListItem() }
+    }
+}
