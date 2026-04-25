@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.outlined.Email
@@ -116,6 +117,7 @@ fun ProfileScreen(
     onOpenFounderDashboard: () -> Unit = {},
     onOpenChangePassword: () -> Unit = {},
     onOpenChangeEmail: () -> Unit = {},
+    onOpenOrders: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     SecureScreen()
@@ -174,6 +176,7 @@ fun ProfileScreen(
                         onExportData = viewModel::onExportMyData,
                         onOpenChangePassword = onOpenChangePassword,
                         onOpenChangeEmail = onOpenChangeEmail,
+                        onOpenOrders = onOpenOrders,
                     )
                 }
             }
@@ -244,6 +247,7 @@ private fun ProfileContent(
     onExportData: () -> Unit,
     onOpenChangePassword: () -> Unit,
     onOpenChangeEmail: () -> Unit,
+    onOpenOrders: () -> Unit,
 ) {
     val profile = state.profile!!
     val isEngineer = profile.role == UserRole.ENGINEER
@@ -299,6 +303,7 @@ private fun ProfileContent(
             onOpenHospitalSettings = onOpenHospitalSettings,
             onOpenChangePassword = onOpenChangePassword,
             onOpenChangeEmail = onOpenChangeEmail,
+            onOpenOrders = onOpenOrders,
             onSignOut = onSignOut,
             signingOut = state.signingOut,
             onDeleteAccount = onDeleteAccount,
@@ -418,6 +423,7 @@ private fun buildProfileSections(
     onOpenHospitalSettings: () -> Unit,
     onOpenChangePassword: () -> Unit,
     onOpenChangeEmail: () -> Unit,
+    onOpenOrders: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
     onDeleteAccount: () -> Unit,
@@ -427,6 +433,7 @@ private fun buildProfileSections(
 ): List<ProfileSection> {
     val account = listOf(
         SettingsRow(icon = Icons.Filled.Person, label = "Personal info", onClick = onOpenPersonalInfo),
+        SettingsRow(icon = Icons.Filled.Receipt, label = "My orders", onClick = onOpenOrders),
         SettingsRow(icon = Icons.Outlined.Notifications, label = "Notifications", onClick = onOpenNotifications),
         SettingsRow(icon = Icons.Outlined.Lock, label = "Change password", onClick = onOpenChangePassword),
         SettingsRow(icon = Icons.Outlined.Email, label = "Change email", onClick = onOpenChangeEmail),

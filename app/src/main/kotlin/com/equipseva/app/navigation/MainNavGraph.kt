@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.CardTravel
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Factory
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
@@ -91,9 +92,9 @@ private data class TabItem(val route: String, val label: String, val icon: Image
 
 private val tabs = listOf(
     TabItem(Routes.HOME, "Home", Icons.Filled.Home),
-    TabItem(Routes.MARKETPLACE, "Parts", Icons.Filled.Storefront),
+    TabItem(Routes.MARKETPLACE, "Marketplace", Icons.Filled.Storefront),
+    TabItem(Routes.SPARE_PARTS, "Spare parts", Icons.Filled.Inventory2),
     TabItem(Routes.REPAIR, "Repair", Icons.Filled.Build),
-    TabItem(Routes.ORDERS, "Orders", Icons.Filled.Receipt),
     TabItem(Routes.PROFILE, "Profile", Icons.Filled.Person),
 )
 
@@ -297,6 +298,14 @@ fun MainNavGraph(
                     onOpenCart = { navController.navigate(Routes.CART) },
                 )
             }
+            composable(Routes.SPARE_PARTS) {
+                MarketplaceScreen(
+                    onPartClick = { partId ->
+                        navController.navigate(Routes.marketplaceDetailRoute(partId))
+                    },
+                    onOpenCart = { navController.navigate(Routes.CART) },
+                )
+            }
             composable(
                 route = "${Routes.MARKETPLACE_DETAIL}/{${Routes.MARKETPLACE_DETAIL_ARG_ID}}",
                 arguments = listOf(
@@ -382,6 +391,7 @@ fun MainNavGraph(
                     onOpenBankDetails = { navController.navigate(Routes.PROFILE_BANK_DETAILS) },
                     onOpenAddresses = { navController.navigate(Routes.PROFILE_ADDRESSES) },
                     onOpenHospitalSettings = { navController.navigate(Routes.PROFILE_HOSPITAL_SETTINGS) },
+                    onOpenOrders = { navController.navigate(Routes.ORDERS) },
                 )
             }
             composable(Routes.NOTIFICATIONS) {
