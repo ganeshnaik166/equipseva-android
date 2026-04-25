@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.equipseva.app.core.data.prefs.ThemeMode
 import com.equipseva.app.core.data.prefs.UserPrefs
+import com.equipseva.app.core.observability.StartupTelemetry
 import com.equipseva.app.core.payments.RazorpayLauncher
 import com.equipseva.app.designsystem.theme.EquipSevaTheme
 import com.equipseva.app.navigation.AppNavGraph
@@ -44,6 +45,11 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
                 AppNavGraph()
             }
         }
+        // setContent above is not the first frame — it just registers the
+        // composition. Marking ready here gives a "time-to-interactive
+        // composition" baseline; once we have real device data we can
+        // narrow this to a Choreographer.postFrameCallback if needed.
+        StartupTelemetry.markReady()
     }
 
     override fun onNewIntent(intent: Intent) {
