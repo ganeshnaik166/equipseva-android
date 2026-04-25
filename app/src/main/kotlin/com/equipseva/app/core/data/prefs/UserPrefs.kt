@@ -3,6 +3,7 @@ package com.equipseva.app.core.data.prefs
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -39,6 +40,14 @@ class UserPrefs @Inject constructor(
         val FAVORITES = stringSetPreferencesKey("favorites")
         val MUTED_PUSH_CATEGORIES = stringSetPreferencesKey("muted_push_categories")
         val TOUR_SEEN = booleanPreferencesKey("tour_seen")
+        val QUIET_HOURS_ENABLED = booleanPreferencesKey("quiet_hours_enabled")
+        val QUIET_HOURS_START_MINUTES = intPreferencesKey("quiet_hours_start_minutes")
+        val QUIET_HOURS_END_MINUTES = intPreferencesKey("quiet_hours_end_minutes")
+    }
+
+    private object QuietHoursDefaults {
+        const val START_MINUTES = 22 * 60 // 22:00 local
+        const val END_MINUTES = 7 * 60 // 07:00 local
     }
 
     private object SecureKeys {
@@ -127,7 +136,42 @@ class UserPrefs @Inject constructor(
     suspend fun setTourSeen() {
         context.prefsStore.edit { it[Keys.TOUR_SEEN] = true }
     }
+
+    /**
+     * Daily quiet-hours window. Values are stored as ints in [0, 1439] for
+     * local minutes-of-day so a timezone change reads naturally to the user
+     * (e.g. "22:00 stays 22:00 wherever I land"). Wrap-around windows like
+     * 22:00→07:00 are valid and interpreted by [QuietHours.isWithinWindow].
+     * Pure client-side: never synced to Supabase.
+     */
+    fun observeQuietHours(): Flow<QuietHoursPrefs> = context.prefsStore.data.map { prefs ->
+        QuietHoursPrefs(
+            enabled = prefs[Keys.QUIET_HOURS_ENABLED] ?: false,
+            startMinutes = prefs[Keys.QUIET_HOURS_START_MINUTES] ?: QuietHoursDefaults.START_MINUTES,
+            endMinutes = prefs[Keys.QUIET_HOURS_END_MINUTES] ?: QuietHoursDefaults.END_MINUTES,
+        )
+    }
+
+    suspend fun setQuietHoursEnabled(on: Boolean) {
+        context.prefsStore.edit { it[Keys.QUIET_HOURS_ENABLED] = on }
+    }
+
+    suspend fun setQuietHoursWindow(startMin: Int, endMin: Int) {
+        val safeStart = startMin.coerceIn(0, 24 * 60 - 1)
+        val safeEnd = endMin.coerceIn(0, 24 * 60 - 1)
+        context.prefsStore.edit { prefs ->
+            prefs[Keys.QUIET_HOURS_START_MINUTES] = safeStart
+            prefs[Keys.QUIET_HOURS_END_MINUTES] = safeEnd
+        }
+    }
 }
+
+/** Snapshot of the user's quiet-hours preferences. */
+data class QuietHoursPrefs(
+    val enabled: Boolean,
+    val startMinutes: Int,
+    val endMinutes: Int,
+)
 
 @Module
 @InstallIn(SingletonComponent::class)
