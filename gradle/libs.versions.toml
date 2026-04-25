@@ -39,6 +39,7 @@ razorpay = "1.6.41"
 sqlcipher = "4.5.4"
 sqliteAndroidx = "2.4.0"
 securityCrypto = "1.1.0-alpha06"
+playIntegrity = "1.4.0"
 
 [libraries]
 # AndroidX core
@@ -125,6 +126,9 @@ androidx-sqlite = { module = "androidx.sqlite:sqlite", version.ref = "sqliteAndr
 
 # EncryptedSharedPreferences (Keystore-backed AEAD) for UserPrefs
 androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
+
+# Google Play Integrity API client (used by core/security/PlayIntegrityClient)
+play-integrity = { module = "com.google.android.play:integrity", version.ref = "playIntegrity" }
 
 # Test
 junit = { module = "junit:junit", version.ref = "junit" }

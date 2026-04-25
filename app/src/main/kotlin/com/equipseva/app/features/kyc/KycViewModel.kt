@@ -10,6 +10,7 @@ import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.security.PlayIntegrityClient
 import com.equipseva.app.core.storage.StorageRepository
 import com.equipseva.app.core.sync.handlers.PhotoUploadPayload
 import com.equipseva.app.core.sync.handlers.PhotoUploadStash
@@ -31,6 +32,7 @@ class KycViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val engineerRepository: EngineerRepository,
     private val photoUploadStash: PhotoUploadStash,
+    private val playIntegrityClient: PlayIntegrityClient,
 ) : ViewModel() {
 
     data class UiState(
@@ -306,6 +308,16 @@ class KycViewModel @Inject constructor(
         }
         _state.update { it.copy(saving = true) }
         viewModelScope.launch {
+            // Play Integrity gate before persisting KYC. Debug fails open so
+            // devs without Play setup can still iterate; release blocks with
+            // PlayIntegrityClient.FAILURE_MESSAGE and leaves the row untouched.
+            val integrity = playIntegrityClient.requestVerification("kyc_submit")
+            val pass = integrity.getOrDefault(false)
+            if (!pass) {
+                _state.update { it.copy(saving = false) }
+                _effects.send(Effect.ShowMessage(PlayIntegrityClient.FAILURE_MESSAGE))
+                return@launch
+            }
             val now = Clock.System.now().toString()
             val certificates = buildList {
                 snap.aadhaarDocPath?.let {

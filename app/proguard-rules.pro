@@ -43,6 +43,12 @@
 -keep class com.equipseva.app.core.security.SignatureVerifier { *; }
 -keep class com.equipseva.app.core.security.DeviceIntegrityCheck { *; }
 -keep class com.equipseva.app.core.security.DeviceIntegrityCheck$Verdict { *; }
+-keep class com.equipseva.app.core.security.PlayIntegrityClient { *; }
+
+# Google Play Integrity / Play Core — internal task adapters are referenced
+# reflectively by the .aar so keep the package intact.
+-keep class com.google.android.play.core.integrity.** { *; }
+-keep class com.google.android.play.core.tasks.** { *; }
 
 # Sentry (mappings are uploaded separately)
 -keep class io.sentry.** { *; }
