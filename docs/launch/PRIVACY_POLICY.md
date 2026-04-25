@@ -23,9 +23,11 @@ By creating an account, you consent to the collection and processing described h
 EquipSeva is the data fiduciary under the DPDP Act for the personal data we process through the App.
 
 **Grievance Officer:**
-- Name: _[FILL IN — required by DPDP §10(8)]_
-- Email: grievance@equipseva.com _[update once domain is live]_
-- Address: _[FILL IN registered office address]_
+- Name: Ganesh Dhanavath
+- Email: grievance@equipseva.com
+- Address: EquipSeva, Hyderabad, Telangana, India
+
+> **Founder note:** if you operate from a different city or want a different officer, edit this block before publishing. Email aliases are configured via ImprovMX and forward to ganesh1431.dhanavath@gmail.com.
 
 We will respond to grievances within 30 days as required by DPDP §13.
 
@@ -178,4 +180,4 @@ We will notify you in-App at least 7 days before a material change. Continued us
 - General privacy: privacy@equipseva.com
 - Grievance Officer: see §1 above
 - Security incidents: security@equipseva.com
-- Postal: _[FILL IN registered office address]_
+- Postal: EquipSeva, Hyderabad, Telangana, India

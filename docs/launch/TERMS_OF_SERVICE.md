@@ -134,7 +134,7 @@ You agree to indemnify us against claims, losses, and expenses (including reason
 
 ## 14. Governing law and jurisdiction
 
-These Terms are governed by the laws of India. Any dispute will be subject to the exclusive jurisdiction of the courts at _[FILL IN city of registered office, e.g. "Hyderabad"]_, India.
+These Terms are governed by the laws of India. Any dispute will be subject to the exclusive jurisdiction of the courts at Hyderabad, Telangana, India.
 
 ---
 
@@ -148,4 +148,4 @@ We will notify you in-App at least 7 days before material changes. Continued use
 
 - General: support@equipseva.com
 - Grievance Officer: see Privacy Policy §1
-- Postal: _[FILL IN registered office address]_
+- Postal: EquipSeva, Hyderabad, Telangana, India

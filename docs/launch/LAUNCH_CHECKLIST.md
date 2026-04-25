@@ -45,11 +45,15 @@ App Link binding for the Razorpay payment-return deep link (`https://equipseva.c
 - **Notion** — paste each MD file into a public page (loses the assetlinks endpoint).
 - **Vercel** — point a project at `docs/` with `framework: jekyll`. Set `equipseva.com` as the production domain. Same DNS records, different vendor.
 
-### Before publishing — fill in placeholders
+### Before publishing — verify the defaults
 
-- [ ] `[FILL IN]` Grievance Officer name + email + postal address (Privacy Policy §1, §11; ToS §16; Refund Policy §5).
-- [ ] `[FILL IN]` Registered office postal address.
-- [ ] `[FILL IN]` City of jurisdiction (ToS §14).
+The policies are filled with these defaults — edit before publishing if any are wrong:
+
+- Grievance Officer: **Ganesh Dhanavath** · grievance@equipseva.com
+- Registered address: **EquipSeva, Hyderabad, Telangana, India**
+- Jurisdiction: **Hyderabad, Telangana**
+
+If you operate from a different city or want a different grievance officer, edit `docs/launch/PRIVACY_POLICY.md`, `TERMS_OF_SERVICE.md`, and `REFUND_POLICY.md` accordingly.
 
 Source files:
 - [PRIVACY_POLICY.md](./PRIVACY_POLICY.md)

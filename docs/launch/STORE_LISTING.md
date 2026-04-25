@@ -99,10 +99,10 @@ EquipSeva — keep equipment running, keep care moving.
 
 ## Contact details
 
-- **Website:** _[FILL IN — same domain as Privacy Policy host, e.g. https://equipseva.com]_
+- **Website:** https://equipseva.com
 - **Email:** support@equipseva.com
-- **Phone (optional):** _[FILL IN if you want to publish one]_
-- **Privacy Policy URL:** _[FILL IN — points to the hosted PRIVACY_POLICY.md]_
+- **Phone (optional):** _[leave blank unless you want to publish one — Play allows it to be hidden]_
+- **Privacy Policy URL:** https://equipseva.com/privacy/
 
 ---
 
