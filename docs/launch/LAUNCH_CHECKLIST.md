@@ -62,6 +62,25 @@ Source files:
 
 ---
 
+## 1b. Wire equipseva.com email (~2 min, free)
+
+The policies reference `grievance@`, `support@`, `privacy@`, `security@equipseva.com`. To make those addresses actually deliver, we use **ImprovMX** (free, forwards to your real inbox; no separate mailbox to manage).
+
+DNS is already configured — MX (`mx1/mx2.improvmx.com`) and SPF (`v=spf1 include:spf.improvmx.com ~all`) records are live on `equipseva.com` (added via GoDaddy API in this session).
+
+**You do this once (~2 min):**
+
+1. Go to https://improvmx.com/ → click **Sign Up** (free; no card).
+2. Add domain: `equipseva.com`. ImprovMX detects the DNS records and shows them as ✅.
+3. Add a **catch-all** alias:
+   - Alias: `*` (catch-all — covers grievance, support, privacy, security, and any others you mention later)
+   - Forward to: `ganesh1431.dhanavath@gmail.com`
+4. Save. Test by sending yourself email at `support@equipseva.com` — it should land in Gmail within a minute.
+
+If you'd rather use Zoho Mail Free or Google Workspace later (real mailboxes per address), the DNS records can be swapped at the same place. ImprovMX is the cheapest path that satisfies the Play-review and DPDP-compliance requirements.
+
+---
+
 ## 2. Get the design assets ready (needs a designer)
 
 - [ ] **App icon** — confirm `app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml` is final brand art. If not, replace + commit. Provide a 512×512 PNG master to Play.
