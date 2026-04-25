@@ -6,6 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.chat.ChatRepository
+import com.equipseva.app.core.data.moderation.ContentReportReason
+import com.equipseva.app.core.data.moderation.ContentReportRepository
+import com.equipseva.app.core.data.moderation.ContentReportTarget
+import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.data.rfq.Rfq
 import com.equipseva.app.core.data.rfq.RfqBid
 import com.equipseva.app.core.data.rfq.RfqRepository
@@ -31,6 +35,8 @@ class HospitalRfqDetailViewModel @Inject constructor(
     private val rfqRepository: RfqRepository,
     private val chatRepository: ChatRepository,
     private val authRepository: AuthRepository,
+    private val profileRepository: ProfileRepository,
+    private val reportRepository: ContentReportRepository,
 ) : ViewModel() {
 
     data class UiState(
@@ -41,7 +47,18 @@ class HospitalRfqDetailViewModel @Inject constructor(
         val acceptingBidId: String? = null,
         val openingChatForBidId: String? = null,
         val errorMessage: String? = null,
-    )
+        /** Org id of the signed-in user — used to hide report on own RFQs. */
+        val selfOrgId: String? = null,
+        val reportingTargetId: String? = null,
+        val submittingReport: Boolean = false,
+    ) {
+        /** Hide the report CTA when the viewer's org is the requesting org. */
+        val canReport: Boolean
+            get() {
+                val rfq = rfq ?: return false
+                return selfOrgId == null || selfOrgId != rfq.requesterOrgId
+            }
+    }
 
     sealed interface Effect {
         data class ShowMessage(val text: String) : Effect
@@ -58,9 +75,48 @@ class HospitalRfqDetailViewModel @Inject constructor(
 
     init {
         load(initial = true)
+        viewModelScope.launch {
+            val session = authRepository.sessionState
+                .filterIsInstance<AuthSession.SignedIn>()
+                .firstOrNull()
+            val orgId = session?.userId
+                ?.let { profileRepository.fetchById(it).getOrNull()?.organizationId }
+            _state.update { it.copy(selfOrgId = orgId) }
+        }
     }
 
     fun onRefresh() = load(initial = false)
+
+    fun onOpenReport() {
+        val rfq = _state.value.rfq ?: return
+        if (!_state.value.canReport) return
+        _state.update { it.copy(reportingTargetId = rfq.id) }
+    }
+
+    fun onDismissReport() {
+        if (_state.value.submittingReport) return
+        _state.update { it.copy(reportingTargetId = null) }
+    }
+
+    fun onSubmitReport(reason: ContentReportReason, notes: String?) {
+        val id = _state.value.reportingTargetId ?: return
+        if (_state.value.submittingReport) return
+        _state.update { it.copy(submittingReport = true) }
+        viewModelScope.launch {
+            reportRepository.submitReport(
+                target = ContentReportTarget.Rfq,
+                targetId = id,
+                reason = reason,
+                notes = notes,
+            ).onSuccess {
+                _state.update { it.copy(submittingReport = false, reportingTargetId = null) }
+                emit(Effect.ShowMessage("Thanks — our team will review this."))
+            }.onFailure { err ->
+                _state.update { it.copy(submittingReport = false) }
+                emit(Effect.ShowMessage(err.toUserMessage()))
+            }
+        }
+    }
 
     fun onMessageSupplier(bid: RfqBid) {
         if (_state.value.openingChatForBidId != null) return
@@ -168,7 +224,13 @@ class HospitalRfqDetailViewModel @Inject constructor(
                 }
             }.onSuccess { (rfq, bids) ->
                 _state.update {
-                    UiState(loading = false, refreshing = false, rfq = rfq, bids = bids)
+                    it.copy(
+                        loading = false,
+                        refreshing = false,
+                        rfq = rfq,
+                        bids = bids,
+                        errorMessage = null,
+                    )
                 }
             }.onFailure { error ->
                 _state.update {

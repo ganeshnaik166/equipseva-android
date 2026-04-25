@@ -8,6 +8,9 @@ import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.chat.ChatRepository
 import com.equipseva.app.core.data.dao.OutboxDao
 import com.equipseva.app.core.data.engineers.EngineerRepository
+import com.equipseva.app.core.data.moderation.ContentReportReason
+import com.equipseva.app.core.data.moderation.ContentReportRepository
+import com.equipseva.app.core.data.moderation.ContentReportTarget
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.data.repair.JobStatusPayload
 import com.equipseva.app.core.data.repair.RatingRole
@@ -50,6 +53,7 @@ class RepairJobDetailViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val outboxEnqueuer: OutboxEnqueuer,
     private val outboxDao: OutboxDao,
+    private val reportRepository: ContentReportRepository,
     private val json: Json,
 ) : ViewModel() {
 
@@ -104,7 +108,13 @@ class RepairJobDetailViewModel @Inject constructor(
         val queuedBidCount: Int = 0,
         /** Count of queued status transitions waiting on the outbox to drain. */
         val queuedStatusCount: Int = 0,
-    )
+        val reportingTargetId: String? = null,
+        val submittingReport: Boolean = false,
+    ) {
+        /** Hide the report CTA when the viewer posted the job. */
+        val canReport: Boolean
+            get() = job != null && viewerRole != ViewerRole.Hospital
+    }
 
     private val jobId: String =
         checkNotNull(savedState.get<String>(Routes.REPAIR_DETAIL_ARG_ID)) {
@@ -131,6 +141,38 @@ class RepairJobDetailViewModel @Inject constructor(
     }
 
     fun retry() = load()
+
+    fun onOpenReport() {
+        val snap = _state.value
+        val job = snap.job ?: return
+        if (!snap.canReport) return
+        _state.update { it.copy(reportingTargetId = job.id) }
+    }
+
+    fun onDismissReport() {
+        if (_state.value.submittingReport) return
+        _state.update { it.copy(reportingTargetId = null) }
+    }
+
+    fun onSubmitReport(reason: ContentReportReason, notes: String?) {
+        val id = _state.value.reportingTargetId ?: return
+        if (_state.value.submittingReport) return
+        _state.update { it.copy(submittingReport = true) }
+        viewModelScope.launch {
+            reportRepository.submitReport(
+                target = ContentReportTarget.RepairJob,
+                targetId = id,
+                reason = reason,
+                notes = notes,
+            ).onSuccess {
+                _state.update { it.copy(submittingReport = false, reportingTargetId = null) }
+                _messages.send("Thanks — our team will review this.")
+            }.onFailure { err ->
+                _state.update { it.copy(submittingReport = false) }
+                _messages.send(err.toUserMessage())
+            }
+        }
+    }
 
     fun openBidComposer() {
         if (_state.value.job == null) return

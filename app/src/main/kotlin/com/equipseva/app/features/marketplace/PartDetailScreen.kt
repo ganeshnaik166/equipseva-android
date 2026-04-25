@@ -25,11 +25,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.MoreVert
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
@@ -66,6 +69,7 @@ import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.QuantityStepper
+import com.equipseva.app.designsystem.components.ReportContentSheet
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreenDark
@@ -115,9 +119,11 @@ fun PartDetailScreen(
                 state.part != null -> PartBody(
                     part = state.part!!,
                     isFavorite = state.isFavorite,
+                    canReport = state.canReport,
                     onBack = onBack,
                     onOpenCart = onOpenCart,
                     onToggleFavorite = viewModel::onToggleFavorite,
+                    onReport = viewModel::onOpenReport,
                 )
             }
         }
@@ -131,6 +137,15 @@ fun PartDetailScreen(
             )
         }
     }
+
+    if (state.reportingTargetId != null) {
+        ReportContentSheet(
+            titleLabel = "Report this listing",
+            submitting = state.submittingReport,
+            onDismiss = viewModel::onDismissReport,
+            onSubmit = viewModel::onSubmitReport,
+        )
+    }
 }
 
 /* ------------------------------------------------------------------ */
@@ -141,9 +156,11 @@ fun PartDetailScreen(
 private fun PartBody(
     part: SparePart,
     isFavorite: Boolean,
+    canReport: Boolean,
     onBack: () -> Unit,
     onOpenCart: () -> Unit,
     onToggleFavorite: () -> Unit,
+    onReport: () -> Unit,
 ) {
     var quantity by remember { mutableStateOf(1) }
     var specsOpen by remember { mutableStateOf(true) }
@@ -172,10 +189,12 @@ private fun PartBody(
         Hero(
             part = part,
             isFavorite = isFavorite,
+            canReport = canReport,
             onBack = onBack,
             onOpenCart = onOpenCart,
             onToggleFavorite = onToggleFavorite,
             onShare = onShare,
+            onReport = onReport,
         )
 
         // Title block
@@ -258,10 +277,12 @@ private fun PartBody(
 private fun Hero(
     part: SparePart,
     isFavorite: Boolean,
+    canReport: Boolean,
     onBack: () -> Unit,
     onOpenCart: () -> Unit,
     onToggleFavorite: () -> Unit,
     onShare: () -> Unit,
+    onReport: () -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxWidth()) {
         GradientTile(
@@ -310,6 +331,31 @@ private fun Hero(
                     tint = Ink900,
                     modifier = Modifier.size(20.dp),
                 )
+            }
+            if (canReport) {
+                var menuOpen by remember { mutableStateOf(false) }
+                Box {
+                    OverlayIconButton(onClick = { menuOpen = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert,
+                            contentDescription = "More",
+                            tint = Ink900,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = menuOpen,
+                        onDismissRequest = { menuOpen = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Report listing") },
+                            onClick = {
+                                menuOpen = false
+                                onReport()
+                            },
+                        )
+                    }
+                }
             }
         }
     }

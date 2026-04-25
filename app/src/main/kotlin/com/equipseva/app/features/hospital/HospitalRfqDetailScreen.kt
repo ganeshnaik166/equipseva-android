@@ -11,12 +11,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.RequestQuote
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -27,7 +32,9 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -42,7 +49,9 @@ import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.PrimaryButton
+import com.equipseva.app.designsystem.components.ReportContentSheet
 import com.equipseva.app.designsystem.components.SectionHeader
+import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.designsystem.components.StatusTone
 import com.equipseva.app.designsystem.theme.Spacing
@@ -70,7 +79,36 @@ fun HospitalRfqDetailScreen(
     }
 
     Scaffold(
-        topBar = { ESBackTopBar(title = "RFQ details", onBack = onBack) },
+        topBar = {
+            ESBackTopBar(
+                title = "RFQ details",
+                onBack = onBack,
+                actions = {
+                    if (state.canReport) {
+                        var menuOpen by remember { mutableStateOf(false) }
+                        IconButton(onClick = { menuOpen = true }) {
+                            Icon(
+                                imageVector = Icons.Filled.MoreVert,
+                                contentDescription = "More",
+                                tint = Ink900,
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = menuOpen,
+                            onDismissRequest = { menuOpen = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Report RFQ") },
+                                onClick = {
+                                    menuOpen = false
+                                    viewModel.onOpenReport()
+                                },
+                            )
+                        }
+                    }
+                },
+            )
+        },
         snackbarHost = { SnackbarHost(snackbarHost) },
     ) { inner ->
         Column(
@@ -110,6 +148,15 @@ fun HospitalRfqDetailScreen(
                 }
             }
         }
+    }
+
+    if (state.reportingTargetId != null) {
+        ReportContentSheet(
+            titleLabel = "Report this RFQ",
+            submitting = state.submittingReport,
+            onDismiss = viewModel::onDismissReport,
+            onSubmit = viewModel::onSubmitReport,
+        )
     }
 }
 
