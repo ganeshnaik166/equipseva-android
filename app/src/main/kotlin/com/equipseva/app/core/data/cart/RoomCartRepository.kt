@@ -5,8 +5,12 @@ import com.equipseva.app.core.sync.OutboxEnqueuer
 import com.equipseva.app.core.sync.OutboxKinds
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -76,6 +80,73 @@ class RoomCartRepository @Inject constructor(
     }
 
     /**
+     * Server-authoritative reconcile. Pulls every `cart_items` row for the
+     * current user, joining `spare_parts` for the display fields Room needs
+     * (name, price, image). Server quantity overwrites the local row when
+     * both sides have the same partId.
+     *
+     * Local-only rows are intentionally left alone — those are still queued
+     * in the outbox and will land server-side on the next drain. We do not
+     * delete them here, otherwise an offline-add right before sign-in would
+     * be silently wiped.
+     *
+     * Single-shot: callers (CartSyncBootstrap) are expected to invoke this
+     * once per session start. Subsequent mutations flow through the outbox
+     * handler, not this method.
+     */
+    override suspend fun pullFromServer(userId: String): Result<Unit> = runCatching {
+        val rows = supabase.from(SERVER_TABLE).select(
+            columns = Columns.raw(
+                "spare_part_id,quantity,updated_at," +
+                    "spare_parts(id,name,price,images)",
+            ),
+        ) {
+            filter { eq("user_id", userId) }
+        }.decodeList<ServerCartRow>()
+
+        val nowMs = System.currentTimeMillis()
+        rows.forEach { row ->
+            val part = row.sparePart ?: return@forEach
+            val priceInPaise = (part.price * 100.0).toLong()
+            val existing = dao.findByPartId(row.sparePartId)
+            // Preserve the local addedAt so cart screen ordering is stable
+            // across reconcile (most-recent-added stays at the top); only
+            // mint a new timestamp for parts the local cart has never seen.
+            val addedAt = existing?.addedAtEpochMs ?: nowMs
+            dao.upsert(
+                CartItemEntity(
+                    partId = row.sparePartId,
+                    name = part.name,
+                    unitPriceInPaise = priceInPaise,
+                    quantity = row.quantity,
+                    imageUrl = part.images?.firstOrNull(),
+                    addedAtEpochMs = addedAt,
+                ),
+            )
+        }
+        Log.i(TAG, "pullFromServer: reconciled ${rows.size} server cart rows for user=$userId")
+        Unit
+    }.onFailure { err ->
+        Log.w(TAG, "pullFromServer failed for user=$userId", err)
+    }
+
+    @Serializable
+    private data class ServerCartRow(
+        @SerialName("spare_part_id") val sparePartId: String,
+        val quantity: Int,
+        @SerialName("updated_at") val updatedAt: String? = null,
+        @SerialName("spare_parts") val sparePart: ServerSparePart? = null,
+    )
+
+    @Serializable
+    private data class ServerSparePart(
+        val id: String,
+        val name: String,
+        val price: Double,
+        val images: List<String>? = null,
+    )
+
+    /**
      * Queue the mutation for future server reconcile. Fire-and-forget: the Room
      * write already committed, so a failure to enqueue must never surface back
      * to the caller and flip a successful local change into a Result.failure.
@@ -111,5 +182,6 @@ class RoomCartRepository @Inject constructor(
 
     companion object {
         private const val TAG = "RoomCartRepository"
+        private const val SERVER_TABLE = "cart_items"
     }
 }

@@ -28,4 +28,15 @@ interface CartRepository {
     suspend fun remove(partId: String): Result<Unit>
 
     suspend fun clear(): Result<Unit>
+
+    /**
+     * Pull the authoritative cart from `cart_items` for [userId] and merge it
+     * into local Room. Server wins on conflict — when a row exists both locally
+     * and remotely, the remote quantity replaces the local one. Local-only
+     * rows are left untouched (they are queued in the outbox and will land
+     * server-side via the normal drain).
+     *
+     * Intended to run once per session start, not on every mutation.
+     */
+    suspend fun pullFromServer(userId: String): Result<Unit>
 }
