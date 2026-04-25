@@ -297,7 +297,7 @@ private fun SummaryCard(subtotal: Double) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(5.dp),
         colors = CardDefaults.cardColors(containerColor = Surface0),
-        border = BorderStroke(1.5.dp, Surface200),
+        border = BorderStroke(1.dp, Surface200),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {

@@ -120,4 +120,29 @@ object Routes {
     // DataStore). Split from the inbox so the two surfaces can evolve
     // independently — the inbox is read-side data; settings is local prefs.
     const val NOTIFICATION_SETTINGS = "notifications/settings"
+
+    // Founder admin surfaces. Email-pinned to ganesh1431.dhanavath@gmail.com
+    // via Profile.isFounder(); server-side enforcement happens via the
+    // is_founder() SQL function on every privileged RPC. Hidden on the
+    // bottom nav for non-founders; entered from a Profile row for the
+    // founder.
+    // Per-role profile sub-screens. Real forms land per-role; this batch
+    // ships placeholder shells so the Profile rows actually navigate.
+    const val PROFILE_BANK_DETAILS = "profile/bank_details"
+    const val PROFILE_ADDRESSES = "profile/addresses"
+    const val PROFILE_HOSPITAL_SETTINGS = "profile/hospital_settings"
+    const val PROFILE_STOREFRONT = "profile/storefront"
+    const val PROFILE_GST = "profile/gst"
+    const val PROFILE_BRAND_PORTFOLIO = "profile/brand_portfolio"
+    const val PROFILE_TAX_DETAILS = "profile/tax_details"
+    const val PROFILE_VEHICLE_DETAILS = "profile/vehicle_details"
+    const val PROFILE_LICENCE = "profile/licence"
+    const val PROFILE_SERVICE_AREAS = "profile/service_areas"
+
+    const val FOUNDER_DASHBOARD = "founder/dashboard"
+    const val FOUNDER_KYC_QUEUE = "founder/kyc"
+    const val FOUNDER_REPORTS_QUEUE = "founder/reports"
+    const val FOUNDER_USERS = "founder/users"
+    const val FOUNDER_PAYMENTS = "founder/payments"
+    const val FOUNDER_INTEGRITY = "founder/integrity"
 }

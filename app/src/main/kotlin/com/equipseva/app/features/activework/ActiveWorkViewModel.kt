@@ -63,8 +63,11 @@ class ActiveWorkViewModel @Inject constructor(
             jobRepository.fetchAssignedToMe()
                 .onSuccess { jobs ->
                     val active = jobs.filter {
+                        // Assigned-but-not-yet-en-route jobs belong on the
+                        // engineer's "My bids" / acceptance queue, not on
+                        // Active work. Active = en route or already in
+                        // progress per design `screens-other.jsx`.
                         it.status in listOf(
-                            RepairJobStatus.Assigned,
                             RepairJobStatus.EnRoute,
                             RepairJobStatus.InProgress,
                         )

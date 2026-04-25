@@ -23,12 +23,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Engineering
+import androidx.compose.material.icons.filled.Factory
+import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -104,6 +108,10 @@ fun ProfileScreen(
     onOpenAbout: () -> Unit = {},
     onOpenFavorites: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
+    onOpenBankDetails: () -> Unit = {},
+    onOpenAddresses: () -> Unit = {},
+    onOpenHospitalSettings: () -> Unit = {},
+    onOpenFounderDashboard: () -> Unit = {},
     onOpenChangePassword: () -> Unit = {},
     onOpenChangeEmail: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -156,6 +164,10 @@ fun ProfileScreen(
                         onOpenAbout = onOpenAbout,
                         onOpenFavorites = onOpenFavorites,
                         onOpenNotifications = onOpenNotifications,
+                        onOpenBankDetails = onOpenBankDetails,
+                        onOpenAddresses = onOpenAddresses,
+                        onOpenHospitalSettings = onOpenHospitalSettings,
+                        onOpenFounderDashboard = onOpenFounderDashboard,
                         onDeleteAccount = viewModel::onOpenDeleteAccount,
                         onExportData = viewModel::onExportMyData,
                         onOpenChangePassword = onOpenChangePassword,
@@ -222,6 +234,10 @@ private fun ProfileContent(
     onOpenAbout: () -> Unit,
     onOpenFavorites: () -> Unit,
     onOpenNotifications: () -> Unit,
+    onOpenBankDetails: () -> Unit,
+    onOpenAddresses: () -> Unit,
+    onOpenHospitalSettings: () -> Unit,
+    onOpenFounderDashboard: () -> Unit,
     onDeleteAccount: () -> Unit,
     onExportData: () -> Unit,
     onOpenChangePassword: () -> Unit,
@@ -230,6 +246,7 @@ private fun ProfileContent(
     val profile = state.profile!!
     val isEngineer = profile.role == UserRole.ENGINEER
     val isHospital = profile.role == UserRole.HOSPITAL
+    val isFounder = profile.isFounder()
 
     Column(
         modifier = Modifier
@@ -276,6 +293,7 @@ private fun ProfileContent(
                 rows = buildSettingsRows(
                     isEngineer = isEngineer,
                     isHospital = isHospital,
+                    isFounder = isFounder,
                     themeMode = themeMode,
                     onOpenSettings = onOpenSettings,
                     onOpenVerification = onOpenVerification,
@@ -283,6 +301,11 @@ private fun ProfileContent(
                     onOpenAbout = onOpenAbout,
                     onOpenFavorites = onOpenFavorites,
                     onOpenNotifications = onOpenNotifications,
+                    onOpenPersonalInfo = onEditProfile,
+                    onOpenBankDetails = onOpenBankDetails,
+                    onOpenAddresses = onOpenAddresses,
+                    onOpenHospitalSettings = onOpenHospitalSettings,
+                    onOpenFounderDashboard = onOpenFounderDashboard,
                     onOpenChangePassword = onOpenChangePassword,
                     onOpenChangeEmail = onOpenChangeEmail,
                     onSignOut = onSignOut,
@@ -313,6 +336,7 @@ private data class SettingsRow(
 private fun buildSettingsRows(
     isEngineer: Boolean,
     isHospital: Boolean,
+    isFounder: Boolean,
     themeMode: ThemeMode,
     onOpenSettings: () -> Unit,
     onOpenVerification: () -> Unit,
@@ -320,6 +344,11 @@ private fun buildSettingsRows(
     onOpenAbout: () -> Unit,
     onOpenFavorites: () -> Unit,
     onOpenNotifications: () -> Unit,
+    onOpenPersonalInfo: () -> Unit,
+    onOpenBankDetails: () -> Unit,
+    onOpenAddresses: () -> Unit,
+    onOpenHospitalSettings: () -> Unit,
+    onOpenFounderDashboard: () -> Unit,
     onOpenChangePassword: () -> Unit,
     onOpenChangeEmail: () -> Unit,
     onSignOut: () -> Unit,
@@ -330,10 +359,21 @@ private fun buildSettingsRows(
     exportingData: Boolean,
 ): List<SettingsRow> {
     val rows = mutableListOf<SettingsRow>()
+    if (isFounder) {
+        rows += SettingsRow(
+            icon = Icons.Filled.AdminPanelSettings,
+            label = "Founder dashboard",
+            chipLabel = "Founder",
+            chipTone = StatusTone.Success,
+            onClick = onOpenFounderDashboard,
+        )
+    }
     rows += SettingsRow(
         icon = Icons.Filled.Person,
         label = "Personal info",
-        onClick = onOpenMessages, // messages row retained as generic "open" target for now
+        // Routes to the existing edit-profile modal (full name, phone, avatar).
+        // Previously this row called onOpenMessages — wrong target.
+        onClick = onOpenPersonalInfo,
     )
     rows += SettingsRow(
         icon = Icons.Outlined.Notifications,
@@ -344,7 +384,7 @@ private fun buildSettingsRows(
         rows += SettingsRow(
             icon = Icons.Filled.AccountBalance,
             label = "Bank details",
-            onClick = onOpenFavorites,
+            onClick = onOpenBankDetails,
         )
         rows += SettingsRow(
             icon = Icons.Outlined.VerifiedUser,
@@ -357,19 +397,14 @@ private fun buildSettingsRows(
         rows += SettingsRow(
             icon = Icons.Filled.LocationOn,
             label = "Addresses",
-            onClick = onOpenFavorites,
+            onClick = onOpenAddresses,
         )
         rows += SettingsRow(
             icon = Icons.Filled.LocalHospital,
             label = "Hospital settings",
-            onClick = onOpenMessages,
+            onClick = onOpenHospitalSettings,
         )
     }
-    rows += SettingsRow(
-        icon = Icons.Filled.Translate,
-        label = "Language",
-        trailing = "English",
-    )
     rows += SettingsRow(
         icon = Icons.Outlined.Palette,
         label = "Appearance",
@@ -503,6 +538,9 @@ private fun ProfileHeaderCard(
                 val roleIcon = when (role) {
                     UserRole.ENGINEER -> Icons.Filled.Engineering
                     UserRole.HOSPITAL -> Icons.Filled.LocalHospital
+                    UserRole.SUPPLIER -> Icons.Filled.Storefront
+                    UserRole.MANUFACTURER -> Icons.Filled.Factory
+                    UserRole.LOGISTICS -> Icons.Filled.LocalShipping
                     else -> Icons.Filled.Person
                 }
                 StatusChip(
