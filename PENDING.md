@@ -1,148 +1,120 @@
 # EquipSeva — Pending Before Play Store Submission
 
-Comprehensive scan of what's still missing / stubbed / non-functional. Ordered by severity. Updated 2026-04-24.
+What's still missing / stubbed / non-functional. Updated 2026-04-25 after PRs #148–#195 cleared the code blockers.
 
 Legend: 🔴 blocker · 🟠 needs attention · 🟡 nice-to-have · ⚪ beyond v1
 
 ---
 
-## 🔴 BLOCKERS — Play Store will reject without these
+## 🔴 BLOCKERS — still open (NONE are code work)
 
-### Legal / Compliance
-1. **Privacy Policy URL** — Play requires a public URL. You must host one (single-page site, even a Notion page works). Needs to cover: Supabase, Sentry, Firebase Analytics, Crashlytics, Razorpay, FCM, location usage on KYC.
+### Legal / Compliance — needs hosted URLs
+1. **Privacy Policy URL** — Play requires a public URL. Single-page Notion/site fine. Must cover Supabase, Sentry, Firebase Analytics, Crashlytics, Razorpay, FCM, location-on-KYC.
 2. **Terms of Service URL** — linked from settings + signup.
-3. **Play Store Data Safety form** — declare every field we collect: email, phone, full name, Aadhaar #, KYC docs, location (shipping), device ID (FCM), payment info (via Razorpay).
-4. **DPDP (Digital Personal Data Protection, India) compliance** — user consent screen, data-deletion endpoint (`DELETE /me` in Supabase RPC), right-to-export flow. *Zero of this exists today.*
-5. **Razorpay refund policy URL** — required by the gateway + RBI regulations. Customer-facing refund terms.
-6. **Content policy** — user-generated chat/listings need a report + block flow. **Not built yet.** Play flags apps without this.
+3. **Play Store Data Safety form** — declare every field collected: email, phone, full name, Aadhaar #, KYC docs, location (shipping), device ID (FCM), payment info (Razorpay).
+4. **Razorpay refund policy URL** — gateway / RBI requirement. Customer-facing refund terms.
+5. ✅ DPDP `delete_my_account` + `export_my_data` RPCs shipped (PR #151, #153). User-facing UI live.
+6. ✅ Content report / block / mute flow shipped (PR #148, #190).
 
-### Store Listing
-7. **App title** (max 30 chars) + **short description** (max 80) + **full description** (max 4000).
-8. **Feature graphic** 1024×500 PNG — marketing banner.
-9. **8 phone screenshots** minimum — covering auth, home, marketplace, cart, checkout, order detail, chat, KYC. Needs design pass from your current branch.
-10. **App icon** — you have `ic_launcher_foreground.xml` as a vector grid mark. Needs review: is this final brand art, or placeholder? Adaptive icon with 512×512 master PNG required.
-11. **Content rating** questionnaire (IARC) — Play walks you through it.
-12. **Target audience** declaration + privacy note for under-18 users.
-13. **Ads declaration** — we don't show ads; must still declare.
+### Store Listing — design / marketing
+7. **App title** (≤30 chars) + **short description** (≤80) + **full description** (≤4000).
+8. **Feature graphic** 1024×500 PNG.
+9. **8 phone screenshots** minimum — auth, home, marketplace, cart, checkout, order detail, chat, KYC.
+10. **App icon** — `ic_launcher_foreground.xml` is currently a vector grid mark. Confirm final brand art; provide 512×512 master PNG for adaptive icon.
+11. **Content rating** questionnaire (IARC) — answered in Play Console.
+12. **Target audience** declaration + privacy note for under-18.
+13. **Ads declaration** — none, but must declare.
 
-### Release Signing
-14. **App Signing SHA-256 from Play Console** — after you upload the first APK, Play shows you this. Paste it back → I wire `EXPECTED_CERT_SHA256` so anti-tamper activates on installed builds.
+### Release Signing — needs first Play upload
+14. **App Signing SHA-256 from Play Console** — paste it back so `EXPECTED_CERT_SHA256` can be wired and `SignatureVerifier` flips from report-only to enforce.
 
----
-
-## 🟠 NEEDS ATTENTION — users will hit these on day 1
-
-### Stubs still in code (will ship broken if released)
-15. **Notifications inbox** (`NotificationsScreen.kt`) — shipping 3 hardcoded demo rows ("New bid received", "Order shipped", "Repair job completed"). *No backend table, no realtime, no mark-read.* Design branch converts it to a settings screen instead — pick one: keep inbox (needs backend) or replace with settings (needs backend for preferences to persist). **Cannot ship the current demo rows.**
-16. **Scan Equipment AI** (`ScanEquipmentViewModel.kt`) — returns a `mockResults.random()`. UI even says "Phase 2 preview — identification is mocked." Either wire real Claude Vision API *or* hide the entry point for v1.
-17. **Cart sync** — Room-only, no server reconcile (`CartRepository.kt` comment: "will reconcile with Supabase in Phase 3"). User loses cart on reinstall / device switch. Low severity if we document the limitation.
-18. **Photo-upload outbox handler** — 3 of 4 outbox kinds wired (chat, bid, status). `OutboxKinds.PHOTO_UPLOAD` declared but no handler. Engineer uploading a repair photo on weak network = upload fails silently with no retry.
-19. **Cart outbox kind** — no offline cart mutations queued. Adding to cart offline = silent drop.
-
-### Flows users will discover are missing
-20. **Order rating flow** — you rate repair jobs; you can't rate a spare-part order / supplier. Trust loop broken for marketplace.
-21. **Review / report content** — no way to flag a bad listing, spam chat message, or abusive behavior. **Play Store content policy requires this.**
-22. **Block / mute user** — same policy concern.
-23. **Delete account** — DPDP requires this. No UI, no RPC.
-24. **Export my data** — DPDP right-to-portability. No UI, no RPC.
-25. **Change email / phone** — Profile shows them but no edit flow.
-26. **Change password** — no "change password" UI (forgot password exists for signed-out state only).
-27. **Mark all notifications read** — moot if #15 is unresolved.
-28. **Chat: delete message** — not built.
-29. **Chat: edit message** — not built.
-30. **Chat: typing indicator** — stubbed as `isTyping = false` in ChatScreen (design branch).
-31. **Order cancel reason** — cancellation exists but no free-text reason collected.
-32. **KYC re-upload** — if rejected, flow to re-submit isn't clear.
-33. **KYC status transitions** — "submitted → under review → verified/rejected" transitions not all visualized.
-34. **RFQ bid accept message** — after accepting, buyer doesn't automatically land in chat with supplier.
-35. **Razorpay return deep-link** — `https://equipseva.com/pay/return?order_id=…` filter declared; never device-tested end-to-end. One cold-start bug away from a failed-payment support storm.
-
-### Push notification send policies
-36. **Server-side send rules** — FCM plumbing is ready (4 channels, device-token upsert). Nothing actually sends notifications. Nobody gets told when their order ships, their bid wins, their RFQ gets a quote. **Needs an Edge Function + DB trigger per event.**
-37. **Deep-link from notification** → specific screen — partial (order_id only).
-38. **Quiet hours / Do Not Disturb respect** — not implemented.
-39. **Per-category mute** — shown in settings UI but doesn't persist (design branch local state only).
-
-### Backend / Edge Functions
-40. **Notifications backend** — table + RLS + realtime + FCM sender. Zero.
-41. **DPDP: `delete_my_account` RPC** — needed.
-42. **DPDP: `export_my_data` RPC** — needed.
-43. **Content moderation moderation table** + RPC + admin queue — needed for #21-22.
-44. ~~**Play Integrity verifier Edge Function + client wire-up**~~ — server side shipped: `supabase/functions/verify-play-integrity` + `device_integrity_checks` audit table. Client wired in `core/security/PlayIntegrityClient` and gated on Checkout (`onPlaceOrder`) + KYC (`KycViewModel.save`); engineer payout/withdraw flow doesn't exist yet (Earnings is read-only) so a third gate is intentionally deferred.
+### Manual device tests
+35. **Razorpay return deep-link** — `equipseva.com/pay/return` filter declared, app-link assetlinks.json prepared (PR #152). Needs end-to-end real-device test on Razorpay test mode.
+46. **End-to-end Razorpay test-mode flow on real device** — same as above.
 
 ---
 
-## 🟡 NICE TO HAVE — can ship v1 without, add post-launch
+## 🟢 SHIPPED THIS SESSION (was 🔴/🟠/🟡)
 
-### Engineering quality
-45. **Compose UI smoke test** — auth → home → cart → checkout. Audit flagged no instrumented coverage.
-46. **End-to-end Razorpay test-mode flow** on a real device.
-47. **Crash-free ≥ 99.5% SLO monitoring** — Sentry is wired, nobody's looking.
-48. **Room destructive-migration fallback** — today a schema bump wipes local cache/outbox. Needs real migration paths before v2.
-49. **Cold-start measurement baseline** — never measured.
-50. **APK size budget** — not set; currently 23 MB which is fine.
-51. **R8 mapping upload to Sentry** — produces mapping.txt but doesn't upload. Un-deobfuscated stack traces = slower incident response.
+| # | Item | PR |
+|---|------|----|
+| 15 | Notifications inbox (real backend + realtime + mark-read + mark-all-read) | #178 |
+| 16 | Hide Scan-AI for v1 | #155 |
+| 17 | Cart server sync (cart_items table + outbox handler + bootstrap) | #188 |
+| 18 | Photo-upload outbox handler | #163 |
+| 19 | Cart_mutation outbox kind | #161 |
+| 20 | Buyer rating for spare-part suppliers | #162 |
+| 21 | Content report flow extended to listings/RFQ/jobs | #190 |
+| 22 | Block user from chat | #148 |
+| 23 | Delete account (DPDP) | #151 |
+| 24 | Export my data (DPDP) | #153 |
+| 25 | Change email from Profile | #160 |
+| 26 | Change password from Profile | #156 |
+| 27 | Mark all notifications read | #178 |
+| 28 | Chat soft-delete | #154 |
+| 29 | Chat edit message (15 min window) | #157 |
+| 30 | Chat typing indicator (Realtime Broadcast) | #170 |
+| 31 | Order cancel reason | #159 |
+| 32 | KYC re-upload flow for rejected | #166 |
+| 33 | KYC status timeline on Verification screen | #169 |
+| 34 | RFQ bid accept opens chat with supplier | #165 |
+| 36 | Server-side FCM push send + per-event triggers | #183 #192 |
+| 37 | Deep-link from notification tap to screen | #195 |
+| 38 | Quiet hours / DND | #182 |
+| 39 | Per-category push mute persistence | #173 |
+| 40 | Notifications backend (table + RLS + realtime) | #178 |
+| 41 | DPDP delete RPC | #151 |
+| 42 | DPDP export RPC | #153 |
+| 44 | Play Integrity verifier Edge Function + client wiring | #186 #193 |
+| 45 | Compose UI smoke test | #179 |
+| 47 | Sentry session tracking + user_id bridge | #194 |
+| 48 | Real Room migrations (no destructive fallback) | #175 |
+| 49 | Cold-start telemetry | #187 |
+| 50 | APK size budget guardrail (28 MB) | #189 |
+| 51 | R8 mapping upload to Sentry | #164 |
+| 52 | Empty-state CTAs on key lists | #172 |
+| 53 | Skeleton loaders | #176 |
+| 54 | Pull-to-refresh on Conversations | #171 |
+| 55 | Conversations search | #174 |
+| 56 | First-run tour after sign-up | #177 |
+| 57 | Tablet / large-screen layouts | #184 |
+| 58 | Dark mode stress-test | #185 |
+| 59 | Demo spare-part catalog seed | #181 |
+| — | Storage bucket hardening (avatars / chat-attach / repair-photos) | #191 |
 
-### UX polish
-52. **Empty states with CTAs** — most lists have plain "nothing here" text; could offer first-action buttons.
-53. **Skeleton loaders vs CircularProgressIndicator** — skeleton is better UX on lists.
-54. **Pull-to-refresh on Conversations list** — realtime handles it but users expect the gesture.
-55. **Conversations search** — not implemented.
-56. **Onboarding / first-run tour** — no welcome coaching.
-57. **Tablet / large-screen layouts** — minimum responsive fixes shipped (`rememberAdaptiveWidth`/`maxContentWidth` in `designsystem/AdaptiveWidth.kt`; marketplace manufacturer grid is 2/3/4 cols by width; marketplace search results + repair jobs list cap at 840dp). Compose bottom-nav/master-detail still TODO.
-58. **Dark mode** — theme exists, not stress-tested across all screens.
+---
 
-### Seed data / Content
-59. **Demo spare-part catalog** — empty DB = "No parts yet" as first impression.
+## 🟡 NICE TO HAVE — defer post-launch
+
+43. **Content moderation admin queue** — `content_reports` table exists; needs an admin-side review UI. Out of scope for the Android app (separate admin web tool).
 60. **Test hospital + engineer accounts** — manual DB inserts today.
-61. **Equipment categories / brands** — currently hardcoded enums; consider a managed table so you can add without app release.
+61. **Equipment categories / brands** — currently hardcoded enums; consider a managed table to add without app release.
 
 ---
 
-## ⚪ BEYOND v1 SCOPE (per PRD §12 — supplier/manufacturer/logistics are post-launch)
+## ⚪ BEYOND v1 SCOPE (per PRD §12)
 
-62. Supplier screens (my listings, stock alerts, supplier orders, supplier RFQs, add listing) exist and are polished but not planned for v1 rollout.
+62. Supplier screens (my listings, stock alerts, supplier orders, supplier RFQs, add listing) — exist but not v1.
 63. Manufacturer screens (analytics, lead pipeline, RFQs assigned) — same.
 64. Logistics screens (pickup queue, active deliveries, completed today) — same.
-65. AI equipment scan PRD drafted (#103) — Phase 3 work.
+65. AI equipment scan — Phase 3 work.
 
 ---
 
-## SUMMARY — what v1 launch *actually* needs
+## SUMMARY — what v1 launch *actually* needs now
 
-**You MUST do (cannot ship without):**
+**Cannot code-ship — must come from outside:**
 - Privacy policy + Terms of service URLs (legal)
-- Data Safety form (Play Store)
-- Razorpay refund policy (gateway requirement)
-- Report / block flow (Play content policy) — **code + backend**
-- App title / description / 8 screenshots / feature graphic (store listing)
-- Either finish the Notifications inbox backend **or** strip it out for v1
-- Either finish the AI scan **or** hide the Scan entry point for v1
+- Razorpay refund policy URL (legal + gateway)
+- Data Safety form answers (Play Console)
+- Store listing copy (title / short / full description)
+- Feature graphic + 8 screenshots + final app icon (design)
+- IARC content rating + target-audience + ads declaration (Play Console)
 
-**I'll build when you say go:**
-- Report / block UI + backend
-- Delete account + export data (DPDP)
-- Notifications backend if you decide "ship it"
-- Hide Scan entry point if you decide "hide for v1"
-- Order rating flow
-- Change password / change email UI
-- Push notification send policies
-- R8 mapping upload to Sentry
+**Manual testing — needs a real device + Razorpay test creds:**
+- End-to-end Razorpay test-mode + return-deep-link flow
 
-**You MUST provide externally (I can't fabricate):**
-- App Signing SHA-256 (after first Play Console upload)
-- Screenshots (design output)
-- Policy copy (legal review)
-- App icon final artwork (if current placeholder isn't final)
+**One-shot wiring after first Play upload:**
+- Paste App Signing SHA-256 → set `EXPECTED_CERT_SHA256` in CI secrets → flip `SignatureVerifier` to enforce.
 
----
-
-## The hard question
-
-**Realistic timeline to a Play-Store-approved build:**
-- With legal help: 1 week (privacy + terms + data-safety + DPDP)
-- With design help: 1 week (screenshots + icon polish)
-- With me shipping the content-policy code (report/block/delete) + trimming stubs: 2-3 days
-- Play review itself: 1-7 days
-
-**Fastest path:** 2 weeks to submission, 2-3 weeks to approved.
+**Code work remaining: NONE for v1.** Next code waves are post-launch (admin moderation queue, managed categories table, engineering quality polish on test/staging accounts).
