@@ -378,9 +378,7 @@ private fun AddressFormFields(
                 imeAction = ImeAction.Done,
             ),
             singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .width(200.dp),
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }

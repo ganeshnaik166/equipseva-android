@@ -404,9 +404,9 @@ private fun FeaturedCard(part: SparePart, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .width(170.dp)
-            .clip(RoundedCornerShape(5.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(Surface0)
-            .border(1.dp, Surface200, RoundedCornerShape(5.dp))
+            .border(1.dp, Surface200, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
     ) {
         GradientTile(
