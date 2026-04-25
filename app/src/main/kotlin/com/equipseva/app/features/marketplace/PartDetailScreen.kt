@@ -285,12 +285,50 @@ private fun Hero(
     onReport: () -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxWidth()) {
-        GradientTile(
-            icon = categoryIcon(part.category),
-            hue = categoryHue(part.category),
-            size = 390.dp,
-            modifier = Modifier.align(Alignment.Center),
-        )
+        if (part.imageUrls.isNotEmpty()) {
+            val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { part.imageUrls.size })
+            androidx.compose.foundation.pager.HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(390.dp),
+            ) { page ->
+                coil3.compose.AsyncImage(
+                    model = part.imageUrls[page],
+                    contentDescription = null,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.fillMaxWidth().height(390.dp),
+                )
+            }
+            // Dot indicator
+            if (part.imageUrls.size > 1) {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    repeat(part.imageUrls.size) { index ->
+                        val active = pagerState.currentPage == index
+                        Box(
+                            modifier = Modifier
+                                .size(if (active) 8.dp else 6.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(
+                                    if (active) BrandGreen else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.6f),
+                                ),
+                        )
+                    }
+                }
+            }
+        } else {
+            GradientTile(
+                icon = categoryIcon(part.category),
+                hue = categoryHue(part.category),
+                size = 390.dp,
+                modifier = Modifier.align(Alignment.Center),
+            )
+        }
 
         // Left overlay: back
         Row(

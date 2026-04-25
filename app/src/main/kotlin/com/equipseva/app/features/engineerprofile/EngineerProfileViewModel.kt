@@ -34,6 +34,9 @@ class EngineerProfileViewModel @Inject constructor(
         val specializations: String = "",
         val bio: String = "",
         val isAvailable: Boolean = true,
+        val ratingAvg: Double? = null,
+        val totalJobs: Int? = null,
+        val completionRate: Double? = null,
     ) {
         val canSave: Boolean
             get() = !saving && !loading && validate() == null
@@ -158,6 +161,9 @@ class EngineerProfileViewModel @Inject constructor(
                             specializations = engineer.specializations.joinToString(", ") { spec -> spec.storageKey },
                             bio = engineer.bio.orEmpty(),
                             isAvailable = engineer.isAvailable,
+                            ratingAvg = engineer.ratingAvg,
+                            totalJobs = engineer.totalJobs,
+                            completionRate = engineer.completionRate,
                         )
                     }
                 }

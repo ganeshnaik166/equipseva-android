@@ -39,6 +39,7 @@ class UserPrefs @Inject constructor(
         val ONBOARDING_DONE = stringPreferencesKey("onboarding_done")
         val FAVORITES = stringSetPreferencesKey("favorites")
         val MUTED_PUSH_CATEGORIES = stringSetPreferencesKey("muted_push_categories")
+        val RECENTLY_VIEWED = stringPreferencesKey("recently_viewed_parts")
         val TOUR_SEEN = booleanPreferencesKey("tour_seen")
         val QUIET_HOURS_ENABLED = booleanPreferencesKey("quiet_hours_enabled")
         val QUIET_HOURS_START_MINUTES = intPreferencesKey("quiet_hours_start_minutes")
@@ -104,6 +105,31 @@ class UserPrefs @Inject constructor(
     suspend fun setFavorites(ids: Set<String>) {
         securePrefs.putStringSet(SecureKeys.FAVORITES, ids)
         context.prefsStore.edit { it.remove(Keys.FAVORITES) }
+    }
+
+    /**
+     * Recently-viewed part IDs (most-recent first, capped at 8). Backed by a
+     * comma-separated string in DataStore — small enough that a CSV is cheaper
+     * than maintaining a stringSet's order.
+     */
+    val recentlyViewedParts: Flow<List<String>> =
+        context.prefsStore.data.map {
+            it[Keys.RECENTLY_VIEWED]
+                ?.split(',')
+                ?.filter { id -> id.isNotBlank() }
+                .orEmpty()
+        }
+
+    suspend fun addRecentlyViewedPart(partId: String) {
+        if (partId.isBlank()) return
+        context.prefsStore.edit { prefs ->
+            val current = prefs[Keys.RECENTLY_VIEWED]
+                ?.split(',')
+                ?.filter { it.isNotBlank() && it != partId }
+                .orEmpty()
+            val next = (listOf(partId) + current).take(8)
+            prefs[Keys.RECENTLY_VIEWED] = next.joinToString(",")
+        }
     }
 
     /**
