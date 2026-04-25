@@ -9,6 +9,8 @@ import com.equipseva.app.MainActivity
 import com.equipseva.app.R
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.util.QuietHours
+import com.equipseva.app.navigation.DeepLinkRouter
+import com.equipseva.app.navigation.NotificationDeepLink
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
@@ -61,10 +63,21 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
         val title = message.notification?.title ?: data["title"] ?: getString(R.string.app_name)
         val body = message.notification?.body ?: data["body"].orEmpty()
 
+        // Resolve a deep-link route from the (kind, data) tuple the server
+        // attached. Unknown / missing kinds fall through to MainActivity's
+        // default landing — the user will see the inbox via normal app flow.
+        val route = NotificationDeepLink.routeFor(data["kind"], data)
+        val launchIntent = Intent(this, MainActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            .apply {
+                if (route != null) putExtra(DeepLinkRouter.EXTRA_ROUTE, route)
+            }
         val pendingIntent = PendingIntent.getActivity(
             this,
-            0,
-            Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            // Distinct request codes per message keep extras from being
+            // collapsed by FLAG_UPDATE_CURRENT across simultaneous pushes.
+            message.messageId.hashCode(),
+            launchIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 

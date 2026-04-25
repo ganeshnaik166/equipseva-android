@@ -160,6 +160,12 @@ fun MainNavGraph(
                     navController.navigate(Routes.ORDERS)
                     showSnackbar("Order not found")
                 }
+                is DeepLinkHost.VerifiedEvent.OpenRoute -> {
+                    // Route comes pre-resolved from NotificationDeepLink; the
+                    // server-emitted (kind, data) was mapped to a known
+                    // Routes helper before the PendingIntent fired.
+                    navController.navigate(event.route)
+                }
             }
         }
     }
@@ -349,11 +355,16 @@ fun MainNavGraph(
                 NotificationsScreen(
                     onBack = { navController.popBackStack() },
                     onOpenSettings = { navController.navigate(Routes.NOTIFICATION_SETTINGS) },
+                    onOpenRoute = { route ->
+                        // Resolver already produced a valid Routes.* string —
+                        // hand it straight to NavController.
+                        navController.navigate(route)
+                    },
                     onOpenDeepLink = { link ->
-                        // Best-effort routing for the inbox: only honour
-                        // app-internal deep-link shapes we already trust.
-                        // Anything else falls through silently — users still
-                        // got a row tap that marks the notification read.
+                        // Legacy path for rows that pre-date kind-based push
+                        // (server PR #192). Only honour app-internal shapes
+                        // we already trust; anything else falls through
+                        // silently — the row tap already marked it read.
                         routeNotificationDeepLink(link, navController, showSnackbar)
                     },
                 )
