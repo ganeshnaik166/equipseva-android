@@ -24,6 +24,7 @@ import com.equipseva.app.designsystem.theme.Surface50
 fun ManufacturerHome(
     name: String,
     organization: String?,
+    data: com.equipseva.app.features.home.HomeViewModel.DashboardData,
     onCardClick: (key: String) -> Unit,
 ) {
     Column(
@@ -40,7 +41,7 @@ fun ManufacturerHome(
 
         GradientHero(
             eyebrow = "Win rate (30 days)",
-            bigValue = "42",
+            bigValue = data.winRatePct.toString(),
             valueSuffix = "% of bids accepted",
             body = "Tap into analytics to see win-rate trends, top categories, and pipeline value.",
             cta = "Open analytics",
@@ -51,22 +52,22 @@ fun ManufacturerHome(
             tiles = listOf(
                 StatTile(
                     icon = Icons.AutoMirrored.Filled.Assignment,
-                    value = "12",
+                    value = data.assignedRfqsCount.toString(),
                     label = "RFQs assigned",
                     hue = 280,
                     onClick = { onCardClick("rfqs_assigned") },
                 ),
                 StatTile(
                     icon = Icons.AutoMirrored.Filled.TrendingUp,
-                    value = "₹3.4L",
+                    value = formatRupees(data.pipelineValueRupees),
                     label = "Pipeline",
                     hue = 200,
                     onClick = { onCardClick("lead_pipeline") },
                 ),
                 StatTile(
                     icon = Icons.Filled.Payments,
-                    value = "₹1.1L",
-                    label = "Revenue MTD",
+                    value = "${data.winRatePct}%",
+                    label = "Win rate",
                     hue = 150,
                     onClick = { onCardClick("analytics") },
                 ),

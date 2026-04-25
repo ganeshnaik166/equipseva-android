@@ -555,3 +555,14 @@ internal fun TipCard(
 internal fun DashboardSpacer(height: androidx.compose.ui.unit.Dp = Spacing.sm) {
     Box(modifier = Modifier.height(height).width(1.dp))
 }
+
+/** Compact rupee formatter for stat tiles — short form (₹24.5k, ₹1.2L, ₹3.4Cr). */
+internal fun formatRupees(value: Double): String {
+    if (value <= 0.0) return "₹0"
+    return when {
+        value >= 1_00_00_000 -> "₹%.1fCr".format(value / 1_00_00_000.0)
+        value >= 1_00_000 -> "₹%.1fL".format(value / 1_00_000.0)
+        value >= 1_000 -> "₹%.1fk".format(value / 1_000.0)
+        else -> "₹${value.toInt()}"
+    }
+}
