@@ -120,4 +120,16 @@ object Routes {
     // DataStore). Split from the inbox so the two surfaces can evolve
     // independently — the inbox is read-side data; settings is local prefs.
     const val NOTIFICATION_SETTINGS = "notifications/settings"
+
+    // Founder admin surfaces. Email-pinned to ganesh1431.dhanavath@gmail.com
+    // via Profile.isFounder(); server-side enforcement happens via the
+    // is_founder() SQL function on every privileged RPC. Hidden on the
+    // bottom nav for non-founders; entered from a Profile row for the
+    // founder.
+    const val FOUNDER_DASHBOARD = "founder/dashboard"
+    const val FOUNDER_KYC_QUEUE = "founder/kyc"
+    const val FOUNDER_REPORTS_QUEUE = "founder/reports"
+    const val FOUNDER_USERS = "founder/users"
+    const val FOUNDER_PAYMENTS = "founder/payments"
+    const val FOUNDER_INTEGRITY = "founder/integrity"
 }

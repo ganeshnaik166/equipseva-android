@@ -28,6 +28,20 @@ data class Profile(
             .filter { it.isNotBlank() }
             .joinToString(", ")
             .ifBlank { null }
+
+    /**
+     * Email-pinned founder check. Pure-client heuristic for surfacing the
+     * Founder dashboard tab — server-side enforcement still happens via
+     * `is_founder()` SQL function (which checks `auth.email()`) on every
+     * privileged RPC. So flipping this to true on a non-founder client only
+     * shows them an empty dashboard with no actionable rows.
+     */
+    fun isFounder(): Boolean =
+        email?.equals(FOUNDER_EMAIL, ignoreCase = true) == true
+
+    companion object {
+        const val FOUNDER_EMAIL = "ganesh1431.dhanavath@gmail.com"
+    }
 }
 
 internal fun ProfileDto.toDomain(): Profile = Profile(

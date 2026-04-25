@@ -3,10 +3,15 @@ package com.equipseva.app.navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -123,6 +128,12 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.NOTIFICATION_SETTINGS,
     Routes.FAVORITES,
     Routes.TOUR,
+    Routes.FOUNDER_DASHBOARD,
+    Routes.FOUNDER_KYC_QUEUE,
+    Routes.FOUNDER_REPORTS_QUEUE,
+    Routes.FOUNDER_USERS,
+    Routes.FOUNDER_PAYMENTS,
+    Routes.FOUNDER_INTEGRITY,
 )
 
 @Composable
@@ -349,6 +360,7 @@ fun MainNavGraph(
                     onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                     onOpenChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
                     onOpenChangeEmail = { navController.navigate(Routes.CHANGE_EMAIL) },
+                    onOpenFounderDashboard = { navController.navigate(Routes.FOUNDER_DASHBOARD) },
                 )
             }
             composable(Routes.NOTIFICATIONS) {
@@ -583,6 +595,60 @@ fun MainNavGraph(
                             restoreState = true
                         }
                     },
+                )
+            }
+            // Founder admin dashboard surfaces. Email-pinned via
+            // Profile.isFounder(); the Profile screen renders a "Founder
+            // dashboard" row only for the founder, so non-founders never
+            // navigate here. Server-side `is_founder()` SQL gate is the
+            // ultimate enforcement.
+            composable(Routes.FOUNDER_DASHBOARD) {
+                com.equipseva.app.features.founder.FounderDashboardScreen(
+                    onOpenKycQueue = { navController.navigate(Routes.FOUNDER_KYC_QUEUE) },
+                    onOpenReportsQueue = { navController.navigate(Routes.FOUNDER_REPORTS_QUEUE) },
+                    onOpenUsers = { navController.navigate(Routes.FOUNDER_USERS) },
+                    onOpenPayments = { navController.navigate(Routes.FOUNDER_PAYMENTS) },
+                    onOpenIntegrityFlags = { navController.navigate(Routes.FOUNDER_INTEGRITY) },
+                )
+            }
+            composable(Routes.FOUNDER_KYC_QUEUE) {
+                com.equipseva.app.features.founder.FounderPlaceholderScreen(
+                    title = "KYC queue",
+                    subtitle = "Approve / reject pending engineer + supplier verifications.",
+                    icon = Icons.Filled.VerifiedUser,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.FOUNDER_REPORTS_QUEUE) {
+                com.equipseva.app.features.founder.FounderPlaceholderScreen(
+                    title = "Content reports",
+                    subtitle = "User-flagged listings, RFQs, jobs, and chat content.",
+                    icon = Icons.Filled.Flag,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.FOUNDER_USERS) {
+                com.equipseva.app.features.founder.FounderPlaceholderScreen(
+                    title = "All users",
+                    subtitle = "Search profiles, see roles, force role changes.",
+                    icon = Icons.Filled.Group,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.FOUNDER_PAYMENTS) {
+                com.equipseva.app.features.founder.FounderPlaceholderScreen(
+                    title = "Payments",
+                    subtitle = "Razorpay transactions, refunds, payout queue.",
+                    icon = Icons.Filled.Payments,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.FOUNDER_INTEGRITY) {
+                com.equipseva.app.features.founder.FounderPlaceholderScreen(
+                    title = "Integrity flags",
+                    subtitle = "Play-Integrity failures, signature mismatches, root/emulator hits.",
+                    icon = Icons.Filled.Security,
+                    onBack = { navController.popBackStack() },
                 )
             }
         }

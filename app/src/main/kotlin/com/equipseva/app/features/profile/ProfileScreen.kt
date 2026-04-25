@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.CheckCircle
@@ -107,6 +108,7 @@ fun ProfileScreen(
     onOpenBankDetails: () -> Unit = {},
     onOpenAddresses: () -> Unit = {},
     onOpenHospitalSettings: () -> Unit = {},
+    onOpenFounderDashboard: () -> Unit = {},
     onOpenChangePassword: () -> Unit = {},
     onOpenChangeEmail: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -162,6 +164,7 @@ fun ProfileScreen(
                         onOpenBankDetails = onOpenBankDetails,
                         onOpenAddresses = onOpenAddresses,
                         onOpenHospitalSettings = onOpenHospitalSettings,
+                        onOpenFounderDashboard = onOpenFounderDashboard,
                         onDeleteAccount = viewModel::onOpenDeleteAccount,
                         onExportData = viewModel::onExportMyData,
                         onOpenChangePassword = onOpenChangePassword,
@@ -231,6 +234,7 @@ private fun ProfileContent(
     onOpenBankDetails: () -> Unit,
     onOpenAddresses: () -> Unit,
     onOpenHospitalSettings: () -> Unit,
+    onOpenFounderDashboard: () -> Unit,
     onDeleteAccount: () -> Unit,
     onExportData: () -> Unit,
     onOpenChangePassword: () -> Unit,
@@ -239,6 +243,7 @@ private fun ProfileContent(
     val profile = state.profile!!
     val isEngineer = profile.role == UserRole.ENGINEER
     val isHospital = profile.role == UserRole.HOSPITAL
+    val isFounder = profile.isFounder()
 
     Column(
         modifier = Modifier
@@ -285,6 +290,7 @@ private fun ProfileContent(
                 rows = buildSettingsRows(
                     isEngineer = isEngineer,
                     isHospital = isHospital,
+                    isFounder = isFounder,
                     themeMode = themeMode,
                     onOpenSettings = onOpenSettings,
                     onOpenVerification = onOpenVerification,
@@ -296,6 +302,7 @@ private fun ProfileContent(
                     onOpenBankDetails = onOpenBankDetails,
                     onOpenAddresses = onOpenAddresses,
                     onOpenHospitalSettings = onOpenHospitalSettings,
+                    onOpenFounderDashboard = onOpenFounderDashboard,
                     onOpenChangePassword = onOpenChangePassword,
                     onOpenChangeEmail = onOpenChangeEmail,
                     onSignOut = onSignOut,
@@ -326,6 +333,7 @@ private data class SettingsRow(
 private fun buildSettingsRows(
     isEngineer: Boolean,
     isHospital: Boolean,
+    isFounder: Boolean,
     themeMode: ThemeMode,
     onOpenSettings: () -> Unit,
     onOpenVerification: () -> Unit,
@@ -337,6 +345,7 @@ private fun buildSettingsRows(
     onOpenBankDetails: () -> Unit,
     onOpenAddresses: () -> Unit,
     onOpenHospitalSettings: () -> Unit,
+    onOpenFounderDashboard: () -> Unit,
     onOpenChangePassword: () -> Unit,
     onOpenChangeEmail: () -> Unit,
     onSignOut: () -> Unit,
@@ -347,6 +356,15 @@ private fun buildSettingsRows(
     exportingData: Boolean,
 ): List<SettingsRow> {
     val rows = mutableListOf<SettingsRow>()
+    if (isFounder) {
+        rows += SettingsRow(
+            icon = Icons.Filled.AdminPanelSettings,
+            label = "Founder dashboard",
+            chipLabel = "Founder",
+            chipTone = StatusTone.Success,
+            onClick = onOpenFounderDashboard,
+        )
+    }
     rows += SettingsRow(
         icon = Icons.Filled.Person,
         label = "Personal info",
