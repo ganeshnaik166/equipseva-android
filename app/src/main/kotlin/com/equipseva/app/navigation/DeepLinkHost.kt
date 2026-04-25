@@ -3,8 +3,10 @@ package com.equipseva.app.navigation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.orders.OrderRepository
+import com.equipseva.app.core.data.prefs.UserPrefs
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -21,7 +23,14 @@ import javax.inject.Inject
 class DeepLinkHost @Inject constructor(
     router: DeepLinkRouter,
     private val orderRepository: OrderRepository,
+    userPrefs: UserPrefs,
 ) : ViewModel() {
+
+    /**
+     * Active-role flow exposed off the existing nav-host so MainNavGraph can
+     * role-dispatch tabs (Repair, etc.) without spinning up a second VM.
+     */
+    val activeRole: Flow<String?> = userPrefs.activeRole
 
     sealed interface VerifiedEvent {
         data class OpenOrder(val orderId: String) : VerifiedEvent

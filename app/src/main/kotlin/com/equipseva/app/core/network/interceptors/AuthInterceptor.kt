@@ -31,7 +31,9 @@ class AuthInterceptor @Inject constructor(
         if (expected == null || targetHost != expected) {
             return chain.proceed(request)
         }
-        val token = runCatching { supabase.auth.currentAccessTokenOrNull() }.getOrNull()
+        val token = runCatching { supabase.auth.currentAccessTokenOrNull() }
+            .onFailure { android.util.Log.w("AuthInterceptor", "currentAccessTokenOrNull threw: ${it.message}") }
+            .getOrNull()
         val out = if (!token.isNullOrBlank()) {
             request.newBuilder().header("Authorization", "Bearer $token").build()
         } else {

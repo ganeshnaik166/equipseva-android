@@ -19,6 +19,12 @@ interface AuthRepository {
     suspend fun updatePassword(newPassword: String): Result<Unit>
     suspend fun updateEmail(newEmail: String): Result<Unit>
     suspend fun signOut(): Result<Unit>
+    /**
+     * Force-refresh the current JWT. Best-effort: returns failure if there's no
+     * session or the refresh endpoint errors. Used before privileged RPCs (e.g.
+     * create-razorpay-order) so the cached JWT doesn't go stale on long-idle apps.
+     */
+    suspend fun refreshSession(): Result<Unit>
 }
 
 sealed interface AuthSession {

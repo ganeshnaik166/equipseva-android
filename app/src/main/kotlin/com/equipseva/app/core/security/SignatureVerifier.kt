@@ -32,7 +32,9 @@ object SignatureVerifier {
             return Verdict.Unknown
         }
 
-        val actual = runCatching { currentCertSha256(context) }.getOrNull()
+        val actual = runCatching { currentCertSha256(context) }
+            .onFailure { Log.w(TAG, "currentCertSha256 threw: ${it::class.simpleName} ${it.message}") }
+            .getOrNull()
         if (actual == null) {
             Log.w(TAG, "Could not read signing certificate; treating as unknown.")
             return Verdict.Unknown
