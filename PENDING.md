@@ -68,7 +68,7 @@ Legend: 🔴 blocker · 🟠 needs attention · 🟡 nice-to-have · ⚪ beyond 
 41. **DPDP: `delete_my_account` RPC** — needed.
 42. **DPDP: `export_my_data` RPC** — needed.
 43. **Content moderation moderation table** + RPC + admin queue — needed for #21-22.
-44. **Play Integrity verifier Edge Function** — we collect the token client-side (see `PlayIntegrityClient.kt`), but no server-side verifier.
+44. ~~**Play Integrity verifier Edge Function**~~ — server side shipped: `supabase/functions/verify-play-integrity` + `device_integrity_checks` audit table. Client integration is a follow-up.
 
 ---
 
