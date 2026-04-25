@@ -216,14 +216,14 @@ private fun UnreadBadge(count: Int) {
             .padding(start = 8.dp)
             .size(20.dp)
             .clip(CircleShape)
-            .background(BrandGreen),
+            .background(MaterialTheme.colorScheme.primary),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onPrimary,
         )
     }
 }

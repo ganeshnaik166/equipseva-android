@@ -31,7 +31,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -41,7 +40,6 @@ import com.equipseva.app.designsystem.components.AuthScaffold
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.PrimaryButton
-import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.Ink400
 import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Ink900
@@ -108,7 +106,7 @@ private fun RoleCard(
 ) {
     val visual = role.visual()
     val border = if (selected) {
-        BorderStroke(2.dp, BrandGreen)
+        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
     } else {
         BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     }
@@ -160,13 +158,13 @@ private fun SelectionMark(selected: Boolean) {
         Box(
             modifier = Modifier
                 .size(24.dp)
-                .background(BrandGreen, CircleShape),
+                .background(MaterialTheme.colorScheme.primary, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Filled.Check,
                 contentDescription = "Selected",
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(14.dp),
             )
         }

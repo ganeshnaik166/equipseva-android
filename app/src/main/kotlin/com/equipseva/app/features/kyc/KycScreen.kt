@@ -488,8 +488,8 @@ private fun ReuploadCta(onClick: () -> Unit) {
                 onClick = onClick,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = ErrorRed,
-                    contentColor = Color.White,
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError,
                 ),
             ) {
                 Icon(
@@ -671,7 +671,7 @@ private fun KycBottomBar(
                 CircularProgressIndicator(
                     modifier = Modifier.size(18.dp),
                     strokeWidth = 2.dp,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                 )
                 Spacer(Modifier.size(Spacing.sm))
                 Text("Saving…")

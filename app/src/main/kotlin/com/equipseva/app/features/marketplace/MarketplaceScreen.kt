@@ -327,9 +327,9 @@ private fun CategoryChip(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val bg = if (selected) BrandGreen else Surface0
-    val fg = if (selected) Color.White else Ink700
-    val border = if (selected) BrandGreen else Surface200
+    val bg = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+    val fg = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+    val border = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
 
     Row(
         modifier = Modifier

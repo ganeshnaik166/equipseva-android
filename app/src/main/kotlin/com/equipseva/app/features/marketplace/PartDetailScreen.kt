@@ -324,7 +324,7 @@ private fun OverlayIconButton(
         modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.9f))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) { content() }
