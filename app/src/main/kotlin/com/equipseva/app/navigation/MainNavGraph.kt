@@ -739,10 +739,7 @@ fun MainNavGraph(
                 )
             }
             composable(Routes.FOUNDER_REPORTS_QUEUE) {
-                com.equipseva.app.features.founder.FounderPlaceholderScreen(
-                    title = "Content reports",
-                    subtitle = "User-flagged listings, RFQs, jobs, and chat content.",
-                    icon = Icons.Filled.Flag,
+                com.equipseva.app.features.founder.FounderReportsQueueScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
