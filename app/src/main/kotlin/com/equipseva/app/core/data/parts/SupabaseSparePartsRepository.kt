@@ -17,6 +17,7 @@ class SupabaseSparePartsRepository @Inject constructor(
         sort: MarketplaceSort,
         page: Int,
         pageSize: Int,
+        listingType: String?,
     ): Result<List<SparePart>> = runCatching {
         val from = (page.coerceAtLeast(0)).toLong() * pageSize
         val to = from + pageSize - 1
@@ -25,6 +26,7 @@ class SupabaseSparePartsRepository @Inject constructor(
             filter {
                 eq("is_active", true)
                 category?.let { eq("category", it.storageKey) }
+                listingType?.takeIf { it.isNotBlank() }?.let { eq("listing_type", it) }
                 if (!query.isNullOrBlank()) {
                     val needle = query.trim().sanitizeForIlike()
                     or {

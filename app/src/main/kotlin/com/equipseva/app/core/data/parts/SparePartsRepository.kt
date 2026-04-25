@@ -15,6 +15,11 @@ interface SparePartsRepository {
         sort: MarketplaceSort = MarketplaceSort.Relevance,
         page: Int = 0,
         pageSize: Int = 20,
+        /**
+         * Filter by listing_type: "spare_part" or "equipment". Null = no
+         * filter (umbrella view). Drives the Marketplace vs Parts tab split.
+         */
+        listingType: String? = null,
     ): Result<List<SparePart>>
 
     /** Fetch a single part by id. Returns `null` if not found / inactive. */
