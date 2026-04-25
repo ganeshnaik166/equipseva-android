@@ -7,6 +7,7 @@ import com.equipseva.app.core.data.orders.Order
 import com.equipseva.app.core.data.orders.OrderRepository
 import com.equipseva.app.core.data.orders.OrderStatus
 import com.equipseva.app.core.data.reviews.OrderReviewRepository
+import com.equipseva.app.core.invoices.InvoiceDownloader
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,6 +25,7 @@ class OrderDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val orderRepository: OrderRepository,
     private val reviewRepository: OrderReviewRepository,
+    private val invoiceDownloader: InvoiceDownloader,
 ) : ViewModel() {
 
     data class UiState(
@@ -136,6 +138,28 @@ class OrderDetailViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    fun onDownloadInvoice() {
+        val current = _state.value.order ?: return
+        val url = current.invoiceUrl
+        if (url.isNullOrBlank()) {
+            viewModelScope.launch {
+                _effects.send(Effect.ShowMessage("Invoice not ready yet — try again in a minute"))
+            }
+            return
+        }
+        runCatching { invoiceDownloader.download(current.orderNumber ?: current.id, url) }
+            .onSuccess {
+                viewModelScope.launch {
+                    _effects.send(Effect.ShowMessage("Invoice downloading to your phone"))
+                }
+            }
+            .onFailure { error ->
+                viewModelScope.launch {
+                    _effects.send(Effect.ShowMessage(error.toUserMessage()))
+                }
+            }
     }
 
     private suspend fun loadOrder() {
