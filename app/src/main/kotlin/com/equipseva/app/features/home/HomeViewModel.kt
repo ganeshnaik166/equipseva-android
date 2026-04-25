@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.features.auth.UserRole
@@ -12,7 +13,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -24,6 +26,7 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
+    private val userPrefs: UserPrefs,
 ) : ViewModel() {
 
     data class UiState(
@@ -44,11 +47,19 @@ class HomeViewModel @Inject constructor(
     val effects = _effects.receiveAsFlow()
 
     init {
+        // Combine sign-in state with the active-role pref so that flipping the
+        // role from the Profile screen re-emits and the dispatcher swaps to the
+        // new role's dashboard without needing a navigation event.
         viewModelScope.launch {
-            authRepository.sessionState
-                .filterIsInstance<AuthSession.SignedIn>()
-                .distinctUntilChangedBy { it.userId }
-                .collect { load(it.userId) }
+            combine(
+                authRepository.sessionState
+                    .filterIsInstance<AuthSession.SignedIn>(),
+                userPrefs.activeRole.distinctUntilChanged(),
+            ) { session, activeRoleKey -> session.userId to activeRoleKey }
+                .distinctUntilChanged()
+                .collect { (userId, activeRoleKey) ->
+                    load(userId, activeRoleOverride = activeRoleKey)
+                }
         }
     }
 
@@ -56,20 +67,30 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val current = authRepository.sessionState.first()
             if (current is AuthSession.SignedIn) {
-                load(current.userId)
+                val activeRole = userPrefs.activeRole.first()
+                load(current.userId, activeRoleOverride = activeRole)
             }
         }
     }
 
-    private suspend fun load(userId: String) {
+    /**
+     * Pulls the canonical Profile row (for greeting name + canonical role) and
+     * prefers the locally-cached `activeRole` when it's set. The cache is
+     * written by the Profile role-editor on a successful update, so the
+     * dispatcher swaps before the next round-trip.
+     */
+    private suspend fun load(userId: String, activeRoleOverride: String?) {
         _state.update { it.copy(loading = true, errorMessage = null) }
         profileRepository.fetchById(userId)
             .onSuccess { profile ->
+                val cachedRole = activeRoleOverride
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { UserRole.fromKey(it) }
                 _state.update {
                     it.copy(
                         loading = false,
                         greetingName = profile?.displayName ?: "there",
-                        role = profile?.role,
+                        role = cachedRole ?: profile?.role,
                         errorMessage = null,
                     )
                 }

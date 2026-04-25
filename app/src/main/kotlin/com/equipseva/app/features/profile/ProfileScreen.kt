@@ -104,6 +104,9 @@ fun ProfileScreen(
     onOpenAbout: () -> Unit = {},
     onOpenFavorites: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
+    onOpenBankDetails: () -> Unit = {},
+    onOpenAddresses: () -> Unit = {},
+    onOpenHospitalSettings: () -> Unit = {},
     onOpenChangePassword: () -> Unit = {},
     onOpenChangeEmail: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -156,6 +159,9 @@ fun ProfileScreen(
                         onOpenAbout = onOpenAbout,
                         onOpenFavorites = onOpenFavorites,
                         onOpenNotifications = onOpenNotifications,
+                        onOpenBankDetails = onOpenBankDetails,
+                        onOpenAddresses = onOpenAddresses,
+                        onOpenHospitalSettings = onOpenHospitalSettings,
                         onDeleteAccount = viewModel::onOpenDeleteAccount,
                         onExportData = viewModel::onExportMyData,
                         onOpenChangePassword = onOpenChangePassword,
@@ -222,6 +228,9 @@ private fun ProfileContent(
     onOpenAbout: () -> Unit,
     onOpenFavorites: () -> Unit,
     onOpenNotifications: () -> Unit,
+    onOpenBankDetails: () -> Unit,
+    onOpenAddresses: () -> Unit,
+    onOpenHospitalSettings: () -> Unit,
     onDeleteAccount: () -> Unit,
     onExportData: () -> Unit,
     onOpenChangePassword: () -> Unit,
@@ -283,6 +292,10 @@ private fun ProfileContent(
                     onOpenAbout = onOpenAbout,
                     onOpenFavorites = onOpenFavorites,
                     onOpenNotifications = onOpenNotifications,
+                    onOpenPersonalInfo = onEditProfile,
+                    onOpenBankDetails = onOpenBankDetails,
+                    onOpenAddresses = onOpenAddresses,
+                    onOpenHospitalSettings = onOpenHospitalSettings,
                     onOpenChangePassword = onOpenChangePassword,
                     onOpenChangeEmail = onOpenChangeEmail,
                     onSignOut = onSignOut,
@@ -320,6 +333,10 @@ private fun buildSettingsRows(
     onOpenAbout: () -> Unit,
     onOpenFavorites: () -> Unit,
     onOpenNotifications: () -> Unit,
+    onOpenPersonalInfo: () -> Unit,
+    onOpenBankDetails: () -> Unit,
+    onOpenAddresses: () -> Unit,
+    onOpenHospitalSettings: () -> Unit,
     onOpenChangePassword: () -> Unit,
     onOpenChangeEmail: () -> Unit,
     onSignOut: () -> Unit,
@@ -333,7 +350,9 @@ private fun buildSettingsRows(
     rows += SettingsRow(
         icon = Icons.Filled.Person,
         label = "Personal info",
-        onClick = onOpenMessages, // messages row retained as generic "open" target for now
+        // Routes to the existing edit-profile modal (full name, phone, avatar).
+        // Previously this row called onOpenMessages — wrong target.
+        onClick = onOpenPersonalInfo,
     )
     rows += SettingsRow(
         icon = Icons.Outlined.Notifications,
@@ -344,7 +363,7 @@ private fun buildSettingsRows(
         rows += SettingsRow(
             icon = Icons.Filled.AccountBalance,
             label = "Bank details",
-            onClick = onOpenFavorites,
+            onClick = onOpenBankDetails,
         )
         rows += SettingsRow(
             icon = Icons.Outlined.VerifiedUser,
@@ -357,19 +376,14 @@ private fun buildSettingsRows(
         rows += SettingsRow(
             icon = Icons.Filled.LocationOn,
             label = "Addresses",
-            onClick = onOpenFavorites,
+            onClick = onOpenAddresses,
         )
         rows += SettingsRow(
             icon = Icons.Filled.LocalHospital,
             label = "Hospital settings",
-            onClick = onOpenMessages,
+            onClick = onOpenHospitalSettings,
         )
     }
-    rows += SettingsRow(
-        icon = Icons.Filled.Translate,
-        label = "Language",
-        trailing = "English",
-    )
     rows += SettingsRow(
         icon = Icons.Outlined.Palette,
         label = "Appearance",

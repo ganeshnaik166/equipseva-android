@@ -60,7 +60,7 @@ internal data class EngineerProfileUpsertDto(
     @SerialName("hourly_rate") val hourlyRate: Double,
     @SerialName("years_experience") val yearsExperience: Int,
     @SerialName("service_areas") val serviceAreas: List<String>,
-    val specializations: List<String>,
-    val bio: String,
+    @SerialName("specializations") val specializations: List<String>,
+    @SerialName("bio") val bio: String,
     @SerialName("is_available") val isAvailable: Boolean,
 )
