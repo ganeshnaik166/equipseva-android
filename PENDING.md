@@ -68,7 +68,7 @@ Legend: 🔴 blocker · 🟠 needs attention · 🟡 nice-to-have · ⚪ beyond 
 41. **DPDP: `delete_my_account` RPC** — needed.
 42. **DPDP: `export_my_data` RPC** — needed.
 43. **Content moderation moderation table** + RPC + admin queue — needed for #21-22.
-44. ~~**Play Integrity verifier Edge Function**~~ — server side shipped: `supabase/functions/verify-play-integrity` + `device_integrity_checks` audit table. Client integration is a follow-up.
+44. ~~**Play Integrity verifier Edge Function + client wire-up**~~ — server side shipped: `supabase/functions/verify-play-integrity` + `device_integrity_checks` audit table. Client wired in `core/security/PlayIntegrityClient` and gated on Checkout (`onPlaceOrder`) + KYC (`KycViewModel.save`); engineer payout/withdraw flow doesn't exist yet (Earnings is read-only) so a third gate is intentionally deferred.
 
 ---
 

@@ -214,6 +214,10 @@ dependencies {
     // EncryptedSharedPreferences for role + onboarding + favorites (see SecurePrefs).
     implementation(libs.androidx.security.crypto)
 
+    // Google Play Integrity API — client side of verify-play-integrity Edge Function.
+    // Token request happens on-device, server-side decode happens in the Edge Function.
+    implementation(libs.play.integrity)
+
     // Test
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

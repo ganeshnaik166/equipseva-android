@@ -19,6 +19,7 @@ import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.payments.PaymentResult
 import com.equipseva.app.core.payments.PaymentVerificationRepository
 import com.equipseva.app.core.payments.RazorpayLauncher
+import com.equipseva.app.core.security.PlayIntegrityClient
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,6 +41,7 @@ class CheckoutViewModel @Inject constructor(
     private val orderRepository: OrderRepository,
     private val razorpayLauncher: RazorpayLauncher,
     private val paymentVerification: PaymentVerificationRepository,
+    private val playIntegrityClient: PlayIntegrityClient,
 ) : ViewModel() {
 
     data class FormState(
@@ -163,6 +165,19 @@ class CheckoutViewModel @Inject constructor(
 
         _state.update { it.copy(submitting = true, errorMessage = null) }
         viewModelScope.launch {
+            // Server-verified Play Integrity check before we mint a Razorpay
+            // order. On debug builds [requestVerification] always succeeds so
+            // devs can test without Play setup; on release a hard failure
+            // aborts checkout with FAILURE_MESSAGE.
+            val integrity = playIntegrityClient.requestVerification("checkout")
+            val pass = integrity.getOrDefault(false)
+            if (!pass) {
+                _state.update {
+                    it.copy(submitting = false, errorMessage = PlayIntegrityClient.FAILURE_MESSAGE)
+                }
+                emit(Effect.ShowMessage(PlayIntegrityClient.FAILURE_MESSAGE))
+                return@launch
+            }
             val draft = OrderDraft(
                 buyerUserId = uid,
                 supplierOrgId = supplierOrgId,
