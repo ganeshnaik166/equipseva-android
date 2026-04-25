@@ -50,10 +50,25 @@ class ConversationsViewModel @Inject constructor(
         val rows: List<Row> = emptyList(),
         val queuedCount: Int = 0,
         val errorMessage: String? = null,
-    )
+        val query: String = "",
+    ) {
+        val displayedRows: List<Row>
+            get() {
+                val q = query.trim()
+                if (q.isEmpty()) return rows
+                return rows.filter { row ->
+                    row.title.contains(q, ignoreCase = true) ||
+                        row.preview.contains(q, ignoreCase = true)
+                }
+            }
+    }
 
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
+
+    fun onQueryChange(value: String) {
+        _state.update { it.copy(query = value) }
+    }
 
     // Cache counterpart profiles so we don't re-fetch on every realtime tick.
     private val profileCache = mutableMapOf<String, Profile?>()

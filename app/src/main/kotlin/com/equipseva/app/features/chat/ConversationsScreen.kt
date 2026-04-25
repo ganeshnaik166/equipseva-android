@@ -18,6 +18,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -27,6 +29,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -97,6 +100,25 @@ fun ConversationsScreen(
                 modifier = Modifier.padding(horizontal = Spacing.lg),
             )
             QueuedPill(count = state.queuedCount)
+            if (!state.loading && state.rows.isNotEmpty()) {
+                OutlinedTextField(
+                    value = state.query,
+                    onValueChange = viewModel::onQueryChange,
+                    placeholder = { Text("Search conversations") },
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Ink500) },
+                    trailingIcon = if (state.query.isNotEmpty()) {
+                        {
+                            IconButton(onClick = { viewModel.onQueryChange("") }) {
+                                Icon(Icons.Filled.Clear, contentDescription = "Clear search", tint = Ink500)
+                            }
+                        }
+                    } else null,
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                )
+            }
             when {
                 state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
@@ -105,6 +127,11 @@ fun ConversationsScreen(
                     icon = Icons.Outlined.ChatBubbleOutline,
                     title = "No conversations yet",
                     subtitle = "Reach out from a repair job to start chatting.",
+                )
+                state.displayedRows.isEmpty() -> EmptyStateView(
+                    icon = Icons.Outlined.ChatBubbleOutline,
+                    title = "No matches",
+                    subtitle = "Try another name or word.",
                 )
                 else -> PullToRefreshBox(
                     isRefreshing = state.refreshing,
@@ -115,7 +142,7 @@ fun ConversationsScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(vertical = 0.dp),
                     ) {
-                        items(items = state.rows, key = { it.conversation.id }) { row ->
+                        items(items = state.displayedRows, key = { it.conversation.id }) { row ->
                             ConversationRow(
                                 row = row,
                                 onClick = { onConversationClick(row.conversation.id) },
