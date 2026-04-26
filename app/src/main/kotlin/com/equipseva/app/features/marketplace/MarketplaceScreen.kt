@@ -98,6 +98,7 @@ fun MarketplaceScreen(
     val listState = rememberLazyListState()
     val cartCount by viewModel.cartCount.collectAsStateWithLifecycle()
     val favorites by viewModel.favorites.collectAsStateWithLifecycle()
+    val categoryImages by viewModel.categoryImages.collectAsStateWithLifecycle()
     val recentlyViewed by viewModel.recentlyViewed.collectAsStateWithLifecycle()
 
     val reachedEnd by remember {
@@ -128,6 +129,7 @@ fun MarketplaceScreen(
         CategoryRow(
             selected = state.selectedCategory,
             onCategorySelected = viewModel::onCategorySelected,
+            imagesByKey = categoryImages,
         )
         SortRow(
             selected = state.sort,
@@ -284,6 +286,7 @@ private data class CatEntry(val category: PartCategory?, val label: String, val 
 private fun CategoryRow(
     selected: PartCategory?,
     onCategorySelected: (PartCategory?) -> Unit,
+    imagesByKey: Map<String, String?> = emptyMap(),
 ) {
     // Design: All / Imaging / Monitoring / Surgical / Consumables / Lab.
     // Android categories we actually have: Cardiology, ImagingRadiology, LifeSupport,
@@ -311,6 +314,7 @@ private fun CategoryRow(
             CategoryChip(
                 label = entry.label,
                 icon = entry.icon,
+                imageUrl = entry.category?.storageKey?.let { imagesByKey[it] },
                 selected = selected == entry.category,
                 onClick = {
                     if (entry.category == null || selected == entry.category) {
@@ -330,6 +334,7 @@ private fun CategoryChip(
     icon: ImageVector,
     selected: Boolean,
     onClick: () -> Unit,
+    imageUrl: String? = null,
 ) {
     val bg = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
     val fg = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
@@ -342,16 +347,29 @@ private fun CategoryChip(
             .background(bg)
             .border(1.dp, border, RoundedCornerShape(50))
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp),
+            .padding(start = 4.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = fg,
-            modifier = Modifier.size(16.dp),
-        )
+        if (!imageUrl.isNullOrBlank()) {
+            coil3.compose.AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(24.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape),
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            )
+        } else {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = fg,
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .size(16.dp),
+            )
+        }
         Text(
             text = label,
             fontSize = 13.sp,

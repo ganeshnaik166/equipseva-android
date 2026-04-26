@@ -36,6 +36,7 @@ class MarketplaceViewModel @Inject constructor(
     private val repository: SparePartsRepository,
     cartRepository: CartRepository,
     private val userPrefs: UserPrefs,
+    private val categoryRepository: com.equipseva.app.core.data.categories.EquipmentCategoryRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(MarketplaceUiState())
@@ -46,6 +47,10 @@ class MarketplaceViewModel @Inject constructor(
 
     val favorites: StateFlow<Set<String>> = userPrefs.favorites
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+
+    /** Per-category image URL keyed by storage key (e.g. "imaging_radiology" -> CDN url). */
+    private val _categoryImages = MutableStateFlow<Map<String, String?>>(emptyMap())
+    val categoryImages: StateFlow<Map<String, String?>> = _categoryImages.asStateFlow()
 
     /**
      * Last 8 part IDs the user opened, hydrated to full SparePart rows so the
@@ -79,6 +84,14 @@ class MarketplaceViewModel @Inject constructor(
             .debounce(SEARCH_DEBOUNCE_MS)
             .onEach { refresh() }
             .launchIn(viewModelScope)
+
+        // Hydrate per-category image URLs once; reused across renders. Cache lives
+        // in the repo so cold-start to next-screen is fast.
+        viewModelScope.launch {
+            categoryRepository.fetch(scope = null).onSuccess { rows ->
+                _categoryImages.value = rows.associate { it.key to it.imageUrl }
+            }
+        }
     }
 
     fun onQueryChange(value: String) {

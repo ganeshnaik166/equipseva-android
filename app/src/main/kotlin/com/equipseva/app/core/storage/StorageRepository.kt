@@ -15,7 +15,12 @@ class StorageRepository @Inject constructor(
         const val INVOICES = "invoices"
         const val KYC_DOCS = "kyc-docs"
         const val CATALOG_IMAGES = "catalog-images"
+        const val CATEGORY_IMAGES = "category-images"
     }
+
+    /** Public URL for a bucket+path; only meaningful for buckets flagged public. */
+    fun publicUrl(bucket: String, path: String): String =
+        supabase.storage.from(bucket).publicUrl(path)
 
     /**
      * Uploads [bytes] to [bucket]/[path]. Enforces:
