@@ -98,6 +98,16 @@ class FounderRepository @Inject constructor(
     )
 
     @Serializable
+    data class CategoryRow(
+        @SerialName("key") val key: String,
+        @SerialName("display_name") val displayName: String,
+        @SerialName("scope") val scope: String,
+        @SerialName("sort_order") val sortOrder: Int = 100,
+        @SerialName("is_active") val isActive: Boolean = true,
+        @SerialName("updated_at") val updatedAt: String? = null,
+    )
+
+    @Serializable
     data class DashboardStats(
         @SerialName("pending_kyc") val pendingKyc: Int = 0,
         @SerialName("pending_sellers") val pendingSellers: Int = 0,
@@ -216,5 +226,30 @@ class FounderRepository @Inject constructor(
     suspend fun fetchDashboardStats(): Result<DashboardStats> = runCatching {
         client.postgrest.rpc(function = "admin_dashboard_stats")
             .decodeSingle<DashboardStats>()
+    }
+
+    suspend fun fetchCategories(): Result<List<CategoryRow>> = runCatching {
+        client.postgrest.rpc(function = "admin_categories_list")
+            .decodeList<CategoryRow>()
+    }
+
+    suspend fun upsertCategory(
+        key: String,
+        displayName: String,
+        scope: String,
+        sortOrder: Int,
+        isActive: Boolean,
+    ): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "admin_categories_upsert",
+            parameters = buildJsonObject {
+                put("p_key", JsonPrimitive(key))
+                put("p_display_name", JsonPrimitive(displayName))
+                put("p_scope", JsonPrimitive(scope))
+                put("p_sort_order", JsonPrimitive(sortOrder))
+                put("p_is_active", JsonPrimitive(isActive))
+            },
+        )
+        Unit
     }
 }

@@ -154,4 +154,5 @@ object Routes {
     const val FOUNDER_USERS = "founder/users"
     const val FOUNDER_PAYMENTS = "founder/payments"
     const val FOUNDER_INTEGRITY = "founder/integrity"
+    const val FOUNDER_CATEGORIES = "founder/categories"
 }
