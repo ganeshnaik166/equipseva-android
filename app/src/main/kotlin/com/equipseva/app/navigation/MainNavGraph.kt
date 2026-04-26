@@ -127,6 +127,8 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.ORDER_DETAIL,
     Routes.RATE_ORDER,
     Routes.REPAIR_DETAIL,
+    Routes.ENGINEER_DIRECTORY,
+    Routes.ENGINEER_PUBLIC_PROFILE,
     Routes.CONVERSATIONS,
     Routes.CHAT_DETAIL,
     Routes.KYC,
@@ -285,7 +287,7 @@ fun MainNavGraph(
                             restoreState = true
                         }
                     },
-                    onOpenBookRepair = { navController.navigate(Routes.REQUEST_SERVICE) },
+                    onOpenBookRepair = { navController.navigate(Routes.ENGINEER_DIRECTORY) },
                     onOpenEngineerJobs = {
                         navController.navigate(Routes.REPAIR) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -424,6 +426,28 @@ fun MainNavGraph(
                     onBack = { navController.popBackStack() },
                     onShowMessage = showSnackbar,
                     onOpenChat = { id -> navController.navigate(Routes.chatRoute(id)) },
+                )
+            }
+            composable(Routes.ENGINEER_DIRECTORY) {
+                com.equipseva.app.features.repair.directory.EngineerDirectoryScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenProfile = { id ->
+                        navController.navigate(Routes.engineerPublicProfileRoute(id))
+                    },
+                    onAnyEngineer = { navController.navigate(Routes.REQUEST_SERVICE) },
+                )
+            }
+            composable(
+                route = "${Routes.ENGINEER_PUBLIC_PROFILE}/{${Routes.ENGINEER_PUBLIC_PROFILE_ARG_ID}}",
+                arguments = listOf(
+                    navArgument(Routes.ENGINEER_PUBLIC_PROFILE_ARG_ID) { type = NavType.StringType },
+                ),
+            ) {
+                com.equipseva.app.features.repair.directory.EngineerPublicProfileScreen(
+                    onBack = { navController.popBackStack() },
+                    onRequestService = { _ ->
+                        navController.navigate(Routes.REQUEST_SERVICE)
+                    },
                 )
             }
             composable(Routes.PROFILE) {

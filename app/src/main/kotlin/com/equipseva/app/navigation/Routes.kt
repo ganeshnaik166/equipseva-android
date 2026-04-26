@@ -114,6 +114,15 @@ object Routes {
     const val HOSPITAL_RFQ_DETAIL_ARG_ID = "rfqId"
     fun hospitalRfqDetailRoute(rfqId: String): String = "$HOSPITAL_RFQ_DETAIL/$rfqId"
 
+    // Book Repair — public engineer directory (entry from Home Hub).
+    const val ENGINEER_DIRECTORY = "engineers/directory"
+
+    // Public-facing engineer profile (hospital views before contacting).
+    const val ENGINEER_PUBLIC_PROFILE = "engineers/public"
+    const val ENGINEER_PUBLIC_PROFILE_ARG_ID = "engineerId"
+    fun engineerPublicProfileRoute(engineerId: String): String =
+        "$ENGINEER_PUBLIC_PROFILE/$engineerId"
+
     // AI-powered equipment scanner — capture a photo, identify the equipment, link to parts.
     const val SCAN_EQUIPMENT = "scan/equipment"
 
