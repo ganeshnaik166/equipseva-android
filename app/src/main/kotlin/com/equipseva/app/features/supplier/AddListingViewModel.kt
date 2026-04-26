@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.data.catalog.CatalogReferenceRepository
 import com.equipseva.app.core.data.parts.PartCategory
 import com.equipseva.app.core.data.parts.SparePartInsertDto
 import com.equipseva.app.core.data.parts.SparePartsRepository
@@ -11,7 +12,9 @@ import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.storage.StorageRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +31,7 @@ class AddListingViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val partsRepository: SparePartsRepository,
     private val storage: StorageRepository,
+    private val catalogRepo: CatalogReferenceRepository,
 ) : ViewModel() {
 
     companion object {
@@ -110,6 +114,11 @@ class AddListingViewModel @Inject constructor(
         val verificationGate: Boolean = false,
         val imageUrls: List<String> = emptyList(),
         val uploadingImage: Boolean = false,
+        /** Catalog picker bottom-sheet state. */
+        val catalogPickerOpen: Boolean = false,
+        val catalogQuery: String = "",
+        val catalogResults: List<CatalogReferenceRepository.Item> = emptyList(),
+        val catalogSearching: Boolean = false,
     )
 
     sealed interface Effect {
@@ -166,6 +175,82 @@ class AddListingViewModel @Inject constructor(
         updateForm { it.copy(compatibleEquipmentCategoriesText = value) }
     fun onListingTypeChange(type: String) =
         updateForm { it.copy(listingType = if (type == "equipment") "equipment" else "spare_part") }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Catalog picker (modal bottom sheet) — lets the seller pull a row from
+    // catalog_reference_items and prefill the listing form. Saves them
+    // re-typing brand / model / specs that we already have on the server.
+
+    private var catalogJob: Job? = null
+
+    fun openCatalogPicker() {
+        _state.update { it.copy(catalogPickerOpen = true) }
+        // Seed with a generic search so the sheet isn't empty when it opens.
+        searchCatalog("")
+    }
+
+    fun closeCatalogPicker() {
+        catalogJob?.cancel()
+        _state.update { it.copy(catalogPickerOpen = false, catalogQuery = "", catalogResults = emptyList()) }
+    }
+
+    fun onCatalogQueryChange(query: String) {
+        _state.update { it.copy(catalogQuery = query) }
+        catalogJob?.cancel()
+        catalogJob = viewModelScope.launch {
+            delay(250)
+            searchCatalog(query)
+        }
+    }
+
+    private fun searchCatalog(query: String) {
+        catalogJob?.cancel()
+        catalogJob = viewModelScope.launch {
+            _state.update { it.copy(catalogSearching = true) }
+            catalogRepo.search(query = query, limit = 30)
+                .onSuccess { rows ->
+                    _state.update { it.copy(catalogSearching = false, catalogResults = rows) }
+                }
+                .onFailure { ex ->
+                    _state.update { it.copy(catalogSearching = false, errorMessage = ex.toUserMessage()) }
+                }
+        }
+    }
+
+    fun applyFromCatalog(item: CatalogReferenceRepository.Item) {
+        // Map the wide-net catalogue category to our 5-bucket spare-part enum.
+        val mappedCategory = when (item.category) {
+            "Imaging" -> PartCategory.ImagingRadiology
+            "ICU & Critical Care" -> PartCategory.LifeSupport
+            "Surgical & OR" -> PartCategory.LifeSupport
+            "Laboratory" -> PartCategory.Other
+            "Ward & Allied" -> PartCategory.PatientMonitoring
+            "Spare Parts & Consumables" -> PartCategory.Other
+            else -> PartCategory.Other
+        }
+        // Capital Equipment + Refurbished Capital → list as "equipment".
+        val listingType = when (item.type) {
+            "Capital Equipment", "Refurbished Capital" -> "equipment"
+            else -> "spare_part"
+        }
+        _state.update { s ->
+            s.copy(
+                form = s.form.copy(
+                    name = item.itemName,
+                    partNumber = item.model.orEmpty(),
+                    category = mappedCategory,
+                    listingType = listingType,
+                    description = item.keySpecifications.orEmpty(),
+                    compatibleBrandsText = item.brand.orEmpty(),
+                    compatibleEquipmentCategoriesText = item.subCategory.orEmpty(),
+                ),
+                catalogPickerOpen = false,
+                catalogQuery = "",
+                catalogResults = emptyList(),
+            )
+        }
+        emit(Effect.ShowMessage("Prefilled from catalogue: ${item.itemName}"))
+    }
 
     fun addImage(fileName: String, bytes: ByteArray, contentType: String?) {
         val orgId = supplierOrgId

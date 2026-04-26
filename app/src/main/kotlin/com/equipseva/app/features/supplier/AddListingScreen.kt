@@ -14,11 +14,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -108,6 +110,17 @@ fun AddListingScreen(
         viewModel.addImage(name, bytes, mime)
     }
 
+    if (state.catalogPickerOpen) {
+        CatalogPickerSheet(
+            query = state.catalogQuery,
+            results = state.catalogResults,
+            searching = state.catalogSearching,
+            onQueryChange = viewModel::onCatalogQueryChange,
+            onPick = viewModel::applyFromCatalog,
+            onDismiss = viewModel::closeCatalogPicker,
+        )
+    }
+
     Scaffold(
         topBar = { ESBackTopBar(title = "Add listing", onBack = onBack) },
         snackbarHost = { SnackbarHost(snackbarHost) },
@@ -158,6 +171,20 @@ fun AddListingScreen(
                         message = state.errorMessage,
                         modifier = Modifier.padding(horizontal = Spacing.lg),
                     )
+                }
+            }
+
+            // Quick prefill from the 25k-row hospital catalogue. Saves
+            // sellers from re-typing brand / model / specs that we already
+            // know server-side.
+            item {
+                FormColumn {
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = viewModel::openCatalogPicker,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Prefill from hospital catalogue")
+                    }
                 }
             }
 
@@ -583,6 +610,80 @@ private fun CategoryDropdown(
                         expanded = false
                     },
                 )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CatalogPickerSheet(
+    query: String,
+    results: List<com.equipseva.app.core.data.catalog.CatalogReferenceRepository.Item>,
+    searching: Boolean,
+    onQueryChange: (String) -> Unit,
+    onPick: (com.equipseva.app.core.data.catalog.CatalogReferenceRepository.Item) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    androidx.compose.material3.ModalBottomSheet(
+        sheetState = sheetState,
+        onDismissRequest = onDismiss,
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(Spacing.lg)) {
+            Text(
+                "Pick from hospital catalogue",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = Spacing.sm),
+            )
+            OutlinedTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                placeholder = { Text("Search 25,000+ items…") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            androidx.compose.foundation.layout.Spacer(Modifier.size(Spacing.sm))
+            if (searching) {
+                androidx.compose.foundation.layout.Box(
+                    modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(28.dp),
+                        strokeWidth = 2.dp,
+                    )
+                }
+            } else if (results.isEmpty()) {
+                Text(
+                    "No matches. Try a brand or model name.",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(Spacing.md),
+                )
+            } else {
+                androidx.compose.foundation.lazy.LazyColumn(
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 480.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    items(results.size) { i ->
+                        val item = results[i]
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+                                .clickable { onPick(item) }
+                                .padding(Spacing.sm),
+                        ) {
+                            Text(item.itemName, style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                listOfNotNull(item.brand, item.model, item.type)
+                                    .joinToString(" · "),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
             }
         }
     }
