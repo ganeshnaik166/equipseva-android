@@ -5,9 +5,7 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
-import androidx.credentials.exceptions.NoCredentialException
 import com.equipseva.app.core.util.BuildConfigValues
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
@@ -37,30 +35,10 @@ class GoogleSignInClient @Inject constructor(
         val rawNonce = generateNonce()
         val hashedNonce = sha256(rawNonce)
 
-        // First attempt: surface accounts the user has already used with this app/site
-        // (silent / no picker if exactly one match exists).
-        val silentRequest = GetCredentialRequest.Builder()
-            .addCredentialOption(
-                GetGoogleIdOption.Builder()
-                    .setServerClientId(webClientId)
-                    .setFilterByAuthorizedAccounts(true)
-                    .setNonce(hashedNonce)
-                    .setAutoSelectEnabled(true)
-                    .build(),
-            )
-            .build()
-
-        return try {
-            val credential = credentialManager.getCredential(activityContext, silentRequest).credential
-            extractIdToken(credential, rawNonce)
-        } catch (cancelled: GetCredentialCancellationException) {
-            GoogleSignInResult.Cancelled
-        } catch (noCred: NoCredentialException) {
-            // Fall back to the explicit picker.
-            requestExplicitPicker(activityContext, webClientId, rawNonce, hashedNonce)
-        } catch (e: GetCredentialException) {
-            GoogleSignInResult.Error(e.message ?: "Google sign-in failed.", e)
-        }
+        // Always show the explicit "Sign in with Google" picker. The previous
+        // silent + auto-select path re-picked the last-used account on every
+        // sign-in, which made it impossible to switch accounts after a sign-out.
+        return requestExplicitPicker(activityContext, webClientId, rawNonce, hashedNonce)
     }
 
     private suspend fun requestExplicitPicker(

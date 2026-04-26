@@ -97,50 +97,23 @@ import kotlinx.coroutines.launch
 private data class TabItem(val route: String, val label: String, val icon: ImageVector)
 
 /**
- * Per-role bottom nav. Home + Profile are anchors on every persona; the
- * middle three slots adapt to each role's daily workflow. Falls back to the
- * Hospital layout when role isn't known yet (cold-boot before activeRole
- * pref settles).
+ * v1: bottom nav is the same for every user — buyer-shaped (Home / Buy-Sell
+ * / Repair / Profile). Persona-specific tabs (Listings, Supplier Orders,
+ * Supplier RFQs, RFQs Assigned, Lead Pipeline, Analytics, Pickup Queue,
+ * Active Deliveries, Completed Today, Active Work, Earnings) are still
+ * routable but never surfaced on the bottom nav — old per-role layouts
+ * crashed for users whose accounts had no organization linked.
+ *
+ * The `role` parameter stays for ABI compatibility with existing call
+ * sites; it's intentionally unused.
  */
-private fun tabsForRole(role: com.equipseva.app.features.auth.UserRole?): List<TabItem> = when (role) {
-    com.equipseva.app.features.auth.UserRole.ENGINEER -> listOf(
-        TabItem(Routes.HOME, "Home", Icons.Filled.Home),
-        TabItem(Routes.REPAIR, "Jobs", Icons.Filled.Build),
-        TabItem(Routes.ACTIVE_WORK, "Active", Icons.Filled.Engineering),
-        TabItem(Routes.EARNINGS, "Earnings", Icons.Filled.Payments),
-        TabItem(Routes.PROFILE, "Profile", Icons.Filled.Person),
-    )
-    com.equipseva.app.features.auth.UserRole.SUPPLIER -> listOf(
-        TabItem(Routes.HOME, "Home", Icons.Filled.Home),
-        TabItem(Routes.MY_LISTINGS, "Listings", Icons.Filled.Inventory2),
-        TabItem(Routes.SUPPLIER_ORDERS, "Orders", Icons.Filled.Receipt),
-        TabItem(Routes.SUPPLIER_RFQS, "RFQs", Icons.Filled.Description),
-        TabItem(Routes.PROFILE, "Profile", Icons.Filled.Person),
-    )
-    com.equipseva.app.features.auth.UserRole.MANUFACTURER -> listOf(
-        TabItem(Routes.HOME, "Home", Icons.Filled.Home),
-        TabItem(Routes.RFQS_ASSIGNED, "RFQs", Icons.Filled.Description),
-        TabItem(Routes.LEAD_PIPELINE, "Pipeline", Icons.AutoMirrored.Filled.TrendingUp),
-        TabItem(Routes.ANALYTICS, "Analytics", Icons.Filled.Analytics),
-        TabItem(Routes.PROFILE, "Profile", Icons.Filled.Person),
-    )
-    com.equipseva.app.features.auth.UserRole.LOGISTICS -> listOf(
-        TabItem(Routes.HOME, "Home", Icons.Filled.Home),
-        TabItem(Routes.PICKUP_QUEUE, "Pickups", Icons.Filled.Inventory2),
-        TabItem(Routes.ACTIVE_DELIVERIES, "Active", Icons.Filled.LocalShipping),
-        TabItem(Routes.COMPLETED_TODAY, "Done", Icons.Filled.CheckCircle),
-        TabItem(Routes.PROFILE, "Profile", Icons.Filled.Person),
-    )
-    // Hospital + null/unknown + every other (non-founder) role fall through to
-    // the buyer layout. v1 only surfaces buyer + repair flows on the bottom
-    // nav; persona-specific tabs above are dead-but-routable code.
-    else -> listOf(
-        TabItem(Routes.HOME, "Home", Icons.Filled.Home),
-        TabItem(Routes.MARKETPLACE, "Buy/Sell", Icons.Filled.Storefront),
-        TabItem(Routes.REPAIR, "Repair", Icons.Filled.Build),
-        TabItem(Routes.PROFILE, "Profile", Icons.Filled.Person),
-    )
-}
+@Suppress("UNUSED_PARAMETER")
+private fun tabsForRole(role: com.equipseva.app.features.auth.UserRole?): List<TabItem> = listOf(
+    TabItem(Routes.HOME, "Home", Icons.Filled.Home),
+    TabItem(Routes.MARKETPLACE, "Buy/Sell", Icons.Filled.Storefront),
+    TabItem(Routes.REPAIR, "Repair", Icons.Filled.Build),
+    TabItem(Routes.PROFILE, "Profile", Icons.Filled.Person),
+)
 
 /** Routes that take over the screen and should hide the bottom navigation bar.
  *  Per-role tab destinations (ACTIVE_WORK, EARNINGS, MY_LISTINGS, SUPPLIER_ORDERS,
