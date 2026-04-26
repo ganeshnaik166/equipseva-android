@@ -1,22 +1,33 @@
-<?xml version="1.0" encoding="utf-8"?>
 <!--
-  S5 brand: launcher foreground re-cut from ~/Downloads/equipnewlogo.svg.
-  Adaptive-icon background still supplies the BrandGreen plate (declared in
-  mipmap-anydpi-v26/ic_launcher.xml); foreground here is the white EQ glyph
-  with a soft AccentLime glow lower-left so the icon glints on the home
-  screen instead of looking flat.
+  S5 brand: full EquipSeva logomark (white EQ glyph on BrandGreen).
+  Direct port of the white path from ~/Downloads/equipnewlogo.svg, sized
+  in its native 400x400 viewport so other Compose surfaces can render at
+  any density via painterResource(R.drawable.ic_logo_full).
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
+    android:width="400dp"
+    android:height="400dp"
     android:viewportWidth="400"
     android:viewportHeight="400">
 
+    <!-- BrandGreen background plate -->
+    <path
+        android:pathData="M0,0 H400 V400 H0 Z"
+        android:fillColor="#0B6E4F" />
+
+    <!-- AccentLime vibrancy spot — soft electric-lime glow lower-left -->
     <path
         android:pathData="M70 290 m -110, 0 a 110,110 0 1,0 220,0 a 110,110 0 1,0 -220,0"
         android:fillColor="#0FFF13"
-        android:fillAlpha="0.28" />
+        android:fillAlpha="0.32" />
 
+    <!-- BrandGreenDeep vibrancy spot upper-right for depth -->
+    <path
+        android:pathData="M340 80 m -90, 0 a 90,90 0 1,0 180,0 a 90,90 0 1,0 -180,0"
+        android:fillColor="#163816"
+        android:fillAlpha="0.55" />
+
+    <!-- White EquipSeva 'EQ' glyph (verbatim path from SVG) -->
     <path
         android:pathData="M126.581 97.3678C124.852 97.5386 122.856 97.8455 122.144 98.05C117.013 99.5229 115.506 100.055 113.504 101.1C104.842 105.624 99.6661 113.262 97.3564 124.928C96.871 127.382 97.0471 196.459 97.5398 196.951C97.762 197.174 133.974 197.153 134.197 196.93C134.253 196.875 134.407 184.868 134.538 170.25C134.81 140.121 134.747 140.813 137.473 138.165C140.805 134.933 135.668 135.192 198.87 135.064C238.771 134.983 255.285 135.068 256.739 135.361C262.67 136.558 265.543 140.35 265.6 147.056C265.625 150.025 268.115 149.763 239.913 149.763C212.917 149.763 208.93 149.953 203.862 151.476C192.257 154.965 185.953 161.648 182.314 174.318C181.653 176.617 181.545 178.435 181.334 190.75C180.957 212.732 181.572 212.166 158.042 212.167C150.398 212.167 133.537 212.278 120.572 212.412L97 212.657V242.968C97.001 275.675 96.96 274.909 99.0147 281.326C102.147 291.11 109.1 298.104 118.388 300.812C119.742 301.207 121.349 301.688 121.959 301.881C125.163 302.894 132.844 303.003 200.296 303C266.972 302.997 274.305 302.895 277.815 301.916C292.104 297.932 298.451 291.593 302.045 277.719L303 274.036L302.922 238.578C302.879 219.077 302.719 203.037 302.568 202.935C302.415 202.834 294.038 202.795 283.952 202.85L265.613 202.949L265.6 228.882C265.584 259.729 265.599 259.604 261.605 262.647C258.646 264.9 261.951 264.785 200.164 264.785C145.298 264.785 143.334 264.761 141.253 264.08C136.731 262.599 134.716 259.268 134.716 253.272V250.2H160.43C189.049 250.2 191.376 250.068 197.206 248.128C205.863 245.247 211.758 240.188 215.074 232.792C218.262 225.684 218.316 225.326 218.627 209.212C218.921 193.972 218.955 193.749 221.454 190.783C224.011 187.749 222.859 187.802 293.622 187.47L302.959 187.427V156.624C302.959 123.125 303.072 125.177 300.841 118.216C297.835 108.84 290.747 101.826 281.571 99.1506C280.217 98.7558 278.61 98.273 278 98.0787C274.854 97.0743 266.609 96.9617 199.239 97.0088C161.006 97.0364 128.31 97.198 126.581 97.3678Z"
         android:fillColor="#F8F8F8" />

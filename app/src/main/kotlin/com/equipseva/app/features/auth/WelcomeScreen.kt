@@ -114,9 +114,9 @@ fun WelcomeScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_logo_mark),
+                    painter = painterResource(id = R.drawable.ic_logo_full),
                     contentDescription = "EquipSeva logo",
-                    modifier = Modifier.size(56.dp),
+                    modifier = Modifier.size(80.dp),
                 )
             }
 

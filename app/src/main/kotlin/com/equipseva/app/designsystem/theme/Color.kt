@@ -8,6 +8,12 @@ val BrandGreenDark = Color(0xFF075A40)    // --brand-700
 val BrandGreenLight = Color(0xFF2E8B6E)
 val BrandGreen50 = Color(0xFFE6F2ED)      // --brand-50
 val BrandGreen100 = Color(0xFFCFE4DB)     // --brand-100
+val BrandGreenDeep = Color(0xFF032F03)    // S5 vibrant logo deep accent
+
+// S5 vibrant electric-lime accent (signature pop from new logo)
+val AccentLime = Color(0xFF0FFF13)        // --accent-lime
+val AccentLimeBright = Color(0xFF6BFF6E)  // saturated highlight tint
+val AccentLimeSoft = Color(0x290FFF13)    // 16% alpha — chip backgrounds, glows
 
 // Back-compat alias
 val Color98Green = BrandGreen50
