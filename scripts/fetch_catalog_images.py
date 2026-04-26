@@ -50,10 +50,15 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 CATALOGUE_JSON = REPO_ROOT / "data" / "hospital_equipment_catalogue.json"
 PICKS_JSON = REPO_ROOT / "data" / "catalog_image_picks.json"  # audit log
 BUCKET = "catalog-reference-images"
-MIN_CONFIDENCE = 0.22       # cosine sim threshold; tuned empirically below
-TOP_K_CANDIDATES = 5
+MIN_CONFIDENCE = 0.22       # cosine sim threshold
+TOP_K_CANDIDATES = 8        # bumped from 5 — we filter more aggressively now
 HTTP_TIMEOUT = 8
 USER_AGENT = "Mozilla/5.0 (compatible; EquipSeva-CatalogBot/1.0; +https://equipseva.com)"
+
+# Quality gates so the marketplace cards always show clean white-BG product
+# shots at decent resolution.
+MIN_IMAGE_WIDTH = 600       # reject candidates smaller than this on shorter side
+TARGET_WIDTH = 1200         # final width after rembg + upscale
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -115,7 +120,10 @@ class ClipScorer:
 
 def build_query(item: dict) -> str:
     parts = [item.get("brand"), item.get("model"), item.get("itemName")]
-    return " ".join([p for p in parts if p]) + " medical equipment product photo"
+    base = " ".join([p for p in parts if p])
+    # "white background isolated" biases DDG toward catalogue-style product
+    # shots over hospital-room or installed-on-site photos.
+    return f"{base} medical equipment product photo white background isolated"
 
 
 def ddg_image_urls(query: str, k: int = TOP_K_CANDIDATES) -> list[str]:
@@ -148,6 +156,47 @@ def download(url: str) -> bytes | None:
     except Exception:
         return None
     return None
+
+
+def image_resolution(image_bytes: bytes) -> tuple[int, int] | None:
+    """(width, height) of the image, or None if it doesn't decode."""
+    try:
+        with Image.open(io.BytesIO(image_bytes)) as im:
+            return im.size
+    except Exception:
+        return None
+
+
+# Lazy global so we only load the rembg ONNX session once.
+_REMBG_SESSION = None
+
+
+def normalize_to_white_bg(image_bytes: bytes, target_width: int = TARGET_WIDTH) -> bytes:
+    """Strips the background with rembg, composites onto a pure-white canvas,
+    upscales (LANCZOS) so the shorter side hits target_width. Always returns a
+    JPEG byte string ready to upload."""
+    global _REMBG_SESSION
+    if _REMBG_SESSION is None:
+        from rembg import new_session
+        # u2netp is small (~5 MB), fast on CPU, and good enough for product
+        # photos. Switch to "isnet-general-use" for heavier accuracy if needed.
+        _REMBG_SESSION = new_session(model_name="u2netp")
+    from rembg import remove
+    rgba = remove(image_bytes, session=_REMBG_SESSION)
+    fg = Image.open(io.BytesIO(rgba)).convert("RGBA")
+    # Composite onto white.
+    canvas = Image.new("RGB", fg.size, (255, 255, 255))
+    canvas.paste(fg, mask=fg.split()[3])
+    # Upscale so shorter side hits target_width while keeping aspect ratio.
+    w, h = canvas.size
+    short = min(w, h)
+    if short < target_width:
+        scale = target_width / short
+        new_w, new_h = int(w * scale), int(h * scale)
+        canvas = canvas.resize((new_w, new_h), Image.LANCZOS)
+    out = io.BytesIO()
+    canvas.save(out, "JPEG", quality=88, optimize=True)
+    return out.getvalue()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -209,6 +258,49 @@ class SupabaseRest:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Audit-replay path: skip search/score, just upload winners from the JSON the
+# dry-run produced. Use this after a long search run when you finally have
+# the service-role key handy.
+
+def upload_from_audit(args) -> int:
+    if not PICKS_JSON.exists():
+        print(f"ERROR: {PICKS_JSON} missing — run without --upload-from-audit first", file=sys.stderr)
+        return 1
+    key = load_service_key()
+    if not key:
+        print("ERROR: SUPABASE_SERVICE_ROLE_KEY env var required", file=sys.stderr)
+        return 1
+    supa = SupabaseRest(load_supabase_url(), key)
+
+    audit = json.loads(PICKS_JSON.read_text())
+    winners = [r for r in audit if r.get("winner") and r["winner"].get("score", 0) >= args.threshold]
+    print(f"[audit] {len(audit)} rows total · {len(winners)} clear threshold {args.threshold}")
+
+    uploaded = 0
+    failed = 0
+    for row in winners:
+        item_id = row["id"]
+        url = row["winner"]["url"]
+        score = row["winner"]["score"]
+        data = download(url)
+        if not data:
+            print(f"  [{item_id:3d}] [skip] re-download failed for {url[:80]}")
+            failed += 1
+            continue
+        try:
+            normalized = normalize_to_white_bg(data)
+            public_url = supa.upload_image(item_id, normalized)
+            supa.patch_row(item_id, public_url, score)
+            uploaded += 1
+            print(f"  [{item_id:3d}] OK  {public_url}  ({len(normalized)//1024} KB)")
+        except Exception as e:
+            failed += 1
+            print(f"  [{item_id:3d}] ERR {e}")
+    print(f"\n[done] uploaded={uploaded}  failed={failed}")
+    return 0 if failed == 0 else 1
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Main
 
 def main():
@@ -218,7 +310,16 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="Don't upload or PATCH; just print scores")
     ap.add_argument("--only-pending", action="store_true", help="Skip rows already curated (needs_image_review=false)")
     ap.add_argument("--threshold", type=float, default=MIN_CONFIDENCE)
+    ap.add_argument(
+        "--upload-from-audit", action="store_true",
+        help="Skip search/scoring; just upload winners already recorded in data/catalog_image_picks.json",
+    )
     args = ap.parse_args()
+
+    # Fast-path: replay the audit file straight into Supabase Storage. Use this
+    # after a long dry-run has produced data/catalog_image_picks.json.
+    if args.upload_from_audit:
+        return upload_from_audit(args)
 
     catalogue = json.loads(CATALOGUE_JSON.read_text())
     items = catalogue["items"]
@@ -266,13 +367,24 @@ def main():
             continue
 
         scored: list[dict] = []
+        # Keep the bytes alongside the scoring metadata so we don't re-download
+        # the winner before piping it through rembg.
+        cache: dict[str, bytes] = {}
         for url in urls:
             data = download(url)
             if not data:
                 continue
+            res = image_resolution(data)
+            if res is None:
+                continue
+            short_side = min(res)
+            if short_side < MIN_IMAGE_WIDTH:
+                print(f"   skip-lowres  {short_side}px  {url[:80]}")
+                continue
             score = clip.score(data, q)
-            scored.append({"url": url, "score": score, "bytes_len": len(data)})
-            print(f"   score={score:.3f}  {url[:90]}")
+            scored.append({"url": url, "score": score, "res": list(res), "bytes_len": len(data)})
+            cache[url] = data
+            print(f"   score={score:.3f}  {res[0]}x{res[1]}  {url[:80]}")
 
         scored.sort(key=lambda r: r["score"], reverse=True)
         best = scored[0] if scored else None
@@ -284,15 +396,17 @@ def main():
             print(f"  [ACCEPT] {best['score']:.3f}  {best['url'][:90]}")
             matched += 1
             if supa is not None:
-                # Re-download winner (we already have bytes but didn't keep them)
-                winner_bytes = download(best["url"])
+                # Reuse the bytes we already fetched during scoring; no need
+                # to re-hit the source server.
+                winner_bytes = cache.get(best["url"]) or download(best["url"])
                 if winner_bytes is None:
                     print("  [skip] winner re-download failed")
                 else:
                     try:
-                        public_url = supa.upload_image(item_id, winner_bytes)
+                        normalized = normalize_to_white_bg(winner_bytes)
+                        public_url = supa.upload_image(item_id, normalized)
                         supa.patch_row(item_id, public_url, best["score"])
-                        print(f"  [upload] {public_url}")
+                        print(f"  [upload] {public_url}  ({len(normalized)//1024} KB)")
                     except Exception as e:
                         print(f"  [upload-error] {e}")
             audit_row = {"id": item_id, "query": q, "candidates": scored, "winner": best}
