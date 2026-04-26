@@ -17,7 +17,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -25,9 +27,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.WorkspacePremium
@@ -38,6 +42,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -69,9 +74,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
-import com.equipseva.app.designsystem.components.AppProgress
 import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.SecureScreen
+import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.ErrorBg
 import com.equipseva.app.designsystem.theme.ErrorRed
 import com.equipseva.app.designsystem.theme.Info
@@ -144,13 +149,15 @@ fun KycScreen(
             )
         },
         bottomBar = {
-            KycBottomBar(
-                status = state.verificationStatus,
-                aadhaarUploaded = !state.aadhaarDocPath.isNullOrBlank(),
-                certUploaded = state.certDocPaths.isNotEmpty(),
-                saving = state.saving,
-                onSave = viewModel::save,
-            )
+            // Verified engineers don't need a footer — there's nothing to do.
+            if (state.verificationStatus != VerificationStatus.Verified) {
+                StepperBottomBar(
+                    state = state,
+                    onPrevious = viewModel::goToPreviousStep,
+                    onNext = viewModel::goToNextStep,
+                    onSubmit = viewModel::save,
+                )
+            }
         },
         containerColor = Surface50,
     ) { inner ->
@@ -171,7 +178,7 @@ fun KycScreen(
                         Button(onClick = viewModel::retry) { Text("Retry") }
                     }
                 }
-                else -> KycForm(
+                else -> KycStepperBody(
                     state = state,
                     onAadhaarNumberChange = viewModel::onAadhaarNumberChange,
                     onCityChange = viewModel::onCityChange,
@@ -182,6 +189,7 @@ fun KycScreen(
                     onAddQualification = viewModel::addQualification,
                     onRemoveQualification = viewModel::removeQualification,
                     onToggleSpecialization = viewModel::toggleSpecialization,
+                    onAttestationChange = viewModel::onAttestationChange,
                     onPickAadhaar = {
                         aadhaarPicker.launch(
                             arrayOf("application/pdf", "image/jpeg", "image/png", "image/webp"),
@@ -191,15 +199,15 @@ fun KycScreen(
                         certPicker.launch(arrayOf("application/pdf", "image/jpeg", "image/png", "image/webp"))
                     },
                     onStartReupload = viewModel::startReupload,
+                    onJumpToStep = viewModel::jumpToStep,
                 )
             }
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun KycForm(
+private fun KycStepperBody(
     state: KycViewModel.UiState,
     onAadhaarNumberChange: (String) -> Unit,
     onCityChange: (String) -> Unit,
@@ -210,17 +218,13 @@ private fun KycForm(
     onAddQualification: () -> Unit,
     onRemoveQualification: (String) -> Unit,
     onToggleSpecialization: (RepairEquipmentCategory) -> Unit,
+    onAttestationChange: (Boolean) -> Unit,
     onPickAadhaar: () -> Unit,
     onPickCertificate: () -> Unit,
     onStartReupload: () -> Unit,
+    onJumpToStep: (KycStep) -> Unit,
 ) {
-    val aadhaarUploaded = !state.aadhaarDocPath.isNullOrBlank()
-    val certUploaded = state.certDocPaths.isNotEmpty()
-    // Required doc count: Aadhaar, Certificate (represents trade/qualification + profile verification).
-    // Using a 2-doc required model reflecting what the KycViewModel actually tracks.
-    val required = 2
-    val uploadedCount = listOf(aadhaarUploaded, certUploaded).count { it }
-
+    val verified = state.verificationStatus == VerificationStatus.Verified
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -228,6 +232,8 @@ private fun KycForm(
             .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
+        // Reuse the existing 3-step compact timeline (submitted → review →
+        // verified) as a high-level status header above the wizard.
         KycStatusTimeline(
             status = state.verificationStatus,
             submitted = state.aadhaarVerified,
@@ -235,146 +241,48 @@ private fun KycForm(
 
         StatusBanner(status = state.verificationStatus, aadhaarVerified = state.aadhaarVerified)
 
+        if (verified) {
+            // Verified engineers see a celebratory summary instead of the wizard.
+            VerifiedSummaryCard(state = state)
+            return@Column
+        }
+
         if (state.verificationStatus == VerificationStatus.Rejected) {
             ReuploadCta(onClick = onStartReupload)
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            AppProgress(value = uploadedCount, total = required)
-            Text(
-                text = "$uploadedCount of $required required documents",
-                fontSize = 12.sp,
-                color = Ink500,
+        StepHeader(current = state.currentStep, onJump = onJumpToStep)
+
+        // Per-step body. Each step renders only what's relevant to that step
+        // so the form feels short — best-practice gig-app onboarding caps each
+        // step at ~30 seconds of input.
+        when (state.currentStep) {
+            KycStep.Identity -> IdentityStep(state = state, onCityChange = onCityChange, onStateChange = onStateChange)
+            KycStep.Aadhaar -> AadhaarStep(
+                state = state,
+                onAadhaarNumberChange = onAadhaarNumberChange,
+                onPickAadhaar = onPickAadhaar,
+            )
+            KycStep.Skills -> SkillsStep(
+                state = state,
+                onExperienceChange = onExperienceChange,
+                onRadiusChange = onRadiusChange,
+                onToggleSpecialization = onToggleSpecialization,
+                onQualificationDraftChange = onQualificationDraftChange,
+                onAddQualification = onAddQualification,
+                onRemoveQualification = onRemoveQualification,
+            )
+            KycStep.Credentials -> CredentialsStep(
+                state = state,
+                onPickCertificate = onPickCertificate,
+                onAttestationChange = onAttestationChange,
             )
         }
 
-        // Document upload list per design.
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            DocumentRow(
-                title = "Aadhaar card",
-                uploaded = aadhaarUploaded,
-                uploading = state.uploadingAadhaar,
-                failed = state.aadhaarFailed,
-                icon = Icons.Filled.Badge,
-                hue = 150,
-                subtitleOverride = if (!aadhaarUploaded && !state.aadhaarFailed) "PDF or photo" else null,
-                onClick = onPickAadhaar,
-            )
-            DocumentRow(
-                title = "Trade / qualification certificate",
-                uploaded = certUploaded,
-                uploading = state.uploadingCert,
-                failed = state.certFailed,
-                icon = Icons.Filled.WorkspacePremium,
-                hue = 280,
-                subtitleOverride = if (certUploaded) {
-                    "Uploaded (${state.certDocPaths.size})"
-                } else null,
-                onClick = onPickCertificate,
-            )
-        }
-
-        // Keep existing form sections (identity / qualifications / specializations / service area).
-        // These preserve the ViewModel contract while rendering in a cleaner card style.
-        KycSectionCard(title = "Identity details") {
-            OutlinedTextField(
-                value = state.aadhaarNumber,
-                onValueChange = onAadhaarNumberChange,
-                label = { Text("Aadhaar number (12 digits)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-
-        KycSectionCard(title = "Qualifications & experience") {
-            OutlinedTextField(
-                value = state.experienceYears,
-                onValueChange = onExperienceChange,
-                label = { Text("Years of experience") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                OutlinedTextField(
-                    value = state.qualificationDraft,
-                    onValueChange = onQualificationDraftChange,
-                    label = { Text("Add qualification (e.g. BE Biomedical)") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                )
-                OutlinedButton(onClick = onAddQualification) {
-                    Icon(Icons.Filled.Check, contentDescription = null)
-                }
-            }
-            if (state.qualifications.isNotEmpty()) {
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    state.qualifications.forEach { q ->
-                        AssistChip(
-                            onClick = { onRemoveQualification(q) },
-                            label = { Text(q) },
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            ),
-                        )
-                    }
-                }
-            }
-        }
-
-        KycSectionCard(title = "Specializations") {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                RepairEquipmentCategory.entries.forEach { category ->
-                    val selected = category in state.selectedSpecializations
-                    FilterChip(
-                        selected = selected,
-                        onClick = { onToggleSpecialization(category) },
-                        label = { Text(category.displayName) },
-                        leadingIcon = if (selected) {
-                            { Icon(Icons.Filled.Check, contentDescription = null) }
-                        } else {
-                            null
-                        },
-                    )
-                }
-            }
-        }
-
-        KycSectionCard(title = "Service area") {
-            OutlinedTextField(
-                value = state.city,
-                onValueChange = onCityChange,
-                label = { Text("City") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = state.state,
-                onValueChange = onStateChange,
-                label = { Text("State") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = state.serviceRadiusKm,
-                onValueChange = onRadiusChange,
-                label = { Text("Service radius (km)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
+        // Inline error chip that mirrors the disabled-Next reason. Lets the
+        // user know exactly what's missing without staring at a dead button.
+        state.stepError()?.let { msg ->
+            InlineError(text = msg)
         }
 
         Spacer(Modifier.height(Spacing.sm))
@@ -382,8 +290,388 @@ private fun KycForm(
 }
 
 @Composable
+private fun StepHeader(current: KycStep, onJump: (KycStep) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        KycStep.entries.forEach { step ->
+            val active = step == current
+            val done = step.ordinal < current.ordinal
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(
+                            when {
+                                done -> Success
+                                active -> BrandGreen
+                                else -> Surface200
+                            },
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (done) {
+                        Icon(Icons.Filled.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                    } else {
+                        Text(
+                            text = step.number.toString(),
+                            color = if (active) Color.White else Ink500,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                        )
+                    }
+                }
+                if (step != KycStep.entries.last()) {
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 6.dp)
+                            .height(2.dp)
+                            .weight(1f)
+                            .background(if (done) Success else Surface200),
+                    )
+                }
+            }
+        }
+    }
+    Spacer(Modifier.height(6.dp))
+    Text(
+        text = "Step ${current.number} of ${KycStep.total} · ${current.title}",
+        fontSize = 12.sp,
+        color = Ink500,
+        fontWeight = FontWeight.SemiBold,
+    )
+    Text(
+        text = current.subtitle,
+        fontSize = 18.sp,
+        color = Ink900,
+        fontWeight = FontWeight.Bold,
+    )
+}
+
+@Composable
+private fun IdentityStep(
+    state: KycViewModel.UiState,
+    onCityChange: (String) -> Unit,
+    onStateChange: (String) -> Unit,
+) {
+    KycSectionCard(title = "Your contact details") {
+        ReadOnlyContactRow(icon = Icons.Filled.Badge, label = "Name", value = state.fullName ?: "—")
+        ReadOnlyContactRow(
+            icon = Icons.Filled.Phone,
+            label = "Phone (verified)",
+            value = state.phone ?: "Add phone via OTP sign-in",
+            warn = state.phone.isNullOrBlank(),
+        )
+        ReadOnlyContactRow(
+            icon = Icons.Filled.Email,
+            label = "Email",
+            value = state.email ?: "Add email from Profile settings",
+            warn = state.email.isNullOrBlank(),
+        )
+        Text(
+            text = "Hospitals will Call, WhatsApp and Email you on these once you're verified. Add any missing field from Profile settings before continuing.",
+            fontSize = 12.sp,
+            color = Ink500,
+        )
+    }
+    KycSectionCard(title = "Where you operate") {
+        OutlinedTextField(
+            value = state.city,
+            onValueChange = onCityChange,
+            label = { Text("City") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = state.state,
+            onValueChange = onStateChange,
+            label = { Text("State") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@Composable
+private fun AadhaarStep(
+    state: KycViewModel.UiState,
+    onAadhaarNumberChange: (String) -> Unit,
+    onPickAadhaar: () -> Unit,
+) {
+    val aadhaarUploaded = !state.aadhaarDocPath.isNullOrBlank()
+    val digits = state.aadhaarNumber
+    val checksumOk = digits.length == 12 && AadhaarValidator.isValid(digits)
+    val hint = when {
+        digits.isEmpty() -> "12 digits, no spaces"
+        digits.length < 12 -> "${digits.length}/12 digits"
+        !checksumOk -> "Number doesn't pass the standard Aadhaar checksum"
+        else -> "Looks valid ✓"
+    }
+    val hintColor = when {
+        digits.isEmpty() -> Ink500
+        checksumOk -> Success
+        digits.length < 12 -> Ink500
+        else -> ErrorRed
+    }
+
+    KycSectionCard(title = "Aadhaar number") {
+        OutlinedTextField(
+            value = digits,
+            onValueChange = onAadhaarNumberChange,
+            label = { Text("12-digit Aadhaar") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+            singleLine = true,
+            isError = digits.length == 12 && !checksumOk,
+            supportingText = { Text(hint, color = hintColor, fontSize = 12.sp) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+
+    KycSectionCard(title = "Aadhaar document") {
+        DocumentRow(
+            title = "Aadhaar card",
+            uploaded = aadhaarUploaded,
+            uploading = state.uploadingAadhaar,
+            failed = state.aadhaarFailed,
+            icon = Icons.Filled.Badge,
+            hue = 150,
+            subtitleOverride = if (!aadhaarUploaded && !state.aadhaarFailed) "PDF or photo" else null,
+            onClick = onPickAadhaar,
+        )
+        Text(
+            text = "We accept e-Aadhaar PDFs or a clear photo of the printed card (JPEG/PNG/WebP).",
+            fontSize = 11.sp,
+            color = Ink500,
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SkillsStep(
+    state: KycViewModel.UiState,
+    onExperienceChange: (String) -> Unit,
+    onRadiusChange: (String) -> Unit,
+    onToggleSpecialization: (RepairEquipmentCategory) -> Unit,
+    onQualificationDraftChange: (String) -> Unit,
+    onAddQualification: () -> Unit,
+    onRemoveQualification: (String) -> Unit,
+) {
+    KycSectionCard(title = "What you fix") {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            RepairEquipmentCategory.entries.forEach { category ->
+                val selected = category in state.selectedSpecializations
+                FilterChip(
+                    selected = selected,
+                    onClick = { onToggleSpecialization(category) },
+                    label = { Text(category.displayName) },
+                    leadingIcon = if (selected) {
+                        { Icon(Icons.Filled.Check, contentDescription = null) }
+                    } else null,
+                )
+            }
+        }
+        Text(
+            text = "Pick every category you'd accept jobs for. Hospitals filter the directory by these.",
+            fontSize = 11.sp,
+            color = Ink500,
+        )
+    }
+
+    KycSectionCard(title = "Experience & coverage") {
+        OutlinedTextField(
+            value = state.experienceYears,
+            onValueChange = onExperienceChange,
+            label = { Text("Years of experience (0–50)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = state.serviceRadiusKm,
+            onValueChange = onRadiusChange,
+            label = { Text("Service radius (km, 1–500)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            supportingText = { Text("How far you'll travel for a job from your city.", fontSize = 12.sp) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+
+    KycSectionCard(title = "Qualifications (optional)") {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            OutlinedTextField(
+                value = state.qualificationDraft,
+                onValueChange = onQualificationDraftChange,
+                label = { Text("Add qualification (e.g. BE Biomedical)") },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+            OutlinedButton(onClick = onAddQualification) {
+                Icon(Icons.Filled.Check, contentDescription = "Add")
+            }
+        }
+        if (state.qualifications.isNotEmpty()) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                state.qualifications.forEach { q ->
+                    AssistChip(
+                        onClick = { onRemoveQualification(q) },
+                        label = { Text(q) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        ),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CredentialsStep(
+    state: KycViewModel.UiState,
+    onPickCertificate: () -> Unit,
+    onAttestationChange: (Boolean) -> Unit,
+) {
+    val certUploaded = state.certDocPaths.isNotEmpty()
+    KycSectionCard(title = "Trade or qualification certificate") {
+        DocumentRow(
+            title = "Certificate",
+            uploaded = certUploaded,
+            uploading = state.uploadingCert,
+            failed = state.certFailed,
+            icon = Icons.Filled.WorkspacePremium,
+            hue = 280,
+            subtitleOverride = if (certUploaded) "Uploaded (${state.certDocPaths.size})" else null,
+            onClick = onPickCertificate,
+        )
+        Text(
+            text = "Upload your degree, diploma or trade certificate. You can add more after submitting.",
+            fontSize = 11.sp,
+            color = Ink500,
+        )
+    }
+
+    KycSectionCard(title = "Attestation") {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(InfoBg)
+                .padding(12.dp),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Checkbox(
+                checked = state.attestationAccepted,
+                onCheckedChange = onAttestationChange,
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "I confirm that the documents and details above are mine.",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Ink900,
+                )
+                Text(
+                    text = "Submitting fake or borrowed documents will get your account permanently banned and reported.",
+                    fontSize = 11.sp,
+                    color = Ink500,
+                )
+            }
+        }
+        Text(
+            text = "After submit: typically reviewed within 4–24 hours. We'll push-notify you with the outcome.",
+            fontSize = 11.sp,
+            color = Info,
+        )
+    }
+}
+
+@Composable
+private fun ReadOnlyContactRow(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    warn: Boolean = false,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (warn) Warning else BrandGreen,
+            modifier = Modifier.size(18.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, fontSize = 11.sp, color = Ink500, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = value,
+                fontSize = 13.sp,
+                color = if (warn) Warning else Ink900,
+                fontWeight = if (warn) FontWeight.Normal else FontWeight.SemiBold,
+            )
+        }
+    }
+}
+
+@Composable
+private fun InlineError(text: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(WarningBg)
+            .padding(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(Icons.Filled.Info, contentDescription = null, tint = Warning, modifier = Modifier.size(16.dp))
+        Text(text, fontSize = 12.sp, color = Ink700)
+    }
+}
+
+@Composable
+private fun VerifiedSummaryCard(state: KycViewModel.UiState) {
+    KycSectionCard(title = "You're verified") {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Success, modifier = Modifier.size(20.dp))
+            Text(
+                text = "Hospitals can now find you in the directory and request jobs.",
+                fontSize = 13.sp,
+                color = Ink700,
+            )
+        }
+        ReadOnlyContactRow(icon = Icons.Filled.Phone, label = "Phone", value = state.phone ?: "—")
+        ReadOnlyContactRow(icon = Icons.Filled.Email, label = "Email", value = state.email ?: "—")
+        ReadOnlyContactRow(icon = Icons.Filled.Badge, label = "Aadhaar", value = if (state.aadhaarNumber.length == 12) "•••• •••• ${state.aadhaarNumber.takeLast(4)}" else "—")
+        ReadOnlyContactRow(icon = Icons.Filled.WorkspacePremium, label = "Certificates", value = "${state.certDocPaths.size} uploaded")
+    }
+}
+
+@Composable
 private fun StatusBanner(status: VerificationStatus, aadhaarVerified: Boolean) {
-    // Map domain statuses to the design's banner palette.
     val (bg, fg, label, subtitle, icon) = when (status) {
         VerificationStatus.Verified -> BannerStyle(
             bg = SuccessBg,
@@ -404,7 +692,7 @@ private fun StatusBanner(status: VerificationStatus, aadhaarVerified: Boolean) {
                 bg = InfoBg,
                 fg = Info,
                 label = "Submitted for review",
-                subtitle = "Typically takes 24 hours.",
+                subtitle = "Typically reviewed within 4–24 hours.",
                 icon = Icons.Filled.HourglassTop,
             )
         } else {
@@ -412,7 +700,7 @@ private fun StatusBanner(status: VerificationStatus, aadhaarVerified: Boolean) {
                 bg = WarningBg,
                 fg = Warning,
                 label = "In progress",
-                subtitle = "Upload required documents to continue.",
+                subtitle = "Complete every step to submit for review.",
                 icon = Icons.Filled.HourglassTop,
             )
         }
@@ -427,24 +715,10 @@ private fun StatusBanner(status: VerificationStatus, aadhaarVerified: Boolean) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Top,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = fg,
-            modifier = Modifier.size(24.dp),
-        )
+        Icon(imageVector = icon, contentDescription = null, tint = fg, modifier = Modifier.size(24.dp))
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                text = label,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = fg,
-            )
-            Text(
-                text = subtitle,
-                fontSize = 13.sp,
-                color = Ink700,
-            )
+            Text(label, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = fg)
+            Text(subtitle, fontSize = 13.sp, color = Ink700)
         }
     }
 }
@@ -457,11 +731,6 @@ private data class BannerStyle(
     val icon: ImageVector,
 )
 
-/**
- * Prominent CTA shown only when verification_status = "rejected". Tapping it clears
- * the previously-submitted doc paths from the UI state, so the user is forced to
- * re-pick fresh files before the bottom "Re-submit for review" button re-enables.
- */
 @Composable
 private fun ReuploadCta(onClick: () -> Unit) {
     Card(
@@ -470,9 +739,7 @@ private fun ReuploadCta(onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
@@ -482,8 +749,7 @@ private fun ReuploadCta(onClick: () -> Unit) {
                 color = ErrorRed,
             )
             Text(
-                text = "Please re-upload your Aadhaar and qualification certificate. " +
-                    "Your submission will go back into review once saved.",
+                text = "Please re-upload your Aadhaar and qualification certificate. Your submission will go back into review once saved.",
                 fontSize = 13.sp,
                 color = Ink700,
             )
@@ -495,11 +761,7 @@ private fun ReuploadCta(onClick: () -> Unit) {
                     contentColor = MaterialTheme.colorScheme.onError,
                 ),
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Refresh,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
+                Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.size(Spacing.sm))
                 Text("Re-upload documents")
             }
@@ -539,12 +801,7 @@ private fun DocumentRow(
                 DashedPlaceholderTile(icon = icon)
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = title,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Ink900,
-                )
+                Text(title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Ink900)
                 val subtitle = when {
                     errorState -> "Upload failed — tap retry"
                     subtitleOverride != null -> subtitleOverride
@@ -563,28 +820,19 @@ private fun DocumentRow(
             }
             if (onClick != null) {
                 if (uploading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp,
-                    )
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                 } else if (uploaded) {
                     OutlinedButton(
                         onClick = onClick,
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    ) {
-                        Text("Replace", fontSize = 13.sp)
-                    }
+                    ) { Text("Replace", fontSize = 13.sp) }
                 } else if (errorState) {
                     Button(
                         onClick = onClick,
                         colors = ButtonDefaults.buttonColors(containerColor = ErrorRed),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                     ) {
-                        Icon(
-                            Icons.Filled.Refresh,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                        )
+                        Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.size(6.dp))
                         Text("Retry", fontSize = 13.sp)
                     }
@@ -593,11 +841,7 @@ private fun DocumentRow(
                         onClick = onClick,
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                     ) {
-                        Icon(
-                            Icons.Outlined.CloudUpload,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                        )
+                        Icon(Icons.Outlined.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.size(6.dp))
                         Text("Upload", fontSize = 13.sp)
                     }
@@ -635,12 +879,7 @@ private fun DashedPlaceholderTile(icon: ImageVector) {
             },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = Ink500,
-            modifier = Modifier.size(24.dp),
-        )
+        Icon(imageVector = icon, contentDescription = null, tint = Ink500, modifier = Modifier.size(24.dp))
     }
 }
 
@@ -669,36 +908,50 @@ private fun KycSectionCard(title: String, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun KycBottomBar(
-    status: VerificationStatus,
-    aadhaarUploaded: Boolean,
-    certUploaded: Boolean,
-    saving: Boolean,
-    onSave: () -> Unit,
+private fun StepperBottomBar(
+    state: KycViewModel.UiState,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onSubmit: () -> Unit,
 ) {
-    val allUploaded = aadhaarUploaded && certUploaded
-    val label = when (status) {
-        VerificationStatus.Verified -> "Verified"
-        VerificationStatus.Rejected -> "Re-submit for review"
-        VerificationStatus.Pending -> "Submit for review"
+    val isLast = state.currentStep.isLast
+    val isFirst = state.currentStep.isFirst
+    val canSubmit = isLast && state.canAdvance && !state.saving
+    val canNext = !isLast && state.canAdvance
+    val rejected = state.verificationStatus == VerificationStatus.Rejected
+    val nextLabel = when {
+        isLast && rejected -> "Re-submit for review"
+        isLast -> "Submit for review"
+        else -> "Next"
     }
-    val enabled = !saving && allUploaded && status != VerificationStatus.Verified
-    Box(
+
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(Surface0)
             .border(width = 1.dp, color = Surface200, shape = RoundedCornerShape(0.dp))
             .padding(Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
+        if (!isFirst) {
+            OutlinedButton(
+                onClick = onPrevious,
+                enabled = !state.saving,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(Spacing.MinTouchTarget),
+            ) { Text("Back") }
+        } else {
+            Spacer(Modifier.width(0.dp))
+        }
         Button(
-            onClick = onSave,
-            enabled = enabled,
+            onClick = if (isLast) onSubmit else onNext,
+            enabled = if (isLast) canSubmit else canNext,
             modifier = Modifier
-                .fillMaxWidth()
+                .weight(if (isFirst) 1f else 1.4f)
                 .height(Spacing.MinTouchTarget),
-            colors = ButtonDefaults.buttonColors(),
         ) {
-            if (saving) {
+            if (state.saving && isLast) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(18.dp),
                     strokeWidth = 2.dp,
@@ -707,7 +960,7 @@ private fun KycBottomBar(
                 Spacer(Modifier.size(Spacing.sm))
                 Text("Saving…")
             } else {
-                Text(label)
+                Text(nextLabel)
             }
         }
     }

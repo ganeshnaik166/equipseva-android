@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Engineering
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -206,13 +207,21 @@ private fun EngineerCard(
             }
         }
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     row.fullName,
                     color = Ink900,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     modifier = Modifier.weight(1f),
+                )
+                // Directory RPC only returns engineers with verification_status='verified',
+                // so every row earns the badge. Pure trust signal for hospitals.
+                Icon(
+                    imageVector = Icons.Filled.Verified,
+                    contentDescription = "Verified",
+                    tint = BrandGreen,
+                    modifier = Modifier.size(14.dp),
                 )
                 if (row.isAvailable) {
                     Box(

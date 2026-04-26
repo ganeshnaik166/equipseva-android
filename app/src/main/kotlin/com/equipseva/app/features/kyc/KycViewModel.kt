@@ -8,6 +8,7 @@ import com.equipseva.app.core.data.engineers.Engineer
 import com.equipseva.app.core.data.engineers.EngineerCertificate
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
+import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.security.PlayIntegrityClient
@@ -31,6 +32,7 @@ import javax.inject.Inject
 class KycViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val engineerRepository: EngineerRepository,
+    private val profileRepository: ProfileRepository,
     private val photoUploadStash: PhotoUploadStash,
     private val playIntegrityClient: PlayIntegrityClient,
 ) : ViewModel() {
@@ -55,7 +57,63 @@ class KycViewModel @Inject constructor(
         val aadhaarFailed: Boolean = false,
         val certFailed: Boolean = false,
         val saving: Boolean = false,
-    )
+        // Stepper state
+        val currentStep: KycStep = KycStep.Identity,
+        val email: String? = null,
+        val phone: String? = null,
+        val fullName: String? = null,
+        val attestationAccepted: Boolean = false,
+    ) {
+        /**
+         * Returns null when the current step's required fields are filled in
+         * correctly, else a one-line message safe to render in the step body.
+         * Verified engineers (status=verified) skip validation — they're just
+         * viewing their submission.
+         */
+        fun stepError(): String? {
+            if (verificationStatus == VerificationStatus.Verified) return null
+            return when (currentStep) {
+                KycStep.Identity -> {
+                    when {
+                        email.isNullOrBlank() -> "Email missing — add it from Profile settings before continuing."
+                        !EMAIL_REGEX.matches(email) -> "That email doesn't look right."
+                        phone.isNullOrBlank() -> "Phone missing — sign in with phone OTP first."
+                        city.isBlank() -> "City is required."
+                        state.isBlank() -> "State is required."
+                        else -> null
+                    }
+                }
+                KycStep.Aadhaar -> {
+                    when {
+                        aadhaarNumber.length != 12 -> "Aadhaar must be 12 digits."
+                        !AadhaarValidator.isValid(aadhaarNumber) -> "That doesn't look like a valid Aadhaar number."
+                        aadhaarDocPath.isNullOrBlank() -> "Upload your Aadhaar (PDF or photo) before continuing."
+                        else -> null
+                    }
+                }
+                KycStep.Skills -> {
+                    val years = experienceYears.toIntOrNull()
+                    val radius = serviceRadiusKm.toIntOrNull()
+                    when {
+                        selectedSpecializations.isEmpty() -> "Pick at least one specialization."
+                        years == null || years !in 0..50 -> "Experience must be 0–50 years."
+                        radius == null || radius !in 1..500 -> "Service radius must be 1–500 km."
+                        else -> null
+                    }
+                }
+                KycStep.Credentials -> {
+                    when {
+                        certDocPaths.isEmpty() -> "Upload at least one trade or qualification certificate."
+                        !attestationAccepted -> "You must confirm the attestation to submit."
+                        else -> null
+                    }
+                }
+            }
+        }
+
+        val canAdvance: Boolean
+            get() = stepError() == null && !uploadingAadhaar && !uploadingCert
+    }
 
     sealed interface Effect {
         data class ShowMessage(val text: String) : Effect
@@ -88,12 +146,49 @@ class KycViewModel @Inject constructor(
             return
         }
         userId = uid
+        // Fetch profile for email + phone + full name. KYC submit blocks if
+        // either contact field is missing — hospitals reach out via these.
+        val profile = profileRepository.fetchById(uid).getOrNull()
         engineerRepository.fetchByUserId(uid).fold(
-            onSuccess = { engineer -> hydrate(engineer) },
+            onSuccess = { engineer ->
+                hydrate(engineer)
+                _state.update {
+                    it.copy(
+                        email = profile?.email,
+                        phone = profile?.phone,
+                        fullName = profile?.fullName,
+                    )
+                }
+            },
             onFailure = { ex ->
                 _state.update { it.copy(loading = false, errorMessage = ex.toUserMessage()) }
             },
         )
+    }
+
+    fun goToNextStep() {
+        val snap = _state.value
+        if (!snap.canAdvance) {
+            viewModelScope.launch {
+                snap.stepError()?.let { _effects.send(Effect.ShowMessage(it)) }
+            }
+            return
+        }
+        val next = snap.currentStep.next() ?: return
+        _state.update { it.copy(currentStep = next) }
+    }
+
+    fun goToPreviousStep() {
+        val prev = _state.value.currentStep.previous() ?: return
+        _state.update { it.copy(currentStep = prev) }
+    }
+
+    fun jumpToStep(step: KycStep) {
+        _state.update { it.copy(currentStep = step) }
+    }
+
+    fun onAttestationChange(value: Boolean) {
+        _state.update { it.copy(attestationAccepted = value) }
     }
 
     private fun hydrate(engineer: Engineer?) {
@@ -369,4 +464,11 @@ class KycViewModel @Inject constructor(
         val stamp = System.currentTimeMillis()
         return "$stamp-$sanitized"
     }
+
 }
+
+// Anchored — covers the 99% case for engineer signups without trying to be
+// RFC 5322. Hospitals only need a working address.
+private val EMAIL_REGEX = Regex(
+    "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\$",
+)

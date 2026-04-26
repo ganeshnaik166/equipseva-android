@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -222,7 +223,17 @@ private fun ProfileBody(
                     }
                 }
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(p.fullName, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(p.fullName, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        // Public profile RPC gates to verification_status='verified',
+                        // so reaching this screen means the engineer is verified.
+                        Icon(
+                            imageVector = Icons.Filled.Verified,
+                            contentDescription = "Verified engineer",
+                            tint = AccentLime,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
                     Text(
                         "Senior Biomedical Engineer · ${p.experienceYears} yrs",
                         color = Color.White.copy(alpha = 0.85f),
