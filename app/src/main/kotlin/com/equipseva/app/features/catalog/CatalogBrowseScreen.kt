@@ -18,6 +18,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Image
@@ -62,13 +66,29 @@ fun CatalogBrowseScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
+    val listState = rememberLazyListState()
+
+    // Trigger load-more when the user is within ~5 cards of the end of the list.
+    // Compose recomputes this whenever visible-items change, so it auto-fires on scroll.
+    val reachedEnd by remember {
+        derivedStateOf {
+            val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()
+            val total = listState.layoutInfo.totalItemsCount
+            last != null && total > 0 && last.index >= total - 5
+        }
+    }
+    LaunchedEffect(reachedEnd, state.items.size) {
+        if (reachedEnd && !state.loading && !state.loadingMore && !state.endReached) {
+            viewModel.loadMore()
+        }
+    }
 
     Scaffold(topBar = { ESBackTopBar(title = "Hospital catalogue", onBack = onBack) }) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).background(Surface50)) {
             OutlinedTextField(
                 value = state.query,
                 onValueChange = viewModel::onQueryChange,
-                placeholder = { Text("Search 548 items…") },
+                placeholder = { Text("Search 25,000+ items…") },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -111,6 +131,7 @@ fun CatalogBrowseScreen(
                         subtitle = "Try a different keyword or clear the filter.",
                     )
                     else -> LazyColumn(
+                        state = listState,
                         contentPadding = PaddingValues(Spacing.md),
                         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                     ) {
@@ -131,6 +152,29 @@ fun CatalogBrowseScreen(
                                     }
                                 },
                             )
+                        }
+                        // Footer: spinner while loading more, end-of-list marker once exhausted.
+                        item(key = "footer") {
+                            if (state.loadingMore) {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(Spacing.md),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(28.dp),
+                                        strokeWidth = 2.dp,
+                                    )
+                                }
+                            } else if (state.endReached) {
+                                Text(
+                                    text = "End of catalogue · ${state.totalLoaded} items",
+                                    color = Ink500,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(Spacing.md),
+                                )
+                            }
                         }
                     }
                 }
