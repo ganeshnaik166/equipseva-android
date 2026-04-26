@@ -2,7 +2,6 @@ package com.equipseva.app.features.kyc
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -115,8 +114,9 @@ fun KycScreen(
         }
     }
 
+    // OpenDocument (not PickVisualMedia) so e-Aadhaar PDFs from UIDAI work too.
     val aadhaarPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia(),
+        contract = ActivityResultContracts.OpenDocument(),
     ) { uri: Uri? ->
         uri?.let { readAndUpload(context, it) { name, bytes, mime -> viewModel.uploadAadhaarDoc(name, bytes, mime) } }
     }
@@ -184,7 +184,7 @@ fun KycScreen(
                     onToggleSpecialization = viewModel::toggleSpecialization,
                     onPickAadhaar = {
                         aadhaarPicker.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                            arrayOf("application/pdf", "image/jpeg", "image/png", "image/webp"),
                         )
                     },
                     onPickCertificate = {
@@ -256,6 +256,7 @@ private fun KycForm(
                 uploading = state.uploadingAadhaar,
                 icon = Icons.Filled.Badge,
                 hue = 150,
+                subtitleOverride = if (!aadhaarUploaded) "PDF or photo" else null,
                 onClick = onPickAadhaar,
             )
             DocumentRow(
