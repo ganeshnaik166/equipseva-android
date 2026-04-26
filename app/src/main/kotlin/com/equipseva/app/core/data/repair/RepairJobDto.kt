@@ -21,6 +21,13 @@ data class RepairJobDto(
     @SerialName("hospital_org_id") val hospitalOrgId: String? = null,
     @SerialName("hospital_user_id") val hospitalUserId: String? = null,
     @SerialName("engineer_id") val engineerId: String? = null,
+    // Photo arrays. Filled in by the engineer at "Mark done" (after_photos),
+    // by the hospital when filing a request (issue_photos), and during a
+    // pre-work walkthrough (before_photos, future). All store fully-qualified
+    // public URLs from the repair-photos bucket.
+    @SerialName("issue_photos") val issuePhotos: List<String>? = null,
+    @SerialName("before_photos") val beforePhotos: List<String>? = null,
+    @SerialName("after_photos") val afterPhotos: List<String>? = null,
     @SerialName("equipment_type") val equipmentType: String? = null,
     @SerialName("equipment_brand") val equipmentBrand: String? = null,
     @SerialName("equipment_model") val equipmentModel: String? = null,

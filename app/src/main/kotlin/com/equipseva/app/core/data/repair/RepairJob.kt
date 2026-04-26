@@ -32,6 +32,9 @@ data class RepairJob(
     val engineerReview: String?,
     val createdAtInstant: Instant?,
     val updatedAtInstant: Instant?,
+    val issuePhotos: List<String> = emptyList(),
+    val beforePhotos: List<String> = emptyList(),
+    val afterPhotos: List<String> = emptyList(),
 ) {
     /** Short label for the equipment line, e.g. "GE Logiq P5" or "Imaging & radiology". */
     val equipmentLabel: String
@@ -75,6 +78,9 @@ internal fun RepairJobDto.toDomain(): RepairJob {
         engineerReview = engineerReview?.takeIf { it.isNotBlank() },
         createdAtInstant = createdAt?.toInstantOrNull(),
         updatedAtInstant = updatedAt?.toInstantOrNull(),
+        issuePhotos = issuePhotos.orEmpty().filter { it.isNotBlank() },
+        beforePhotos = beforePhotos.orEmpty().filter { it.isNotBlank() },
+        afterPhotos = afterPhotos.orEmpty().filter { it.isNotBlank() },
     )
 }
 
