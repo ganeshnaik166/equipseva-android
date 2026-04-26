@@ -33,6 +33,8 @@ class CatalogReferenceRepository @Inject constructor(
         @SerialName("price_inr_high") val priceInrHigh: Long? = null,
         val market: String = "India",
         @SerialName("image_search_url") val imageSearchUrl: String? = null,
+        @SerialName("image_url") val imageUrl: String? = null,
+        @SerialName("image_url_confidence") val imageUrlConfidence: Double? = null,
         val notes: String? = null,
     )
 

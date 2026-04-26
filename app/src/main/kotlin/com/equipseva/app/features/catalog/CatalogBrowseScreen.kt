@@ -8,9 +8,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -151,6 +155,19 @@ private fun CatalogRow(
             .padding(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
+        if (!item.imageUrl.isNullOrBlank()) {
+            coil3.compose.AsyncImage(
+                model = item.imageUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Surface200),
+            )
+            Spacer(Modifier.height(2.dp))
+        }
         Text(item.itemName, fontWeight = FontWeight.Bold, color = Ink900, fontSize = 15.sp)
         val brandLine = listOfNotNull(item.brand, item.model).joinToString(" · ")
         if (brandLine.isNotBlank()) {
