@@ -191,6 +191,8 @@ object Routes {
     const val FOUNDER_INTEGRITY = "founder/integrity"
     const val FOUNDER_CATEGORIES = "founder/categories"
     const val FOUNDER_BUYER_KYC = "founder/buyer_kyc"
+    /** Curate the auto-fetched product images for catalog_reference_items. */
+    const val FOUNDER_CATALOG_IMAGES = "founder/catalog_images"
 
     // Catalog browser — public 5K-row catalog of OpenFDA-seeded devices.
     // Tap a row → opens CreateRfq with the device name + brand prefilled.

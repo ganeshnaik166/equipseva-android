@@ -158,6 +158,7 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.FOUNDER_INTEGRITY,
     Routes.FOUNDER_CATEGORIES,
     Routes.FOUNDER_BUYER_KYC,
+    Routes.FOUNDER_CATALOG_IMAGES,
     Routes.CATALOG_BROWSER,
     Routes.PROFILE_BANK_DETAILS,
     Routes.PROFILE_ADDRESSES,
@@ -775,6 +776,7 @@ fun MainNavGraph(
                     onOpenIntegrityFlags = { navController.navigate(Routes.FOUNDER_INTEGRITY) },
                     onOpenCategories = { navController.navigate(Routes.FOUNDER_CATEGORIES) },
                     onOpenBuyerKyc = { navController.navigate(Routes.FOUNDER_BUYER_KYC) },
+                    onOpenCatalogImages = { navController.navigate(Routes.FOUNDER_CATALOG_IMAGES) },
                 )
             }
             composable(Routes.FOUNDER_KYC_QUEUE) {
@@ -809,6 +811,11 @@ fun MainNavGraph(
             }
             composable(Routes.FOUNDER_BUYER_KYC) {
                 com.equipseva.app.features.founder.FounderBuyerKycQueueScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.FOUNDER_CATALOG_IMAGES) {
+                com.equipseva.app.features.founder.FounderCatalogImagesScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
