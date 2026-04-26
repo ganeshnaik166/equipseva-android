@@ -1,5 +1,6 @@
 package com.equipseva.app.features.hospital
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
@@ -8,6 +9,7 @@ import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.data.rfq.RfqInsertDto
 import com.equipseva.app.core.data.rfq.RfqRepository
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +27,7 @@ class CreateRfqViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
     private val rfqRepository: RfqRepository,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     data class UiState(
@@ -53,7 +56,16 @@ class CreateRfqViewModel @Inject constructor(
         data object NavigateBack : Effect
     }
 
-    private val _state = MutableStateFlow(UiState())
+    private val _state = MutableStateFlow(
+        UiState(
+            title = savedStateHandle
+                .get<String>(Routes.HOSPITAL_CREATE_RFQ_ARG_TITLE).orEmpty(),
+            equipmentType = savedStateHandle
+                .get<String>(Routes.HOSPITAL_CREATE_RFQ_ARG_TYPE).orEmpty(),
+            description = savedStateHandle
+                .get<String>(Routes.HOSPITAL_CREATE_RFQ_ARG_DESC).orEmpty(),
+        )
+    )
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     private val _effects = Channel<Effect>(Channel.BUFFERED)

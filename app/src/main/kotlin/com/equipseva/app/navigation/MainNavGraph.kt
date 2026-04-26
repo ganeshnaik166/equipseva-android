@@ -301,7 +301,7 @@ fun MainNavGraph(
                         navController.navigate(Routes.marketplaceDetailRoute(partId))
                     },
                     onOpenCart = { navController.navigate(Routes.CART) },
-                    onOpenCatalog = { navController.navigate(Routes.CATALOG_BROWSER) },
+                    onOpenCatalog = { navController.navigate(Routes.CATALOG_BROWSE) },
                     onListItem = { navController.navigate(Routes.SUPPLIER_ADD_LISTING) },
                 )
             }
@@ -314,7 +314,7 @@ fun MainNavGraph(
                         navController.navigate(Routes.marketplaceDetailRoute(partId))
                     },
                     onOpenCart = { navController.navigate(Routes.CART) },
-                    onOpenCatalog = { navController.navigate(Routes.CATALOG_BROWSER) },
+                    onOpenCatalog = { navController.navigate(Routes.CATALOG_BROWSE) },
                     onListItem = { navController.navigate(Routes.SUPPLIER_ADD_LISTING) },
                 )
             }
@@ -640,9 +640,60 @@ fun MainNavGraph(
                     onShowMessage = showSnackbar,
                 )
             }
-            composable(Routes.HOSPITAL_CREATE_RFQ) {
+            composable(
+                route = Routes.HOSPITAL_CREATE_RFQ +
+                    "?${Routes.HOSPITAL_CREATE_RFQ_ARG_TITLE}={${Routes.HOSPITAL_CREATE_RFQ_ARG_TITLE}}" +
+                    "&${Routes.HOSPITAL_CREATE_RFQ_ARG_TYPE}={${Routes.HOSPITAL_CREATE_RFQ_ARG_TYPE}}" +
+                    "&${Routes.HOSPITAL_CREATE_RFQ_ARG_DESC}={${Routes.HOSPITAL_CREATE_RFQ_ARG_DESC}}",
+                arguments = listOf(
+                    navArgument(Routes.HOSPITAL_CREATE_RFQ_ARG_TITLE) {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument(Routes.HOSPITAL_CREATE_RFQ_ARG_TYPE) {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument(Routes.HOSPITAL_CREATE_RFQ_ARG_DESC) {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) {
                 CreateRfqScreen(
                     onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.CATALOG_BROWSE) {
+                com.equipseva.app.features.catalog.CatalogBrowseScreen(
+                    onBack = { navController.popBackStack() },
+                    onRequestQuote = { item ->
+                        val title = "Quote: ${item.itemName}"
+                        val type = item.category
+                        val desc = buildString {
+                            append("Looking for: ")
+                            append(item.itemName)
+                            if (!item.brand.isNullOrBlank() || !item.model.isNullOrBlank()) {
+                                append(" (")
+                                append(listOfNotNull(item.brand, item.model).joinToString(" "))
+                                append(")")
+                            }
+                            if (!item.keySpecifications.isNullOrBlank()) {
+                                append("\n\nSpecs: ").append(item.keySpecifications)
+                            }
+                            append("\n\nReference catalogue id: ").append(item.id)
+                        }
+                        navController.navigate(
+                            Routes.hospitalCreateRfqRoute(
+                                title = title,
+                                equipmentType = type,
+                                description = desc,
+                            )
+                        )
+                    },
                 )
             }
             composable(Routes.HOSPITAL_ACTIVE_JOBS) {

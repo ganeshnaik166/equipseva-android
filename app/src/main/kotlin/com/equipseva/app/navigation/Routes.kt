@@ -106,8 +106,30 @@ object Routes {
     // Hospital-side sub-routes.
     const val REQUEST_SERVICE = "hospital/request_service"
     const val HOSPITAL_CREATE_RFQ = "hospital/create_rfq"
+    const val HOSPITAL_CREATE_RFQ_ARG_TITLE = "prefillTitle"
+    const val HOSPITAL_CREATE_RFQ_ARG_TYPE = "prefillType"
+    const val HOSPITAL_CREATE_RFQ_ARG_DESC = "prefillDesc"
+    /** Routes the user to the RFQ form with optional prefilled fields. */
+    fun hospitalCreateRfqRoute(
+        title: String? = null,
+        equipmentType: String? = null,
+        description: String? = null,
+    ): String {
+        val args = listOfNotNull(
+            title?.takeIf { it.isNotBlank() }?.let { "$HOSPITAL_CREATE_RFQ_ARG_TITLE=${java.net.URLEncoder.encode(it, "UTF-8")}" },
+            equipmentType?.takeIf { it.isNotBlank() }?.let { "$HOSPITAL_CREATE_RFQ_ARG_TYPE=${java.net.URLEncoder.encode(it, "UTF-8")}" },
+            description?.takeIf { it.isNotBlank() }?.let { "$HOSPITAL_CREATE_RFQ_ARG_DESC=${java.net.URLEncoder.encode(it, "UTF-8")}" },
+        )
+        return if (args.isEmpty()) HOSPITAL_CREATE_RFQ
+        else "$HOSPITAL_CREATE_RFQ?" + args.joinToString("&")
+    }
+
     const val HOSPITAL_ACTIVE_JOBS = "hospital/active_jobs"
     const val HOSPITAL_MY_RFQS = "hospital/my_rfqs"
+
+    // Curated India hospital catalogue browse (548 items). Tap an item to land
+    // on CreateRfq prefilled with the device name + category.
+    const val CATALOG_BROWSE = "catalog/browse"
 
     // Hospital RFQ detail (read-only view with received bids).
     const val HOSPITAL_RFQ_DETAIL = "hospital/rfq/detail"
