@@ -41,12 +41,14 @@ class CatalogReferenceRepository @Inject constructor(
     suspend fun search(
         query: String? = null,
         category: String? = null,
+        type: String? = null,
         limit: Int = 50,
         offset: Int = 0,
     ): Result<List<Item>> = runCatching {
         client.from(TABLE).select {
             filter {
                 category?.takeIf { it.isNotBlank() }?.let { eq("category", it) }
+                type?.takeIf { it.isNotBlank() }?.let { eq("type", it) }
                 query?.trim()?.takeIf { it.isNotBlank() }?.let { q ->
                     // Plain ilike across the searchable text columns. 548
                     // rows total so the gin tsvector index isn't worth the
@@ -83,6 +85,14 @@ class CatalogReferenceRepository @Inject constructor(
         "Laboratory",
         "Ward & Allied",
         "Spare Parts & Consumables",
+    )
+
+    /** Top 4 types by row count — covers >99% of the catalog. */
+    fun types(): List<String> = listOf(
+        "Capital Equipment",
+        "Implant",
+        "Consumable",
+        "Spare/Accessory",
     )
 
     private companion object {
