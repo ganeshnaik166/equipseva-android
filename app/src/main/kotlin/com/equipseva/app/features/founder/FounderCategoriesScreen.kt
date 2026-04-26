@@ -1,5 +1,9 @@
 package com.equipseva.app.features.founder
 
+import android.content.Context
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,11 +15,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -41,6 +47,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import coil3.compose.AsyncImage
+import com.equipseva.app.core.storage.StorageRepository
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.theme.BrandGreen
@@ -59,9 +67,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+private fun url(draft: FounderCategoriesViewModel.EditDraft): String? =
+    draft.imageUrl?.takeIf { it.isNotBlank() }
+
 @HiltViewModel
 class FounderCategoriesViewModel @Inject constructor(
     private val repo: FounderRepository,
+    private val storage: StorageRepository,
 ) : ViewModel() {
     data class EditDraft(
         val key: String = "",
@@ -69,7 +81,9 @@ class FounderCategoriesViewModel @Inject constructor(
         val scope: String = "both",
         val sortOrder: String = "100",
         val isActive: Boolean = true,
+        val imageUrl: String? = null,
         val isNew: Boolean = true,
+        val uploadingImage: Boolean = false,
     )
 
     data class UiState(
@@ -107,9 +121,50 @@ class FounderCategoriesViewModel @Inject constructor(
                     scope = row.scope,
                     sortOrder = row.sortOrder.toString(),
                     isActive = row.isActive,
+                    imageUrl = row.imageUrl,
                     isNew = false,
                 ),
             )
+        }
+    }
+
+    fun uploadImage(context: Context, uri: Uri) {
+        val draft = _state.value.editDraft ?: return
+        val key = draft.key.trim().lowercase().ifBlank {
+            _state.update { it.copy(error = "Set the key first") }
+            return
+        }
+        _state.update { it.copy(editDraft = draft.copy(uploadingImage = true), error = null) }
+        viewModelScope.launch {
+            val resolver = context.contentResolver
+            val mime = resolver.getType(uri) ?: "image/jpeg"
+            val bytes = resolver.openInputStream(uri)?.use { it.readBytes() }
+            if (bytes == null) {
+                _state.update { it.copy(editDraft = it.editDraft?.copy(uploadingImage = false), error = "Couldn't read image") }
+                return@launch
+            }
+            val ext = when (mime.lowercase()) {
+                "image/png" -> "png"
+                "image/webp" -> "webp"
+                else -> "jpg"
+            }
+            val path = "$key.$ext"
+            storage.upload(StorageRepository.Buckets.CATEGORY_IMAGES, path, bytes, mime)
+                .onSuccess {
+                    val url = storage.publicUrl(StorageRepository.Buckets.CATEGORY_IMAGES, path) +
+                        "?v=" + System.currentTimeMillis()
+                    _state.update {
+                        it.copy(editDraft = it.editDraft?.copy(imageUrl = url, uploadingImage = false))
+                    }
+                }
+                .onFailure { e ->
+                    _state.update {
+                        it.copy(
+                            editDraft = it.editDraft?.copy(uploadingImage = false),
+                            error = e.message ?: "Upload failed",
+                        )
+                    }
+                }
         }
     }
 
@@ -141,6 +196,7 @@ class FounderCategoriesViewModel @Inject constructor(
                 scope = draft.scope,
                 sortOrder = sort,
                 isActive = draft.isActive,
+                imageUrl = draft.imageUrl,
             )
                 .onSuccess {
                     _state.update { it.copy(saving = false, editDraft = null) }
@@ -199,6 +255,12 @@ fun FounderCategoriesScreen(
 
     val draft = state.editDraft
     if (draft != null) {
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val imagePicker = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent(),
+        ) { uri: Uri? ->
+            if (uri != null) viewModel.uploadImage(context, uri)
+        }
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(
             sheetState = sheetState,
@@ -214,6 +276,61 @@ fun FounderCategoriesScreen(
                     fontWeight = FontWeight.Bold,
                     color = Ink900,
                 )
+
+                // Image preview + picker.
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Surface50)
+                            .border(1.dp, Surface200, RoundedCornerShape(12.dp)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        val url = draft.imageUrl
+                        if (!url.isNullOrBlank()) {
+                            AsyncImage(
+                                model = url,
+                                contentDescription = "Category image",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Outlined.Category,
+                                contentDescription = null,
+                                tint = Ink500,
+                            )
+                        }
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        OutlinedButton(
+                            onClick = { imagePicker.launch("image/*") },
+                            enabled = !state.saving && !draft.uploadingImage && draft.key.isNotBlank(),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(Icons.Filled.AddPhotoAlternate, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Text(
+                                if (draft.uploadingImage) "Uploading…"
+                                else if (url(draft) == null) "Pick image"
+                                else "Replace image",
+                                modifier = Modifier.padding(start = 6.dp),
+                                fontSize = 13.sp,
+                            )
+                        }
+                        Text(
+                            if (draft.key.isBlank()) "Set the key first"
+                            else "Set image first if scope = both",
+                            color = Ink500,
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                }
+
                 OutlinedTextField(
                     value = draft.key,
                     onValueChange = { v -> viewModel.onDraftChange { it.copy(key = v) } },
@@ -283,7 +400,7 @@ private fun CategoryRowCard(
     row: FounderRepository.CategoryRow,
     onClick: () -> Unit,
 ) {
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
@@ -291,19 +408,45 @@ private fun CategoryRowCard(
             .border(1.dp, Surface200, RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
             .padding(Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(row.displayName, color = Ink900, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
-            val statusColor = if (row.isActive) BrandGreen else Ink500
-            Text(
-                if (row.isActive) "Active" else "Disabled",
-                color = statusColor,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-            )
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Surface50)
+                .border(1.dp, Surface200, RoundedCornerShape(10.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            val img = row.imageUrl
+            if (!img.isNullOrBlank()) {
+                AsyncImage(
+                    model = img,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                )
+            } else {
+                Icon(Icons.Outlined.Category, contentDescription = null, tint = Ink500)
+            }
         }
-        Text("key: ${row.key}", color = Ink500, fontSize = 12.sp)
-        Text("scope: ${row.scope} · order: ${row.sortOrder}", color = Ink700, fontSize = 12.sp)
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(row.displayName, color = Ink900, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
+                val statusColor = if (row.isActive) BrandGreen else Ink500
+                Text(
+                    if (row.isActive) "Active" else "Disabled",
+                    color = statusColor,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+            Text("key: ${row.key}", color = Ink500, fontSize = 12.sp)
+            Text("scope: ${row.scope} · order: ${row.sortOrder}", color = Ink700, fontSize = 12.sp)
+        }
     }
 }

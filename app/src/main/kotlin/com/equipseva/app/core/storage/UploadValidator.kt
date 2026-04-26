@@ -19,6 +19,7 @@ object UploadValidator {
     private val policies: Map<String, Policy> = mapOf(
         StorageRepository.Buckets.REPAIR_PHOTOS to Policy(imageMimeTypes, 10L * 1024 * 1024),
         StorageRepository.Buckets.CATALOG_IMAGES to Policy(imageMimeTypes, 10L * 1024 * 1024),
+        StorageRepository.Buckets.CATEGORY_IMAGES to Policy(imageMimeTypes, 5L * 1024 * 1024),
         StorageRepository.Buckets.KYC_DOCS to Policy(imageMimeTypes + pdfMimeTypes, 15L * 1024 * 1024),
         StorageRepository.Buckets.INVOICES to Policy(pdfMimeTypes, 10L * 1024 * 1024),
     )

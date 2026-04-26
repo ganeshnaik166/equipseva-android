@@ -104,6 +104,7 @@ class FounderRepository @Inject constructor(
         @SerialName("scope") val scope: String,
         @SerialName("sort_order") val sortOrder: Int = 100,
         @SerialName("is_active") val isActive: Boolean = true,
+        @SerialName("image_url") val imageUrl: String? = null,
         @SerialName("updated_at") val updatedAt: String? = null,
     )
 
@@ -239,6 +240,7 @@ class FounderRepository @Inject constructor(
         scope: String,
         sortOrder: Int,
         isActive: Boolean,
+        imageUrl: String? = null,
     ): Result<Unit> = runCatching {
         client.postgrest.rpc(
             function = "admin_categories_upsert",
@@ -248,6 +250,7 @@ class FounderRepository @Inject constructor(
                 put("p_scope", JsonPrimitive(scope))
                 put("p_sort_order", JsonPrimitive(sortOrder))
                 put("p_is_active", JsonPrimitive(isActive))
+                put("p_image_url", imageUrl?.let { JsonPrimitive(it) } ?: kotlinx.serialization.json.JsonNull)
             },
         )
         Unit
