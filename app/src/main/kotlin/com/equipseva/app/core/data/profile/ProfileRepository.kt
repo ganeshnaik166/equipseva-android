@@ -21,4 +21,17 @@ interface ProfileRepository {
      * each bid with the engineer's name.
      */
     suspend fun fetchDisplayNames(userIds: List<String>): Result<Map<String, String>>
+
+    /**
+     * Append a role to the caller's `profiles.roles[]` and set it active. Calls
+     * the `add_role(p_role)` RPC which is SECURITY DEFINER on the server and
+     * validates the role key against the user_role enum.
+     */
+    suspend fun addRole(roleKey: String): Result<Unit>
+
+    /**
+     * Flip `profiles.active_role` to a role the caller already owns. Calls the
+     * `set_active_role(p_role)` RPC; raises if the user doesn't have the role.
+     */
+    suspend fun setActiveRole(roleKey: String): Result<Unit>
 }

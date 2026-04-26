@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Engineering
 import androidx.compose.material.icons.filled.Factory
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -119,6 +120,7 @@ fun ProfileScreen(
     onOpenChangeEmail: () -> Unit = {},
     onOpenOrders: () -> Unit = {},
     onOpenSellerVerification: () -> Unit = {},
+    onSwitchService: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     SecureScreen()
@@ -179,6 +181,7 @@ fun ProfileScreen(
                         onOpenChangeEmail = onOpenChangeEmail,
                         onOpenOrders = onOpenOrders,
                         onOpenSellerVerification = onOpenSellerVerification,
+                        onSwitchService = onSwitchService,
                     )
                 }
             }
@@ -251,6 +254,7 @@ private fun ProfileContent(
     onOpenChangeEmail: () -> Unit,
     onOpenOrders: () -> Unit,
     onOpenSellerVerification: () -> Unit,
+    onSwitchService: () -> Unit,
 ) {
     val profile = state.profile!!
     val isEngineer = profile.role == UserRole.ENGINEER
@@ -294,6 +298,7 @@ private fun ProfileContent(
             isManufacturer = isManufacturer,
             isLogistics = isLogistics,
             themeMode = themeMode,
+            activeRoleLabel = profile.role?.displayName ?: "Not set",
             onOpenSettings = onOpenSettings,
             onOpenVerification = onOpenVerification,
             onOpenMessages = onOpenMessages,
@@ -308,6 +313,7 @@ private fun ProfileContent(
             onOpenChangeEmail = onOpenChangeEmail,
             onOpenOrders = onOpenOrders,
             onOpenSellerVerification = onOpenSellerVerification,
+            onSwitchService = onSwitchService,
             onSignOut = onSignOut,
             signingOut = state.signingOut,
             onDeleteAccount = onDeleteAccount,
@@ -415,6 +421,7 @@ private fun buildProfileSections(
     isManufacturer: Boolean,
     isLogistics: Boolean,
     themeMode: ThemeMode,
+    activeRoleLabel: String,
     onOpenSettings: () -> Unit,
     onOpenVerification: () -> Unit,
     onOpenMessages: () -> Unit,
@@ -429,6 +436,7 @@ private fun buildProfileSections(
     onOpenChangeEmail: () -> Unit,
     onOpenOrders: () -> Unit,
     onOpenSellerVerification: () -> Unit,
+    onSwitchService: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
     onDeleteAccount: () -> Unit,
@@ -438,6 +446,12 @@ private fun buildProfileSections(
 ): List<ProfileSection> {
     val account = listOf(
         SettingsRow(icon = Icons.Filled.Person, label = "Personal info", onClick = onOpenPersonalInfo),
+        SettingsRow(
+            icon = Icons.Filled.SwapHoriz,
+            label = "Switch service",
+            trailing = activeRoleLabel,
+            onClick = onSwitchService,
+        ),
         SettingsRow(icon = Icons.Filled.Receipt, label = "My orders", onClick = onOpenOrders),
         SettingsRow(icon = Icons.Outlined.Notifications, label = "Notifications", onClick = onOpenNotifications),
         SettingsRow(icon = Icons.Outlined.Lock, label = "Change password", onClick = onOpenChangePassword),

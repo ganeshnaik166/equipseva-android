@@ -17,6 +17,13 @@ data class Profile(
     val organizationName: String?,
     val organizationCity: String?,
     val organizationState: String?,
+    // S0b: multi-service support. Old scalar `role` stays for back-compat,
+    // every screen still reads it. New Hub-aware code uses `roles` +
+    // `activeRole`.
+    val roles: List<UserRole> = emptyList(),
+    val rawRoleKeys: List<String> = emptyList(),
+    val activeRole: UserRole? = null,
+    val activeRoleKey: String? = null,
 ) {
     val displayName: String
         get() = fullName?.takeIf { it.isNotBlank() }
@@ -44,19 +51,27 @@ data class Profile(
     }
 }
 
-internal fun ProfileDto.toDomain(): Profile = Profile(
-    id = id,
-    email = email,
-    phone = phone,
-    fullName = fullName,
-    avatarUrl = avatarUrl,
-    role = role?.let { key -> UserRole.entries.firstOrNull { it.storageKey == key } },
-    rawRoleKey = role,
-    roleConfirmed = roleConfirmed,
-    onboardingCompleted = onboardingCompleted,
-    isActive = isActive,
-    organizationId = organizationId,
-    organizationName = organizations?.name,
-    organizationCity = organizations?.city,
-    organizationState = organizations?.state,
-)
+internal fun ProfileDto.toDomain(): Profile {
+    val rawKeys = roles.orEmpty()
+    val mappedRoles = rawKeys.mapNotNull { key -> UserRole.entries.firstOrNull { it.storageKey == key } }
+    return Profile(
+        id = id,
+        email = email,
+        phone = phone,
+        fullName = fullName,
+        avatarUrl = avatarUrl,
+        role = role?.let { key -> UserRole.entries.firstOrNull { it.storageKey == key } },
+        rawRoleKey = role,
+        roleConfirmed = roleConfirmed,
+        onboardingCompleted = onboardingCompleted,
+        isActive = isActive,
+        organizationId = organizationId,
+        organizationName = organizations?.name,
+        organizationCity = organizations?.city,
+        organizationState = organizations?.state,
+        roles = mappedRoles,
+        rawRoleKeys = rawKeys,
+        activeRole = activeRoleKey?.let { key -> UserRole.entries.firstOrNull { it.storageKey == key } },
+        activeRoleKey = activeRoleKey,
+    )
+}

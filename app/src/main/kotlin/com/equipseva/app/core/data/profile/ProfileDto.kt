@@ -12,6 +12,8 @@ data class ProfileDto(
     @SerialName("full_name") val fullName: String? = null,
     @SerialName("avatar_url") val avatarUrl: String? = null,
     val role: String? = null,
+    @SerialName("roles") val roles: List<String>? = null,
+    @SerialName("active_role") val activeRoleKey: String? = null,
     @SerialName("organization_id") val organizationId: String? = null,
     @SerialName("is_active") val isActive: Boolean = true,
     @SerialName("onboarding_completed") val onboardingCompleted: Boolean = false,
