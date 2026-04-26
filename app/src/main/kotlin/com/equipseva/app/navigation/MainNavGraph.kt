@@ -202,6 +202,7 @@ fun MainNavGraph(
     showTour: Boolean = false,
     initialDeepLink: String? = null,
     onSwitchService: () -> Unit = {},
+    onSignIn: () -> Unit = {},
     deepLinkHost: DeepLinkHost = hiltViewModel<DeepLinkHost>(),
 ) {
     val navController = rememberNavController()
@@ -291,7 +292,9 @@ fun MainNavGraph(
     ) { padding ->
         NavHost(
             navController = navController,
-            startDestination = Routes.HOME,
+            // PRD pivot: Marketplace is the default cold-start surface, not
+            // the role-dispatched Home dashboard.
+            startDestination = Routes.MARKETPLACE,
             modifier = Modifier.padding(padding),
         ) {
             composable(Routes.TOUR) {
@@ -362,6 +365,8 @@ fun MainNavGraph(
                     onOpenCart = { navController.navigate(Routes.CART) },
                     onOpenCatalog = { navController.navigate(Routes.CATALOG_BROWSER) },
                     onListItem = { navController.navigate(Routes.SUPPLIER_ADD_LISTING) },
+                    onBookEngineer = { navController.navigate(Routes.REQUEST_SERVICE) },
+                    onEngineerJobs = { navController.navigate(Routes.REPAIR) },
                 )
             }
             // Routes.SPARE_PARTS is intentionally kept routable but unused on
@@ -499,6 +504,7 @@ fun MainNavGraph(
                     onOpenOrders = { navController.navigate(Routes.ORDERS) },
                     onOpenSellerVerification = { navController.navigate(Routes.PROFILE_SELLER_VERIFICATION) },
                     onSwitchService = onSwitchService,
+                    onSignIn = onSignIn,
                 )
             }
             composable(Routes.NOTIFICATIONS) {
