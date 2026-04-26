@@ -94,6 +94,7 @@ fun CatalogBrowseScreen(
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.md, vertical = Spacing.sm),
             )
+            // Category chip row (department)
             LazyRow(
                 contentPadding = PaddingValues(horizontal = Spacing.md),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -103,7 +104,7 @@ fun CatalogBrowseScreen(
                         FilterChip(
                             selected = state.category == null,
                             onClick = { viewModel.onCategoryChange(null) },
-                            label = { Text("All") },
+                            label = { Text("All categories") },
                         )
                     } else {
                         val cat = state.categories[i - 1]
@@ -111,6 +112,29 @@ fun CatalogBrowseScreen(
                             selected = state.category == cat,
                             onClick = { viewModel.onCategoryChange(cat) },
                             label = { Text(cat) },
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            // Type chip row (Capital / Implant / Consumable / Spare)
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = Spacing.md),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(state.types.size + 1) { i ->
+                    if (i == 0) {
+                        FilterChip(
+                            selected = state.type == null,
+                            onClick = { viewModel.onTypeChange(null) },
+                            label = { Text("All types") },
+                        )
+                    } else {
+                        val t = state.types[i - 1]
+                        FilterChip(
+                            selected = state.type == t,
+                            onClick = { viewModel.onTypeChange(t) },
+                            label = { Text(t) },
                         )
                     }
                 }

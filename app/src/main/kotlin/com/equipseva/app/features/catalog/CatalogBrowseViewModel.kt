@@ -22,16 +22,20 @@ class CatalogBrowseViewModel @Inject constructor(
     data class UiState(
         val query: String = "",
         val category: String? = null,
+        val type: String? = null,
         val items: List<CatalogReferenceRepository.Item> = emptyList(),
         val loading: Boolean = true,            // initial / first-page load
         val loadingMore: Boolean = false,       // appending another page
         val endReached: Boolean = false,        // last page fetched returned <PAGE_SIZE
         val error: String? = null,
         val categories: List<String> = emptyList(),
+        val types: List<String> = emptyList(),
         val totalLoaded: Int = 0,               // items.size for cheap UI display
     )
 
-    private val _state = MutableStateFlow(UiState(categories = repo.categories()))
+    private val _state = MutableStateFlow(
+        UiState(categories = repo.categories(), types = repo.types())
+    )
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     private var loadJob: Job? = null
@@ -59,6 +63,11 @@ class CatalogBrowseViewModel @Inject constructor(
         reload()
     }
 
+    fun onTypeChange(value: String?) {
+        _state.update { it.copy(type = value) }
+        reload()
+    }
+
     /** Re-fetches the first page (resets pagination). Used by query / category changes. */
     fun reload() {
         loadJob?.cancel()
@@ -67,7 +76,7 @@ class CatalogBrowseViewModel @Inject constructor(
                 it.copy(loading = true, loadingMore = false, endReached = false, error = null, items = emptyList(), totalLoaded = 0)
             }
             val s = _state.value
-            repo.search(query = s.query, category = s.category, limit = PAGE_SIZE, offset = 0)
+            repo.search(query = s.query, category = s.category, type = s.type, limit = PAGE_SIZE, offset = 0)
                 .onSuccess { rows ->
                     _state.update {
                         it.copy(
@@ -93,7 +102,7 @@ class CatalogBrowseViewModel @Inject constructor(
         loadJob = viewModelScope.launch {
             _state.update { it.copy(loadingMore = true, error = null) }
             val offset = _state.value.items.size
-            repo.search(query = s.query, category = s.category, limit = PAGE_SIZE, offset = offset)
+            repo.search(query = s.query, category = s.category, type = s.type, limit = PAGE_SIZE, offset = offset)
                 .onSuccess { rows ->
                     _state.update {
                         val merged = it.items + rows
