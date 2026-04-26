@@ -669,7 +669,45 @@ fun MainNavGraph(
                 )
             }
             composable(Routes.CATALOG_BROWSE) {
+                val openRfqForItem: (com.equipseva.app.core.data.catalog.CatalogReferenceRepository.Item) -> Unit = { item ->
+                    val title = "Quote: ${item.itemName}"
+                    val type = item.category
+                    val desc = buildString {
+                        append("Looking for: ")
+                        append(item.itemName)
+                        if (!item.brand.isNullOrBlank() || !item.model.isNullOrBlank()) {
+                            append(" (")
+                            append(listOfNotNull(item.brand, item.model).joinToString(" "))
+                            append(")")
+                        }
+                        if (!item.keySpecifications.isNullOrBlank()) {
+                            append("\n\nSpecs: ").append(item.keySpecifications)
+                        }
+                        append("\n\nReference catalogue id: ").append(item.id)
+                    }
+                    navController.navigate(
+                        Routes.hospitalCreateRfqRoute(
+                            title = title,
+                            equipmentType = type,
+                            description = desc,
+                        )
+                    )
+                }
                 com.equipseva.app.features.catalog.CatalogBrowseScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenDetail = { item ->
+                        navController.navigate(Routes.catalogDetailRoute(item.id))
+                    },
+                    onRequestQuote = openRfqForItem,
+                )
+            }
+            composable(
+                route = "${Routes.CATALOG_DETAIL}/{${Routes.CATALOG_DETAIL_ARG_ID}}",
+                arguments = listOf(
+                    navArgument(Routes.CATALOG_DETAIL_ARG_ID) { type = NavType.StringType },
+                ),
+            ) {
+                com.equipseva.app.features.catalog.CatalogDetailScreen(
                     onBack = { navController.popBackStack() },
                     onRequestQuote = { item ->
                         val title = "Quote: ${item.itemName}"
