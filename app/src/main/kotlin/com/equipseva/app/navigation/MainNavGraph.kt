@@ -312,47 +312,28 @@ fun MainNavGraph(
                 )
             }
             composable(Routes.HOME) {
-                HomeScreen(
-                    onShowMessage = showSnackbar,
-                    onCardClick = { key ->
-                        val tabRoute = when (key) {
-                            "browse_parts" -> Routes.MARKETPLACE
-                            "jobs_nearby" -> Routes.REPAIR
-                            "order_history" -> Routes.ORDERS
-                            else -> null
-                        }
-                        val subRoute = when (key) {
-                            "request_service" -> Routes.REQUEST_SERVICE
-                            "hospital_create_rfq" -> Routes.HOSPITAL_CREATE_RFQ
-                            "active_jobs" -> Routes.HOSPITAL_ACTIVE_JOBS
-                            "my_rfqs", "hospital_rfqs" -> Routes.HOSPITAL_MY_RFQS
-                            // "scan_equipment" entry hidden for v1 — route kept registered for deep links.
-                            "my_bids" -> Routes.MY_BIDS
-                            "earnings" -> Routes.EARNINGS
-                            "active_work" -> Routes.ACTIVE_WORK
-                            "engineer_profile" -> Routes.ENGINEER_PROFILE
-                            "my_listings" -> Routes.MY_LISTINGS
-                            "supplier_add_listing" -> Routes.SUPPLIER_ADD_LISTING
-                            "stock_alerts" -> Routes.STOCK_ALERTS
-                            "incoming_orders" -> Routes.SUPPLIER_ORDERS
-                            "rfqs", "supplier_rfqs" -> Routes.SUPPLIER_RFQS
-                            "rfqs_assigned", "matched_rfqs" -> Routes.RFQS_ASSIGNED
-                            "lead_pipeline", "leads" -> Routes.LEAD_PIPELINE
-                            "analytics" -> Routes.ANALYTICS
-                            "pickup_queue", "pickups" -> Routes.PICKUP_QUEUE
-                            "active_deliveries", "deliveries" -> Routes.ACTIVE_DELIVERIES
-                            "completed_today", "completed" -> Routes.COMPLETED_TODAY
-                            else -> null
-                        }
-                        when {
-                            tabRoute != null -> navController.navigate(tabRoute) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                            subRoute != null -> navController.navigate(subRoute)
+                // v1: Home tab is the new 3-card landing — Marketplace /
+                // Book Repair / Engineer Jobs (+ Founder Admin tile when
+                // signed in as the pinned founder). The old role-dispatched
+                // HomeScreen + per-role dashboards stay in the repo as dead
+                // UI; cleanup ships in a follow-up loop.
+                com.equipseva.app.features.home.HomeHubScreen(
+                    onOpenMarketplace = {
+                        navController.navigate(Routes.MARKETPLACE) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
                         }
                     },
+                    onOpenBookRepair = { navController.navigate(Routes.REQUEST_SERVICE) },
+                    onOpenEngineerJobs = {
+                        navController.navigate(Routes.REPAIR) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onOpenFounder = { navController.navigate(Routes.FOUNDER_DASHBOARD) },
                 )
             }
             composable(Routes.MARKETPLACE) {
@@ -365,8 +346,6 @@ fun MainNavGraph(
                     onOpenCart = { navController.navigate(Routes.CART) },
                     onOpenCatalog = { navController.navigate(Routes.CATALOG_BROWSER) },
                     onListItem = { navController.navigate(Routes.SUPPLIER_ADD_LISTING) },
-                    onBookEngineer = { navController.navigate(Routes.REQUEST_SERVICE) },
-                    onEngineerJobs = { navController.navigate(Routes.REPAIR) },
                 )
             }
             // Routes.SPARE_PARTS is intentionally kept routable but unused on

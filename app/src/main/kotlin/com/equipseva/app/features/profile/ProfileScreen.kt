@@ -187,17 +187,6 @@ fun ProfileScreen(
         }
     }
 
-    if (state.roleEditorOpen) {
-        RoleEditorSheet(
-            currentRole = state.profile?.role,
-            selected = state.roleEditorSelected,
-            updating = state.roleUpdating,
-            onSelect = viewModel::onRoleEditorSelect,
-            onConfirm = viewModel::onRoleEditorConfirm,
-            onDismiss = viewModel::onDismissRoleEditor,
-        )
-    }
-
     if (settingsOpen) {
         SettingsSheet(
             currentMode = themeMode,
@@ -445,12 +434,6 @@ private fun buildProfileSections(
 ): List<ProfileSection> {
     val account = listOf(
         SettingsRow(icon = Icons.Filled.Person, label = "Personal info", onClick = onOpenPersonalInfo),
-        SettingsRow(
-            icon = Icons.Filled.SwapHoriz,
-            label = "Switch service",
-            trailing = activeRoleLabel,
-            onClick = onSwitchService,
-        ),
         SettingsRow(icon = Icons.Filled.Receipt, label = "My orders", onClick = onOpenOrders),
         SettingsRow(icon = Icons.Outlined.Notifications, label = "Notifications", onClick = onOpenNotifications),
         SettingsRow(icon = Icons.Outlined.Lock, label = "Change password", onClick = onOpenChangePassword),
@@ -646,47 +629,17 @@ private fun ProfileHero(
                 }
             }
 
-            Spacer(Modifier.height(2.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                val roleIcon = when (role) {
-                    UserRole.ENGINEER -> Icons.Filled.Engineering
-                    UserRole.HOSPITAL -> Icons.Filled.LocalHospital
-                    UserRole.SUPPLIER -> Icons.Filled.Storefront
-                    UserRole.MANUFACTURER -> Icons.Filled.Factory
-                    UserRole.LOGISTICS -> Icons.Filled.LocalShipping
-                    else -> Icons.Filled.Person
-                }
-                HeroChip(
-                    label = role?.displayName ?: "No role",
-                    icon = roleIcon,
-                )
-                if (verified) {
-                    HeroChip(
-                        label = "Verified",
-                        icon = Icons.Outlined.Verified,
-                    )
-                }
-                if (isFounder) {
+            // v1: no role chip / no role-change UI in Profile. The 3-card
+            // Home picks the user's intent each session; the role concept
+            // stays server-side for RLS but is hidden from the client.
+            if (isFounder) {
+                Spacer(Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     HeroChip(
                         label = "Founder",
                         icon = Icons.Filled.AdminPanelSettings,
                     )
                 }
-                Box(modifier = Modifier.weight(1f))
-                AssistChip(
-                    onClick = onChangeRole,
-                    enabled = !roleUpdating,
-                    label = { Text(if (role == null) "Choose role" else "Change", fontSize = 12.sp) },
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = androidx.compose.ui.graphics.Color.White,
-                        labelColor = BrandGreenDark,
-                    ),
-                    border = null,
-                )
             }
         }
     }

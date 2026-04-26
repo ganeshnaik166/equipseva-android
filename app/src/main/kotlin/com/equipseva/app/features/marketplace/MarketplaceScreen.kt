@@ -98,8 +98,6 @@ fun MarketplaceScreen(
     onOpenCart: () -> Unit = {},
     onOpenCatalog: () -> Unit = {},
     onListItem: () -> Unit = {},
-    onBookEngineer: () -> Unit = {},
-    onEngineerJobs: () -> Unit = {},
     viewModel: MarketplaceViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -134,10 +132,6 @@ fun MarketplaceScreen(
             cartCount = cartCount,
             onOpenCart = onOpenCart,
             onListItem = onListItem,
-        )
-        ModuleSwitcherStrip(
-            onBookEngineer = onBookEngineer,
-            onEngineerJobs = onEngineerJobs,
         )
         CategoryRow(
             selected = state.selectedCategory,
@@ -259,80 +253,6 @@ private fun MarketplaceHeader(
         }
         Spacer(Modifier.height(Spacing.md))
         SearchPill(query = query, onQueryChange = onQueryChange)
-    }
-}
-
-@Composable
-private fun ModuleSwitcherStrip(
-    onBookEngineer: () -> Unit,
-    onEngineerJobs: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Surface0)
-            .padding(horizontal = Spacing.lg, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        // Active pill — Marketplace itself.
-        ModulePill(
-            icon = Icons.Filled.Storefront,
-            label = "Marketplace",
-            active = true,
-            onClick = {},
-            modifier = Modifier.weight(1f),
-        )
-        ModulePill(
-            icon = Icons.Filled.Build,
-            label = "Book Repair",
-            active = false,
-            onClick = onBookEngineer,
-            modifier = Modifier.weight(1f),
-        )
-        ModulePill(
-            icon = Icons.Filled.Engineering,
-            label = "Engineer Jobs",
-            active = false,
-            onClick = onEngineerJobs,
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-@Composable
-private fun ModulePill(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    active: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val bg = if (active) com.equipseva.app.designsystem.theme.BrandGreen
-             else com.equipseva.app.designsystem.theme.AccentLimeSoft
-    val fg = if (active) Surface0
-             else com.equipseva.app.designsystem.theme.BrandGreenDeep
-    Row(
-        modifier = modifier
-            .height(40.dp)
-            .clip(RoundedCornerShape(50))
-            .background(bg)
-            .clickable(enabled = !active, onClick = onClick)
-            .padding(horizontal = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = fg,
-            modifier = Modifier.size(16.dp),
-        )
-        Text(
-            text = label,
-            color = fg,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-        )
     }
 }
 
