@@ -21,8 +21,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.distinctUntilChangedBy
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -94,10 +92,29 @@ class ProfileViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            authRepository.sessionState
-                .filterIsInstance<AuthSession.SignedIn>()
-                .distinctUntilChangedBy { it.userId }
-                .collect { load(it.userId, initial = true) }
+            // Handle every session state, not just SignedIn — otherwise a
+            // signed-out user opening the Profile tab gets stuck on the
+            // initial loading=true spinner forever (the SignedOutPrompt
+            // never gets a chance to render).
+            authRepository.sessionState.collect { session ->
+                when (session) {
+                    is AuthSession.SignedIn -> {
+                        if (_state.value.profile?.id != session.userId) {
+                            load(session.userId, initial = true)
+                        }
+                    }
+                    AuthSession.SignedOut -> {
+                        _state.update {
+                            it.copy(
+                                loading = false,
+                                profile = null,
+                                errorMessage = null,
+                            )
+                        }
+                    }
+                    AuthSession.Unknown -> Unit
+                }
+            }
         }
     }
 
