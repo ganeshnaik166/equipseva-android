@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Radar
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.MedicalServices
 import androidx.compose.material.icons.outlined.ShoppingCart
@@ -92,6 +93,7 @@ import com.equipseva.app.features.marketplace.components.categoryIcon
 fun MarketplaceScreen(
     onPartClick: (partId: String) -> Unit,
     onOpenCart: () -> Unit = {},
+    onOpenCatalog: () -> Unit = {},
     viewModel: MarketplaceViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -131,6 +133,7 @@ fun MarketplaceScreen(
             onCategorySelected = viewModel::onCategorySelected,
             imagesByKey = categoryImages,
         )
+        CatalogPromoBanner(onOpenCatalog = onOpenCatalog)
         SortRow(
             selected = state.sort,
             onSortSelected = viewModel::onSortSelected,
@@ -376,6 +379,53 @@ private fun CategoryChip(
             lineHeight = 16.sp,
             fontWeight = FontWeight.SemiBold,
             color = fg,
+        )
+    }
+}
+
+@Composable
+private fun CatalogPromoBanner(onOpenCatalog: () -> Unit) {
+    androidx.compose.foundation.layout.Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg, vertical = Spacing.xs)
+            .clip(RoundedCornerShape(14.dp))
+            .background(
+                androidx.compose.ui.graphics.Brush.horizontalGradient(
+                    listOf(
+                        com.equipseva.app.designsystem.theme.BrandGreen,
+                        com.equipseva.app.designsystem.theme.BrandGreenDeep,
+                    ),
+                ),
+            )
+            .clickable(onClick = onOpenCatalog)
+            .padding(horizontal = Spacing.md, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(
+            imageVector = androidx.compose.material.icons.Icons.Filled.LocalOffer,
+            contentDescription = null,
+            tint = com.equipseva.app.designsystem.theme.AccentLime,
+            modifier = Modifier.size(20.dp),
+        )
+        androidx.compose.foundation.layout.Column(modifier = Modifier.weight(1f)) {
+            Text(
+                "Browse 5,000+ devices",
+                color = androidx.compose.ui.graphics.Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                "Real device + brand catalog · request a quote",
+                color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f),
+                fontSize = 11.sp,
+            )
+        }
+        Text(
+            "›",
+            color = androidx.compose.ui.graphics.Color.White,
+            fontSize = 24.sp,
         )
     }
 }
