@@ -778,9 +778,24 @@ fun MainNavGraph(
                 )
             }
             composable(Routes.PROFILE_ADDRESSES) {
-                com.equipseva.app.features.profile.forms.HospitalAddressesScreen(
+                com.equipseva.app.features.profile.forms.AddressBookScreen(
                     onBack = { navController.popBackStack() },
-                    onShowMessage = showSnackbar,
+                    onAdd = { navController.navigate(Routes.addressFormRoute(null)) },
+                    onEdit = { id -> navController.navigate(Routes.addressFormRoute(id)) },
+                )
+            }
+            composable(
+                route = "${Routes.PROFILE_ADDRESS_FORM}?${Routes.PROFILE_ADDRESS_FORM_ARG_ID}={${Routes.PROFILE_ADDRESS_FORM_ARG_ID}}",
+                arguments = listOf(
+                    navArgument(Routes.PROFILE_ADDRESS_FORM_ARG_ID) {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) {
+                com.equipseva.app.features.profile.forms.AddressFormScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.PROFILE_HOSPITAL_SETTINGS) {

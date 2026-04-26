@@ -160,4 +160,11 @@ object Routes {
     const val FOUNDER_PAYMENTS = "founder/payments"
     const val FOUNDER_INTEGRITY = "founder/integrity"
     const val FOUNDER_CATEGORIES = "founder/categories"
+
+    // Address book add/edit (sub-route of PROFILE_ADDRESSES). Optional id arg
+    // distinguishes "new" from "edit existing".
+    const val PROFILE_ADDRESS_FORM = "profile/addresses/form"
+    const val PROFILE_ADDRESS_FORM_ARG_ID = "addressId"
+    fun addressFormRoute(addressId: String? = null): String =
+        if (addressId == null) PROFILE_ADDRESS_FORM else "$PROFILE_ADDRESS_FORM?addressId=$addressId"
 }
