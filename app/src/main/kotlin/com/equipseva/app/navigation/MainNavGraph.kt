@@ -132,11 +132,12 @@ private fun tabsForRole(role: com.equipseva.app.features.auth.UserRole?): List<T
         TabItem(Routes.COMPLETED_TODAY, "Done", Icons.Filled.CheckCircle),
         TabItem(Routes.PROFILE, "Profile", Icons.Filled.Person),
     )
-    // Hospital + null/unknown fall through to the buyer layout.
+    // Hospital + null/unknown + every other (non-founder) role fall through to
+    // the buyer layout. v1 only surfaces buyer + repair flows on the bottom
+    // nav; persona-specific tabs above are dead-but-routable code.
     else -> listOf(
         TabItem(Routes.HOME, "Home", Icons.Filled.Home),
         TabItem(Routes.MARKETPLACE, "Buy/Sell", Icons.Filled.Storefront),
-        TabItem(Routes.SPARE_PARTS, "Parts", Icons.Filled.Inventory2),
         TabItem(Routes.REPAIR, "Repair", Icons.Filled.Build),
         TabItem(Routes.PROFILE, "Profile", Icons.Filled.Person),
     )
@@ -199,6 +200,7 @@ private val fullScreenRoutePrefixes = listOf(
 @Composable
 fun MainNavGraph(
     showTour: Boolean = false,
+    initialDeepLink: String? = null,
     onSwitchService: () -> Unit = {},
     deepLinkHost: DeepLinkHost = hiltViewModel<DeepLinkHost>(),
 ) {
@@ -219,6 +221,16 @@ fun MainNavGraph(
             navController.navigate(Routes.TOUR) {
                 launchSingleTop = true
             }
+        }
+    }
+
+    // S0b deep-link from the Hub. Fires once per cold-start so back nav
+    // doesn't replay it.
+    LaunchedEffect(initialDeepLink) {
+        val target = initialDeepLink ?: return@LaunchedEffect
+        if (target == Routes.HOME) return@LaunchedEffect
+        navController.navigate(target) {
+            launchSingleTop = true
         }
     }
 
@@ -341,31 +353,28 @@ fun MainNavGraph(
                 )
             }
             composable(Routes.MARKETPLACE) {
-                val vm: com.equipseva.app.features.marketplace.MarketplaceViewModel = hiltViewModel()
-                androidx.compose.runtime.LaunchedEffect(Unit) {
-                    vm.setListingTypeFilter("equipment")
-                }
+                // v1: Buy/Sell tab shows every active listing (equipment + spare
+                // parts mixed). The Spare Parts tab is gone from the bottom nav.
                 MarketplaceScreen(
                     onPartClick = { partId ->
                         navController.navigate(Routes.marketplaceDetailRoute(partId))
                     },
                     onOpenCart = { navController.navigate(Routes.CART) },
                     onOpenCatalog = { navController.navigate(Routes.CATALOG_BROWSER) },
-                    viewModel = vm,
+                    onListItem = { navController.navigate(Routes.SUPPLIER_ADD_LISTING) },
                 )
             }
+            // Routes.SPARE_PARTS is intentionally kept routable but unused on
+            // the bottom nav for v1. The Buy/Sell tab serves both equipment
+            // and spare-parts in a mixed feed.
             composable(Routes.SPARE_PARTS) {
-                val vm: com.equipseva.app.features.marketplace.MarketplaceViewModel = hiltViewModel()
-                androidx.compose.runtime.LaunchedEffect(Unit) {
-                    vm.setListingTypeFilter("spare_part")
-                }
                 MarketplaceScreen(
                     onPartClick = { partId ->
                         navController.navigate(Routes.marketplaceDetailRoute(partId))
                     },
                     onOpenCart = { navController.navigate(Routes.CART) },
                     onOpenCatalog = { navController.navigate(Routes.CATALOG_BROWSER) },
-                    viewModel = vm,
+                    onListItem = { navController.navigate(Routes.SUPPLIER_ADD_LISTING) },
                 )
             }
             composable(

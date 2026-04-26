@@ -22,6 +22,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.equipseva.app.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Build
@@ -66,28 +69,49 @@ import com.equipseva.app.designsystem.theme.Surface0
 import com.equipseva.app.designsystem.theme.Surface50
 import com.equipseva.app.designsystem.theme.Surface200
 import com.equipseva.app.features.auth.UserRole
+import com.equipseva.app.navigation.Routes
 
 private data class HubService(
     val key: String,
     val title: String,
     val tagline: String,
     val icon: ImageVector,
+    val roleKey: String?,        // null = no role grant (founder admin tile)
+    val landingRoute: String,    // route to navigate to inside MainNavGraph
 )
 
 private val HubServices = listOf(
-    HubService(UserRole.HOSPITAL.storageKey, "Hospital", "Buy equipment + raise repair requests", Icons.Filled.LocalHospital),
-    HubService(UserRole.ENGINEER.storageKey, "Repair", "Pick up jobs, bid + earn", Icons.Filled.Build),
-    HubService(UserRole.SUPPLIER.storageKey, "Supplier", "Sell parts to verified hospitals", Icons.Filled.Inventory2),
-    HubService(UserRole.MANUFACTURER.storageKey, "Manufacturer", "Receive RFQs from hospitals", Icons.Filled.Factory),
-    HubService(UserRole.LOGISTICS.storageKey, "Logistics", "Pick up + deliver shipments", Icons.Filled.LocalShipping),
-    HubService(HUB_KEY_MARKETPLACE, "Marketplace", "Browse equipment + parts", Icons.Filled.Storefront),
+    HubService(
+        key = UserRole.HOSPITAL.storageKey + "_buy_sell",
+        title = "Buy / Sell Equipment & Parts",
+        tagline = "Browse, list and order — equipment + spare parts",
+        icon = Icons.Filled.Storefront,
+        roleKey = UserRole.HOSPITAL.storageKey,
+        landingRoute = Routes.MARKETPLACE,
+    ),
+    HubService(
+        key = UserRole.HOSPITAL.storageKey + "_book_repair",
+        title = "Book Repairmen",
+        tagline = "Raise a service request — engineer comes to you",
+        icon = Icons.Filled.Build,
+        roleKey = UserRole.HOSPITAL.storageKey,
+        landingRoute = Routes.REQUEST_SERVICE,
+    ),
+)
+
+private val AdminTileService = HubService(
+    key = HUB_KEY_ADMIN,
+    title = "Admin dashboard",
+    tagline = "KYC queues, payments, integrity, categories",
+    icon = Icons.Filled.AdminPanelSettings,
+    roleKey = null,
+    landingRoute = Routes.FOUNDER_DASHBOARD,
 )
 
 @Composable
 fun GlobalHubScreen(
-    onAuthRequired: (selectedServiceKey: String) -> Unit,
-    onLandOnMain: () -> Unit,
-    onOpenFounder: () -> Unit = {},
+    onAuthRequired: (selectedServiceKey: String, landingRoute: String?) -> Unit,
+    onLandOnMain: (landingRoute: String?) -> Unit,
     viewModel: GlobalHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -95,8 +119,8 @@ fun GlobalHubScreen(
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                is GlobalHubViewModel.Effect.RequireAuth -> onAuthRequired(effect.serviceKey)
-                GlobalHubViewModel.Effect.LandOnMain -> onLandOnMain()
+                is GlobalHubViewModel.Effect.RequireAuth -> onAuthRequired(effect.serviceKey, effect.landingRoute)
+                is GlobalHubViewModel.Effect.LandOnMain -> onLandOnMain(effect.landingRoute)
                 is GlobalHubViewModel.Effect.ShowMessage -> Unit
             }
         }
@@ -108,10 +132,8 @@ fun GlobalHubScreen(
         onConfirm = viewModel::confirmAddRole,
         onDismissSheet = viewModel::dismissSheet,
         onSignInTap = {
-            // No selected service — auth → land directly.
-            onAuthRequired("")
+            onAuthRequired("", null)
         },
-        onOpenFounder = onOpenFounder,
     )
 }
 
@@ -119,12 +141,12 @@ fun GlobalHubScreen(
 @Composable
 private fun HubContent(
     state: GlobalHubViewModel.UiState,
-    onSelect: (String) -> Unit,
+    onSelect: (serviceKey: String, landingRoute: String?) -> Unit,
     onConfirm: () -> Unit,
     onDismissSheet: () -> Unit,
     onSignInTap: () -> Unit,
-    onOpenFounder: () -> Unit,
 ) {
+    val visibleServices = HubServices + if (state.isFounder) listOf(AdminTileService) else emptyList()
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Surface50,
@@ -136,31 +158,25 @@ private fun HubContent(
         ) {
             HubHero()
             Spacer(Modifier.height(Spacing.lg))
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(((HubServices.size + 1) / 2 * 168).dp),
-                contentPadding = PaddingValues(horizontal = Spacing.lg),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md),
-                userScrollEnabled = false,
+                    .padding(horizontal = Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                items(HubServices, key = { it.key }) { service ->
-                    HubCard(
+                visibleServices.forEach { service ->
+                    val ownsRole = service.roleKey != null && service.roleKey in state.ownedRoles
+                    val isAdmin = service.key == HUB_KEY_ADMIN
+                    HubTile(
                         service = service,
-                        active = service.key == state.activeRoleKey,
-                        owned = service.key in state.ownedRoles,
+                        owned = ownsRole,
+                        admin = isAdmin,
                         enabled = !state.acting,
-                        onClick = { onSelect(service.key) },
+                        onClick = { onSelect(service.key, service.landingRoute) },
                     )
                 }
             }
-            Spacer(Modifier.height(Spacing.lg))
-            if (state.isFounder) {
-                FounderTile(onClick = onOpenFounder)
-                Spacer(Modifier.height(Spacing.md))
-            }
+            Spacer(Modifier.height(Spacing.md))
             if (!state.signedIn) {
                 SignInRow(onSignInTap = onSignInTap)
                 Spacer(Modifier.height(Spacing.lg))
@@ -179,12 +195,11 @@ private fun HubContent(
 
     val pending = state.pendingService
     if (pending != null) {
-        val role = UserRole.entries.firstOrNull { it.storageKey == pending }
-        val displayTitle = HubServices.firstOrNull { it.key == pending }?.title
-            ?: role?.displayName ?: "service"
+        val service = visibleServices.firstOrNull { it.key == pending }
+        val displayTitle = service?.title ?: "service"
         AddServiceSheet(
             serviceTitle = displayTitle,
-            tagline = HubServices.firstOrNull { it.key == pending }?.tagline.orEmpty(),
+            tagline = service?.tagline.orEmpty(),
             adding = state.acting,
             onConfirm = onConfirm,
             onDismiss = onDismissSheet,
@@ -202,104 +217,97 @@ private fun HubHero() {
                     listOf(BrandGreen, BrandGreenDeep),
                 ),
             )
-            .padding(horizontal = Spacing.lg, vertical = 28.dp),
+            .padding(horizontal = Spacing.lg, vertical = 18.dp),
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            Box(
+            Image(
+                painter = painterResource(id = R.drawable.ic_logo_full),
+                contentDescription = "EquipSeva",
                 modifier = Modifier
                     .size(56.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(AccentLimeSoft),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Storefront,
-                    contentDescription = null,
-                    tint = AccentLime,
-                    modifier = Modifier.size(28.dp),
+                    .clip(RoundedCornerShape(14.dp)),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Welcome to EquipSeva",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = androidx.compose.ui.graphics.Color.White,
+                )
+                Text(
+                    text = "What would you like to do today?",
+                    fontSize = 12.sp,
+                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
                 )
             }
-            Text(
-                text = "Choose a service",
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold,
-                color = androidx.compose.ui.graphics.Color.White,
-            )
-            Text(
-                text = "Tap any service to get started. You can hold multiple at once and switch any time.",
-                fontSize = 13.sp,
-                color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
-            )
         }
     }
 }
 
 @Composable
-private fun HubCard(
+private fun HubTile(
     service: HubService,
-    active: Boolean,
     owned: Boolean,
+    admin: Boolean,
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    val borderColor = if (owned) AccentLime else Surface200
-    val borderWidth = if (owned) 2.dp else 1.dp
-    Box(
+    val borderColor = when {
+        admin -> AccentLime
+        owned -> AccentLime
+        else -> Surface200
+    }
+    val borderWidth = if (admin || owned) 1.5.dp else 1.dp
+    val iconBg = if (admin) BrandGreenDeep else AccentLimeSoft
+    val iconTint = if (admin) AccentLime else BrandGreen
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(0.95f)
             .clip(RoundedCornerShape(16.dp))
             .background(Surface0)
             .border(borderWidth, borderColor, RoundedCornerShape(16.dp))
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Column(
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(14.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
+                .size(52.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(iconBg),
+            contentAlignment = Alignment.Center,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(AccentLimeSoft),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = service.icon,
-                        contentDescription = null,
-                        tint = BrandGreen,
-                        modifier = Modifier.size(24.dp),
-                    )
-                }
-                if (active) {
-                    HubChip("Active", AccentLime, BrandGreenDeep)
-                } else if (owned) {
-                    HubChip("Added", AccentLimeSoft, BrandGreen)
-                }
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = service.title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Ink900,
-                )
-                Text(
-                    text = service.tagline,
-                    fontSize = 12.sp,
-                    color = Ink500,
-                    lineHeight = 16.sp,
-                )
-            }
+            Icon(
+                imageVector = service.icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(28.dp),
+            )
+        }
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = service.title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Ink900,
+            )
+            Text(
+                text = service.tagline,
+                fontSize = 12.sp,
+                lineHeight = 15.sp,
+                color = Ink500,
+            )
+        }
+        if (admin) {
+            HubChip("ADMIN", AccentLime, BrandGreenDeep)
+        } else if (owned) {
+            HubChip("Added", AccentLimeSoft, BrandGreen)
+        } else {
+            Text("›", fontSize = 22.sp, color = Ink500)
         }
     }
 }
