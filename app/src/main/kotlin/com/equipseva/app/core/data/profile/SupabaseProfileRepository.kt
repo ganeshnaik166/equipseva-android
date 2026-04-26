@@ -3,6 +3,7 @@ package com.equipseva.app.core.data.profile
 import com.equipseva.app.features.auth.UserRole
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
@@ -68,10 +69,30 @@ class SupabaseProfileRepository @Inject constructor(
         }
     }
 
+    override suspend fun addRole(roleKey: String): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "add_role",
+            parameters = buildJsonObject {
+                put("p_role", JsonPrimitive(roleKey))
+            },
+        )
+        Unit
+    }
+
+    override suspend fun setActiveRole(roleKey: String): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "set_active_role",
+            parameters = buildJsonObject {
+                put("p_role", JsonPrimitive(roleKey))
+            },
+        )
+        Unit
+    }
+
     private companion object {
         const val TABLE = "profiles"
         const val BASE_COLUMNS =
-            "id,email,phone,full_name,avatar_url,role,organization_id," +
+            "id,email,phone,full_name,avatar_url,role,roles,active_role,organization_id," +
                 "is_active,onboarding_completed,role_confirmed"
     }
 }

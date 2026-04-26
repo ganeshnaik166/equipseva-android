@@ -197,6 +197,7 @@ private val fullScreenRoutePrefixes = listOf(
 @Composable
 fun MainNavGraph(
     showTour: Boolean = false,
+    onSwitchService: () -> Unit = {},
     deepLinkHost: DeepLinkHost = hiltViewModel<DeepLinkHost>(),
 ) {
     val navController = rememberNavController()
@@ -484,6 +485,7 @@ fun MainNavGraph(
                     onOpenHospitalSettings = { navController.navigate(Routes.PROFILE_HOSPITAL_SETTINGS) },
                     onOpenOrders = { navController.navigate(Routes.ORDERS) },
                     onOpenSellerVerification = { navController.navigate(Routes.PROFILE_SELLER_VERIFICATION) },
+                    onSwitchService = onSwitchService,
                 )
             }
             composable(Routes.NOTIFICATIONS) {
