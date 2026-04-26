@@ -84,6 +84,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.prefs.ThemeMode
+import com.equipseva.app.core.util.AppFeatureFlags
 import com.equipseva.app.designsystem.components.BrandedPlaceholder
 import com.equipseva.app.designsystem.components.DeleteAccountSheet
 import com.equipseva.app.designsystem.components.ESTopBar
@@ -432,9 +433,13 @@ private fun buildProfileSections(
     onExportData: () -> Unit,
     exportingData: Boolean,
 ): List<ProfileSection> {
-    val account = listOf(
+    val account = listOfNotNull(
         SettingsRow(icon = Icons.Filled.Person, label = "Personal info", onClick = onOpenPersonalInfo),
-        SettingsRow(icon = Icons.Filled.Receipt, label = "My orders", onClick = onOpenOrders),
+        // Marketplace v1 gate: My orders points at the marketplace order
+        // history. Hidden in v1; v2 brings it back when MARKETPLACE_ENABLED.
+        if (AppFeatureFlags.MARKETPLACE_ENABLED)
+            SettingsRow(icon = Icons.Filled.Receipt, label = "My orders", onClick = onOpenOrders)
+        else null,
         SettingsRow(icon = Icons.Outlined.Notifications, label = "Notifications", onClick = onOpenNotifications),
         SettingsRow(icon = Icons.Outlined.Lock, label = "Change password", onClick = onOpenChangePassword),
         SettingsRow(icon = Icons.Outlined.Email, label = "Change email", onClick = onOpenChangeEmail),
@@ -461,7 +466,9 @@ private fun buildProfileSections(
             add(SettingsRow(icon = Icons.Filled.LocationOn, label = "Addresses", onClick = onOpenAddresses))
             add(SettingsRow(icon = Icons.Filled.LocalHospital, label = "Hospital settings", onClick = onOpenHospitalSettings))
         }
-        if (isSupplier) {
+        // Marketplace v1 gate: supplier + manufacturer business rows are
+        // all seller-side surfaces. Skip them entirely until v2.
+        if (AppFeatureFlags.MARKETPLACE_ENABLED && isSupplier) {
             add(SettingsRow(
                 icon = Icons.Outlined.VerifiedUser,
                 label = "Seller verification",
@@ -472,7 +479,7 @@ private fun buildProfileSections(
             add(SettingsRow(icon = Icons.Filled.Storefront, label = "Storefront", onClick = onOpenHospitalSettings))
             add(SettingsRow(icon = Icons.Filled.AccountBalance, label = "Bank details", onClick = onOpenBankDetails))
         }
-        if (isManufacturer) {
+        if (AppFeatureFlags.MARKETPLACE_ENABLED && isManufacturer) {
             add(SettingsRow(
                 icon = Icons.Outlined.VerifiedUser,
                 label = "Seller verification",
