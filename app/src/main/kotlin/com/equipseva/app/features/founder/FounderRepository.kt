@@ -98,6 +98,20 @@ class FounderRepository @Inject constructor(
     )
 
     @Serializable
+    data class PendingBuyerKyc(
+        @SerialName("request_id") val requestId: String,
+        @SerialName("user_id") val userId: String,
+        @SerialName("full_name") val fullName: String,
+        @SerialName("email") val email: String? = null,
+        @SerialName("phone") val phone: String? = null,
+        @SerialName("doc_type") val docType: String,
+        @SerialName("doc_url") val docUrl: String,
+        @SerialName("gst_number") val gstNumber: String? = null,
+        @SerialName("status") val status: String,
+        @SerialName("submitted_at") val submittedAt: String,
+    )
+
+    @Serializable
     data class CategoryRow(
         @SerialName("key") val key: String,
         @SerialName("display_name") val displayName: String,
@@ -251,6 +265,27 @@ class FounderRepository @Inject constructor(
                 put("p_sort_order", JsonPrimitive(sortOrder))
                 put("p_is_active", JsonPrimitive(isActive))
                 put("p_image_url", imageUrl?.let { JsonPrimitive(it) } ?: kotlinx.serialization.json.JsonNull)
+            },
+        )
+        Unit
+    }
+
+    suspend fun fetchPendingBuyerKyc(): Result<List<PendingBuyerKyc>> = runCatching {
+        client.postgrest.rpc(function = "admin_pending_buyer_kyc")
+            .decodeList<PendingBuyerKyc>()
+    }
+
+    suspend fun setBuyerKycStatus(
+        requestId: String,
+        status: String,
+        reason: String?,
+    ): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "admin_set_buyer_kyc_status",
+            parameters = buildJsonObject {
+                put("p_request_id", JsonPrimitive(requestId))
+                put("p_status", JsonPrimitive(status))
+                put("p_reason", reason?.let { JsonPrimitive(it) } ?: kotlinx.serialization.json.JsonNull)
             },
         )
         Unit

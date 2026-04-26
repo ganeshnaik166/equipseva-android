@@ -160,6 +160,7 @@ object Routes {
     const val FOUNDER_PAYMENTS = "founder/payments"
     const val FOUNDER_INTEGRITY = "founder/integrity"
     const val FOUNDER_CATEGORIES = "founder/categories"
+    const val FOUNDER_BUYER_KYC = "founder/buyer_kyc"
 
     // Address book add/edit (sub-route of PROFILE_ADDRESSES). Optional id arg
     // distinguishes "new" from "edit existing".

@@ -42,6 +42,7 @@ class CheckoutViewModel @Inject constructor(
     private val razorpayLauncher: RazorpayLauncher,
     private val paymentVerification: PaymentVerificationRepository,
     private val playIntegrityClient: PlayIntegrityClient,
+    private val buyerKycRepository: com.equipseva.app.core.data.buyerkyc.BuyerKycRepository,
 ) : ViewModel() {
 
     data class FormState(
@@ -90,6 +91,12 @@ class CheckoutViewModel @Inject constructor(
         val supplierConflict: Boolean = false,
         val prefilledEmail: String? = null,
         val errorMessage: String? = null,
+        // S1: buyer KYC gate state.
+        val buyerKycStatus: String = "unsubmitted",
+        val showKycSheet: Boolean = false,
+        val kycUploading: Boolean = false,
+        val kycError: String? = null,
+        val kycRejectionReason: String? = null,
     )
 
     /** Cart line zipped with the up-to-date part snapshot. */
@@ -137,6 +144,12 @@ class CheckoutViewModel @Inject constructor(
     fun onPlaceOrder() {
         val snap = _state.value
         if (snap.submitting) return
+        // S1 buyer-KYC gate: every paying account must verify once. Pop the
+        // sheet instead of advancing to Razorpay.
+        if (snap.buyerKycStatus != "verified") {
+            _state.update { it.copy(showKycSheet = true) }
+            return
+        }
         if (!snap.form.isValid) {
             _state.update { it.copy(showValidationErrors = true) }
             return
@@ -360,7 +373,48 @@ class CheckoutViewModel @Inject constructor(
                 form = initialForm,
                 supplierConflict = suppliers.size > 1,
                 prefilledEmail = profile?.email ?: fallbackEmail,
+                buyerKycStatus = profile?.buyerKycStatus ?: "unsubmitted",
             )
+        }
+    }
+
+    fun dismissKycSheet() {
+        _state.update { it.copy(showKycSheet = false, kycError = null) }
+    }
+
+    /** Called from BuyerKycSheet's "Pick file & submit" → file picker → onPicked. */
+    fun submitKycDoc(
+        context: android.content.Context,
+        uri: android.net.Uri,
+        docType: com.equipseva.app.core.data.buyerkyc.BuyerKycRepository.DocType,
+        gstNumber: String?,
+    ) {
+        if (_state.value.kycUploading) return
+        _state.update { it.copy(kycUploading = true, kycError = null) }
+        viewModelScope.launch {
+            val resolver = context.contentResolver
+            val mime = resolver.getType(uri) ?: "image/jpeg"
+            val bytes = resolver.openInputStream(uri)?.use { it.readBytes() }
+            if (bytes == null) {
+                _state.update { it.copy(kycUploading = false, kycError = "Couldn't read file") }
+                return@launch
+            }
+            buyerKycRepository.submit(docType, bytes, mime, gstNumber)
+                .onSuccess {
+                    _state.update {
+                        it.copy(
+                            kycUploading = false,
+                            buyerKycStatus = "pending",
+                            kycError = null,
+                        )
+                    }
+                    emit(Effect.ShowMessage("KYC submitted — we'll review within 24 hours."))
+                }
+                .onFailure { e ->
+                    _state.update {
+                        it.copy(kycUploading = false, kycError = e.message ?: "Upload failed")
+                    }
+                }
         }
     }
 }

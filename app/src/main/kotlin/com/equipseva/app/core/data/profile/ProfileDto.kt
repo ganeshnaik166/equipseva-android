@@ -18,6 +18,7 @@ data class ProfileDto(
     @SerialName("is_active") val isActive: Boolean = true,
     @SerialName("onboarding_completed") val onboardingCompleted: Boolean = false,
     @SerialName("role_confirmed") val roleConfirmed: Boolean = false,
+    @SerialName("buyer_kyc_status") val buyerKycStatus: String? = null,
     val organizations: OrganizationSummaryDto? = null,
 )
 
