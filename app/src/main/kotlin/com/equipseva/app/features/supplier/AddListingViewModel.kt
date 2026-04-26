@@ -9,6 +9,7 @@ import com.equipseva.app.core.data.parts.SparePartInsertDto
 import com.equipseva.app.core.data.parts.SparePartsRepository
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.storage.StorageRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +27,12 @@ class AddListingViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
     private val partsRepository: SparePartsRepository,
+    private val storage: StorageRepository,
 ) : ViewModel() {
+
+    companion object {
+        const val MAX_IMAGES = 5
+    }
 
     data class FormState(
         val name: String = "",
@@ -102,6 +108,8 @@ class AddListingViewModel @Inject constructor(
         val errorMessage: String? = null,
         /** True after the verification gate fails (server says seller_can_list=false). */
         val verificationGate: Boolean = false,
+        val imageUrls: List<String> = emptyList(),
+        val uploadingImage: Boolean = false,
     )
 
     sealed interface Effect {
@@ -159,6 +167,47 @@ class AddListingViewModel @Inject constructor(
     fun onListingTypeChange(type: String) =
         updateForm { it.copy(listingType = if (type == "equipment") "equipment" else "spare_part") }
 
+    fun addImage(fileName: String, bytes: ByteArray, contentType: String?) {
+        val orgId = supplierOrgId
+        if (orgId.isNullOrBlank()) {
+            emit(Effect.ShowMessage("Link a supplier organization before uploading images."))
+            return
+        }
+        val snap = _state.value
+        if (snap.imageUrls.size >= MAX_IMAGES) {
+            emit(Effect.ShowMessage("Up to $MAX_IMAGES images per listing."))
+            return
+        }
+        if (snap.uploadingImage) return
+        _state.update { it.copy(uploadingImage = true) }
+        viewModelScope.launch {
+            val safe = fileName.substringAfterLast('/').ifBlank { "image" }
+                .replace(Regex("[^A-Za-z0-9._-]"), "_")
+            val path = "$orgId/${System.currentTimeMillis()}-$safe"
+            storage.upload(
+                bucket = StorageRepository.Buckets.CATALOG_IMAGES,
+                path = path,
+                bytes = bytes,
+                contentType = contentType,
+            ).fold(
+                onSuccess = {
+                    val url = storage.publicUrl(StorageRepository.Buckets.CATALOG_IMAGES, path)
+                    _state.update {
+                        it.copy(uploadingImage = false, imageUrls = it.imageUrls + url)
+                    }
+                },
+                onFailure = { ex ->
+                    _state.update { it.copy(uploadingImage = false) }
+                    emit(Effect.ShowMessage(ex.toUserMessage()))
+                },
+            )
+        }
+    }
+
+    fun removeImage(url: String) {
+        _state.update { it.copy(imageUrls = it.imageUrls.filterNot { u -> u == url }) }
+    }
+
     fun onSave() {
         val snap = _state.value
         if (!snap.form.isValid) {
@@ -186,6 +235,7 @@ class AddListingViewModel @Inject constructor(
             isOem = form.isOem,
             discountPercentage = form.discountPercentText.toIntOrNull() ?: 0,
             listingType = form.listingType,
+            images = snap.imageUrls.takeIf { it.isNotEmpty() },
         )
 
         _state.update { it.copy(submitting = true, errorMessage = null) }

@@ -1,17 +1,33 @@
 package com.equipseva.app.features.supplier
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -39,6 +55,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -60,6 +80,7 @@ fun AddListingScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
@@ -69,6 +90,22 @@ fun AddListingScreen(
                 AddListingViewModel.Effect.NavigateBack -> onBack()
             }
         }
+    }
+
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri: Uri? ->
+        uri ?: return@rememberLauncherForActivityResult
+        val resolver = context.contentResolver
+        val mime = resolver.getType(uri)
+        val name = resolver.query(
+            uri,
+            arrayOf(android.provider.OpenableColumns.DISPLAY_NAME),
+            null, null, null,
+        )?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+            ?: uri.lastPathSegment ?: "image"
+        val bytes = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return@rememberLauncherForActivityResult
+        viewModel.addImage(name, bytes, mime)
     }
 
     Scaffold(
@@ -122,6 +159,19 @@ fun AddListingScreen(
                         modifier = Modifier.padding(horizontal = Spacing.lg),
                     )
                 }
+            }
+
+            item { SectionHeader(title = "Photos") }
+            item {
+                ImagesSection(
+                    images = state.imageUrls,
+                    uploading = state.uploadingImage,
+                    onAdd = {
+                        imagePicker.launch(arrayOf("image/jpeg", "image/png", "image/webp"))
+                    },
+                    onRemove = viewModel::removeImage,
+                    canAdd = !state.noOrgWarning,
+                )
             }
 
             item { SectionHeader(title = "Listing type") }
@@ -397,6 +447,93 @@ fun AddListingScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ImagesSection(
+    images: List<String>,
+    uploading: Boolean,
+    canAdd: Boolean,
+    onAdd: () -> Unit,
+    onRemove: (String) -> Unit,
+) {
+    val remainingSlots = AddListingViewModel.MAX_IMAGES - images.size
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            items(images.size) { i ->
+                val url = images[i]
+                Box(modifier = Modifier.size(96.dp)) {
+                    coil3.compose.AsyncImage(
+                        model = url,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp)
+                            .size(22.dp)
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.6f))
+                            .clickable { onRemove(url) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = "Remove",
+                            tint = Color.White,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
+                }
+            }
+            if (remainingSlots > 0) {
+                items(1) {
+                    Box(
+                        modifier = Modifier
+                            .size(96.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outline,
+                                RoundedCornerShape(10.dp),
+                            )
+                            .clickable(enabled = canAdd && !uploading, onClick = onAdd),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (uploading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp,
+                            )
+                        } else {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(Icons.Filled.Add, contentDescription = "Add image")
+                                Text(
+                                    "Add photo",
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Text(
+            "${images.size} / ${AddListingViewModel.MAX_IMAGES} photos · first photo is the cover",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
