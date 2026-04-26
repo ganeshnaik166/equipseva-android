@@ -9,8 +9,10 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -66,6 +68,17 @@ private fun RootHost(
     postAuthRoleGranter: PostAuthRoleGranter = hiltViewModel(),
 ) {
     val navController = rememberNavController()
+    // Hub picks an in-Main deep link (Marketplace tab, RequestService form,
+    // FounderDashboard …). MainNavGraph forwards it once on first composition
+    // then nulls it so back navigation behaves normally.
+    var pendingDeepLink by remember { mutableStateOf<String?>(null) }
+
+    val navigateToMain: () -> Unit = {
+        navController.navigate(MAIN_HOST_ROUTE) {
+            popUpTo(Routes.GLOBAL_HUB) { inclusive = false }
+            launchSingleTop = true
+        }
+    }
 
     NavHost(
         navController = navController,
@@ -74,23 +87,13 @@ private fun RootHost(
     ) {
         composable(Routes.GLOBAL_HUB) {
             GlobalHubScreen(
-                onAuthRequired = {
-                    // Selection already stashed in ServiceSelection by the VM.
+                onAuthRequired = { _, landingRoute ->
+                    pendingDeepLink = landingRoute
                     navController.navigate(Routes.AUTH_GRAPH)
                 },
-                onLandOnMain = {
-                    navController.navigate(MAIN_HOST_ROUTE) {
-                        popUpTo(Routes.GLOBAL_HUB) { inclusive = false }
-                        launchSingleTop = true
-                    }
-                },
-                onOpenFounder = {
-                    navController.navigate(MAIN_HOST_ROUTE) {
-                        popUpTo(Routes.GLOBAL_HUB) { inclusive = false }
-                        launchSingleTop = true
-                    }
-                    // Founder dashboard sits inside Main; deep-link via intent
-                    // semantics is overkill here — Profile row reaches it.
+                onLandOnMain = { landingRoute ->
+                    pendingDeepLink = landingRoute
+                    navigateToMain()
                 },
             )
         }
@@ -99,28 +102,26 @@ private fun RootHost(
                 showSnackbar = showSnackbar,
                 onAuthSuccess = {
                     val pending = ServiceSelection.consume()
-                    if (!pending.isNullOrBlank()) {
-                        postAuthRoleGranter.grantAndLand(pending) {
-                            navController.navigate(MAIN_HOST_ROUTE) {
-                                popUpTo(Routes.GLOBAL_HUB) { inclusive = false }
-                                launchSingleTop = true
-                            }
-                        }
+                    val roleKey = pending?.roleKey
+                    val landing = pending?.landingRoute ?: pendingDeepLink
+                    pendingDeepLink = landing
+                    if (!roleKey.isNullOrBlank()) {
+                        postAuthRoleGranter.grantAndLand(roleKey) { navigateToMain() }
                     } else {
-                        navController.navigate(MAIN_HOST_ROUTE) {
-                            popUpTo(Routes.GLOBAL_HUB) { inclusive = false }
-                            launchSingleTop = true
-                        }
+                        navigateToMain()
                     }
                 },
             )
         }
         composable(MAIN_HOST_ROUTE) {
+            // Snapshot + clear the deep link so a back-and-forward cycle to
+            // Hub doesn't replay the same nav.
+            val deepLink = pendingDeepLink
+            LaunchedEffect(deepLink) { pendingDeepLink = null }
             MainNavGraph(
                 showTour = showTour,
+                initialDeepLink = deepLink,
                 onSwitchService = {
-                    // Pop back to the Hub. We rely on popUpTo to clear Main
-                    // off the stack so a second pick rebuilds Main fresh.
                     navController.popBackStack(Routes.GLOBAL_HUB, inclusive = false)
                 },
             )

@@ -26,6 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Biotech
 import androidx.compose.material.icons.filled.Build
@@ -94,6 +95,7 @@ fun MarketplaceScreen(
     onPartClick: (partId: String) -> Unit,
     onOpenCart: () -> Unit = {},
     onOpenCatalog: () -> Unit = {},
+    onListItem: () -> Unit = {},
     viewModel: MarketplaceViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -127,6 +129,7 @@ fun MarketplaceScreen(
             onQueryChange = viewModel::onQueryChange,
             cartCount = cartCount,
             onOpenCart = onOpenCart,
+            onListItem = onListItem,
         )
         CategoryRow(
             selected = state.selectedCategory,
@@ -178,6 +181,7 @@ private fun MarketplaceHeader(
     onQueryChange: (String) -> Unit,
     cartCount: Int,
     onOpenCart: () -> Unit,
+    onListItem: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier
@@ -190,13 +194,36 @@ private fun MarketplaceHeader(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Marketplace",
+                text = "Buy / Sell",
                 fontSize = 20.sp,
                 lineHeight = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = Ink900,
                 modifier = Modifier.weight(1f),
             )
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(com.equipseva.app.designsystem.theme.AccentLimeSoft)
+                    .clickable(onClick = onListItem)
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Add,
+                    contentDescription = null,
+                    tint = com.equipseva.app.designsystem.theme.BrandGreenDeep,
+                    modifier = Modifier.size(16.dp),
+                )
+                Text(
+                    "List item",
+                    color = com.equipseva.app.designsystem.theme.BrandGreenDeep,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+            Spacer(Modifier.width(8.dp))
             Box(
                 modifier = Modifier
                     .size(40.dp)

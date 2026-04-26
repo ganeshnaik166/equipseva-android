@@ -19,8 +19,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** Marketplace tile is hub-only, no underlying role; landing falls through to hospital fallback. */
-const val HUB_KEY_MARKETPLACE = "marketplace"
+/** Hub key the founder Admin tile uses — no role grant needed. */
+const val HUB_KEY_ADMIN = "admin"
 
 @HiltViewModel
 class GlobalHubViewModel @Inject constructor(
@@ -35,13 +35,14 @@ class GlobalHubViewModel @Inject constructor(
         val ownedRoles: Set<String> = emptySet(),
         val activeRoleKey: String? = null,
         val pendingService: String? = null,
+        val pendingLanding: String? = null,
         val acting: Boolean = false,
         val error: String? = null,
     )
 
     sealed interface Effect {
-        data class RequireAuth(val serviceKey: String) : Effect
-        data object LandOnMain : Effect
+        data class RequireAuth(val serviceKey: String, val landingRoute: String?) : Effect
+        data class LandOnMain(val landingRoute: String?) : Effect
         data class ShowMessage(val text: String) : Effect
     }
 
@@ -87,59 +88,54 @@ class GlobalHubViewModel @Inject constructor(
         }
     }
 
-    /** User tapped a service card. Routes the action based on auth + ownership. */
-    fun onSelect(serviceKey: String) {
+    /**
+     * User tapped a tile. v1 has 3 cards: Buy/Sell, Book Repairmen, Admin
+     * (founder-only). Both buyer cards grant hospital_admin; admin tile
+     * skips role grant entirely.
+     */
+    fun onSelect(serviceKey: String, landingRoute: String?) {
         val current = _state.value
         if (current.acting) return
 
-        // Marketplace browser: no role required. Signed-out → auth; signed-in
-        // with no roles → grant hospital_admin; else just land.
-        if (serviceKey == HUB_KEY_MARKETPLACE) {
-            if (!current.signedIn) {
-                ServiceSelection.set(null)
-                viewModelScope.launch { _effects.send(Effect.RequireAuth(HUB_KEY_MARKETPLACE)) }
-                return
-            }
-            if (current.ownedRoles.isEmpty()) {
-                addRoleAndLand(UserRole.HOSPITAL.storageKey)
-            } else {
-                viewModelScope.launch { _effects.send(Effect.LandOnMain) }
-            }
+        // Founder Admin tile: no role grant; founder gate is server-side.
+        if (serviceKey == HUB_KEY_ADMIN) {
+            viewModelScope.launch { _effects.send(Effect.LandOnMain(landingRoute)) }
             return
         }
 
         if (!current.signedIn) {
-            ServiceSelection.set(serviceKey)
-            viewModelScope.launch { _effects.send(Effect.RequireAuth(serviceKey)) }
+            ServiceSelection.set(ServiceSelection.Selection(serviceKey, landingRoute))
+            viewModelScope.launch { _effects.send(Effect.RequireAuth(serviceKey, landingRoute)) }
             return
         }
 
         if (serviceKey in current.ownedRoles) {
-            // Owns it — flip active and land.
-            setActiveAndLand(serviceKey)
+            setActiveAndLand(serviceKey, landingRoute)
         } else {
-            // Owns something else — show confirm sheet.
-            _state.update { it.copy(pendingService = serviceKey, error = null) }
+            _state.update {
+                it.copy(pendingService = serviceKey, pendingLanding = landingRoute, error = null)
+            }
         }
     }
 
     fun confirmAddRole() {
         val role = _state.value.pendingService ?: return
-        addRoleAndLand(role)
+        val landing = _state.value.pendingLanding
+        addRoleAndLand(role, landing)
     }
 
     fun dismissSheet() {
-        _state.update { it.copy(pendingService = null, error = null) }
+        _state.update { it.copy(pendingService = null, pendingLanding = null, error = null) }
     }
 
-    private fun setActiveAndLand(roleKey: String) {
+    private fun setActiveAndLand(roleKey: String, landingRoute: String?) {
         _state.update { it.copy(acting = true, error = null) }
         viewModelScope.launch {
             profileRepository.setActiveRole(roleKey)
                 .onSuccess {
                     userPrefs.setActiveRole(roleKey)
-                    _state.update { it.copy(acting = false, pendingService = null) }
-                    _effects.send(Effect.LandOnMain)
+                    _state.update { it.copy(acting = false, pendingService = null, pendingLanding = null) }
+                    _effects.send(Effect.LandOnMain(landingRoute))
                 }
                 .onFailure { err ->
                     _state.update { it.copy(acting = false, error = err.message ?: "Couldn't switch service") }
@@ -147,15 +143,15 @@ class GlobalHubViewModel @Inject constructor(
         }
     }
 
-    private fun addRoleAndLand(roleKey: String) {
+    private fun addRoleAndLand(roleKey: String, landingRoute: String?) {
         _state.update { it.copy(acting = true, error = null) }
         viewModelScope.launch {
             profileRepository.addRole(roleKey)
                 .onSuccess {
                     userPrefs.setActiveRole(roleKey)
                     refreshProfile()
-                    _state.update { it.copy(acting = false, pendingService = null) }
-                    _effects.send(Effect.LandOnMain)
+                    _state.update { it.copy(acting = false, pendingService = null, pendingLanding = null) }
+                    _effects.send(Effect.LandOnMain(landingRoute))
                 }
                 .onFailure { err ->
                     _state.update { it.copy(acting = false, error = err.message ?: "Couldn't add service") }
