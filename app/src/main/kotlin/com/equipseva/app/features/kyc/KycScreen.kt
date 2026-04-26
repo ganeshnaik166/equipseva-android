@@ -254,15 +254,17 @@ private fun KycForm(
                 title = "Aadhaar card",
                 uploaded = aadhaarUploaded,
                 uploading = state.uploadingAadhaar,
+                failed = state.aadhaarFailed,
                 icon = Icons.Filled.Badge,
                 hue = 150,
-                subtitleOverride = if (!aadhaarUploaded) "PDF or photo" else null,
+                subtitleOverride = if (!aadhaarUploaded && !state.aadhaarFailed) "PDF or photo" else null,
                 onClick = onPickAadhaar,
             )
             DocumentRow(
                 title = "Trade / qualification certificate",
                 uploaded = certUploaded,
                 uploading = state.uploadingCert,
+                failed = state.certFailed,
                 icon = Icons.Filled.WorkspacePremium,
                 hue = 280,
                 subtitleOverride = if (certUploaded) {
@@ -513,11 +515,16 @@ private fun DocumentRow(
     icon: ImageVector,
     hue: Int,
     subtitleOverride: String? = null,
+    failed: Boolean = false,
     onClick: (() -> Unit)?,
 ) {
+    val errorState = failed && !uploaded && !uploading
     Card(
         colors = CardDefaults.cardColors(containerColor = Surface0),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Surface200),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (errorState) ErrorRed else Surface200,
+        ),
         shape = RoundedCornerShape(5.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -538,11 +545,20 @@ private fun DocumentRow(
                     fontWeight = FontWeight.Bold,
                     color = Ink900,
                 )
-                val subtitle = subtitleOverride ?: if (uploaded) "✓ Uploaded" else "Required"
+                val subtitle = when {
+                    errorState -> "Upload failed — tap retry"
+                    subtitleOverride != null -> subtitleOverride
+                    uploaded -> "✓ Uploaded"
+                    else -> "Required"
+                }
                 Text(
                     text = subtitle,
                     fontSize = 12.sp,
-                    color = if (uploaded) Success else Ink500,
+                    color = when {
+                        errorState -> ErrorRed
+                        uploaded -> Success
+                        else -> Ink500
+                    },
                 )
             }
             if (onClick != null) {
@@ -557,6 +573,20 @@ private fun DocumentRow(
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                     ) {
                         Text("Replace", fontSize = 13.sp)
+                    }
+                } else if (errorState) {
+                    Button(
+                        onClick = onClick,
+                        colors = ButtonDefaults.buttonColors(containerColor = ErrorRed),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.Refresh,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.size(6.dp))
+                        Text("Retry", fontSize = 13.sp)
                     }
                 } else {
                     Button(
