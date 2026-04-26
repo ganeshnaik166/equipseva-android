@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Engineering
 import androidx.compose.material.icons.filled.Storefront
+import com.equipseva.app.core.util.AppFeatureFlags
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -86,12 +87,14 @@ fun HomeHubScreen(
                     .padding(horizontal = Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                HubTile(
-                    title = "Marketplace",
-                    tagline = "Buy / Sell equipment + spare parts",
-                    icon = Icons.Filled.Storefront,
-                    onClick = onOpenMarketplace,
-                )
+                if (AppFeatureFlags.MARKETPLACE_ENABLED) {
+                    HubTile(
+                        title = "Marketplace",
+                        tagline = "Buy / Sell equipment + spare parts",
+                        icon = Icons.Filled.Storefront,
+                        onClick = onOpenMarketplace,
+                    )
+                }
                 HubTile(
                     title = "Book Repair",
                     tagline = "Raise a service request — engineer comes to you",

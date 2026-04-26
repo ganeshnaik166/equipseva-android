@@ -108,12 +108,18 @@ private data class TabItem(val route: String, val label: String, val icon: Image
  * sites; it's intentionally unused.
  */
 @Suppress("UNUSED_PARAMETER")
-private fun tabsForRole(role: com.equipseva.app.features.auth.UserRole?): List<TabItem> = listOf(
-    TabItem(Routes.HOME, "Home", Icons.Filled.Home),
-    TabItem(Routes.MARKETPLACE, "Buy/Sell", Icons.Filled.Storefront),
-    TabItem(Routes.REPAIR, "Repair", Icons.Filled.Build),
-    TabItem(Routes.PROFILE, "Profile", Icons.Filled.Person),
-)
+private fun tabsForRole(role: com.equipseva.app.features.auth.UserRole?): List<TabItem> =
+    listOfNotNull(
+        TabItem(Routes.HOME, "Home", Icons.Filled.Home),
+        // Buy/Sell tab is gated behind the v1 marketplace flag. v1 ships
+        // only Book Repair + Engineer Jobs; v2 flips MARKETPLACE_ENABLED
+        // to true and the tab returns.
+        if (com.equipseva.app.core.util.AppFeatureFlags.MARKETPLACE_ENABLED)
+            TabItem(Routes.MARKETPLACE, "Buy/Sell", Icons.Filled.Storefront)
+        else null,
+        TabItem(Routes.REPAIR, "Repair", Icons.Filled.Build),
+        TabItem(Routes.PROFILE, "Profile", Icons.Filled.Person),
+    )
 
 /** Routes that take over the screen and should hide the bottom navigation bar.
  *  Per-role tab destinations (ACTIVE_WORK, EARNINGS, MY_LISTINGS, SUPPLIER_ORDERS,
