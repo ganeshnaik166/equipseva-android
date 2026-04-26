@@ -100,6 +100,7 @@ fun FounderDashboardScreen(
     onOpenUsers: () -> Unit,
     onOpenPayments: () -> Unit,
     onOpenIntegrityFlags: () -> Unit,
+    onOpenCategories: () -> Unit = {},
     viewModel: FounderDashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -203,6 +204,13 @@ fun FounderDashboardScreen(
                 title = "Integrity flags",
                 subtitle = "Play-Integrity failures, signature mismatches, root/emulator hits.",
                 onClick = onOpenIntegrityFlags,
+            )
+            ListCard(
+                leadingIcon = Icons.Filled.AdminPanelSettings,
+                leadingHue = 200,
+                title = "Equipment categories",
+                subtitle = "Curate the canonical category list (display name, scope, sort order, active).",
+                onClick = onOpenCategories,
             )
 
             Box(modifier = Modifier.size(Spacing.xl))
