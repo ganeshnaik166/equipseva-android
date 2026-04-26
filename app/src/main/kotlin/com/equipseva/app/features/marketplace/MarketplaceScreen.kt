@@ -133,6 +133,10 @@ fun MarketplaceScreen(
             onOpenCart = onOpenCart,
             onListItem = onListItem,
         )
+        ListingTypeTabs(
+            selected = state.listingType,
+            onSelect = viewModel::setListingTypeFilter,
+        )
         CategoryRow(
             selected = state.selectedCategory,
             onCategorySelected = viewModel::onCategorySelected,
@@ -305,6 +309,61 @@ private fun SearchPill(query: String, onQueryChange: (String) -> Unit) {
             tint = Ink500,
             modifier = Modifier.size(18.dp),
         )
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Listing-type sub-tabs (Equipment / Spare Parts / Both)             */
+/* ------------------------------------------------------------------ */
+
+@Composable
+private fun ListingTypeTabs(
+    selected: String?,
+    onSelect: (String?) -> Unit,
+) {
+    val entries = listOf(
+        Triple(null, "Both", Icons.Filled.Apps),
+        Triple("equipment", "Equipment", Icons.Filled.Storefront),
+        Triple("spare_part", "Spare parts", Icons.Filled.Build),
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Surface0)
+            .padding(horizontal = Spacing.lg, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        entries.forEach { (key, label, icon) ->
+            val active = selected == key
+            val bg = if (active) com.equipseva.app.designsystem.theme.BrandGreen
+                     else com.equipseva.app.designsystem.theme.AccentLimeSoft
+            val fg = if (active) Surface0
+                     else com.equipseva.app.designsystem.theme.BrandGreenDeep
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(bg)
+                    .clickable(enabled = !active) { onSelect(key) }
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = fg,
+                    modifier = Modifier.size(14.dp),
+                )
+                Text(
+                    text = label,
+                    color = fg,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        }
     }
 }
 
