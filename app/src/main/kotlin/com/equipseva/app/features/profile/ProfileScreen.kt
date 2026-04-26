@@ -121,6 +121,7 @@ fun ProfileScreen(
     onOpenOrders: () -> Unit = {},
     onOpenSellerVerification: () -> Unit = {},
     onSwitchService: () -> Unit = {},
+    onSignIn: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     SecureScreen()
@@ -151,12 +152,10 @@ fun ProfileScreen(
                     }
                 }
                 state.profile == null -> {
-                    ProfileErrorView(
-                        message = state.errorMessage ?: "Profile not available",
-                        onRetry = viewModel::onRefresh,
-                        onSignOut = viewModel::onSignOut,
-                        signingOut = state.signingOut,
-                    )
+                    // PRD: signed-out users can browse Marketplace freely. The
+                    // Profile tab now shows a sign-in CTA instead of an error,
+                    // so a tap from the bottom nav doesn't look broken.
+                    SignedOutPrompt(onSignIn = onSignIn)
                 }
                 else -> {
                     ProfileContent(
@@ -798,6 +797,55 @@ private fun ThemeMode.displayLabel(): String = when (this) {
     ThemeMode.System -> "System"
     ThemeMode.Light -> "Light"
     ThemeMode.Dark -> "Dark"
+}
+
+@Composable
+private fun SignedOutPrompt(onSignIn: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Surface50)
+            .padding(Spacing.lg),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .clip(androidx.compose.foundation.shape.CircleShape)
+                .background(com.equipseva.app.designsystem.theme.AccentLimeSoft),
+            contentAlignment = Alignment.Center,
+        ) {
+            androidx.compose.material3.Icon(
+                imageVector = androidx.compose.material.icons.Icons.Filled.Person,
+                contentDescription = null,
+                tint = com.equipseva.app.designsystem.theme.BrandGreen,
+                modifier = Modifier.size(40.dp),
+            )
+        }
+        Spacer(Modifier.height(Spacing.lg))
+        Text(
+            "Sign in to continue",
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = Ink900,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Sign in to buy, list items, contact engineers, and track orders. Browsing stays open without an account.",
+            fontSize = 13.sp,
+            color = com.equipseva.app.designsystem.theme.Ink500,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.padding(horizontal = Spacing.md),
+        )
+        Spacer(Modifier.height(Spacing.lg))
+        androidx.compose.material3.Button(
+            onClick = onSignIn,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Sign in / Sign up", fontWeight = FontWeight.Bold)
+        }
+    }
 }
 
 @Composable

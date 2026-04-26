@@ -75,14 +75,17 @@ private fun RootHost(
 
     val navigateToMain: () -> Unit = {
         navController.navigate(MAIN_HOST_ROUTE) {
-            popUpTo(Routes.GLOBAL_HUB) { inclusive = false }
+            popUpTo(MAIN_HOST_ROUTE) { inclusive = true }
             launchSingleTop = true
         }
     }
 
+    // PRD pivot: Marketplace is the cold-start surface. The Global Hub stays
+    // routable (founder Admin tile + signed-in service switcher) but no
+    // longer forces a tile pick before browse.
     NavHost(
         navController = navController,
-        startDestination = Routes.GLOBAL_HUB,
+        startDestination = MAIN_HOST_ROUTE,
         modifier = Modifier.fillMaxSize(),
     ) {
         composable(Routes.GLOBAL_HUB) {
@@ -122,7 +125,10 @@ private fun RootHost(
                 showTour = showTour,
                 initialDeepLink = deepLink,
                 onSwitchService = {
-                    navController.popBackStack(Routes.GLOBAL_HUB, inclusive = false)
+                    navController.navigate(Routes.GLOBAL_HUB) { launchSingleTop = true }
+                },
+                onSignIn = {
+                    navController.navigate(Routes.AUTH_GRAPH) { launchSingleTop = true }
                 },
             )
         }
