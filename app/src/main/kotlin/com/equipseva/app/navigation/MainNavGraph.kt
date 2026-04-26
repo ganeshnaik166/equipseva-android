@@ -182,6 +182,7 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.FOUNDER_INTEGRITY,
     Routes.FOUNDER_CATEGORIES,
     Routes.FOUNDER_BUYER_KYC,
+    Routes.CATALOG_BROWSER,
     Routes.PROFILE_BANK_DETAILS,
     Routes.PROFILE_ADDRESSES,
     Routes.PROFILE_HOSPITAL_SETTINGS,
@@ -349,6 +350,7 @@ fun MainNavGraph(
                         navController.navigate(Routes.marketplaceDetailRoute(partId))
                     },
                     onOpenCart = { navController.navigate(Routes.CART) },
+                    onOpenCatalog = { navController.navigate(Routes.CATALOG_BROWSER) },
                     viewModel = vm,
                 )
             }
@@ -362,6 +364,7 @@ fun MainNavGraph(
                         navController.navigate(Routes.marketplaceDetailRoute(partId))
                     },
                     onOpenCart = { navController.navigate(Routes.CART) },
+                    onOpenCatalog = { navController.navigate(Routes.CATALOG_BROWSER) },
                     viewModel = vm,
                 )
             }
@@ -772,6 +775,16 @@ fun MainNavGraph(
             composable(Routes.FOUNDER_BUYER_KYC) {
                 com.equipseva.app.features.founder.FounderBuyerKycQueueScreen(
                     onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.CATALOG_BROWSER) {
+                com.equipseva.app.features.catalog.CatalogBrowserScreen(
+                    onBack = { navController.popBackStack() },
+                    onRequestQuote = { _, _ ->
+                        // Routes to existing CreateRfq flow. Prefill via SavedStateHandle
+                        // is a follow-up; for now we just open the create-rfq form.
+                        navController.navigate(Routes.HOSPITAL_CREATE_RFQ)
+                    },
                 )
             }
 

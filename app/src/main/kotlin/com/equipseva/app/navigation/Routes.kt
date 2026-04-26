@@ -162,6 +162,10 @@ object Routes {
     const val FOUNDER_CATEGORIES = "founder/categories"
     const val FOUNDER_BUYER_KYC = "founder/buyer_kyc"
 
+    // Catalog browser — public 5K-row catalog of OpenFDA-seeded devices.
+    // Tap a row → opens CreateRfq with the device name + brand prefilled.
+    const val CATALOG_BROWSER = "catalog/browser"
+
     // Address book add/edit (sub-route of PROFILE_ADDRESSES). Optional id arg
     // distinguishes "new" from "edit existing".
     const val PROFILE_ADDRESS_FORM = "profile/addresses/form"
