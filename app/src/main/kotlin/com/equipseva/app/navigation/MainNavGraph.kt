@@ -129,6 +129,7 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.REPAIR_DETAIL,
     Routes.ENGINEER_DIRECTORY,
     Routes.ENGINEER_PUBLIC_PROFILE,
+    Routes.ENGINEER_JOBS_HUB,
     Routes.CONVERSATIONS,
     Routes.CHAT_DETAIL,
     Routes.KYC,
@@ -288,13 +289,7 @@ fun MainNavGraph(
                         }
                     },
                     onOpenBookRepair = { navController.navigate(Routes.ENGINEER_DIRECTORY) },
-                    onOpenEngineerJobs = {
-                        navController.navigate(Routes.REPAIR) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
+                    onOpenEngineerJobs = { navController.navigate(Routes.ENGINEER_JOBS_HUB) },
                     onOpenFounder = { navController.navigate(Routes.FOUNDER_DASHBOARD) },
                 )
             }
@@ -426,6 +421,18 @@ fun MainNavGraph(
                     onBack = { navController.popBackStack() },
                     onShowMessage = showSnackbar,
                     onOpenChat = { id -> navController.navigate(Routes.chatRoute(id)) },
+                )
+            }
+            composable(Routes.ENGINEER_JOBS_HUB) {
+                com.equipseva.app.features.engineer.EngineerJobsHubScreen(
+                    onBack = { navController.popBackStack() },
+                    onAvailableJobs = { navController.navigate(Routes.REPAIR) },
+                    onMyBids = { navController.navigate(Routes.MY_BIDS) },
+                    onActiveWork = { navController.navigate(Routes.ACTIVE_WORK) },
+                    onEarnings = { navController.navigate(Routes.EARNINGS) },
+                    onEditProfile = { navController.navigate(Routes.ENGINEER_PROFILE) },
+                    onSubmitKyc = { navController.navigate(Routes.KYC) },
+                    onSignIn = { onSignIn() },
                 )
             }
             composable(Routes.ENGINEER_DIRECTORY) {

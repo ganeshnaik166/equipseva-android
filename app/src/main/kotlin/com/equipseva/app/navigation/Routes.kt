@@ -114,6 +114,10 @@ object Routes {
     const val HOSPITAL_RFQ_DETAIL_ARG_ID = "rfqId"
     fun hospitalRfqDetailRoute(rfqId: String): String = "$HOSPITAL_RFQ_DETAIL/$rfqId"
 
+    // Engineer Jobs hub — chooser landing for an engineer's daily workflow
+    // (available jobs, my bids, active work, earnings, profile editor).
+    const val ENGINEER_JOBS_HUB = "engineer/jobs_hub"
+
     // Book Repair — public engineer directory (entry from Home Hub).
     const val ENGINEER_DIRECTORY = "engineers/directory"
 
