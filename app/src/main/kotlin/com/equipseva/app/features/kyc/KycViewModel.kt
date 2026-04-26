@@ -52,6 +52,8 @@ class KycViewModel @Inject constructor(
         val certDocPaths: List<String> = emptyList(),
         val uploadingAadhaar: Boolean = false,
         val uploadingCert: Boolean = false,
+        val aadhaarFailed: Boolean = false,
+        val certFailed: Boolean = false,
         val saving: Boolean = false,
     )
 
@@ -180,7 +182,7 @@ class KycViewModel @Inject constructor(
     fun uploadAadhaarDoc(fileName: String, bytes: ByteArray, contentType: String?) {
         val uid = userId ?: return
         if (_state.value.uploadingAadhaar) return
-        _state.update { it.copy(uploadingAadhaar = true) }
+        _state.update { it.copy(uploadingAadhaar = true, aadhaarFailed = false) }
         viewModelScope.launch {
             val stored = "aadhaar-${timestampedName(fileName)}"
             engineerRepository.uploadKycDoc(
@@ -190,7 +192,7 @@ class KycViewModel @Inject constructor(
                 contentType = contentType,
             ).fold(
                 onSuccess = { path ->
-                    _state.update { it.copy(uploadingAadhaar = false, aadhaarDocPath = path) }
+                    _state.update { it.copy(uploadingAadhaar = false, aadhaarDocPath = path, aadhaarFailed = false) }
                     _effects.send(Effect.ShowMessage("Aadhaar document uploaded"))
                 },
                 onFailure = { ex ->
@@ -204,10 +206,10 @@ class KycViewModel @Inject constructor(
                         contentType = contentType,
                     )
                     if (queued != null) {
-                        _state.update { it.copy(uploadingAadhaar = false, aadhaarDocPath = queued) }
+                        _state.update { it.copy(uploadingAadhaar = false, aadhaarDocPath = queued, aadhaarFailed = false) }
                         _effects.send(Effect.ShowMessage("Aadhaar will upload when back online"))
                     } else {
-                        _state.update { it.copy(uploadingAadhaar = false) }
+                        _state.update { it.copy(uploadingAadhaar = false, aadhaarFailed = true) }
                         _effects.send(Effect.ShowMessage(ex.toUserMessage()))
                     }
                 },
@@ -218,7 +220,7 @@ class KycViewModel @Inject constructor(
     fun uploadCertificate(fileName: String, bytes: ByteArray, contentType: String?) {
         val uid = userId ?: return
         if (_state.value.uploadingCert) return
-        _state.update { it.copy(uploadingCert = true) }
+        _state.update { it.copy(uploadingCert = true, certFailed = false) }
         viewModelScope.launch {
             val stored = "cert-${timestampedName(fileName)}"
             engineerRepository.uploadKycDoc(
@@ -232,6 +234,7 @@ class KycViewModel @Inject constructor(
                         it.copy(
                             uploadingCert = false,
                             certDocPaths = it.certDocPaths + path,
+                            certFailed = false,
                         )
                     }
                     _effects.send(Effect.ShowMessage("Certificate uploaded"))
@@ -248,11 +251,12 @@ class KycViewModel @Inject constructor(
                             it.copy(
                                 uploadingCert = false,
                                 certDocPaths = it.certDocPaths + queued,
+                                certFailed = false,
                             )
                         }
                         _effects.send(Effect.ShowMessage("Certificate will upload when back online"))
                     } else {
-                        _state.update { it.copy(uploadingCert = false) }
+                        _state.update { it.copy(uploadingCert = false, certFailed = true) }
                         _effects.send(Effect.ShowMessage(ex.toUserMessage()))
                     }
                 },
