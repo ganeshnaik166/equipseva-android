@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.ListSkeleton
 import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
@@ -69,9 +70,7 @@ fun ActiveWorkScreen(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 when {
-                    state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
+                    state.loading -> ListSkeleton(rows = 6)
                     state.activeJobs.isEmpty() && state.completedJobs.isEmpty() -> EmptyStateView(
                         icon = Icons.Outlined.Handyman,
                         title = "No assigned jobs",
