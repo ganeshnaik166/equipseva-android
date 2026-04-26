@@ -205,6 +205,18 @@ fun CheckoutScreen(
             Spacer(Modifier.height(Spacing.xl))
         }
     }
+
+    if (state.showKycSheet) {
+        BuyerKycSheet(
+            status = state.buyerKycStatus,
+            saving = state.kycUploading,
+            error = state.kycError,
+            rejectionReason = state.kycRejectionReason,
+            onDismiss = { viewModel.dismissKycSheet() },
+            onSubmit = { _, _, pickFile -> pickFile() },
+            onPickedFile = { ctx, uri, doc, gst -> viewModel.submitKycDoc(ctx, uri, doc, gst) },
+        )
+    }
 }
 
 /* ------------------------------------------------------------------ */

@@ -24,6 +24,8 @@ data class Profile(
     val rawRoleKeys: List<String> = emptyList(),
     val activeRole: UserRole? = null,
     val activeRoleKey: String? = null,
+    /** S1: buyer KYC gate. Values: unsubmitted | pending | verified | rejected. */
+    val buyerKycStatus: String = "unsubmitted",
 ) {
     val displayName: String
         get() = fullName?.takeIf { it.isNotBlank() }
@@ -73,5 +75,6 @@ internal fun ProfileDto.toDomain(): Profile {
         rawRoleKeys = rawKeys,
         activeRole = activeRoleKey?.let { key -> UserRole.entries.firstOrNull { it.storageKey == key } },
         activeRoleKey = activeRoleKey,
+        buyerKycStatus = buyerKycStatus ?: "unsubmitted",
     )
 }

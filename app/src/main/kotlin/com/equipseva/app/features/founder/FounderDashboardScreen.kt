@@ -101,6 +101,7 @@ fun FounderDashboardScreen(
     onOpenPayments: () -> Unit,
     onOpenIntegrityFlags: () -> Unit,
     onOpenCategories: () -> Unit = {},
+    onOpenBuyerKyc: () -> Unit = {},
     viewModel: FounderDashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -211,6 +212,13 @@ fun FounderDashboardScreen(
                 title = "Equipment categories",
                 subtitle = "Curate the canonical category list (display name, scope, sort order, active).",
                 onClick = onOpenCategories,
+            )
+            ListCard(
+                leadingIcon = Icons.Filled.VerifiedUser,
+                leadingHue = 60,
+                title = "Buyer KYC queue",
+                subtitle = "Approve or reject buyer trade-doc submissions before checkout.",
+                onClick = onOpenBuyerKyc,
             )
 
             Box(modifier = Modifier.size(Spacing.xl))
