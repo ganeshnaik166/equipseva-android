@@ -15,6 +15,10 @@ interface EngineerRepository {
         city: String?,
         state: String?,
         certificates: List<EngineerCertificate>,
+        // True when the engineer has uploaded an Aadhaar doc this round.
+        // Founder review screen reads this as a positive submission signal
+        // (server-side cross-check ships in a follow-up loop).
+        aadhaarUploaded: Boolean = false,
         // When true, flips verification_status back to "pending" so a rejected
         // engineer's re-submission re-enters the admin review queue.
         resetVerificationToPending: Boolean = false,

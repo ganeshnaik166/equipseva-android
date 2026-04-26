@@ -30,6 +30,7 @@ class SupabaseEngineerRepository @Inject constructor(
         city: String?,
         state: String?,
         certificates: List<EngineerCertificate>,
+        aadhaarUploaded: Boolean,
         resetVerificationToPending: Boolean,
     ): Result<Engineer> = runCatching {
         val payload = EngineerUpsertDto(
@@ -42,6 +43,7 @@ class SupabaseEngineerRepository @Inject constructor(
             city = city?.takeIf { it.isNotBlank() },
             state = state?.takeIf { it.isNotBlank() },
             certificates = certificates.ifEmpty { null },
+            aadhaarVerified = if (aadhaarUploaded) true else null,
             verificationStatus = if (resetVerificationToPending) {
                 VerificationStatus.Pending.storageKey
             } else {

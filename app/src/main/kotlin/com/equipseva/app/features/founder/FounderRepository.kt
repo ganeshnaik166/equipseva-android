@@ -7,6 +7,7 @@ import javax.inject.Singleton
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.buildJsonObject
 
 /**
@@ -29,8 +30,44 @@ class FounderRepository @Inject constructor(
         @SerialName("service_radius_km") val serviceRadiusKm: Int? = null,
         @SerialName("city") val city: String? = null,
         @SerialName("state") val state: String? = null,
+        @SerialName("certificates") val certificates: kotlinx.serialization.json.JsonElement? = null,
+        @SerialName("aadhaar_verified") val aadhaarVerified: Boolean = false,
         @SerialName("created_at") val createdAt: String? = null,
-    )
+    ) {
+        /**
+         * Pulls every storage-key path out of the certificates JSONB so the
+         * founder UI can ask Storage for a short-lived signed URL per doc.
+         * Tolerates the legacy shape (list of objects with type+path) and
+         * a flat string list.
+         */
+        fun docPaths(): List<DocRef> {
+            val cert = certificates ?: return emptyList()
+            return when (cert) {
+                is kotlinx.serialization.json.JsonArray -> cert.mapNotNull { entry ->
+                    when (entry) {
+                        is kotlinx.serialization.json.JsonObject -> {
+                            val path = (entry["path"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull
+                            val type = (entry["type"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull
+                            if (path.isNullOrBlank()) null else DocRef(type ?: "doc", path)
+                        }
+                        is kotlinx.serialization.json.JsonPrimitive -> entry.contentOrNull?.takeIf { it.isNotBlank() }
+                            ?.let { DocRef("doc", it) }
+                        else -> null
+                    }
+                }
+                else -> emptyList()
+            }
+        }
+
+        data class DocRef(val type: String, val path: String) {
+            val displayLabel: String
+                get() = when (type.lowercase()) {
+                    "aadhaar" -> "Aadhaar"
+                    "cert" -> "Certificate"
+                    else -> type.replaceFirstChar { it.uppercase() }
+                }
+        }
+    }
 
     @Serializable
     data class PendingReport(

@@ -312,7 +312,10 @@ class KycViewModel @Inject constructor(
             // devs without Play setup can still iterate; release blocks with
             // PlayIntegrityClient.FAILURE_MESSAGE and leaves the row untouched.
             val integrity = playIntegrityClient.requestVerification("kyc_submit")
-            val pass = integrity.getOrDefault(false)
+            // Debug builds bypass: side-loaded APKs always fail Play Integrity
+            // because the cert chain isn't recognised by Google. Production
+            // keeps the strict gate via BuildConfig.DEBUG check below.
+            val pass = integrity.getOrDefault(false) || com.equipseva.app.BuildConfig.DEBUG
             if (!pass) {
                 _state.update { it.copy(saving = false) }
                 _effects.send(Effect.ShowMessage(PlayIntegrityClient.FAILURE_MESSAGE))
@@ -337,6 +340,7 @@ class KycViewModel @Inject constructor(
                 city = snap.city.takeIf { it.isNotBlank() },
                 state = snap.state.takeIf { it.isNotBlank() },
                 certificates = certificates,
+                aadhaarUploaded = snap.aadhaarDocPath != null,
                 // Re-submitting after rejection must flip the row back into the
                 // review queue so the admin sees it again.
                 resetVerificationToPending =

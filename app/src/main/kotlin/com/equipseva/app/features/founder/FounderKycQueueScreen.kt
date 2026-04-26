@@ -67,7 +67,17 @@ import androidx.compose.material.icons.outlined.Inbox
 @HiltViewModel
 class FounderKycQueueViewModel @Inject constructor(
     private val repo: FounderRepository,
+    private val storage: com.equipseva.app.core.storage.StorageRepository,
 ) : ViewModel() {
+
+    suspend fun signedUrlFor(path: String): Result<String> = runCatching {
+        storage.signedUrl(
+            bucket = com.equipseva.app.core.storage.StorageRepository.Buckets.KYC_DOCS,
+            path = path,
+            expiresInMinutes = 60,
+        )
+    }
+
     data class UiState(
         val loading: Boolean = true,
         val error: String? = null,
@@ -137,6 +147,23 @@ fun FounderKycQueueScreen(
     viewModel: FounderKycQueueViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val openDoc: (FounderRepository.PendingEngineer.DocRef) -> Unit = { doc ->
+        scope.launch {
+            viewModel.signedUrlFor(doc.path)
+                .onSuccess { url ->
+                    runCatching {
+                        context.startActivity(
+                            android.content.Intent(
+                                android.content.Intent.ACTION_VIEW,
+                                android.net.Uri.parse(url),
+                            ),
+                        )
+                    }
+                }
+        }
+    }
     Scaffold(topBar = { ESBackTopBar(title = "KYC queue", onBack = onBack) }) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             when {
@@ -163,6 +190,7 @@ fun FounderKycQueueScreen(
                             row = row,
                             onApprove = { viewModel.openApprove(row.userId, row.fullName) },
                             onReject = { viewModel.openReject(row.userId, row.fullName) },
+                            onViewDoc = openDoc,
                         )
                     }
                 }
@@ -228,6 +256,7 @@ private fun EngineerRow(
     row: FounderRepository.PendingEngineer,
     onApprove: () -> Unit,
     onReject: () -> Unit,
+    onViewDoc: (FounderRepository.PendingEngineer.DocRef) -> Unit = {},
 ) {
     Column(
         modifier = Modifier
@@ -269,6 +298,19 @@ private fun EngineerRow(
         ).joinToString(" · ")
         if (metaLine.isNotBlank()) {
             Text(metaLine, color = Ink700, fontSize = 13.sp)
+        }
+        val docs = row.docPaths()
+        if (docs.isNotEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                docs.take(4).forEach { doc ->
+                    OutlinedButton(
+                        onClick = { onViewDoc(doc) },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Open ${doc.displayLabel}", fontSize = 11.sp)
+                    }
+                }
+            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Button(
