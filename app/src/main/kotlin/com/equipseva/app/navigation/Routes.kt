@@ -127,9 +127,15 @@ object Routes {
     const val HOSPITAL_ACTIVE_JOBS = "hospital/active_jobs"
     const val HOSPITAL_MY_RFQS = "hospital/my_rfqs"
 
-    // Curated India hospital catalogue browse (548 items). Tap an item to land
-    // on CreateRfq prefilled with the device name + category.
+    // India hospital catalogue browse (25k+ items). Tap an item to open the
+    // detail screen, then "Request a quote" from there.
     const val CATALOG_BROWSE = "catalog/browse"
+
+    // Catalog item detail. Shows the full row (specs, brand, model, source,
+    // UDI, price range) before the user commits to opening an RFQ.
+    const val CATALOG_DETAIL = "catalog/detail"
+    const val CATALOG_DETAIL_ARG_ID = "itemId"
+    fun catalogDetailRoute(itemId: Int): String = "$CATALOG_DETAIL/$itemId"
 
     // Hospital RFQ detail (read-only view with received bids).
     const val HOSPITAL_RFQ_DETAIL = "hospital/rfq/detail"

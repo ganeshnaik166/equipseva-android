@@ -61,6 +61,7 @@ import java.util.Locale
 @Composable
 fun CatalogBrowseScreen(
     onBack: () -> Unit,
+    onOpenDetail: (CatalogReferenceRepository.Item) -> Unit,
     onRequestQuote: (CatalogReferenceRepository.Item) -> Unit,
     viewModel: CatalogBrowseViewModel = hiltViewModel(),
 ) {
@@ -162,6 +163,7 @@ fun CatalogBrowseScreen(
                         items(state.items, key = { it.id }) { item ->
                             CatalogRow(
                                 item = item,
+                                onClick = { onOpenDetail(item) },
                                 onRequestQuote = { onRequestQuote(item) },
                                 onOpenImage = {
                                     item.imageSearchUrl?.let { url ->
@@ -210,6 +212,7 @@ fun CatalogBrowseScreen(
 @Composable
 private fun CatalogRow(
     item: CatalogReferenceRepository.Item,
+    onClick: () -> Unit,
     onRequestQuote: () -> Unit,
     onOpenImage: () -> Unit,
 ) {
@@ -219,7 +222,7 @@ private fun CatalogRow(
             .clip(RoundedCornerShape(14.dp))
             .background(Surface0)
             .border(1.dp, Surface200, RoundedCornerShape(14.dp))
-            .clickable(onClick = onRequestQuote)
+            .clickable(onClick = onClick)
             .padding(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
