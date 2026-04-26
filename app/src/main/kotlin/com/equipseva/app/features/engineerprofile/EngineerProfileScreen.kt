@@ -1,6 +1,7 @@
 package com.equipseva.app.features.engineerprofile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,10 +9,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material3.Icon
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -35,7 +41,12 @@ import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.PrimaryButton
 import com.equipseva.app.designsystem.components.SectionHeader
+import com.equipseva.app.designsystem.theme.BrandGreen
+import com.equipseva.app.designsystem.theme.Ink500
+import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Surface0
+import com.equipseva.app.designsystem.theme.Surface200
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,6 +94,8 @@ fun EngineerProfileScreen(
                     onBioChange = viewModel::onBioChange,
                     onAvailableChange = viewModel::onAvailableChange,
                     onSave = viewModel::onSave,
+                    email = state.email,
+                    phone = state.phone,
                 )
             }
         }
@@ -99,6 +112,8 @@ private fun EngineerProfileForm(
     onBioChange: (String) -> Unit,
     onAvailableChange: (Boolean) -> Unit,
     onSave: () -> Unit,
+    email: String?,
+    phone: String?,
 ) {
     Column(
         modifier = Modifier
@@ -112,6 +127,10 @@ private fun EngineerProfileForm(
             rating = state.ratingAvg,
             onTime = state.completionRate,
         )
+
+        SectionHeader(title = "Contact details")
+        ContactCard(email = email, phone = phone)
+
         SectionHeader(title = "Rates & experience")
 
         OutlinedTextField(
@@ -233,6 +252,44 @@ private fun StatsHeader(jobs: Int, rating: Double?, onTime: Double?) {
             value = onTime?.let { "${(it * 100).toInt()}%" } ?: "—",
             label = "On-time",
             modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun ContactCard(email: String?, phone: String?) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Surface0)
+            .border(1.dp, Surface200, RoundedCornerShape(14.dp))
+            .padding(Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        ContactRow(icon = Icons.Filled.Phone, label = phone ?: "Add a phone number from your profile settings", strong = !phone.isNullOrBlank())
+        ContactRow(icon = Icons.Filled.Email, label = email ?: "Add an email from your profile settings", strong = !email.isNullOrBlank())
+        Text(
+            text = "Hospitals can call, WhatsApp, and email you on these once your KYC is verified.",
+            fontSize = 11.sp,
+            color = Ink500,
+        )
+    }
+}
+
+@Composable
+private fun ContactRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    strong: Boolean,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = if (strong) BrandGreen else Ink500)
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            color = if (strong) Ink900 else Ink500,
+            fontWeight = if (strong) FontWeight.SemiBold else FontWeight.Normal,
         )
     }
 }

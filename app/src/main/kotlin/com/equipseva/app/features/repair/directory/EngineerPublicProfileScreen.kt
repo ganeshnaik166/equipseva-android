@@ -1,7 +1,9 @@
 package com.equipseva.app.features.repair.directory
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Email
@@ -120,18 +123,52 @@ fun EngineerPublicProfileScreen(
                     p = state.profile!!,
                     onRequestService = { onRequestService(state.profile!!.engineerId) },
                     onCall = {
-                        state.profile?.phone?.let { phone ->
-                            runCatching {
+                        val phone = state.profile?.phone
+                        if (phone.isNullOrBlank()) {
+                            Toast.makeText(context, "Phone not available", Toast.LENGTH_SHORT).show()
+                        } else {
+                            try {
                                 context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
+                            } catch (_: ActivityNotFoundException) {
+                                Toast.makeText(context, "No dialer app installed", Toast.LENGTH_SHORT).show()
                             }
                         }
                     },
                     onWhatsApp = {
-                        state.profile?.phone?.let { phone ->
-                            runCatching {
-                                context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/${phone.replace("+", "").replace(" ", "")}")),
+                        val phone = state.profile?.phone
+                        if (phone.isNullOrBlank()) {
+                            Toast.makeText(context, "Phone not available", Toast.LENGTH_SHORT).show()
+                        } else {
+                            val cleaned = phone.replace("+", "").replace(" ", "").replace("-", "")
+                            val msg = "Hi, I'd like to discuss a repair request from EquipSeva."
+                            val uri = Uri.parse(
+                                "https://wa.me/$cleaned?text=" + Uri.encode(msg),
+                            )
+                            try {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                            } catch (_: ActivityNotFoundException) {
+                                Toast.makeText(context, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    onEmail = {
+                        val email = state.profile?.email
+                        if (email.isNullOrBlank()) {
+                            Toast.makeText(context, "Email not available", Toast.LENGTH_SHORT).show()
+                        } else {
+                            val name = state.profile?.fullName ?: "Engineer"
+                            val intent = Intent(Intent.ACTION_SENDTO).apply {
+                                data = Uri.parse("mailto:$email")
+                                putExtra(Intent.EXTRA_SUBJECT, "Service request via EquipSeva")
+                                putExtra(
+                                    Intent.EXTRA_TEXT,
+                                    "Hi $name,\n\nI found your profile on EquipSeva and would like to discuss a repair request.\n\nThanks.",
                                 )
+                            }
+                            try {
+                                context.startActivity(intent)
+                            } catch (_: ActivityNotFoundException) {
+                                Toast.makeText(context, "No email app installed", Toast.LENGTH_SHORT).show()
                             }
                         }
                     },
@@ -147,6 +184,7 @@ private fun ProfileBody(
     onRequestService: () -> Unit,
     onCall: () -> Unit,
     onWhatsApp: () -> Unit,
+    onEmail: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -202,7 +240,10 @@ private fun ProfileBody(
             }
         }
 
-        // Quick action bar
+        // Quick action bar — 3 ways to reach the engineer.
+        // Buttons render even when phone/email are missing; the click handler
+        // shows a toast in that case so the hospital understands why nothing
+        // happened. (Verified engineers should always have both fields.)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -210,8 +251,27 @@ private fun ProfileBody(
                 .padding(Spacing.md),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            ActionButton(icon = Icons.Filled.Call, label = "Call", onClick = onCall, modifier = Modifier.weight(1f))
-            ActionButton(icon = Icons.Filled.Email, label = "WhatsApp", onClick = onWhatsApp, modifier = Modifier.weight(1f))
+            ActionButton(
+                icon = Icons.Filled.Call,
+                label = "Call",
+                enabled = !p.phone.isNullOrBlank(),
+                onClick = onCall,
+                modifier = Modifier.weight(1f),
+            )
+            ActionButton(
+                icon = Icons.AutoMirrored.Filled.Chat,
+                label = "WhatsApp",
+                enabled = !p.phone.isNullOrBlank(),
+                onClick = onWhatsApp,
+                modifier = Modifier.weight(1f),
+            )
+            ActionButton(
+                icon = Icons.Filled.Email,
+                label = "Email",
+                enabled = !p.email.isNullOrBlank(),
+                onClick = onEmail,
+                modifier = Modifier.weight(1f),
+            )
         }
 
         Spacer(Modifier.height(Spacing.sm))
@@ -277,10 +337,16 @@ private fun ActionButton(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
-    OutlinedButton(onClick = onClick, modifier = modifier) {
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+    ) {
         Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
-        Text(label, modifier = Modifier.padding(start = 6.dp))
+        Text(label, modifier = Modifier.padding(start = 6.dp), fontSize = 13.sp)
     }
 }
 

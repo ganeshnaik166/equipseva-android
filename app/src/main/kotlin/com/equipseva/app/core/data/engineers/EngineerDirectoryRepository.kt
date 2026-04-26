@@ -46,6 +46,7 @@ class EngineerDirectoryRepository @Inject constructor(
         @SerialName("full_name") val fullName: String,
         @SerialName("avatar_url") val avatarUrl: String? = null,
         @SerialName("phone") val phone: String? = null,
+        @SerialName("email") val email: String? = null,
         @SerialName("city") val city: String? = null,
         @SerialName("state") val state: String? = null,
         @SerialName("service_areas") val serviceAreas: List<String>? = null,
