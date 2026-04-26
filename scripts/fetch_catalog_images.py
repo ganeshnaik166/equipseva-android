@@ -38,6 +38,7 @@ import os
 import pathlib
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 
 import requests
@@ -46,19 +47,26 @@ import open_clip
 from PIL import Image
 from duckduckgo_search import DDGS
 
+# Make the sibling `sources/` package importable when run as
+# `python3 scripts/fetch_catalog_images.py` from the repo root.
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from sources import Candidate, all_providers  # noqa: E402
+
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 CATALOGUE_JSON = REPO_ROOT / "data" / "hospital_equipment_catalogue.json"
 PICKS_JSON = REPO_ROOT / "data" / "catalog_image_picks.json"  # audit log
 BUCKET = "catalog-reference-images"
-MIN_CONFIDENCE = 0.22       # cosine sim threshold
-TOP_K_CANDIDATES = 8        # bumped from 5 — we filter more aggressively now
-HTTP_TIMEOUT = 8
-USER_AGENT = "Mozilla/5.0 (compatible; EquipSeva-CatalogBot/1.0; +https://equipseva.com)"
+MIN_CONFIDENCE = 0.28       # tighter — pushes ambiguous matches to manual queue
+TOP_K_CANDIDATES = 10       # cast wider net so we have more to filter
+HTTP_TIMEOUT = 10
+USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
-# Quality gates so the marketplace cards always show clean white-BG product
-# shots at decent resolution.
+# Quality gates so the marketplace cards always show clean transparent-BG
+# product shots at decent resolution.
 MIN_IMAGE_WIDTH = 600       # reject candidates smaller than this on shorter side
 TARGET_WIDTH = 1200         # final width after rembg + upscale
+OUTPUT_FORMAT = "PNG"       # keep alpha so the card BG shows through
+OUTPUT_EXT = "png"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -126,6 +134,42 @@ def build_query(item: dict) -> str:
     return f"{base} medical equipment product photo white background isolated"
 
 
+def collect_candidates(item: dict, k_per_source: int = 6) -> list[Candidate]:
+    """Run all providers in parallel, dedupe by URL, return merged candidate
+    pool. Each provider gets a 12s wall-clock timeout — slow providers don't
+    block the whole ensemble."""
+    providers = all_providers()
+    seen: dict[str, Candidate] = {}
+
+    def _run(p):
+        try:
+            return p.search(item, k_per_source)
+        except Exception as e:
+            print(f"  [{p.name}] error: {e}")
+            return []
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures = {pool.submit(_run, p): p for p in providers}
+        for fut in as_completed(futures, timeout=None):
+            p = futures[fut]
+            try:
+                results = fut.result(timeout=12)
+            except Exception as e:
+                print(f"  [{p.name}] timeout: {e}")
+                continue
+            for c in results:
+                # Dedupe — keep the highest-prior provider's claim on a URL.
+                existing = seen.get(c.url)
+                if existing is None or c.prior > existing.prior:
+                    seen[c.url] = c
+            print(f"  [{p.name}] +{len(results)} candidates")
+    merged = list(seen.values())
+    # Sort high-prior providers first so download attempts that hit a
+    # 403/timeout consume our http budget on the trustworthy sources first.
+    merged.sort(key=lambda c: -c.prior)
+    return merged
+
+
 def ddg_image_urls(query: str, k: int = TOP_K_CANDIDATES) -> list[str]:
     """Top-k image URLs from DuckDuckGo. Retries with exponential backoff
     on rate-limit (DDG returns HTTP 202 when throttling)."""
@@ -171,32 +215,74 @@ def image_resolution(image_bytes: bytes) -> tuple[int, int] | None:
 _REMBG_SESSION = None
 
 
-def normalize_to_white_bg(image_bytes: bytes, target_width: int = TARGET_WIDTH) -> bytes:
-    """Strips the background with rembg, composites onto a pure-white canvas,
-    upscales (LANCZOS) so the shorter side hits target_width. Always returns a
-    JPEG byte string ready to upload."""
+def normalize_to_transparent(image_bytes: bytes, target_width: int = TARGET_WIDTH) -> bytes:
+    """Strips the background with rembg + alpha-matting refinement (uses the
+    source pixel values to clean up the mask edges so we don't get the
+    chunk-bitten-off look from a pure threshold cut), upscales (LANCZOS) so
+    the shorter side hits target_width. Returns PNG bytes (RGBA —
+    transparent BG, drop-in for any colored card surface)."""
     global _REMBG_SESSION
     if _REMBG_SESSION is None:
         from rembg import new_session
-        # u2netp is small (~5 MB), fast on CPU, and good enough for product
-        # photos. Switch to "isnet-general-use" for heavier accuracy if needed.
-        _REMBG_SESSION = new_session(model_name="u2netp")
+        # isnet-general-use produces softer masks than u2netp; the
+        # alpha-matting refinement step below cleans those edges up using
+        # the source pixel values, which gets us crisp cutouts without the
+        # "chunks taken out of the body" artefacts that hard threshold
+        # binarization produced on imperfect source backgrounds.
+        _REMBG_SESSION = new_session(model_name="isnet-general-use")
     from rembg import remove
-    rgba = remove(image_bytes, session=_REMBG_SESSION)
+    rgba = remove(
+        image_bytes,
+        session=_REMBG_SESSION,
+        alpha_matting=True,
+        alpha_matting_foreground_threshold=240,
+        alpha_matting_background_threshold=15,
+        alpha_matting_erode_size=10,
+    )
     fg = Image.open(io.BytesIO(rgba)).convert("RGBA")
-    # Composite onto white.
-    canvas = Image.new("RGB", fg.size, (255, 255, 255))
-    canvas.paste(fg, mask=fg.split()[3])
+
+    # Trim transparent margins so we don't ship oversized canvases.
+    bbox = fg.getbbox()
+    if bbox:
+        fg = fg.crop(bbox)
     # Upscale so shorter side hits target_width while keeping aspect ratio.
-    w, h = canvas.size
+    w, h = fg.size
     short = min(w, h)
     if short < target_width:
         scale = target_width / short
-        new_w, new_h = int(w * scale), int(h * scale)
-        canvas = canvas.resize((new_w, new_h), Image.LANCZOS)
+        fg = fg.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
     out = io.BytesIO()
-    canvas.save(out, "JPEG", quality=88, optimize=True)
+    fg.save(out, "PNG", optimize=True)
     return out.getvalue()
+
+
+def corner_whiteness(image_bytes: bytes) -> float:
+    """Heuristic: 0..1 score for how clean the image's background is.
+    Samples the four 50px corner blocks and returns the fraction of pixels
+    that are near-white (R,G,B all > 240). High score → manufacturer-style
+    catalog render → cleaner rembg cutout. Used to bias the candidate
+    scorer toward images that will produce good final cutouts."""
+    try:
+        with Image.open(io.BytesIO(image_bytes)) as im:
+            im = im.convert("RGB")
+            w, h = im.size
+            patch = 50
+            corners = [
+                im.crop((0, 0, patch, patch)),
+                im.crop((w - patch, 0, w, patch)),
+                im.crop((0, h - patch, patch, h)),
+                im.crop((w - patch, h - patch, w, h)),
+            ]
+            total = 0
+            white = 0
+            for c in corners:
+                for r, g, b in c.getdata():
+                    total += 1
+                    if r > 240 and g > 240 and b > 240:
+                        white += 1
+            return white / max(total, 1)
+    except Exception:
+        return 0.0
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -211,7 +297,7 @@ class SupabaseRest:
             "Authorization": f"Bearer {key}",
         }
 
-    def upload_image(self, item_id: int, image_bytes: bytes, content_type: str = "image/jpeg") -> str:
+    def upload_image(self, item_id: int, image_bytes: bytes, content_type: str = "image/png") -> str:
         """Returns the public URL on success."""
         ext = "jpg" if "jpeg" in content_type or "jpg" in content_type else (
             "png" if "png" in content_type else "webp"
@@ -222,7 +308,7 @@ class SupabaseRest:
             endpoint,
             headers={**self.headers, "Content-Type": content_type, "x-upsert": "true"},
             data=image_bytes,
-            timeout=15,
+            timeout=60,                # alpha-matted PNGs can be 1-2 MB; 15s wasn't enough
         )
         if r.status_code not in (200, 201):
             raise RuntimeError(f"upload failed [{r.status_code}]: {r.text[:200]}")
@@ -288,7 +374,7 @@ def upload_from_audit(args) -> int:
             failed += 1
             continue
         try:
-            normalized = normalize_to_white_bg(data)
+            normalized = normalize_to_transparent(data)
             public_url = supa.upload_image(item_id, normalized)
             supa.patch_row(item_id, public_url, score)
             uploaded += 1
@@ -361,17 +447,19 @@ def main():
         item_id = item["id"]
         q = build_query(item)
         print(f"\n[{item_id:3d}/{len(items)}] {q}")
-        urls = ddg_image_urls(q)
-        if not urls:
-            print("  [search] no results")
+
+        # Ensemble: gather candidates from all providers in parallel, dedupe.
+        candidates = collect_candidates(item)
+        if not candidates:
+            print("  [search] no results from any provider")
             continue
 
         scored: list[dict] = []
         # Keep the bytes alongside the scoring metadata so we don't re-download
         # the winner before piping it through rembg.
         cache: dict[str, bytes] = {}
-        for url in urls:
-            data = download(url)
+        for c in candidates:
+            data = download(c.url)
             if not data:
                 continue
             res = image_resolution(data)
@@ -379,12 +467,29 @@ def main():
                 continue
             short_side = min(res)
             if short_side < MIN_IMAGE_WIDTH:
-                print(f"   skip-lowres  {short_side}px  {url[:80]}")
+                print(f"   skip-lowres  {short_side}px  [{c.provider}] {c.url[:70]}")
                 continue
-            score = clip.score(data, q)
-            scored.append({"url": url, "score": score, "res": list(res), "bytes_len": len(data)})
-            cache[url] = data
-            print(f"   score={score:.3f}  {res[0]}x{res[1]}  {url[:80]}")
+            clip_score = clip.score(data, q)
+            white_bonus = corner_whiteness(data) * 0.05
+            adjusted = (
+                clip_score
+                + 0.05 * c.prior
+                + (0.03 if c.hint_brand else 0.0)
+                + white_bonus
+            )
+            scored.append({
+                "url": c.url,
+                "provider": c.provider,
+                "score": adjusted,           # adjusted score is what we sort on
+                "clip_score": clip_score,    # keep raw CLIP for debugging
+                "prior": c.prior,
+                "hint_brand": c.hint_brand,
+                "white_bonus": white_bonus,
+                "res": list(res),
+                "bytes_len": len(data),
+            })
+            cache[c.url] = data
+            print(f"   {clip_score:.3f}→{adjusted:.3f}  w={white_bonus:.2f}  {res[0]}x{res[1]}  [{c.provider}] {c.url[:65]}")
 
         scored.sort(key=lambda r: r["score"], reverse=True)
         best = scored[0] if scored else None
@@ -403,9 +508,9 @@ def main():
                     print("  [skip] winner re-download failed")
                 else:
                     try:
-                        normalized = normalize_to_white_bg(winner_bytes)
+                        normalized = normalize_to_transparent(winner_bytes)
                         public_url = supa.upload_image(item_id, normalized)
-                        supa.patch_row(item_id, public_url, best["score"])
+                        supa.patch_row(item_id, public_url, best["score"], source=best.get("provider", "auto-ddg-clip"))
                         print(f"  [upload] {public_url}  ({len(normalized)//1024} KB)")
                     except Exception as e:
                         print(f"  [upload-error] {e}")
