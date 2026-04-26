@@ -14,10 +14,14 @@ package com.equipseva.app.navigation
  * users never get a dead tap.
  *
  * Recognised mappings:
- *  - `chat_message_new`   → [Routes.chatRoute] using `data["conversation_id"]`
- *  - `repair_bid_new`     → [Routes.repairJobDetailRoute] using `data["repair_job_id"]`
- *  - `order_shipped`      → [Routes.orderDetailRoute] using `data["order_id"]`
- *  - `rfq_bid_accepted`   → [Routes.hospitalRfqDetailRoute] using `data["rfq_id"]`
+ *  - `chat_message_new`     → [Routes.chatRoute]            using `data["conversation_id"]`
+ *  - `repair_bid_new`       → [Routes.repairJobDetailRoute] using `data["repair_job_id"]`
+ *  - `repair_bid_accepted`  → [Routes.repairJobDetailRoute] using `data["repair_job_id"]`
+ *  - `repair_bid_rejected`  → [Routes.repairJobDetailRoute] using `data["repair_job_id"]`
+ *  - `repair_job_cancelled` → [Routes.repairJobDetailRoute] using `data["repair_job_id"]`
+ *  - `kyc_status_changed`   → [Routes.KYC] (no id required — single-user screen)
+ *  - `order_shipped`        → [Routes.orderDetailRoute]     using `data["order_id"]`
+ *  - `rfq_bid_accepted`     → [Routes.hospitalRfqDetailRoute] using `data["rfq_id"]`
  *
  * Returns `null` if the kind is unknown OR the expected id is missing /
  * blank / not a UUID. Callers treat null as "show the inbox instead".
@@ -42,7 +46,13 @@ object NotificationDeepLink {
         if (kind.isNullOrBlank()) return null
         return when (kind) {
             KIND_CHAT_MESSAGE_NEW -> data["conversation_id"]?.takeIfUuid()?.let(Routes::chatRoute)
-            KIND_REPAIR_BID_NEW -> data["repair_job_id"]?.takeIfUuid()?.let(Routes::repairJobDetailRoute)
+            KIND_REPAIR_BID_NEW,
+            KIND_REPAIR_BID_ACCEPTED,
+            KIND_REPAIR_BID_REJECTED,
+            KIND_REPAIR_JOB_CANCELLED ->
+                data["repair_job_id"]?.takeIfUuid()?.let(Routes::repairJobDetailRoute)
+            // KYC is a single-user screen — no id needed in payload, just open it.
+            KIND_KYC_STATUS_CHANGED -> Routes.KYC
             KIND_ORDER_SHIPPED -> data["order_id"]?.takeIfUuid()?.let(Routes::orderDetailRoute)
             KIND_RFQ_BID_ACCEPTED -> data["rfq_id"]?.takeIfUuid()?.let(Routes::hospitalRfqDetailRoute)
             else -> null
@@ -56,6 +66,10 @@ object NotificationDeepLink {
     // reference them by name rather than by string literal.
     const val KIND_CHAT_MESSAGE_NEW = "chat_message_new"
     const val KIND_REPAIR_BID_NEW = "repair_bid_new"
+    const val KIND_REPAIR_BID_ACCEPTED = "repair_bid_accepted"
+    const val KIND_REPAIR_BID_REJECTED = "repair_bid_rejected"
+    const val KIND_REPAIR_JOB_CANCELLED = "repair_job_cancelled"
+    const val KIND_KYC_STATUS_CHANGED = "kyc_status_changed"
     const val KIND_ORDER_SHIPPED = "order_shipped"
     const val KIND_RFQ_BID_ACCEPTED = "rfq_bid_accepted"
 }
