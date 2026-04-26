@@ -4,11 +4,6 @@ object Routes {
     // Top-level graph IDs (sub-graphs wrapped under these names).
     const val AUTH_GRAPH = "auth_graph"
 
-    // Global Service Hub — the new always-first cold-start landing. Cards
-    // dispatch to AUTH_GRAPH (signed-out) or directly into MAIN with the
-    // selected role activated.
-    const val GLOBAL_HUB = "global_hub"
-
     // Auth sub-routes.
     const val AUTH_WELCOME = "auth/welcome"
     const val AUTH_SIGN_IN = "auth/sign_in"

@@ -60,7 +60,6 @@ import com.equipseva.app.features.checkout.CheckoutScreen
 import com.equipseva.app.features.earnings.EarningsScreen
 import com.equipseva.app.features.engineerprofile.EngineerProfileScreen
 import com.equipseva.app.features.favorites.FavoritesScreen
-import com.equipseva.app.features.home.HomeScreen
 import com.equipseva.app.features.hospital.CreateRfqScreen
 import com.equipseva.app.features.hospital.HospitalActiveJobsScreen
 import com.equipseva.app.features.hospital.HospitalMyRfqsScreen
@@ -200,8 +199,6 @@ private val fullScreenRoutePrefixes = listOf(
 @Composable
 fun MainNavGraph(
     showTour: Boolean = false,
-    initialDeepLink: String? = null,
-    onSwitchService: () -> Unit = {},
     onSignIn: () -> Unit = {},
     deepLinkHost: DeepLinkHost = hiltViewModel<DeepLinkHost>(),
 ) {
@@ -222,16 +219,6 @@ fun MainNavGraph(
             navController.navigate(Routes.TOUR) {
                 launchSingleTop = true
             }
-        }
-    }
-
-    // S0b deep-link from the Hub. Fires once per cold-start so back nav
-    // doesn't replay it.
-    LaunchedEffect(initialDeepLink) {
-        val target = initialDeepLink ?: return@LaunchedEffect
-        if (target == Routes.HOME) return@LaunchedEffect
-        navController.navigate(target) {
-            launchSingleTop = true
         }
     }
 
@@ -292,9 +279,9 @@ fun MainNavGraph(
     ) { padding ->
         NavHost(
             navController = navController,
-            // PRD pivot: Marketplace is the default cold-start surface, not
-            // the role-dispatched Home dashboard.
-            startDestination = Routes.MARKETPLACE,
+            // v1: cold-start lands on the Home tab — the new 3-card Hub
+            // (Marketplace / Book Repair / Engineer Jobs + optional Founder).
+            startDestination = Routes.HOME,
             modifier = Modifier.padding(padding),
         ) {
             composable(Routes.TOUR) {
@@ -482,7 +469,6 @@ fun MainNavGraph(
                     onOpenHospitalSettings = { navController.navigate(Routes.PROFILE_HOSPITAL_SETTINGS) },
                     onOpenOrders = { navController.navigate(Routes.ORDERS) },
                     onOpenSellerVerification = { navController.navigate(Routes.PROFILE_SELLER_VERIFICATION) },
-                    onSwitchService = onSwitchService,
                     onSignIn = onSignIn,
                 )
             }
