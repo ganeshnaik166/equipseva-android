@@ -163,7 +163,14 @@ fun CatalogBrowseScreen(
                         items(state.items, key = { it.id }) { item ->
                             CatalogRow(
                                 item = item,
-                                onClick = { onOpenDetail(item) },
+                                onClick = {
+                                    // OpenFDA items use synthetic negative ids
+                                    // and aren't in our DB, so the detail
+                                    // screen can't fetch them. Send the user
+                                    // straight to the RFQ form for those.
+                                    if (item.id < 0) onRequestQuote(item)
+                                    else onOpenDetail(item)
+                                },
                                 onRequestQuote = { onRequestQuote(item) },
                                 onOpenImage = {
                                     item.imageSearchUrl?.let { url ->

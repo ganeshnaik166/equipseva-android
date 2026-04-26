@@ -42,6 +42,14 @@ class CatalogBrowseViewModel @Inject constructor(
 
     private companion object {
         const val PAGE_SIZE = 60
+
+        /** Fire OpenFDA when local hits ≤ this. Tuned so a user typing a
+         *  recognized brand still gets manufacturer suggestions. */
+        const val OPENFDA_THRESHOLD = 10
+
+        /** Page-size for the OpenFDA fallback. 25 keeps the response under
+         *  ~50 KB on a typical query. */
+        const val OPENFDA_LIMIT = 25
     }
 
     init {
@@ -85,6 +93,35 @@ class CatalogBrowseViewModel @Inject constructor(
                             totalLoaded = rows.size,
                             endReached = rows.size < PAGE_SIZE,
                         )
+                    }
+                    // Long-tail fallback: if the user typed a query and the
+                    // local hit count is thin, also pull live results from
+                    // OpenFDA and append them below the local rows. Skipped
+                    // when the user is just browsing (no query) or has a
+                    // category/type filter active (those are local-only).
+                    if (s.query.isNotBlank() &&
+                        s.category == null &&
+                        s.type == null &&
+                        rows.size < OPENFDA_THRESHOLD
+                    ) {
+                        repo.searchOpenFda(query = s.query, limit = OPENFDA_LIMIT)
+                            .onSuccess { remote ->
+                                if (remote.isNotEmpty()) {
+                                    _state.update { st ->
+                                        // Dedupe by UDI so the same device
+                                        // doesn't show twice when it's both
+                                        // in our Supabase sample + FDA's
+                                        // current dump.
+                                        val existingUdis = st.items.mapNotNull { it.udi }.toSet()
+                                        val merged = st.items + remote.filter { it.udi !in existingUdis }
+                                        st.copy(
+                                            items = merged,
+                                            totalLoaded = merged.size,
+                                            endReached = true, // OpenFDA is single-shot, no infinite scroll
+                                        )
+                                    }
+                                }
+                            }
                     }
                 }
                 .onFailure { ex ->
