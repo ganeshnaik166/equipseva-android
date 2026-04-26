@@ -227,6 +227,8 @@ dependencies {
     // user provides the API key via local.properties / MAPS_API_KEY env.
     implementation(libs.maps.compose)
     implementation(libs.play.services.maps)
+    // FusedLocationProviderClient for "Use my current location" address autofill.
+    implementation(libs.play.services.location)
 
     // Google Play Integrity API — client side of verify-play-integrity Edge Function.
     // Token request happens on-device, server-side decode happens in the Edge Function.
