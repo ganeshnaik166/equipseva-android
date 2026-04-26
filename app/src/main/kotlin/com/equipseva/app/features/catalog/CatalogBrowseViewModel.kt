@@ -43,10 +43,6 @@ class CatalogBrowseViewModel @Inject constructor(
     private companion object {
         const val PAGE_SIZE = 60
 
-        /** Fire OpenFDA when local hits ≤ this. Tuned so a user typing a
-         *  recognized brand still gets manufacturer suggestions. */
-        const val OPENFDA_THRESHOLD = 10
-
         /** Page-size for the OpenFDA fallback. 25 keeps the response under
          *  ~50 KB on a typical query. */
         const val OPENFDA_LIMIT = 25
@@ -94,15 +90,17 @@ class CatalogBrowseViewModel @Inject constructor(
                             endReached = rows.size < PAGE_SIZE,
                         )
                     }
-                    // Long-tail fallback: if the user typed a query and the
-                    // local hit count is thin, also pull live results from
-                    // OpenFDA and append them below the local rows. Skipped
-                    // when the user is just browsing (no query) or has a
-                    // category/type filter active (those are local-only).
+                    // Long-tail fallback: when the user types a query we
+                    // always pull live results from OpenFDA and append them
+                    // below the local rows. Skipped when the user is just
+                    // browsing (no query) or has a category/type filter
+                    // active (those are local-only). Earlier we gated this
+                    // on local hits being thin (<10) but a query like
+                    // "pacemaker" has 38 local + 7,492 FDA, so users were
+                    // missing the long tail.
                     if (s.query.isNotBlank() &&
                         s.category == null &&
-                        s.type == null &&
-                        rows.size < OPENFDA_THRESHOLD
+                        s.type == null
                     ) {
                         repo.searchOpenFda(query = s.query, limit = OPENFDA_LIMIT)
                             .onSuccess { remote ->
