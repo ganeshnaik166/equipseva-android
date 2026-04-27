@@ -155,17 +155,13 @@ private class FakeAuthRepository(userId: String) : AuthRepository {
     override val sessionState: MutableStateFlow<AuthSession> =
         MutableStateFlow(AuthSession.SignedIn(userId = userId, email = "e@x"))
 
-    override suspend fun signInWithEmailPassword(email: String, password: String) = Result.success(Unit)
     override suspend fun sendEmailOtp(email: String) = Result.success(Unit)
     override suspend fun verifyEmailOtp(email: String, token: String) = Result.success(Unit)
-    override suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?) = Result.success(Unit)
     override suspend fun sendPhoneOtp(phone: String) = Result.success(Unit)
     override suspend fun verifyPhoneOtp(phone: String, token: String) = Result.success(Unit)
     override suspend fun requestPhoneAdd(phone: String) = Result.success(Unit)
     override suspend fun verifyPhoneAdd(phone: String, token: String) = Result.success(Unit)
     override suspend fun signOut() = Result.success(Unit)
-    override suspend fun sendPasswordResetEmail(email: String) = Result.success(Unit)
-    override suspend fun updatePassword(newPassword: String) = Result.success(Unit)
     override suspend fun updateEmail(newEmail: String) = Result.success(Unit)
     override suspend fun refreshSession() = Result.success(Unit)
 }
@@ -233,12 +229,15 @@ private class FakeEngineerRepository : EngineerRepository {
     override suspend fun upsert(
         userId: String,
         aadhaarNumber: String?,
+        panNumber: String?,
         qualifications: List<String>,
         specializations: List<RepairEquipmentCategory>,
         experienceYears: Int,
         serviceRadiusKm: Int,
         city: String?,
         state: String?,
+        latitude: Double?,
+        longitude: Double?,
         certificates: List<EngineerCertificate>,
         aadhaarUploaded: Boolean,
         resetVerificationToPending: Boolean,

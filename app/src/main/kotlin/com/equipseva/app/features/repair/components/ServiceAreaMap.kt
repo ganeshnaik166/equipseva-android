@@ -20,7 +20,7 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberMarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 
 /**
@@ -79,7 +79,7 @@ fun ServiceAreaMap(
         ),
     ) {
         Marker(
-            state = MarkerState(position = centre),
+            state = rememberMarkerState(position = centre),
             title = engineerName ?: "Engineer",
         )
         serviceRadiusKm?.let { km ->

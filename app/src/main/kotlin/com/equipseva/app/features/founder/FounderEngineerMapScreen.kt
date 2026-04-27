@@ -57,8 +57,8 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.maps.android.compose.rememberMarkerState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -246,7 +246,7 @@ private fun ZoneMap(
         pinned.forEach { (row, lat, lng) ->
             val isSel = row.district == selected
             Marker(
-                state = MarkerState(position = LatLng(lat, lng)),
+                state = rememberMarkerState(key = row.district, position = LatLng(lat, lng)),
                 title = row.district,
                 snippet = "${row.engineerCount} verified engineer${if (row.engineerCount == 1) "" else "s"}",
                 alpha = if (selected == null || isSel) 1f else 0.45f,
