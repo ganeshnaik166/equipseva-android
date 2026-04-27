@@ -25,6 +25,9 @@ import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.features.hospital.components.HospitalBrowseEngineersTile
+import com.equipseva.app.features.hospital.components.HospitalHowItWorksStrip
+import com.equipseva.app.features.hospital.components.HospitalRepairHeroCard
 import com.equipseva.app.features.repair.components.RepairJobCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,6 +36,7 @@ fun HospitalActiveJobsScreen(
     onBack: () -> Unit,
     onJobClick: (String) -> Unit,
     onRequestRepair: () -> Unit = {},
+    onBrowseEngineers: () -> Unit = {},
     viewModel: HospitalActiveJobsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -58,20 +62,45 @@ fun HospitalActiveJobsScreen(
                     state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
-                    state.openJobs.isEmpty() &&
-                        state.inProgressJobs.isEmpty() &&
-                        state.closedJobs.isEmpty() -> EmptyStateView(
-                        icon = Icons.AutoMirrored.Outlined.Assignment,
-                        title = "No repair jobs yet",
-                        subtitle = "Jobs you post will appear here so you can track bids and progress.",
-                        ctaLabel = "Request repair",
-                        onCta = onRequestRepair,
-                    )
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(vertical = Spacing.md),
                         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                     ) {
+                        // Hero card stays visible whether the lists are full
+                        // or empty — gives the hospital one-tap access to
+                        // post a job + browse engineers without scrolling.
+                        item("hero") {
+                            HospitalRepairHeroCard(
+                                openCount = state.openJobs.size,
+                                inProgressCount = state.inProgressJobs.size,
+                                completedCount = state.closedJobs.size,
+                                onRequestRepair = onRequestRepair,
+                                onBrowseEngineers = onBrowseEngineers,
+                            )
+                        }
+
+                        val anyJobs = state.openJobs.isNotEmpty() ||
+                            state.inProgressJobs.isNotEmpty() ||
+                            state.closedJobs.isNotEmpty()
+
+                        if (!anyJobs) {
+                            // First-time hospital — fill the space with
+                            // education + a discovery shortcut so the screen
+                            // never goes blank under the hero.
+                            item("how_it_works") { HospitalHowItWorksStrip() }
+                            item("browse_engineers_tile") {
+                                HospitalBrowseEngineersTile(onClick = onBrowseEngineers)
+                            }
+                            item("empty_pad") {
+                                EmptyStateView(
+                                    icon = Icons.AutoMirrored.Outlined.Assignment,
+                                    title = "No repair jobs yet",
+                                    subtitle = "Tap Request repair above to post your first one.",
+                                )
+                            }
+                        }
+
                         if (state.openJobs.isNotEmpty()) {
                             item("open_header") { SectionHeader(title = "Open · awaiting bids") }
                             items(items = state.openJobs, key = { "o-${it.id}" }) { job ->

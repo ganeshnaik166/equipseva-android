@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.designsystem.components.ESTopBar
@@ -63,6 +64,8 @@ import com.equipseva.app.designsystem.theme.BrandGreenDark
 import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.designsystem.theme.Surface200
+import com.equipseva.app.features.repair.components.EngineerRepairHeroCard
+import com.equipseva.app.features.repair.components.EngineerTipCard
 import com.equipseva.app.features.repair.components.MapJob
 import com.equipseva.app.features.repair.components.NearbyJobsMap
 import com.equipseva.app.features.repair.components.RepairJobCard
@@ -80,6 +83,8 @@ private enum class EngineerJobsTab(val label: String) {
 @Composable
 fun RepairJobsScreen(
     onJobClick: (jobId: String) -> Unit = {},
+    onTuneProfile: () -> Unit = {},
+    onViewEarnings: () -> Unit = {},
     viewModel: RepairJobsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -118,6 +123,21 @@ fun RepairJobsScreen(
         Column(modifier = Modifier.fillMaxSize().padding(inner)) {
             EngineerTabBar(selected = selectedTab, onSelect = { selectedTab = it })
             if (selectedTab == EngineerJobsTab.Available) {
+                // Hero stats card — sources counts straight from current state
+                // so no extra queries: nearby = items.size (open feed already
+                // filtered to verified-near jobs by the VM); pending bids =
+                // count of own bids still in Pending status.
+                val pendingBidCount = remember(state.ownBidsByJob) {
+                    state.ownBidsByJob.values.count { it.status == RepairBidStatus.Pending }
+                }
+                EngineerRepairHeroCard(
+                    nearbyCount = state.items.count { it.status == RepairJobStatus.Requested },
+                    pendingBidCount = pendingBidCount,
+                    radiusKm = state.radiusKm,
+                    onViewEarnings = onViewEarnings,
+                    onTuneProfile = onTuneProfile,
+                )
+                EngineerTipCard()
                 SearchHeader(
                     query = state.query,
                     onQueryChange = viewModel::onQueryChange,

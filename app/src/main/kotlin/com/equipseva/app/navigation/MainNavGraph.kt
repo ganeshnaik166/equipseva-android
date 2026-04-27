@@ -392,6 +392,8 @@ fun MainNavGraph(
                             onJobClick = { jobId ->
                                 navController.navigate(Routes.repairJobDetailRoute(jobId))
                             },
+                            onTuneProfile = { navController.navigate(Routes.ENGINEER_PROFILE) },
+                            onViewEarnings = { navController.navigate(Routes.EARNINGS) },
                         )
                     com.equipseva.app.features.auth.UserRole.HOSPITAL ->
                         HospitalActiveJobsScreen(
@@ -400,6 +402,7 @@ fun MainNavGraph(
                                 navController.navigate(Routes.repairJobDetailRoute(jobId))
                             },
                             onRequestRepair = { navController.navigate(Routes.REQUEST_SERVICE) },
+                            onBrowseEngineers = { navController.navigate(Routes.ENGINEER_DIRECTORY) },
                         )
                     com.equipseva.app.features.auth.UserRole.LOGISTICS -> {
                         androidx.compose.runtime.LaunchedEffect(Unit) {
@@ -754,6 +757,7 @@ fun MainNavGraph(
                     onBack = { navController.popBackStack() },
                     onJobClick = { jobId -> navController.navigate(Routes.repairJobDetailRoute(jobId)) },
                     onRequestRepair = { navController.navigate(Routes.REQUEST_SERVICE) },
+                    onBrowseEngineers = { navController.navigate(Routes.ENGINEER_DIRECTORY) },
                 )
             }
             composable(Routes.HOSPITAL_MY_RFQS) {
