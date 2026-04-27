@@ -90,6 +90,8 @@ data class RepairJobDraft(
     val equipmentModel: String?,
     val equipmentSerial: String? = null,
     val siteLocation: String? = null,
+    val siteLatitude: Double? = null,
+    val siteLongitude: Double? = null,
     val issuePhotos: List<String> = emptyList(),
     val urgency: RepairJobUrgency,
     val scheduledDate: String? = null,

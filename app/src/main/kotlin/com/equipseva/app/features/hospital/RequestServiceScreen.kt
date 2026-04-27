@@ -212,6 +212,9 @@ fun RequestServiceScreen(
                         onSelectSlot = { selectedSlot = it },
                         siteLocation = state.siteLocation,
                         onSiteLocation = viewModel::onSiteLocationChange,
+                        siteLatitude = state.siteLatitude,
+                        siteLongitude = state.siteLongitude,
+                        onSiteCoords = viewModel::onSiteCoordsChange,
                         budget = state.budget,
                         budgetError = state.budgetError,
                         onBudget = viewModel::onBudgetChange,
@@ -498,6 +501,9 @@ private fun StepSchedule(
     onSelectSlot: (Int) -> Unit,
     siteLocation: String,
     onSiteLocation: (String) -> Unit,
+    siteLatitude: Double?,
+    siteLongitude: Double?,
+    onSiteCoords: (Double?, Double?) -> Unit,
     budget: String,
     budgetError: String?,
     onBudget: (String) -> Unit,
@@ -543,10 +549,28 @@ private fun StepSchedule(
     OutlinedTextField(
         value = siteLocation,
         onValueChange = onSiteLocation,
-        label = { Text("Site location") },
-        placeholder = { Text("Ward · Department · Floor") },
-        singleLine = true,
+        label = { Text("Note for the engineer") },
+        placeholder = { Text("Ward · Department · Floor · Gate to enter from") },
+        singleLine = false,
+        minLines = 2,
         modifier = Modifier.fillMaxWidth(),
+    )
+    // Map picker — engineer reads the dragged pin via geo: intent on
+    // their detail screen. Falls back to a placeholder when no LatLng
+    // has been set yet.
+    val pickedLatLng = if (siteLatitude != null && siteLongitude != null) {
+        com.google.android.gms.maps.model.LatLng(siteLatitude, siteLongitude)
+    } else null
+    com.equipseva.app.features.repair.components.LocationPickerMap(
+        selected = pickedLatLng,
+        onLocationPicked = { ll -> onSiteCoords(ll.latitude, ll.longitude) },
+        onUseMyLocation = if (pickedLatLng == null) {
+            // Lazy default: pin Hyderabad city centre. User drags from
+            // there to the actual site. Reverse-geocoding + FusedLocation
+            // are deferred to a follow-up loop so we don't pull permission
+            // boilerplate into v1.
+            { onSiteCoords(17.385044, 78.486671) }
+        } else null,
     )
     OutlinedTextField(
         value = budget,

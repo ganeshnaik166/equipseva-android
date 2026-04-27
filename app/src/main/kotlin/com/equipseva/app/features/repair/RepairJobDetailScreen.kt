@@ -331,6 +331,8 @@ private fun JobBody(
         SectionHeader(title = "Location")
         LocationCard(
             siteLocation = job.siteLocation,
+            siteLatitude = job.siteLatitude,
+            siteLongitude = job.siteLongitude,
             // Engineer sees the real address + a Navigate CTA only after a
             // bid is accepted (job.isAssignedToEngineer). Other roles either
             // already know it (hospital posted it) or aren't entitled.
@@ -745,6 +747,8 @@ private fun IssueCard(job: RepairJob) {
 @Composable
 private fun LocationCard(
     siteLocation: String?,
+    siteLatitude: Double?,
+    siteLongitude: Double?,
     revealAddressForEngineer: Boolean,
     viewerRole: RepairJobDetailViewModel.ViewerRole,
 ) {
@@ -791,23 +795,31 @@ private fun LocationCard(
             if (isEngineer) {
                 OutlinedButton(
                     onClick = {
-                        // geo:0,0?q=<address> hands off to whatever maps app
-                        // is installed (Google Maps, Waze, etc.); Maps will
-                        // geocode the address + offer turn-by-turn directions.
+                        // Prefer geo:lat,lng?q=lat,lng(label) when the
+                        // hospital pinned a marker — Maps opens straight to
+                        // the dropped pin instead of guessing from the text
+                        // address. Falls back to geo:0,0?q=<address> when
+                        // only the free-text label exists (legacy rows or
+                        // engineer signed up before the picker landed).
                         val encoded = Uri.encode(siteLocation)
-                        val intent = android.content.Intent(
-                            android.content.Intent.ACTION_VIEW,
-                            Uri.parse("geo:0,0?q=$encoded"),
-                        )
+                        val uri = if (siteLatitude != null && siteLongitude != null) {
+                            val label = Uri.encode("Service site")
+                            Uri.parse("geo:$siteLatitude,$siteLongitude?q=$siteLatitude,$siteLongitude($label)")
+                        } else {
+                            Uri.parse("geo:0,0?q=$encoded")
+                        }
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
                         try {
                             context.startActivity(intent)
                         } catch (_: android.content.ActivityNotFoundException) {
-                            // Fallback to the universal Maps URL if no native
-                            // maps app is installed (rare but possible on
-                            // stripped Android variants).
+                            val fallbackUrl = if (siteLatitude != null && siteLongitude != null) {
+                                "https://www.google.com/maps/dir/?api=1&destination=$siteLatitude,$siteLongitude"
+                            } else {
+                                "https://www.google.com/maps/dir/?api=1&destination=$encoded"
+                            }
                             val fallback = android.content.Intent(
                                 android.content.Intent.ACTION_VIEW,
-                                Uri.parse("https://www.google.com/maps/dir/?api=1&destination=$encoded"),
+                                Uri.parse(fallbackUrl),
                             )
                             try { context.startActivity(fallback) } catch (_: Throwable) {}
                         }

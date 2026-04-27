@@ -39,6 +39,8 @@ class RequestServiceViewModel @Inject constructor(
         val model: String = "",
         val serial: String = "",
         val siteLocation: String = "",
+        val siteLatitude: Double? = null,
+        val siteLongitude: Double? = null,
         val issue: String = "",
         val budget: String = "",
         val budgetError: String? = null,
@@ -81,6 +83,15 @@ class RequestServiceViewModel @Inject constructor(
     fun onModelChange(value: String) = _state.update { it.copy(model = value) }
     fun onSerialChange(value: String) = _state.update { it.copy(serial = value) }
     fun onSiteLocationChange(value: String) = _state.update { it.copy(siteLocation = value) }
+
+    /**
+     * Picked from the LocationPickerMap composable. Pair of nullable doubles
+     * so the map can clear the pin (passing null/null) — though today the
+     * picker only emits non-null pairs.
+     */
+    fun onSiteCoordsChange(latitude: Double?, longitude: Double?) {
+        _state.update { it.copy(siteLatitude = latitude, siteLongitude = longitude) }
+    }
     fun onIssueChange(value: String) = _state.update { it.copy(issue = value, issueError = null) }
     fun onBudgetChange(value: String) = _state.update { it.copy(budget = value, budgetError = null) }
 
@@ -170,6 +181,8 @@ class RequestServiceViewModel @Inject constructor(
                 equipmentModel = current.model.trim().ifBlank { null },
                 equipmentSerial = current.serial.trim().ifBlank { null },
                 siteLocation = current.siteLocation.trim().ifBlank { null },
+                siteLatitude = current.siteLatitude,
+                siteLongitude = current.siteLongitude,
                 issuePhotos = current.photos,
                 urgency = current.urgency.takeIf { it != RepairJobUrgency.Unknown } ?: RepairJobUrgency.Scheduled,
                 scheduledDate = scheduledDate,
