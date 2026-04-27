@@ -25,10 +25,11 @@ import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -127,15 +128,33 @@ fun EngineerDirectoryScreen(
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 modifier = Modifier.fillMaxWidth().padding(Spacing.md),
             )
-            Row(
+            // Big "skip the comparison" CTA. Hospitals who don't want to browse
+            // engineer-by-engineer post one job that gets broadcast to all
+            // verified engineers in the area; first to accept wins.
+            OutlinedButton(
+                onClick = onAnyEngineer,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = Spacing.md, vertical = 4.dp),
-                horizontalArrangement = Arrangement.End,
+                    .padding(horizontal = Spacing.md, vertical = 4.dp)
+                    .height(56.dp),
+                shape = RoundedCornerShape(14.dp),
+                border = androidx.compose.foundation.BorderStroke(2.dp, AccentLime),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = AccentLimeSoft,
+                ),
             ) {
-                TextButton(onClick = onAnyEngineer) {
-                    Text("Skip browse · request from any engineer", fontSize = 12.sp, color = BrandGreen)
-                }
+                Icon(
+                    imageVector = Icons.Filled.Engineering,
+                    contentDescription = null,
+                    tint = BrandGreen,
+                    modifier = Modifier.size(20.dp),
+                )
+                Text(
+                    text = "  Skip comparison — request from any verified engineer",
+                    fontSize = 14.sp,
+                    color = BrandGreen,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                )
             }
             Box(modifier = Modifier.fillMaxSize()) {
                 when {
