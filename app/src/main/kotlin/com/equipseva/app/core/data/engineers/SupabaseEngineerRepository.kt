@@ -30,6 +30,8 @@ class SupabaseEngineerRepository @Inject constructor(
         serviceRadiusKm: Int,
         city: String?,
         state: String?,
+        latitude: Double?,
+        longitude: Double?,
         certificates: List<EngineerCertificate>,
         aadhaarUploaded: Boolean,
         resetVerificationToPending: Boolean,
@@ -44,6 +46,8 @@ class SupabaseEngineerRepository @Inject constructor(
             serviceRadiusKm = serviceRadiusKm,
             city = city?.takeIf { it.isNotBlank() },
             state = state?.takeIf { it.isNotBlank() },
+            latitude = latitude,
+            longitude = longitude,
             certificates = certificates.ifEmpty { null },
             aadhaarVerified = if (aadhaarUploaded) true else null,
             verificationStatus = if (resetVerificationToPending) {

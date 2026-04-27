@@ -3,9 +3,6 @@ package com.equipseva.app.features.kyc
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.FileProvider
-import coil3.compose.AsyncImage
-import java.io.File
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -30,11 +27,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Phone
@@ -68,7 +63,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -87,6 +81,8 @@ import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.SecureScreen
+import com.equipseva.app.features.repair.components.LocationPickerMap
+import com.google.android.gms.maps.model.LatLng
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.ErrorBg
 import com.equipseva.app.designsystem.theme.ErrorRed
@@ -150,29 +146,6 @@ fun KycScreen(
         uri?.let { readAndUpload(context, it) { name, bytes, mime -> viewModel.uploadPan(name, bytes, mime) } }
     }
 
-    // Selfie / face capture flow. We hand the camera a FileProvider URI it
-    // can write a JPEG into, then read those bytes back + push to the same
-    // KYC docs storage as Aadhaar. Local URI is held in screen state so the
-    // composable can show a circle preview after capture without waiting on
-    // a signed-URL fetch.
-    var selfiePendingUri by remember { mutableStateOf<Uri?>(null) }
-    var selfiePreviewUri by remember { mutableStateOf<Uri?>(null) }
-    val selfieLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture(),
-    ) { success ->
-        val uri = selfiePendingUri
-        if (success && uri != null) {
-            val resolver = context.contentResolver
-            val mime = resolver.getType(uri) ?: "image/jpeg"
-            val bytes = runCatching { resolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
-            if (bytes != null) {
-                selfiePreviewUri = uri
-                viewModel.uploadSelfie(uri.lastPathSegment ?: "selfie.jpg", bytes, mime)
-            }
-        }
-        selfiePendingUri = null
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -223,8 +196,8 @@ fun KycScreen(
                     state = state,
                     onAadhaarNumberChange = viewModel::onAadhaarNumberChange,
                     onPanNumberChange = viewModel::onPanNumberChange,
-                    onCityChange = viewModel::onCityChange,
-                    onStateChange = viewModel::onStateChange,
+                    onServiceAddressChange = viewModel::onServiceAddressChange,
+                    onServiceCoordsChange = viewModel::onServiceCoordsChange,
                     onAttestationChange = viewModel::onAttestationChange,
                     onPickAadhaar = {
                         aadhaarPicker.launch(
@@ -245,21 +218,6 @@ fun KycScreen(
                     onSaveEmail = viewModel::saveEmailDraft,
                     onAddPhone = onAddPhone,
                     onVerifyEmail = viewModel::startEmailVerification,
-                    selfiePreviewUri = selfiePreviewUri,
-                    onCaptureSelfie = {
-                        // Lay a temp JPEG in cache/kyc-temp/, hand its
-                        // FileProvider URI to the camera, remember it so the
-                        // result callback can read it back + clean up.
-                        val dir = File(context.cacheDir, "kyc-temp").apply { mkdirs() }
-                        val target = File(dir, "selfie-${System.currentTimeMillis()}.jpg")
-                        val uri = FileProvider.getUriForFile(
-                            context,
-                            "${context.packageName}.fileprovider",
-                            target,
-                        )
-                        selfiePendingUri = uri
-                        selfieLauncher.launch(uri)
-                    },
                 )
             }
         }
@@ -348,8 +306,8 @@ private fun KycStepperBody(
     state: KycViewModel.UiState,
     onAadhaarNumberChange: (String) -> Unit,
     onPanNumberChange: (String) -> Unit,
-    onCityChange: (String) -> Unit,
-    onStateChange: (String) -> Unit,
+    onServiceAddressChange: (String) -> Unit,
+    onServiceCoordsChange: (Double?, Double?) -> Unit,
     onAttestationChange: (Boolean) -> Unit,
     onPickAadhaar: () -> Unit,
     onPickPan: () -> Unit,
@@ -360,8 +318,6 @@ private fun KycStepperBody(
     onSaveEmail: () -> Unit,
     onAddPhone: () -> Unit,
     onVerifyEmail: () -> Unit,
-    selfiePreviewUri: Uri?,
-    onCaptureSelfie: () -> Unit,
 ) {
     val verified = state.verificationStatus == VerificationStatus.Verified
     Column(
@@ -402,8 +358,8 @@ private fun KycStepperBody(
         when (state.currentStep) {
             KycStep.Personal -> PersonalStep(
                 state = state,
-                onCityChange = onCityChange,
-                onStateChange = onStateChange,
+                onServiceAddressChange = onServiceAddressChange,
+                onServiceCoordsChange = onServiceCoordsChange,
                 onEmailDraftChange = onEmailDraftChange,
                 onSaveEmail = onSaveEmail,
                 onAddPhone = onAddPhone,
@@ -411,12 +367,10 @@ private fun KycStepperBody(
             )
             KycStep.Documents -> DocumentsStep(
                 state = state,
-                selfiePreviewUri = selfiePreviewUri,
                 onAadhaarNumberChange = onAadhaarNumberChange,
                 onPanNumberChange = onPanNumberChange,
                 onPickAadhaar = onPickAadhaar,
                 onPickPan = onPickPan,
-                onCaptureSelfie = onCaptureSelfie,
                 onPickCertificate = onPickCertificate,
                 onAttestationChange = onAttestationChange,
             )
@@ -501,8 +455,8 @@ private fun StepHeader(current: KycStep, onJump: (KycStep) -> Unit) {
 @Composable
 private fun PersonalStep(
     state: KycViewModel.UiState,
-    onCityChange: (String) -> Unit,
-    onStateChange: (String) -> Unit,
+    onServiceAddressChange: (String) -> Unit,
+    onServiceCoordsChange: (Double?, Double?) -> Unit,
     onEmailDraftChange: (String) -> Unit,
     onSaveEmail: () -> Unit,
     onAddPhone: () -> Unit,
@@ -615,43 +569,54 @@ private fun PersonalStep(
     }
     KycSectionCard(title = "Where you operate") {
         OutlinedTextField(
-            value = state.city,
-            onValueChange = onCityChange,
-            label = { Text("City") },
-            singleLine = true,
+            value = state.serviceAddress,
+            onValueChange = onServiceAddressChange,
+            label = { Text("Service address") },
+            placeholder = { Text("House #, area, city — landmark for our records") },
+            minLines = 2,
+            maxLines = 4,
             modifier = Modifier.fillMaxWidth(),
         )
-        OutlinedTextField(
-            value = state.state,
-            onValueChange = onStateChange,
-            label = { Text("State") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+        Text(
+            text = "Pin the area you serve so hospitals nearby see you first.",
+            fontSize = 12.sp,
+            color = Ink500,
+        )
+        val pinned = state.serviceLatitude?.let { lat ->
+            state.serviceLongitude?.let { lng -> LatLng(lat, lng) }
+        }
+        LocationPickerMap(
+            selected = pinned,
+            onLocationPicked = { latLng ->
+                onServiceCoordsChange(latLng.latitude, latLng.longitude)
+            },
+            // Default fallback to the Hyderabad city centre when nothing is
+            // pinned yet — the GPS auto-detect helper takes over once Phase D'
+            // adds the FusedLocation wiring.
+            onUseMyLocation = {
+                onServiceCoordsChange(17.385, 78.4867)
+            },
         )
     }
 }
 
 /**
- * Step 2 — every document upload + attestation in a single scrollable page.
- * Aadhaar (number + doc), PAN (number + doc), selfie (camera capture),
- * trade certificate (PDF/photo), then the attestation checkbox. Submit fires
- * from the bottom bar once all step-error guards pass.
+ * Step 2 — Aadhaar (number + doc), PAN (number + doc), trade certificate
+ * (PDF/photo), and the attestation checkbox. Submit fires from the bottom
+ * bar once all step-error guards pass. Selfie was dropped in v2.
  */
 @Composable
 private fun DocumentsStep(
     state: KycViewModel.UiState,
-    selfiePreviewUri: Uri?,
     onAadhaarNumberChange: (String) -> Unit,
     onPanNumberChange: (String) -> Unit,
     onPickAadhaar: () -> Unit,
     onPickPan: () -> Unit,
-    onCaptureSelfie: () -> Unit,
     onPickCertificate: () -> Unit,
     onAttestationChange: (Boolean) -> Unit,
 ) {
     AadhaarSection(state = state, onAadhaarNumberChange = onAadhaarNumberChange, onPickAadhaar = onPickAadhaar)
     PanSection(state = state, onPanNumberChange = onPanNumberChange, onPickPan = onPickPan)
-    SelfieSection(state = state, previewUri = selfiePreviewUri, onCaptureSelfie = onCaptureSelfie)
     CertificateSection(state = state, onPickCertificate = onPickCertificate)
     AttestationSection(state = state, onAttestationChange = onAttestationChange)
 }
@@ -742,85 +707,6 @@ private fun PanSection(
             hue = 220,
             subtitleOverride = if (!panUploaded && !state.panFailed) "PDF or photo" else null,
             onClick = onPickPan,
-        )
-    }
-}
-
-@Composable
-private fun SelfieSection(
-    state: KycViewModel.UiState,
-    previewUri: Uri?,
-    onCaptureSelfie: () -> Unit,
-) {
-    val uploaded = !state.selfieDocPath.isNullOrBlank()
-    val uploading = state.uploadingSelfie
-    val failed = state.selfieFailed && !uploaded && !uploading
-    KycSectionCard(title = "Selfie") {
-        Box(
-            modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.sm),
-            contentAlignment = Alignment.Center,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(168.dp)
-                    .clip(CircleShape)
-                    .background(if (uploaded) Surface0 else Surface50)
-                    .border(
-                        width = 2.dp,
-                        color = when {
-                            failed -> ErrorRed
-                            uploaded -> Success
-                            else -> Surface200
-                        },
-                        shape = CircleShape,
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                when {
-                    previewUri != null -> AsyncImage(
-                        model = previewUri,
-                        contentDescription = "Your selfie",
-                        modifier = Modifier.size(164.dp).clip(CircleShape),
-                        contentScale = ContentScale.Crop,
-                    )
-                    uploaded -> Icon(
-                        imageVector = Icons.Filled.CheckCircle,
-                        contentDescription = "Selfie uploaded",
-                        tint = Success,
-                        modifier = Modifier.size(56.dp),
-                    )
-                    uploading -> CircularProgressIndicator(
-                        modifier = Modifier.size(40.dp),
-                        strokeWidth = 3.dp,
-                    )
-                    else -> Icon(
-                        imageVector = Icons.Filled.Face,
-                        contentDescription = null,
-                        tint = Ink500,
-                        modifier = Modifier.size(80.dp),
-                    )
-                }
-            }
-        }
-        Button(
-            onClick = onCaptureSelfie,
-            enabled = !uploading,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Icon(Icons.Filled.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.size(Spacing.sm))
-            Text(
-                when {
-                    uploading -> "Uploading…"
-                    uploaded -> "Retake selfie"
-                    else -> "Take selfie"
-                },
-            )
-        }
-        Text(
-            text = "Face the camera straight, good light, no mask. Admin compares this to your Aadhaar photo.",
-            fontSize = 11.sp,
-            color = Ink500,
         )
     }
 }

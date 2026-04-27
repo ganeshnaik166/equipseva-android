@@ -49,8 +49,13 @@ internal data class EngineerUpsertDto(
     val specializations: List<String>? = null,
     @SerialName("experience_years") val experienceYears: Int? = null,
     @SerialName("service_radius_km") val serviceRadiusKm: Int? = null,
+    // KYC v2 collapses the city + state pair into one free-text "service address"
+    // entered next to a map pin. We overload `city` as the address string (founder
+    // zone-density view groups by `city`); `state` stays nullable for legacy rows.
     val city: String? = null,
     val state: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val certificates: List<EngineerCertificate>? = null,
     @SerialName("aadhaar_verified") val aadhaarVerified: Boolean? = null,
     // Only serialized when re-submitting after rejection so we don't clobber an

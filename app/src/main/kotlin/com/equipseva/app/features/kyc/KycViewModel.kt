@@ -45,8 +45,13 @@ class KycViewModel @Inject constructor(
         val aadhaarVerified: Boolean = false,
         val aadhaarNumber: String = "",
         val panNumber: String = "",
-        val city: String = "",
-        val state: String = "",
+        // KYC v2: free-text "service address" (multi-line) + map pin replace the
+        // legacy city + state pair. Stored on `engineers.city` (overloaded as a
+        // free-text label) so the founder zone-density view can group rows by
+        // self-reported area.
+        val serviceAddress: String = "",
+        val serviceLatitude: Double? = null,
+        val serviceLongitude: Double? = null,
         val experienceYears: String = "",
         val serviceRadiusKm: String = "25",
         val qualificationDraft: String = "",
@@ -54,15 +59,12 @@ class KycViewModel @Inject constructor(
         val selectedSpecializations: Set<RepairEquipmentCategory> = emptySet(),
         val aadhaarDocPath: String? = null,
         val certDocPaths: List<String> = emptyList(),
-        val selfieDocPath: String? = null,
         val panDocPath: String? = null,
         val uploadingAadhaar: Boolean = false,
         val uploadingCert: Boolean = false,
-        val uploadingSelfie: Boolean = false,
         val uploadingPan: Boolean = false,
         val aadhaarFailed: Boolean = false,
         val certFailed: Boolean = false,
-        val selfieFailed: Boolean = false,
         val panFailed: Boolean = false,
         val saving: Boolean = false,
         /** Free-text reason from admin when verification_status='rejected'. */
@@ -108,8 +110,9 @@ class KycViewModel @Inject constructor(
                         !emailVerified -> "Verify your email — tap the Verify button."
                         phone.isNullOrBlank() -> "Add your phone number to continue."
                         !phoneVerified -> "Verify your phone — tap the Verify button."
-                        city.isBlank() -> "City is required."
-                        state.isBlank() -> "State is required."
+                        serviceAddress.length < 8 -> "Add the area you serve."
+                        serviceLatitude == null || serviceLongitude == null ->
+                            "Pin your service location on the map."
                         else -> null
                     }
                 }
@@ -121,7 +124,6 @@ class KycViewModel @Inject constructor(
                         panNumber.length != 10 -> "PAN must be 10 characters (5 letters, 4 digits, 1 letter)."
                         !PanValidator.isValid(panNumber) -> "That doesn't look like a valid PAN."
                         panDocPath.isNullOrBlank() -> "Upload a photo of your PAN card."
-                        selfieDocPath.isNullOrBlank() -> "Take a clear selfie so admin can match your face."
                         certDocPaths.isEmpty() -> "Upload at least one trade or qualification certificate."
                         !attestationAccepted -> "You must confirm the attestation to submit."
                         else -> null
@@ -132,8 +134,7 @@ class KycViewModel @Inject constructor(
 
         val canAdvance: Boolean
             get() = stepError() == null &&
-                !uploadingAadhaar && !uploadingCert &&
-                !uploadingSelfie && !uploadingPan
+                !uploadingAadhaar && !uploadingCert && !uploadingPan
     }
 
     sealed interface Effect {
@@ -337,15 +338,15 @@ class KycViewModel @Inject constructor(
                     rejectedDocTypes = engineer.rejectedDocTypes,
                     aadhaarVerified = engineer.aadhaarVerified,
                     aadhaarNumber = engineer.aadhaarNumber.orEmpty(),
-                    city = engineer.city.orEmpty(),
-                    state = engineer.state.orEmpty(),
+                    serviceAddress = engineer.city.orEmpty(),
+                    serviceLatitude = engineer.latitude,
+                    serviceLongitude = engineer.longitude,
                     experienceYears = engineer.experienceYears.toString(),
                     serviceRadiusKm = engineer.serviceRadiusKm.toString(),
                     qualifications = engineer.qualifications,
                     selectedSpecializations = engineer.specializations.toSet(),
                     aadhaarDocPath = engineer.aadhaarDocPath,
                     certDocPaths = engineer.certDocPaths,
-                    selfieDocPath = engineer.selfieDocPath,
                     panDocPath = engineer.panDocPath,
                     panNumber = engineer.panNumber.orEmpty(),
                 )
@@ -364,8 +365,11 @@ class KycViewModel @Inject constructor(
         _state.update { it.copy(panNumber = cleaned) }
     }
 
-    fun onCityChange(value: String) = _state.update { it.copy(city = value) }
-    fun onStateChange(value: String) = _state.update { it.copy(state = value) }
+    fun onServiceAddressChange(value: String) =
+        _state.update { it.copy(serviceAddress = value) }
+
+    fun onServiceCoordsChange(latitude: Double?, longitude: Double?) =
+        _state.update { it.copy(serviceLatitude = latitude, serviceLongitude = longitude) }
 
     fun onExperienceYearsChange(value: String) {
         val digits = value.filter { it.isDigit() }.take(2)
@@ -417,13 +421,13 @@ class KycViewModel @Inject constructor(
                 snap.copy(
                     aadhaarDocPath = null,
                     certDocPaths = emptyList(),
-                    selfieDocPath = null,
+                    panDocPath = null,
                 )
             } else {
                 val flagged = snap.rejectedDocTypes.toSet()
                 snap.copy(
                     aadhaarDocPath = if (EngineerCertificate.TYPE_AADHAAR in flagged) null else snap.aadhaarDocPath,
-                    selfieDocPath = if (EngineerCertificate.TYPE_SELFIE in flagged) null else snap.selfieDocPath,
+                    panDocPath = if (EngineerCertificate.TYPE_PAN in flagged) null else snap.panDocPath,
                     certDocPaths = if (EngineerCertificate.TYPE_CERT in flagged) emptyList() else snap.certDocPaths,
                 )
             }
@@ -441,7 +445,7 @@ class KycViewModel @Inject constructor(
 
     private fun docTypeLabel(type: String): String = when (type) {
         EngineerCertificate.TYPE_AADHAAR -> "Aadhaar"
-        EngineerCertificate.TYPE_SELFIE -> "selfie"
+        EngineerCertificate.TYPE_PAN -> "PAN"
         EngineerCertificate.TYPE_CERT -> "certificate"
         else -> type
     }
@@ -570,53 +574,6 @@ class KycViewModel @Inject constructor(
         }
     }
 
-    fun uploadSelfie(fileName: String, bytes: ByteArray, contentType: String?) {
-        val uid = userId ?: return
-        if (_state.value.uploadingSelfie) return
-        _state.update { it.copy(uploadingSelfie = true, selfieFailed = false) }
-        viewModelScope.launch {
-            val stored = "selfie-${timestampedName(fileName)}"
-            engineerRepository.uploadKycDoc(
-                userId = uid,
-                fileName = stored,
-                bytes = bytes,
-                contentType = contentType,
-            ).fold(
-                onSuccess = { path ->
-                    _state.update {
-                        it.copy(
-                            uploadingSelfie = false,
-                            selfieDocPath = path,
-                            selfieFailed = false,
-                        )
-                    }
-                    _effects.send(Effect.ShowMessage("Selfie uploaded"))
-                },
-                onFailure = { ex ->
-                    val queued = tryQueuePhotoUpload(
-                        uid = uid,
-                        bytes = bytes,
-                        storedFileName = stored,
-                        contentType = contentType,
-                    )
-                    if (queued != null) {
-                        _state.update {
-                            it.copy(
-                                uploadingSelfie = false,
-                                selfieDocPath = queued,
-                                selfieFailed = false,
-                            )
-                        }
-                        _effects.send(Effect.ShowMessage("Selfie will upload when back online"))
-                    } else {
-                        _state.update { it.copy(uploadingSelfie = false, selfieFailed = true) }
-                        _effects.send(Effect.ShowMessage(ex.toUserMessage()))
-                    }
-                },
-            )
-        }
-    }
-
     /**
      * Stashes [bytes] on disk and enqueues a [PhotoUploadPayload] for the
      * outbox worker. Returns the target object path on success so the UI can
@@ -683,9 +640,6 @@ class KycViewModel @Inject constructor(
                 snap.aadhaarDocPath?.let {
                     add(EngineerCertificate(EngineerCertificate.TYPE_AADHAAR, it, now))
                 }
-                snap.selfieDocPath?.let {
-                    add(EngineerCertificate(EngineerCertificate.TYPE_SELFIE, it, now))
-                }
                 snap.panDocPath?.let {
                     add(EngineerCertificate(EngineerCertificate.TYPE_PAN, it, now))
                 }
@@ -701,8 +655,10 @@ class KycViewModel @Inject constructor(
                 specializations = snap.selectedSpecializations.toList(),
                 experienceYears = snap.experienceYears.toIntOrNull() ?: 0,
                 serviceRadiusKm = snap.serviceRadiusKm.toIntOrNull() ?: 25,
-                city = snap.city.takeIf { it.isNotBlank() },
-                state = snap.state.takeIf { it.isNotBlank() },
+                city = snap.serviceAddress.takeIf { it.isNotBlank() },
+                state = null,
+                latitude = snap.serviceLatitude,
+                longitude = snap.serviceLongitude,
                 certificates = certificates,
                 aadhaarUploaded = snap.aadhaarDocPath != null,
                 // Re-submitting after rejection must flip the row back into the
