@@ -5,15 +5,17 @@ import android.view.WindowManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalContext
+import com.equipseva.app.BuildConfig
 
 /**
  * Applies FLAG_SECURE to the hosting window while this composable is in
  * composition. Prevents screenshots + screen recording + Recents thumbnails
  * on screens that display payment info, KYC captures, phone/email, or
- * payout history.
+ * payout history. No-op in debug builds so QA tooling can capture frames.
  */
 @Composable
 fun SecureScreen() {
+    if (BuildConfig.DEBUG) return
     val context = LocalContext.current
     DisposableEffect(context) {
         val window = (context as? Activity)?.window
