@@ -27,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -73,21 +74,25 @@ fun LocationPickerMap(
     val scope = rememberCoroutineScope()
     var permissionDenied by remember { mutableStateOf(false) }
 
-    val tryFetch: () -> Unit = remember {
-        {
-            scope.launch {
-                val fix = fetchCurrentLocation(context)
-                if (fix != null) {
-                    onLocationPicked(LatLng(fix.latitude, fix.longitude))
-                } else {
-                    // Permission may be granted but GPS off / no fix in 5s.
-                    // Drop a Hyderabad fallback so the user still has a draggable
-                    // marker to start refining from.
-                    onLocationPicked(HYDERABAD_FALLBACK)
-                }
+    // rememberUpdatedState keeps the latest callback alive across recompositions
+    // — critical because `tryFetch` runs in a coroutine that may complete after
+    // the parent re-composed with a fresh `onLocationPicked` lambda. The old
+    // `remember { { ... } }` block captured the *first* callback ref forever
+    // and silently dropped fixes when the parent re-composed.
+    val onLocationPickedRef by rememberUpdatedState(onLocationPicked)
+    val tryFetch: () -> Unit = {
+        scope.launch {
+            val fix = fetchCurrentLocation(context)
+            if (fix != null) {
+                onLocationPickedRef(LatLng(fix.latitude, fix.longitude))
+            } else {
+                // Permission granted but GPS off / no network fix / no last
+                // location. Drop a Hyderabad fallback so the user still has a
+                // draggable marker to start from.
+                onLocationPickedRef(HYDERABAD_FALLBACK)
             }
-            Unit
         }
+        Unit
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -101,7 +106,7 @@ fun LocationPickerMap(
             permissionDenied = true
             // Defensive fallback so the form isn't stuck pin-less when the
             // user denies location entirely.
-            onLocationPicked(HYDERABAD_FALLBACK)
+            onLocationPickedRef(HYDERABAD_FALLBACK)
         }
     }
 

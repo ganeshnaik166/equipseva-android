@@ -45,6 +45,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
+import com.equipseva.app.core.data.prefs.UserPrefs
+import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.PrimaryButton
@@ -66,6 +68,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -75,8 +78,10 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class PhoneOtpRequestViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val userPrefs: UserPrefs,
 ) : ViewModel() {
     data class UiState(
+        val fullName: String = "",
         val phone: String = "+91",
         val sending: Boolean = false,
         val error: String? = null,
@@ -89,6 +94,10 @@ class PhoneOtpRequestViewModel @Inject constructor(
     private val _effects = Channel<Effect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
 
+    fun onFullNameChange(value: String) {
+        _state.update { it.copy(fullName = value, error = null) }
+    }
+
     fun onPhoneChange(value: String) {
         // Allow + then digits up to 15 chars (E.164 max).
         val cleaned = value.filterIndexed { i, c -> (i == 0 && c == '+') || c.isDigit() }.take(16)
@@ -96,13 +105,22 @@ class PhoneOtpRequestViewModel @Inject constructor(
     }
 
     fun onSend() {
+        val name = _state.value.fullName.trim()
         val phone = _state.value.phone.trim()
+        if (name.length < 2) {
+            _state.update { it.copy(error = "Enter your full name first.") }
+            return
+        }
         if (!phone.startsWith("+") || phone.length < 10) {
             _state.update { it.copy(error = "Enter phone in international format (e.g. +919999999999)") }
             return
         }
         _state.update { it.copy(sending = true, error = null) }
         viewModelScope.launch {
+            // Stash the name so the Verify screen can write it to profiles
+            // once the OTP succeeds. Doing this BEFORE sendPhoneOtp protects
+            // us from process death between Send and Verify.
+            userPrefs.setPendingFullName(name)
             authRepository.sendPhoneOtp(phone)
                 .onSuccess {
                     _state.update { it.copy(sending = false) }
@@ -173,6 +191,25 @@ fun PhoneOtpRequestScreen(
 
                 Spacer(Modifier.height(Spacing.xs))
 
+                // Full name first — phone-OTP signup is the only path now,
+                // and the profile row's full_name comes from this field. KYC
+                // Step 1 hard-blocks on full_name being non-blank.
+                OutlinedTextField(
+                    value = state.fullName,
+                    onValueChange = viewModel::onFullNameChange,
+                    label = { Text("Full name") },
+                    placeholder = { Text("As it should appear on your profile") },
+                    singleLine = true,
+                    enabled = !state.sending,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Words,
+                        imeAction = ImeAction.Next,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                Spacer(Modifier.height(Spacing.xs))
+
                 // Phone input — +91 prefix box + number field.
                 PhoneInputRow(
                     phone = state.phone,
@@ -188,7 +225,7 @@ fun PhoneOtpRequestScreen(
                 PrimaryButton(
                     label = if (state.sending) "Sending…" else "Send OTP",
                     onClick = viewModel::onSend,
-                    enabled = !state.sending && state.phone.length >= 10,
+                    enabled = !state.sending && state.phone.length >= 10 && state.fullName.trim().length >= 2,
                     loading = state.sending,
                 )
 
@@ -352,6 +389,8 @@ private fun BadgeWith(icon: androidx.compose.ui.graphics.vector.ImageVector, lab
 class PhoneOtpVerifyViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val authRepository: AuthRepository,
+    private val profileRepository: ProfileRepository,
+    private val userPrefs: UserPrefs,
 ) : ViewModel() {
     private val phone: String = java.net.URLDecoder.decode(
         requireNotNull(savedStateHandle[Routes.AUTH_PHONE_OTP_VERIFY_ARG_PHONE]) { "Missing phone arg" },
@@ -384,12 +423,35 @@ class PhoneOtpVerifyViewModel @Inject constructor(
         viewModelScope.launch {
             authRepository.verifyPhoneOtp(phone, code)
                 .onSuccess {
+                    persistPendingName(phone)
                     _state.update { it.copy(verifying = false, success = true) }
                 }
                 .onFailure { e ->
                     _state.update { it.copy(verifying = false, error = e.toUserMessage()) }
                 }
         }
+    }
+
+    /**
+     * Reads the name typed on the Request screen out of UserPrefs and writes
+     * it into `profiles.full_name`. Best-effort: failure here doesn't block
+     * the success path — the user can still edit their name from Profile
+     * later. We always clear the prefs key so a stale name can't leak into a
+     * subsequent signup.
+     */
+    private suspend fun persistPendingName(phone: String) {
+        val pending = userPrefs.getPendingFullName()?.trim().orEmpty()
+        userPrefs.clearPendingFullName()
+        if (pending.length < 2) return
+        // Wait briefly for the auth session to surface the new userId before
+        // calling profile-update. The session flow flips on the same coroutine
+        // thread the verify call returned on, so the next tick is enough.
+        val session = authRepository.sessionState
+        val signedIn = session
+            .firstOrNull { it is com.equipseva.app.core.auth.AuthSession.SignedIn }
+                as? com.equipseva.app.core.auth.AuthSession.SignedIn
+            ?: return
+        profileRepository.updateBasicInfo(signedIn.userId, pending, phone)
     }
 
     fun onResend() {

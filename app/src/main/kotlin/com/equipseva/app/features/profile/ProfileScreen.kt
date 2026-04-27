@@ -153,11 +153,39 @@ fun ProfileScreen(
                         CircularProgressIndicator()
                     }
                 }
-                state.profile == null -> {
+                state.isSignedOut -> {
                     // PRD: signed-out users can browse Marketplace freely. The
                     // Profile tab now shows a sign-in CTA instead of an error,
                     // so a tap from the bottom nav doesn't look broken.
                     SignedOutPrompt(onSignIn = onSignIn)
+                }
+                state.profile == null -> {
+                    // Authenticated, but the profile bootstrap returned null
+                    // (e.g. fresh phone-OTP signup before the row hydrates).
+                    // Surface a retry instead of the misleading sign-in CTA —
+                    // tapping Sign in here used to bounce users straight back
+                    // to Home.
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(Spacing.lg),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            "Finishing setup…",
+                            fontWeight = FontWeight.Bold,
+                            color = Ink900,
+                        )
+                        Spacer(Modifier.height(Spacing.sm))
+                        Text(
+                            "We're loading your profile. Tap retry if this doesn't clear.",
+                            color = Ink500,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        )
+                        Spacer(Modifier.height(Spacing.md))
+                        androidx.compose.material3.Button(onClick = viewModel::onRefresh) {
+                            Text("Retry")
+                        }
+                    }
                 }
                 else -> {
                     ProfileContent(

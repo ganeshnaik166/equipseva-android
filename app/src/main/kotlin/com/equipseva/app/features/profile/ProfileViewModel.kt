@@ -43,6 +43,8 @@ class ProfileViewModel @Inject constructor(
     data class UiState(
         val loading: Boolean = true,
         val profile: Profile? = null,
+        /** True only when the auth layer reports SignedOut (not just profile==null). */
+        val isSignedOut: Boolean = false,
         /** engineers.id of the signed-in user (only when role=Engineer + KYC verified). */
         val ownEngineerId: String? = null,
         val errorMessage: String? = null,
@@ -104,6 +106,7 @@ class ProfileViewModel @Inject constructor(
             authRepository.sessionState.collect { session ->
                 when (session) {
                     is AuthSession.SignedIn -> {
+                        _state.update { it.copy(isSignedOut = false) }
                         if (_state.value.profile?.id != session.userId) {
                             load(session.userId, initial = true)
                         }
@@ -113,6 +116,7 @@ class ProfileViewModel @Inject constructor(
                             it.copy(
                                 loading = false,
                                 profile = null,
+                                isSignedOut = true,
                                 errorMessage = null,
                             )
                         }

@@ -55,7 +55,11 @@ class SessionViewModel @Inject constructor(
 
     val tourSeen: StateFlow<Boolean> = userPrefs.observeTourSeen().stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
+        // Eagerly so the upstream stays alive across app background → foreground.
+        // WhileSubscribed(5_000) caused the StateFlow to cold-restart at the
+        // initialValue after >5s in background, which triggered AppNavGraph's
+        // Loading branch and unmounted the entire NavHost on every resume.
+        started = SharingStarted.Eagerly,
         initialValue = true, // assume seen until first emission so we don't flash the tour on splash
     )
 
@@ -76,7 +80,12 @@ class SessionViewModel @Inject constructor(
             }
         }.stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
+            // Eagerly: the upstream session subscription must survive
+            // background → foreground transitions. With WhileSubscribed(5_000)
+            // the StateFlow cold-restarted at `Loading` on every resume after
+            // 5s+, which mounted SplashScreen() in AppNavGraph and tore down
+            // the entire NavHost — wiping in-flight forms and the back stack.
+            started = SharingStarted.Eagerly,
             initialValue = SessionState.Loading,
         )
 

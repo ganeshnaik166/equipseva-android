@@ -43,14 +43,39 @@ class SupabaseAuthRepository @Inject constructor(
         if (retryAfter != null) {
             throw PhoneOtpRateLimitedException(retryAfterSeconds = retryAfter)
         }
-        client.auth.signInWith(OTP) {
-            this.phone = phone
+        try {
+            client.auth.signInWith(OTP) {
+                this.phone = phone
+            }
+        } catch (t: Throwable) {
+            throw mapTwilioTrialError(t)
         }
     }
 
     /** Raised when phone_otp_can_request RPC tells us the caller is throttled. */
     class PhoneOtpRateLimitedException(val retryAfterSeconds: Int) :
         RuntimeException("Too many OTP requests. Try again in ${retryAfterSeconds}s.")
+
+    /**
+     * Twilio trial accounts reject sends to non-verified numbers with error
+     * 21608. The raw provider message is unhelpful; map it to a clear "this
+     * number isn't whitelisted" string we can render. The original cause is
+     * preserved so logs/Sentry can still see the full chain.
+     */
+    private fun mapTwilioTrialError(t: Throwable): Throwable {
+        val msg = (t.message.orEmpty() + " " + (t.cause?.message.orEmpty())).lowercase()
+        val trial = "21608" in msg ||
+            ("unverified" in msg && "twilio" in msg) ||
+            ("trial" in msg && "verified" in msg)
+        if (!trial) return t
+        return RuntimeException(
+            "We can't send OTP to this number yet — our SMS provider is in trial " +
+                "mode and only delivers to whitelisted numbers. Ask the team to " +
+                "verify this number in the Twilio dashboard, or use a number " +
+                "that's already verified.",
+            t,
+        )
+    }
 
     override suspend fun verifyPhoneOtp(phone: String, token: String): Result<Unit> = runCatching {
         client.auth.verifyPhoneOtp(
@@ -70,8 +95,12 @@ class SupabaseAuthRepository @Inject constructor(
         if (retryAfter != null) {
             throw PhoneOtpRateLimitedException(retryAfterSeconds = retryAfter)
         }
-        client.auth.updateUser {
-            this.phone = phone
+        try {
+            client.auth.updateUser {
+                this.phone = phone
+            }
+        } catch (t: Throwable) {
+            throw mapTwilioTrialError(t)
         }
         Unit
     }

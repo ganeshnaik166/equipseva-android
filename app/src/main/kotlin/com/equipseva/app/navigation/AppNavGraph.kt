@@ -9,6 +9,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -101,13 +102,21 @@ private fun AuthHostInline(
     val navController = rememberNavController()
     val sessionState by sessionViewModel.state.collectAsStateWithLifecycle()
 
-    // Watch for sign-in completion. AuthGraph itself doesn't navigate
-    // anywhere — once SessionState flips off SignedOut, we hand off to the
-    // root graph's onAuthSuccess so it can grant the pending role.
+    // Only hand off to the main graph after the session *transitions* away
+    // from SignedOut (i.e. a fresh sign-in completes). Without this guard a
+    // user who is already authenticated server-side but lands here from
+    // ProfileScreen's "Sign in" button would be bounced straight back to
+    // Home before the Welcome screen ever rendered.
+    val sawSignedOut = remember { mutableStateOf(false) }
     LaunchedEffect(sessionState) {
-        when (sessionState) {
-            is SessionState.NeedsRole, is SessionState.Ready -> onAuthSuccess()
-            else -> Unit
+        if (sessionState is SessionState.SignedOut) {
+            sawSignedOut.value = true
+            return@LaunchedEffect
+        }
+        val authenticated = sessionState is SessionState.NeedsRole ||
+            sessionState is SessionState.Ready
+        if (authenticated && sawSignedOut.value) {
+            onAuthSuccess()
         }
     }
 
