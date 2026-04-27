@@ -75,7 +75,7 @@ class KycViewModel @Inject constructor(
          */
         val rejectedDocTypes: List<String> = emptyList(),
         // Stepper state
-        val currentStep: KycStep = KycStep.Identity,
+        val currentStep: KycStep = KycStep.Personal,
         val email: String? = null,
         val phone: String? = null,
         val fullName: String? = null,
@@ -85,6 +85,11 @@ class KycViewModel @Inject constructor(
         /** Inline email-edit draft on Step 1; synced from `email` on first load. */
         val emailDraft: String = "",
         val savingEmail: Boolean = false,
+        /** True when the inline email-OTP verify sheet is showing. */
+        val emailVerifySheetOpen: Boolean = false,
+        val emailOtpCode: String = "",
+        val sendingEmailOtp: Boolean = false,
+        val verifyingEmailOtp: Boolean = false,
     ) {
         /**
          * Returns null when the current step's required fields are filled in
@@ -95,42 +100,28 @@ class KycViewModel @Inject constructor(
         fun stepError(): String? {
             if (verificationStatus == VerificationStatus.Verified) return null
             return when (currentStep) {
-                KycStep.Identity -> {
+                KycStep.Personal -> {
                     when {
-                        email.isNullOrBlank() -> "Email missing — add it from Profile settings before continuing."
+                        fullName.isNullOrBlank() -> "Add your name from Profile settings before continuing."
+                        email.isNullOrBlank() -> "Email missing — add it before continuing."
                         !EMAIL_REGEX.matches(email) -> "That email doesn't look right."
-                        phone.isNullOrBlank() -> "Phone missing — sign in with phone OTP first."
+                        !emailVerified -> "Verify your email — tap the Verify button."
+                        phone.isNullOrBlank() -> "Add your phone number to continue."
+                        !phoneVerified -> "Verify your phone — tap the Verify button."
                         city.isBlank() -> "City is required."
                         state.isBlank() -> "State is required."
                         else -> null
                     }
                 }
-                KycStep.Aadhaar -> {
+                KycStep.Documents -> {
                     when {
                         aadhaarNumber.length != 12 -> "Aadhaar must be 12 digits."
                         !AadhaarValidator.isValid(aadhaarNumber) -> "That doesn't look like a valid Aadhaar number."
                         aadhaarDocPath.isNullOrBlank() -> "Upload your Aadhaar (PDF or photo) before continuing."
-                        else -> null
-                    }
-                }
-                KycStep.Selfie -> {
-                    when {
-                        selfieDocPath.isNullOrBlank() -> "Take a clear selfie so admin can match your face to your Aadhaar."
-                        else -> null
-                    }
-                }
-                KycStep.Skills -> {
-                    val years = experienceYears.toIntOrNull()
-                    val radius = serviceRadiusKm.toIntOrNull()
-                    when {
-                        selectedSpecializations.isEmpty() -> "Pick at least one specialization."
-                        years == null || years !in 0..50 -> "Experience must be 0–50 years."
-                        radius == null || radius !in 1..500 -> "Service radius must be 1–500 km."
-                        else -> null
-                    }
-                }
-                KycStep.Credentials -> {
-                    when {
+                        panNumber.length != 10 -> "PAN must be 10 characters (5 letters, 4 digits, 1 letter)."
+                        !PanValidator.isValid(panNumber) -> "That doesn't look like a valid PAN."
+                        panDocPath.isNullOrBlank() -> "Upload a photo of your PAN card."
+                        selfieDocPath.isNullOrBlank() -> "Take a clear selfie so admin can match your face."
                         certDocPaths.isEmpty() -> "Upload at least one trade or qualification certificate."
                         !attestationAccepted -> "You must confirm the attestation to submit."
                         else -> null
@@ -222,6 +213,81 @@ class KycViewModel @Inject constructor(
 
     fun onAttestationChange(value: Boolean) {
         _state.update { it.copy(attestationAccepted = value) }
+    }
+
+    /**
+     * Trigger an email-verify code send + open the inline OTP sheet. Bound to
+     * the "Verify" button on the Personal step. No-op if email is missing or
+     * already verified.
+     */
+    fun startEmailVerification() {
+        val snap = _state.value
+        val email = snap.email
+        if (email.isNullOrBlank() || !EMAIL_REGEX.matches(email)) {
+            viewModelScope.launch {
+                _effects.send(Effect.ShowMessage("Add a valid email first."))
+            }
+            return
+        }
+        if (snap.emailVerified) return
+        _state.update {
+            it.copy(emailVerifySheetOpen = true, emailOtpCode = "", sendingEmailOtp = true)
+        }
+        viewModelScope.launch {
+            authRepository.sendEmailOtp(email)
+                .onSuccess {
+                    _state.update { it.copy(sendingEmailOtp = false) }
+                    _effects.send(Effect.ShowMessage("Code sent to $email"))
+                }
+                .onFailure { err ->
+                    _state.update { it.copy(sendingEmailOtp = false, emailVerifySheetOpen = false) }
+                    _effects.send(Effect.ShowMessage(err.toUserMessage()))
+                }
+        }
+    }
+
+    fun onEmailOtpChange(code: String) {
+        val cleaned = code.filter { it.isDigit() }.take(6)
+        _state.update { it.copy(emailOtpCode = cleaned) }
+    }
+
+    fun closeEmailVerifySheet() {
+        if (_state.value.verifyingEmailOtp) return
+        _state.update { it.copy(emailVerifySheetOpen = false, emailOtpCode = "") }
+    }
+
+    fun submitEmailOtp() {
+        val snap = _state.value
+        val email = snap.email ?: return
+        if (snap.emailOtpCode.length != 6) {
+            viewModelScope.launch {
+                _effects.send(Effect.ShowMessage("Enter the 6-digit code."))
+            }
+            return
+        }
+        _state.update { it.copy(verifyingEmailOtp = true) }
+        viewModelScope.launch {
+            authRepository.verifyEmailOtp(email, snap.emailOtpCode)
+                .onSuccess {
+                    // Auth trigger flips profile.email_verified server-side;
+                    // reload the profile so UiState.emailVerified flips too.
+                    val uid = userId
+                    val refreshed = uid?.let { profileRepository.fetchById(it).getOrNull() }
+                    _state.update {
+                        it.copy(
+                            verifyingEmailOtp = false,
+                            emailVerifySheetOpen = false,
+                            emailOtpCode = "",
+                            emailVerified = refreshed?.emailVerified == true,
+                        )
+                    }
+                    _effects.send(Effect.ShowMessage("Email verified"))
+                }
+                .onFailure { err ->
+                    _state.update { it.copy(verifyingEmailOtp = false) }
+                    _effects.send(Effect.ShowMessage(err.toUserMessage()))
+                }
+        }
     }
 
     fun onEmailDraftChange(value: String) {

@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Face
@@ -143,6 +144,12 @@ fun KycScreen(
         uri?.let { readAndUpload(context, it) { name, bytes, mime -> viewModel.uploadCertificate(name, bytes, mime) } }
     }
 
+    val panPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri: Uri? ->
+        uri?.let { readAndUpload(context, it) { name, bytes, mime -> viewModel.uploadPan(name, bytes, mime) } }
+    }
+
     // Selfie / face capture flow. We hand the camera a FileProvider URI it
     // can write a JPEG into, then read those bytes back + push to the same
     // KYC docs storage as Aadhaar. Local URI is held in screen state so the
@@ -215,17 +222,17 @@ fun KycScreen(
                 else -> KycStepperBody(
                     state = state,
                     onAadhaarNumberChange = viewModel::onAadhaarNumberChange,
+                    onPanNumberChange = viewModel::onPanNumberChange,
                     onCityChange = viewModel::onCityChange,
                     onStateChange = viewModel::onStateChange,
-                    onExperienceChange = viewModel::onExperienceYearsChange,
-                    onRadiusChange = viewModel::onServiceRadiusChange,
-                    onQualificationDraftChange = viewModel::onQualificationDraftChange,
-                    onAddQualification = viewModel::addQualification,
-                    onRemoveQualification = viewModel::removeQualification,
-                    onToggleSpecialization = viewModel::toggleSpecialization,
                     onAttestationChange = viewModel::onAttestationChange,
                     onPickAadhaar = {
                         aadhaarPicker.launch(
+                            arrayOf("application/pdf", "image/jpeg", "image/png", "image/webp"),
+                        )
+                    },
+                    onPickPan = {
+                        panPicker.launch(
                             arrayOf("application/pdf", "image/jpeg", "image/png", "image/webp"),
                         )
                     },
@@ -237,6 +244,7 @@ fun KycScreen(
                     onEmailDraftChange = viewModel::onEmailDraftChange,
                     onSaveEmail = viewModel::saveEmailDraft,
                     onAddPhone = onAddPhone,
+                    onVerifyEmail = viewModel::startEmailVerification,
                     selfiePreviewUri = selfiePreviewUri,
                     onCaptureSelfie = {
                         // Lay a temp JPEG in cache/kyc-temp/, hand its
@@ -256,28 +264,102 @@ fun KycScreen(
             }
         }
     }
+
+    if (state.emailVerifySheetOpen) {
+        EmailVerifySheet(
+            email = state.email.orEmpty(),
+            code = state.emailOtpCode,
+            sending = state.sendingEmailOtp,
+            verifying = state.verifyingEmailOtp,
+            onCodeChange = viewModel::onEmailOtpChange,
+            onSubmit = viewModel::submitEmailOtp,
+            onDismiss = viewModel::closeEmailVerifySheet,
+            onResend = viewModel::startEmailVerification,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EmailVerifySheet(
+    email: String,
+    code: String,
+    sending: Boolean,
+    verifying: Boolean,
+    onCodeChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    onDismiss: () -> Unit,
+    onResend: () -> Unit,
+) {
+    val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = { if (!verifying) onDismiss() },
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            Text("Verify your email", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ink900)
+            Text("Code sent to $email", fontSize = 13.sp, color = Ink500)
+            OutlinedTextField(
+                value = code,
+                onValueChange = onCodeChange,
+                label = { Text("6-digit code") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                enabled = !verifying,
+                supportingText = if (sending) {
+                    { Text("Sending code…", fontSize = 12.sp, color = Ink500) }
+                } else null,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                OutlinedButton(
+                    onClick = onResend,
+                    enabled = !sending && !verifying,
+                    modifier = Modifier.weight(1f),
+                ) { Text(if (sending) "Resending…" else "Resend code") }
+                Button(
+                    onClick = onSubmit,
+                    enabled = !verifying && code.length == 6,
+                    modifier = Modifier.weight(1.4f),
+                ) {
+                    if (verifying) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                        Spacer(Modifier.size(Spacing.sm))
+                        Text("Verifying…")
+                    } else {
+                        Text("Verify")
+                    }
+                }
+            }
+            Spacer(Modifier.height(Spacing.sm))
+        }
+    }
 }
 
 @Composable
 private fun KycStepperBody(
     state: KycViewModel.UiState,
     onAadhaarNumberChange: (String) -> Unit,
+    onPanNumberChange: (String) -> Unit,
     onCityChange: (String) -> Unit,
     onStateChange: (String) -> Unit,
-    onExperienceChange: (String) -> Unit,
-    onRadiusChange: (String) -> Unit,
-    onQualificationDraftChange: (String) -> Unit,
-    onAddQualification: () -> Unit,
-    onRemoveQualification: (String) -> Unit,
-    onToggleSpecialization: (RepairEquipmentCategory) -> Unit,
     onAttestationChange: (Boolean) -> Unit,
     onPickAadhaar: () -> Unit,
+    onPickPan: () -> Unit,
     onPickCertificate: () -> Unit,
     onStartReupload: () -> Unit,
     onJumpToStep: (KycStep) -> Unit,
     onEmailDraftChange: (String) -> Unit,
     onSaveEmail: () -> Unit,
     onAddPhone: () -> Unit,
+    onVerifyEmail: () -> Unit,
     selfiePreviewUri: Uri?,
     onCaptureSelfie: () -> Unit,
 ) {
@@ -318,35 +400,23 @@ private fun KycStepperBody(
         // so the form feels short — best-practice gig-app onboarding caps each
         // step at ~30 seconds of input.
         when (state.currentStep) {
-            KycStep.Identity -> IdentityStep(
+            KycStep.Personal -> PersonalStep(
                 state = state,
                 onCityChange = onCityChange,
                 onStateChange = onStateChange,
                 onEmailDraftChange = onEmailDraftChange,
                 onSaveEmail = onSaveEmail,
                 onAddPhone = onAddPhone,
+                onVerifyEmail = onVerifyEmail,
             )
-            KycStep.Aadhaar -> AadhaarStep(
+            KycStep.Documents -> DocumentsStep(
                 state = state,
+                selfiePreviewUri = selfiePreviewUri,
                 onAadhaarNumberChange = onAadhaarNumberChange,
+                onPanNumberChange = onPanNumberChange,
                 onPickAadhaar = onPickAadhaar,
-            )
-            KycStep.Selfie -> SelfieStep(
-                state = state,
-                previewUri = selfiePreviewUri,
+                onPickPan = onPickPan,
                 onCaptureSelfie = onCaptureSelfie,
-            )
-            KycStep.Skills -> SkillsStep(
-                state = state,
-                onExperienceChange = onExperienceChange,
-                onRadiusChange = onRadiusChange,
-                onToggleSpecialization = onToggleSpecialization,
-                onQualificationDraftChange = onQualificationDraftChange,
-                onAddQualification = onAddQualification,
-                onRemoveQualification = onRemoveQualification,
-            )
-            KycStep.Credentials -> CredentialsStep(
-                state = state,
                 onPickCertificate = onPickCertificate,
                 onAttestationChange = onAttestationChange,
             )
@@ -429,20 +499,20 @@ private fun StepHeader(current: KycStep, onJump: (KycStep) -> Unit) {
 }
 
 @Composable
-private fun IdentityStep(
+private fun PersonalStep(
     state: KycViewModel.UiState,
     onCityChange: (String) -> Unit,
     onStateChange: (String) -> Unit,
     onEmailDraftChange: (String) -> Unit,
     onSaveEmail: () -> Unit,
     onAddPhone: () -> Unit,
+    onVerifyEmail: () -> Unit,
 ) {
     KycSectionCard(title = "How hospitals reach you") {
         ReadOnlyContactRow(icon = Icons.Filled.Badge, label = "Name", value = state.fullName ?: "—")
 
-        // Phone — read-only display + Add/Change button. Tapping fires the
-        // OTP-add flow (covers Google-auth users who never went through phone
-        // OTP at signup). Phone changes always require OTP.
+        // Phone — Add/Change button + Verified pill once auth.users
+        // confirms it (mirrored into profiles.phone_verified by trigger).
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -451,12 +521,20 @@ private fun IdentityStep(
             Icon(
                 imageVector = Icons.Filled.Phone,
                 contentDescription = null,
-                tint = if (state.phone.isNullOrBlank()) Warning else BrandGreen,
+                tint = when {
+                    state.phone.isNullOrBlank() -> Warning
+                    state.phoneVerified -> Success
+                    else -> Warning
+                },
                 modifier = Modifier.size(18.dp),
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Phone${if (!state.phone.isNullOrBlank()) " (verified)" else ""}",
+                    text = when {
+                        state.phone.isNullOrBlank() -> "Phone — required"
+                        state.phoneVerified -> "Phone (verified)"
+                        else -> "Phone — verify required"
+                    },
                     fontSize = 11.sp,
                     color = Ink500,
                     fontWeight = FontWeight.SemiBold,
@@ -464,7 +542,7 @@ private fun IdentityStep(
                 Text(
                     text = state.phone ?: "Not added yet",
                     fontSize = 13.sp,
-                    color = if (state.phone.isNullOrBlank()) Warning else Ink900,
+                    color = if (state.phoneVerified) Ink900 else Warning,
                     fontWeight = FontWeight.SemiBold,
                 )
             }
@@ -472,12 +550,20 @@ private fun IdentityStep(
                 onClick = onAddPhone,
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
             ) {
-                Text(if (state.phone.isNullOrBlank()) "Add" else "Change", fontSize = 12.sp)
+                Text(
+                    text = when {
+                        state.phone.isNullOrBlank() -> "Add"
+                        !state.phoneVerified -> "Verify"
+                        else -> "Change"
+                    },
+                    fontSize = 12.sp,
+                )
             }
         }
 
-        // Email — inline editable. Supabase fires a confirmation link to the
-        // new address; the row stays as-is until the user clicks the link.
+        // Email — inline edit + Verify CTA. Once verified the trailing
+        // becomes a green check; before that it's a Verify button that
+        // opens the inline OTP sheet.
         OutlinedTextField(
             value = state.emailDraft,
             onValueChange = onEmailDraftChange,
@@ -487,23 +573,35 @@ private fun IdentityStep(
             enabled = !state.savingEmail,
             supportingText = {
                 Text(
-                    text = if (state.email.isNullOrBlank())
-                        "Add the email hospitals can reach you at."
-                    else
-                        "Editing sends a confirmation link to the new address.",
+                    text = when {
+                        state.email.isNullOrBlank() -> "Add the email hospitals can reach you at."
+                        state.emailVerified -> "✓ Verified"
+                        else -> "Tap Verify to receive a 6-digit code."
+                    },
                     fontSize = 11.sp,
+                    color = if (state.emailVerified) Success else Ink500,
                 )
             },
             trailingIcon = {
                 val changed = state.emailDraft.isNotBlank() &&
                     !state.emailDraft.equals(state.email, ignoreCase = true)
-                if (changed) {
-                    androidx.compose.material3.TextButton(
+                when {
+                    changed -> androidx.compose.material3.TextButton(
                         onClick = onSaveEmail,
                         enabled = !state.savingEmail,
                     ) {
                         Text(if (state.savingEmail) "Saving…" else "Save")
                     }
+                    state.emailVerified -> Icon(
+                        Icons.Filled.CheckCircle,
+                        contentDescription = "Verified",
+                        tint = Success,
+                        modifier = Modifier.size(20.dp).padding(end = 8.dp),
+                    )
+                    !state.email.isNullOrBlank() -> androidx.compose.material3.TextButton(
+                        onClick = onVerifyEmail,
+                    ) { Text("Verify") }
+                    else -> {}
                 }
             },
             modifier = Modifier.fillMaxWidth(),
@@ -533,8 +631,33 @@ private fun IdentityStep(
     }
 }
 
+/**
+ * Step 2 — every document upload + attestation in a single scrollable page.
+ * Aadhaar (number + doc), PAN (number + doc), selfie (camera capture),
+ * trade certificate (PDF/photo), then the attestation checkbox. Submit fires
+ * from the bottom bar once all step-error guards pass.
+ */
 @Composable
-private fun AadhaarStep(
+private fun DocumentsStep(
+    state: KycViewModel.UiState,
+    selfiePreviewUri: Uri?,
+    onAadhaarNumberChange: (String) -> Unit,
+    onPanNumberChange: (String) -> Unit,
+    onPickAadhaar: () -> Unit,
+    onPickPan: () -> Unit,
+    onCaptureSelfie: () -> Unit,
+    onPickCertificate: () -> Unit,
+    onAttestationChange: (Boolean) -> Unit,
+) {
+    AadhaarSection(state = state, onAadhaarNumberChange = onAadhaarNumberChange, onPickAadhaar = onPickAadhaar)
+    PanSection(state = state, onPanNumberChange = onPanNumberChange, onPickPan = onPickPan)
+    SelfieSection(state = state, previewUri = selfiePreviewUri, onCaptureSelfie = onCaptureSelfie)
+    CertificateSection(state = state, onPickCertificate = onPickCertificate)
+    AttestationSection(state = state, onAttestationChange = onAttestationChange)
+}
+
+@Composable
+private fun AadhaarSection(
     state: KycViewModel.UiState,
     onAadhaarNumberChange: (String) -> Unit,
     onPickAadhaar: () -> Unit,
@@ -554,8 +677,7 @@ private fun AadhaarStep(
         digits.length < 12 -> Ink500
         else -> ErrorRed
     }
-
-    KycSectionCard(title = "Aadhaar number") {
+    KycSectionCard(title = "Aadhaar") {
         OutlinedTextField(
             value = digits,
             onValueChange = onAadhaarNumberChange,
@@ -566,9 +688,6 @@ private fun AadhaarStep(
             supportingText = { Text(hint, color = hintColor, fontSize = 12.sp) },
             modifier = Modifier.fillMaxWidth(),
         )
-    }
-
-    KycSectionCard(title = "Aadhaar document") {
         DocumentRow(
             title = "Aadhaar card",
             uploaded = aadhaarUploaded,
@@ -579,16 +698,56 @@ private fun AadhaarStep(
             subtitleOverride = if (!aadhaarUploaded && !state.aadhaarFailed) "PDF or photo" else null,
             onClick = onPickAadhaar,
         )
-        Text(
-            text = "We accept e-Aadhaar PDFs or a clear photo of the printed card (JPEG/PNG/WebP).",
-            fontSize = 11.sp,
-            color = Ink500,
+    }
+}
+
+@Composable
+private fun PanSection(
+    state: KycViewModel.UiState,
+    onPanNumberChange: (String) -> Unit,
+    onPickPan: () -> Unit,
+) {
+    val panUploaded = !state.panDocPath.isNullOrBlank()
+    val pan = state.panNumber
+    val panOk = pan.length == 10 && PanValidator.isValid(pan)
+    val panHint = when {
+        pan.isEmpty() -> "10 chars: 5 letters, 4 digits, 1 letter (e.g. ABCDE1234F)"
+        pan.length < 10 -> "${pan.length}/10 chars"
+        !panOk -> "Format must be ABCDE1234F"
+        else -> "Looks valid ✓"
+    }
+    val panHintColor = when {
+        pan.isEmpty() -> Ink500
+        panOk -> Success
+        pan.length < 10 -> Ink500
+        else -> ErrorRed
+    }
+    KycSectionCard(title = "PAN card") {
+        OutlinedTextField(
+            value = pan,
+            onValueChange = onPanNumberChange,
+            label = { Text("PAN number") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+            singleLine = true,
+            isError = pan.length == 10 && !panOk,
+            supportingText = { Text(panHint, color = panHintColor, fontSize = 12.sp) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        DocumentRow(
+            title = "PAN card",
+            uploaded = panUploaded,
+            uploading = state.uploadingPan,
+            failed = state.panFailed,
+            icon = Icons.Filled.Description,
+            hue = 220,
+            subtitleOverride = if (!panUploaded && !state.panFailed) "PDF or photo" else null,
+            onClick = onPickPan,
         )
     }
 }
 
 @Composable
-private fun SelfieStep(
+private fun SelfieSection(
     state: KycViewModel.UiState,
     previewUri: Uri?,
     onCaptureSelfie: () -> Unit,
@@ -596,15 +755,9 @@ private fun SelfieStep(
     val uploaded = !state.selfieDocPath.isNullOrBlank()
     val uploading = state.uploadingSelfie
     val failed = state.selfieFailed && !uploaded && !uploading
-    KycSectionCard(title = "Take a selfie") {
-        // Big circle preview. Three states: nothing yet (camera icon
-        // placeholder on AccentLimeSoft), uploaded with a local URI we can
-        // render via Coil, uploaded but no local URI (returning user) →
-        // green check confirmation.
+    KycSectionCard(title = "Selfie") {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = Spacing.sm),
+            modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.sm),
             contentAlignment = Alignment.Center,
         ) {
             Box(
@@ -627,9 +780,7 @@ private fun SelfieStep(
                     previewUri != null -> AsyncImage(
                         model = previewUri,
                         contentDescription = "Your selfie",
-                        modifier = Modifier
-                            .size(164.dp)
-                            .clip(CircleShape),
+                        modifier = Modifier.size(164.dp).clip(CircleShape),
                         contentScale = ContentScale.Crop,
                     )
                     uploaded -> Icon(
@@ -651,154 +802,31 @@ private fun SelfieStep(
                 }
             }
         }
-
-        val (label, color) = when {
-            failed -> "Upload failed — try again" to ErrorRed
-            uploaded -> "✓ Looks good" to Success
-            uploading -> "Uploading…" to Ink500
-            else -> "We'll share this only with our admin team for KYC review." to Ink500
-        }
-        Text(
-            text = label,
-            fontSize = 13.sp,
-            color = color,
-            fontWeight = if (uploaded || failed) FontWeight.SemiBold else FontWeight.Normal,
-        )
-
         Button(
             onClick = onCaptureSelfie,
             enabled = !uploading,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Icon(
-                imageVector = Icons.Filled.CameraAlt,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
+            Icon(Icons.Filled.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.size(Spacing.sm))
             Text(
-                text = when {
+                when {
                     uploading -> "Uploading…"
                     uploaded -> "Retake selfie"
                     else -> "Take selfie"
                 },
             )
         }
-    }
-    KycSectionCard(title = "How to get a clean shot") {
-        SelfieTipRow(text = "Face the camera straight, no angles.")
-        SelfieTipRow(text = "Good light — face the window, not your back.")
-        SelfieTipRow(text = "No mask, hat, or sunglasses.")
-        SelfieTipRow(text = "Match the photo on your Aadhaar — admin compares both.")
-    }
-}
-
-@Composable
-private fun SelfieTipRow(text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Icon(Icons.Filled.Check, contentDescription = null, tint = BrandGreen, modifier = Modifier.size(14.dp))
-        Text(text, fontSize = 13.sp, color = Ink700)
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun SkillsStep(
-    state: KycViewModel.UiState,
-    onExperienceChange: (String) -> Unit,
-    onRadiusChange: (String) -> Unit,
-    onToggleSpecialization: (RepairEquipmentCategory) -> Unit,
-    onQualificationDraftChange: (String) -> Unit,
-    onAddQualification: () -> Unit,
-    onRemoveQualification: (String) -> Unit,
-) {
-    KycSectionCard(title = "What you fix") {
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            RepairEquipmentCategory.entries.forEach { category ->
-                val selected = category in state.selectedSpecializations
-                FilterChip(
-                    selected = selected,
-                    onClick = { onToggleSpecialization(category) },
-                    label = { Text(category.displayName) },
-                    leadingIcon = if (selected) {
-                        { Icon(Icons.Filled.Check, contentDescription = null) }
-                    } else null,
-                )
-            }
-        }
         Text(
-            text = "Pick every category you'd accept jobs for. Hospitals filter the directory by these.",
+            text = "Face the camera straight, good light, no mask. Admin compares this to your Aadhaar photo.",
             fontSize = 11.sp,
             color = Ink500,
         )
     }
-
-    KycSectionCard(title = "Experience & coverage") {
-        OutlinedTextField(
-            value = state.experienceYears,
-            onValueChange = onExperienceChange,
-            label = { Text("Years of experience (0–50)") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = state.serviceRadiusKm,
-            onValueChange = onRadiusChange,
-            label = { Text("Service radius (km, 1–500)") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            singleLine = true,
-            supportingText = { Text("How far you'll travel for a job from your city.", fontSize = 12.sp) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-
-    KycSectionCard(title = "Qualifications (optional)") {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            OutlinedTextField(
-                value = state.qualificationDraft,
-                onValueChange = onQualificationDraftChange,
-                label = { Text("Add qualification (e.g. BE Biomedical)") },
-                singleLine = true,
-                modifier = Modifier.weight(1f),
-            )
-            OutlinedButton(onClick = onAddQualification) {
-                Icon(Icons.Filled.Check, contentDescription = "Add")
-            }
-        }
-        if (state.qualifications.isNotEmpty()) {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                state.qualifications.forEach { q ->
-                    AssistChip(
-                        onClick = { onRemoveQualification(q) },
-                        label = { Text(q) },
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        ),
-                    )
-                }
-            }
-        }
-    }
 }
 
 @Composable
-private fun CredentialsStep(
-    state: KycViewModel.UiState,
-    onPickCertificate: () -> Unit,
-    onAttestationChange: (Boolean) -> Unit,
-) {
+private fun CertificateSection(state: KycViewModel.UiState, onPickCertificate: () -> Unit) {
     val certUploaded = state.certDocPaths.isNotEmpty()
     KycSectionCard(title = "Trade or qualification certificate") {
         DocumentRow(
@@ -817,7 +845,10 @@ private fun CredentialsStep(
             color = Ink500,
         )
     }
+}
 
+@Composable
+private fun AttestationSection(state: KycViewModel.UiState, onAttestationChange: (Boolean) -> Unit) {
     KycSectionCard(title = "Attestation") {
         Row(
             modifier = Modifier
@@ -828,10 +859,7 @@ private fun CredentialsStep(
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Checkbox(
-                checked = state.attestationAccepted,
-                onCheckedChange = onAttestationChange,
-            )
+            Checkbox(checked = state.attestationAccepted, onCheckedChange = onAttestationChange)
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = "I confirm that the documents and details above are mine.",
@@ -840,7 +868,7 @@ private fun CredentialsStep(
                     color = Ink900,
                 )
                 Text(
-                    text = "Submitting fake or borrowed documents will get your account permanently banned and reported.",
+                    text = "Submitting fake or borrowed documents will get your account permanently banned.",
                     fontSize = 11.sp,
                     color = Ink500,
                 )
@@ -853,6 +881,7 @@ private fun CredentialsStep(
         )
     }
 }
+
 
 @Composable
 private fun ReadOnlyContactRow(
