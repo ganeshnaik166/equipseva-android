@@ -3,6 +3,9 @@ package com.equipseva.app.features.kyc
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.FileProvider
+import coil3.compose.AsyncImage
+import java.io.File
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -27,8 +30,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Phone
@@ -58,6 +63,11 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -133,6 +143,29 @@ fun KycScreen(
         uri?.let { readAndUpload(context, it) { name, bytes, mime -> viewModel.uploadCertificate(name, bytes, mime) } }
     }
 
+    // Selfie / face capture flow. We hand the camera a FileProvider URI it
+    // can write a JPEG into, then read those bytes back + push to the same
+    // KYC docs storage as Aadhaar. Local URI is held in screen state so the
+    // composable can show a circle preview after capture without waiting on
+    // a signed-URL fetch.
+    var selfiePendingUri by remember { mutableStateOf<Uri?>(null) }
+    var selfiePreviewUri by remember { mutableStateOf<Uri?>(null) }
+    val selfieLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture(),
+    ) { success ->
+        val uri = selfiePendingUri
+        if (success && uri != null) {
+            val resolver = context.contentResolver
+            val mime = resolver.getType(uri) ?: "image/jpeg"
+            val bytes = runCatching { resolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
+            if (bytes != null) {
+                selfiePreviewUri = uri
+                viewModel.uploadSelfie(uri.lastPathSegment ?: "selfie.jpg", bytes, mime)
+            }
+        }
+        selfiePendingUri = null
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -204,6 +237,21 @@ fun KycScreen(
                     onEmailDraftChange = viewModel::onEmailDraftChange,
                     onSaveEmail = viewModel::saveEmailDraft,
                     onAddPhone = onAddPhone,
+                    selfiePreviewUri = selfiePreviewUri,
+                    onCaptureSelfie = {
+                        // Lay a temp JPEG in cache/kyc-temp/, hand its
+                        // FileProvider URI to the camera, remember it so the
+                        // result callback can read it back + clean up.
+                        val dir = File(context.cacheDir, "kyc-temp").apply { mkdirs() }
+                        val target = File(dir, "selfie-${System.currentTimeMillis()}.jpg")
+                        val uri = FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.fileprovider",
+                            target,
+                        )
+                        selfiePendingUri = uri
+                        selfieLauncher.launch(uri)
+                    },
                 )
             }
         }
@@ -230,6 +278,8 @@ private fun KycStepperBody(
     onEmailDraftChange: (String) -> Unit,
     onSaveEmail: () -> Unit,
     onAddPhone: () -> Unit,
+    selfiePreviewUri: Uri?,
+    onCaptureSelfie: () -> Unit,
 ) {
     val verified = state.verificationStatus == VerificationStatus.Verified
     Column(
@@ -276,6 +326,11 @@ private fun KycStepperBody(
                 state = state,
                 onAadhaarNumberChange = onAadhaarNumberChange,
                 onPickAadhaar = onPickAadhaar,
+            )
+            KycStep.Selfie -> SelfieStep(
+                state = state,
+                previewUri = selfiePreviewUri,
+                onCaptureSelfie = onCaptureSelfie,
             )
             KycStep.Skills -> SkillsStep(
                 state = state,
@@ -525,6 +580,120 @@ private fun AadhaarStep(
             fontSize = 11.sp,
             color = Ink500,
         )
+    }
+}
+
+@Composable
+private fun SelfieStep(
+    state: KycViewModel.UiState,
+    previewUri: Uri?,
+    onCaptureSelfie: () -> Unit,
+) {
+    val uploaded = !state.selfieDocPath.isNullOrBlank()
+    val uploading = state.uploadingSelfie
+    val failed = state.selfieFailed && !uploaded && !uploading
+    KycSectionCard(title = "Take a selfie") {
+        // Big circle preview. Three states: nothing yet (camera icon
+        // placeholder on AccentLimeSoft), uploaded with a local URI we can
+        // render via Coil, uploaded but no local URI (returning user) →
+        // green check confirmation.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = Spacing.sm),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(168.dp)
+                    .clip(CircleShape)
+                    .background(if (uploaded) Surface0 else Surface50)
+                    .border(
+                        width = 2.dp,
+                        color = when {
+                            failed -> ErrorRed
+                            uploaded -> Success
+                            else -> Surface200
+                        },
+                        shape = CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                when {
+                    previewUri != null -> AsyncImage(
+                        model = previewUri,
+                        contentDescription = "Your selfie",
+                        modifier = Modifier
+                            .size(164.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop,
+                    )
+                    uploaded -> Icon(
+                        imageVector = Icons.Filled.CheckCircle,
+                        contentDescription = "Selfie uploaded",
+                        tint = Success,
+                        modifier = Modifier.size(56.dp),
+                    )
+                    uploading -> CircularProgressIndicator(
+                        modifier = Modifier.size(40.dp),
+                        strokeWidth = 3.dp,
+                    )
+                    else -> Icon(
+                        imageVector = Icons.Filled.Face,
+                        contentDescription = null,
+                        tint = Ink500,
+                        modifier = Modifier.size(80.dp),
+                    )
+                }
+            }
+        }
+
+        val (label, color) = when {
+            failed -> "Upload failed — try again" to ErrorRed
+            uploaded -> "✓ Looks good" to Success
+            uploading -> "Uploading…" to Ink500
+            else -> "We'll share this only with our admin team for KYC review." to Ink500
+        }
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            color = color,
+            fontWeight = if (uploaded || failed) FontWeight.SemiBold else FontWeight.Normal,
+        )
+
+        Button(
+            onClick = onCaptureSelfie,
+            enabled = !uploading,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.CameraAlt,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.size(Spacing.sm))
+            Text(
+                text = when {
+                    uploading -> "Uploading…"
+                    uploaded -> "Retake selfie"
+                    else -> "Take selfie"
+                },
+            )
+        }
+    }
+    KycSectionCard(title = "How to get a clean shot") {
+        SelfieTipRow(text = "Face the camera straight, no angles.")
+        SelfieTipRow(text = "Good light — face the window, not your back.")
+        SelfieTipRow(text = "No mask, hat, or sunglasses.")
+        SelfieTipRow(text = "Match the photo on your Aadhaar — admin compares both.")
+    }
+}
+
+@Composable
+private fun SelfieTipRow(text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Icon(Icons.Filled.Check, contentDescription = null, tint = BrandGreen, modifier = Modifier.size(14.dp))
+        Text(text, fontSize = 13.sp, color = Ink700)
     }
 }
 

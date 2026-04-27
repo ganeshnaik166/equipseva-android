@@ -17,5 +17,9 @@ data class EngineerCertificate(
     companion object {
         const val TYPE_AADHAAR = "aadhaar"
         const val TYPE_CERT = "cert"
+        // Face capture taken during KYC stepper Step 3. Server-side liveness
+        // is deferred to v1.1 (IDfy / HyperVerge); for now this is just a
+        // human-reviewed photo so admin can match against the Aadhaar.
+        const val TYPE_SELFIE = "selfie"
     }
 }

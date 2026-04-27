@@ -20,13 +20,18 @@ enum class KycStep(
         title = "ID",
         subtitle = "Aadhaar verification",
     ),
-    Skills(
+    Selfie(
         number = 3,
+        title = "Face",
+        subtitle = "Match your face to your ID",
+    ),
+    Skills(
+        number = 4,
         title = "Skills",
         subtitle = "What you fix and where",
     ),
     Credentials(
-        number = 4,
+        number = 5,
         title = "Proof",
         subtitle = "Upload trade certificate",
     );

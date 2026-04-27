@@ -52,10 +52,13 @@ class KycViewModel @Inject constructor(
         val selectedSpecializations: Set<RepairEquipmentCategory> = emptySet(),
         val aadhaarDocPath: String? = null,
         val certDocPaths: List<String> = emptyList(),
+        val selfieDocPath: String? = null,
         val uploadingAadhaar: Boolean = false,
         val uploadingCert: Boolean = false,
+        val uploadingSelfie: Boolean = false,
         val aadhaarFailed: Boolean = false,
         val certFailed: Boolean = false,
+        val selfieFailed: Boolean = false,
         val saving: Boolean = false,
         // Stepper state
         val currentStep: KycStep = KycStep.Identity,
@@ -94,6 +97,12 @@ class KycViewModel @Inject constructor(
                         else -> null
                     }
                 }
+                KycStep.Selfie -> {
+                    when {
+                        selfieDocPath.isNullOrBlank() -> "Take a clear selfie so admin can match your face to your Aadhaar."
+                        else -> null
+                    }
+                }
                 KycStep.Skills -> {
                     val years = experienceYears.toIntOrNull()
                     val radius = serviceRadiusKm.toIntOrNull()
@@ -115,7 +124,7 @@ class KycViewModel @Inject constructor(
         }
 
         val canAdvance: Boolean
-            get() = stepError() == null && !uploadingAadhaar && !uploadingCert
+            get() = stepError() == null && !uploadingAadhaar && !uploadingCert && !uploadingSelfie
     }
 
     sealed interface Effect {
@@ -248,6 +257,7 @@ class KycViewModel @Inject constructor(
                     selectedSpecializations = engineer.specializations.toSet(),
                     aadhaarDocPath = engineer.aadhaarDocPath,
                     certDocPaths = engineer.certDocPaths,
+                    selfieDocPath = engineer.selfieDocPath,
                 )
             }
         }
@@ -306,6 +316,7 @@ class KycViewModel @Inject constructor(
             it.copy(
                 aadhaarDocPath = null,
                 certDocPaths = emptyList(),
+                selfieDocPath = null,
             )
         }
         viewModelScope.launch {
@@ -398,6 +409,53 @@ class KycViewModel @Inject constructor(
         }
     }
 
+    fun uploadSelfie(fileName: String, bytes: ByteArray, contentType: String?) {
+        val uid = userId ?: return
+        if (_state.value.uploadingSelfie) return
+        _state.update { it.copy(uploadingSelfie = true, selfieFailed = false) }
+        viewModelScope.launch {
+            val stored = "selfie-${timestampedName(fileName)}"
+            engineerRepository.uploadKycDoc(
+                userId = uid,
+                fileName = stored,
+                bytes = bytes,
+                contentType = contentType,
+            ).fold(
+                onSuccess = { path ->
+                    _state.update {
+                        it.copy(
+                            uploadingSelfie = false,
+                            selfieDocPath = path,
+                            selfieFailed = false,
+                        )
+                    }
+                    _effects.send(Effect.ShowMessage("Selfie uploaded"))
+                },
+                onFailure = { ex ->
+                    val queued = tryQueuePhotoUpload(
+                        uid = uid,
+                        bytes = bytes,
+                        storedFileName = stored,
+                        contentType = contentType,
+                    )
+                    if (queued != null) {
+                        _state.update {
+                            it.copy(
+                                uploadingSelfie = false,
+                                selfieDocPath = queued,
+                                selfieFailed = false,
+                            )
+                        }
+                        _effects.send(Effect.ShowMessage("Selfie will upload when back online"))
+                    } else {
+                        _state.update { it.copy(uploadingSelfie = false, selfieFailed = true) }
+                        _effects.send(Effect.ShowMessage(ex.toUserMessage()))
+                    }
+                },
+            )
+        }
+    }
+
     /**
      * Stashes [bytes] on disk and enqueues a [PhotoUploadPayload] for the
      * outbox worker. Returns the target object path on success so the UI can
@@ -463,6 +521,9 @@ class KycViewModel @Inject constructor(
             val certificates = buildList {
                 snap.aadhaarDocPath?.let {
                     add(EngineerCertificate(EngineerCertificate.TYPE_AADHAAR, it, now))
+                }
+                snap.selfieDocPath?.let {
+                    add(EngineerCertificate(EngineerCertificate.TYPE_SELFIE, it, now))
                 }
                 snap.certDocPaths.forEach {
                     add(EngineerCertificate(EngineerCertificate.TYPE_CERT, it, now))

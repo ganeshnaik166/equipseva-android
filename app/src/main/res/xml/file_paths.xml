@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <cache-path name="exports" path="exports/" />
+    <!-- Temp dir for in-flight camera captures (KYC selfie + completion proof
+         photos). Files in here are short-lived: the picker writes a JPEG, we
+         hand the bytes to PhotoUploadStash, then delete from cache on next
+         launch. FileProvider grants the camera intent read-write here. -->
+    <cache-path name="kyc-temp" path="kyc-temp/" />
 </paths>
