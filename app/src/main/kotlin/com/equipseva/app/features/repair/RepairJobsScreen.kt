@@ -134,6 +134,7 @@ fun RepairJobsScreen(
                     nearbyCount = state.items.count { it.status == RepairJobStatus.Requested },
                     pendingBidCount = pendingBidCount,
                     radiusKm = state.radiusKm,
+                    hasBase = state.baseLatitude != null && state.baseLongitude != null,
                     onViewEarnings = onViewEarnings,
                     onTuneProfile = onTuneProfile,
                 )

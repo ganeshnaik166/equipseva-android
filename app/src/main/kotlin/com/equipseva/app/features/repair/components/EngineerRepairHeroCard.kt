@@ -44,6 +44,7 @@ fun EngineerRepairHeroCard(
     nearbyCount: Int,
     pendingBidCount: Int,
     radiusKm: Int?,
+    hasBase: Boolean,
     onViewEarnings: () -> Unit,
     onTuneProfile: () -> Unit,
     modifier: Modifier = Modifier,
@@ -70,7 +71,11 @@ fun EngineerRepairHeroCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text("Today's job board", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Text(
-                    text = if (radiusKm == null) "All open jobs" else "Within $radiusKm km of your base",
+                    text = when {
+                        !hasBase -> "Set your service base in KYC to see distance"
+                        radiusKm == null -> "All open jobs"
+                        else -> "Within $radiusKm km of your base"
+                    },
                     color = Color.White.copy(alpha = 0.85f),
                     fontSize = 12.sp,
                 )
