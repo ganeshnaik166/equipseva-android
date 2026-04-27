@@ -22,12 +22,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,9 +51,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.R
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.PrimaryButton
+import com.equipseva.app.designsystem.theme.AccentLime
+import com.equipseva.app.designsystem.theme.AccentLimeSoft
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
 import com.equipseva.app.designsystem.theme.BrandGreenDark
+import com.equipseva.app.designsystem.theme.BrandGreenDeep
 import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Ink700
 import com.equipseva.app.designsystem.theme.Ink900
@@ -64,10 +67,9 @@ import com.equipseva.app.designsystem.theme.Surface200
 import com.equipseva.app.features.auth.state.AuthEffect
 
 /**
- * Pinterest-style welcome: big circular brand logo, bold tagline, stacked
- * auth-option cards (Google / Phone / Email), single sign-in link at the
- * bottom. Pure white background with the only colour coming from the brand
- * logo + the primary "Continue with email" CTA.
+ * Welcome screen — full-bleed gradient hero (BrandGreenDeep -> BrandGreen) with
+ * curved bottom that hands off to a white panel containing the primary CTAs.
+ * Modern Indian gig-app feel: warm, confident, brand-led.
  */
 @Composable
 fun WelcomeScreen(
@@ -95,181 +97,256 @@ fun WelcomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.systemBars)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.lg)
-                .padding(top = 32.dp, bottom = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .verticalScroll(rememberScrollState()),
         ) {
-            // Hero — big brand-green circle with the logo mark, brand name + welcome line.
-            Box(
-                modifier = Modifier
-                    .size(96.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.linearGradient(
-                            listOf(BrandGreen, BrandGreenDark),
-                        ),
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_logo_full),
-                    contentDescription = "EquipSeva logo",
-                    modifier = Modifier.size(80.dp),
-                )
-            }
+            HeroBlock()
 
-            Spacer(Modifier.height(20.dp))
-
-            Text(
-                text = "Welcome to EquipSeva",
-                fontSize = 28.sp,
-                lineHeight = 32.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = (-0.6).sp,
-                color = Ink900,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "Find parts, dispatch repairs, and run your hospital equipment in one place.",
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
-                color = Ink500,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = Spacing.md),
-            )
-
-            Spacer(Modifier.height(36.dp))
-
-            ErrorBanner(message = state.form.errorMessage)
-
-            // Auth-option stack — each row is a tappable card.
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                if (state.googleConfigured) {
-                    AuthOptionCard(
-                        icon = ProviderIcon.Google,
-                        label = "Continue with Google",
-                        loading = state.googleLoading,
-                        onClick = { viewModel.onGoogleClicked(context) },
-                    )
-                }
-                AuthOptionCard(
-                    icon = ProviderIcon.Generic(Icons.Filled.PhoneAndroid),
-                    label = "Continue with phone",
-                    loading = false,
-                    onClick = onUsePhone,
-                )
-                AuthOptionCard(
-                    icon = ProviderIcon.Generic(Icons.Outlined.Email),
-                    label = "Continue with email & password",
-                    loading = false,
-                    onClick = onSignIn,
-                    primary = true,
-                )
-                AuthOptionCard(
-                    icon = ProviderIcon.Generic(Icons.AutoMirrored.Filled.ArrowForward),
-                    label = "Use a one-time email code",
-                    loading = false,
-                    onClick = onUseEmailCode,
-                    subtle = true,
-                )
-            }
-
-            Spacer(Modifier.height(28.dp))
-
-            // Sign-up nudge — Pinterest pattern: "Not on EquipSeva yet? Sign up"
-            val nudge = buildAnnotatedString {
-                append("New to EquipSeva? ")
-                withStyle(
-                    SpanStyle(
-                        color = BrandGreen,
-                        fontWeight = FontWeight.Bold,
-                    ),
-                ) { append("Create an account") }
-            }
-            Text(
-                text = nudge,
-                fontSize = 14.sp,
-                color = Ink700,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable(onClick = onSignUp)
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-            )
-
-            Spacer(Modifier.height(20.dp))
-
-            Text(
-                text = "By continuing, you agree to the Terms and Privacy Policy.",
-                fontSize = 11.sp,
-                color = Ink500,
-                textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = Spacing.md),
-            )
+                    .padding(horizontal = Spacing.xl)
+                    .padding(top = Spacing.xl, bottom = Spacing.xl)
+                    .windowInsetsPadding(WindowInsets.systemBars),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                ErrorBanner(message = state.form.errorMessage)
+
+                // Primary action — Create account.
+                PrimaryButton(
+                    label = "Create account",
+                    onClick = onSignUp,
+                )
+
+                // Secondary action — Sign in (outlined-style card).
+                AuthCardButton(
+                    label = "I already have an account",
+                    onClick = onSignIn,
+                    style = CardStyle.Outline,
+                )
+
+                Spacer(Modifier.height(Spacing.xs))
+
+                // OR divider
+                OrDivider()
+
+                Spacer(Modifier.height(Spacing.xs))
+
+                if (state.googleConfigured) {
+                    AuthCardButton(
+                        label = "Continue with Google",
+                        leading = { GoogleGlyph() },
+                        loading = state.googleLoading,
+                        onClick = { viewModel.onGoogleClicked(context) },
+                        style = CardStyle.Soft,
+                    )
+                }
+
+                AuthCardButton(
+                    label = "Continue with phone (OTP)",
+                    leading = {
+                        IconBubble(icon = Icons.Filled.PhoneAndroid)
+                    },
+                    onClick = onUsePhone,
+                    style = CardStyle.Soft,
+                )
+
+                Spacer(Modifier.height(Spacing.sm))
+
+                // Engineer footer link.
+                val engineerLine = buildAnnotatedString {
+                    append("Already an engineer? ")
+                    withStyle(
+                        SpanStyle(color = BrandGreen, fontWeight = FontWeight.Bold),
+                    ) { append("Phone-OTP sign-in →") }
+                }
+                Text(
+                    text = engineerLine,
+                    fontSize = 13.sp,
+                    color = Ink700,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(Spacing.sm))
+                        .clickable(onClick = onUsePhone)
+                        .padding(vertical = Spacing.sm),
+                )
+
+                // Email-OTP escape hatch (smaller, tertiary).
+                Text(
+                    text = "Or use a one-time email code",
+                    fontSize = 12.sp,
+                    color = Ink500,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(Spacing.sm))
+                        .clickable(onClick = onUseEmailCode)
+                        .padding(vertical = Spacing.xs),
+                )
+
+                Spacer(Modifier.height(Spacing.sm))
+
+                Text(
+                    text = "By continuing, you agree to the Terms and Privacy Policy.",
+                    fontSize = 11.sp,
+                    color = Ink500,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.md),
+                )
+            }
         }
     }
 }
 
-private sealed interface ProviderIcon {
-    data object Google : ProviderIcon
-    data class Generic(val image: ImageVector) : ProviderIcon
-}
+/* ----- Hero block: full-bleed gradient with curved bottom + logo + tagline ---- */
 
 @Composable
-private fun AuthOptionCard(
-    icon: ProviderIcon,
+private fun HeroBlock() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(360.dp)
+            .clip(RoundedCornerShape(bottomStart = 40.dp, bottomEnd = 40.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(BrandGreenDeep, BrandGreenDark, BrandGreen),
+                ),
+            ),
+    ) {
+        // Subtle accent-lime glow blob, top-right.
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(end = 24.dp, top = 80.dp)
+                .size(140.dp)
+                .clip(CircleShape)
+                .background(AccentLimeSoft),
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.systemBars)
+                .padding(horizontal = Spacing.xl)
+                .padding(top = Spacing.xl, bottom = Spacing.xxl),
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            // Logo mark.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(Surface0),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_logo_full),
+                        contentDescription = "EquipSeva logo",
+                        modifier = Modifier.size(40.dp),
+                    )
+                }
+                Text(
+                    text = "EquipSeva",
+                    color = Surface0,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.2).sp,
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                // Pill chip — accent-lime.
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(AccentLime)
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Bolt,
+                        contentDescription = null,
+                        tint = BrandGreenDeep,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text(
+                        text = "INDIA · MEDICAL EQUIPMENT",
+                        color = BrandGreenDeep,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.6.sp,
+                    )
+                }
+
+                Text(
+                    text = "Repair done right,\nby verified engineers.",
+                    color = Surface0,
+                    fontSize = 30.sp,
+                    lineHeight = 36.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.6).sp,
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.VerifiedUser,
+                        contentDescription = null,
+                        tint = AccentLime,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text(
+                        text = "Trusted by hospitals across India",
+                        color = Surface0.copy(alpha = 0.85f),
+                        fontSize = 13.sp,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/* ----- Reusable helpers ----- */
+
+private enum class CardStyle { Soft, Outline }
+
+@Composable
+private fun AuthCardButton(
     label: String,
-    loading: Boolean,
     onClick: () -> Unit,
-    primary: Boolean = false,
-    subtle: Boolean = false,
+    leading: (@Composable () -> Unit)? = null,
+    loading: Boolean = false,
+    style: CardStyle = CardStyle.Outline,
 ) {
-    val bg = when {
-        primary -> BrandGreen50
-        else -> Surface0
-    }
-    val borderColor = when {
-        primary -> BrandGreen
-        subtle -> Color.Transparent
-        else -> Surface200
-    }
-    val textColor = if (primary) BrandGreenDark else Ink900
+    val bg = if (style == CardStyle.Soft) BrandGreen50 else Surface0
+    val borderColor = if (style == CardStyle.Soft) BrandGreen50 else Surface200
+    val textColor = Ink900
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .height(56.dp)
             .clip(RoundedCornerShape(28.dp))
             .background(bg)
-            .border(
-                width = if (subtle) 0.dp else if (primary) 1.5.dp else 1.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(28.dp),
-            )
+            .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(28.dp))
             .clickable(enabled = !loading, onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 16.dp),
+            .padding(horizontal = Spacing.lg),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Box(
-            modifier = Modifier.size(24.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            when (icon) {
-                ProviderIcon.Google -> GoogleGlyph()
-                is ProviderIcon.Generic -> Icon(
-                    imageVector = icon.image,
-                    contentDescription = null,
-                    tint = textColor,
-                    modifier = Modifier.size(22.dp),
-                )
+        if (leading != null) {
+            Box(modifier = Modifier.size(28.dp), contentAlignment = Alignment.Center) {
+                leading()
             }
         }
         Text(
@@ -283,22 +360,67 @@ private fun AuthOptionCard(
             CircularProgressIndicator(
                 modifier = Modifier.size(18.dp),
                 strokeWidth = 2.dp,
-                color = textColor,
+                color = BrandGreen,
             )
         }
     }
 }
 
+@Composable
+private fun IconBubble(icon: ImageVector) {
+    Box(
+        modifier = Modifier
+            .size(28.dp)
+            .clip(CircleShape)
+            .background(BrandGreen50),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = BrandGreen,
+            modifier = Modifier.size(16.dp),
+        )
+    }
+}
+
+@Composable
+private fun OrDivider() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(1.dp)
+                .background(Surface200),
+        )
+        Text(
+            text = "OR",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.sp,
+            color = Ink500,
+        )
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(1.dp)
+                .background(Surface200),
+        )
+    }
+}
+
 /**
- * Tiny "G" glyph for the Google card. Drawing it inline avoids shipping the
- * Material Symbols Google logo asset and keeps the brand green/red/yellow
- * pop without a vector file.
+ * Small "G" glyph stand-in for Google. Avoids shipping the multi-color asset.
  */
 @Composable
 private fun GoogleGlyph() {
     Box(
         modifier = Modifier
-            .size(24.dp)
+            .size(28.dp)
             .clip(CircleShape)
             .background(Color.White)
             .border(1.dp, Surface200, CircleShape),
@@ -306,7 +428,7 @@ private fun GoogleGlyph() {
     ) {
         Text(
             text = "G",
-            fontSize = 15.sp,
+            fontSize = 16.sp,
             fontWeight = FontWeight.Black,
             color = Color(0xFF4285F4),
         )
