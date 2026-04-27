@@ -311,6 +311,14 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             accountDeletionRepository.deleteMyAccount(reason)
                 .onSuccess {
+                    // Same device-resident cleanup as a manual sign-out;
+                    // the deleted account's FK cascades may already drop
+                    // device_tokens server-side, but the local cache /
+                    // outbox queue / photo stash still sit on disk and
+                    // must be wiped before the next user signs in.
+                    runCatching { deviceTokenRegistrar.revoke() }
+                    runCatching { outboxDao.clearAll() }
+                    runCatching { photoUploadStash.clearAll() }
                     authRepository.signOut()
                     _state.update {
                         it.copy(
