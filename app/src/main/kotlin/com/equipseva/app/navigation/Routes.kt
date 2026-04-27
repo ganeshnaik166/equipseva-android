@@ -4,15 +4,17 @@ object Routes {
     // Top-level graph IDs (sub-graphs wrapped under these names).
     const val AUTH_GRAPH = "auth_graph"
 
-    // Auth sub-routes — phone OTP is the only sign-in path.
+    // Auth sub-routes — email + password is the primary sign-in path; Google
+    // sign-in (OIDC via Credential Manager) is the alternative; forgot-password
+    // fires a Supabase reset email.
     const val AUTH_WELCOME = "auth/welcome"
+    const val AUTH_SIGN_IN = "auth/sign_in"
+    const val AUTH_SIGN_UP = "auth/sign_up"
+    const val AUTH_FORGOT_PASSWORD = "auth/forgot_password"
 
-    // Phone OTP — request screen collects E.164 phone, verify takes it as path arg.
-    const val AUTH_PHONE_OTP_REQUEST = "auth/phone_otp_request"
-    const val AUTH_PHONE_OTP_VERIFY = "auth/phone_otp_verify"
-    const val AUTH_PHONE_OTP_VERIFY_ARG_PHONE = "phone"
-    fun phoneOtpVerifyRoute(phone: String): String =
-        "$AUTH_PHONE_OTP_VERIFY/${java.net.URLEncoder.encode(phone, Charsets.UTF_8.name())}"
+    // Post-login security flows (entered from Profile).
+    const val CHANGE_PASSWORD = "security/change_password"
+    const val CHANGE_EMAIL = "security/change_email"
 
     // Main bottom-tab routes. v1: Home / Repair / Profile only — Buy/Sell tab
     // is gone with the marketplace, orders, cart, checkout cleanup.

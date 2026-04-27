@@ -44,11 +44,6 @@ class UserPrefs @Inject constructor(
         val QUIET_HOURS_ENABLED = booleanPreferencesKey("quiet_hours_enabled")
         val QUIET_HOURS_START_MINUTES = intPreferencesKey("quiet_hours_start_minutes")
         val QUIET_HOURS_END_MINUTES = intPreferencesKey("quiet_hours_end_minutes")
-        // Phone-OTP signup shuttle: the Request screen collects a name, the
-        // Verify screen reads it back and writes it to profiles.full_name once
-        // OTP succeeds. Cleared on read/sign-out so a stale value can't leak
-        // into the next signup.
-        val PENDING_FULL_NAME = stringPreferencesKey("pending_full_name")
     }
 
     private object QuietHoursDefaults {
@@ -100,16 +95,6 @@ class UserPrefs @Inject constructor(
         context.prefsStore.edit { it.remove(Keys.ONBOARDING_DONE) }
     }
 
-    suspend fun getPendingFullName(): String? =
-        context.prefsStore.data.first()[Keys.PENDING_FULL_NAME]
-
-    suspend fun setPendingFullName(name: String) {
-        context.prefsStore.edit { it[Keys.PENDING_FULL_NAME] = name }
-    }
-
-    suspend fun clearPendingFullName() {
-        context.prefsStore.edit { it.remove(Keys.PENDING_FULL_NAME) }
-    }
 
     suspend fun toggleFavorite(partId: String) {
         val cur = favorites.first()

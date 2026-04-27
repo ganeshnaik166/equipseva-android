@@ -85,6 +85,8 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.NOTIFICATIONS,
     Routes.NOTIFICATION_SETTINGS,
     Routes.TOUR,
+    Routes.CHANGE_PASSWORD,
+    Routes.CHANGE_EMAIL,
     Routes.FOUNDER_DASHBOARD,
     Routes.FOUNDER_KYC_QUEUE,
     Routes.FOUNDER_REPORTS_QUEUE,
@@ -294,6 +296,8 @@ fun MainNavGraph(
                     onOpenAddresses = { navController.navigate(Routes.PROFILE_ADDRESSES) },
                     onOpenHospitalSettings = { navController.navigate(Routes.PROFILE_HOSPITAL_SETTINGS) },
                     onOpenAddPhone = { navController.navigate(Routes.ADD_PHONE) },
+                    onOpenChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
+                    onOpenChangeEmail = { navController.navigate(Routes.CHANGE_EMAIL) },
                     onOpenEarnings = { navController.navigate(Routes.EARNINGS) },
                     onOpenMyRepairJobs = { navController.navigate(Routes.HOSPITAL_ACTIVE_JOBS) },
                     onOpenPublicPreview = { engineerId ->
@@ -354,6 +358,18 @@ fun MainNavGraph(
             }
             composable(Routes.ADD_PHONE) {
                 com.equipseva.app.features.profile.AddPhoneScreen(
+                    onBack = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
+                )
+            }
+            composable(Routes.CHANGE_PASSWORD) {
+                com.equipseva.app.features.security.ChangePasswordScreen(
+                    onBack = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
+                )
+            }
+            composable(Routes.CHANGE_EMAIL) {
+                com.equipseva.app.features.security.ChangeEmailScreen(
                     onBack = { navController.popBackStack() },
                     onShowMessage = showSnackbar,
                 )

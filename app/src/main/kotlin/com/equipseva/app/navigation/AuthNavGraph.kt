@@ -2,19 +2,19 @@ package com.equipseva.app.navigation
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
 import androidx.navigation.navigation
+import com.equipseva.app.features.auth.ForgotPasswordScreen
+import com.equipseva.app.features.auth.SignInScreen
+import com.equipseva.app.features.auth.SignUpScreen
 import com.equipseva.app.features.auth.WelcomeScreen
-import com.equipseva.app.features.auth.phone.PhoneOtpRequestScreen
-import com.equipseva.app.features.auth.phone.PhoneOtpVerifyScreen
 
 /**
  * Auth sub-graph wired into the root NavHost when the session is signed-out.
- * Phone OTP is the only path: Welcome → PhoneOtpRequest → PhoneOtpVerify →
- * land on the main graph (the SessionViewModel observes the new auth state
- * and the host swaps graphs).
+ * Email + password is the primary path: Welcome → SignIn → (Forgot password
+ * recovery) or SignUp → land on the main graph (the SessionViewModel observes
+ * the new auth state and the host swaps graphs). Google sign-in is triggered
+ * inline from SignInScreen and reaches the same SignedIn state.
  */
 fun NavGraphBuilder.authNavGraph(
     navController: NavHostController,
@@ -26,27 +26,22 @@ fun NavGraphBuilder.authNavGraph(
     ) {
         composable(Routes.AUTH_WELCOME) {
             WelcomeScreen(
-                onUsePhone = { navController.navigate(Routes.AUTH_PHONE_OTP_REQUEST) },
+                onSignIn = { navController.navigate(Routes.AUTH_SIGN_IN) },
+                onSignUp = { navController.navigate(Routes.AUTH_SIGN_UP) },
                 onShowMessage = showSnackbar,
             )
         }
-        composable(Routes.AUTH_PHONE_OTP_REQUEST) {
-            PhoneOtpRequestScreen(
-                onBack = { navController.popBackStack() },
-                onNavigateToVerify = { phone ->
-                    navController.navigate(Routes.phoneOtpVerifyRoute(phone))
-                },
+        composable(Routes.AUTH_SIGN_IN) {
+            SignInScreen(
+                onForgotPassword = { navController.navigate(Routes.AUTH_FORGOT_PASSWORD) },
+                onShowMessage = showSnackbar,
             )
         }
-        composable(
-            route = "${Routes.AUTH_PHONE_OTP_VERIFY}/{${Routes.AUTH_PHONE_OTP_VERIFY_ARG_PHONE}}",
-            arguments = listOf(
-                navArgument(Routes.AUTH_PHONE_OTP_VERIFY_ARG_PHONE) { type = NavType.StringType },
-            ),
-        ) {
-            PhoneOtpVerifyScreen(
-                onBack = { navController.popBackStack() },
-            )
+        composable(Routes.AUTH_SIGN_UP) {
+            SignUpScreen(onShowMessage = showSnackbar)
+        }
+        composable(Routes.AUTH_FORGOT_PASSWORD) {
+            ForgotPasswordScreen(onBack = { navController.popBackStack() })
         }
     }
 }
