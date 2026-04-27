@@ -33,4 +33,29 @@ class DeviceTokenRegistrar @Inject constructor(
             )
         }
     }
+
+    /**
+     * Sign-out cleanup. Drops the server-side device_tokens row so the
+     * outgoing user stops receiving FCM messages on this device, and
+     * wipes the local cached token so the next sign-in re-registers
+     * cleanly. Must be called BEFORE [SupabaseAuthRepository.signOut]
+     * so the DELETE still has a valid auth session; runCatching on the
+     * network call so a flaky connection doesn't block sign-out.
+     */
+    suspend fun revoke() {
+        val userId = supabase.auth.currentUserOrNull()?.id
+        val cachedToken = runCatching { dao.current()?.token }.getOrNull()
+        if (userId != null && !cachedToken.isNullOrBlank()) {
+            runCatching {
+                supabase.from("device_tokens")
+                    .delete {
+                        filter {
+                            eq("user_id", userId)
+                            eq("token", cachedToken)
+                        }
+                    }
+            }
+        }
+        runCatching { dao.clear() }
+    }
 }

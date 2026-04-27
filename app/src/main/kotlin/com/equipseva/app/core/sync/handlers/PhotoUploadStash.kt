@@ -28,6 +28,15 @@ import javax.inject.Singleton
  */
 interface PhotoUploadStash {
     /**
+     * Wipes every file in the stash dir. Called on sign-out so the next
+     * user can't accidentally drain the previous user's queued photos
+     * (the outbox handler also re-verifies auth.uid, but the bytes
+     * themselves shouldn't sit on the device after the owning session
+     * ends).
+     */
+    suspend fun clearAll()
+
+    /**
      * Copies [bytes] into a durable stash dir under a unique filename, builds
      * a [PhotoUploadPayload], and enqueues it for the outbox worker to drain.
      *
@@ -95,5 +104,11 @@ class DefaultPhotoUploadStash @Inject constructor(
             uploaderUserId = uploaderUserId,
         )
         outboxEnqueuer.enqueue(OutboxKinds.PHOTO_UPLOAD, json.encodeToString(payload))
+    }
+
+    override suspend fun clearAll() {
+        runCatching {
+            stashDir.listFiles()?.forEach { file -> file.delete() }
+        }
     }
 }

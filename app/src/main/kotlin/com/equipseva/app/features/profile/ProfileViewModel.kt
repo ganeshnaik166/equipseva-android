@@ -8,6 +8,7 @@ import com.equipseva.app.core.auth.AuthSession
 import kotlinx.coroutines.flow.firstOrNull
 import com.equipseva.app.core.data.account.AccountDeletionRepository
 import com.equipseva.app.core.data.account.DataExportRepository
+import com.equipseva.app.core.data.dao.OutboxDao
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.prefs.ThemeMode
@@ -15,6 +16,8 @@ import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.Profile
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.push.DeviceTokenRegistrar
+import com.equipseva.app.core.sync.handlers.PhotoUploadStash
 import com.equipseva.app.features.auth.UserRole
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -38,6 +41,9 @@ class ProfileViewModel @Inject constructor(
     private val userPrefs: UserPrefs,
     private val accountDeletionRepository: AccountDeletionRepository,
     private val dataExportRepository: DataExportRepository,
+    private val deviceTokenRegistrar: DeviceTokenRegistrar,
+    private val outboxDao: OutboxDao,
+    private val photoUploadStash: PhotoUploadStash,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -326,6 +332,14 @@ class ProfileViewModel @Inject constructor(
         if (_state.value.signingOut) return
         _state.update { it.copy(signingOut = true) }
         viewModelScope.launch {
+            // Wipe device-resident user state BEFORE the auth call so the
+            // network-side token revoke still has a valid session, and so
+            // the next user signing in on this device can't see the
+            // previous user's queued outbox / photo stash. Each step is
+            // best-effort — sign-out should never block on a flaky DELETE.
+            runCatching { deviceTokenRegistrar.revoke() }
+            runCatching { outboxDao.clearAll() }
+            runCatching { photoUploadStash.clearAll() }
             authRepository.signOut()
                 .onFailure { error ->
                     _state.update { it.copy(signingOut = false) }
