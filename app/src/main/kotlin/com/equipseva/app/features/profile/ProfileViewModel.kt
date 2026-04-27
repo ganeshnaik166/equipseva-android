@@ -7,6 +7,8 @@ import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.account.AccountDeletionRepository
 import com.equipseva.app.core.data.account.DataExportRepository
+import com.equipseva.app.core.data.engineers.EngineerRepository
+import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.prefs.ThemeMode
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.Profile
@@ -31,6 +33,7 @@ import javax.inject.Inject
 class ProfileViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
+    private val engineerRepository: EngineerRepository,
     private val userPrefs: UserPrefs,
     private val accountDeletionRepository: AccountDeletionRepository,
     private val dataExportRepository: DataExportRepository,
@@ -40,6 +43,8 @@ class ProfileViewModel @Inject constructor(
     data class UiState(
         val loading: Boolean = true,
         val profile: Profile? = null,
+        /** engineers.id of the signed-in user (only when role=Engineer + KYC verified). */
+        val ownEngineerId: String? = null,
         val errorMessage: String? = null,
         val roleEditorOpen: Boolean = false,
         val roleEditorSelected: UserRole? = null,
@@ -310,10 +315,21 @@ class ProfileViewModel @Inject constructor(
         if (initial) _state.update { it.copy(loading = true, errorMessage = null) }
         profileRepository.fetchById(userId)
             .onSuccess { profile ->
+                // For engineers, also fetch the engineers row so the screen
+                // can offer a "preview my public profile" link. The
+                // engineer_public_profile RPC gates to verified, so the link
+                // only makes sense once KYC is approved.
+                val engineerId = if (profile?.role == UserRole.ENGINEER) {
+                    engineerRepository.fetchByUserId(userId)
+                        .getOrNull()
+                        ?.takeIf { it.verificationStatus == VerificationStatus.Verified }
+                        ?.id
+                } else null
                 _state.update {
                     it.copy(
                         loading = false,
                         profile = profile,
+                        ownEngineerId = engineerId,
                         errorMessage = if (profile == null) "Profile not found" else null,
                     )
                 }

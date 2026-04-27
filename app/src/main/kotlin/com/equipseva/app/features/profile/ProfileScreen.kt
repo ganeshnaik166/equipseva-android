@@ -129,6 +129,7 @@ fun ProfileScreen(
     onOpenEarnings: () -> Unit = {},
     onOpenMyRepairJobs: () -> Unit = {},
     onOpenHelp: () -> Unit = {},
+    onOpenPublicPreview: (engineerId: String) -> Unit = {},
     onSwitchService: () -> Unit = {},
     onSignIn: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -193,6 +194,7 @@ fun ProfileScreen(
                         onOpenEarnings = onOpenEarnings,
                         onOpenMyRepairJobs = onOpenMyRepairJobs,
                         onOpenHelp = onOpenHelp,
+                        onOpenPublicPreview = onOpenPublicPreview,
                         onSwitchService = onSwitchService,
                     )
                 }
@@ -259,6 +261,7 @@ private fun ProfileContent(
     onOpenEarnings: () -> Unit,
     onOpenMyRepairJobs: () -> Unit,
     onOpenHelp: () -> Unit,
+    onOpenPublicPreview: (engineerId: String) -> Unit,
     onSwitchService: () -> Unit,
 ) {
     val profile = state.profile!!
@@ -323,6 +326,8 @@ private fun ProfileContent(
             onOpenEarnings = onOpenEarnings,
             onOpenMyRepairJobs = onOpenMyRepairJobs,
             onOpenHelp = onOpenHelp,
+            ownEngineerId = state.ownEngineerId,
+            onOpenPublicPreview = onOpenPublicPreview,
             onSwitchService = onSwitchService,
             onSignOut = onSignOut,
             signingOut = state.signingOut,
@@ -451,6 +456,8 @@ private fun buildProfileSections(
     onOpenEarnings: () -> Unit,
     onOpenMyRepairJobs: () -> Unit,
     onOpenHelp: () -> Unit,
+    ownEngineerId: String?,
+    onOpenPublicPreview: (engineerId: String) -> Unit,
     onSwitchService: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
@@ -498,6 +505,18 @@ private fun buildProfileSections(
                 chipTone = StatusTone.Warn,
                 onClick = onOpenVerification,
             ))
+            // "Public profile preview" only when KYC is verified — RPC gates
+            // engineer_public_profile to verification_status='verified'.
+            // Otherwise the link would resolve to a Profile-not-found state.
+            if (ownEngineerId != null) {
+                add(SettingsRow(
+                    icon = Icons.Outlined.Verified,
+                    label = "Preview my public profile",
+                    chipLabel = "What hospitals see",
+                    chipTone = StatusTone.Success,
+                    onClick = { onOpenPublicPreview(ownEngineerId) },
+                ))
+            }
             add(SettingsRow(
                 icon = Icons.Filled.AccountBalanceWallet,
                 label = "Earnings",

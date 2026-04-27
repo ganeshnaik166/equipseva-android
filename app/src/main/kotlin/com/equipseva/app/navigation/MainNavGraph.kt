@@ -487,6 +487,9 @@ fun MainNavGraph(
                     onOpenAddPhone = { navController.navigate(Routes.ADD_PHONE) },
                     onOpenEarnings = { navController.navigate(Routes.EARNINGS) },
                     onOpenMyRepairJobs = { navController.navigate(Routes.HOSPITAL_ACTIVE_JOBS) },
+                    onOpenPublicPreview = { engineerId ->
+                        navController.navigate(Routes.engineerPublicProfileRoute(engineerId))
+                    },
                     onOpenHelp = {
                         // Open a mailto: intent so the user lands in their
                         // email composer pre-addressed to support — no in-app
