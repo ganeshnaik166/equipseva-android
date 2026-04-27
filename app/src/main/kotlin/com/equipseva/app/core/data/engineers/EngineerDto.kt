@@ -17,6 +17,8 @@ data class EngineerDto(
     val city: String? = null,
     val state: String? = null,
     @SerialName("verification_status") val verificationStatus: String? = null,
+    @SerialName("verification_notes") val verificationNotes: String? = null,
+    @SerialName("rejected_doc_types") val rejectedDocTypes: List<String>? = null,
     @SerialName("background_check_status") val backgroundCheckStatus: String? = null,
     val certificates: List<EngineerCertificate>? = null,
     // Engineer-profile fields (separate from KYC). Nullable for back-compat with rows

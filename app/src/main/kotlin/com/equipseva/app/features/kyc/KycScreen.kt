@@ -305,7 +305,11 @@ private fun KycStepperBody(
         }
 
         if (state.verificationStatus == VerificationStatus.Rejected) {
-            ReuploadCta(onClick = onStartReupload)
+            ReuploadCta(
+                notes = state.verificationNotes,
+                rejectedDocTypes = state.rejectedDocTypes,
+                onClick = onStartReupload,
+            )
         }
 
         StepHeader(current = state.currentStep, onJump = onJumpToStep)
@@ -976,7 +980,21 @@ private data class BannerStyle(
 )
 
 @Composable
-private fun ReuploadCta(onClick: () -> Unit) {
+private fun ReuploadCta(
+    notes: String?,
+    rejectedDocTypes: List<String>,
+    onClick: () -> Unit,
+) {
+    val flaggedLabel = rejectedDocTypes
+        .joinToString { type ->
+            when (type) {
+                "aadhaar" -> "Aadhaar"
+                "selfie" -> "selfie"
+                "cert" -> "certificate"
+                else -> type
+            }
+        }
+        .ifBlank { null }
     Card(
         colors = CardDefaults.cardColors(containerColor = ErrorBg),
         shape = RoundedCornerShape(14.dp),
@@ -987,13 +1005,29 @@ private fun ReuploadCta(onClick: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                text = "Your documents were rejected",
+                text = if (flaggedLabel != null)
+                    "Re-upload required: $flaggedLabel"
+                else
+                    "Your documents were rejected",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = ErrorRed,
             )
+            if (!notes.isNullOrBlank()) {
+                // Admin's free-text reason — prefixed with "Why:" so the
+                // engineer can see at a glance what went wrong.
+                Text(
+                    text = "Why: $notes",
+                    fontSize = 13.sp,
+                    color = Ink700,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
             Text(
-                text = "Please re-upload your Aadhaar and qualification certificate. Your submission will go back into review once saved.",
+                text = if (flaggedLabel != null)
+                    "Tap below to clear the flagged doc(s) and re-pick them. Your other approved docs stay as-is."
+                else
+                    "Please re-upload your Aadhaar and qualification certificate. Your submission will go back into review once saved.",
                 fontSize = 13.sp,
                 color = Ink700,
             )
@@ -1007,7 +1041,7 @@ private fun ReuploadCta(onClick: () -> Unit) {
             ) {
                 Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.size(Spacing.sm))
-                Text("Re-upload documents")
+                Text(if (flaggedLabel != null) "Re-upload flagged docs" else "Re-upload documents")
             }
         }
     }

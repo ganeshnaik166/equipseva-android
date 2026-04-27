@@ -60,6 +60,15 @@ class KycViewModel @Inject constructor(
         val certFailed: Boolean = false,
         val selfieFailed: Boolean = false,
         val saving: Boolean = false,
+        /** Free-text reason from admin when verification_status='rejected'. */
+        val verificationNotes: String? = null,
+        /**
+         * Subset of {'aadhaar','selfie','cert'} the admin flagged. Empty means
+         * either the row isn't rejected or admin used a global rejection
+         * (verificationNotes covers it). When non-empty, the screen highlights
+         * only these doc rows and `startReupload` clears only their paths.
+         */
+        val rejectedDocTypes: List<String> = emptyList(),
         // Stepper state
         val currentStep: KycStep = KycStep.Identity,
         val email: String? = null,
@@ -247,6 +256,8 @@ class KycViewModel @Inject constructor(
                 it.copy(
                     loading = false,
                     verificationStatus = engineer.verificationStatus,
+                    verificationNotes = engineer.verificationNotes,
+                    rejectedDocTypes = engineer.rejectedDocTypes,
                     aadhaarVerified = engineer.aadhaarVerified,
                     aadhaarNumber = engineer.aadhaarNumber.orEmpty(),
                     city = engineer.city.orEmpty(),
@@ -312,16 +323,42 @@ class KycViewModel @Inject constructor(
      * `certificates` array entirely).
      */
     fun startReupload() {
-        _state.update {
-            it.copy(
-                aadhaarDocPath = null,
-                certDocPaths = emptyList(),
-                selfieDocPath = null,
-            )
+        _state.update { snap ->
+            // If admin flagged specific doc types, only those get cleared so
+            // the engineer doesn't re-upload approved docs unnecessarily.
+            // Empty list (legacy or global-reason rejections) falls back to
+            // the old "clear everything" behaviour.
+            if (snap.rejectedDocTypes.isEmpty()) {
+                snap.copy(
+                    aadhaarDocPath = null,
+                    certDocPaths = emptyList(),
+                    selfieDocPath = null,
+                )
+            } else {
+                val flagged = snap.rejectedDocTypes.toSet()
+                snap.copy(
+                    aadhaarDocPath = if (EngineerCertificate.TYPE_AADHAAR in flagged) null else snap.aadhaarDocPath,
+                    selfieDocPath = if (EngineerCertificate.TYPE_SELFIE in flagged) null else snap.selfieDocPath,
+                    certDocPaths = if (EngineerCertificate.TYPE_CERT in flagged) emptyList() else snap.certDocPaths,
+                )
+            }
         }
         viewModelScope.launch {
-            _effects.send(Effect.ShowMessage("Please re-upload your documents"))
+            val flagged = _state.value.rejectedDocTypes
+            val message = if (flagged.isEmpty()) {
+                "Please re-upload your documents"
+            } else {
+                "Please re-upload: ${flagged.joinToString { docTypeLabel(it) }}"
+            }
+            _effects.send(Effect.ShowMessage(message))
         }
+    }
+
+    private fun docTypeLabel(type: String): String = when (type) {
+        EngineerCertificate.TYPE_AADHAAR -> "Aadhaar"
+        EngineerCertificate.TYPE_SELFIE -> "selfie"
+        EngineerCertificate.TYPE_CERT -> "certificate"
+        else -> type
     }
 
     fun uploadAadhaarDoc(fileName: String, bytes: ByteArray, contentType: String?) {

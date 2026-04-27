@@ -15,6 +15,8 @@ data class Engineer(
     val city: String?,
     val state: String?,
     val verificationStatus: VerificationStatus,
+    val verificationNotes: String? = null,
+    val rejectedDocTypes: List<String> = emptyList(),
     val backgroundCheckStatus: VerificationStatus,
     val certificates: List<EngineerCertificate>,
     // Engineer self-profile fields. Defaults so existing callers (KYC tests, etc.) that
@@ -53,6 +55,8 @@ internal fun EngineerDto.toDomain(): Engineer = Engineer(
     city = city?.takeIf { it.isNotBlank() },
     state = state?.takeIf { it.isNotBlank() },
     verificationStatus = VerificationStatus.fromKey(verificationStatus),
+    verificationNotes = verificationNotes?.takeIf { it.isNotBlank() },
+    rejectedDocTypes = rejectedDocTypes.orEmpty(),
     backgroundCheckStatus = VerificationStatus.fromKey(backgroundCheckStatus),
     certificates = certificates.orEmpty(),
     hourlyRate = hourlyRate,
