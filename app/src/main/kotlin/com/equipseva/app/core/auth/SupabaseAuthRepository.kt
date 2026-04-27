@@ -92,6 +92,35 @@ class SupabaseAuthRepository @Inject constructor(
         )
     }
 
+    override suspend fun requestPhoneAdd(phone: String): Result<Unit> = runCatching {
+        // Same rate-limit gate as signup flow — re-use phone_otp_can_request
+        // so a malicious caller can't fan out unlimited SMS by toggling
+        // between "sign in" and "add to account".
+        val retryAfter = client.postgrest.rpc(
+            function = "phone_otp_can_request",
+            parameters = kotlinx.serialization.json.buildJsonObject {
+                put("p_phone", kotlinx.serialization.json.JsonPrimitive(phone))
+            },
+        ).data.toIntOrNull()
+        if (retryAfter != null) {
+            throw PhoneOtpRateLimitedException(retryAfterSeconds = retryAfter)
+        }
+        // Supabase fires an SMS to the new number; verify with PHONE_CHANGE
+        // (NOT SMS) on the next step.
+        client.auth.updateUser {
+            this.phone = phone
+        }
+        Unit
+    }
+
+    override suspend fun verifyPhoneAdd(phone: String, token: String): Result<Unit> = runCatching {
+        client.auth.verifyPhoneOtp(
+            type = io.github.jan.supabase.auth.OtpType.Phone.PHONE_CHANGE,
+            phone = phone,
+            token = token,
+        )
+    }
+
     override suspend fun sendPasswordResetEmail(email: String): Result<Unit> = runCatching {
         client.auth.resetPasswordForEmail(email)
     }

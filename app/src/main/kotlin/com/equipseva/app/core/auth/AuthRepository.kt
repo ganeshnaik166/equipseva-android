@@ -15,6 +15,14 @@ interface AuthRepository {
      */
     suspend fun sendPhoneOtp(phone: String): Result<Unit>
     suspend fun verifyPhoneOtp(phone: String, token: String): Result<Unit>
+    /**
+     * Attach (or change) a phone number on the *currently signed-in* user.
+     * Use this for Google-auth users who never went through phone OTP at
+     * signup — Supabase sends an SMS to the new number; pair with
+     * [verifyPhoneAdd] to confirm. Does NOT replace the user's session.
+     */
+    suspend fun requestPhoneAdd(phone: String): Result<Unit>
+    suspend fun verifyPhoneAdd(phone: String, token: String): Result<Unit>
     suspend fun sendPasswordResetEmail(email: String): Result<Unit>
     suspend fun updatePassword(newPassword: String): Result<Unit>
     suspend fun updateEmail(newEmail: String): Result<Unit>

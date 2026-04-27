@@ -142,6 +142,7 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.ABOUT,
     Routes.CHANGE_PASSWORD,
     Routes.CHANGE_EMAIL,
+    Routes.ADD_PHONE,
     Routes.MY_BIDS,
     Routes.STOCK_ALERTS,
     Routes.REQUEST_SERVICE,
@@ -510,6 +511,7 @@ fun MainNavGraph(
                 KycScreen(
                     onBack = { navController.popBackStack() },
                     onShowMessage = showSnackbar,
+                    onAddPhone = { navController.navigate(Routes.ADD_PHONE) },
                 )
             }
             composable(Routes.ABOUT) {
@@ -525,6 +527,12 @@ fun MainNavGraph(
             }
             composable(Routes.CHANGE_EMAIL) {
                 ChangeEmailScreen(
+                    onBack = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
+                )
+            }
+            composable(Routes.ADD_PHONE) {
+                com.equipseva.app.features.profile.AddPhoneScreen(
                     onBack = { navController.popBackStack() },
                     onShowMessage = showSnackbar,
                 )

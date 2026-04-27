@@ -105,6 +105,7 @@ import androidx.compose.ui.graphics.Path
 fun KycScreen(
     onBack: () -> Unit,
     onShowMessage: (String) -> Unit,
+    onAddPhone: () -> Unit = {},
     viewModel: KycViewModel = hiltViewModel(),
 ) {
     SecureScreen()
@@ -200,6 +201,9 @@ fun KycScreen(
                     },
                     onStartReupload = viewModel::startReupload,
                     onJumpToStep = viewModel::jumpToStep,
+                    onEmailDraftChange = viewModel::onEmailDraftChange,
+                    onSaveEmail = viewModel::saveEmailDraft,
+                    onAddPhone = onAddPhone,
                 )
             }
         }
@@ -223,6 +227,9 @@ private fun KycStepperBody(
     onPickCertificate: () -> Unit,
     onStartReupload: () -> Unit,
     onJumpToStep: (KycStep) -> Unit,
+    onEmailDraftChange: (String) -> Unit,
+    onSaveEmail: () -> Unit,
+    onAddPhone: () -> Unit,
 ) {
     val verified = state.verificationStatus == VerificationStatus.Verified
     Column(
@@ -257,7 +264,14 @@ private fun KycStepperBody(
         // so the form feels short — best-practice gig-app onboarding caps each
         // step at ~30 seconds of input.
         when (state.currentStep) {
-            KycStep.Identity -> IdentityStep(state = state, onCityChange = onCityChange, onStateChange = onStateChange)
+            KycStep.Identity -> IdentityStep(
+                state = state,
+                onCityChange = onCityChange,
+                onStateChange = onStateChange,
+                onEmailDraftChange = onEmailDraftChange,
+                onSaveEmail = onSaveEmail,
+                onAddPhone = onAddPhone,
+            )
             KycStep.Aadhaar -> AadhaarStep(
                 state = state,
                 onAadhaarNumberChange = onAadhaarNumberChange,
@@ -360,23 +374,84 @@ private fun IdentityStep(
     state: KycViewModel.UiState,
     onCityChange: (String) -> Unit,
     onStateChange: (String) -> Unit,
+    onEmailDraftChange: (String) -> Unit,
+    onSaveEmail: () -> Unit,
+    onAddPhone: () -> Unit,
 ) {
-    KycSectionCard(title = "Your contact details") {
+    KycSectionCard(title = "How hospitals reach you") {
         ReadOnlyContactRow(icon = Icons.Filled.Badge, label = "Name", value = state.fullName ?: "—")
-        ReadOnlyContactRow(
-            icon = Icons.Filled.Phone,
-            label = "Phone (verified)",
-            value = state.phone ?: "Add phone via OTP sign-in",
-            warn = state.phone.isNullOrBlank(),
+
+        // Phone — read-only display + Add/Change button. Tapping fires the
+        // OTP-add flow (covers Google-auth users who never went through phone
+        // OTP at signup). Phone changes always require OTP.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Phone,
+                contentDescription = null,
+                tint = if (state.phone.isNullOrBlank()) Warning else BrandGreen,
+                modifier = Modifier.size(18.dp),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Phone${if (!state.phone.isNullOrBlank()) " (verified)" else ""}",
+                    fontSize = 11.sp,
+                    color = Ink500,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = state.phone ?: "Not added yet",
+                    fontSize = 13.sp,
+                    color = if (state.phone.isNullOrBlank()) Warning else Ink900,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            OutlinedButton(
+                onClick = onAddPhone,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                Text(if (state.phone.isNullOrBlank()) "Add" else "Change", fontSize = 12.sp)
+            }
+        }
+
+        // Email — inline editable. Supabase fires a confirmation link to the
+        // new address; the row stays as-is until the user clicks the link.
+        OutlinedTextField(
+            value = state.emailDraft,
+            onValueChange = onEmailDraftChange,
+            label = { Text("Email") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            enabled = !state.savingEmail,
+            supportingText = {
+                Text(
+                    text = if (state.email.isNullOrBlank())
+                        "Add the email hospitals can reach you at."
+                    else
+                        "Editing sends a confirmation link to the new address.",
+                    fontSize = 11.sp,
+                )
+            },
+            trailingIcon = {
+                val changed = state.emailDraft.isNotBlank() &&
+                    !state.emailDraft.equals(state.email, ignoreCase = true)
+                if (changed) {
+                    androidx.compose.material3.TextButton(
+                        onClick = onSaveEmail,
+                        enabled = !state.savingEmail,
+                    ) {
+                        Text(if (state.savingEmail) "Saving…" else "Save")
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
         )
-        ReadOnlyContactRow(
-            icon = Icons.Filled.Email,
-            label = "Email",
-            value = state.email ?: "Add email from Profile settings",
-            warn = state.email.isNullOrBlank(),
-        )
+
         Text(
-            text = "Hospitals will Call, WhatsApp and Email you on these once you're verified. Add any missing field from Profile settings before continuing.",
+            text = "Once you're verified, hospitals can Call / WhatsApp / Email you straight from your profile.",
             fontSize = 12.sp,
             color = Ink500,
         )

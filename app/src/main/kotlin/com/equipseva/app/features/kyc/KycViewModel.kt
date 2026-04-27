@@ -63,6 +63,9 @@ class KycViewModel @Inject constructor(
         val phone: String? = null,
         val fullName: String? = null,
         val attestationAccepted: Boolean = false,
+        /** Inline email-edit draft on Step 1; synced from `email` on first load. */
+        val emailDraft: String = "",
+        val savingEmail: Boolean = false,
     ) {
         /**
          * Returns null when the current step's required fields are filled in
@@ -157,6 +160,7 @@ class KycViewModel @Inject constructor(
                         email = profile?.email,
                         phone = profile?.phone,
                         fullName = profile?.fullName,
+                        emailDraft = profile?.email.orEmpty(),
                     )
                 }
             },
@@ -189,6 +193,41 @@ class KycViewModel @Inject constructor(
 
     fun onAttestationChange(value: Boolean) {
         _state.update { it.copy(attestationAccepted = value) }
+    }
+
+    fun onEmailDraftChange(value: String) {
+        _state.update { it.copy(emailDraft = value.trim(), errorMessage = null) }
+    }
+
+    /**
+     * Push the inline email edit through Supabase auth. Server fires a
+     * confirmation link to the new address — actual `profiles.email` flips
+     * once the user clicks. We surface that expectation in the toast.
+     */
+    fun saveEmailDraft() {
+        val snap = _state.value
+        if (snap.savingEmail) return
+        val newEmail = snap.emailDraft.trim()
+        if (newEmail.isEmpty() || !EMAIL_REGEX.matches(newEmail)) {
+            viewModelScope.launch { _effects.send(Effect.ShowMessage("That doesn't look like a valid email")) }
+            return
+        }
+        if (newEmail.equals(snap.email, ignoreCase = true)) {
+            viewModelScope.launch { _effects.send(Effect.ShowMessage("That's already your email")) }
+            return
+        }
+        _state.update { it.copy(savingEmail = true) }
+        viewModelScope.launch {
+            authRepository.updateEmail(newEmail)
+                .onSuccess {
+                    _state.update { it.copy(savingEmail = false) }
+                    _effects.send(Effect.ShowMessage("Confirmation link sent to $newEmail"))
+                }
+                .onFailure { err ->
+                    _state.update { it.copy(savingEmail = false) }
+                    _effects.send(Effect.ShowMessage(err.toUserMessage()))
+                }
+        }
     }
 
     private fun hydrate(engineer: Engineer?) {

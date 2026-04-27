@@ -77,6 +77,11 @@ object Routes {
     // Change email (sub-route entered from Profile — Supabase sends confirmation link to new address).
     const val CHANGE_EMAIL = "profile/change_email"
 
+    // Add (or change) phone number for an already-signed-in user — used by
+    // Google-auth users who never went through phone OTP at signup, plus from
+    // KYC Step 1 when the engineer's profile is missing a phone.
+    const val ADD_PHONE = "profile/add_phone"
+
     // Favorites (saved parts) — sub-route entered from Profile.
     const val FAVORITES = "profile/favorites"
 
