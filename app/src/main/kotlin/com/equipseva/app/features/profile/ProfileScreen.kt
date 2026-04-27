@@ -163,28 +163,36 @@ fun ProfileScreen(
                 }
                 state.profile == null -> {
                     // Authenticated, but the profile bootstrap returned null
-                    // (e.g. fresh phone-OTP signup before the row hydrates).
-                    // Surface a retry instead of the misleading sign-in CTA —
-                    // tapping Sign in here used to bounce users straight back
-                    // to Home.
+                    // — usually an RLS denial on the embedded organization
+                    // join, occasionally a fresh signup before the row
+                    // hydrates. Surface the actual error so the user knows
+                    // what's wrong, plus a retry. Sign-in CTA is gone
+                    // because it would bounce a signed-in user straight
+                    // back to Home.
+                    val msg = state.errorMessage
                     Column(
                         modifier = Modifier.fillMaxSize().padding(Spacing.lg),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            "Finishing setup…",
+                            if (msg != null) "Couldn't load your profile" else "Finishing setup…",
                             fontWeight = FontWeight.Bold,
                             color = Ink900,
                         )
                         Spacer(Modifier.height(Spacing.sm))
                         Text(
-                            "We're loading your profile. Tap retry if this doesn't clear.",
+                            msg ?: "We're loading your profile. Tap retry if this doesn't clear.",
                             color = Ink500,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                         )
                         Spacer(Modifier.height(Spacing.md))
-                        androidx.compose.material3.Button(onClick = viewModel::onRefresh) {
+                        androidx.compose.material3.Button(
+                            onClick = {
+                                state.profile?.id?.let { viewModel.onRefresh() }
+                                    ?: viewModel.onRetryFromAuth()
+                            },
+                        ) {
                             Text("Retry")
                         }
                     }

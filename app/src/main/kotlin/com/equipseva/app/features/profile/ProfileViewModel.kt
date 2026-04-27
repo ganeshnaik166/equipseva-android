@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import kotlinx.coroutines.flow.firstOrNull
 import com.equipseva.app.core.data.account.AccountDeletionRepository
 import com.equipseva.app.core.data.account.DataExportRepository
 import com.equipseva.app.core.data.engineers.EngineerRepository
@@ -131,6 +132,21 @@ class ProfileViewModel @Inject constructor(
         val session = _state.value.profile?.id ?: return
         viewModelScope.launch {
             load(session, initial = false)
+        }
+    }
+
+    /**
+     * Retry profile load when the previous fetch failed (profile==null +
+     * errorMessage set). Pulls the current auth.uid() out of the session
+     * flow and restarts `load` from scratch — `onRefresh` can't do this
+     * because it short-circuits when profile is null.
+     */
+    fun onRetryFromAuth() {
+        viewModelScope.launch {
+            val signedIn = authRepository.sessionState
+                .firstOrNull { it is AuthSession.SignedIn } as? AuthSession.SignedIn
+                ?: return@launch
+            load(signedIn.userId, initial = true)
         }
     }
 

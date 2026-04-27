@@ -20,15 +20,24 @@ class SupabaseProfileRepository @Inject constructor(
 ) : ProfileRepository {
 
     override suspend fun fetchById(userId: String): Result<Profile?> = runCatching {
-        // First try the full SELECT — works only when userId == auth.uid()
-        // since profiles RLS is now self-only (PR security tightening).
-        val full = client.from(TABLE).select(
-            // Embed the FK'd organization summary in a single round-trip.
-            columns = Columns.raw("$BASE_COLUMNS, organizations(name, city, state)"),
-        ) {
-            filter { eq("id", userId) }
-            limit(count = 1)
-        }.decodeList<ProfileDto>().firstOrNull()?.toDomain()
+        // First try the full SELECT *with* the embedded organization summary.
+        // Works only when userId == auth.uid() since profiles RLS is now
+        // self-only. The org embed depends on column-level grants on the
+        // organizations table; if those fail we fall back to a base SELECT
+        // so the user's own profile still loads (org name is decorative).
+        val full = runCatching {
+            client.from(TABLE).select(
+                columns = Columns.raw("$BASE_COLUMNS, organizations(name, city, state)"),
+            ) {
+                filter { eq("id", userId) }
+                limit(count = 1)
+            }.decodeList<ProfileDto>().firstOrNull()?.toDomain()
+        }.getOrNull() ?: runCatching {
+            client.from(TABLE).select(columns = Columns.raw(BASE_COLUMNS)) {
+                filter { eq("id", userId) }
+                limit(count = 1)
+            }.decodeList<ProfileDto>().firstOrNull()?.toDomain()
+        }.getOrNull()
 
         if (full != null) return@runCatching full
 
