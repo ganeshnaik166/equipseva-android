@@ -12,20 +12,16 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.equipseva.app.core.data.prefs.ThemeMode
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.observability.StartupTelemetry
-import com.equipseva.app.core.payments.RazorpayLauncher
 import com.equipseva.app.designsystem.theme.EquipSevaTheme
 import com.equipseva.app.navigation.AppNavGraph
 import com.equipseva.app.navigation.DeepLinkRouter
-import com.razorpay.PaymentData
-import com.razorpay.PaymentResultWithDataListener
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
+class MainActivity : ComponentActivity() {
 
     @Inject lateinit var userPrefs: UserPrefs
-    @Inject lateinit var razorpayLauncher: RazorpayLauncher
     @Inject lateinit var deepLinkRouter: DeepLinkRouter
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,10 +41,6 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
                 AppNavGraph()
             }
         }
-        // setContent above is not the first frame — it just registers the
-        // composition. Marking ready here gives a "time-to-interactive
-        // composition" baseline; once we have real device data we can
-        // narrow this to a Choreographer.postFrameCallback if needed.
         StartupTelemetry.markReady()
     }
 
@@ -56,20 +48,5 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         super.onNewIntent(intent)
         setIntent(intent)
         deepLinkRouter.dispatch(intent)
-    }
-
-    override fun onPaymentSuccess(razorpayPaymentId: String?, paymentData: PaymentData?) {
-        razorpayLauncher.onPaymentSuccess(
-            razorpayPaymentId = razorpayPaymentId.orEmpty(),
-            razorpayOrderId = paymentData?.orderId,
-            signature = paymentData?.signature,
-        )
-    }
-
-    override fun onPaymentError(code: Int, description: String?, paymentData: PaymentData?) {
-        razorpayLauncher.onPaymentError(
-            code = code,
-            description = description.orEmpty(),
-        )
     }
 }

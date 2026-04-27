@@ -2,32 +2,9 @@ package com.equipseva.app.navigation
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.CardTravel
-import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.Factory
-import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.Analytics
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Engineering
-import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.LocalShipping
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.material.icons.filled.LocalHospital
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Store
-import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Storefront
-import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -43,6 +20,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -53,85 +31,46 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.equipseva.app.features.about.AboutScreen
 import com.equipseva.app.features.activework.ActiveWorkScreen
-import com.equipseva.app.features.cart.CartScreen
 import com.equipseva.app.features.chat.ChatScreen
 import com.equipseva.app.features.chat.ConversationsScreen
-import com.equipseva.app.features.checkout.CheckoutScreen
 import com.equipseva.app.features.earnings.EarningsScreen
 import com.equipseva.app.features.engineerprofile.EngineerProfileScreen
-import com.equipseva.app.features.favorites.FavoritesScreen
-import com.equipseva.app.features.hospital.CreateRfqScreen
 import com.equipseva.app.features.hospital.HospitalActiveJobsScreen
-import com.equipseva.app.features.hospital.HospitalMyRfqsScreen
-import com.equipseva.app.features.hospital.HospitalRfqDetailScreen
 import com.equipseva.app.features.hospital.RequestServiceScreen
 import com.equipseva.app.features.kyc.KycScreen
-import com.equipseva.app.features.logistics.ActiveDeliveriesScreen
-import com.equipseva.app.features.logistics.CompletedTodayScreen
-import com.equipseva.app.features.logistics.PickupQueueScreen
-import com.equipseva.app.features.manufacturer.AnalyticsScreen
-import com.equipseva.app.features.manufacturer.LeadPipelineScreen
-import com.equipseva.app.features.manufacturer.RfqsAssignedScreen
 import com.equipseva.app.features.notifications.NotificationSettingsScreen
 import com.equipseva.app.features.notifications.NotificationsScreen
 import com.equipseva.app.features.onboarding.TourScreen
-import com.equipseva.app.features.marketplace.MarketplaceScreen
-import com.equipseva.app.features.marketplace.PartDetailScreen
 import com.equipseva.app.features.mybids.MyBidsScreen
-import com.equipseva.app.features.orders.OrderDetailScreen
-import com.equipseva.app.features.orders.OrdersScreen
-import com.equipseva.app.features.orders.RateOrderScreen
 import com.equipseva.app.features.profile.ProfileScreen
 import com.equipseva.app.features.repair.RepairJobDetailScreen
 import com.equipseva.app.features.repair.RepairJobsScreen
-import com.equipseva.app.features.scan.ScanEquipmentScreen
 import com.equipseva.app.features.security.ChangeEmailScreen
 import com.equipseva.app.features.security.ChangePasswordScreen
-import com.equipseva.app.features.supplier.AddListingScreen
-import com.equipseva.app.features.supplier.MyListingsScreen
-import com.equipseva.app.features.supplier.StockAlertsScreen
-import com.equipseva.app.features.supplier.SupplierOrdersScreen
-import com.equipseva.app.features.supplier.SupplierRfqsScreen
 import kotlinx.coroutines.launch
 
 private data class TabItem(val route: String, val label: String, val icon: ImageVector)
 
 /**
- * v1: bottom nav is the same for every user — buyer-shaped (Home / Buy-Sell
- * / Repair / Profile). Persona-specific tabs (Listings, Supplier Orders,
- * Supplier RFQs, RFQs Assigned, Lead Pipeline, Analytics, Pickup Queue,
- * Active Deliveries, Completed Today, Active Work, Earnings) are still
- * routable but never surfaced on the bottom nav — old per-role layouts
- * crashed for users whose accounts had no organization linked.
+ * v1: bottom nav is the same for every user — Home / Repair / Profile.
+ * Marketplace / Buy-Sell / Orders / Cart / Checkout / Logistics / Manufacturer
+ * / Supplier / Favorites / Scan / Hospital-RFQ surfaces were stripped along
+ * with the marketplace cleanup; the tabs left over are the engineer-repair
+ * core (book repair + take jobs + earnings + KYC).
  *
  * The `role` parameter stays for ABI compatibility with existing call
  * sites; it's intentionally unused.
  */
 @Suppress("UNUSED_PARAMETER")
 private fun tabsForRole(role: com.equipseva.app.features.auth.UserRole?): List<TabItem> =
-    listOfNotNull(
+    listOf(
         TabItem(Routes.HOME, "Home", Icons.Filled.Home),
-        // Buy/Sell tab is gated behind the v1 marketplace flag. v1 ships
-        // only Book Repair + Engineer Jobs; v2 flips MARKETPLACE_ENABLED
-        // to true and the tab returns.
-        if (com.equipseva.app.core.util.AppFeatureFlags.MARKETPLACE_ENABLED)
-            TabItem(Routes.MARKETPLACE, "Buy/Sell", Icons.Filled.Storefront)
-        else null,
         TabItem(Routes.REPAIR, "Repair", Icons.Filled.Build),
         TabItem(Routes.PROFILE, "Profile", Icons.Filled.Person),
     )
 
-/** Routes that take over the screen and should hide the bottom navigation bar.
- *  Per-role tab destinations (ACTIVE_WORK, EARNINGS, MY_LISTINGS, SUPPLIER_ORDERS,
- *  SUPPLIER_RFQS, RFQS_ASSIGNED, LEAD_PIPELINE, ANALYTICS, PICKUP_QUEUE,
- *  ACTIVE_DELIVERIES, COMPLETED_TODAY) are intentionally NOT in this list so
- *  the bottom nav stays visible when those routes are reached as tabs. */
+/** Routes that take over the screen and should hide the bottom navigation bar. */
 private val fullScreenRoutePrefixes = listOf(
-    Routes.MARKETPLACE_DETAIL,
-    Routes.CART,
-    Routes.CHECKOUT,
-    Routes.ORDER_DETAIL,
-    Routes.RATE_ORDER,
     Routes.REPAIR_DETAIL,
     Routes.ENGINEER_DIRECTORY,
     Routes.ENGINEER_PUBLIC_PROFILE,
@@ -144,18 +83,11 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.CHANGE_EMAIL,
     Routes.ADD_PHONE,
     Routes.MY_BIDS,
-    Routes.STOCK_ALERTS,
     Routes.REQUEST_SERVICE,
     Routes.ENGINEER_PROFILE,
-    Routes.SUPPLIER_ADD_LISTING,
-    Routes.HOSPITAL_CREATE_RFQ,
     Routes.HOSPITAL_ACTIVE_JOBS,
-    Routes.HOSPITAL_MY_RFQS,
-    Routes.HOSPITAL_RFQ_DETAIL,
-    Routes.SCAN_EQUIPMENT,
     Routes.NOTIFICATIONS,
     Routes.NOTIFICATION_SETTINGS,
-    Routes.FAVORITES,
     Routes.TOUR,
     Routes.FOUNDER_DASHBOARD,
     Routes.FOUNDER_KYC_QUEUE,
@@ -165,8 +97,6 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.FOUNDER_INTEGRITY,
     Routes.FOUNDER_CATEGORIES,
     Routes.FOUNDER_BUYER_KYC,
-    Routes.FOUNDER_CATALOG_IMAGES,
-    Routes.CATALOG_BROWSER,
     Routes.PROFILE_BANK_DETAILS,
     Routes.PROFILE_ADDRESSES,
     Routes.PROFILE_HOSPITAL_SETTINGS,
@@ -177,7 +107,6 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.PROFILE_VEHICLE_DETAILS,
     Routes.PROFILE_LICENCE,
     Routes.PROFILE_SERVICE_AREAS,
-    Routes.PROFILE_SELLER_VERIFICATION,
 )
 
 @Composable
@@ -209,13 +138,6 @@ fun MainNavGraph(
     LaunchedEffect(Unit) {
         deepLinkHost.events.collect { event ->
             when (event) {
-                is DeepLinkHost.VerifiedEvent.OpenOrder -> {
-                    navController.navigate(Routes.orderDetailRoute(event.orderId))
-                }
-                DeepLinkHost.VerifiedEvent.OrderNotFound -> {
-                    navController.navigate(Routes.ORDERS)
-                    showSnackbar("Order not found")
-                }
                 is DeepLinkHost.VerifiedEvent.OpenRoute -> {
                     // Route comes pre-resolved from NotificationDeepLink; the
                     // server-emitted (kind, data) was mapped to a known
@@ -263,8 +185,8 @@ fun MainNavGraph(
     ) { padding ->
         NavHost(
             navController = navController,
-            // v1: cold-start lands on the Home tab — the new 3-card Hub
-            // (Marketplace / Book Repair / Engineer Jobs + optional Founder).
+            // v1: cold-start lands on the Home tab — the 3-card Hub
+            // (Book Repair / Engineer Jobs + optional Founder).
             startDestination = Routes.HOME,
             modifier = Modifier.padding(padding),
         ) {
@@ -283,118 +205,22 @@ fun MainNavGraph(
                 )
             }
             composable(Routes.HOME) {
-                // v1: Home tab is the new 3-card landing — Marketplace /
-                // Book Repair / Engineer Jobs (+ Founder Admin tile when
-                // signed in as the pinned founder). The old role-dispatched
-                // HomeScreen + per-role dashboards stay in the repo as dead
-                // UI; cleanup ships in a follow-up loop.
+                // v1: Home tab — Book Repair / Engineer Jobs (+ Founder Admin
+                // tile when signed in as the pinned founder).
                 com.equipseva.app.features.home.HomeHubScreen(
-                    onOpenMarketplace = {
-                        navController.navigate(Routes.MARKETPLACE) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
                     onOpenBookRepair = { navController.navigate(Routes.ENGINEER_DIRECTORY) },
                     onOpenEngineerJobs = { navController.navigate(Routes.ENGINEER_JOBS_HUB) },
                     onOpenFounder = { navController.navigate(Routes.FOUNDER_DASHBOARD) },
                 )
             }
-            composable(Routes.MARKETPLACE) {
-                // v1: Buy/Sell tab shows every active listing (equipment + spare
-                // parts mixed). The Spare Parts tab is gone from the bottom nav.
-                MarketplaceScreen(
-                    onPartClick = { partId ->
-                        navController.navigate(Routes.marketplaceDetailRoute(partId))
-                    },
-                    onOpenCart = { navController.navigate(Routes.CART) },
-                    onOpenCatalog = { navController.navigate(Routes.CATALOG_BROWSE) },
-                    onListItem = { navController.navigate(Routes.SUPPLIER_ADD_LISTING) },
-                )
-            }
-            // Routes.SPARE_PARTS is intentionally kept routable but unused on
-            // the bottom nav for v1. The Buy/Sell tab serves both equipment
-            // and spare-parts in a mixed feed.
-            composable(Routes.SPARE_PARTS) {
-                MarketplaceScreen(
-                    onPartClick = { partId ->
-                        navController.navigate(Routes.marketplaceDetailRoute(partId))
-                    },
-                    onOpenCart = { navController.navigate(Routes.CART) },
-                    onOpenCatalog = { navController.navigate(Routes.CATALOG_BROWSE) },
-                    onListItem = { navController.navigate(Routes.SUPPLIER_ADD_LISTING) },
-                )
-            }
-            composable(
-                route = "${Routes.MARKETPLACE_DETAIL}/{${Routes.MARKETPLACE_DETAIL_ARG_ID}}",
-                arguments = listOf(
-                    navArgument(Routes.MARKETPLACE_DETAIL_ARG_ID) { type = NavType.StringType },
-                ),
-            ) {
-                PartDetailScreen(
-                    onBack = { navController.popBackStack() },
-                    onShowMessage = showSnackbar,
-                    onOpenCart = { navController.navigate(Routes.CART) },
-                )
-            }
-            composable(Routes.ORDERS) {
-                OrdersScreen(
-                    onShowMessage = showSnackbar,
-                    onOrderClick = { orderId ->
-                        navController.navigate(Routes.orderDetailRoute(orderId))
-                    },
-                    onShopMarketplace = {
-                        navController.navigate(Routes.MARKETPLACE) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                )
-            }
-            composable(
-                route = "${Routes.ORDER_DETAIL}/{${Routes.ORDER_DETAIL_ARG_ID}}",
-                arguments = listOf(
-                    navArgument(Routes.ORDER_DETAIL_ARG_ID) { type = NavType.StringType },
-                ),
-            ) {
-                OrderDetailScreen(
-                    onBack = { navController.popBackStack() },
-                    onShowMessage = showSnackbar,
-                    onRateOrder = { orderId ->
-                        navController.navigate(Routes.rateOrderRoute(orderId))
-                    },
-                )
-            }
-            composable(
-                route = "${Routes.RATE_ORDER}/{${Routes.RATE_ORDER_ARG_ID}}",
-                arguments = listOf(
-                    navArgument(Routes.RATE_ORDER_ARG_ID) { type = NavType.StringType },
-                ),
-            ) {
-                RateOrderScreen(
-                    onBack = { navController.popBackStack() },
-                    onShowMessage = showSnackbar,
-                )
-            }
             composable(Routes.REPAIR) {
                 // Role-dispatched Repair tab. Engineers see the available-jobs
                 // feed; hospital users land on the active-requests list with a
-                // CTA to raise a new request; suppliers / manufacturers see an
-                // empty state because Repair isn't part of their workflow;
-                // logistics partners get redirected to their pickup queue.
+                // CTA to raise a new request; everyone else gets the engineer
+                // feed by default (signed-out users land here too).
                 val activeRoleKey by deepLinkHost.activeRole.collectAsStateWithLifecycle(initialValue = null)
                 val role = activeRoleKey?.let { com.equipseva.app.features.auth.UserRole.fromKey(it) }
                 when (role) {
-                    com.equipseva.app.features.auth.UserRole.ENGINEER, null ->
-                        RepairJobsScreen(
-                            onJobClick = { jobId ->
-                                navController.navigate(Routes.repairJobDetailRoute(jobId))
-                            },
-                            onTuneProfile = { navController.navigate(Routes.ENGINEER_PROFILE) },
-                            onViewEarnings = { navController.navigate(Routes.EARNINGS) },
-                        )
                     com.equipseva.app.features.auth.UserRole.HOSPITAL ->
                         HospitalActiveJobsScreen(
                             onBack = {},
@@ -404,22 +230,14 @@ fun MainNavGraph(
                             onRequestRepair = { navController.navigate(Routes.REQUEST_SERVICE) },
                             onBrowseEngineers = { navController.navigate(Routes.ENGINEER_DIRECTORY) },
                         )
-                    com.equipseva.app.features.auth.UserRole.LOGISTICS -> {
-                        androidx.compose.runtime.LaunchedEffect(Unit) {
-                            navController.navigate(Routes.PICKUP_QUEUE) {
-                                popUpTo(Routes.HOME) { saveState = true }
-                                launchSingleTop = true
-                            }
-                        }
-                    }
-                    com.equipseva.app.features.auth.UserRole.SUPPLIER,
-                    com.equipseva.app.features.auth.UserRole.MANUFACTURER -> {
-                        com.equipseva.app.designsystem.components.EmptyStateView(
-                            icon = androidx.compose.material.icons.Icons.Filled.Build,
-                            title = "Repair isn't part of your workflow",
-                            subtitle = "Repair jobs are routed to engineers and hospitals. Use the Marketplace and Profile tabs.",
+                    else ->
+                        RepairJobsScreen(
+                            onJobClick = { jobId ->
+                                navController.navigate(Routes.repairJobDetailRoute(jobId))
+                            },
+                            onTuneProfile = { navController.navigate(Routes.ENGINEER_PROFILE) },
+                            onViewEarnings = { navController.navigate(Routes.EARNINGS) },
                         )
-                    }
                 }
             }
             composable(
@@ -474,7 +292,6 @@ fun MainNavGraph(
                     onOpenMessages = { navController.navigate(Routes.CONVERSATIONS) },
                     onOpenVerification = { navController.navigate(Routes.KYC) },
                     onOpenAbout = { navController.navigate(Routes.ABOUT) },
-                    onOpenFavorites = { navController.navigate(Routes.FAVORITES) },
                     onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                     onOpenChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
                     onOpenChangeEmail = { navController.navigate(Routes.CHANGE_EMAIL) },
@@ -482,8 +299,6 @@ fun MainNavGraph(
                     onOpenBankDetails = { navController.navigate(Routes.PROFILE_BANK_DETAILS) },
                     onOpenAddresses = { navController.navigate(Routes.PROFILE_ADDRESSES) },
                     onOpenHospitalSettings = { navController.navigate(Routes.PROFILE_HOSPITAL_SETTINGS) },
-                    onOpenOrders = { navController.navigate(Routes.ORDERS) },
-                    onOpenSellerVerification = { navController.navigate(Routes.PROFILE_SELLER_VERIFICATION) },
                     onOpenAddPhone = { navController.navigate(Routes.ADD_PHONE) },
                     onOpenEarnings = { navController.navigate(Routes.EARNINGS) },
                     onOpenMyRepairJobs = { navController.navigate(Routes.HOSPITAL_ACTIVE_JOBS) },
@@ -561,19 +376,6 @@ fun MainNavGraph(
                     onShowMessage = showSnackbar,
                 )
             }
-            composable(Routes.CART) {
-                CartScreen(
-                    onBack = { navController.popBackStack() },
-                    onCheckout = { navController.navigate(Routes.CHECKOUT) },
-                    onBrowseParts = {
-                        navController.navigate(Routes.MARKETPLACE) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                )
-            }
             composable(Routes.CONVERSATIONS) {
                 ConversationsScreen(
                     onBack = { navController.popBackStack() },
@@ -588,17 +390,6 @@ fun MainNavGraph(
             ) {
                 ChatScreen(
                     onBack = { navController.popBackStack() },
-                )
-            }
-            composable(Routes.CHECKOUT) {
-                CheckoutScreen(
-                    onBack = { navController.popBackStack() },
-                    onOrderPlaced = { orderId ->
-                        navController.navigate(Routes.orderDetailRoute(orderId)) {
-                            popUpTo(Routes.HOME) { saveState = true }
-                            launchSingleTop = true
-                        }
-                    },
                 )
             }
             composable(Routes.MY_BIDS) {
@@ -619,158 +410,11 @@ fun MainNavGraph(
                     onJobClick = { jobId -> navController.navigate(Routes.repairJobDetailRoute(jobId)) },
                 )
             }
-            composable(Routes.MY_LISTINGS) {
-                MyListingsScreen(
-                    onBack = { navController.popBackStack() },
-                    onPartClick = { partId -> navController.navigate(Routes.marketplaceDetailRoute(partId)) },
-                )
-            }
-            composable(Routes.STOCK_ALERTS) {
-                StockAlertsScreen(
-                    onBack = { navController.popBackStack() },
-                    onPartClick = { partId -> navController.navigate(Routes.marketplaceDetailRoute(partId)) },
-                )
-            }
-            composable(Routes.SUPPLIER_ORDERS) {
-                SupplierOrdersScreen(
-                    onBack = { navController.popBackStack() },
-                    onOrderClick = { orderId -> navController.navigate(Routes.orderDetailRoute(orderId)) },
-                )
-            }
-            composable(Routes.SUPPLIER_RFQS) {
-                SupplierRfqsScreen(
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable(Routes.RFQS_ASSIGNED) {
-                RfqsAssignedScreen(
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable(Routes.LEAD_PIPELINE) {
-                LeadPipelineScreen(
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable(Routes.ANALYTICS) {
-                AnalyticsScreen(
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable(Routes.PICKUP_QUEUE) {
-                PickupQueueScreen(
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable(Routes.ACTIVE_DELIVERIES) {
-                ActiveDeliveriesScreen(
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable(Routes.COMPLETED_TODAY) {
-                CompletedTodayScreen(
-                    onBack = { navController.popBackStack() },
-                )
-            }
             composable(Routes.REQUEST_SERVICE) {
                 RequestServiceScreen(
                     onBack = { navController.popBackStack() },
                     onSubmitted = { navController.popBackStack() },
                     onShowMessage = showSnackbar,
-                )
-            }
-            composable(
-                route = Routes.HOSPITAL_CREATE_RFQ +
-                    "?${Routes.HOSPITAL_CREATE_RFQ_ARG_TITLE}={${Routes.HOSPITAL_CREATE_RFQ_ARG_TITLE}}" +
-                    "&${Routes.HOSPITAL_CREATE_RFQ_ARG_TYPE}={${Routes.HOSPITAL_CREATE_RFQ_ARG_TYPE}}" +
-                    "&${Routes.HOSPITAL_CREATE_RFQ_ARG_DESC}={${Routes.HOSPITAL_CREATE_RFQ_ARG_DESC}}",
-                arguments = listOf(
-                    navArgument(Routes.HOSPITAL_CREATE_RFQ_ARG_TITLE) {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    },
-                    navArgument(Routes.HOSPITAL_CREATE_RFQ_ARG_TYPE) {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    },
-                    navArgument(Routes.HOSPITAL_CREATE_RFQ_ARG_DESC) {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    },
-                ),
-            ) {
-                CreateRfqScreen(
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable(Routes.CATALOG_BROWSE) {
-                val openRfqForItem: (com.equipseva.app.core.data.catalog.CatalogReferenceRepository.Item) -> Unit = { item ->
-                    val title = "Quote: ${item.itemName}"
-                    val type = item.category
-                    val desc = buildString {
-                        append("Looking for: ")
-                        append(item.itemName)
-                        if (!item.brand.isNullOrBlank() || !item.model.isNullOrBlank()) {
-                            append(" (")
-                            append(listOfNotNull(item.brand, item.model).joinToString(" "))
-                            append(")")
-                        }
-                        if (!item.keySpecifications.isNullOrBlank()) {
-                            append("\n\nSpecs: ").append(item.keySpecifications)
-                        }
-                        append("\n\nReference catalogue id: ").append(item.id)
-                    }
-                    navController.navigate(
-                        Routes.hospitalCreateRfqRoute(
-                            title = title,
-                            equipmentType = type,
-                            description = desc,
-                        )
-                    )
-                }
-                com.equipseva.app.features.catalog.CatalogBrowseScreen(
-                    onBack = { navController.popBackStack() },
-                    onOpenDetail = { item ->
-                        navController.navigate(Routes.catalogDetailRoute(item.id))
-                    },
-                    onRequestQuote = openRfqForItem,
-                )
-            }
-            composable(
-                route = "${Routes.CATALOG_DETAIL}/{${Routes.CATALOG_DETAIL_ARG_ID}}",
-                arguments = listOf(
-                    navArgument(Routes.CATALOG_DETAIL_ARG_ID) { type = NavType.StringType },
-                ),
-            ) {
-                com.equipseva.app.features.catalog.CatalogDetailScreen(
-                    onBack = { navController.popBackStack() },
-                    onRequestQuote = { item ->
-                        val title = "Quote: ${item.itemName}"
-                        val type = item.category
-                        val desc = buildString {
-                            append("Looking for: ")
-                            append(item.itemName)
-                            if (!item.brand.isNullOrBlank() || !item.model.isNullOrBlank()) {
-                                append(" (")
-                                append(listOfNotNull(item.brand, item.model).joinToString(" "))
-                                append(")")
-                            }
-                            if (!item.keySpecifications.isNullOrBlank()) {
-                                append("\n\nSpecs: ").append(item.keySpecifications)
-                            }
-                            append("\n\nReference catalogue id: ").append(item.id)
-                        }
-                        navController.navigate(
-                            Routes.hospitalCreateRfqRoute(
-                                title = title,
-                                equipmentType = type,
-                                description = desc,
-                            )
-                        )
-                    },
                 )
             }
             composable(Routes.HOSPITAL_ACTIVE_JOBS) {
@@ -781,62 +425,10 @@ fun MainNavGraph(
                     onBrowseEngineers = { navController.navigate(Routes.ENGINEER_DIRECTORY) },
                 )
             }
-            composable(Routes.HOSPITAL_MY_RFQS) {
-                HospitalMyRfqsScreen(
-                    onBack = { navController.popBackStack() },
-                    onRfqClick = { rfqId ->
-                        navController.navigate(Routes.hospitalRfqDetailRoute(rfqId))
-                    },
-                    onCreateRfq = { navController.navigate(Routes.HOSPITAL_CREATE_RFQ) },
-                )
-            }
-            composable(
-                route = "${Routes.HOSPITAL_RFQ_DETAIL}/{${Routes.HOSPITAL_RFQ_DETAIL_ARG_ID}}",
-                arguments = listOf(
-                    navArgument(Routes.HOSPITAL_RFQ_DETAIL_ARG_ID) { type = NavType.StringType },
-                ),
-            ) {
-                HospitalRfqDetailScreen(
-                    onBack = { navController.popBackStack() },
-                    onNavigateToChat = { conversationId ->
-                        navController.navigate(Routes.chatRoute(conversationId))
-                    },
-                )
-            }
-            composable(Routes.SCAN_EQUIPMENT) {
-                ScanEquipmentScreen(
-                    onBack = { navController.popBackStack() },
-                    onFindParts = {
-                        navController.navigate(Routes.MARKETPLACE) {
-                            popUpTo(Routes.HOME)
-                        }
-                    },
-                )
-            }
             composable(Routes.ENGINEER_PROFILE) {
                 EngineerProfileScreen(
                     onBack = { navController.popBackStack() },
                     onShowMessage = showSnackbar,
-                )
-            }
-            composable(Routes.SUPPLIER_ADD_LISTING) {
-                AddListingScreen(
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable(Routes.FAVORITES) {
-                FavoritesScreen(
-                    onBack = { navController.popBackStack() },
-                    onOpenPart = { partId ->
-                        navController.navigate(Routes.marketplaceDetailRoute(partId))
-                    },
-                    onFindParts = {
-                        navController.navigate(Routes.MARKETPLACE) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
                 )
             }
             // Founder admin dashboard surfaces. Email-pinned via
@@ -853,7 +445,6 @@ fun MainNavGraph(
                     onOpenIntegrityFlags = { navController.navigate(Routes.FOUNDER_INTEGRITY) },
                     onOpenCategories = { navController.navigate(Routes.FOUNDER_CATEGORIES) },
                     onOpenBuyerKyc = { navController.navigate(Routes.FOUNDER_BUYER_KYC) },
-                    onOpenCatalogImages = { navController.navigate(Routes.FOUNDER_CATALOG_IMAGES) },
                 )
             }
             composable(Routes.FOUNDER_KYC_QUEUE) {
@@ -889,21 +480,6 @@ fun MainNavGraph(
             composable(Routes.FOUNDER_BUYER_KYC) {
                 com.equipseva.app.features.founder.FounderBuyerKycQueueScreen(
                     onBack = { navController.popBackStack() },
-                )
-            }
-            composable(Routes.FOUNDER_CATALOG_IMAGES) {
-                com.equipseva.app.features.founder.FounderCatalogImagesScreen(
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable(Routes.CATALOG_BROWSER) {
-                com.equipseva.app.features.catalog.CatalogBrowserScreen(
-                    onBack = { navController.popBackStack() },
-                    onRequestQuote = { _, _ ->
-                        // Routes to existing CreateRfq flow. Prefill via SavedStateHandle
-                        // is a follow-up; for now we just open the create-rfq form.
-                        navController.navigate(Routes.HOSPITAL_CREATE_RFQ)
-                    },
                 )
             }
 
@@ -985,12 +561,6 @@ fun MainNavGraph(
                     onShowMessage = showSnackbar,
                 )
             }
-            composable(Routes.PROFILE_SELLER_VERIFICATION) {
-                com.equipseva.app.features.profile.seller.SellerVerificationScreen(
-                    onBack = { navController.popBackStack() },
-                    onShowMessage = showSnackbar,
-                )
-            }
         }
     }
 }
@@ -1002,12 +572,10 @@ fun MainNavGraph(
  * drop anything else so a malformed payload never crashes the inbox.
  *
  * Recognised forms:
- *  - `app://orders/<orderId>`      → order detail
  *  - `app://repair/<jobId>`        → repair job detail
  *  - `app://chat/<conversationId>` → chat thread
- *  - `app://rfq/<rfqId>`           → hospital RFQ detail
  *  - `equipseva://...`             → same suffixes (alternative scheme)
- *  - `<top-level route>`           → already a known route string (e.g. "orders")
+ *  - `<top-level route>`           → already a known route string (e.g. "repair")
  */
 private fun routeNotificationDeepLink(
     link: String,
@@ -1024,26 +592,21 @@ private fun routeNotificationDeepLink(
             val rest = trimmed.substringAfter("://")
             val parts = rest.split('/').filter { it.isNotBlank() }
             when {
-                parts.size >= 2 && parts[0] == "orders" && uuidRegex.matches(parts[1]) ->
-                    Routes.orderDetailRoute(parts[1])
                 parts.size >= 2 && parts[0] == "repair" && uuidRegex.matches(parts[1]) ->
                     Routes.repairJobDetailRoute(parts[1])
                 parts.size >= 2 && parts[0] == "chat" && uuidRegex.matches(parts[1]) ->
                     Routes.chatRoute(parts[1])
-                parts.size >= 2 && parts[0] == "rfq" && uuidRegex.matches(parts[1]) ->
-                    Routes.hospitalRfqDetailRoute(parts[1])
                 parts.size == 1 -> when (parts[0]) {
-                    "orders", "marketplace", "repair", "home", "profile" -> parts[0]
+                    "repair", "home", "profile" -> parts[0]
                     "chat" -> Routes.CONVERSATIONS
-                    "favorites" -> Routes.FAVORITES
                     else -> null
                 }
                 else -> null
             }
         }
         trimmed in setOf(
-            Routes.HOME, Routes.ORDERS, Routes.MARKETPLACE, Routes.REPAIR,
-            Routes.PROFILE, Routes.CONVERSATIONS, Routes.FAVORITES,
+            Routes.HOME, Routes.REPAIR,
+            Routes.PROFILE, Routes.CONVERSATIONS,
         ) -> trimmed
         else -> null
     }

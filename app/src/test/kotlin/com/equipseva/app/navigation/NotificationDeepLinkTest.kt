@@ -31,40 +31,22 @@ class NotificationDeepLinkTest {
     }
 
     @Test
-    fun `order_shipped resolves to order detail with order_id`() {
-        val route = NotificationDeepLink.routeFor(
-            kind = NotificationDeepLink.KIND_ORDER_SHIPPED,
-            data = mapOf("order_id" to sampleUuid),
-        )
-        assertEquals(Routes.orderDetailRoute(sampleUuid), route)
-    }
-
-    @Test
-    fun `rfq_bid_accepted resolves to hospital RFQ detail with rfq_id`() {
-        val route = NotificationDeepLink.routeFor(
-            kind = NotificationDeepLink.KIND_RFQ_BID_ACCEPTED,
-            data = mapOf("rfq_id" to sampleUuid),
-        )
-        assertEquals(Routes.hospitalRfqDetailRoute(sampleUuid), route)
-    }
-
-    @Test
     fun `unknown kind returns null so caller falls back to inbox`() {
         val route = NotificationDeepLink.routeFor(
             kind = "totally_made_up_kind",
-            data = mapOf("order_id" to sampleUuid),
+            data = mapOf("repair_job_id" to sampleUuid),
         )
         assertNull(route)
     }
 
     @Test
     fun `null kind returns null`() {
-        assertNull(NotificationDeepLink.routeFor(kind = null, data = mapOf("order_id" to sampleUuid)))
+        assertNull(NotificationDeepLink.routeFor(kind = null, data = mapOf("repair_job_id" to sampleUuid)))
     }
 
     @Test
     fun `blank kind returns null`() {
-        assertNull(NotificationDeepLink.routeFor(kind = "   ", data = mapOf("order_id" to sampleUuid)))
+        assertNull(NotificationDeepLink.routeFor(kind = "   ", data = mapOf("repair_job_id" to sampleUuid)))
     }
 
     @Test
@@ -74,7 +56,7 @@ class NotificationDeepLinkTest {
         assertNull(
             NotificationDeepLink.routeFor(
                 kind = NotificationDeepLink.KIND_CHAT_MESSAGE_NEW,
-                data = mapOf("order_id" to sampleUuid),
+                data = mapOf("repair_job_id" to sampleUuid),
             ),
         )
     }
@@ -86,8 +68,8 @@ class NotificationDeepLinkTest {
         // user to a junk route.
         assertNull(
             NotificationDeepLink.routeFor(
-                kind = NotificationDeepLink.KIND_ORDER_SHIPPED,
-                data = mapOf("order_id" to "not-a-uuid"),
+                kind = NotificationDeepLink.KIND_REPAIR_BID_NEW,
+                data = mapOf("repair_job_id" to "not-a-uuid"),
             ),
         )
     }
@@ -108,9 +90,18 @@ class NotificationDeepLinkTest {
         // shouldn't be picky about case.
         val upper = sampleUuid.uppercase()
         val route = NotificationDeepLink.routeFor(
-            kind = NotificationDeepLink.KIND_ORDER_SHIPPED,
-            data = mapOf("order_id" to upper),
+            kind = NotificationDeepLink.KIND_REPAIR_BID_NEW,
+            data = mapOf("repair_job_id" to upper),
         )
-        assertEquals(Routes.orderDetailRoute(upper), route)
+        assertEquals(Routes.repairJobDetailRoute(upper), route)
+    }
+
+    @Test
+    fun `kyc_status_changed resolves to KYC route without payload id`() {
+        val route = NotificationDeepLink.routeFor(
+            kind = NotificationDeepLink.KIND_KYC_STATUS_CHANGED,
+            data = emptyMap(),
+        )
+        assertEquals(Routes.KYC, route)
     }
 }

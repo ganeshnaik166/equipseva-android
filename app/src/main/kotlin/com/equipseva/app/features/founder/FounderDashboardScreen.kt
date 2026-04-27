@@ -102,7 +102,6 @@ fun FounderDashboardScreen(
     onOpenIntegrityFlags: () -> Unit,
     onOpenCategories: () -> Unit = {},
     onOpenBuyerKyc: () -> Unit = {},
-    onOpenCatalogImages: () -> Unit = {},
     viewModel: FounderDashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -221,14 +220,6 @@ fun FounderDashboardScreen(
                 subtitle = "Approve or reject buyer trade-doc submissions before checkout.",
                 onClick = onOpenBuyerKyc,
             )
-            ListCard(
-                leadingIcon = Icons.Filled.AdminPanelSettings,
-                leadingHue = 320,
-                title = "Catalogue images",
-                subtitle = "Verify or replace auto-fetched product photos for the 548-row hospital catalogue.",
-                onClick = onOpenCatalogImages,
-            )
-
             Box(modifier = Modifier.size(Spacing.xl))
         }
     }

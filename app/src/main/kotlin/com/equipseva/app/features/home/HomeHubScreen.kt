@@ -21,8 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Engineering
-import androidx.compose.material.icons.filled.Storefront
-import com.equipseva.app.core.util.AppFeatureFlags
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -54,19 +52,16 @@ import com.equipseva.app.designsystem.theme.Surface200
 import com.equipseva.app.designsystem.theme.Surface50
 
 /**
- * The new 3-card landing on the Home tab. Replaces the old role-dispatched
- * HomeScreen for v1. Three actions:
- *   - Marketplace: Buy / Sell equipment + spare parts
+ * The 2-card landing on the Home tab. v1 actions:
  *   - Book Repair: hospital raises a service request
  *   - Engineer Jobs: engineer takes jobs from the feed
  *
- * The Founder admin tile is the optional fourth tile, only rendered when
+ * The Founder admin tile is the optional third tile, only rendered when
  * the signed-in user is the pinned founder. It mirrors the previous
  * Profile → Founder dashboard entry-point now that the Hub is gone.
  */
 @Composable
 fun HomeHubScreen(
-    onOpenMarketplace: () -> Unit,
     onOpenBookRepair: () -> Unit,
     onOpenEngineerJobs: () -> Unit,
     onOpenFounder: () -> Unit = {},
@@ -87,14 +82,6 @@ fun HomeHubScreen(
                     .padding(horizontal = Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                if (AppFeatureFlags.MARKETPLACE_ENABLED) {
-                    HubTile(
-                        title = "Marketplace",
-                        tagline = "Buy / Sell equipment + spare parts",
-                        icon = Icons.Filled.Storefront,
-                        onClick = onOpenMarketplace,
-                    )
-                }
                 HubTile(
                     title = "Book Repair",
                     tagline = "Raise a service request — engineer comes to you",

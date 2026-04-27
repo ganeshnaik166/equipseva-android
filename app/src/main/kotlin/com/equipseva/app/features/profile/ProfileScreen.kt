@@ -88,7 +88,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.prefs.ThemeMode
-import com.equipseva.app.core.util.AppFeatureFlags
 import com.equipseva.app.designsystem.components.BrandedPlaceholder
 import com.equipseva.app.designsystem.components.DeleteAccountSheet
 import com.equipseva.app.designsystem.components.ESTopBar
@@ -115,7 +114,6 @@ fun ProfileScreen(
     onOpenMessages: () -> Unit = {},
     onOpenVerification: () -> Unit = {},
     onOpenAbout: () -> Unit = {},
-    onOpenFavorites: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     onOpenBankDetails: () -> Unit = {},
     onOpenAddresses: () -> Unit = {},
@@ -123,8 +121,6 @@ fun ProfileScreen(
     onOpenFounderDashboard: () -> Unit = {},
     onOpenChangePassword: () -> Unit = {},
     onOpenChangeEmail: () -> Unit = {},
-    onOpenOrders: () -> Unit = {},
-    onOpenSellerVerification: () -> Unit = {},
     onOpenAddPhone: () -> Unit = {},
     onOpenEarnings: () -> Unit = {},
     onOpenMyRepairJobs: () -> Unit = {},
@@ -178,7 +174,6 @@ fun ProfileScreen(
                         onOpenMessages = onOpenMessages,
                         onOpenVerification = onOpenVerification,
                         onOpenAbout = onOpenAbout,
-                        onOpenFavorites = onOpenFavorites,
                         onOpenNotifications = onOpenNotifications,
                         onOpenBankDetails = onOpenBankDetails,
                         onOpenAddresses = onOpenAddresses,
@@ -188,8 +183,6 @@ fun ProfileScreen(
                         onExportData = viewModel::onExportMyData,
                         onOpenChangePassword = onOpenChangePassword,
                         onOpenChangeEmail = onOpenChangeEmail,
-                        onOpenOrders = onOpenOrders,
-                        onOpenSellerVerification = onOpenSellerVerification,
                         onOpenAddPhone = onOpenAddPhone,
                         onOpenEarnings = onOpenEarnings,
                         onOpenMyRepairJobs = onOpenMyRepairJobs,
@@ -245,7 +238,6 @@ private fun ProfileContent(
     onOpenMessages: () -> Unit,
     onOpenVerification: () -> Unit,
     onOpenAbout: () -> Unit,
-    onOpenFavorites: () -> Unit,
     onOpenNotifications: () -> Unit,
     onOpenBankDetails: () -> Unit,
     onOpenAddresses: () -> Unit,
@@ -255,8 +247,6 @@ private fun ProfileContent(
     onExportData: () -> Unit,
     onOpenChangePassword: () -> Unit,
     onOpenChangeEmail: () -> Unit,
-    onOpenOrders: () -> Unit,
-    onOpenSellerVerification: () -> Unit,
     onOpenAddPhone: () -> Unit,
     onOpenEarnings: () -> Unit,
     onOpenMyRepairJobs: () -> Unit,
@@ -312,7 +302,6 @@ private fun ProfileContent(
             onOpenVerification = onOpenVerification,
             onOpenMessages = onOpenMessages,
             onOpenAbout = onOpenAbout,
-            onOpenFavorites = onOpenFavorites,
             onOpenNotifications = onOpenNotifications,
             onOpenPersonalInfo = onEditProfile,
             onOpenBankDetails = onOpenBankDetails,
@@ -320,8 +309,6 @@ private fun ProfileContent(
             onOpenHospitalSettings = onOpenHospitalSettings,
             onOpenChangePassword = onOpenChangePassword,
             onOpenChangeEmail = onOpenChangeEmail,
-            onOpenOrders = onOpenOrders,
-            onOpenSellerVerification = onOpenSellerVerification,
             onOpenAddPhone = onOpenAddPhone,
             onOpenEarnings = onOpenEarnings,
             onOpenMyRepairJobs = onOpenMyRepairJobs,
@@ -442,7 +429,6 @@ private fun buildProfileSections(
     onOpenVerification: () -> Unit,
     onOpenMessages: () -> Unit,
     onOpenAbout: () -> Unit,
-    onOpenFavorites: () -> Unit,
     onOpenNotifications: () -> Unit,
     onOpenPersonalInfo: () -> Unit,
     onOpenBankDetails: () -> Unit,
@@ -450,8 +436,6 @@ private fun buildProfileSections(
     onOpenHospitalSettings: () -> Unit,
     onOpenChangePassword: () -> Unit,
     onOpenChangeEmail: () -> Unit,
-    onOpenOrders: () -> Unit,
-    onOpenSellerVerification: () -> Unit,
     onOpenAddPhone: () -> Unit,
     onOpenEarnings: () -> Unit,
     onOpenMyRepairJobs: () -> Unit,
@@ -467,7 +451,7 @@ private fun buildProfileSections(
     exportingData: Boolean,
 ): List<ProfileSection> {
     val phoneMissing = phone.isNullOrBlank()
-    val account = listOfNotNull(
+    val account = listOf(
         SettingsRow(icon = Icons.Filled.Person, label = "Personal info", onClick = onOpenPersonalInfo),
         // Add phone — surface a Required pill when missing (Google-auth users
         // skip phone OTP at signup so they can't be reached by hospitals).
@@ -480,11 +464,6 @@ private fun buildProfileSections(
             trailing = phone.takeUnless { it.isNullOrBlank() },
             onClick = onOpenAddPhone,
         ),
-        // Marketplace v1 gate: My orders points at the marketplace order
-        // history. Hidden in v1; v2 brings it back when MARKETPLACE_ENABLED.
-        if (AppFeatureFlags.MARKETPLACE_ENABLED)
-            SettingsRow(icon = Icons.Filled.Receipt, label = "My orders", onClick = onOpenOrders)
-        else null,
         SettingsRow(icon = Icons.Outlined.Notifications, label = "Notifications", onClick = onOpenNotifications),
         SettingsRow(icon = Icons.Outlined.Lock, label = "Change password", onClick = onOpenChangePassword),
         SettingsRow(icon = Icons.Outlined.Email, label = "Change email", onClick = onOpenChangeEmail),
@@ -533,38 +512,10 @@ private fun buildProfileSections(
             add(SettingsRow(icon = Icons.Filled.LocationOn, label = "Addresses", onClick = onOpenAddresses))
             add(SettingsRow(icon = Icons.Filled.LocalHospital, label = "Hospital settings", onClick = onOpenHospitalSettings))
         }
-        // Marketplace v1 gate: supplier + manufacturer business rows are
-        // all seller-side surfaces. Skip them entirely until v2.
-        if (AppFeatureFlags.MARKETPLACE_ENABLED && isSupplier) {
-            add(SettingsRow(
-                icon = Icons.Outlined.VerifiedUser,
-                label = "Seller verification",
-                chipLabel = "GST + licence",
-                chipTone = StatusTone.Warn,
-                onClick = onOpenSellerVerification,
-            ))
-            add(SettingsRow(icon = Icons.Filled.Storefront, label = "Storefront", onClick = onOpenHospitalSettings))
-            add(SettingsRow(icon = Icons.Filled.AccountBalance, label = "Bank details", onClick = onOpenBankDetails))
-        }
-        if (AppFeatureFlags.MARKETPLACE_ENABLED && isManufacturer) {
-            add(SettingsRow(
-                icon = Icons.Outlined.VerifiedUser,
-                label = "Seller verification",
-                chipLabel = "GST + licence",
-                chipTone = StatusTone.Warn,
-                onClick = onOpenSellerVerification,
-            ))
-            add(SettingsRow(icon = Icons.Filled.Factory, label = "Brand portfolio", onClick = onOpenHospitalSettings))
-            add(SettingsRow(icon = Icons.Filled.AccountBalance, label = "Bank details", onClick = onOpenBankDetails))
-        }
-        // Logistics rows are marketplace-side workflows (driver onboarding for
-        // pickup queues). v1 ships with marketplace gated off, so these rows
-        // would lead to dead/empty screens for any logistics user signed in
-        // during the limited v1 window.
-        if (AppFeatureFlags.MARKETPLACE_ENABLED && isLogistics) {
-            add(SettingsRow(icon = Icons.Filled.LocalShipping, label = "Vehicle details", onClick = onOpenHospitalSettings))
-            add(SettingsRow(icon = Icons.Filled.AccountBalance, label = "Bank details", onClick = onOpenBankDetails))
-        }
+        // Marketplace cleanup: supplier / manufacturer / logistics rows used
+        // to gate off via MARKETPLACE_ENABLED. With marketplace fully removed
+        // for v1, those rows are dropped — they all pointed at deleted
+        // seller-side / driver-onboarding surfaces.
     }
 
     val support = listOf(
