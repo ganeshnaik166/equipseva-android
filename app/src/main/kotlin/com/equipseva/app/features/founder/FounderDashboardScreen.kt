@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Storefront
@@ -102,6 +103,7 @@ fun FounderDashboardScreen(
     onOpenIntegrityFlags: () -> Unit,
     onOpenCategories: () -> Unit = {},
     onOpenBuyerKyc: () -> Unit = {},
+    onOpenEngineerZones: () -> Unit = {},
     viewModel: FounderDashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -219,6 +221,13 @@ fun FounderDashboardScreen(
                 title = "Buyer KYC queue",
                 subtitle = "Approve or reject buyer trade-doc submissions before checkout.",
                 onClick = onOpenBuyerKyc,
+            )
+            ListCard(
+                leadingIcon = Icons.Filled.Map,
+                leadingHue = 150,
+                title = "Engineer zones",
+                subtitle = "How many verified engineers are available per district — flag low-supply zones.",
+                onClick = onOpenEngineerZones,
             )
             Box(modifier = Modifier.size(Spacing.xl))
         }

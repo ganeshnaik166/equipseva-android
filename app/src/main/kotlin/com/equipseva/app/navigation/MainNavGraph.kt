@@ -427,6 +427,12 @@ fun MainNavGraph(
                     onOpenIntegrityFlags = { navController.navigate(Routes.FOUNDER_INTEGRITY) },
                     onOpenCategories = { navController.navigate(Routes.FOUNDER_CATEGORIES) },
                     onOpenBuyerKyc = { navController.navigate(Routes.FOUNDER_BUYER_KYC) },
+                    onOpenEngineerZones = { navController.navigate(Routes.FOUNDER_ENGINEER_MAP) },
+                )
+            }
+            composable(Routes.FOUNDER_ENGINEER_MAP) {
+                com.equipseva.app.features.founder.FounderEngineerMapScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.FOUNDER_KYC_QUEUE) {
