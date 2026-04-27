@@ -72,8 +72,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -119,8 +117,6 @@ fun ProfileScreen(
     onOpenAddresses: () -> Unit = {},
     onOpenHospitalSettings: () -> Unit = {},
     onOpenFounderDashboard: () -> Unit = {},
-    onOpenChangePassword: () -> Unit = {},
-    onOpenChangeEmail: () -> Unit = {},
     onOpenAddPhone: () -> Unit = {},
     onOpenEarnings: () -> Unit = {},
     onOpenMyRepairJobs: () -> Unit = {},
@@ -181,8 +177,6 @@ fun ProfileScreen(
                         onOpenFounderDashboard = onOpenFounderDashboard,
                         onDeleteAccount = viewModel::onOpenDeleteAccount,
                         onExportData = viewModel::onExportMyData,
-                        onOpenChangePassword = onOpenChangePassword,
-                        onOpenChangeEmail = onOpenChangeEmail,
                         onOpenAddPhone = onOpenAddPhone,
                         onOpenEarnings = onOpenEarnings,
                         onOpenMyRepairJobs = onOpenMyRepairJobs,
@@ -220,7 +214,10 @@ fun ProfileScreen(
             saving = state.editSaving,
             error = state.editError,
             onFullNameChange = viewModel::onEditFullNameChange,
-            onPhoneChange = viewModel::onEditPhoneChange,
+            onChangePhone = {
+                viewModel.onDismissEditProfile()
+                onOpenAddPhone()
+            },
             onSave = viewModel::onSaveEditProfile,
             onDismiss = viewModel::onDismissEditProfile,
         )
@@ -245,8 +242,6 @@ private fun ProfileContent(
     onOpenFounderDashboard: () -> Unit,
     onDeleteAccount: () -> Unit,
     onExportData: () -> Unit,
-    onOpenChangePassword: () -> Unit,
-    onOpenChangeEmail: () -> Unit,
     onOpenAddPhone: () -> Unit,
     onOpenEarnings: () -> Unit,
     onOpenMyRepairJobs: () -> Unit,
@@ -307,8 +302,6 @@ private fun ProfileContent(
             onOpenBankDetails = onOpenBankDetails,
             onOpenAddresses = onOpenAddresses,
             onOpenHospitalSettings = onOpenHospitalSettings,
-            onOpenChangePassword = onOpenChangePassword,
-            onOpenChangeEmail = onOpenChangeEmail,
             onOpenAddPhone = onOpenAddPhone,
             onOpenEarnings = onOpenEarnings,
             onOpenMyRepairJobs = onOpenMyRepairJobs,
@@ -434,8 +427,6 @@ private fun buildProfileSections(
     onOpenBankDetails: () -> Unit,
     onOpenAddresses: () -> Unit,
     onOpenHospitalSettings: () -> Unit,
-    onOpenChangePassword: () -> Unit,
-    onOpenChangeEmail: () -> Unit,
     onOpenAddPhone: () -> Unit,
     onOpenEarnings: () -> Unit,
     onOpenMyRepairJobs: () -> Unit,
@@ -465,8 +456,6 @@ private fun buildProfileSections(
             onClick = onOpenAddPhone,
         ),
         SettingsRow(icon = Icons.Outlined.Notifications, label = "Notifications", onClick = onOpenNotifications),
-        SettingsRow(icon = Icons.Outlined.Lock, label = "Change password", onClick = onOpenChangePassword),
-        SettingsRow(icon = Icons.Outlined.Email, label = "Change email", onClick = onOpenChangeEmail),
         SettingsRow(
             icon = Icons.Outlined.Palette,
             label = "Appearance",
@@ -1010,7 +999,7 @@ private fun EditProfileSheet(
     saving: Boolean,
     error: String?,
     onFullNameChange: (String) -> Unit,
-    onPhoneChange: (String) -> Unit,
+    onChangePhone: () -> Unit,
     onSave: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -1032,7 +1021,7 @@ private fun EditProfileSheet(
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                "Email can't be changed here — it's tied to your account.",
+                "Email + phone can't be changed here. Phone is OTP-verified — tap below to swap to a new number.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1046,14 +1035,21 @@ private fun EditProfileSheet(
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
-                value = phone,
-                onValueChange = onPhoneChange,
-                label = { Text("Phone (optional)") },
+                value = phone.ifBlank { "Not set" },
+                onValueChange = {},
+                label = { Text("Phone") },
                 singleLine = true,
-                enabled = !saving,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                readOnly = true,
+                enabled = false,
                 modifier = Modifier.fillMaxWidth(),
             )
+            OutlinedButton(
+                onClick = onChangePhone,
+                enabled = !saving,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(if (phone.isBlank()) "Add phone (OTP)" else "Change phone (OTP)")
+            }
             if (error != null) {
                 Text(
                     error,

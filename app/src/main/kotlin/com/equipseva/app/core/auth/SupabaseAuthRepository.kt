@@ -2,9 +2,6 @@ package com.equipseva.app.core.auth
 
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.auth.providers.Google
-import io.github.jan.supabase.auth.providers.builtin.Email
-import io.github.jan.supabase.auth.providers.builtin.IDToken
 import io.github.jan.supabase.auth.providers.builtin.OTP
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.postgrest.postgrest
@@ -33,35 +30,6 @@ class SupabaseAuthRepository @Inject constructor(
                 is SessionStatus.RefreshFailure -> AuthSession.SignedOut
             }
         }
-
-    override suspend fun signInWithEmailPassword(email: String, password: String): Result<Unit> = runCatching {
-        client.auth.signInWith(Email) {
-            this.email = email
-            this.password = password
-        }
-    }
-
-    override suspend fun sendEmailOtp(email: String): Result<Unit> = runCatching {
-        client.auth.signInWith(OTP) {
-            this.email = email
-        }
-    }
-
-    override suspend fun verifyEmailOtp(email: String, token: String): Result<Unit> = runCatching {
-        client.auth.verifyEmailOtp(
-            type = io.github.jan.supabase.auth.OtpType.Email.EMAIL,
-            email = email,
-            token = token,
-        )
-    }
-
-    override suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?): Result<Unit> = runCatching {
-        client.auth.signInWith(IDToken) {
-            this.idToken = idToken
-            this.provider = Google
-            this.nonce = nonce
-        }
-    }
 
     override suspend fun sendPhoneOtp(phone: String): Result<Unit> = runCatching {
         // Server-side rate-limit gate. Returns NULL when allowed; an int (seconds
@@ -93,9 +61,6 @@ class SupabaseAuthRepository @Inject constructor(
     }
 
     override suspend fun requestPhoneAdd(phone: String): Result<Unit> = runCatching {
-        // Same rate-limit gate as signup flow — re-use phone_otp_can_request
-        // so a malicious caller can't fan out unlimited SMS by toggling
-        // between "sign in" and "add to account".
         val retryAfter = client.postgrest.rpc(
             function = "phone_otp_can_request",
             parameters = kotlinx.serialization.json.buildJsonObject {
@@ -105,8 +70,6 @@ class SupabaseAuthRepository @Inject constructor(
         if (retryAfter != null) {
             throw PhoneOtpRateLimitedException(retryAfterSeconds = retryAfter)
         }
-        // Supabase fires an SMS to the new number; verify with PHONE_CHANGE
-        // (NOT SMS) on the next step.
         client.auth.updateUser {
             this.phone = phone
         }
@@ -121,15 +84,22 @@ class SupabaseAuthRepository @Inject constructor(
         )
     }
 
-    override suspend fun sendPasswordResetEmail(email: String): Result<Unit> = runCatching {
-        client.auth.resetPasswordForEmail(email)
+    /**
+     * Email OTP — KEPT for KYC's email-verify sheet. Not exposed via the
+     * Welcome screen; not used for sign-in.
+     */
+    override suspend fun sendEmailOtp(email: String): Result<Unit> = runCatching {
+        client.auth.signInWith(OTP) {
+            this.email = email
+        }
     }
 
-    override suspend fun updatePassword(newPassword: String): Result<Unit> = runCatching {
-        client.auth.updateUser {
-            password = newPassword
-        }
-        Unit
+    override suspend fun verifyEmailOtp(email: String, token: String): Result<Unit> = runCatching {
+        client.auth.verifyEmailOtp(
+            type = io.github.jan.supabase.auth.OtpType.Email.EMAIL,
+            email = email,
+            token = token,
+        )
     }
 
     override suspend fun updateEmail(newEmail: String): Result<Unit> = runCatching {

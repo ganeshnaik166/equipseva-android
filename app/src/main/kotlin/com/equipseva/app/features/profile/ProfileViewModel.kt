@@ -200,39 +200,29 @@ class ProfileViewModel @Inject constructor(
         _state.update { it.copy(editFullName = value, editError = null) }
     }
 
-    fun onEditPhoneChange(value: String) {
-        _state.update { it.copy(editPhone = value.filter { c -> c.isDigit() || c == '+' }, editError = null) }
-    }
-
     fun onSaveEditProfile() {
         val current = _state.value
         if (current.editSaving) return
         val profile = current.profile ?: return
         val trimmedName = current.editFullName.trim()
-        val trimmedPhone = current.editPhone.trim()
         if (trimmedName.isBlank()) {
             _state.update { it.copy(editError = "Name can't be empty.") }
             return
         }
-        if (trimmedPhone.isNotBlank() && trimmedPhone.filter { it.isDigit() }.length !in 10..15) {
-            _state.update { it.copy(editError = "Enter a valid phone number.") }
-            return
-        }
         val nextName = trimmedName
-        val nextPhone = trimmedPhone.ifBlank { null }
-        if (nextName == profile.fullName.orEmpty() && nextPhone == profile.phone) {
+        if (nextName == profile.fullName.orEmpty()) {
             _state.update { it.copy(editProfileOpen = false) }
             return
         }
         _state.update { it.copy(editSaving = true, editError = null) }
         viewModelScope.launch {
-            profileRepository.updateBasicInfo(profile.id, nextName, nextPhone)
+            profileRepository.updateBasicInfo(profile.id, nextName, profile.phone)
                 .onSuccess {
                     _state.update {
                         it.copy(
                             editSaving = false,
                             editProfileOpen = false,
-                            profile = it.profile?.copy(fullName = nextName, phone = nextPhone),
+                            profile = it.profile?.copy(fullName = nextName),
                         )
                     }
                     _effects.send(Effect.ShowMessage("Profile updated"))

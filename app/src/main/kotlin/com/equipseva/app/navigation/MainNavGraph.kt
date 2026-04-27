@@ -45,8 +45,6 @@ import com.equipseva.app.features.mybids.MyBidsScreen
 import com.equipseva.app.features.profile.ProfileScreen
 import com.equipseva.app.features.repair.RepairJobDetailScreen
 import com.equipseva.app.features.repair.RepairJobsScreen
-import com.equipseva.app.features.security.ChangeEmailScreen
-import com.equipseva.app.features.security.ChangePasswordScreen
 import kotlinx.coroutines.launch
 
 private data class TabItem(val route: String, val label: String, val icon: ImageVector)
@@ -79,8 +77,6 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.CHAT_DETAIL,
     Routes.KYC,
     Routes.ABOUT,
-    Routes.CHANGE_PASSWORD,
-    Routes.CHANGE_EMAIL,
     Routes.ADD_PHONE,
     Routes.MY_BIDS,
     Routes.REQUEST_SERVICE,
@@ -293,8 +289,6 @@ fun MainNavGraph(
                     onOpenVerification = { navController.navigate(Routes.KYC) },
                     onOpenAbout = { navController.navigate(Routes.ABOUT) },
                     onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
-                    onOpenChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
-                    onOpenChangeEmail = { navController.navigate(Routes.CHANGE_EMAIL) },
                     onOpenFounderDashboard = { navController.navigate(Routes.FOUNDER_DASHBOARD) },
                     onOpenBankDetails = { navController.navigate(Routes.PROFILE_BANK_DETAILS) },
                     onOpenAddresses = { navController.navigate(Routes.PROFILE_ADDRESSES) },
@@ -356,18 +350,6 @@ fun MainNavGraph(
             composable(Routes.ABOUT) {
                 AboutScreen(
                     onBack = { navController.popBackStack() },
-                )
-            }
-            composable(Routes.CHANGE_PASSWORD) {
-                ChangePasswordScreen(
-                    onBack = { navController.popBackStack() },
-                    onShowMessage = showSnackbar,
-                )
-            }
-            composable(Routes.CHANGE_EMAIL) {
-                ChangeEmailScreen(
-                    onBack = { navController.popBackStack() },
-                    onShowMessage = showSnackbar,
                 )
             }
             composable(Routes.ADD_PHONE) {

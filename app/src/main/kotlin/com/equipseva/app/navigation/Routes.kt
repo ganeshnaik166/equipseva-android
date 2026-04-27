@@ -4,18 +4,8 @@ object Routes {
     // Top-level graph IDs (sub-graphs wrapped under these names).
     const val AUTH_GRAPH = "auth_graph"
 
-    // Auth sub-routes.
+    // Auth sub-routes — phone OTP is the only sign-in path.
     const val AUTH_WELCOME = "auth/welcome"
-    const val AUTH_SIGN_IN = "auth/sign_in"
-    const val AUTH_SIGN_UP = "auth/sign_up"
-    const val AUTH_OTP_REQUEST = "auth/otp_request"
-    const val AUTH_OTP_VERIFY = "auth/otp_verify"
-    const val AUTH_FORGOT_PASSWORD = "auth/forgot_password"
-
-    // OTP verify takes the email as a path arg so the back stack is restorable.
-    const val AUTH_OTP_VERIFY_ARG_EMAIL = "email"
-    fun otpVerifyRoute(email: String): String =
-        "$AUTH_OTP_VERIFY/${java.net.URLEncoder.encode(email, Charsets.UTF_8.name())}"
 
     // Phone OTP — request screen collects E.164 phone, verify takes it as path arg.
     const val AUTH_PHONE_OTP_REQUEST = "auth/phone_otp_request"
@@ -47,15 +37,9 @@ object Routes {
     // About screen (version, licenses, links — sub-route entered from Profile).
     const val ABOUT = "profile/about"
 
-    // Change password (sub-route entered from Profile — signed-in user changes their Supabase password).
-    const val CHANGE_PASSWORD = "profile/change_password"
-
-    // Change email (sub-route entered from Profile — Supabase sends confirmation link to new address).
-    const val CHANGE_EMAIL = "profile/change_email"
-
-    // Add (or change) phone number for an already-signed-in user — used by
-    // Google-auth users who never went through phone OTP at signup, plus from
-    // KYC Step 1 when the engineer's profile is missing a phone.
+    // Add (or change) phone number for an already-signed-in user. Surfaced
+    // from KYC Step 1 + Profile when the engineer's profile is missing a
+    // phone or wants to change it (always OTP-verified).
     const val ADD_PHONE = "profile/add_phone"
 
     // Engineer-specific dashboards (full-screen sub-routes entered from Home).
