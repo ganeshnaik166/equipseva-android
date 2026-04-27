@@ -38,6 +38,7 @@ data class RepairJobDto(
     @SerialName("estimated_cost") val estimatedCost: Double? = null,
     @SerialName("scheduled_date") val scheduledDate: String? = null,
     @SerialName("scheduled_time_slot") val scheduledTimeSlot: String? = null,
+    @SerialName("site_location") val siteLocation: String? = null,
     @SerialName("started_at") val startedAt: String? = null,
     @SerialName("completed_at") val completedAt: String? = null,
     @SerialName("hospital_rating") val hospitalRating: Int? = null,

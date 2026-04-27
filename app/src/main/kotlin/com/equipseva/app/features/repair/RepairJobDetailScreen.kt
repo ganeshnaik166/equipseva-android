@@ -329,7 +329,14 @@ private fun JobBody(
         IssueCard(job = job)
 
         SectionHeader(title = "Location")
-        LocationCard()
+        LocationCard(
+            siteLocation = job.siteLocation,
+            // Engineer sees the real address + a Navigate CTA only after a
+            // bid is accepted (job.isAssignedToEngineer). Other roles either
+            // already know it (hospital posted it) or aren't entitled.
+            revealAddressForEngineer = job.isAssignedToEngineer,
+            viewerRole = viewerRole,
+        )
 
         if (isHospital) {
             SectionHeader(title = "Bids received")
@@ -736,38 +743,93 @@ private fun IssueCard(job: RepairJob) {
 }
 
 @Composable
-private fun LocationCard() {
-    // Map rendering intentionally skipped — see deviations. Show the address row + Directions button.
+private fun LocationCard(
+    siteLocation: String?,
+    revealAddressForEngineer: Boolean,
+    viewerRole: RepairJobDetailViewModel.ViewerRole,
+) {
     val shape = MaterialTheme.shapes.medium
-    Row(
+    val context = LocalContext.current
+    val isEngineer = viewerRole == RepairJobDetailViewModel.ViewerRole.Engineer
+    val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
+    // Engineer can see + navigate once they're assigned. Hospital always sees
+    // the address they typed. Other roles get a generic placeholder.
+    val canShowAddress = !siteLocation.isNullOrBlank() &&
+        (isHospital || (isEngineer && revealAddressForEngineer))
+    Column(
         modifier = Modifier
             .padding(horizontal = Spacing.lg)
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface, shape)
             .border(1.dp, Surface200, shape)
             .padding(Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Icon(
-                    imageVector = Icons.Outlined.LocationOn,
-                    contentDescription = null,
-                    tint = BrandGreen,
-                    modifier = Modifier.size(18.dp),
-                )
-                Text(
-                    text = "Service site",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Ink700,
-                )
-            }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Icon(
+                imageVector = Icons.Outlined.LocationOn,
+                contentDescription = null,
+                tint = BrandGreen,
+                modifier = Modifier.size(18.dp),
+            )
             Text(
-                text = "Address will be shared once the bid is accepted.",
+                text = "Service site",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Ink700,
+            )
+        }
+        if (canShowAddress) {
+            Text(
+                text = siteLocation!!,
+                fontSize = 14.sp,
+                color = Ink900,
+                fontWeight = FontWeight.SemiBold,
+            )
+            // Engineer-only Navigate CTA. Hospitals already know where they
+            // are; the button would be visual noise for them.
+            if (isEngineer) {
+                OutlinedButton(
+                    onClick = {
+                        // geo:0,0?q=<address> hands off to whatever maps app
+                        // is installed (Google Maps, Waze, etc.); Maps will
+                        // geocode the address + offer turn-by-turn directions.
+                        val encoded = Uri.encode(siteLocation)
+                        val intent = android.content.Intent(
+                            android.content.Intent.ACTION_VIEW,
+                            Uri.parse("geo:0,0?q=$encoded"),
+                        )
+                        try {
+                            context.startActivity(intent)
+                        } catch (_: android.content.ActivityNotFoundException) {
+                            // Fallback to the universal Maps URL if no native
+                            // maps app is installed (rare but possible on
+                            // stripped Android variants).
+                            val fallback = android.content.Intent(
+                                android.content.Intent.ACTION_VIEW,
+                                Uri.parse("https://www.google.com/maps/dir/?api=1&destination=$encoded"),
+                            )
+                            try { context.startActivity(fallback) } catch (_: Throwable) {}
+                        }
+                    },
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.LocationOn,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text("Navigate to site")
+                }
+            }
+        } else {
+            Text(
+                text = if (isEngineer)
+                    "Full address shows up after the hospital accepts your bid."
+                else
+                    "Address will be shared once the bid is accepted.",
                 fontSize = 13.sp,
                 color = Ink700,
-                modifier = Modifier.padding(top = 4.dp),
             )
         }
     }

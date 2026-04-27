@@ -54,6 +54,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
+import com.equipseva.app.features.repair.components.ServiceAreaMap
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.theme.AccentLime
@@ -292,6 +293,20 @@ private fun ProfileBody(
             SectionCard(title = "Service areas", icon = Icons.Filled.LocationOn) {
                 val all = listOfNotNull(p.city) + p.serviceAreas.orEmpty()
                 Text(all.joinToString(" · "), color = Ink700, fontSize = 13.sp)
+            }
+        }
+
+        // Service-area map: pin at engineer's base + circle at their radius.
+        // Lets the hospital see at a glance whether the engineer covers them.
+        if (p.baseLatitude != null && p.baseLongitude != null) {
+            SectionCard(title = "Coverage map", icon = Icons.Filled.LocationOn) {
+                ServiceAreaMap(
+                    baseLatitude = p.baseLatitude,
+                    baseLongitude = p.baseLongitude,
+                    serviceRadiusKm = p.serviceRadiusKm,
+                    engineerName = p.fullName,
+                    modifier = Modifier,
+                )
             }
         }
 

@@ -60,6 +60,9 @@ class EngineerDirectoryRepository @Inject constructor(
         @SerialName("hourly_rate") val hourlyRate: Double? = null,
         @SerialName("bio") val bio: String? = null,
         @SerialName("is_available") val isAvailable: Boolean = false,
+        @SerialName("base_latitude") val baseLatitude: Double? = null,
+        @SerialName("base_longitude") val baseLongitude: Double? = null,
+        @SerialName("service_radius_km") val serviceRadiusKm: Int? = null,
     )
 
     suspend fun search(
