@@ -213,6 +213,7 @@ fun RepairJobDetailScreen(
                     submittingRating = state.submittingRating,
                     acceptingBidId = state.acceptingBidId,
                     openingChat = state.openingChat,
+                    afterPhotoSignedUrls = state.afterPhotoSignedUrls,
                     onCheckIn = viewModel::checkIn,
                     onMarkDone = viewModel::openProofSheet,
                     onCancelJob = viewModel::cancelJob,
@@ -292,6 +293,7 @@ private fun JobBody(
     submittingRating: Boolean,
     acceptingBidId: String?,
     openingChat: Boolean,
+    afterPhotoSignedUrls: List<String>,
     onCheckIn: () -> Unit,
     onMarkDone: () -> Unit,
     onCancelJob: () -> Unit,
@@ -359,9 +361,9 @@ private fun JobBody(
         SectionHeader(title = "Status")
         StatusStepperCard(job = job)
 
-        if (job.afterPhotos.isNotEmpty()) {
+        if (afterPhotoSignedUrls.isNotEmpty()) {
             SectionHeader(title = "Completion proof")
-            CompletionProofGallery(urls = job.afterPhotos)
+            CompletionProofGallery(urls = afterPhotoSignedUrls)
         }
 
         if (job.status == RepairJobStatus.Completed &&

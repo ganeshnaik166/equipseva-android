@@ -58,6 +58,7 @@ class RepairJobDetailViewModel @Inject constructor(
     private val outboxDao: OutboxDao,
     private val reportRepository: ContentReportRepository,
     private val photoUploadStash: PhotoUploadStash,
+    private val storageRepository: StorageRepository,
     private val json: Json,
 ) : ViewModel() {
 
@@ -118,6 +119,18 @@ class RepairJobDetailViewModel @Inject constructor(
         val proofSheetOpen: Boolean = false,
         /** True while we're enqueuing photos + flipping the status row. */
         val submittingProof: Boolean = false,
+        /**
+         * Signed-URL projections of [RepairJob.afterPhotos] / [RepairJob.beforePhotos]
+         * / [RepairJob.issuePhotos]. The DB stores object paths because the
+         * repair-photos bucket is private; AsyncImage can't fetch a path
+         * directly, so we mint short-lived signed URLs after the row loads.
+         * Same index-alignment as the underlying path list — drop entries
+         * we couldn't sign so the rendering site never tries to fetch a
+         * blank string.
+         */
+        val afterPhotoSignedUrls: List<String> = emptyList(),
+        val beforePhotoSignedUrls: List<String> = emptyList(),
+        val issuePhotoSignedUrls: List<String> = emptyList(),
     ) {
         /** Hide the report CTA when the viewer posted the job. */
         val canReport: Boolean
@@ -637,6 +650,7 @@ class RepairJobDetailViewModel @Inject constructor(
                             hospitalLocation = hospitalProfile?.locationLine,
                         )
                     }
+                    job?.let { resolvePhotoSignedUrls(it) }
                 },
                 onFailure = { ex ->
                     _state.update {
@@ -647,6 +661,38 @@ class RepairJobDetailViewModel @Inject constructor(
                     }
                 },
             )
+        }
+    }
+
+    /**
+     * Mints short-lived signed URLs for every path on the loaded job's
+     * after_photos / before_photos / issue_photos arrays so the rendering
+     * site can pass them straight into AsyncImage. The repair-photos bucket
+     * is private, and the DB stores raw object paths — without this step
+     * a path string lands in AsyncImage and Coil silently fails to fetch.
+     *
+     * Failures per-path are dropped (the gallery just shows fewer thumbs)
+     * rather than poisoning the whole load. Storage policy gates SELECT to
+     * job participants so cross-user views still work after the new RLS
+     * policy in 20260428200000.
+     */
+    private fun resolvePhotoSignedUrls(job: RepairJob) {
+        viewModelScope.launch {
+            suspend fun signAll(paths: List<String>): List<String> = paths.mapNotNull { path ->
+                runCatching {
+                    storageRepository.signedUrl(StorageRepository.Buckets.REPAIR_PHOTOS, path)
+                }.getOrNull()
+            }
+            val after = signAll(job.afterPhotos)
+            val before = signAll(job.beforePhotos)
+            val issue = signAll(job.issuePhotos)
+            _state.update {
+                it.copy(
+                    afterPhotoSignedUrls = after,
+                    beforePhotoSignedUrls = before,
+                    issuePhotoSignedUrls = issue,
+                )
+            }
         }
     }
 
