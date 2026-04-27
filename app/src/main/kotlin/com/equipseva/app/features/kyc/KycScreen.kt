@@ -331,10 +331,10 @@ private fun KycStepperBody(
         // verified) as a high-level status header above the wizard.
         KycStatusTimeline(
             status = state.verificationStatus,
-            submitted = state.aadhaarVerified,
+            submitted = state.kycSubmitted,
         )
 
-        StatusBanner(status = state.verificationStatus, aadhaarVerified = state.aadhaarVerified)
+        StatusBanner(status = state.verificationStatus, submitted = state.kycSubmitted)
 
         if (verified) {
             // Verified engineers see a celebratory summary instead of the wizard.
@@ -828,7 +828,7 @@ private fun VerifiedSummaryCard(state: KycViewModel.UiState) {
 }
 
 @Composable
-private fun StatusBanner(status: VerificationStatus, aadhaarVerified: Boolean) {
+private fun StatusBanner(status: VerificationStatus, submitted: Boolean) {
     val (bg, fg, label, subtitle, icon) = when (status) {
         VerificationStatus.Verified -> BannerStyle(
             bg = SuccessBg,
@@ -844,7 +844,7 @@ private fun StatusBanner(status: VerificationStatus, aadhaarVerified: Boolean) {
             subtitle = "Re-upload the flagged documents.",
             icon = Icons.Filled.Error,
         )
-        VerificationStatus.Pending -> if (aadhaarVerified) {
+        VerificationStatus.Pending -> if (submitted) {
             BannerStyle(
                 bg = InfoBg,
                 fg = Info,

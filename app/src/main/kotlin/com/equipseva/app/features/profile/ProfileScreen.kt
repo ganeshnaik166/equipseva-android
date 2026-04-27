@@ -92,6 +92,7 @@ import com.equipseva.app.designsystem.components.ESTopBar
 import com.equipseva.app.designsystem.components.SecureScreen
 import com.equipseva.app.designsystem.components.SettingsSheet
 import com.equipseva.app.designsystem.components.StatusChip
+import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.designsystem.components.StatusTone
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreenDark
@@ -351,6 +352,8 @@ private fun ProfileContent(
             onOpenMyRepairJobs = onOpenMyRepairJobs,
             onOpenHelp = onOpenHelp,
             ownEngineerId = state.ownEngineerId,
+            engineerStatus = state.engineerStatus,
+            engineerKycSubmitted = state.engineerKycSubmitted,
             onOpenPublicPreview = onOpenPublicPreview,
             onSwitchService = onSwitchService,
             onSignOut = onSignOut,
@@ -478,6 +481,8 @@ private fun buildProfileSections(
     onOpenMyRepairJobs: () -> Unit,
     onOpenHelp: () -> Unit,
     ownEngineerId: String?,
+    engineerStatus: VerificationStatus?,
+    engineerKycSubmitted: Boolean,
     onOpenPublicPreview: (engineerId: String) -> Unit,
     onSwitchService: () -> Unit,
     onSignOut: () -> Unit,
@@ -514,11 +519,23 @@ private fun buildProfileSections(
 
     val business = mutableListOf<SettingsRow>().apply {
         if (isEngineer) {
+            // Pill mirrors the KYC screen + Engineer Jobs hub gate. The
+            // backend only stores Pending / Verified / Rejected; "Draft" vs
+            // "In review" within Pending comes from whether all required
+            // docs have been uploaded.
+            val (kycLabel, kycTone) = when (engineerStatus) {
+                null -> "Start" to StatusTone.Warn
+                VerificationStatus.Pending ->
+                    if (engineerKycSubmitted) "In review" to StatusTone.Info
+                    else "Draft" to StatusTone.Warn
+                VerificationStatus.Verified -> "Verified" to StatusTone.Success
+                VerificationStatus.Rejected -> "Rejected" to StatusTone.Danger
+            }
             add(SettingsRow(
                 icon = Icons.Outlined.VerifiedUser,
                 label = "Verification (KYC)",
-                chipLabel = "Review",
-                chipTone = StatusTone.Warn,
+                chipLabel = kycLabel,
+                chipTone = kycTone,
                 onClick = onOpenVerification,
             ))
             // "Public profile preview" only when KYC is verified — RPC gates

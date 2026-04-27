@@ -135,6 +135,20 @@ class KycViewModel @Inject constructor(
         val canAdvance: Boolean
             get() = stepError() == null &&
                 !uploadingAadhaar && !uploadingCert && !uploadingPan
+
+        /**
+         * True once every required KYC document has been uploaded to storage —
+         * the actual signal the engineer's submission is in-flight to a
+         * reviewer. The previous `aadhaarVerified` proxy was misleading
+         * because Aadhaar can verify before PAN/cert exist, leaving the
+         * timeline + banner claiming "submitted" while the row was still
+         * mid-edit. Used by the timeline header, the status banner, and any
+         * cross-surface chip that needs a single source of truth.
+         */
+        val kycSubmitted: Boolean
+            get() = !aadhaarDocPath.isNullOrBlank() &&
+                !panDocPath.isNullOrBlank() &&
+                certDocPaths.isNotEmpty()
     }
 
     sealed interface Effect {

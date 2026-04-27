@@ -48,6 +48,20 @@ class ProfileViewModel @Inject constructor(
         val isSignedOut: Boolean = false,
         /** engineers.id of the signed-in user (only when role=Engineer + KYC verified). */
         val ownEngineerId: String? = null,
+        /**
+         * Verification status of the signed-in engineer's KYC row, or null when
+         * the user is not an engineer / has no engineer row yet. Drives the
+         * Profile "Verification (KYC)" chip so it agrees with the KYC screen
+         * and the Engineer Jobs hub gate instead of being hardcoded to "Review".
+         */
+        val engineerStatus: VerificationStatus? = null,
+        /**
+         * True when the engineer has uploaded all three required KYC docs
+         * (Aadhaar + PAN + at least one certificate). Used together with
+         * [engineerStatus] to distinguish "draft" from "in review" while the
+         * backend still reports a single Pending state.
+         */
+        val engineerKycSubmitted: Boolean = false,
         val errorMessage: String? = null,
         val roleEditorOpen: Boolean = false,
         val roleEditorSelected: UserRole? = null,
@@ -326,20 +340,25 @@ class ProfileViewModel @Inject constructor(
         profileRepository.fetchById(userId)
             .onSuccess { profile ->
                 // For engineers, also fetch the engineers row so the screen
-                // can offer a "preview my public profile" link. The
-                // engineer_public_profile RPC gates to verified, so the link
-                // only makes sense once KYC is approved.
-                val engineerId = if (profile?.role == UserRole.ENGINEER) {
-                    engineerRepository.fetchByUserId(userId)
-                        .getOrNull()
-                        ?.takeIf { it.verificationStatus == VerificationStatus.Verified }
-                        ?.id
+                // can render a status-accurate KYC chip and (when verified)
+                // offer the public-profile preview link. engineer_public_profile
+                // RPC gates to verified, so the preview link still requires
+                // VerificationStatus.Verified.
+                val engineer = if (profile?.role == UserRole.ENGINEER) {
+                    engineerRepository.fetchByUserId(userId).getOrNull()
                 } else null
                 _state.update {
                     it.copy(
                         loading = false,
                         profile = profile,
-                        ownEngineerId = engineerId,
+                        ownEngineerId = engineer
+                            ?.takeIf { eng -> eng.verificationStatus == VerificationStatus.Verified }
+                            ?.id,
+                        engineerStatus = engineer?.verificationStatus,
+                        engineerKycSubmitted = engineer != null &&
+                            !engineer.aadhaarDocPath.isNullOrBlank() &&
+                            !engineer.panDocPath.isNullOrBlank() &&
+                            engineer.certDocPaths.isNotEmpty(),
                         errorMessage = if (profile == null) "Profile not found" else null,
                     )
                 }
