@@ -21,5 +21,8 @@ data class EngineerCertificate(
         // is deferred to v1.1 (IDfy / HyperVerge); for now this is just a
         // human-reviewed photo so admin can match against the Aadhaar.
         const val TYPE_SELFIE = "selfie"
+        // PAN card photo. The 10-char PAN number itself lives on
+        // engineers.pan_number; this jsonb entry only carries the doc path.
+        const val TYPE_PAN = "pan"
     }
 }

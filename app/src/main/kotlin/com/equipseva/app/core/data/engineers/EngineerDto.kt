@@ -19,6 +19,7 @@ data class EngineerDto(
     @SerialName("verification_status") val verificationStatus: String? = null,
     @SerialName("verification_notes") val verificationNotes: String? = null,
     @SerialName("rejected_doc_types") val rejectedDocTypes: List<String>? = null,
+    @SerialName("pan_number") val panNumber: String? = null,
     @SerialName("background_check_status") val backgroundCheckStatus: String? = null,
     val certificates: List<EngineerCertificate>? = null,
     // Engineer-profile fields (separate from KYC). Nullable for back-compat with rows
@@ -43,6 +44,7 @@ data class EngineerDto(
 internal data class EngineerUpsertDto(
     @SerialName("user_id") val userId: String,
     @SerialName("aadhaar_number") val aadhaarNumber: String? = null,
+    @SerialName("pan_number") val panNumber: String? = null,
     val qualifications: List<String>? = null,
     val specializations: List<String>? = null,
     @SerialName("experience_years") val experienceYears: Int? = null,

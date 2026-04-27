@@ -23,6 +23,7 @@ class SupabaseEngineerRepository @Inject constructor(
     override suspend fun upsert(
         userId: String,
         aadhaarNumber: String?,
+        panNumber: String?,
         qualifications: List<String>,
         specializations: List<RepairEquipmentCategory>,
         experienceYears: Int,
@@ -36,6 +37,7 @@ class SupabaseEngineerRepository @Inject constructor(
         val payload = EngineerUpsertDto(
             userId = userId,
             aadhaarNumber = aadhaarNumber?.takeIf { it.isNotBlank() },
+            panNumber = panNumber?.takeIf { it.isNotBlank() },
             qualifications = qualifications.ifEmpty { null },
             specializations = specializations.map { it.storageKey }.ifEmpty { null },
             experienceYears = experienceYears,

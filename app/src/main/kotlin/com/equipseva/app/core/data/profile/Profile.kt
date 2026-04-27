@@ -26,6 +26,10 @@ data class Profile(
     val activeRoleKey: String? = null,
     /** S1: buyer KYC gate. Values: unsubmitted | pending | verified | rejected. */
     val buyerKycStatus: String = "unsubmitted",
+    /** True iff Supabase has confirmed the email (auth.users.email_confirmed_at). */
+    val emailVerified: Boolean = false,
+    /** True iff Supabase has confirmed the phone (auth.users.phone_confirmed_at). */
+    val phoneVerified: Boolean = false,
 ) {
     val displayName: String
         get() = fullName?.takeIf { it.isNotBlank() }
@@ -76,5 +80,7 @@ internal fun ProfileDto.toDomain(): Profile {
         activeRole = activeRoleKey?.let { key -> UserRole.entries.firstOrNull { it.storageKey == key } },
         activeRoleKey = activeRoleKey,
         buyerKycStatus = buyerKycStatus ?: "unsubmitted",
+        emailVerified = emailVerified,
+        phoneVerified = phoneVerified,
     )
 }

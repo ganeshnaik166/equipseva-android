@@ -7,6 +7,7 @@ data class Engineer(
     val userId: String,
     val aadhaarNumber: String?,
     val aadhaarVerified: Boolean,
+    val panNumber: String? = null,
     val qualifications: List<String>,
     val specializations: List<RepairEquipmentCategory>,
     val brandsServiced: List<String>,
@@ -40,6 +41,9 @@ data class Engineer(
 
     val selfieDocPath: String? get() =
         certificates.lastOrNull { it.type == EngineerCertificate.TYPE_SELFIE }?.path
+
+    val panDocPath: String? get() =
+        certificates.lastOrNull { it.type == EngineerCertificate.TYPE_PAN }?.path
 }
 
 internal fun EngineerDto.toDomain(): Engineer = Engineer(
@@ -47,6 +51,7 @@ internal fun EngineerDto.toDomain(): Engineer = Engineer(
     userId = userId,
     aadhaarNumber = aadhaarNumber?.takeIf { it.isNotBlank() },
     aadhaarVerified = aadhaarVerified ?: false,
+    panNumber = panNumber?.takeIf { it.isNotBlank() },
     qualifications = qualifications.orEmpty(),
     specializations = specializations.orEmpty().map(RepairEquipmentCategory::fromKey),
     brandsServiced = brandsServiced.orEmpty(),

@@ -44,6 +44,7 @@ class KycViewModel @Inject constructor(
         val verificationStatus: VerificationStatus = VerificationStatus.Pending,
         val aadhaarVerified: Boolean = false,
         val aadhaarNumber: String = "",
+        val panNumber: String = "",
         val city: String = "",
         val state: String = "",
         val experienceYears: String = "",
@@ -54,12 +55,15 @@ class KycViewModel @Inject constructor(
         val aadhaarDocPath: String? = null,
         val certDocPaths: List<String> = emptyList(),
         val selfieDocPath: String? = null,
+        val panDocPath: String? = null,
         val uploadingAadhaar: Boolean = false,
         val uploadingCert: Boolean = false,
         val uploadingSelfie: Boolean = false,
+        val uploadingPan: Boolean = false,
         val aadhaarFailed: Boolean = false,
         val certFailed: Boolean = false,
         val selfieFailed: Boolean = false,
+        val panFailed: Boolean = false,
         val saving: Boolean = false,
         /** Free-text reason from admin when verification_status='rejected'. */
         val verificationNotes: String? = null,
@@ -75,6 +79,8 @@ class KycViewModel @Inject constructor(
         val email: String? = null,
         val phone: String? = null,
         val fullName: String? = null,
+        val emailVerified: Boolean = false,
+        val phoneVerified: Boolean = false,
         val attestationAccepted: Boolean = false,
         /** Inline email-edit draft on Step 1; synced from `email` on first load. */
         val emailDraft: String = "",
@@ -134,7 +140,9 @@ class KycViewModel @Inject constructor(
         }
 
         val canAdvance: Boolean
-            get() = stepError() == null && !uploadingAadhaar && !uploadingCert && !uploadingSelfie
+            get() = stepError() == null &&
+                !uploadingAadhaar && !uploadingCert &&
+                !uploadingSelfie && !uploadingPan
     }
 
     sealed interface Effect {
@@ -179,6 +187,8 @@ class KycViewModel @Inject constructor(
                         email = profile?.email,
                         phone = profile?.phone,
                         fullName = profile?.fullName,
+                        emailVerified = profile?.emailVerified == true,
+                        phoneVerified = profile?.phoneVerified == true,
                         emailDraft = profile?.email.orEmpty(),
                     )
                 }
@@ -270,6 +280,8 @@ class KycViewModel @Inject constructor(
                     aadhaarDocPath = engineer.aadhaarDocPath,
                     certDocPaths = engineer.certDocPaths,
                     selfieDocPath = engineer.selfieDocPath,
+                    panDocPath = engineer.panDocPath,
+                    panNumber = engineer.panNumber.orEmpty(),
                 )
             }
         }
@@ -278,6 +290,12 @@ class KycViewModel @Inject constructor(
     fun onAadhaarNumberChange(value: String) {
         val digits = value.filter { it.isDigit() }.take(12)
         _state.update { it.copy(aadhaarNumber = digits) }
+    }
+
+    fun onPanNumberChange(value: String) {
+        // PAN is 10 chars, A-Z + 0-9. Force uppercase + drop everything else.
+        val cleaned = value.uppercase().filter { it.isLetterOrDigit() }.take(10)
+        _state.update { it.copy(panNumber = cleaned) }
     }
 
     fun onCityChange(value: String) = _state.update { it.copy(city = value) }
@@ -447,6 +465,45 @@ class KycViewModel @Inject constructor(
         }
     }
 
+    fun uploadPan(fileName: String, bytes: ByteArray, contentType: String?) {
+        val uid = userId ?: return
+        if (_state.value.uploadingPan) return
+        _state.update { it.copy(uploadingPan = true, panFailed = false) }
+        viewModelScope.launch {
+            val stored = "pan-${timestampedName(fileName)}"
+            engineerRepository.uploadKycDoc(
+                userId = uid,
+                fileName = stored,
+                bytes = bytes,
+                contentType = contentType,
+            ).fold(
+                onSuccess = { path ->
+                    _state.update {
+                        it.copy(uploadingPan = false, panDocPath = path, panFailed = false)
+                    }
+                    _effects.send(Effect.ShowMessage("PAN uploaded"))
+                },
+                onFailure = { ex ->
+                    val queued = tryQueuePhotoUpload(
+                        uid = uid,
+                        bytes = bytes,
+                        storedFileName = stored,
+                        contentType = contentType,
+                    )
+                    if (queued != null) {
+                        _state.update {
+                            it.copy(uploadingPan = false, panDocPath = queued, panFailed = false)
+                        }
+                        _effects.send(Effect.ShowMessage("PAN will upload when back online"))
+                    } else {
+                        _state.update { it.copy(uploadingPan = false, panFailed = true) }
+                        _effects.send(Effect.ShowMessage(ex.toUserMessage()))
+                    }
+                },
+            )
+        }
+    }
+
     fun uploadSelfie(fileName: String, bytes: ByteArray, contentType: String?) {
         val uid = userId ?: return
         if (_state.value.uploadingSelfie) return
@@ -563,6 +620,9 @@ class KycViewModel @Inject constructor(
                 snap.selfieDocPath?.let {
                     add(EngineerCertificate(EngineerCertificate.TYPE_SELFIE, it, now))
                 }
+                snap.panDocPath?.let {
+                    add(EngineerCertificate(EngineerCertificate.TYPE_PAN, it, now))
+                }
                 snap.certDocPaths.forEach {
                     add(EngineerCertificate(EngineerCertificate.TYPE_CERT, it, now))
                 }
@@ -570,6 +630,7 @@ class KycViewModel @Inject constructor(
             engineerRepository.upsert(
                 userId = uid,
                 aadhaarNumber = aadhaarDigits.takeIf { it.isNotEmpty() },
+                panNumber = snap.panNumber.takeIf { it.isNotEmpty() && PanValidator.isValid(it) },
                 qualifications = snap.qualifications,
                 specializations = snap.selectedSpecializations.toList(),
                 experienceYears = snap.experienceYears.toIntOrNull() ?: 0,

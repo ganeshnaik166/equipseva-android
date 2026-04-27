@@ -8,6 +8,7 @@ interface EngineerRepository {
     suspend fun upsert(
         userId: String,
         aadhaarNumber: String?,
+        panNumber: String?,
         qualifications: List<String>,
         specializations: List<RepairEquipmentCategory>,
         experienceYears: Int,

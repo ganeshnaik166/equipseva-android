@@ -19,6 +19,11 @@ data class ProfileDto(
     @SerialName("onboarding_completed") val onboardingCompleted: Boolean = false,
     @SerialName("role_confirmed") val roleConfirmed: Boolean = false,
     @SerialName("buyer_kyc_status") val buyerKycStatus: String? = null,
+    // Mirrored from auth.users.{email,phone}_confirmed_at via DB trigger
+    // (migration 20260428060000). Lets KYC Step 1 surface a "Verify" CTA
+    // without round-tripping the auth schema on every load.
+    @SerialName("email_verified") val emailVerified: Boolean = false,
+    @SerialName("phone_verified") val phoneVerified: Boolean = false,
     val organizations: OrganizationSummaryDto? = null,
 )
 
