@@ -70,6 +70,12 @@ class JobStatusOutboxHandlerTest {
         override suspend fun fetchOpenJobs(page: Int, pageSize: Int, query: String?): Result<List<RepairJob>> =
             Result.success(emptyList())
 
+        override suspend fun fetchNearbyJobs(
+            radiusKm: Double,
+            limit: Int,
+        ): Result<List<com.equipseva.app.core.data.repair.RepairJobWithDistance>> =
+            Result.success(emptyList())
+
         override suspend fun fetchById(jobId: String): Result<RepairJob?> = Result.success(null)
         override suspend fun fetchAssignedToMe(): Result<List<RepairJob>> = Result.success(emptyList())
         override suspend fun fetchByIds(jobIds: Collection<String>): Result<List<RepairJob>> =
@@ -111,6 +117,7 @@ class JobStatusOutboxHandlerTest {
             estimatedCostRupees = null,
             scheduledDate = null,
             scheduledTimeSlot = null,
+            siteLocation = null,
             isAssignedToEngineer = false,
             engineerId = null,
             hospitalUserId = null,

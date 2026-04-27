@@ -11,6 +11,7 @@ import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.security.IntegrityVerifier
 import com.equipseva.app.core.security.PlayIntegrityClient
 import com.equipseva.app.core.storage.StorageRepository
 import com.equipseva.app.core.sync.handlers.PhotoUploadPayload
@@ -34,7 +35,7 @@ class KycViewModel @Inject constructor(
     private val engineerRepository: EngineerRepository,
     private val profileRepository: ProfileRepository,
     private val photoUploadStash: PhotoUploadStash,
-    private val playIntegrityClient: PlayIntegrityClient,
+    private val playIntegrityClient: IntegrityVerifier,
 ) : ViewModel() {
 
     data class UiState(

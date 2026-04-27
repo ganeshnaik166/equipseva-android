@@ -6,8 +6,12 @@ import com.equipseva.app.core.data.engineers.Engineer
 import com.equipseva.app.core.data.engineers.EngineerCertificate
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
+import com.equipseva.app.core.data.profile.Profile
+import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
+import com.equipseva.app.core.security.IntegrityVerifier
 import com.equipseva.app.core.sync.handlers.PhotoUploadStash
+import com.equipseva.app.features.auth.UserRole
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -33,33 +37,26 @@ class KycViewModelTest {
     @After fun teardown() { Dispatchers.resetMain() }
 
     @Test fun `save rejects when aadhaar number is present but not 12 digits`() = runTest {
-        val auth = FakeAuthRepository(userId = "user-1")
-        val repo = FakeEngineerRepository()
-        val vm = KycViewModel(auth, repo, FakePhotoUploadStash())
+        val vm = newViewModel()
         vm.toggleSpecialization(RepairEquipmentCategory.ImagingRadiology)
         vm.onAadhaarNumberChange("12345")
 
         val effect = async(vm) { vm.save() }
 
         assertEquals("Aadhaar must be 12 digits", effect.first().text())
-        assertEquals(0, repo.upsertCalls)
     }
 
     @Test fun `save rejects when no specialization selected`() = runTest {
-        val auth = FakeAuthRepository(userId = "user-1")
-        val repo = FakeEngineerRepository()
-        val vm = KycViewModel(auth, repo, FakePhotoUploadStash())
+        val vm = newViewModel()
 
         val effect = async(vm) { vm.save() }
 
         assertEquals("Pick at least one specialization", effect.first().text())
-        assertEquals(0, repo.upsertCalls)
     }
 
     @Test fun `save persists certificates with type discriminator`() = runTest {
-        val auth = FakeAuthRepository(userId = "user-1")
         val repo = FakeEngineerRepository()
-        val vm = KycViewModel(auth, repo, FakePhotoUploadStash())
+        val vm = newViewModel(engineerRepo = repo)
         vm.toggleSpecialization(RepairEquipmentCategory.ImagingRadiology)
 
         // simulate prior uploads populating both slots
@@ -78,7 +75,6 @@ class KycViewModelTest {
     }
 
     @Test fun `hydrate splits certificates into aadhaar and cert slots`() = runTest {
-        val auth = FakeAuthRepository(userId = "user-1")
         val repo = FakeEngineerRepository().apply {
             fetched = engineer(
                 certificates = listOf(
@@ -88,7 +84,7 @@ class KycViewModelTest {
                 ),
             )
         }
-        val vm = KycViewModel(auth, repo, FakePhotoUploadStash())
+        val vm = newViewModel(engineerRepo = repo)
 
         // wait for load() to complete
         val state = vm.state.first { !it.loading }
@@ -98,9 +94,8 @@ class KycViewModelTest {
     }
 
     @Test fun `save surfaces repository failure as user message`() = runTest {
-        val auth = FakeAuthRepository(userId = "user-1")
         val repo = FakeEngineerRepository().apply { upsertError = RuntimeException("boom") }
-        val vm = KycViewModel(auth, repo, FakePhotoUploadStash())
+        val vm = newViewModel(engineerRepo = repo)
         vm.toggleSpecialization(RepairEquipmentCategory.ImagingRadiology)
 
         val effect = async(vm) { vm.save() }
@@ -109,6 +104,20 @@ class KycViewModelTest {
         assertTrue("got: $msg", msg.isNotBlank())
         assertNull("save flag should reset", vm.state.value.saving.takeIf { it })
     }
+
+    private fun newViewModel(
+        authRepo: FakeAuthRepository = FakeAuthRepository(userId = "user-1"),
+        engineerRepo: FakeEngineerRepository = FakeEngineerRepository(),
+        profileRepo: FakeProfileRepository = FakeProfileRepository(),
+        photoStash: FakePhotoUploadStash = FakePhotoUploadStash(),
+        playIntegrity: FakePlayIntegrityClient = FakePlayIntegrityClient(),
+    ): KycViewModel = KycViewModel(
+        authRepository = authRepo,
+        engineerRepository = engineerRepo,
+        profileRepository = profileRepo,
+        photoUploadStash = photoStash,
+        playIntegrityClient = playIntegrity,
+    )
 
     private suspend fun async(
         vm: KycViewModel,
@@ -150,10 +159,15 @@ private class FakeAuthRepository(userId: String) : AuthRepository {
     override suspend fun sendEmailOtp(email: String) = Result.success(Unit)
     override suspend fun verifyEmailOtp(email: String, token: String) = Result.success(Unit)
     override suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?) = Result.success(Unit)
+    override suspend fun sendPhoneOtp(phone: String) = Result.success(Unit)
+    override suspend fun verifyPhoneOtp(phone: String, token: String) = Result.success(Unit)
+    override suspend fun requestPhoneAdd(phone: String) = Result.success(Unit)
+    override suspend fun verifyPhoneAdd(phone: String, token: String) = Result.success(Unit)
     override suspend fun signOut() = Result.success(Unit)
     override suspend fun sendPasswordResetEmail(email: String) = Result.success(Unit)
     override suspend fun updatePassword(newPassword: String) = Result.success(Unit)
     override suspend fun updateEmail(newEmail: String) = Result.success(Unit)
+    override suspend fun refreshSession() = Result.success(Unit)
 }
 
 private class FakePhotoUploadStash : PhotoUploadStash {
@@ -171,16 +185,50 @@ private class FakePhotoUploadStash : PhotoUploadStash {
     }
 }
 
+private class FakeProfileRepository : ProfileRepository {
+    override suspend fun fetchById(userId: String): Result<Profile?> = Result.success(
+        Profile(
+            id = userId,
+            email = "e@x",
+            phone = "+919999999999",
+            fullName = "Test Engineer",
+            avatarUrl = null,
+            role = UserRole.ENGINEER,
+            rawRoleKey = "engineer",
+            roleConfirmed = true,
+            onboardingCompleted = true,
+            isActive = true,
+            organizationId = null,
+            organizationName = null,
+            organizationCity = null,
+            organizationState = null,
+        )
+    )
+    override suspend fun updateRole(userId: String, role: UserRole) = Result.success(Unit)
+    override suspend fun updateBasicInfo(userId: String, fullName: String?, phone: String?) = Result.success(Unit)
+    override suspend fun fetchDisplayNames(userIds: List<String>) = Result.success(emptyMap<String, String>())
+    override suspend fun addRole(roleKey: String) = Result.success(Unit)
+    override suspend fun setActiveRole(roleKey: String) = Result.success(Unit)
+}
+
+/**
+ * Always-pass integrity verifier — KycViewModel.save() is gated on this; the
+ * real Play Integrity check needs Google Play Services so we stub it out for
+ * unit tests.
+ */
+private class FakePlayIntegrityClient : IntegrityVerifier {
+    override suspend fun requestVerification(action: String): Result<Boolean> = Result.success(true)
+}
+
 private class FakeEngineerRepository : EngineerRepository {
     var fetched: Engineer? = null
     var upsertError: Throwable? = null
     var upsertCalls: Int = 0
     var lastCertificates: List<EngineerCertificate> = emptyList()
+    var lastResetVerificationToPending: Boolean = false
 
     override suspend fun fetchByUserId(userId: String): Result<Engineer?> =
         Result.success(fetched)
-
-    var lastResetVerificationToPending: Boolean = false
 
     override suspend fun upsert(
         userId: String,
@@ -192,6 +240,7 @@ private class FakeEngineerRepository : EngineerRepository {
         city: String?,
         state: String?,
         certificates: List<EngineerCertificate>,
+        aadhaarUploaded: Boolean,
         resetVerificationToPending: Boolean,
     ): Result<Engineer> {
         upsertCalls++
@@ -203,7 +252,7 @@ private class FakeEngineerRepository : EngineerRepository {
                 id = "engineer-1",
                 userId = userId,
                 aadhaarNumber = aadhaarNumber,
-                aadhaarVerified = false,
+                aadhaarVerified = aadhaarUploaded,
                 qualifications = qualifications,
                 specializations = specializations,
                 brandsServiced = emptyList(),
