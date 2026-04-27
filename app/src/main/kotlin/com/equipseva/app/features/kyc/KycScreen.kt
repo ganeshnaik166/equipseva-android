@@ -590,12 +590,6 @@ private fun PersonalStep(
             onLocationPicked = { latLng ->
                 onServiceCoordsChange(latLng.latitude, latLng.longitude)
             },
-            // Default fallback to the Hyderabad city centre when nothing is
-            // pinned yet — the GPS auto-detect helper takes over once Phase D'
-            // adds the FusedLocation wiring.
-            onUseMyLocation = {
-                onServiceCoordsChange(17.385, 78.4867)
-            },
         )
     }
 }

@@ -556,21 +556,14 @@ private fun StepSchedule(
         modifier = Modifier.fillMaxWidth(),
     )
     // Map picker — engineer reads the dragged pin via geo: intent on
-    // their detail screen. Falls back to a placeholder when no LatLng
-    // has been set yet.
+    // their detail screen. Auto-pins to the device's current location on
+    // first render via FusedLocation; user drags to refine.
     val pickedLatLng = if (siteLatitude != null && siteLongitude != null) {
         com.google.android.gms.maps.model.LatLng(siteLatitude, siteLongitude)
     } else null
     com.equipseva.app.features.repair.components.LocationPickerMap(
         selected = pickedLatLng,
         onLocationPicked = { ll -> onSiteCoords(ll.latitude, ll.longitude) },
-        onUseMyLocation = if (pickedLatLng == null) {
-            // Lazy default: pin Hyderabad city centre. User drags from
-            // there to the actual site. Reverse-geocoding + FusedLocation
-            // are deferred to a follow-up loop so we don't pull permission
-            // boilerplate into v1.
-            { onSiteCoords(17.385044, 78.486671) }
-        } else null,
     )
     OutlinedTextField(
         value = budget,

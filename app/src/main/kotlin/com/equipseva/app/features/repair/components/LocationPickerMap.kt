@@ -1,5 +1,9 @@
 package com.equipseva.app.features.repair.components
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,12 +23,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import com.equipseva.app.core.util.fetchCurrentLocation
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Ink900
@@ -37,26 +48,76 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import kotlinx.coroutines.launch
+
+private val HYDERABAD_FALLBACK = LatLng(17.385, 78.4867)
 
 /**
- * Hospital-side location picker. Renders a GoogleMap with a single
- * draggable marker; whenever the user finishes a drag we forward the new
- * `LatLng` via [onLocationPicked]. Re-centers the camera to follow the
- * marker when the parent re-supplies coords (e.g. from "Use my current
- * location"). Map height fixed at 220.dp so it doesn't blow up the
- * scrollable form it lives in.
+ * Map picker shared by hospital RequestService Step 3 and engineer KYC
+ * Step 1. On first composition we attempt to auto-fetch the device's
+ * current location via FusedLocation; if permission isn't granted yet, the
+ * user can tap "Use my location" to trigger the runtime permission prompt.
  *
- * If `selected` is null we show a grey placeholder hint instead of an
- * empty map — keeps the form readable when location permission was
- * denied.
+ * The marker is draggable so the user can refine the auto-pinned spot.
+ * Whenever the marker lands on a new position we forward the new LatLng
+ * via [onLocationPicked]. Falls back to a Hyderabad city-centre default
+ * if permission is denied or no fix arrives within the helper's timeout.
  */
 @Composable
 fun LocationPickerMap(
     selected: LatLng?,
     onLocationPicked: (LatLng) -> Unit,
-    onUseMyLocation: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var permissionDenied by remember { mutableStateOf(false) }
+
+    val tryFetch: () -> Unit = remember {
+        {
+            scope.launch {
+                val fix = fetchCurrentLocation(context)
+                if (fix != null) {
+                    onLocationPicked(LatLng(fix.latitude, fix.longitude))
+                } else {
+                    // Permission may be granted but GPS off / no fix in 5s.
+                    // Drop a Hyderabad fallback so the user still has a draggable
+                    // marker to start refining from.
+                    onLocationPicked(HYDERABAD_FALLBACK)
+                }
+            }
+            Unit
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+    ) { granted ->
+        val anyGranted = granted[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            granted[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (anyGranted) {
+            tryFetch()
+        } else {
+            permissionDenied = true
+            // Defensive fallback so the form isn't stuck pin-less when the
+            // user denies location entirely.
+            onLocationPicked(HYDERABAD_FALLBACK)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (selected != null) return@LaunchedEffect
+        val granted = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION,
+        ) == PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_COARSE_LOCATION,
+            ) == PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            tryFetch()
+        }
+    }
+
     if (selected == null) {
         Surface(
             modifier = modifier
@@ -76,19 +137,30 @@ fun LocationPickerMap(
                     color = Ink900,
                 )
                 Text(
-                    "Drop a pin so the engineer can navigate straight to your gate / ward / building. Tap below to start.",
+                    text = if (permissionDenied) {
+                        "Location permission denied. Drag the pin once it loads, or grant location access in Settings."
+                    } else {
+                        "Tap below to pin your current location, then drag to refine."
+                    },
                     fontSize = 12.sp,
                     color = Ink500,
                 )
-                onUseMyLocation?.let {
-                    TextButton(onClick = it) {
-                        Icon(
-                            imageVector = Icons.Filled.MyLocation,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
+                TextButton(
+                    onClick = {
+                        permissionLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION,
+                            ),
                         )
-                        Text("  Use my current location", fontSize = 13.sp)
-                    }
+                    },
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.MyLocation,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text("  Use my current location", fontSize = 13.sp)
                 }
             }
         }
@@ -98,17 +170,11 @@ fun LocationPickerMap(
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(selected, 16f)
     }
-    // Re-center the camera when the parent updates the selected LatLng
-    // (e.g. user just tapped "Use my current location" → fused-location
-    // returns coords → parent state changes → we follow it here).
     LaunchedEffect(selected) {
         cameraPositionState.position = CameraPosition.fromLatLngZoom(selected, 16f)
     }
     val markerState = remember(selected) { MarkerState(position = selected) }
     LaunchedEffect(markerState.position) {
-        // The marker object is the source of truth while the user drags.
-        // Fire the callback whenever it lands on a new spot — including
-        // the initial position from the parent.
         if (markerState.position != selected) {
             onLocationPicked(markerState.position)
         }
@@ -158,18 +224,34 @@ fun LocationPickerMap(
                 fontWeight = FontWeight.SemiBold,
             )
             androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
-            onUseMyLocation?.let {
-                TextButton(onClick = it) {
-                    Icon(
-                        imageVector = Icons.Filled.MyLocation,
-                        contentDescription = null,
-                        modifier = Modifier.size(12.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Text("  My location", fontSize = 11.sp)
-                }
+            TextButton(
+                onClick = {
+                    val granted = ContextCompat.checkSelfPermission(
+                        context, Manifest.permission.ACCESS_FINE_LOCATION,
+                    ) == PackageManager.PERMISSION_GRANTED ||
+                        ContextCompat.checkSelfPermission(
+                            context, Manifest.permission.ACCESS_COARSE_LOCATION,
+                        ) == PackageManager.PERMISSION_GRANTED
+                    if (granted) {
+                        tryFetch()
+                    } else {
+                        permissionLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION,
+                            ),
+                        )
+                    }
+                },
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.MyLocation,
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Text("  My location", fontSize = 11.sp)
             }
         }
     }
 }
-
