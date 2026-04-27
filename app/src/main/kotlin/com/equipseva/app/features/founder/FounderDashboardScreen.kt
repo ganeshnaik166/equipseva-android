@@ -44,6 +44,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.designsystem.components.ESTopBar
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreenDark
 import com.equipseva.app.designsystem.theme.Ink500
@@ -83,7 +84,7 @@ class FounderDashboardViewModel @Inject constructor(
         viewModelScope.launch {
             repo.fetchDashboardStats()
                 .onSuccess { s -> _state.update { it.copy(loading = false, stats = s) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.message ?: "Failed") } }
+                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
         }
     }
 }

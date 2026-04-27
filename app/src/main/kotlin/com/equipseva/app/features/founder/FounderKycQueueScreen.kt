@@ -43,6 +43,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.designsystem.components.ESBackTopBar
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreenDark
@@ -96,7 +97,7 @@ class FounderKycQueueViewModel @Inject constructor(
         viewModelScope.launch {
             repo.fetchPendingEngineers()
                 .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.message ?: "Failed to load") } }
+                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
         }
     }
     fun openApprove(userId: String, name: String) {
@@ -135,7 +136,7 @@ class FounderKycQueueViewModel @Inject constructor(
                         )
                     }
                 }
-                .onFailure { e -> _state.update { it.copy(acting = false, error = e.message ?: "Failed") } }
+                .onFailure { e -> _state.update { it.copy(acting = false, error = e.toUserMessage()) } }
         }
     }
 }

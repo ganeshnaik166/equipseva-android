@@ -40,6 +40,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.addresses.AddressRepository
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.location.LocationFetcher
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.theme.AccentLime
@@ -201,7 +202,7 @@ class AddressFormViewModel @Inject constructor(
                     }
                     _state.update { it.copy(saving = false, saved = true) }
                 }
-                .onFailure { e -> _state.update { it.copy(saving = false, error = e.message ?: "Save failed") } }
+                .onFailure { e -> _state.update { it.copy(saving = false, error = e.toUserMessage()) } }
         }
     }
 }

@@ -49,6 +49,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil3.compose.AsyncImage
 import com.equipseva.app.core.storage.StorageRepository
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.theme.BrandGreen
@@ -104,7 +105,7 @@ class FounderCategoriesViewModel @Inject constructor(
         viewModelScope.launch {
             repo.fetchCategories()
                 .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.message ?: "Failed to load") } }
+                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
         }
     }
 
@@ -161,7 +162,7 @@ class FounderCategoriesViewModel @Inject constructor(
                     _state.update {
                         it.copy(
                             editDraft = it.editDraft?.copy(uploadingImage = false),
-                            error = e.message ?: "Upload failed",
+                            error = e.toUserMessage(),
                         )
                     }
                 }
@@ -203,7 +204,7 @@ class FounderCategoriesViewModel @Inject constructor(
                     reload()
                 }
                 .onFailure { e ->
-                    _state.update { it.copy(saving = false, error = e.message ?: "Save failed") }
+                    _state.update { it.copy(saving = false, error = e.toUserMessage()) }
                 }
         }
     }

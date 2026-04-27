@@ -48,6 +48,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.designsystem.components.ESBackTopBar
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreenDark
@@ -118,7 +119,7 @@ class FounderUsersViewModel @Inject constructor(
         viewModelScope.launch {
             repo.searchUsers(query = s.query, role = s.selectedRole, limit = 50, offset = 0)
                 .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.message ?: "Failed to load") } }
+                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
         }
     }
 
@@ -147,7 +148,7 @@ class FounderUsersViewModel @Inject constructor(
                     }
                     fetch()
                 }
-                .onFailure { e -> _state.update { it.copy(acting = false, error = e.message ?: "Failed") } }
+                .onFailure { e -> _state.update { it.copy(acting = false, error = e.toUserMessage()) } }
         }
     }
 

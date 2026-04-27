@@ -44,6 +44,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.theme.AccentLime
@@ -105,7 +106,7 @@ class EngineerDirectoryViewModel @Inject constructor(
         viewModelScope.launch {
             repo.search(query = _state.value.query.takeIf { it.isNotBlank() })
                 .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.message ?: "Failed to load") } }
+                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
         }
     }
 }

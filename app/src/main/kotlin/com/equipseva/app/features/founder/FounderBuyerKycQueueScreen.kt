@@ -41,6 +41,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.designsystem.components.ESBackTopBar
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.theme.AccentLimeSoft
 import com.equipseva.app.designsystem.theme.BrandGreenDeep
@@ -84,7 +85,7 @@ class FounderBuyerKycQueueViewModel @Inject constructor(
         viewModelScope.launch {
             repo.fetchPendingBuyerKyc()
                 .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.message ?: "Failed to load") } }
+                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
         }
     }
 
@@ -128,7 +129,7 @@ class FounderBuyerKycQueueViewModel @Inject constructor(
                         )
                     }
                 }
-                .onFailure { e -> _state.update { it.copy(acting = false, error = e.message ?: "Failed") } }
+                .onFailure { e -> _state.update { it.copy(acting = false, error = e.toUserMessage()) } }
         }
     }
 }
