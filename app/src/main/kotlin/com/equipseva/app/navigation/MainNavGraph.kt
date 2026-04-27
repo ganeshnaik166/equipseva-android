@@ -484,6 +484,24 @@ fun MainNavGraph(
                     onOpenHospitalSettings = { navController.navigate(Routes.PROFILE_HOSPITAL_SETTINGS) },
                     onOpenOrders = { navController.navigate(Routes.ORDERS) },
                     onOpenSellerVerification = { navController.navigate(Routes.PROFILE_SELLER_VERIFICATION) },
+                    onOpenAddPhone = { navController.navigate(Routes.ADD_PHONE) },
+                    onOpenEarnings = { navController.navigate(Routes.EARNINGS) },
+                    onOpenMyRepairJobs = { navController.navigate(Routes.HOSPITAL_ACTIVE_JOBS) },
+                    onOpenHelp = {
+                        // Open a mailto: intent so the user lands in their
+                        // email composer pre-addressed to support — no in-app
+                        // ticketing system yet.
+                        val ctx = navController.context
+                        val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
+                            data = android.net.Uri.parse("mailto:support@equipseva.com")
+                            putExtra(android.content.Intent.EXTRA_SUBJECT, "EquipSeva support request")
+                        }
+                        try {
+                            ctx.startActivity(intent)
+                        } catch (_: android.content.ActivityNotFoundException) {
+                            showSnackbar("No email app installed")
+                        }
+                    },
                     onSignIn = onSignIn,
                 )
             }

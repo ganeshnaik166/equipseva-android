@@ -41,6 +41,10 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
@@ -121,6 +125,10 @@ fun ProfileScreen(
     onOpenChangeEmail: () -> Unit = {},
     onOpenOrders: () -> Unit = {},
     onOpenSellerVerification: () -> Unit = {},
+    onOpenAddPhone: () -> Unit = {},
+    onOpenEarnings: () -> Unit = {},
+    onOpenMyRepairJobs: () -> Unit = {},
+    onOpenHelp: () -> Unit = {},
     onSwitchService: () -> Unit = {},
     onSignIn: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -181,6 +189,10 @@ fun ProfileScreen(
                         onOpenChangeEmail = onOpenChangeEmail,
                         onOpenOrders = onOpenOrders,
                         onOpenSellerVerification = onOpenSellerVerification,
+                        onOpenAddPhone = onOpenAddPhone,
+                        onOpenEarnings = onOpenEarnings,
+                        onOpenMyRepairJobs = onOpenMyRepairJobs,
+                        onOpenHelp = onOpenHelp,
                         onSwitchService = onSwitchService,
                     )
                 }
@@ -243,6 +255,10 @@ private fun ProfileContent(
     onOpenChangeEmail: () -> Unit,
     onOpenOrders: () -> Unit,
     onOpenSellerVerification: () -> Unit,
+    onOpenAddPhone: () -> Unit,
+    onOpenEarnings: () -> Unit,
+    onOpenMyRepairJobs: () -> Unit,
+    onOpenHelp: () -> Unit,
     onSwitchService: () -> Unit,
 ) {
     val profile = state.profile!!
@@ -286,6 +302,7 @@ private fun ProfileContent(
             isSupplier = isSupplier,
             isManufacturer = isManufacturer,
             isLogistics = isLogistics,
+            phone = profile.phone,
             themeMode = themeMode,
             activeRoleLabel = profile.role?.displayName ?: "Not set",
             onOpenSettings = onOpenSettings,
@@ -302,6 +319,10 @@ private fun ProfileContent(
             onOpenChangeEmail = onOpenChangeEmail,
             onOpenOrders = onOpenOrders,
             onOpenSellerVerification = onOpenSellerVerification,
+            onOpenAddPhone = onOpenAddPhone,
+            onOpenEarnings = onOpenEarnings,
+            onOpenMyRepairJobs = onOpenMyRepairJobs,
+            onOpenHelp = onOpenHelp,
             onSwitchService = onSwitchService,
             onSignOut = onSignOut,
             signingOut = state.signingOut,
@@ -409,6 +430,7 @@ private fun buildProfileSections(
     isSupplier: Boolean,
     isManufacturer: Boolean,
     isLogistics: Boolean,
+    phone: String?,
     themeMode: ThemeMode,
     activeRoleLabel: String,
     onOpenSettings: () -> Unit,
@@ -425,6 +447,10 @@ private fun buildProfileSections(
     onOpenChangeEmail: () -> Unit,
     onOpenOrders: () -> Unit,
     onOpenSellerVerification: () -> Unit,
+    onOpenAddPhone: () -> Unit,
+    onOpenEarnings: () -> Unit,
+    onOpenMyRepairJobs: () -> Unit,
+    onOpenHelp: () -> Unit,
     onSwitchService: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
@@ -433,8 +459,20 @@ private fun buildProfileSections(
     onExportData: () -> Unit,
     exportingData: Boolean,
 ): List<ProfileSection> {
+    val phoneMissing = phone.isNullOrBlank()
     val account = listOfNotNull(
         SettingsRow(icon = Icons.Filled.Person, label = "Personal info", onClick = onOpenPersonalInfo),
+        // Add phone — surface a Required pill when missing (Google-auth users
+        // skip phone OTP at signup so they can't be reached by hospitals).
+        // Once added, the row stays as a "Change phone number" entry point.
+        SettingsRow(
+            icon = Icons.Filled.Phone,
+            label = if (phoneMissing) "Add phone number" else "Change phone number",
+            chipLabel = if (phoneMissing) "Required" else null,
+            chipTone = if (phoneMissing) StatusTone.Warn else StatusTone.Neutral,
+            trailing = phone.takeUnless { it.isNullOrBlank() },
+            onClick = onOpenAddPhone,
+        ),
         // Marketplace v1 gate: My orders points at the marketplace order
         // history. Hidden in v1; v2 brings it back when MARKETPLACE_ENABLED.
         if (AppFeatureFlags.MARKETPLACE_ENABLED)
@@ -460,9 +498,19 @@ private fun buildProfileSections(
                 chipTone = StatusTone.Warn,
                 onClick = onOpenVerification,
             ))
+            add(SettingsRow(
+                icon = Icons.Filled.AccountBalanceWallet,
+                label = "Earnings",
+                onClick = onOpenEarnings,
+            ))
             add(SettingsRow(icon = Icons.Filled.AccountBalance, label = "Bank details", onClick = onOpenBankDetails))
         }
         if (isHospital) {
+            add(SettingsRow(
+                icon = Icons.Filled.Build,
+                label = "My repair jobs",
+                onClick = onOpenMyRepairJobs,
+            ))
             add(SettingsRow(icon = Icons.Filled.LocationOn, label = "Addresses", onClick = onOpenAddresses))
             add(SettingsRow(icon = Icons.Filled.LocalHospital, label = "Hospital settings", onClick = onOpenHospitalSettings))
         }
@@ -490,13 +538,22 @@ private fun buildProfileSections(
             add(SettingsRow(icon = Icons.Filled.Factory, label = "Brand portfolio", onClick = onOpenHospitalSettings))
             add(SettingsRow(icon = Icons.Filled.AccountBalance, label = "Bank details", onClick = onOpenBankDetails))
         }
-        if (isLogistics) {
+        // Logistics rows are marketplace-side workflows (driver onboarding for
+        // pickup queues). v1 ships with marketplace gated off, so these rows
+        // would lead to dead/empty screens for any logistics user signed in
+        // during the limited v1 window.
+        if (AppFeatureFlags.MARKETPLACE_ENABLED && isLogistics) {
             add(SettingsRow(icon = Icons.Filled.LocalShipping, label = "Vehicle details", onClick = onOpenHospitalSettings))
             add(SettingsRow(icon = Icons.Filled.AccountBalance, label = "Bank details", onClick = onOpenBankDetails))
         }
     }
 
     val support = listOf(
+        SettingsRow(
+            icon = Icons.AutoMirrored.Outlined.HelpOutline,
+            label = "Help & support",
+            onClick = onOpenHelp,
+        ),
         SettingsRow(icon = Icons.Outlined.Info, label = "About", onClick = onOpenAbout),
         SettingsRow(
             icon = Icons.Filled.CloudDownload,
