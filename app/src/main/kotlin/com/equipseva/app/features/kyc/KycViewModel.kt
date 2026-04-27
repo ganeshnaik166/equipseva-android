@@ -70,7 +70,7 @@ class KycViewModel @Inject constructor(
         /** Free-text reason from admin when verification_status='rejected'. */
         val verificationNotes: String? = null,
         /**
-         * Subset of {'aadhaar','selfie','cert'} the admin flagged. Empty means
+         * Subset of {'aadhaar','pan','cert'} the admin flagged. Empty means
          * either the row isn't rejected or admin used a global rejection
          * (verificationNotes covers it). When non-empty, the screen highlights
          * only these doc rows and `startReupload` clears only their paths.

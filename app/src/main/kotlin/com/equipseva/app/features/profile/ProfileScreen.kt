@@ -1061,7 +1061,7 @@ private fun EditProfileSheet(
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                "Email + phone can't be changed here. Phone is OTP-verified — tap below to swap to a new number.",
+                "Phone is verified separately by SMS. Tap below to add or change it.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1088,7 +1088,7 @@ private fun EditProfileSheet(
                 enabled = !saving,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(if (phone.isBlank()) "Add phone (OTP)" else "Change phone (OTP)")
+                Text(if (phone.isBlank()) "Add phone" else "Change phone")
             }
             if (error != null) {
                 Text(

@@ -2,9 +2,10 @@ package com.equipseva.app.features.kyc
 
 /**
  * Two-step engineer onboarding wizard. Step 1 captures personal contact
- * info (name, email + verify, phone + verify, city, state); Step 2 stacks
- * all four document uploads (Aadhaar, PAN, selfie, trade certificate) plus
- * the attestation checkbox in a single scrollable page.
+ * info (name, email + verify, phone + verify, service address + map pin);
+ * Step 2 stacks Aadhaar + PAN + trade-certificate uploads plus the
+ * attestation checkbox in a single scrollable page. (Selfie was dropped
+ * in v2.)
  *
  * Skills / service radius / hourly rate / specializations live on the
  * separate engineer-profile editor (Routes.ENGINEER_PROFILE) — engineers
@@ -18,12 +19,12 @@ enum class KycStep(
     Personal(
         number = 1,
         title = "Personal",
-        subtitle = "Name, email, phone",
+        subtitle = "Name, email, phone, service area",
     ),
     Documents(
         number = 2,
         title = "Documents",
-        subtitle = "Upload your IDs + selfie + certificate",
+        subtitle = "Aadhaar + PAN + certificate",
     );
 
     fun next(): KycStep? = entries.getOrNull(ordinal + 1)
