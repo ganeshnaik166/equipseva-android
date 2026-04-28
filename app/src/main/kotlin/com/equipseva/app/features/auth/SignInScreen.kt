@@ -1,6 +1,5 @@
 package com.equipseva.app.features.auth
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,55 +13,42 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.equipseva.app.R
-import com.equipseva.app.designsystem.components.EmailField
+import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.EsBtnKind
+import com.equipseva.app.designsystem.components.EsBtnSize
+import com.equipseva.app.designsystem.components.EsField
+import com.equipseva.app.designsystem.components.EsFieldType
+import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.ErrorBanner
-import com.equipseva.app.designsystem.components.PasswordField
-import com.equipseva.app.designsystem.components.PrimaryButton
-import com.equipseva.app.designsystem.theme.BrandGreen
-import com.equipseva.app.designsystem.theme.BrandGreen50
-import com.equipseva.app.designsystem.theme.BrandGreenDark
-import com.equipseva.app.designsystem.theme.BrandGreenDeep
-import com.equipseva.app.designsystem.theme.Ink500
-import com.equipseva.app.designsystem.theme.Ink700
-import com.equipseva.app.designsystem.theme.Ink900
-import com.equipseva.app.designsystem.theme.Spacing
-import com.equipseva.app.designsystem.theme.Surface0
-import com.equipseva.app.designsystem.theme.Surface200
+import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.EsType
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaGreen700
+import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk900
 import com.equipseva.app.features.auth.state.AuthEffect
 
 @Composable
 fun SignInScreen(
+    onBack: () -> Unit,
     onForgotPassword: () -> Unit,
+    onCreateAccount: () -> Unit,
     onShowMessage: (String) -> Unit,
     viewModel: SignInViewModel = hiltViewModel(),
 ) {
@@ -78,67 +64,7 @@ fun SignInScreen(
         }
     }
 
-    AuthHeaderShell(
-        eyebrow = "WELCOME BACK",
-        title = "Sign in to EquipSeva",
-        subtitle = "Pick up where you left off — orders, parts, and engineers.",
-    ) {
-        ErrorBanner(message = state.form.errorMessage)
-
-        EmailField(
-            value = state.email,
-            onValueChange = viewModel::onEmailChange,
-            enabled = !state.form.submitting,
-            isError = state.emailError != null,
-            errorText = state.emailError,
-            imeAction = ImeAction.Next,
-        )
-
-        PasswordField(
-            value = state.password,
-            onValueChange = viewModel::onPasswordChange,
-            enabled = !state.form.submitting,
-            isError = state.passwordError != null,
-            errorText = state.passwordError,
-            imeAction = ImeAction.Done,
-            onImeAction = viewModel::onSubmit,
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-        ) {
-            TextButton(onClick = onForgotPassword, enabled = !state.form.submitting) {
-                Text(
-                    "Forgot password?",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = BrandGreen,
-                )
-            }
-        }
-
-        PrimaryButton(
-            label = "Sign in",
-            onClick = viewModel::onSubmit,
-            enabled = state.canSubmit,
-            loading = state.form.submitting,
-        )
-
-        Spacer(Modifier.height(Spacing.md))
-    }
-}
-
-/* ----- Shared header shell used by SignIn / SignUp / OtpRequest / OtpVerify ----- */
-
-@Composable
-internal fun AuthHeaderShell(
-    eyebrow: String,
-    title: String,
-    subtitle: String,
-    content: @Composable () -> Unit,
-) {
-    Surface(modifier = Modifier.fillMaxSize(), color = Surface0) {
+    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -146,128 +72,110 @@ internal fun AuthHeaderShell(
                 .imePadding()
                 .verticalScroll(rememberScrollState()),
         ) {
-            // Top accent strip (gradient) — anchors the brand on every form.
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(BrandGreenDeep, BrandGreen, BrandGreenDark),
-                        ),
-                    ),
-            )
-
+            EsTopBar(title = "Sign in", onBack = onBack)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = Spacing.xl)
-                    .padding(top = Spacing.xl, bottom = Spacing.xl),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
             ) {
-                // Logo + eyebrow row.
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(BrandGreen50),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_logo_full),
-                            contentDescription = "EquipSeva logo",
-                            modifier = Modifier.size(36.dp),
-                        )
-                    }
+                Text(
+                    text = "Welcome back",
+                    style = EsType.H3,
+                    color = SevaInk900,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "Sign in to your EquipSeva account.",
+                    style = EsType.BodySm,
+                    color = SevaInk500,
+                )
+                Spacer(Modifier.height(24.dp))
+
+                ErrorBanner(message = state.form.errorMessage)
+
+                EsField(
+                    value = state.email,
+                    onChange = viewModel::onEmailChange,
+                    label = "Email",
+                    placeholder = "you@hospital.com",
+                    type = EsFieldType.Email,
+                    error = state.emailError,
+                    enabled = !state.form.submitting,
+                )
+                Spacer(Modifier.height(14.dp))
+                EsField(
+                    value = state.password,
+                    onChange = viewModel::onPasswordChange,
+                    label = "Password",
+                    type = EsFieldType.Password,
+                    error = state.passwordError,
+                    enabled = !state.form.submitting,
+                )
+                // Forgot link, right-aligned.
+                Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.End) {
                     Text(
-                        text = eyebrow,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 1.2.sp,
-                        color = Ink500,
+                        text = "Forgot password?",
+                        style = EsType.Caption.copy(fontWeight = FontWeight.SemiBold),
+                        color = SevaGreen700,
+                        modifier = Modifier.clickable(enabled = !state.form.submitting, onClick = onForgotPassword),
                     )
                 }
 
-                Spacer(Modifier.height(Spacing.xs))
-
-                Text(
-                    text = title,
-                    fontSize = 26.sp,
-                    lineHeight = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.4).sp,
-                    color = Ink900,
-                    modifier = Modifier.semantics { heading() },
+                Spacer(Modifier.height(24.dp))
+                EsBtn(
+                    text = "Sign in",
+                    onClick = viewModel::onSubmit,
+                    kind = EsBtnKind.Primary,
+                    size = EsBtnSize.Lg,
+                    full = true,
+                    disabled = !state.canSubmit || state.form.submitting,
                 )
-                Text(
-                    text = subtitle,
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp,
-                    color = Ink700,
+                Spacer(Modifier.height(16.dp))
+                OrDivider()
+                Spacer(Modifier.height(16.dp))
+                // Google sign-in button — no leading icon yet (round B
+                // doesn't yet ship the multi-colour Google glyph SVG).
+                EsBtn(
+                    text = "Continue with Google",
+                    onClick = viewModel::onSubmit,
+                    kind = EsBtnKind.Secondary,
+                    size = EsBtnSize.Lg,
+                    full = true,
+                    disabled = state.form.submitting,
                 )
 
-                Spacer(Modifier.height(Spacing.sm))
-
-                content()
+                Spacer(Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Text(
+                        text = "New here? ",
+                        style = EsType.BodySm,
+                        color = SevaInk500,
+                    )
+                    Text(
+                        text = "Create account",
+                        style = EsType.BodySm.copy(fontWeight = FontWeight.SemiBold),
+                        color = SevaGreen700,
+                        modifier = Modifier.clickable(onClick = onCreateAccount),
+                    )
+                }
+                Spacer(Modifier.height(24.dp))
             }
         }
     }
 }
 
 @Composable
-internal fun OrDividerLine() {
+private fun OrDivider() {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(1.dp)
-                .background(Surface200),
-        )
-        Text(
-            text = "OR",
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.sp,
-            color = Ink500,
-        )
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(1.dp)
-                .background(Surface200),
-        )
+        Box(modifier = Modifier.weight(1f).height(1.dp).background(BorderDefault))
+        Text(text = "or", style = EsType.Caption, color = SevaInk500, textAlign = TextAlign.Center)
+        Box(modifier = Modifier.weight(1f).height(1.dp).background(BorderDefault))
     }
-}
-
-@Composable
-@Suppress("unused")
-internal fun SwitchAuthLink(
-    leading: String,
-    actionLabel: String,
-    onClick: () -> Unit,
-) {
-    val annotated = buildAnnotatedString {
-        append("$leading ")
-        withStyle(
-            SpanStyle(color = BrandGreen, fontWeight = FontWeight.Bold),
-        ) { append(actionLabel) }
-    }
-    Text(
-        text = annotated,
-        fontSize = 13.sp,
-        color = Ink700,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(Spacing.sm))
-            .clickable(onClick = onClick)
-            .padding(vertical = Spacing.sm),
-    )
 }
