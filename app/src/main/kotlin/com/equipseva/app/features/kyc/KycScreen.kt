@@ -475,28 +475,24 @@ private fun PersonalStep(
             Icon(
                 imageVector = Icons.Filled.Phone,
                 contentDescription = null,
-                tint = when {
-                    state.phone.isNullOrBlank() -> Warning
-                    state.phoneVerified -> Success
-                    else -> Warning
-                },
+                tint = if (state.phoneVerified) Success else Ink500,
                 modifier = Modifier.size(18.dp),
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = when {
-                        state.phone.isNullOrBlank() -> "Phone — required"
+                        state.phone.isNullOrBlank() -> "Phone — optional"
                         state.phoneVerified -> "Phone (verified)"
-                        else -> "Phone — verify required"
+                        else -> "Phone — tap Verify"
                     },
                     fontSize = 11.sp,
                     color = Ink500,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = state.phone ?: "Not added yet",
+                    text = state.phone ?: "Add so hospitals can call you",
                     fontSize = 13.sp,
-                    color = if (state.phoneVerified) Ink900 else Warning,
+                    color = if (state.phone.isNullOrBlank()) Ink500 else Ink900,
                     fontWeight = FontWeight.SemiBold,
                 )
             }
