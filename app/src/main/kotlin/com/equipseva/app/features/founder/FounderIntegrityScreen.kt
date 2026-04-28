@@ -17,7 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -32,18 +32,19 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.equipseva.app.designsystem.components.ESBackTopBar
+import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
-import com.equipseva.app.designsystem.theme.BrandGreen
-import com.equipseva.app.designsystem.theme.ErrorRed
-import com.equipseva.app.designsystem.theme.Ink500
-import com.equipseva.app.designsystem.theme.Ink700
-import com.equipseva.app.designsystem.theme.Ink900
-import com.equipseva.app.designsystem.theme.Spacing
-import com.equipseva.app.designsystem.theme.Surface0
-import com.equipseva.app.designsystem.theme.Surface200
-import com.equipseva.app.designsystem.theme.Surface50
+import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.Paper2
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaDanger50
+import com.equipseva.app.designsystem.theme.SevaDanger500
+import com.equipseva.app.designsystem.theme.SevaGreen700
+import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk700
+import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.designsystem.theme.SevaSuccess50
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -81,29 +82,36 @@ fun FounderIntegrityScreen(
     viewModel: FounderIntegrityViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    Scaffold(topBar = { ESBackTopBar(title = "Integrity flags", onBack = onBack) }) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding).background(Surface50)) {
-            when {
-                state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-                state.error != null -> EmptyStateView(
-                    icon = Icons.Outlined.Security,
-                    title = "Couldn't load",
-                    subtitle = state.error,
-                )
-                state.rows.isEmpty() -> EmptyStateView(
-                    icon = Icons.Outlined.Security,
-                    title = "No integrity events yet",
-                    subtitle = "Play Integrity attestations appear here",
-                )
-                else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(Spacing.md),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    items(state.rows, key = { it.checkId }) { row ->
-                        IntegrityRow(row = row)
+    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            EsTopBar(
+                title = "Integrity flags",
+                subtitle = if (state.rows.isNotEmpty()) "${state.rows.size} events" else null,
+                onBack = onBack,
+            )
+            Box(modifier = Modifier.fillMaxSize()) {
+                when {
+                    state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                    state.error != null -> EmptyStateView(
+                        icon = Icons.Outlined.Security,
+                        title = "Couldn't load",
+                        subtitle = state.error,
+                    )
+                    state.rows.isEmpty() -> EmptyStateView(
+                        icon = Icons.Outlined.Security,
+                        title = "No integrity events yet",
+                        subtitle = "Play Integrity attestations appear here",
+                    )
+                    else -> LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(state.rows, key = { it.checkId }) { row ->
+                            IntegrityRow(row = row)
+                        }
                     }
                 }
             }
@@ -117,9 +125,9 @@ private fun IntegrityRow(row: FounderRepository.IntegrityFlag) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(Surface0)
-            .border(1.dp, Surface200, RoundedCornerShape(14.dp))
-            .padding(Spacing.md),
+            .background(androidx.compose.ui.graphics.Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(14.dp))
+            .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(
@@ -130,20 +138,20 @@ private fun IntegrityRow(row: FounderRepository.IntegrityFlag) {
             PassFailPill(pass = row.pass)
             Text(
                 text = row.action ?: "unknown action",
-                color = Ink900,
+                color = SevaInk900,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f),
             )
             row.createdAt?.let { ts ->
                 Text(
                     text = relativeTime(ts),
-                    color = Ink500,
+                    color = SevaInk500,
                     fontSize = 11.sp,
                 )
             }
         }
         row.userEmail?.let {
-            Text(it, color = Ink700, fontSize = 13.sp)
+            Text(it, color = SevaInk700, fontSize = 13.sp)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             VerdictChip(label = "device", value = row.deviceVerdict)
@@ -156,9 +164,9 @@ private fun IntegrityRow(row: FounderRepository.IntegrityFlag) {
 @Composable
 private fun PassFailPill(pass: Boolean) {
     val (bg, fg, txt) = if (pass) {
-        Triple(Color(0xFFE6F2ED), BrandGreen, "PASS")
+        Triple(SevaSuccess50, SevaGreen700, "PASS")
     } else {
-        Triple(Color(0xFFFADCE3), ErrorRed, "FAIL")
+        Triple(SevaDanger50, SevaDanger500, "FAIL")
     }
     Box(
         modifier = Modifier
@@ -176,13 +184,13 @@ private fun VerdictChip(label: String, value: String?) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(Surface50)
-            .border(1.dp, Surface200, RoundedCornerShape(8.dp))
+            .background(Paper2)
+            .border(1.dp, BorderDefault, RoundedCornerShape(8.dp))
             .padding(horizontal = 8.dp, vertical = 3.dp),
     ) {
         Text(
             text = "$label: $v",
-            color = Ink700,
+            color = SevaInk700,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
         )
