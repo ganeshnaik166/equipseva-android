@@ -413,8 +413,45 @@ fun MainNavGraph(
             composable(Routes.REQUEST_SERVICE) {
                 RequestServiceScreen(
                     onBack = { navController.popBackStack() },
-                    onSubmitted = { navController.popBackStack() },
+                    onSubmitted = { jobId, jobNumber ->
+                        navController.navigate(Routes.requestSentRoute(jobId, jobNumber)) {
+                            popUpTo(Routes.REQUEST_SERVICE) { inclusive = true }
+                        }
+                    },
                     onShowMessage = showSnackbar,
+                )
+            }
+            composable(
+                route = "${Routes.REQUEST_SENT}?jobId={jobId}&jobNumber={jobNumber}",
+                arguments = listOf(
+                    androidx.navigation.navArgument("jobId") {
+                        type = androidx.navigation.NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    androidx.navigation.navArgument("jobNumber") {
+                        type = androidx.navigation.NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) { entry ->
+                val jobId = entry.arguments?.getString("jobId")
+                val jobNumber = entry.arguments?.getString("jobNumber")
+                com.equipseva.app.features.hospital.RequestSentScreen(
+                    jobNumber = jobNumber,
+                    onViewJob = {
+                        if (!jobId.isNullOrBlank()) {
+                            navController.navigate(Routes.repairJobDetailRoute(jobId)) {
+                                popUpTo(Routes.HOME)
+                            }
+                        } else {
+                            navController.popBackStack(Routes.HOME, inclusive = false)
+                        }
+                    },
+                    onBackHome = {
+                        navController.popBackStack(Routes.HOME, inclusive = false)
+                    },
                 )
             }
             composable(Routes.HOSPITAL_ACTIVE_JOBS) {

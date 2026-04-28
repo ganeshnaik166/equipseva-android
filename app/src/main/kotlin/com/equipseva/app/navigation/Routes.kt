@@ -54,6 +54,17 @@ object Routes {
     const val REQUEST_SERVICE = "hospital/request_service"
     const val HOSPITAL_ACTIVE_JOBS = "hospital/active_jobs"
 
+    // Confirmation landing after a successful repair-job submit. Optional
+    // jobId + jobNumber query args drive the "View job" CTA + display copy.
+    const val REQUEST_SENT = "hospital/request_sent"
+    fun requestSentRoute(jobId: String?, jobNumber: String?): String {
+        val params = buildList {
+            if (!jobId.isNullOrBlank()) add("jobId=$jobId")
+            if (!jobNumber.isNullOrBlank()) add("jobNumber=$jobNumber")
+        }
+        return if (params.isEmpty()) REQUEST_SENT else "$REQUEST_SENT?${params.joinToString("&")}"
+    }
+
     // Engineer Jobs hub — chooser landing for an engineer's daily workflow
     // (available jobs, my bids, active work, earnings, profile editor).
     const val ENGINEER_JOBS_HUB = "engineer/jobs_hub"

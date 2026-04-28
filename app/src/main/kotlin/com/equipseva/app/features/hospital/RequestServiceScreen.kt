@@ -81,7 +81,7 @@ import com.equipseva.app.designsystem.theme.Warning
 @Composable
 fun RequestServiceScreen(
     onBack: () -> Unit,
-    onSubmitted: () -> Unit,
+    onSubmitted: (jobId: String?, jobNumber: String?) -> Unit,
     onShowMessage: (String) -> Unit,
     viewModel: RequestServiceViewModel = hiltViewModel(),
 ) {
@@ -127,9 +127,8 @@ fun RequestServiceScreen(
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                RequestServiceViewModel.Effect.Submitted -> {
-                    onShowMessage("Service request submitted")
-                    onSubmitted()
+                is RequestServiceViewModel.Effect.Submitted -> {
+                    onSubmitted(effect.jobId, effect.jobNumber)
                 }
                 is RequestServiceViewModel.Effect.ShowMessage -> {
                     onShowMessage(effect.text)

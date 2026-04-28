@@ -52,7 +52,7 @@ class RequestServiceViewModel @Inject constructor(
     )
 
     sealed interface Effect {
-        data object Submitted : Effect
+        data class Submitted(val jobId: String, val jobNumber: String?) : Effect
         data class ShowMessage(val text: String) : Effect
     }
 
@@ -190,11 +190,11 @@ class RequestServiceViewModel @Inject constructor(
                 estimatedCostRupees = estimatedCost,
             )
             jobRepository.create(draft)
-                .onSuccess {
+                .onSuccess { job ->
                     _state.update {
                         UiState()
                     }
-                    effectChannel.trySend(Effect.Submitted)
+                    effectChannel.trySend(Effect.Submitted(jobId = job.id, jobNumber = job.jobNumber))
                 }
                 .onFailure { error ->
                     _state.update {
