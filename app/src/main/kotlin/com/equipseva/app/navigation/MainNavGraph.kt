@@ -412,6 +412,7 @@ fun MainNavGraph(
                 EarningsScreen(
                     onBack = { navController.popBackStack() },
                     onJobClick = { jobId -> navController.navigate(Routes.repairJobDetailRoute(jobId)) },
+                    onBankDetails = { navController.navigate(Routes.PROFILE_BANK_DETAILS) },
                 )
             }
             composable(Routes.ACTIVE_WORK) {
