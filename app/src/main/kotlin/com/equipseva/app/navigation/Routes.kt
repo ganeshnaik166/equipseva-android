@@ -114,6 +114,9 @@ object Routes {
 
     const val FOUNDER_DASHBOARD = "founder/dashboard"
     const val FOUNDER_KYC_QUEUE = "founder/kyc"
+    const val FOUNDER_KYC_REVIEW = "founder/kyc/review"
+    const val FOUNDER_KYC_REVIEW_ARG_USER_ID = "userId"
+    fun founderKycReviewRoute(userId: String): String = "$FOUNDER_KYC_REVIEW/$userId"
     const val FOUNDER_REPORTS_QUEUE = "founder/reports"
     const val FOUNDER_USERS = "founder/users"
     const val FOUNDER_PAYMENTS = "founder/payments"

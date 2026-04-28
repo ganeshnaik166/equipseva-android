@@ -141,6 +141,7 @@ class FounderKycQueueViewModel @Inject constructor(
 @Composable
 fun FounderKycQueueScreen(
     onBack: () -> Unit,
+    onOpenReview: (userId: String) -> Unit = {},
     viewModel: FounderKycQueueViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -191,6 +192,7 @@ fun FounderKycQueueScreen(
                         items(state.rows, key = { it.userId }) { row ->
                             EngineerRow(
                                 row = row,
+                                onClick = { onOpenReview(row.userId) },
                                 onApprove = { viewModel.openApprove(row.userId, row.fullName) },
                                 onReject = { viewModel.openReject(row.userId, row.fullName) },
                                 onViewDoc = openDoc,
@@ -264,6 +266,7 @@ fun FounderKycQueueScreen(
 @Composable
 private fun EngineerRow(
     row: FounderRepository.PendingEngineer,
+    onClick: () -> Unit,
     onApprove: () -> Unit,
     onReject: () -> Unit,
     onViewDoc: (FounderRepository.PendingEngineer.DocRef) -> Unit = {},
@@ -274,6 +277,7 @@ private fun EngineerRow(
             .clip(RoundedCornerShape(12.dp))
             .background(androidx.compose.ui.graphics.Color.White)
             .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {

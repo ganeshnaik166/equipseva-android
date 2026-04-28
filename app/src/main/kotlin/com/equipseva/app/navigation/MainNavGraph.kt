@@ -505,6 +505,21 @@ fun MainNavGraph(
             composable(Routes.FOUNDER_KYC_QUEUE) {
                 com.equipseva.app.features.founder.FounderKycQueueScreen(
                     onBack = { navController.popBackStack() },
+                    onOpenReview = { userId ->
+                        navController.navigate(Routes.founderKycReviewRoute(userId))
+                    },
+                )
+            }
+            composable(
+                route = "${Routes.FOUNDER_KYC_REVIEW}/{${Routes.FOUNDER_KYC_REVIEW_ARG_USER_ID}}",
+                arguments = listOf(
+                    androidx.navigation.navArgument(Routes.FOUNDER_KYC_REVIEW_ARG_USER_ID) {
+                        type = androidx.navigation.NavType.StringType
+                    },
+                ),
+            ) {
+                com.equipseva.app.features.founder.FounderKycReviewScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.FOUNDER_REPORTS_QUEUE) {
