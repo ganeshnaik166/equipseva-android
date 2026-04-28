@@ -4,14 +4,13 @@ import android.app.Application
 import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
-import com.equipseva.app.core.data.cart.CartSyncBootstrap
 import com.equipseva.app.core.observability.SentryInitializer
 import com.equipseva.app.core.observability.SentryUserBridge
 import com.equipseva.app.core.observability.StartupTelemetry
 import com.equipseva.app.core.push.NotificationChannels
 import com.equipseva.app.core.security.DeviceIntegrityCheck
 import com.equipseva.app.core.security.SignatureVerifier
-import com.razorpay.Checkout
+import com.equipseva.app.core.sync.OutboxScheduler
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -21,7 +20,7 @@ class EquipSevaApplication : Application(), Configuration.Provider {
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var sentryInitializer: SentryInitializer
     @Inject lateinit var sentryUserBridge: SentryUserBridge
-    @Inject lateinit var cartSyncBootstrap: CartSyncBootstrap
+    @Inject lateinit var outboxScheduler: OutboxScheduler
 
     override fun onCreate() {
         super.onCreate()
@@ -34,13 +33,13 @@ class EquipSevaApplication : Application(), Configuration.Provider {
         sentryUserBridge.attach()
         StartupTelemetry.markStart()
         NotificationChannels.register(this)
-        // Warm the Razorpay WebView so the first checkout tap isn't blocked on asset load.
-        Checkout.preload(applicationContext)
-
-        // Reconcile the server-side cart into Room once per session start so
-        // the basket survives reinstall and roams across devices. Mutations
-        // after this initial pull drain through the CART_MUTATION outbox.
-        cartSyncBootstrap.start()
+        // Periodic 15-minute drain of the offline outbox. Without this,
+        // queued writes only flush via the one-shot piggybacked onto each
+        // enqueue() call — a user who queued a write offline, killed the
+        // app, then came back online days later would never see it sync
+        // until they triggered another write. Cancelled on sign-out by
+        // [OutboxScheduler.cancelAll].
+        outboxScheduler.schedulePeriodic()
 
         // Report-only anti-tamper: log signals on boot. Enforcement (wipe
         // session + show "not authorized" screen) flips on once the release

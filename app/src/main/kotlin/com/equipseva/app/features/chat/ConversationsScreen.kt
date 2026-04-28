@@ -15,23 +15,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.CloudSync
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,19 +34,23 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.EsField
+import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.ListSkeleton
-import com.equipseva.app.designsystem.theme.BrandGreen
-import com.equipseva.app.designsystem.theme.BrandGreen50
-import com.equipseva.app.core.util.relativeLabel
-import com.equipseva.app.designsystem.theme.Ink500
-import com.equipseva.app.designsystem.theme.Ink900
-import com.equipseva.app.designsystem.theme.Spacing
-import com.equipseva.app.designsystem.theme.Surface100
+import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.EsType
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaGreen50
+import com.equipseva.app.designsystem.theme.SevaGreen700
+import com.equipseva.app.designsystem.theme.SevaGreen900
+import com.equipseva.app.designsystem.theme.SevaInk400
+import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk900
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,60 +61,27 @@ fun ConversationsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        "Messages",
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Ink900,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Ink900,
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
-        },
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
-            ErrorBanner(
-                message = state.errorMessage,
-                modifier = Modifier.padding(horizontal = Spacing.lg),
-            )
+    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            EsTopBar(title = "Messages", onBack = onBack)
+            ErrorBanner(message = state.errorMessage)
             QueuedPill(count = state.queuedCount)
             if (!state.loading && state.rows.isNotEmpty()) {
-                OutlinedTextField(
-                    value = state.query,
-                    onValueChange = viewModel::onQueryChange,
-                    placeholder = { Text("Search conversations") },
-                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Ink500) },
-                    trailingIcon = if (state.query.isNotEmpty()) {
-                        {
-                            IconButton(onClick = { viewModel.onQueryChange("") }) {
-                                Icon(Icons.Filled.Clear, contentDescription = "Clear search", tint = Ink500)
-                            }
-                        }
-                    } else null,
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-                )
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    EsField(
+                        value = state.query,
+                        onChange = viewModel::onQueryChange,
+                        placeholder = "Search conversations",
+                        leading = {
+                            Icon(
+                                Icons.Filled.Search,
+                                contentDescription = null,
+                                tint = SevaInk500,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        },
+                    )
+                }
             }
             when {
                 state.loading && state.rows.isEmpty() -> ListSkeleton(rows = 8)
@@ -137,7 +101,9 @@ fun ConversationsScreen(
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.White),
                         contentPadding = PaddingValues(vertical = 0.dp),
                     ) {
                         items(items = state.displayedRows, key = { it.conversation.id }) { row ->
@@ -145,7 +111,7 @@ fun ConversationsScreen(
                                 row = row,
                                 onClick = { onConversationClick(row.conversation.id) },
                             )
-                            HorizontalDivider(color = Surface100, thickness = 1.dp)
+                            HorizontalDivider(color = BorderDefault, thickness = 1.dp)
                         }
                     }
                 }
@@ -163,18 +129,17 @@ private fun ConversationRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = Spacing.md, vertical = Spacing.sm + 4.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm + 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         InitialsAvatar(name = row.title)
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = row.title,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Ink900,
+                    style = EsType.Body.copy(fontWeight = FontWeight.SemiBold),
+                    color = SevaInk900,
                     maxLines = 1,
                     modifier = Modifier.weight(1f),
                 )
@@ -182,21 +147,21 @@ private fun ConversationRow(
                 if (!ts.isNullOrBlank()) {
                     Text(
                         text = ts,
-                        fontSize = 11.sp,
-                        fontWeight = if (row.conversation.unreadCount > 0) FontWeight.Bold else FontWeight.Medium,
-                        color = if (row.conversation.unreadCount > 0) BrandGreen else Ink500,
+                        style = EsType.Caption,
+                        color = SevaInk400,
                     )
                 }
             }
             Row(
-                modifier = Modifier.padding(top = 3.dp),
+                modifier = Modifier.padding(top = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text = row.preview,
-                    fontSize = 13.sp,
-                    fontWeight = if (row.conversation.unreadCount > 0) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (row.conversation.unreadCount > 0) Ink900 else Ink500,
+                    style = if (row.conversation.unreadCount > 0)
+                        EsType.BodySm.copy(fontWeight = FontWeight.SemiBold)
+                    else EsType.BodySm,
+                    color = if (row.conversation.unreadCount > 0) SevaInk900 else SevaInk500,
                     maxLines = 1,
                     modifier = Modifier.weight(1f),
                 )
@@ -214,16 +179,15 @@ private fun UnreadBadge(count: Int) {
     Box(
         modifier = Modifier
             .padding(start = 8.dp)
-            .size(20.dp)
+            .size(18.dp)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary),
+            .background(SevaGreen700),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimary,
+            style = EsType.Caption.copy(fontWeight = FontWeight.Bold),
+            color = Color.White,
         )
     }
 }
@@ -238,17 +202,15 @@ private fun InitialsAvatar(name: String) {
         .ifBlank { "?" }
     Box(
         modifier = Modifier
-            .size(48.dp)
+            .size(44.dp)
             .clip(CircleShape)
-            .background(BrandGreen50)
-            .border(1.dp, Color(0x14000000), CircleShape),
+            .background(SevaGreen50),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = initials,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Bold,
-            color = BrandGreen,
+            style = EsType.Body.copy(fontWeight = FontWeight.Bold),
+            color = SevaGreen900,
         )
     }
 }
@@ -259,9 +221,9 @@ private fun QueuedPill(count: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = Spacing.xs)
+            .padding(horizontal = 16.dp, vertical = 4.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(BrandGreen50)
+            .background(SevaGreen50)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -269,15 +231,14 @@ private fun QueuedPill(count: Int) {
         Icon(
             imageVector = Icons.Outlined.CloudSync,
             contentDescription = null,
-            tint = BrandGreen,
+            tint = SevaGreen700,
             modifier = Modifier.size(16.dp),
         )
         Text(
             text = if (count == 1) "1 message queued — will send when back online"
             else "$count messages queued — will send when back online",
-            fontSize = 13.sp,
-            color = Ink900,
+            style = EsType.Caption,
+            color = SevaInk900,
         )
     }
 }
-

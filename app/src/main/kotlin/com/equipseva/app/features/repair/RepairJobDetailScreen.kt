@@ -1,11 +1,16 @@
 package com.equipseva.app.features.repair
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +19,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.outlined.CloudSync
@@ -22,7 +30,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -61,12 +72,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.data.repair.RepairJob
@@ -116,43 +130,37 @@ fun RepairJobDetailScreen(
     }
 
     Scaffold(
+        containerColor = com.equipseva.app.designsystem.theme.PaperDefault,
         topBar = {
-            TopAppBar(
-                title = { Text(state.job?.jobNumber ?: "Repair request") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
+            com.equipseva.app.designsystem.components.EsTopBar(
+                title = state.job?.jobNumber ?: "Repair request",
+                onBack = onBack,
+                right = {
                     if (state.canReport) {
                         var menuOpen by rememberSaveable { mutableStateOf(false) }
-                        IconButton(onClick = { menuOpen = true }) {
-                            Icon(
-                                imageVector = Icons.Filled.MoreVert,
-                                contentDescription = "More",
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = menuOpen,
-                            onDismissRequest = { menuOpen = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Report job") },
-                                onClick = {
-                                    menuOpen = false
-                                    viewModel.onOpenReport()
-                                },
-                            )
+                        Box {
+                            IconButton(onClick = { menuOpen = true }) {
+                                Icon(
+                                    imageVector = Icons.Filled.MoreVert,
+                                    contentDescription = "More",
+                                    tint = com.equipseva.app.designsystem.theme.SevaInk900,
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = menuOpen,
+                                onDismissRequest = { menuOpen = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Report job") },
+                                    onClick = {
+                                        menuOpen = false
+                                        viewModel.onOpenReport()
+                                    },
+                                )
+                            }
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
             )
         },
         bottomBar = {
@@ -199,8 +207,9 @@ fun RepairJobDetailScreen(
                     submittingRating = state.submittingRating,
                     acceptingBidId = state.acceptingBidId,
                     openingChat = state.openingChat,
+                    afterPhotoSignedUrls = state.afterPhotoSignedUrls,
                     onCheckIn = viewModel::checkIn,
-                    onMarkDone = viewModel::markDone,
+                    onMarkDone = viewModel::openProofSheet,
                     onCancelJob = viewModel::cancelJob,
                     onSubmitRating = viewModel::submitRating,
                     onAcceptBid = viewModel::acceptBid,
@@ -216,6 +225,14 @@ fun RepairJobDetailScreen(
             placingBid = state.placingBid,
             onDismiss = viewModel::closeBidComposer,
             onSubmit = viewModel::submitBid,
+        )
+    }
+
+    if (state.proofSheetOpen && state.job != null) {
+        CompletionProofSheet(
+            submitting = state.submittingProof,
+            onDismiss = viewModel::closeProofSheet,
+            onSubmit = viewModel::submitCompletionProof,
         )
     }
 
@@ -270,6 +287,7 @@ private fun JobBody(
     submittingRating: Boolean,
     acceptingBidId: String?,
     openingChat: Boolean,
+    afterPhotoSignedUrls: List<String>,
     onCheckIn: () -> Unit,
     onMarkDone: () -> Unit,
     onCancelJob: () -> Unit,
@@ -307,7 +325,16 @@ private fun JobBody(
         IssueCard(job = job)
 
         SectionHeader(title = "Location")
-        LocationCard()
+        LocationCard(
+            siteLocation = job.siteLocation,
+            siteLatitude = job.siteLatitude,
+            siteLongitude = job.siteLongitude,
+            // Engineer sees the real address + a Navigate CTA only after a
+            // bid is accepted (job.isAssignedToEngineer). Other roles either
+            // already know it (hospital posted it) or aren't entitled.
+            revealAddressForEngineer = job.isAssignedToEngineer,
+            viewerRole = viewerRole,
+        )
 
         if (isHospital) {
             SectionHeader(title = "Bids received")
@@ -327,6 +354,11 @@ private fun JobBody(
 
         SectionHeader(title = "Status")
         StatusStepperCard(job = job)
+
+        if (afterPhotoSignedUrls.isNotEmpty()) {
+            SectionHeader(title = "Completion proof")
+            CompletionProofGallery(urls = afterPhotoSignedUrls)
+        }
 
         if (job.status == RepairJobStatus.Completed &&
             viewerRole != RepairJobDetailViewModel.ViewerRole.Other
@@ -709,38 +741,103 @@ private fun IssueCard(job: RepairJob) {
 }
 
 @Composable
-private fun LocationCard() {
-    // Map rendering intentionally skipped — see deviations. Show the address row + Directions button.
+private fun LocationCard(
+    siteLocation: String?,
+    siteLatitude: Double?,
+    siteLongitude: Double?,
+    revealAddressForEngineer: Boolean,
+    viewerRole: RepairJobDetailViewModel.ViewerRole,
+) {
     val shape = MaterialTheme.shapes.medium
-    Row(
+    val context = LocalContext.current
+    val isEngineer = viewerRole == RepairJobDetailViewModel.ViewerRole.Engineer
+    val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
+    // Engineer can see + navigate once they're assigned. Hospital always sees
+    // the address they typed. Other roles get a generic placeholder.
+    val canShowAddress = !siteLocation.isNullOrBlank() &&
+        (isHospital || (isEngineer && revealAddressForEngineer))
+    Column(
         modifier = Modifier
             .padding(horizontal = Spacing.lg)
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface, shape)
             .border(1.dp, Surface200, shape)
             .padding(Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Icon(
-                    imageVector = Icons.Outlined.LocationOn,
-                    contentDescription = null,
-                    tint = BrandGreen,
-                    modifier = Modifier.size(18.dp),
-                )
-                Text(
-                    text = "Service site",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Ink700,
-                )
-            }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Icon(
+                imageVector = Icons.Outlined.LocationOn,
+                contentDescription = null,
+                tint = BrandGreen,
+                modifier = Modifier.size(18.dp),
+            )
             Text(
-                text = "Address will be shared once the bid is accepted.",
+                text = "Service site",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Ink700,
+            )
+        }
+        if (canShowAddress) {
+            Text(
+                text = siteLocation!!,
+                fontSize = 14.sp,
+                color = Ink900,
+                fontWeight = FontWeight.SemiBold,
+            )
+            // Engineer-only Navigate CTA. Hospitals already know where they
+            // are; the button would be visual noise for them.
+            if (isEngineer) {
+                OutlinedButton(
+                    onClick = {
+                        // Prefer geo:lat,lng?q=lat,lng(label) when the
+                        // hospital pinned a marker — Maps opens straight to
+                        // the dropped pin instead of guessing from the text
+                        // address. Falls back to geo:0,0?q=<address> when
+                        // only the free-text label exists (legacy rows or
+                        // engineer signed up before the picker landed).
+                        val encoded = Uri.encode(siteLocation)
+                        val uri = if (siteLatitude != null && siteLongitude != null) {
+                            val label = Uri.encode("Service site")
+                            Uri.parse("geo:$siteLatitude,$siteLongitude?q=$siteLatitude,$siteLongitude($label)")
+                        } else {
+                            Uri.parse("geo:0,0?q=$encoded")
+                        }
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+                        try {
+                            context.startActivity(intent)
+                        } catch (_: android.content.ActivityNotFoundException) {
+                            val fallbackUrl = if (siteLatitude != null && siteLongitude != null) {
+                                "https://www.google.com/maps/dir/?api=1&destination=$siteLatitude,$siteLongitude"
+                            } else {
+                                "https://www.google.com/maps/dir/?api=1&destination=$encoded"
+                            }
+                            val fallback = android.content.Intent(
+                                android.content.Intent.ACTION_VIEW,
+                                Uri.parse(fallbackUrl),
+                            )
+                            try { context.startActivity(fallback) } catch (_: Throwable) {}
+                        }
+                    },
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.LocationOn,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text("Navigate to site")
+                }
+            }
+        } else {
+            Text(
+                text = if (isEngineer)
+                    "Full address shows up after the hospital accepts your bid."
+                else
+                    "Address will be shared once the bid is accepted.",
                 fontSize = 13.sp,
                 color = Ink700,
-                modifier = Modifier.padding(top = 4.dp),
             )
         }
     }
@@ -956,25 +1053,7 @@ private fun YourBidCard(ownBid: RepairBid?) {
 
 @Composable
 private fun StatusStepperCard(job: RepairJob) {
-    val shape = MaterialTheme.shapes.medium
-    val onSiteTime = job.startedAtInstant?.let { "${relativeLabel(it)} ago" }
-    val completedTime = job.completedAtInstant?.let { "${relativeLabel(it)} ago" }
-    val steps = listOf(
-        StepperStep(title = "Open · awaiting bids"),
-        StepperStep(title = "Bids received"),
-        StepperStep(title = "Accepted"),
-        StepperStep(title = "En route"),
-        StepperStep(title = "On site", time = onSiteTime),
-        StepperStep(title = "Completed", time = completedTime),
-    )
-    val current = when (job.status) {
-        RepairJobStatus.Requested -> 0
-        RepairJobStatus.Assigned -> 2
-        RepairJobStatus.EnRoute -> 3
-        RepairJobStatus.InProgress -> 4
-        RepairJobStatus.Completed -> 5
-        RepairJobStatus.Cancelled, RepairJobStatus.Disputed, RepairJobStatus.Unknown -> -1
-    }
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
     Column(
         modifier = Modifier
             .padding(horizontal = Spacing.lg)
@@ -984,7 +1063,7 @@ private fun StatusStepperCard(job: RepairJob) {
             .border(1.dp, Surface200, shape)
             .padding(Spacing.md),
     ) {
-        VerticalStepper(steps = steps, current = current)
+        com.equipseva.app.designsystem.components.EsStatusStepper(current = job.status)
     }
 }
 
@@ -1290,3 +1369,205 @@ private fun QueuedOutboxPill(bidCount: Int, statusCount: Int) {
         )
     }
 }
+
+@Composable
+private fun CompletionProofGallery(urls: List<String>) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(vertical = 4.dp),
+    ) {
+        items(urls, key = { it }) { url ->
+            AsyncImage(
+                model = url,
+                contentDescription = "Completion photo",
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Surface200),
+                contentScale = ContentScale.Crop,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CompletionProofSheet(
+    submitting: Boolean,
+    onDismiss: () -> Unit,
+    onSubmit: (List<RepairJobDetailViewModel.CompletionProofPhoto>) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val context = LocalContext.current
+    var picked by rememberSaveable(stateSaver = UriListSaver) { mutableStateOf(emptyList<Uri>()) }
+    val maxPhotos = 4
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = maxPhotos),
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            picked = (picked + uris).distinct().take(maxPhotos)
+        }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = { if (!submitting) onDismiss() },
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            Text(
+                text = "Mark this job done",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                color = Ink900,
+            )
+            Text(
+                text = "Add up to $maxPhotos photos so the hospital can see the work. You can skip if you really need to.",
+                fontSize = 13.sp,
+                color = Ink500,
+            )
+
+            // Picked previews + add tile
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(vertical = 4.dp),
+            ) {
+                items(picked, key = { it.toString() }) { uri ->
+                    Box(
+                        modifier = Modifier
+                            .size(96.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Surface200),
+                    ) {
+                        AsyncImage(
+                            model = uri,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(10.dp)),
+                            contentScale = ContentScale.Crop,
+                        )
+                        IconButton(
+                            onClick = { picked = picked - uri },
+                            enabled = !submitting,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .size(24.dp)
+                                .padding(2.dp)
+                                .background(Color.Black.copy(alpha = 0.55f), CircleShape),
+                        ) {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = "Remove photo",
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        }
+                    }
+                }
+                if (picked.size < maxPhotos) {
+                    item("add") {
+                        Box(
+                            modifier = Modifier
+                                .size(96.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(BrandGreen50)
+                                .border(1.dp, BrandGreen, RoundedCornerShape(10.dp))
+                                .padding(8.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    launcher.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                    )
+                                },
+                                enabled = !submitting,
+                            ) {
+                                Icon(
+                                    Icons.Filled.AddPhotoAlternate,
+                                    contentDescription = "Add photos",
+                                    tint = BrandGreen,
+                                    modifier = Modifier.size(28.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            if (picked.isEmpty()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.PhotoLibrary,
+                        contentDescription = null,
+                        tint = Ink500,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text("No photos yet — tap + to add", fontSize = 12.sp, color = Ink500)
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    enabled = !submitting,
+                    modifier = Modifier.weight(1f),
+                ) { Text("Cancel") }
+                Button(
+                    onClick = {
+                        // Read each URI to bytes here (off-thread is overkill;
+                        // photo picker payloads are small and the stash also
+                        // copies to disk inside enqueue()). The ViewModel then
+                        // hands them to PhotoUploadStash + flips the status.
+                        val resolver = context.contentResolver
+                        val photos = picked.mapNotNull { uri ->
+                            val mime = resolver.getType(uri) ?: "image/jpeg"
+                            val name = uri.lastPathSegment ?: "after-${System.currentTimeMillis()}.jpg"
+                            val bytes = runCatching {
+                                resolver.openInputStream(uri)?.use { it.readBytes() }
+                            }.getOrNull() ?: return@mapNotNull null
+                            RepairJobDetailViewModel.CompletionProofPhoto(
+                                fileName = name,
+                                mimeType = mime,
+                                bytes = bytes,
+                            )
+                        }
+                        onSubmit(photos)
+                    },
+                    enabled = !submitting,
+                    modifier = Modifier.weight(1.4f),
+                ) {
+                    if (submitting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Saving…")
+                    } else {
+                        Text(if (picked.isEmpty()) "Mark done without photos" else "Submit + mark done")
+                    }
+                }
+            }
+            Spacer(Modifier.height(Spacing.sm))
+        }
+    }
+}
+
+private val UriListSaver = androidx.compose.runtime.saveable.listSaver<List<Uri>, String>(
+    save = { it.map(Uri::toString) },
+    restore = { it.map(Uri::parse) },
+)

@@ -8,8 +8,10 @@ import com.equipseva.app.core.data.engineers.Engineer
 import com.equipseva.app.core.data.engineers.EngineerCertificate
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
+import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.security.IntegrityVerifier
 import com.equipseva.app.core.security.PlayIntegrityClient
 import com.equipseva.app.core.storage.StorageRepository
 import com.equipseva.app.core.sync.handlers.PhotoUploadPayload
@@ -31,8 +33,10 @@ import javax.inject.Inject
 class KycViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val engineerRepository: EngineerRepository,
+    private val profileRepository: ProfileRepository,
     private val photoUploadStash: PhotoUploadStash,
-    private val playIntegrityClient: PlayIntegrityClient,
+    private val playIntegrityClient: IntegrityVerifier,
+    private val locationFetcher: com.equipseva.app.core.location.LocationFetcher,
 ) : ViewModel() {
 
     data class UiState(
@@ -41,8 +45,14 @@ class KycViewModel @Inject constructor(
         val verificationStatus: VerificationStatus = VerificationStatus.Pending,
         val aadhaarVerified: Boolean = false,
         val aadhaarNumber: String = "",
-        val city: String = "",
-        val state: String = "",
+        val panNumber: String = "",
+        // KYC v2: free-text "service address" (multi-line) + map pin replace the
+        // legacy city + state pair. Stored on `engineers.city` (overloaded as a
+        // free-text label) so the founder zone-density view can group rows by
+        // self-reported area.
+        val serviceAddress: String = "",
+        val serviceLatitude: Double? = null,
+        val serviceLongitude: Double? = null,
         val experienceYears: String = "",
         val serviceRadiusKm: String = "25",
         val qualificationDraft: String = "",
@@ -50,15 +60,107 @@ class KycViewModel @Inject constructor(
         val selectedSpecializations: Set<RepairEquipmentCategory> = emptySet(),
         val aadhaarDocPath: String? = null,
         val certDocPaths: List<String> = emptyList(),
+        val panDocPath: String? = null,
         val uploadingAadhaar: Boolean = false,
         val uploadingCert: Boolean = false,
+        val uploadingPan: Boolean = false,
         val aadhaarFailed: Boolean = false,
         val certFailed: Boolean = false,
+        val panFailed: Boolean = false,
         val saving: Boolean = false,
-    )
+        /** Free-text reason from admin when verification_status='rejected'. */
+        val verificationNotes: String? = null,
+        /**
+         * Subset of {'aadhaar','pan','cert'} the admin flagged. Empty means
+         * either the row isn't rejected or admin used a global rejection
+         * (verificationNotes covers it). When non-empty, the screen highlights
+         * only these doc rows and `startReupload` clears only their paths.
+         */
+        val rejectedDocTypes: List<String> = emptyList(),
+        // Stepper state
+        val currentStep: KycStep = KycStep.Personal,
+        val email: String? = null,
+        val phone: String? = null,
+        val fullName: String? = null,
+        val emailVerified: Boolean = false,
+        val phoneVerified: Boolean = false,
+        val attestationAccepted: Boolean = false,
+        /** Inline email-edit draft on Step 1; synced from `email` on first load. */
+        val emailDraft: String = "",
+        val savingEmail: Boolean = false,
+        /** True when the inline email-OTP verify sheet is showing. */
+        val emailVerifySheetOpen: Boolean = false,
+        val emailOtpCode: String = "",
+        val sendingEmailOtp: Boolean = false,
+        val verifyingEmailOtp: Boolean = false,
+    ) {
+        /**
+         * Returns null when the current step's required fields are filled in
+         * correctly, else a one-line message safe to render in the step body.
+         * Verified engineers (status=verified) skip validation — they're just
+         * viewing their submission.
+         */
+        fun stepError(): String? {
+            if (verificationStatus == VerificationStatus.Verified) return null
+            return when (currentStep) {
+                KycStep.Personal -> {
+                    when {
+                        fullName.isNullOrBlank() -> "Add your name from Profile settings before continuing."
+                        email.isNullOrBlank() -> "Email missing — add it before continuing."
+                        !EMAIL_REGEX.matches(email) -> "That email doesn't look right."
+                        !emailVerified -> "Verify your email — tap the Verify button."
+                        // Phone is collected as a contact channel (hospital
+                        // calls / WhatsApps the engineer), but it's no longer
+                        // a hard gate on the KYC flow — engineers without a
+                        // phone yet can still submit; they can add it later
+                        // from Profile → Add phone number.
+                        serviceAddress.length < 8 -> "Add the area you serve."
+                        serviceLatitude == null || serviceLongitude == null ->
+                            "Pin your service location on the map."
+                        else -> null
+                    }
+                }
+                KycStep.Documents -> {
+                    when {
+                        aadhaarNumber.length != 12 -> "Aadhaar must be 12 digits."
+                        !AadhaarValidator.isValid(aadhaarNumber) -> "That doesn't look like a valid Aadhaar number."
+                        aadhaarDocPath.isNullOrBlank() -> "Upload your Aadhaar (PDF or photo) before continuing."
+                        panNumber.length != 10 -> "PAN must be 10 characters (5 letters, 4 digits, 1 letter)."
+                        !PanValidator.isValid(panNumber) -> "That doesn't look like a valid PAN."
+                        panDocPath.isNullOrBlank() -> "Upload a photo of your PAN card."
+                        certDocPaths.isEmpty() -> "Upload at least one trade or qualification certificate."
+                        !attestationAccepted -> "You must confirm the attestation to submit."
+                        else -> null
+                    }
+                }
+            }
+        }
+
+        val canAdvance: Boolean
+            get() = stepError() == null &&
+                !uploadingAadhaar && !uploadingCert && !uploadingPan
+
+        /**
+         * True once every required KYC document has been uploaded to storage —
+         * the actual signal the engineer's submission is in-flight to a
+         * reviewer. The previous `aadhaarVerified` proxy was misleading
+         * because Aadhaar can verify before PAN/cert exist, leaving the
+         * timeline + banner claiming "submitted" while the row was still
+         * mid-edit. Used by the timeline header, the status banner, and any
+         * cross-surface chip that needs a single source of truth.
+         */
+        val kycSubmitted: Boolean
+            get() = !aadhaarDocPath.isNullOrBlank() &&
+                !panDocPath.isNullOrBlank() &&
+                certDocPaths.isNotEmpty()
+    }
 
     sealed interface Effect {
         data class ShowMessage(val text: String) : Effect
+        // Emitted once the engineer's KYC payload has landed server-side and
+        // verification_status is now `pending`. Drives the Round-G
+        // post-submit landing screen.
+        data object Submitted : Effect
     }
 
     private val _state = MutableStateFlow(UiState())
@@ -88,12 +190,162 @@ class KycViewModel @Inject constructor(
             return
         }
         userId = uid
+        // Fetch profile for email + phone + full name. KYC submit blocks if
+        // either contact field is missing — hospitals reach out via these.
+        val profile = profileRepository.fetchById(uid).getOrNull()
         engineerRepository.fetchByUserId(uid).fold(
-            onSuccess = { engineer -> hydrate(engineer) },
+            onSuccess = { engineer ->
+                hydrate(engineer)
+                _state.update {
+                    it.copy(
+                        email = profile?.email,
+                        phone = profile?.phone,
+                        fullName = profile?.fullName,
+                        emailVerified = profile?.emailVerified == true,
+                        phoneVerified = profile?.phoneVerified == true,
+                        emailDraft = profile?.email.orEmpty(),
+                    )
+                }
+            },
             onFailure = { ex ->
                 _state.update { it.copy(loading = false, errorMessage = ex.toUserMessage()) }
             },
         )
+    }
+
+    fun goToNextStep() {
+        val snap = _state.value
+        if (!snap.canAdvance) {
+            viewModelScope.launch {
+                snap.stepError()?.let { _effects.send(Effect.ShowMessage(it)) }
+            }
+            return
+        }
+        val next = snap.currentStep.next() ?: return
+        _state.update { it.copy(currentStep = next) }
+    }
+
+    fun goToPreviousStep() {
+        val prev = _state.value.currentStep.previous() ?: return
+        _state.update { it.copy(currentStep = prev) }
+    }
+
+    fun jumpToStep(step: KycStep) {
+        _state.update { it.copy(currentStep = step) }
+    }
+
+    fun onAttestationChange(value: Boolean) {
+        _state.update { it.copy(attestationAccepted = value) }
+    }
+
+    /**
+     * Trigger an email-verify code send + open the inline OTP sheet. Bound to
+     * the "Verify" button on the Personal step. No-op if email is missing or
+     * already verified.
+     */
+    fun startEmailVerification() {
+        val snap = _state.value
+        val email = snap.email
+        if (email.isNullOrBlank() || !EMAIL_REGEX.matches(email)) {
+            viewModelScope.launch {
+                _effects.send(Effect.ShowMessage("Add a valid email first."))
+            }
+            return
+        }
+        if (snap.emailVerified) return
+        _state.update {
+            it.copy(emailVerifySheetOpen = true, emailOtpCode = "", sendingEmailOtp = true)
+        }
+        viewModelScope.launch {
+            authRepository.sendEmailOtp(email)
+                .onSuccess {
+                    _state.update { it.copy(sendingEmailOtp = false) }
+                    _effects.send(Effect.ShowMessage("Code sent to $email"))
+                }
+                .onFailure { err ->
+                    _state.update { it.copy(sendingEmailOtp = false, emailVerifySheetOpen = false) }
+                    _effects.send(Effect.ShowMessage(err.toUserMessage()))
+                }
+        }
+    }
+
+    fun onEmailOtpChange(code: String) {
+        val cleaned = code.filter { it.isDigit() }.take(6)
+        _state.update { it.copy(emailOtpCode = cleaned) }
+    }
+
+    fun closeEmailVerifySheet() {
+        if (_state.value.verifyingEmailOtp) return
+        _state.update { it.copy(emailVerifySheetOpen = false, emailOtpCode = "") }
+    }
+
+    fun submitEmailOtp() {
+        val snap = _state.value
+        val email = snap.email ?: return
+        if (snap.emailOtpCode.length != 6) {
+            viewModelScope.launch {
+                _effects.send(Effect.ShowMessage("Enter the 6-digit code."))
+            }
+            return
+        }
+        _state.update { it.copy(verifyingEmailOtp = true) }
+        viewModelScope.launch {
+            authRepository.verifyEmailOtp(email, snap.emailOtpCode)
+                .onSuccess {
+                    // Auth trigger flips profile.email_verified server-side;
+                    // reload the profile so UiState.emailVerified flips too.
+                    val uid = userId
+                    val refreshed = uid?.let { profileRepository.fetchById(it).getOrNull() }
+                    _state.update {
+                        it.copy(
+                            verifyingEmailOtp = false,
+                            emailVerifySheetOpen = false,
+                            emailOtpCode = "",
+                            emailVerified = refreshed?.emailVerified == true,
+                        )
+                    }
+                    _effects.send(Effect.ShowMessage("Email verified"))
+                }
+                .onFailure { err ->
+                    _state.update { it.copy(verifyingEmailOtp = false) }
+                    _effects.send(Effect.ShowMessage(err.toUserMessage()))
+                }
+        }
+    }
+
+    fun onEmailDraftChange(value: String) {
+        _state.update { it.copy(emailDraft = value.trim(), errorMessage = null) }
+    }
+
+    /**
+     * Push the inline email edit through Supabase auth. Server fires a
+     * confirmation link to the new address — actual `profiles.email` flips
+     * once the user clicks. We surface that expectation in the toast.
+     */
+    fun saveEmailDraft() {
+        val snap = _state.value
+        if (snap.savingEmail) return
+        val newEmail = snap.emailDraft.trim()
+        if (newEmail.isEmpty() || !EMAIL_REGEX.matches(newEmail)) {
+            viewModelScope.launch { _effects.send(Effect.ShowMessage("That doesn't look like a valid email")) }
+            return
+        }
+        if (newEmail.equals(snap.email, ignoreCase = true)) {
+            viewModelScope.launch { _effects.send(Effect.ShowMessage("That's already your email")) }
+            return
+        }
+        _state.update { it.copy(savingEmail = true) }
+        viewModelScope.launch {
+            authRepository.updateEmail(newEmail)
+                .onSuccess {
+                    _state.update { it.copy(savingEmail = false) }
+                    _effects.send(Effect.ShowMessage("Confirmation link sent to $newEmail"))
+                }
+                .onFailure { err ->
+                    _state.update { it.copy(savingEmail = false) }
+                    _effects.send(Effect.ShowMessage(err.toUserMessage()))
+                }
+        }
     }
 
     private fun hydrate(engineer: Engineer?) {
@@ -104,16 +356,21 @@ class KycViewModel @Inject constructor(
                 it.copy(
                     loading = false,
                     verificationStatus = engineer.verificationStatus,
+                    verificationNotes = engineer.verificationNotes,
+                    rejectedDocTypes = engineer.rejectedDocTypes,
                     aadhaarVerified = engineer.aadhaarVerified,
                     aadhaarNumber = engineer.aadhaarNumber.orEmpty(),
-                    city = engineer.city.orEmpty(),
-                    state = engineer.state.orEmpty(),
+                    serviceAddress = engineer.city.orEmpty(),
+                    serviceLatitude = engineer.latitude,
+                    serviceLongitude = engineer.longitude,
                     experienceYears = engineer.experienceYears.toString(),
                     serviceRadiusKm = engineer.serviceRadiusKm.toString(),
                     qualifications = engineer.qualifications,
                     selectedSpecializations = engineer.specializations.toSet(),
                     aadhaarDocPath = engineer.aadhaarDocPath,
                     certDocPaths = engineer.certDocPaths,
+                    panDocPath = engineer.panDocPath,
+                    panNumber = engineer.panNumber.orEmpty(),
                 )
             }
         }
@@ -124,8 +381,46 @@ class KycViewModel @Inject constructor(
         _state.update { it.copy(aadhaarNumber = digits) }
     }
 
-    fun onCityChange(value: String) = _state.update { it.copy(city = value) }
-    fun onStateChange(value: String) = _state.update { it.copy(state = value) }
+    fun onPanNumberChange(value: String) {
+        // PAN is 10 chars, A-Z + 0-9. Force uppercase + drop everything else.
+        val cleaned = value.uppercase().filter { it.isLetterOrDigit() }.take(10)
+        _state.update { it.copy(panNumber = cleaned) }
+    }
+
+    fun onServiceAddressChange(value: String) =
+        _state.update { it.copy(serviceAddress = value) }
+
+    fun onServiceCoordsChange(latitude: Double?, longitude: Double?) {
+        _state.update { it.copy(serviceLatitude = latitude, serviceLongitude = longitude) }
+        // Auto-fill the service address from reverse-geocode the FIRST
+        // time the user pins a location — but only if they haven't typed
+        // their own. Subsequent pin drags refresh coords without
+        // clobbering whatever they edited. Best-effort: Geocoder fails
+        // on devices without Google Play Services, etc.
+        if (latitude == null || longitude == null) return
+        if (_state.value.serviceAddress.isNotBlank()) return
+        viewModelScope.launch {
+            val resolved = runCatching {
+                locationFetcher.reverseGeocode(
+                    com.equipseva.app.core.location.LocationFetcher.Coords(latitude, longitude),
+                )
+            }.getOrNull() ?: return@launch
+            val addressLine = listOfNotNull(
+                resolved.line1,
+                resolved.line2,
+                resolved.landmark,
+                resolved.city,
+                resolved.state,
+                resolved.pincode,
+            ).joinToString(", ").trim()
+            if (addressLine.isBlank()) return@launch
+            // Re-check inside the coroutine — user may have started typing
+            // while reverse-geocode was in flight.
+            _state.update {
+                if (it.serviceAddress.isBlank()) it.copy(serviceAddress = addressLine) else it
+            }
+        }
+    }
 
     fun onExperienceYearsChange(value: String) {
         val digits = value.filter { it.isDigit() }.take(2)
@@ -168,15 +463,42 @@ class KycViewModel @Inject constructor(
      * `certificates` array entirely).
      */
     fun startReupload() {
-        _state.update {
-            it.copy(
-                aadhaarDocPath = null,
-                certDocPaths = emptyList(),
-            )
+        _state.update { snap ->
+            // If admin flagged specific doc types, only those get cleared so
+            // the engineer doesn't re-upload approved docs unnecessarily.
+            // Empty list (legacy or global-reason rejections) falls back to
+            // the old "clear everything" behaviour.
+            if (snap.rejectedDocTypes.isEmpty()) {
+                snap.copy(
+                    aadhaarDocPath = null,
+                    certDocPaths = emptyList(),
+                    panDocPath = null,
+                )
+            } else {
+                val flagged = snap.rejectedDocTypes.toSet()
+                snap.copy(
+                    aadhaarDocPath = if (EngineerCertificate.TYPE_AADHAAR in flagged) null else snap.aadhaarDocPath,
+                    panDocPath = if (EngineerCertificate.TYPE_PAN in flagged) null else snap.panDocPath,
+                    certDocPaths = if (EngineerCertificate.TYPE_CERT in flagged) emptyList() else snap.certDocPaths,
+                )
+            }
         }
         viewModelScope.launch {
-            _effects.send(Effect.ShowMessage("Please re-upload your documents"))
+            val flagged = _state.value.rejectedDocTypes
+            val message = if (flagged.isEmpty()) {
+                "Please re-upload your documents"
+            } else {
+                "Please re-upload: ${flagged.joinToString { docTypeLabel(it) }}"
+            }
+            _effects.send(Effect.ShowMessage(message))
         }
+    }
+
+    private fun docTypeLabel(type: String): String = when (type) {
+        EngineerCertificate.TYPE_AADHAAR -> "Aadhaar"
+        EngineerCertificate.TYPE_PAN -> "PAN"
+        EngineerCertificate.TYPE_CERT -> "certificate"
+        else -> type
     }
 
     fun uploadAadhaarDoc(fileName: String, bytes: ByteArray, contentType: String?) {
@@ -264,6 +586,45 @@ class KycViewModel @Inject constructor(
         }
     }
 
+    fun uploadPan(fileName: String, bytes: ByteArray, contentType: String?) {
+        val uid = userId ?: return
+        if (_state.value.uploadingPan) return
+        _state.update { it.copy(uploadingPan = true, panFailed = false) }
+        viewModelScope.launch {
+            val stored = "pan-${timestampedName(fileName)}"
+            engineerRepository.uploadKycDoc(
+                userId = uid,
+                fileName = stored,
+                bytes = bytes,
+                contentType = contentType,
+            ).fold(
+                onSuccess = { path ->
+                    _state.update {
+                        it.copy(uploadingPan = false, panDocPath = path, panFailed = false)
+                    }
+                    _effects.send(Effect.ShowMessage("PAN uploaded"))
+                },
+                onFailure = { ex ->
+                    val queued = tryQueuePhotoUpload(
+                        uid = uid,
+                        bytes = bytes,
+                        storedFileName = stored,
+                        contentType = contentType,
+                    )
+                    if (queued != null) {
+                        _state.update {
+                            it.copy(uploadingPan = false, panDocPath = queued, panFailed = false)
+                        }
+                        _effects.send(Effect.ShowMessage("PAN will upload when back online"))
+                    } else {
+                        _state.update { it.copy(uploadingPan = false, panFailed = true) }
+                        _effects.send(Effect.ShowMessage(ex.toUserMessage()))
+                    }
+                },
+            )
+        }
+    }
+
     /**
      * Stashes [bytes] on disk and enqueues a [PhotoUploadPayload] for the
      * outbox worker. Returns the target object path on success so the UI can
@@ -330,6 +691,9 @@ class KycViewModel @Inject constructor(
                 snap.aadhaarDocPath?.let {
                     add(EngineerCertificate(EngineerCertificate.TYPE_AADHAAR, it, now))
                 }
+                snap.panDocPath?.let {
+                    add(EngineerCertificate(EngineerCertificate.TYPE_PAN, it, now))
+                }
                 snap.certDocPaths.forEach {
                     add(EngineerCertificate(EngineerCertificate.TYPE_CERT, it, now))
                 }
@@ -337,12 +701,15 @@ class KycViewModel @Inject constructor(
             engineerRepository.upsert(
                 userId = uid,
                 aadhaarNumber = aadhaarDigits.takeIf { it.isNotEmpty() },
+                panNumber = snap.panNumber.takeIf { it.isNotEmpty() && PanValidator.isValid(it) },
                 qualifications = snap.qualifications,
                 specializations = snap.selectedSpecializations.toList(),
                 experienceYears = snap.experienceYears.toIntOrNull() ?: 0,
                 serviceRadiusKm = snap.serviceRadiusKm.toIntOrNull() ?: 25,
-                city = snap.city.takeIf { it.isNotBlank() },
-                state = snap.state.takeIf { it.isNotBlank() },
+                city = snap.serviceAddress.takeIf { it.isNotBlank() },
+                state = null,
+                latitude = snap.serviceLatitude,
+                longitude = snap.serviceLongitude,
                 certificates = certificates,
                 aadhaarUploaded = snap.aadhaarDocPath != null,
                 // Re-submitting after rejection must flip the row back into the
@@ -353,7 +720,7 @@ class KycViewModel @Inject constructor(
                 onSuccess = { engineer ->
                     hydrate(engineer)
                     _state.update { it.copy(saving = false) }
-                    _effects.send(Effect.ShowMessage("Verification details saved"))
+                    _effects.send(Effect.Submitted)
                 },
                 onFailure = { ex ->
                     _state.update { it.copy(saving = false) }
@@ -369,4 +736,11 @@ class KycViewModel @Inject constructor(
         val stamp = System.currentTimeMillis()
         return "$stamp-$sanitized"
     }
+
 }
+
+// Anchored — covers the 99% case for engineer signups without trying to be
+// RFC 5322. Hospitals only need a working address.
+private val EMAIL_REGEX = Regex(
+    "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\$",
+)

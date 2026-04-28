@@ -81,7 +81,7 @@ import com.equipseva.app.designsystem.theme.Warning
 @Composable
 fun RequestServiceScreen(
     onBack: () -> Unit,
-    onSubmitted: () -> Unit,
+    onSubmitted: (jobId: String?, jobNumber: String?) -> Unit,
     onShowMessage: (String) -> Unit,
     viewModel: RequestServiceViewModel = hiltViewModel(),
 ) {
@@ -127,9 +127,8 @@ fun RequestServiceScreen(
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                RequestServiceViewModel.Effect.Submitted -> {
-                    onShowMessage("Service request submitted")
-                    onSubmitted()
+                is RequestServiceViewModel.Effect.Submitted -> {
+                    onSubmitted(effect.jobId, effect.jobNumber)
                 }
                 is RequestServiceViewModel.Effect.ShowMessage -> {
                     onShowMessage(effect.text)
@@ -138,7 +137,7 @@ fun RequestServiceScreen(
         }
     }
 
-    val stepLabels = listOf("Equipment", "Issue", "Schedule")
+    val stepLabels = listOf("Equipment", "Issue", "When", "Where")
 
     Scaffold(
         topBar = {
@@ -207,11 +206,16 @@ fun RequestServiceScreen(
                         },
                         onRemovePhoto = viewModel::onRemovePhoto,
                     )
-                    2 -> StepSchedule(
+                    2 -> StepWhen(
                         selectedSlot = selectedSlot,
                         onSelectSlot = { selectedSlot = it },
+                    )
+                    3 -> StepWhere(
                         siteLocation = state.siteLocation,
                         onSiteLocation = viewModel::onSiteLocationChange,
+                        siteLatitude = state.siteLatitude,
+                        siteLongitude = state.siteLongitude,
+                        onSiteCoords = viewModel::onSiteCoordsChange,
                         budget = state.budget,
                         budgetError = state.budgetError,
                         onBudget = viewModel::onBudgetChange,
@@ -493,16 +497,11 @@ private fun SeverityTile(
 }
 
 @Composable
-private fun StepSchedule(
+private fun StepWhen(
     selectedSlot: Int,
     onSelectSlot: (Int) -> Unit,
-    siteLocation: String,
-    onSiteLocation: (String) -> Unit,
-    budget: String,
-    budgetError: String?,
-    onBudget: (String) -> Unit,
 ) {
-    StepHeadline("Schedule & location")
+    StepHeadline("When?")
     Text(
         text = "Preferred slot",
         fontSize = 13.sp,
@@ -540,13 +539,35 @@ private fun StepSchedule(
             )
         }
     }
+}
+
+@Composable
+private fun StepWhere(
+    siteLocation: String,
+    onSiteLocation: (String) -> Unit,
+    siteLatitude: Double?,
+    siteLongitude: Double?,
+    onSiteCoords: (Double?, Double?) -> Unit,
+    budget: String,
+    budgetError: String?,
+    onBudget: (String) -> Unit,
+) {
+    StepHeadline("Where?")
     OutlinedTextField(
         value = siteLocation,
         onValueChange = onSiteLocation,
-        label = { Text("Site location") },
-        placeholder = { Text("Ward · Department · Floor") },
-        singleLine = true,
+        label = { Text("Note for the engineer") },
+        placeholder = { Text("Ward · Department · Floor · Gate to enter from") },
+        singleLine = false,
+        minLines = 2,
         modifier = Modifier.fillMaxWidth(),
+    )
+    val pickedLatLng = if (siteLatitude != null && siteLongitude != null) {
+        com.google.android.gms.maps.model.LatLng(siteLatitude, siteLongitude)
+    } else null
+    com.equipseva.app.features.repair.components.LocationPickerMap(
+        selected = pickedLatLng,
+        onLocationPicked = { ll -> onSiteCoords(ll.latitude, ll.longitude) },
     )
     OutlinedTextField(
         value = budget,
@@ -613,7 +634,7 @@ private fun WizardBottomBar(
                     .height(Spacing.MinTouchTarget),
             ) { Text("Back") }
         }
-        val isLast = step == 2
+        val isLast = step == 3
         Button(
             onClick = if (isLast) onSubmit else onNext,
             enabled = !submitting,

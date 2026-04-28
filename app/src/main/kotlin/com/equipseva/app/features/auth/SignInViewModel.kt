@@ -64,9 +64,4 @@ class SignInViewModel @Inject constructor(
         }
     }
 
-    fun onUseOtpInstead() {
-        viewModelScope.launch {
-            _effects.send(AuthEffect.ShowMessage("Use the email-code option instead"))
-        }
-    }
 }

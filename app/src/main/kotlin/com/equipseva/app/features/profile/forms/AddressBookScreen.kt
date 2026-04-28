@@ -37,6 +37,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.addresses.AddressRepository
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.theme.AccentLime
@@ -79,7 +80,7 @@ class AddressBookViewModel @Inject constructor(
         viewModelScope.launch {
             repo.list()
                 .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.message ?: "Failed to load") } }
+                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
         }
     }
 
@@ -90,7 +91,7 @@ class AddressBookViewModel @Inject constructor(
             repo.setDefault(id)
                 .onSuccess { reload() }
                 .onFailure { e ->
-                    _state.update { it.copy(acting = null, error = e.message ?: "Failed") }
+                    _state.update { it.copy(acting = null, error = e.toUserMessage()) }
                 }
         }
     }
@@ -104,7 +105,7 @@ class AddressBookViewModel @Inject constructor(
                     _state.update { it.copy(acting = null, rows = it.rows.filterNot { row -> row.id == id }) }
                 }
                 .onFailure { e ->
-                    _state.update { it.copy(acting = null, error = e.message ?: "Failed") }
+                    _state.update { it.copy(acting = null, error = e.toUserMessage()) }
                 }
         }
     }

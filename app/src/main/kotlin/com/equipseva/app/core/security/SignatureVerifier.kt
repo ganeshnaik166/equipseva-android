@@ -9,16 +9,21 @@ import com.equipseva.app.BuildConfig
 import java.security.MessageDigest
 
 /**
- * Checks that the APK the user is running was signed with the expected cert.
- * A jadx-modified, apktool-rebuilt, or otherwise resigned build fails this
- * check because the signing cert's SubjectPublicKeyInfo hash changes.
+ * Checks that the APK the user is running was signed with one of the expected
+ * certs. A jadx-modified, apktool-rebuilt, or otherwise resigned build fails
+ * because the signing cert's SubjectPublicKeyInfo hash changes.
  *
- * The expected SHA-256 comes from [BuildConfig.EXPECTED_CERT_SHA256] (plumbed
- * from `EXPECTED_CERT_SHA256` in local.properties / CI secret). While the
- * release keystore isn't provisioned yet (Play Console access pending) the
- * constant is blank and we skip the check — logging only so we know it ran.
+ * The expected SHA-256 list comes from [BuildConfig.EXPECTED_CERT_SHA256]
+ * (plumbed from `EXPECTED_CERT_SHA256` in local.properties / CI secret).
+ * Comma-separated so a single config holds BOTH:
+ *   - the upload-key fingerprint (locally-built AABs / sideloaded test APKs), AND
+ *   - the Play App Signing key fingerprint (Play-distributed installs, where
+ *     Google re-signs after upload).
+ * Whitespace around each entry is trimmed; empties skipped.
  *
- * When the keystore lands: fill in `EXPECTED_CERT_SHA256`, flip
+ * While the release keystore isn't provisioned yet (Play Console access
+ * pending) the constant is blank and we skip the check — logging only so we
+ * know it ran. When the keystore lands: fill in `EXPECTED_CERT_SHA256`, flip
  * [TamperPolicy.enforce] to `true`, and this check starts gating the app.
  */
 object SignatureVerifier {
@@ -26,8 +31,8 @@ object SignatureVerifier {
     enum class Verdict { Ok, Unknown, Tampered }
 
     fun verify(context: Context): Verdict {
-        val expected = BuildConfig.EXPECTED_CERT_SHA256
-        if (expected.isBlank()) {
+        val expected = parseExpectedFingerprints(BuildConfig.EXPECTED_CERT_SHA256)
+        if (expected.isEmpty()) {
             Log.w(TAG, "EXPECTED_CERT_SHA256 is blank; skipping signature check.")
             return Verdict.Unknown
         }
@@ -40,13 +45,16 @@ object SignatureVerifier {
             return Verdict.Unknown
         }
 
-        return if (actual.equals(expected, ignoreCase = true)) {
+        return if (expected.any { it.equals(actual, ignoreCase = true) }) {
             Verdict.Ok
         } else {
-            Log.e(TAG, "Signature mismatch. expected=$expected actual=$actual")
+            Log.e(TAG, "Signature mismatch. expected=${expected.joinToString(",")} actual=$actual")
             Verdict.Tampered
         }
     }
+
+    private fun parseExpectedFingerprints(raw: String): List<String> =
+        raw.split(',').map { it.trim() }.filter { it.isNotEmpty() }
 
     private fun currentCertSha256(context: Context): String {
         val pm = context.packageManager

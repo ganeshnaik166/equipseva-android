@@ -20,7 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -36,17 +36,19 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.equipseva.app.designsystem.components.ESBackTopBar
+import com.equipseva.app.designsystem.components.EsTopBar
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
-import com.equipseva.app.designsystem.theme.BrandGreen
-import com.equipseva.app.designsystem.theme.ErrorRed
-import com.equipseva.app.designsystem.theme.Ink500
-import com.equipseva.app.designsystem.theme.Ink700
-import com.equipseva.app.designsystem.theme.Ink900
-import com.equipseva.app.designsystem.theme.Spacing
-import com.equipseva.app.designsystem.theme.Surface0
-import com.equipseva.app.designsystem.theme.Surface200
-import com.equipseva.app.designsystem.theme.Surface50
+import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.Paper2
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaDanger50
+import com.equipseva.app.designsystem.theme.SevaDanger500
+import com.equipseva.app.designsystem.theme.SevaGreen700
+import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk700
+import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.designsystem.theme.SevaSuccess50
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -72,7 +74,7 @@ class FounderPaymentsViewModel @Inject constructor(
         viewModelScope.launch {
             repo.fetchRecentPayments(limit = 50)
                 .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.message ?: "Failed to load") } }
+                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
         }
     }
 }
@@ -85,39 +87,42 @@ fun FounderPaymentsScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
-    Scaffold(topBar = { ESBackTopBar(title = "Payments", onBack = onBack) }) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding).background(Surface50)) {
-            when {
-                state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-                state.error != null -> EmptyStateView(
-                    icon = Icons.Outlined.Receipt,
-                    title = "Couldn't load",
-                    subtitle = state.error,
-                )
-                state.rows.isEmpty() -> EmptyStateView(
-                    icon = Icons.Outlined.Receipt,
-                    title = "No payments yet",
-                    subtitle = "Razorpay transactions appear here",
-                )
-                else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(Spacing.md),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    items(state.rows, key = { it.orderId }) { row ->
-                        PaymentRow(
-                            row = row,
-                            onOpenInvoice = { url ->
-                                runCatching {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            EsTopBar(title = "Payments", onBack = onBack)
+            Box(modifier = Modifier.fillMaxSize()) {
+                when {
+                    state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                    state.error != null -> EmptyStateView(
+                        icon = Icons.Outlined.Receipt,
+                        title = "Couldn't load",
+                        subtitle = state.error,
+                    )
+                    state.rows.isEmpty() -> EmptyStateView(
+                        icon = Icons.Outlined.Receipt,
+                        title = "No payments yet",
+                        subtitle = "Razorpay transactions appear here",
+                    )
+                    else -> LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(state.rows, key = { it.orderId }) { row ->
+                            PaymentRow(
+                                row = row,
+                                onOpenInvoice = { url ->
+                                    runCatching {
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
+                                        context.startActivity(intent)
                                     }
-                                    context.startActivity(intent)
-                                }
-                            },
-                        )
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -134,9 +139,9 @@ private fun PaymentRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(Surface0)
-            .border(1.dp, Surface200, RoundedCornerShape(14.dp))
-            .padding(Spacing.md),
+            .background(androidx.compose.ui.graphics.Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(14.dp))
+            .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(
@@ -146,19 +151,19 @@ private fun PaymentRow(
             Text(
                 row.orderNumber,
                 fontWeight = FontWeight.Bold,
-                color = Ink900,
+                color = SevaInk900,
                 modifier = Modifier.weight(1f),
             )
             PaymentStatusChip(row.paymentStatus)
         }
         Text(
             text = row.buyerName ?: "Unknown buyer",
-            color = Ink700,
+            color = SevaInk700,
             fontSize = 13.sp,
         )
         Text(
             text = "₹${"%.2f".format(row.totalAmount)}",
-            color = Ink900,
+            color = SevaInk900,
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,
         )
@@ -167,12 +172,12 @@ private fun PaymentRow(
             rzpShort?.let { "rzp …$it" },
         ).joinToString(" · ")
         if (metaLine.isNotBlank()) {
-            Text(metaLine, color = Ink500, fontSize = 12.sp)
+            Text(metaLine, color = SevaInk500, fontSize = 12.sp)
         }
         if (!row.invoiceUrl.isNullOrBlank()) {
             Text(
                 text = "Open invoice",
-                color = BrandGreen,
+                color = SevaGreen700,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
@@ -188,9 +193,9 @@ private fun PaymentRow(
 private fun PaymentStatusChip(status: String?) {
     val s = status?.lowercase() ?: "unknown"
     val (bg, fg) = when (s) {
-        "completed", "captured", "paid", "success" -> Color(0xFFE6F2ED) to BrandGreen
-        "failed", "cancelled", "canceled" -> Color(0xFFFADCE3) to ErrorRed
-        else -> Surface200 to Ink700
+        "completed", "captured", "paid", "success" -> SevaSuccess50 to SevaGreen700
+        "failed", "cancelled", "canceled" -> SevaDanger50 to SevaDanger500
+        else -> Paper2 to SevaInk700
     }
     Box(
         modifier = Modifier

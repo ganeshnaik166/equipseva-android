@@ -159,6 +159,8 @@ class SupabaseRepairJobRepository @Inject constructor(
             equipmentModel = draft.equipmentModel?.takeIf { it.isNotBlank() },
             equipmentSerial = draft.equipmentSerial?.takeIf { it.isNotBlank() },
             siteLocation = draft.siteLocation?.takeIf { it.isNotBlank() },
+            siteLatitude = draft.siteLatitude,
+            siteLongitude = draft.siteLongitude,
             urgency = draft.urgency.storageKey.takeIf { it.isNotBlank() },
             issueDescription = draft.issueDescription,
             issuePhotos = draft.issuePhotos.takeIf { it.isNotEmpty() },

@@ -5,13 +5,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import kotlinx.coroutines.flow.firstOrNull
 import com.equipseva.app.core.data.account.AccountDeletionRepository
 import com.equipseva.app.core.data.account.DataExportRepository
+import com.equipseva.app.core.data.dao.OutboxDao
+import com.equipseva.app.core.data.engineers.EngineerRepository
+import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.prefs.ThemeMode
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.Profile
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.push.DeviceTokenRegistrar
+import com.equipseva.app.core.sync.OutboxScheduler
+import com.equipseva.app.core.sync.handlers.PhotoUploadStash
 import com.equipseva.app.features.auth.UserRole
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -31,15 +38,38 @@ import javax.inject.Inject
 class ProfileViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
+    private val engineerRepository: EngineerRepository,
     private val userPrefs: UserPrefs,
     private val accountDeletionRepository: AccountDeletionRepository,
     private val dataExportRepository: DataExportRepository,
+    private val deviceTokenRegistrar: DeviceTokenRegistrar,
+    private val outboxDao: OutboxDao,
+    private val outboxScheduler: OutboxScheduler,
+    private val photoUploadStash: PhotoUploadStash,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     data class UiState(
         val loading: Boolean = true,
         val profile: Profile? = null,
+        /** True only when the auth layer reports SignedOut (not just profile==null). */
+        val isSignedOut: Boolean = false,
+        /** engineers.id of the signed-in user (only when role=Engineer + KYC verified). */
+        val ownEngineerId: String? = null,
+        /**
+         * Verification status of the signed-in engineer's KYC row, or null when
+         * the user is not an engineer / has no engineer row yet. Drives the
+         * Profile "Verification (KYC)" chip so it agrees with the KYC screen
+         * and the Engineer Jobs hub gate instead of being hardcoded to "Review".
+         */
+        val engineerStatus: VerificationStatus? = null,
+        /**
+         * True when the engineer has uploaded all three required KYC docs
+         * (Aadhaar + PAN + at least one certificate). Used together with
+         * [engineerStatus] to distinguish "draft" from "in review" while the
+         * backend still reports a single Pending state.
+         */
+        val engineerKycSubmitted: Boolean = false,
         val errorMessage: String? = null,
         val roleEditorOpen: Boolean = false,
         val roleEditorSelected: UserRole? = null,
@@ -99,6 +129,7 @@ class ProfileViewModel @Inject constructor(
             authRepository.sessionState.collect { session ->
                 when (session) {
                     is AuthSession.SignedIn -> {
+                        _state.update { it.copy(isSignedOut = false) }
                         if (_state.value.profile?.id != session.userId) {
                             load(session.userId, initial = true)
                         }
@@ -108,6 +139,7 @@ class ProfileViewModel @Inject constructor(
                             it.copy(
                                 loading = false,
                                 profile = null,
+                                isSignedOut = true,
                                 errorMessage = null,
                             )
                         }
@@ -122,6 +154,21 @@ class ProfileViewModel @Inject constructor(
         val session = _state.value.profile?.id ?: return
         viewModelScope.launch {
             load(session, initial = false)
+        }
+    }
+
+    /**
+     * Retry profile load when the previous fetch failed (profile==null +
+     * errorMessage set). Pulls the current auth.uid() out of the session
+     * flow and restarts `load` from scratch — `onRefresh` can't do this
+     * because it short-circuits when profile is null.
+     */
+    fun onRetryFromAuth() {
+        viewModelScope.launch {
+            val signedIn = authRepository.sessionState
+                .firstOrNull { it is AuthSession.SignedIn } as? AuthSession.SignedIn
+                ?: return@launch
+            load(signedIn.userId, initial = true)
         }
     }
 
@@ -195,39 +242,29 @@ class ProfileViewModel @Inject constructor(
         _state.update { it.copy(editFullName = value, editError = null) }
     }
 
-    fun onEditPhoneChange(value: String) {
-        _state.update { it.copy(editPhone = value.filter { c -> c.isDigit() || c == '+' }, editError = null) }
-    }
-
     fun onSaveEditProfile() {
         val current = _state.value
         if (current.editSaving) return
         val profile = current.profile ?: return
         val trimmedName = current.editFullName.trim()
-        val trimmedPhone = current.editPhone.trim()
         if (trimmedName.isBlank()) {
             _state.update { it.copy(editError = "Name can't be empty.") }
             return
         }
-        if (trimmedPhone.isNotBlank() && trimmedPhone.filter { it.isDigit() }.length !in 10..15) {
-            _state.update { it.copy(editError = "Enter a valid phone number.") }
-            return
-        }
         val nextName = trimmedName
-        val nextPhone = trimmedPhone.ifBlank { null }
-        if (nextName == profile.fullName.orEmpty() && nextPhone == profile.phone) {
+        if (nextName == profile.fullName.orEmpty()) {
             _state.update { it.copy(editProfileOpen = false) }
             return
         }
         _state.update { it.copy(editSaving = true, editError = null) }
         viewModelScope.launch {
-            profileRepository.updateBasicInfo(profile.id, nextName, nextPhone)
+            profileRepository.updateBasicInfo(profile.id, nextName, profile.phone)
                 .onSuccess {
                     _state.update {
                         it.copy(
                             editSaving = false,
                             editProfileOpen = false,
-                            profile = it.profile?.copy(fullName = nextName, phone = nextPhone),
+                            profile = it.profile?.copy(fullName = nextName),
                         )
                     }
                     _effects.send(Effect.ShowMessage("Profile updated"))
@@ -276,6 +313,15 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             accountDeletionRepository.deleteMyAccount(reason)
                 .onSuccess {
+                    // Same device-resident cleanup as a manual sign-out;
+                    // the deleted account's FK cascades may already drop
+                    // device_tokens server-side, but the local cache /
+                    // outbox queue / photo stash still sit on disk and
+                    // must be wiped before the next user signs in.
+                    runCatching { deviceTokenRegistrar.revoke() }
+                    runCatching { outboxDao.clearAll() }
+                    runCatching { outboxScheduler.cancelAll() }
+                    runCatching { photoUploadStash.clearAll() }
                     authRepository.signOut()
                     _state.update {
                         it.copy(
@@ -297,6 +343,15 @@ class ProfileViewModel @Inject constructor(
         if (_state.value.signingOut) return
         _state.update { it.copy(signingOut = true) }
         viewModelScope.launch {
+            // Wipe device-resident user state BEFORE the auth call so the
+            // network-side token revoke still has a valid session, and so
+            // the next user signing in on this device can't see the
+            // previous user's queued outbox / photo stash. Each step is
+            // best-effort — sign-out should never block on a flaky DELETE.
+            runCatching { deviceTokenRegistrar.revoke() }
+            runCatching { outboxDao.clearAll() }
+            runCatching { outboxScheduler.cancelAll() }
+            runCatching { photoUploadStash.clearAll() }
             authRepository.signOut()
                 .onFailure { error ->
                     _state.update { it.copy(signingOut = false) }
@@ -310,10 +365,26 @@ class ProfileViewModel @Inject constructor(
         if (initial) _state.update { it.copy(loading = true, errorMessage = null) }
         profileRepository.fetchById(userId)
             .onSuccess { profile ->
+                // For engineers, also fetch the engineers row so the screen
+                // can render a status-accurate KYC chip and (when verified)
+                // offer the public-profile preview link. engineer_public_profile
+                // RPC gates to verified, so the preview link still requires
+                // VerificationStatus.Verified.
+                val engineer = if (profile?.role == UserRole.ENGINEER) {
+                    engineerRepository.fetchByUserId(userId).getOrNull()
+                } else null
                 _state.update {
                     it.copy(
                         loading = false,
                         profile = profile,
+                        ownEngineerId = engineer
+                            ?.takeIf { eng -> eng.verificationStatus == VerificationStatus.Verified }
+                            ?.id,
+                        engineerStatus = engineer?.verificationStatus,
+                        engineerKycSubmitted = engineer != null &&
+                            !engineer.aadhaarDocPath.isNullOrBlank() &&
+                            !engineer.panDocPath.isNullOrBlank() &&
+                            engineer.certDocPaths.isNotEmpty(),
                         errorMessage = if (profile == null) "Profile not found" else null,
                     )
                 }

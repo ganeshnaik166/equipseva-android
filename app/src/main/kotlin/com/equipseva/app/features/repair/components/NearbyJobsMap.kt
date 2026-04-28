@@ -21,7 +21,7 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberMarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 
 /**
@@ -79,7 +79,7 @@ fun NearbyJobsMap(
         ),
     ) {
         Marker(
-            state = MarkerState(position = centre),
+            state = rememberMarkerState(position = centre),
             title = "Your base",
         )
         radiusKm?.let { km ->
@@ -92,8 +92,9 @@ fun NearbyJobsMap(
             )
         }
         jobs.forEach { job ->
+            val pos = LatLng(job.latitude, job.longitude)
             Marker(
-                state = MarkerState(position = LatLng(job.latitude, job.longitude)),
+                state = rememberMarkerState(key = job.id, position = pos),
                 title = job.title,
                 snippet = "%.1f km away".format(job.distanceKm),
             )

@@ -95,6 +95,7 @@ class UserPrefs @Inject constructor(
         context.prefsStore.edit { it.remove(Keys.ONBOARDING_DONE) }
     }
 
+
     suspend fun toggleFavorite(partId: String) {
         val cur = favorites.first()
         val next = if (partId in cur) cur - partId else cur + partId

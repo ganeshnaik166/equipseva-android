@@ -6,6 +6,7 @@ import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.ProfileRepository
+import com.equipseva.app.core.push.DeviceTokenRegistrar
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -32,6 +33,7 @@ class SessionViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
     private val userPrefs: UserPrefs,
+    private val deviceTokenRegistrar: DeviceTokenRegistrar,
 ) : ViewModel() {
 
     private val bootstrapping = MutableStateFlow(false)
@@ -41,7 +43,15 @@ class SessionViewModel @Inject constructor(
             authRepository.sessionState
                 .filterIsInstance<AuthSession.SignedIn>()
                 .distinctUntilChangedBy { it.userId }
-                .collect { signedIn -> bootstrapProfile(signedIn.userId) }
+                .collect { signedIn ->
+                    // Re-register FCM token under the new user id. onNewToken
+                    // only fires on actual token rotation, so a returning
+                    // user signing in on a device whose previous session
+                    // was revoke()'d would otherwise have no row in
+                    // device_tokens and receive zero pushes. Best-effort.
+                    runCatching { deviceTokenRegistrar.refresh() }
+                    bootstrapProfile(signedIn.userId)
+                }
         }
         viewModelScope.launch {
             authRepository.sessionState.collect { session ->
@@ -55,7 +65,11 @@ class SessionViewModel @Inject constructor(
 
     val tourSeen: StateFlow<Boolean> = userPrefs.observeTourSeen().stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
+        // Eagerly so the upstream stays alive across app background → foreground.
+        // WhileSubscribed(5_000) caused the StateFlow to cold-restart at the
+        // initialValue after >5s in background, which triggered AppNavGraph's
+        // Loading branch and unmounted the entire NavHost on every resume.
+        started = SharingStarted.Eagerly,
         initialValue = true, // assume seen until first emission so we don't flash the tour on splash
     )
 
@@ -76,7 +90,12 @@ class SessionViewModel @Inject constructor(
             }
         }.stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
+            // Eagerly: the upstream session subscription must survive
+            // background → foreground transitions. With WhileSubscribed(5_000)
+            // the StateFlow cold-restarted at `Loading` on every resume after
+            // 5s+, which mounted SplashScreen() in AppNavGraph and tore down
+            // the entire NavHost — wiping in-flight forms and the back stack.
+            started = SharingStarted.Eagerly,
             initialValue = SessionState.Loading,
         )
 

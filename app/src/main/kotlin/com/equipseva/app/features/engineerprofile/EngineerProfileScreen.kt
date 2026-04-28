@@ -1,6 +1,7 @@
 package com.equipseva.app.features.engineerprofile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,16 +9,22 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material3.Icon
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,11 +38,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.PrimaryButton
 import com.equipseva.app.designsystem.components.SectionHeader
-import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaGreen50
+import com.equipseva.app.designsystem.theme.SevaGreen700
+import com.equipseva.app.designsystem.theme.SevaGreen900
+import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk900
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,35 +68,31 @@ fun EngineerProfileScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            ESBackTopBar(
-                title = "Engineer profile",
-                onBack = onBack,
-                backEnabled = !state.saving,
+    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            EsTopBar(
+                title = "Edit profile",
+                onBack = onBack.takeIf { !state.saving } ?: {},
             )
-        },
-    ) { inner ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(inner),
-        ) {
-            if (state.loading) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+            Box(modifier = Modifier.weight(1f)) {
+                if (state.loading) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    EngineerProfileForm(
+                        state = state,
+                        onHourlyRateChange = viewModel::onHourlyRateChange,
+                        onYearsChange = viewModel::onYearsChange,
+                        onServiceAreasChange = viewModel::onServiceAreasChange,
+                        onSpecializationsChange = viewModel::onSpecializationsChange,
+                        onBioChange = viewModel::onBioChange,
+                        onAvailableChange = viewModel::onAvailableChange,
+                        onSave = viewModel::onSave,
+                        email = state.email,
+                        phone = state.phone,
+                    )
                 }
-            } else {
-                EngineerProfileForm(
-                    state = state,
-                    onHourlyRateChange = viewModel::onHourlyRateChange,
-                    onYearsChange = viewModel::onYearsChange,
-                    onServiceAreasChange = viewModel::onServiceAreasChange,
-                    onSpecializationsChange = viewModel::onSpecializationsChange,
-                    onBioChange = viewModel::onBioChange,
-                    onAvailableChange = viewModel::onAvailableChange,
-                    onSave = viewModel::onSave,
-                )
             }
         }
     }
@@ -99,19 +108,25 @@ private fun EngineerProfileForm(
     onBioChange: (String) -> Unit,
     onAvailableChange: (Boolean) -> Unit,
     onSave: () -> Unit,
+    email: String?,
+    phone: String?,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         StatsHeader(
             jobs = state.totalJobs ?: 0,
             rating = state.ratingAvg,
             onTime = state.completionRate,
         )
+
+        SectionHeader(title = "Contact details")
+        ContactCard(email = email, phone = phone)
+
         SectionHeader(title = "Rates & experience")
 
         OutlinedTextField(
@@ -238,11 +253,49 @@ private fun StatsHeader(jobs: Int, rating: Double?, onTime: Double?) {
 }
 
 @Composable
+private fun ContactCard(email: String?, phone: String?) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(androidx.compose.ui.graphics.Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(14.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        ContactRow(icon = Icons.Filled.Phone, label = phone ?: "Add a phone number from your profile settings", strong = !phone.isNullOrBlank())
+        ContactRow(icon = Icons.Filled.Email, label = email ?: "Add an email from your profile settings", strong = !email.isNullOrBlank())
+        Text(
+            text = "Hospitals can call, WhatsApp, and email you on these once your KYC is verified.",
+            fontSize = 11.sp,
+            color = SevaInk500,
+        )
+    }
+}
+
+@Composable
+private fun ContactRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    strong: Boolean,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = if (strong) SevaGreen700 else SevaInk500)
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            color = if (strong) SevaInk900 else SevaInk500,
+            fontWeight = if (strong) FontWeight.SemiBold else FontWeight.Normal,
+        )
+    }
+}
+
+@Composable
 private fun StatTile(value: String, label: String, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(com.equipseva.app.designsystem.theme.BrandGreen50)
+            .background(SevaGreen50)
             .padding(vertical = 14.dp, horizontal = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -251,12 +304,12 @@ private fun StatTile(value: String, label: String, modifier: Modifier = Modifier
             text = value,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
-            color = com.equipseva.app.designsystem.theme.BrandGreenDark,
+            color = SevaGreen900,
         )
         Text(
             text = label,
             fontSize = 11.sp,
-            color = com.equipseva.app.designsystem.theme.Ink500,
+            color = SevaInk500,
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 0.4.sp,
         )

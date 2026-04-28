@@ -2,6 +2,77 @@ package com.equipseva.app.designsystem.theme
 
 import androidx.compose.ui.graphics.Color
 
+// ============================================================
+// EquipSeva v1 design system tokens — from `newdesign.zip:tokens.css`.
+// Coexists with the legacy `BrandGreen` / `Ink900` / `Surface0` set
+// below so old screens keep compiling while new screens migrate to
+// the Seva palette one round at a time.
+//
+// When a Seva token + a legacy token resolve to byte-identical hex,
+// the legacy one is aliased to the Seva one (e.g. `BrandGreen ==
+// SevaGreen700`). Where they differ, both coexist intentionally —
+// the legacy palette stays intact for in-flight screens.
+// ============================================================
+
+// --- Seva green (primary brand scale, 11 stops) -----------------
+val SevaGreen50  = Color(0xFFE8F5EF)
+val SevaGreen100 = Color(0xFFC7E7D6)
+val SevaGreen200 = Color(0xFF95D2B2)
+val SevaGreen300 = Color(0xFF5FB78B)
+val SevaGreen400 = Color(0xFF2C9968)
+val SevaGreen500 = Color(0xFF168558)  // hover / active for primary
+val SevaGreen600 = Color(0xFF0E7651)  // primary button hover
+val SevaGreen700 = Color(0xFF0B6E4F)  // PRIMARY — logo background
+val SevaGreen800 = Color(0xFF074B36)  // dense surfaces
+val SevaGreen900 = Color(0xFF052F22)  // footer / forest shadow
+val SevaGreen950 = Color(0xFF021A12)
+
+// --- Seva glow (decorative halo, sampled from logo neon) --------
+val SevaGlow     = Color(0xFF22E06A)  // calmed, usable accent
+val SevaGlowRaw  = Color(0xFF0FFF13)  // raw logo halo — backgrounds + hero only
+val SevaGlowSoft = Color(0xFFC7F8D4)
+
+// --- Paper (warm-cool surfaces) ---------------------------------
+val PaperDefault = Color(0xFFF6F8F5)  // app bg, off-white green wash
+val Paper2       = Color(0xFFEEF1ED)  // secondary surface
+val Paper3       = Color(0xFFE2E7E2)  // hovered surface / divider
+
+// --- Seva ink (10-stop neutral, distinct from legacy Ink*) ------
+val SevaInk50  = Color(0xFFF6F8F5)
+val SevaInk100 = Color(0xFFE2E7E2)
+val SevaInk200 = Color(0xFFC8D0C9)
+val SevaInk300 = Color(0xFFA4AFA8)
+val SevaInk400 = Color(0xFF788379)
+val SevaInk500 = Color(0xFF525C53)
+val SevaInk600 = Color(0xFF3A4239)
+val SevaInk700 = Color(0xFF242B25)
+val SevaInk800 = Color(0xFF161E18)
+val SevaInk900 = Color(0xFF0E1714)  // primary text — near-black with green tint
+
+// --- Seva semantic colors (slightly different hues from legacy) -
+val SevaDanger50  = Color(0xFFFCEBEA)
+val SevaDanger500 = Color(0xFFC8302C)
+val SevaDanger700 = Color(0xFF931E1B)
+val SevaWarning50  = Color(0xFFFBF1E0)
+val SevaWarning500 = Color(0xFFD9881F)
+val SevaWarning700 = Color(0xFF9B5E0F)
+val SevaInfo50  = Color(0xFFE5F0F8)
+val SevaInfo500 = Color(0xFF1E6AA8)
+val SevaInfo700 = Color(0xFF134A77)
+val SevaSuccess50  = Color(0xFFE1F4EA)
+val SevaSuccess500 = Color(0xFF168558)  // == SevaGreen500 by design
+val SevaSuccess700 = Color(0xFF0B6E4F)  // == SevaGreen700
+
+// --- Seva borders -----------------------------------------------
+val BorderDefault = Color(0xFFE2E7E2)  // == Paper3
+val BorderStrong  = Color(0xFFC8D0C9)  // == SevaInk200
+val BorderFocus   = SevaGlow
+
+// ============================================================
+// Legacy palette (pre-design-replication) — kept for existing
+// screens. New screens should NOT use these names.
+// ============================================================
+
 // Brand — matches tokens.css --brand-*
 val BrandGreen = Color(0xFF0B6E4F)        // --brand-600
 val BrandGreenDark = Color(0xFF075A40)    // --brand-700

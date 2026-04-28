@@ -41,6 +41,10 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
@@ -68,8 +72,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -84,13 +86,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.prefs.ThemeMode
-import com.equipseva.app.core.util.AppFeatureFlags
 import com.equipseva.app.designsystem.components.BrandedPlaceholder
 import com.equipseva.app.designsystem.components.DeleteAccountSheet
-import com.equipseva.app.designsystem.components.ESTopBar
+import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.SecureScreen
 import com.equipseva.app.designsystem.components.SettingsSheet
 import com.equipseva.app.designsystem.components.StatusChip
+import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.designsystem.components.StatusTone
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreenDark
@@ -111,16 +113,18 @@ fun ProfileScreen(
     onOpenMessages: () -> Unit = {},
     onOpenVerification: () -> Unit = {},
     onOpenAbout: () -> Unit = {},
-    onOpenFavorites: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     onOpenBankDetails: () -> Unit = {},
     onOpenAddresses: () -> Unit = {},
     onOpenHospitalSettings: () -> Unit = {},
     onOpenFounderDashboard: () -> Unit = {},
+    onOpenAddPhone: () -> Unit = {},
     onOpenChangePassword: () -> Unit = {},
     onOpenChangeEmail: () -> Unit = {},
-    onOpenOrders: () -> Unit = {},
-    onOpenSellerVerification: () -> Unit = {},
+    onOpenEarnings: () -> Unit = {},
+    onOpenMyRepairJobs: () -> Unit = {},
+    onOpenHelp: () -> Unit = {},
+    onOpenPublicPreview: (engineerId: String) -> Unit = {},
     onSwitchService: () -> Unit = {},
     onSignIn: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -140,7 +144,10 @@ fun ProfileScreen(
         }
     }
 
-    Scaffold(topBar = { ESTopBar(title = "Profile") }) { inner ->
+    Scaffold(
+        topBar = { EsTopBar(title = "Profile") },
+        containerColor = com.equipseva.app.designsystem.theme.PaperDefault,
+    ) { inner ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -152,11 +159,47 @@ fun ProfileScreen(
                         CircularProgressIndicator()
                     }
                 }
-                state.profile == null -> {
+                state.isSignedOut -> {
                     // PRD: signed-out users can browse Marketplace freely. The
                     // Profile tab now shows a sign-in CTA instead of an error,
                     // so a tap from the bottom nav doesn't look broken.
                     SignedOutPrompt(onSignIn = onSignIn)
+                }
+                state.profile == null -> {
+                    // Authenticated, but the profile bootstrap returned null
+                    // — usually an RLS denial on the embedded organization
+                    // join, occasionally a fresh signup before the row
+                    // hydrates. Surface the actual error so the user knows
+                    // what's wrong, plus a retry. Sign-in CTA is gone
+                    // because it would bounce a signed-in user straight
+                    // back to Home.
+                    val msg = state.errorMessage
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(Spacing.lg),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            if (msg != null) "Couldn't load your profile" else "Finishing setup…",
+                            fontWeight = FontWeight.Bold,
+                            color = Ink900,
+                        )
+                        Spacer(Modifier.height(Spacing.sm))
+                        Text(
+                            msg ?: "We're loading your profile. Tap retry if this doesn't clear.",
+                            color = Ink500,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        )
+                        Spacer(Modifier.height(Spacing.md))
+                        androidx.compose.material3.Button(
+                            onClick = {
+                                state.profile?.id?.let { viewModel.onRefresh() }
+                                    ?: viewModel.onRetryFromAuth()
+                            },
+                        ) {
+                            Text("Retry")
+                        }
+                    }
                 }
                 else -> {
                     ProfileContent(
@@ -169,7 +212,6 @@ fun ProfileScreen(
                         onOpenMessages = onOpenMessages,
                         onOpenVerification = onOpenVerification,
                         onOpenAbout = onOpenAbout,
-                        onOpenFavorites = onOpenFavorites,
                         onOpenNotifications = onOpenNotifications,
                         onOpenBankDetails = onOpenBankDetails,
                         onOpenAddresses = onOpenAddresses,
@@ -177,10 +219,13 @@ fun ProfileScreen(
                         onOpenFounderDashboard = onOpenFounderDashboard,
                         onDeleteAccount = viewModel::onOpenDeleteAccount,
                         onExportData = viewModel::onExportMyData,
+                        onOpenAddPhone = onOpenAddPhone,
                         onOpenChangePassword = onOpenChangePassword,
                         onOpenChangeEmail = onOpenChangeEmail,
-                        onOpenOrders = onOpenOrders,
-                        onOpenSellerVerification = onOpenSellerVerification,
+                        onOpenEarnings = onOpenEarnings,
+                        onOpenMyRepairJobs = onOpenMyRepairJobs,
+                        onOpenHelp = onOpenHelp,
+                        onOpenPublicPreview = onOpenPublicPreview,
                         onSwitchService = onSwitchService,
                     )
                 }
@@ -213,7 +258,10 @@ fun ProfileScreen(
             saving = state.editSaving,
             error = state.editError,
             onFullNameChange = viewModel::onEditFullNameChange,
-            onPhoneChange = viewModel::onEditPhoneChange,
+            onChangePhone = {
+                viewModel.onDismissEditProfile()
+                onOpenAddPhone()
+            },
             onSave = viewModel::onSaveEditProfile,
             onDismiss = viewModel::onDismissEditProfile,
         )
@@ -231,7 +279,6 @@ private fun ProfileContent(
     onOpenMessages: () -> Unit,
     onOpenVerification: () -> Unit,
     onOpenAbout: () -> Unit,
-    onOpenFavorites: () -> Unit,
     onOpenNotifications: () -> Unit,
     onOpenBankDetails: () -> Unit,
     onOpenAddresses: () -> Unit,
@@ -239,10 +286,13 @@ private fun ProfileContent(
     onOpenFounderDashboard: () -> Unit,
     onDeleteAccount: () -> Unit,
     onExportData: () -> Unit,
+    onOpenAddPhone: () -> Unit,
     onOpenChangePassword: () -> Unit,
     onOpenChangeEmail: () -> Unit,
-    onOpenOrders: () -> Unit,
-    onOpenSellerVerification: () -> Unit,
+    onOpenEarnings: () -> Unit,
+    onOpenMyRepairJobs: () -> Unit,
+    onOpenHelp: () -> Unit,
+    onOpenPublicPreview: (engineerId: String) -> Unit,
     onSwitchService: () -> Unit,
 ) {
     val profile = state.profile!!
@@ -286,22 +336,28 @@ private fun ProfileContent(
             isSupplier = isSupplier,
             isManufacturer = isManufacturer,
             isLogistics = isLogistics,
+            phone = profile.phone,
             themeMode = themeMode,
             activeRoleLabel = profile.role?.displayName ?: "Not set",
             onOpenSettings = onOpenSettings,
             onOpenVerification = onOpenVerification,
             onOpenMessages = onOpenMessages,
             onOpenAbout = onOpenAbout,
-            onOpenFavorites = onOpenFavorites,
             onOpenNotifications = onOpenNotifications,
             onOpenPersonalInfo = onEditProfile,
             onOpenBankDetails = onOpenBankDetails,
             onOpenAddresses = onOpenAddresses,
             onOpenHospitalSettings = onOpenHospitalSettings,
+            onOpenAddPhone = onOpenAddPhone,
             onOpenChangePassword = onOpenChangePassword,
             onOpenChangeEmail = onOpenChangeEmail,
-            onOpenOrders = onOpenOrders,
-            onOpenSellerVerification = onOpenSellerVerification,
+            onOpenEarnings = onOpenEarnings,
+            onOpenMyRepairJobs = onOpenMyRepairJobs,
+            onOpenHelp = onOpenHelp,
+            ownEngineerId = state.ownEngineerId,
+            engineerStatus = state.engineerStatus,
+            engineerKycSubmitted = state.engineerKycSubmitted,
+            onOpenPublicPreview = onOpenPublicPreview,
             onSwitchService = onSwitchService,
             onSignOut = onSignOut,
             signingOut = state.signingOut,
@@ -409,22 +465,28 @@ private fun buildProfileSections(
     isSupplier: Boolean,
     isManufacturer: Boolean,
     isLogistics: Boolean,
+    phone: String?,
     themeMode: ThemeMode,
     activeRoleLabel: String,
     onOpenSettings: () -> Unit,
     onOpenVerification: () -> Unit,
     onOpenMessages: () -> Unit,
     onOpenAbout: () -> Unit,
-    onOpenFavorites: () -> Unit,
     onOpenNotifications: () -> Unit,
     onOpenPersonalInfo: () -> Unit,
     onOpenBankDetails: () -> Unit,
     onOpenAddresses: () -> Unit,
     onOpenHospitalSettings: () -> Unit,
+    onOpenAddPhone: () -> Unit,
     onOpenChangePassword: () -> Unit,
     onOpenChangeEmail: () -> Unit,
-    onOpenOrders: () -> Unit,
-    onOpenSellerVerification: () -> Unit,
+    onOpenEarnings: () -> Unit,
+    onOpenMyRepairJobs: () -> Unit,
+    onOpenHelp: () -> Unit,
+    ownEngineerId: String?,
+    engineerStatus: VerificationStatus?,
+    engineerKycSubmitted: Boolean,
+    onOpenPublicPreview: (engineerId: String) -> Unit,
     onSwitchService: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
@@ -433,13 +495,20 @@ private fun buildProfileSections(
     onExportData: () -> Unit,
     exportingData: Boolean,
 ): List<ProfileSection> {
-    val account = listOfNotNull(
+    val phoneMissing = phone.isNullOrBlank()
+    val account = listOf(
         SettingsRow(icon = Icons.Filled.Person, label = "Personal info", onClick = onOpenPersonalInfo),
-        // Marketplace v1 gate: My orders points at the marketplace order
-        // history. Hidden in v1; v2 brings it back when MARKETPLACE_ENABLED.
-        if (AppFeatureFlags.MARKETPLACE_ENABLED)
-            SettingsRow(icon = Icons.Filled.Receipt, label = "My orders", onClick = onOpenOrders)
-        else null,
+        // Add phone — surface a Required pill when missing (Google-auth users
+        // skip phone OTP at signup so they can't be reached by hospitals).
+        // Once added, the row stays as a "Change phone number" entry point.
+        SettingsRow(
+            icon = Icons.Filled.Phone,
+            label = if (phoneMissing) "Add phone number" else "Change phone number",
+            chipLabel = if (phoneMissing) "Required" else null,
+            chipTone = if (phoneMissing) StatusTone.Warn else StatusTone.Neutral,
+            trailing = phone.takeUnless { it.isNullOrBlank() },
+            onClick = onOpenAddPhone,
+        ),
         SettingsRow(icon = Icons.Outlined.Notifications, label = "Notifications", onClick = onOpenNotifications),
         SettingsRow(icon = Icons.Outlined.Lock, label = "Change password", onClick = onOpenChangePassword),
         SettingsRow(icon = Icons.Outlined.Email, label = "Change email", onClick = onOpenChangeEmail),
@@ -453,50 +522,65 @@ private fun buildProfileSections(
 
     val business = mutableListOf<SettingsRow>().apply {
         if (isEngineer) {
+            // Pill mirrors the KYC screen + Engineer Jobs hub gate. The
+            // backend only stores Pending / Verified / Rejected; "Draft" vs
+            // "In review" within Pending comes from whether all required
+            // docs have been uploaded.
+            val (kycLabel, kycTone) = when (engineerStatus) {
+                null -> "Start" to StatusTone.Warn
+                VerificationStatus.Pending ->
+                    if (engineerKycSubmitted) "In review" to StatusTone.Info
+                    else "Draft" to StatusTone.Warn
+                VerificationStatus.Verified -> "Verified" to StatusTone.Success
+                VerificationStatus.Rejected -> "Rejected" to StatusTone.Danger
+            }
             add(SettingsRow(
                 icon = Icons.Outlined.VerifiedUser,
                 label = "Verification (KYC)",
-                chipLabel = "Review",
-                chipTone = StatusTone.Warn,
+                chipLabel = kycLabel,
+                chipTone = kycTone,
                 onClick = onOpenVerification,
+            ))
+            // "Public profile preview" only when KYC is verified — RPC gates
+            // engineer_public_profile to verification_status='verified'.
+            // Otherwise the link would resolve to a Profile-not-found state.
+            if (ownEngineerId != null) {
+                add(SettingsRow(
+                    icon = Icons.Outlined.Verified,
+                    label = "Preview my public profile",
+                    chipLabel = "What hospitals see",
+                    chipTone = StatusTone.Success,
+                    onClick = { onOpenPublicPreview(ownEngineerId) },
+                ))
+            }
+            add(SettingsRow(
+                icon = Icons.Filled.AccountBalanceWallet,
+                label = "Earnings",
+                onClick = onOpenEarnings,
             ))
             add(SettingsRow(icon = Icons.Filled.AccountBalance, label = "Bank details", onClick = onOpenBankDetails))
         }
         if (isHospital) {
+            add(SettingsRow(
+                icon = Icons.Filled.Build,
+                label = "My repair jobs",
+                onClick = onOpenMyRepairJobs,
+            ))
             add(SettingsRow(icon = Icons.Filled.LocationOn, label = "Addresses", onClick = onOpenAddresses))
             add(SettingsRow(icon = Icons.Filled.LocalHospital, label = "Hospital settings", onClick = onOpenHospitalSettings))
         }
-        // Marketplace v1 gate: supplier + manufacturer business rows are
-        // all seller-side surfaces. Skip them entirely until v2.
-        if (AppFeatureFlags.MARKETPLACE_ENABLED && isSupplier) {
-            add(SettingsRow(
-                icon = Icons.Outlined.VerifiedUser,
-                label = "Seller verification",
-                chipLabel = "GST + licence",
-                chipTone = StatusTone.Warn,
-                onClick = onOpenSellerVerification,
-            ))
-            add(SettingsRow(icon = Icons.Filled.Storefront, label = "Storefront", onClick = onOpenHospitalSettings))
-            add(SettingsRow(icon = Icons.Filled.AccountBalance, label = "Bank details", onClick = onOpenBankDetails))
-        }
-        if (AppFeatureFlags.MARKETPLACE_ENABLED && isManufacturer) {
-            add(SettingsRow(
-                icon = Icons.Outlined.VerifiedUser,
-                label = "Seller verification",
-                chipLabel = "GST + licence",
-                chipTone = StatusTone.Warn,
-                onClick = onOpenSellerVerification,
-            ))
-            add(SettingsRow(icon = Icons.Filled.Factory, label = "Brand portfolio", onClick = onOpenHospitalSettings))
-            add(SettingsRow(icon = Icons.Filled.AccountBalance, label = "Bank details", onClick = onOpenBankDetails))
-        }
-        if (isLogistics) {
-            add(SettingsRow(icon = Icons.Filled.LocalShipping, label = "Vehicle details", onClick = onOpenHospitalSettings))
-            add(SettingsRow(icon = Icons.Filled.AccountBalance, label = "Bank details", onClick = onOpenBankDetails))
-        }
+        // Marketplace cleanup: supplier / manufacturer / logistics rows used
+        // to gate off via MARKETPLACE_ENABLED. With marketplace fully removed
+        // for v1, those rows are dropped — they all pointed at deleted
+        // seller-side / driver-onboarding surfaces.
     }
 
     val support = listOf(
+        SettingsRow(
+            icon = Icons.AutoMirrored.Outlined.HelpOutline,
+            label = "Help & support",
+            onClick = onOpenHelp,
+        ),
         SettingsRow(icon = Icons.Outlined.Info, label = "About", onClick = onOpenAbout),
         SettingsRow(
             icon = Icons.Filled.CloudDownload,
@@ -983,7 +1067,7 @@ private fun EditProfileSheet(
     saving: Boolean,
     error: String?,
     onFullNameChange: (String) -> Unit,
-    onPhoneChange: (String) -> Unit,
+    onChangePhone: () -> Unit,
     onSave: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -1005,7 +1089,7 @@ private fun EditProfileSheet(
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                "Email can't be changed here — it's tied to your account.",
+                "Phone is verified separately by SMS. Tap below to add or change it.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1019,14 +1103,21 @@ private fun EditProfileSheet(
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
-                value = phone,
-                onValueChange = onPhoneChange,
-                label = { Text("Phone (optional)") },
+                value = phone.ifBlank { "Not set" },
+                onValueChange = {},
+                label = { Text("Phone") },
                 singleLine = true,
-                enabled = !saving,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                readOnly = true,
+                enabled = false,
                 modifier = Modifier.fillMaxWidth(),
             )
+            OutlinedButton(
+                onClick = onChangePhone,
+                enabled = !saving,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(if (phone.isBlank()) "Add phone" else "Change phone")
+            }
             if (error != null) {
                 Text(
                     error,

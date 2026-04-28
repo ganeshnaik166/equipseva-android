@@ -17,17 +17,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Engineering
-import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.CurrencyRupee
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.Sell
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -35,32 +34,32 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.engineers.EngineerRepository
-import com.equipseva.app.designsystem.components.ESBackTopBar
-import com.equipseva.app.designsystem.theme.AccentLime
-import com.equipseva.app.designsystem.theme.AccentLimeSoft
-import com.equipseva.app.designsystem.theme.BrandGreen
-import com.equipseva.app.designsystem.theme.BrandGreenDeep
-import com.equipseva.app.designsystem.theme.Ink500
-import com.equipseva.app.designsystem.theme.Ink700
-import com.equipseva.app.designsystem.theme.Ink900
-import com.equipseva.app.designsystem.theme.Spacing
-import com.equipseva.app.designsystem.theme.Surface0
-import com.equipseva.app.designsystem.theme.Surface200
-import com.equipseva.app.designsystem.theme.Surface50
-import com.equipseva.app.designsystem.theme.Warning
-import com.equipseva.app.designsystem.theme.WarningBg
+import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.EsBtnKind
+import com.equipseva.app.designsystem.components.EsBtnSize
+import com.equipseva.app.designsystem.components.EsTopBar
+import com.equipseva.app.designsystem.components.Pill
+import com.equipseva.app.designsystem.components.PillKind
+import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.EsType
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaGreen50
+import com.equipseva.app.designsystem.theme.SevaGreen700
+import com.equipseva.app.designsystem.theme.SevaInk400
+import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk600
+import com.equipseva.app.designsystem.theme.SevaInk900
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -124,45 +123,47 @@ fun EngineerJobsHubScreen(
     viewModel: EngineerJobsHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    Scaffold(topBar = { ESBackTopBar(title = "Engineer jobs", onBack = onBack) }) { padding ->
+    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .background(Surface50)
                 .verticalScroll(rememberScrollState()),
         ) {
-            Hero()
-            Spacer(Modifier.height(Spacing.md))
+            EsTopBar(title = "Engineer Jobs", onBack = onBack)
+
             when (state.status) {
                 EngineerJobsHubViewModel.Status.Loading ->
-                    Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(40.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
                         CircularProgressIndicator()
                     }
                 EngineerJobsHubViewModel.Status.NotSignedIn ->
-                    Onboarding(
+                    OnboardingHero(
                         title = "Sign in to start taking jobs",
                         body = "Create an account, complete engineer KYC, and start receiving repair leads in your district.",
                         ctaLabel = "Sign in / Sign up",
                         onCta = onSignIn,
                     )
                 EngineerJobsHubViewModel.Status.NotEngineer ->
-                    Onboarding(
+                    OnboardingHero(
                         title = "Become a repairman",
-                        body = "Three steps: 1) Submit KYC docs (Aadhaar, degree). 2) Pick service area + brands. 3) Wait for founder approval (24h).",
+                        body = "Submit a quick KYC (Aadhaar, PAN, qualification) so hospitals know you're verified.",
                         ctaLabel = "Submit KYC",
                         onCta = onSubmitKyc,
                     )
                 EngineerJobsHubViewModel.Status.Pending ->
-                    StatusBanner(
+                    OnboardingHero(
                         title = "KYC under review",
-                        body = "We're verifying your documents. You'll get a push when approved (usually < 24h).",
-                        bg = WarningBg,
-                        fg = Warning,
-                        icon = Icons.Filled.Warning,
+                        body = "We're verifying your documents. You'll get a push when approved (usually under 24h).",
+                        ctaLabel = null,
+                        onCta = {},
                     )
                 EngineerJobsHubViewModel.Status.Rejected ->
-                    Onboarding(
+                    OnboardingHero(
                         title = "KYC rejected — try again",
                         body = "Open KYC to see the rejection reason and resubmit. Most rejections are fixed by uploading a clearer photo.",
                         ctaLabel = "Open KYC",
@@ -171,161 +172,149 @@ fun EngineerJobsHubScreen(
                 EngineerJobsHubViewModel.Status.Verified -> Unit
             }
 
-            val gateOpen = state.status == EngineerJobsHubViewModel.Status.Verified
-            if (gateOpen) {
-                Spacer(Modifier.height(Spacing.sm))
+            if (state.status == EngineerJobsHubViewModel.Status.Verified) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = Spacing.lg),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     HubTile(
+                        icon = Icons.Filled.Bolt,
                         title = "Available jobs",
-                        tagline = "Browse open repair requests near you",
-                        icon = Icons.Filled.Build,
+                        desc = "Browse open repair requests near you",
                         onClick = onAvailableJobs,
                     )
                     HubTile(
+                        icon = Icons.Filled.Sell,
                         title = "My bids",
-                        tagline = "Track every bid you've placed",
-                        icon = Icons.Filled.Description,
+                        desc = "Track every bid you've placed",
                         onClick = onMyBids,
                     )
                     HubTile(
+                        icon = Icons.Filled.Build,
                         title = "Active work",
-                        tagline = "Jobs you've been assigned",
-                        icon = Icons.Filled.CheckCircle,
+                        desc = "Jobs you've been assigned",
                         onClick = onActiveWork,
                     )
                     HubTile(
+                        icon = Icons.Filled.CurrencyRupee,
                         title = "Earnings",
-                        tagline = "This month + lifetime payouts",
-                        icon = Icons.Filled.Payments,
+                        desc = "This month + lifetime payouts",
                         onClick = onEarnings,
                     )
                     HubTile(
-                        title = "Edit profile",
-                        tagline = "Bio, service areas, brands, hourly rate",
                         icon = Icons.Filled.Person,
+                        title = "Edit profile",
+                        desc = "Bio, service areas, brands, hourly rate",
                         onClick = onEditProfile,
                     )
                 }
             }
-            Spacer(Modifier.height(Spacing.xl))
+            Spacer(Modifier.height(24.dp))
         }
     }
 }
 
 @Composable
-private fun Hero() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(BrandGreen, BrandGreenDeep)))
-            .padding(horizontal = Spacing.lg, vertical = 22.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(AccentLimeSoft),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.Filled.Engineering, contentDescription = null, tint = AccentLime, modifier = Modifier.size(32.dp))
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Engineer jobs", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                Text("Pick up jobs · bid · earn", color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp)
-            }
-        }
-    }
-}
-
-@Composable
-private fun Onboarding(
+private fun OnboardingHero(
     title: String,
     body: String,
-    ctaLabel: String,
+    ctaLabel: String?,
     onCta: () -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = Spacing.md)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Surface0)
-            .border(1.dp, Surface200, RoundedCornerShape(16.dp))
-            .padding(Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            .padding(horizontal = 20.dp, vertical = 40.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(title, color = Ink900, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-        Text(body, color = Ink700, fontSize = 13.sp, lineHeight = 18.sp)
-        Spacer(Modifier.height(4.dp))
-        Button(onClick = onCta, modifier = Modifier.fillMaxWidth()) {
-            Text(ctaLabel, fontWeight = FontWeight.Bold)
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(SevaGreen50),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Shield,
+                contentDescription = null,
+                tint = SevaGreen700,
+                modifier = Modifier.size(32.dp),
+            )
         }
-    }
-}
-
-@Composable
-private fun StatusBanner(
-    title: String,
-    body: String,
-    bg: Color,
-    fg: Color,
-    icon: ImageVector,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
-            .clip(RoundedCornerShape(14.dp))
-            .background(bg)
-            .padding(Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Icon(icon, contentDescription = null, tint = fg, modifier = Modifier.size(20.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, color = fg, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            Text(body, color = fg.copy(alpha = 0.85f), fontSize = 12.sp, lineHeight = 16.sp)
+        Spacer(Modifier.height(20.dp))
+        Text(
+            text = title,
+            style = EsType.H4,
+            color = SevaInk900,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = body,
+            style = EsType.BodySm,
+            color = SevaInk600,
+            textAlign = TextAlign.Center,
+        )
+        if (ctaLabel != null) {
+            Spacer(Modifier.height(24.dp))
+            EsBtn(
+                text = ctaLabel,
+                onClick = onCta,
+                kind = EsBtnKind.Primary,
+                size = EsBtnSize.Lg,
+            )
         }
     }
 }
 
 @Composable
 private fun HubTile(
-    title: String,
-    tagline: String,
     icon: ImageVector,
+    title: String,
+    desc: String,
     onClick: () -> Unit,
+    badge: String? = null,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(Surface0)
-            .border(1.dp, Surface200, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 14.dp),
+            .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(52.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(AccentLimeSoft),
+                .size(40.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(SevaGreen50),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(icon, contentDescription = null, tint = BrandGreen, modifier = Modifier.size(28.dp))
+            Icon(icon, contentDescription = null, tint = SevaGreen700, modifier = Modifier.size(20.dp))
         }
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, color = Ink900, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            Text(tagline, color = Ink500, fontSize = 12.sp, lineHeight = 15.sp)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = EsType.Body.copy(fontWeight = FontWeight.SemiBold),
+                color = SevaInk900,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(text = desc, style = EsType.Caption, color = SevaInk500)
         }
-        Text("›", fontSize = 22.sp, color = Ink500)
+        if (badge != null) {
+            Pill(text = badge, kind = PillKind.Warn)
+            Spacer(Modifier.size(6.dp))
+        }
+        Icon(
+            Icons.Outlined.ChevronRight,
+            contentDescription = null,
+            tint = SevaInk400,
+            modifier = Modifier.size(18.dp),
+        )
     }
 }

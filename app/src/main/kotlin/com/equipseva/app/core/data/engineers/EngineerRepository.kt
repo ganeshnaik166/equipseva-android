@@ -8,12 +8,15 @@ interface EngineerRepository {
     suspend fun upsert(
         userId: String,
         aadhaarNumber: String?,
+        panNumber: String?,
         qualifications: List<String>,
         specializations: List<RepairEquipmentCategory>,
         experienceYears: Int,
         serviceRadiusKm: Int,
         city: String?,
         state: String?,
+        latitude: Double?,
+        longitude: Double?,
         certificates: List<EngineerCertificate>,
         // True when the engineer has uploaded an Aadhaar doc this round.
         // Founder review screen reads this as a positive submission signal

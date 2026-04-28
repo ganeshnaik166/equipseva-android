@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -80,6 +81,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun ChatScreen(
     onBack: () -> Unit,
+    onOpenJob: (jobId: String) -> Unit = {},
     viewModel: ChatViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -101,7 +103,7 @@ fun ChatScreen(
     }
 
     Scaffold(
-        containerColor = Surface50,
+        containerColor = com.equipseva.app.designsystem.theme.PaperDefault,
         topBar = {
             ChatTopBar(
                 title = state.title,
@@ -143,6 +145,9 @@ fun ChatScreen(
                 message = state.errorMessage,
                 modifier = Modifier.padding(horizontal = Spacing.lg),
             )
+            state.relatedJobId?.let { jobId ->
+                JobContextStrip(jobId = jobId, onClick = { onOpenJob(jobId) })
+            }
             QueuedPill(count = state.queuedCount)
             when {
                 state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -629,4 +634,32 @@ private fun String.isImageUrl(): Boolean {
     val lower = substringBefore('?').lowercase()
     return lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") ||
         lower.endsWith(".webp") || lower.endsWith(".gif") || lower.endsWith(".heic")
+}
+
+@Composable
+private fun JobContextStrip(jobId: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(com.equipseva.app.designsystem.theme.SevaGreen50)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            Icons.Filled.MoreVert,
+            contentDescription = null,
+            tint = com.equipseva.app.designsystem.theme.SevaGreen700,
+            modifier = Modifier.size(14.dp),
+        )
+        val short = jobId.take(8)
+        Text(
+            text = "Repair job · #$short",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = com.equipseva.app.designsystem.theme.SevaGreen900,
+            modifier = Modifier.weight(1f),
+        )
+    }
 }

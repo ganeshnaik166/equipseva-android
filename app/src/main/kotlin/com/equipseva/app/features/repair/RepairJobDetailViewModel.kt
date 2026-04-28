@@ -22,8 +22,11 @@ import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobRepository
 import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.storage.StorageRepository
 import com.equipseva.app.core.sync.OutboxEnqueuer
 import com.equipseva.app.core.sync.OutboxKinds
+import com.equipseva.app.core.sync.handlers.PhotoUploadPayload
+import com.equipseva.app.core.sync.handlers.PhotoUploadStash
 import com.equipseva.app.navigation.Routes
 import java.time.Instant
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -54,6 +57,8 @@ class RepairJobDetailViewModel @Inject constructor(
     private val outboxEnqueuer: OutboxEnqueuer,
     private val outboxDao: OutboxDao,
     private val reportRepository: ContentReportRepository,
+    private val photoUploadStash: PhotoUploadStash,
+    private val storageRepository: StorageRepository,
     private val json: Json,
 ) : ViewModel() {
 
@@ -110,6 +115,22 @@ class RepairJobDetailViewModel @Inject constructor(
         val queuedStatusCount: Int = 0,
         val reportingTargetId: String? = null,
         val submittingReport: Boolean = false,
+        /** Open the completion-proof picker sheet (engineer-side, on Mark Done). */
+        val proofSheetOpen: Boolean = false,
+        /** True while we're enqueuing photos + flipping the status row. */
+        val submittingProof: Boolean = false,
+        /**
+         * Signed-URL projections of [RepairJob.afterPhotos] / [RepairJob.beforePhotos]
+         * / [RepairJob.issuePhotos]. The DB stores object paths because the
+         * repair-photos bucket is private; AsyncImage can't fetch a path
+         * directly, so we mint short-lived signed URLs after the row loads.
+         * Same index-alignment as the underlying path list — drop entries
+         * we couldn't sign so the rendering site never tries to fetch a
+         * blank string.
+         */
+        val afterPhotoSignedUrls: List<String> = emptyList(),
+        val beforePhotoSignedUrls: List<String> = emptyList(),
+        val issuePhotoSignedUrls: List<String> = emptyList(),
     ) {
         /** Hide the report CTA when the viewer posted the job. */
         val canReport: Boolean
@@ -363,6 +384,79 @@ class RepairJobDetailViewModel @Inject constructor(
         setCompletedAt = true,
     )
 
+    /**
+     * Engineer taps "Mark done" → we open a sheet to capture proof photos
+     * (after_photos). [closeProofSheet] dismisses without committing;
+     * [submitCompletionProof] enqueues each photo via [photoUploadStash] and
+     * then flips the status row to Completed via the existing [markDone]
+     * transition.
+     */
+    fun openProofSheet() {
+        val job = _state.value.job ?: return
+        if (_state.value.viewerRole != ViewerRole.Engineer) return
+        if (job.status !in setOf(RepairJobStatus.InProgress, RepairJobStatus.EnRoute)) return
+        _state.update { it.copy(proofSheetOpen = true) }
+    }
+
+    fun closeProofSheet() {
+        if (_state.value.submittingProof) return
+        _state.update { it.copy(proofSheetOpen = false) }
+    }
+
+    /**
+     * Persist each captured photo (offline-safe via PhotoUploadStash with
+     * CONTEXT_REPAIR_JOB_AFTER → drains into repair_jobs.after_photos) and
+     * then transition the row to Completed. Photos may be empty — we still
+     * complete the job (engineer might be offline / forgot a camera) but
+     * the UX nudges them to attach proof first.
+     */
+    fun submitCompletionProof(photos: List<CompletionProofPhoto>) {
+        val snap = _state.value
+        val job = snap.job ?: return
+        if (snap.submittingProof) return
+        if (snap.viewerRole != ViewerRole.Engineer) return
+        _state.update { it.copy(submittingProof = true) }
+        viewModelScope.launch {
+            val session = authRepository.sessionState.firstOrNull() as? AuthSession.SignedIn
+            val uid = session?.userId
+            if (uid.isNullOrBlank()) {
+                _state.update { it.copy(submittingProof = false) }
+                _messages.send("Sign in to mark this job done")
+                return@launch
+            }
+            // Enqueue each photo. Failures here are non-fatal — we still flip
+            // the status; user can re-add photos on the Completed view later.
+            photos.forEachIndexed { index, photo ->
+                runCatching {
+                    val storedName = "after-${System.currentTimeMillis()}-$index-${photo.fileName.take(40).replace(Regex("[^A-Za-z0-9._-]"), "_")}"
+                    val objectPath = "$uid/${job.id}/$storedName"
+                    photoUploadStash.enqueue(
+                        bucket = StorageRepository.Buckets.REPAIR_PHOTOS,
+                        objectPath = objectPath,
+                        bytes = photo.bytes,
+                        mimeType = photo.mimeType,
+                        contextType = PhotoUploadPayload.CONTEXT_REPAIR_JOB_AFTER,
+                        contextId = job.id,
+                        uploaderUserId = uid,
+                    )
+                }
+            }
+            _state.update { it.copy(proofSheetOpen = false, submittingProof = false) }
+            markDone()
+        }
+    }
+
+    /**
+     * Photo bytes captured by the engineer for completion proof. Held in
+     * memory only across the sheet → submit handoff; the stash copies them
+     * to disk for offline-safe upload before we move on.
+     */
+    data class CompletionProofPhoto(
+        val fileName: String,
+        val mimeType: String,
+        val bytes: ByteArray,
+    )
+
     fun cancelJob() = transitionStatus(
         target = RepairJobStatus.Cancelled,
         allowedFrom = setOf(RepairJobStatus.Requested, RepairJobStatus.Assigned),
@@ -556,6 +650,7 @@ class RepairJobDetailViewModel @Inject constructor(
                             hospitalLocation = hospitalProfile?.locationLine,
                         )
                     }
+                    job?.let { resolvePhotoSignedUrls(it) }
                 },
                 onFailure = { ex ->
                     _state.update {
@@ -566,6 +661,38 @@ class RepairJobDetailViewModel @Inject constructor(
                     }
                 },
             )
+        }
+    }
+
+    /**
+     * Mints short-lived signed URLs for every path on the loaded job's
+     * after_photos / before_photos / issue_photos arrays so the rendering
+     * site can pass them straight into AsyncImage. The repair-photos bucket
+     * is private, and the DB stores raw object paths — without this step
+     * a path string lands in AsyncImage and Coil silently fails to fetch.
+     *
+     * Failures per-path are dropped (the gallery just shows fewer thumbs)
+     * rather than poisoning the whole load. Storage policy gates SELECT to
+     * job participants so cross-user views still work after the new RLS
+     * policy in 20260428200000.
+     */
+    private fun resolvePhotoSignedUrls(job: RepairJob) {
+        viewModelScope.launch {
+            suspend fun signAll(paths: List<String>): List<String> = paths.mapNotNull { path ->
+                runCatching {
+                    storageRepository.signedUrl(StorageRepository.Buckets.REPAIR_PHOTOS, path)
+                }.getOrNull()
+            }
+            val after = signAll(job.afterPhotos)
+            val before = signAll(job.beforePhotos)
+            val issue = signAll(job.issuePhotos)
+            _state.update {
+                it.copy(
+                    afterPhotoSignedUrls = after,
+                    beforePhotoSignedUrls = before,
+                    issuePhotoSignedUrls = issue,
+                )
+            }
         }
     }
 

@@ -9,36 +9,27 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.CurrencyRupee
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -51,58 +42,36 @@ import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.EsSection
+import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.SecureScreen
-import com.equipseva.app.designsystem.components.SectionHeader
-import com.equipseva.app.designsystem.components.StatusChip
-import com.equipseva.app.designsystem.components.StatusTone
-import com.equipseva.app.designsystem.theme.BrandGreen
-import com.equipseva.app.designsystem.theme.BrandGreenDark
-import com.equipseva.app.designsystem.theme.Ink500
-import com.equipseva.app.designsystem.theme.Ink900
-import com.equipseva.app.designsystem.theme.Spacing
-import com.equipseva.app.designsystem.theme.Success
-import com.equipseva.app.designsystem.theme.SuccessBg
-import com.equipseva.app.designsystem.theme.Surface0
-import com.equipseva.app.designsystem.theme.Surface50
-import com.equipseva.app.designsystem.theme.Surface200
+import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.EsType
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaGlowRaw
+import com.equipseva.app.designsystem.theme.SevaGreen50
+import com.equipseva.app.designsystem.theme.SevaGreen700
+import com.equipseva.app.designsystem.theme.SevaGreen900
+import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.designsystem.theme.SevaWarning50
+import com.equipseva.app.designsystem.theme.SevaWarning500
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EarningsScreen(
     onBack: () -> Unit,
     onJobClick: (String) -> Unit,
+    onBankDetails: () -> Unit = {},
     viewModel: EarningsViewModel = hiltViewModel(),
 ) {
     SecureScreen()
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Earnings") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-            )
-        },
-        containerColor = Surface50,
-    ) { inner ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(inner),
-        ) {
-            ErrorBanner(
-                message = state.errorMessage,
-                modifier = Modifier.padding(horizontal = Spacing.lg),
-            )
+    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            EsTopBar(title = "Earnings", onBack = onBack)
+            ErrorBanner(message = state.errorMessage)
             PullToRefreshBox(
                 isRefreshing = state.refreshing,
                 onRefresh = viewModel::onRefresh,
@@ -114,14 +83,15 @@ fun EarningsScreen(
                     }
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = Spacing.xl),
-                        verticalArrangement = Arrangement.spacedBy(0.dp),
+                        contentPadding = PaddingValues(bottom = 24.dp),
                     ) {
                         item("hero") {
-                            EarningsHero(
-                                paidTotal = state.paidTotal,
-                                pendingTotal = state.pendingTotal,
-                            )
+                            Box(modifier = Modifier.padding(16.dp)) {
+                                EarningsHero(
+                                    paidTotal = state.paidTotal,
+                                    pendingTotal = state.pendingTotal,
+                                )
+                            }
                         }
                         if (state.rows.isEmpty()) {
                             item("empty") {
@@ -132,14 +102,17 @@ fun EarningsScreen(
                                 )
                             }
                         } else {
-                            item("history_header") {
-                                SectionHeader(title = "Transactions")
-                            }
-                            item("history_list") {
-                                TransactionsList(
-                                    rows = state.rows,
-                                    onJobClick = onJobClick,
-                                )
+                            item("history") {
+                                EsSection(
+                                    title = "Recent payouts",
+                                    action = "Bank details",
+                                    onAction = onBankDetails,
+                                ) {
+                                    TransactionsList(
+                                        rows = state.rows,
+                                        onJobClick = onJobClick,
+                                    )
+                                }
                             }
                         }
                     }
@@ -152,60 +125,47 @@ fun EarningsScreen(
 @Composable
 private fun EarningsHero(paidTotal: Double, pendingTotal: Double) {
     val total = paidTotal + pendingTotal
-    Box(modifier = Modifier.padding(start = Spacing.lg, end = Spacing.lg, top = Spacing.lg, bottom = Spacing.sm)) {
-        Column(
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Brush.linearGradient(listOf(SevaGreen700, SevaGreen900)))
+            .padding(18.dp),
+    ) {
+        Text(
+            text = "This month",
+            fontSize = 12.sp,
+            color = Color.White.copy(alpha = 0.7f),
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = formatRupees(total),
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = (-0.6).sp,
+            color = Color.White,
+        )
+        Spacer(Modifier.height(14.dp))
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(BrandGreen, BrandGreenDark),
-                        start = Offset(0f, 0f),
-                        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY),
-                    ),
-                )
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(
-                text = formatRupees(total),
-                fontSize = 44.sp,
-                fontWeight = FontWeight.Normal,
-                letterSpacing = (-1.5).sp,
-                color = Color.White,
-            )
-            Spacer(Modifier.height(14.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(24.dp),
-            ) {
-                HeroStat(label = "Paid", value = formatRupees(paidTotal))
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(28.dp)
-                        .background(Color.White.copy(alpha = 0.2f)),
-                )
-                HeroStat(label = "Pending", value = formatRupees(pendingTotal))
-            }
+                .height(1.dp)
+                .background(Color.White.copy(alpha = 0.15f)),
+        )
+        Spacer(Modifier.height(14.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+            HeroStat(label = "Paid", value = formatRupees(paidTotal), tint = Color.White)
+            HeroStat(label = "Pending", value = formatRupees(pendingTotal), tint = SevaGlowRaw)
         }
     }
 }
 
 @Composable
-private fun HeroStat(label: String, value: String) {
+private fun HeroStat(label: String, value: String, tint: Color) {
     Column {
-        Text(
-            text = label,
-            fontSize = 11.sp,
-            color = Color.White.copy(alpha = 0.75f),
-        )
-        Text(
-            text = value,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-        )
+        Text(label, fontSize = 11.sp, color = Color.White.copy(alpha = 0.65f))
+        Spacer(Modifier.height(2.dp))
+        Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = tint)
     }
 }
 
@@ -216,11 +176,11 @@ private fun TransactionsList(
 ) {
     Column(
         modifier = Modifier
-            .padding(horizontal = Spacing.lg)
+            .padding(horizontal = 16.dp)
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Surface0)
-            .border(1.dp, Surface200, RoundedCornerShape(14.dp)),
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp)),
     ) {
         rows.forEachIndexed { index, row ->
             TransactionRow(
@@ -232,7 +192,7 @@ private fun TransactionsList(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(1.dp)
-                        .background(Surface200),
+                        .background(BorderDefault),
                 )
             }
         }
@@ -245,73 +205,54 @@ private fun TransactionRow(
     onClick: () -> Unit,
 ) {
     val paid = row.job?.status == RepairJobStatus.Completed
+    val tileBg = if (paid) SevaGreen50 else SevaWarning50
+    val tileFg = if (paid) SevaGreen700 else SevaWarning500
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 14.dp),
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(SuccessBg),
+                .size(32.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(tileBg),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Filled.ArrowDownward,
+                Icons.Filled.CurrencyRupee,
                 contentDescription = null,
-                tint = Success,
-                modifier = Modifier.size(18.dp),
+                tint = tileFg,
+                modifier = Modifier.size(14.dp),
             )
         }
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = row.job?.title ?: "Repair job",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Ink900,
-                maxLines = 1,
-            )
-            val jobNumber = row.job?.jobNumber?.takeIf { it.isNotBlank() }
-            val status = row.job?.status?.displayName ?: "In progress"
-            val subtitle = jobNumber?.let { "#$it · $status" } ?: status
-            Text(
-                text = subtitle,
-                fontSize = 12.sp,
-                color = Ink500,
+                style = EsType.Body.copy(fontWeight = FontWeight.SemiBold),
+                color = SevaInk900,
                 maxLines = 1,
             )
             val timestamp = if (paid) row.job?.completedAtInstant else row.bid.createdAtInstant
-            timestamp?.let {
-                val prefix = if (paid) "Paid" else "Quoted"
-                Text(
-                    text = "$prefix ${relativeLabel(it)} ago",
-                    fontSize = 11.sp,
-                    color = Ink500,
-                    maxLines = 1,
-                )
-            }
+            val timeLine = timestamp?.let { "${if (paid) "Paid" else "Quoted"} ${relativeLabel(it)} ago" }
+                ?: row.job?.status?.displayName ?: ""
+            Text(text = timeLine, style = EsType.Caption, color = SevaInk500, maxLines = 1)
         }
-        Column(
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
+        Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = "+${formatRupees(row.bid.amountRupees)}",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = Ink900,
+                text = formatRupees(row.bid.amountRupees),
+                style = EsType.Body.copy(fontWeight = FontWeight.Bold),
+                color = SevaInk900,
             )
-            val tone: StatusTone = when (row.job?.status) {
-                RepairJobStatus.Completed -> StatusTone.Success
-                RepairJobStatus.Cancelled, RepairJobStatus.Disputed -> StatusTone.Danger
-                else -> StatusTone.Warn
-            }
-            val label = if (paid) "paid" else "pending"
-            StatusChip(label = label, tone = tone)
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = if (paid) "paid" else "pending",
+                style = EsType.Caption.copy(fontWeight = FontWeight.SemiBold),
+                color = if (paid) SevaGreen700 else SevaWarning500,
+            )
         }
     }
 }

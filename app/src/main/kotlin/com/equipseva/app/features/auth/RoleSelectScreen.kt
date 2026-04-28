@@ -1,54 +1,107 @@
 package com.equipseva.app.features.auth
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Apartment
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Factory
-import androidx.compose.material.icons.filled.LocalHospital
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LocalShipping
-import androidx.compose.material.icons.filled.Store
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.equipseva.app.designsystem.components.AuthScaffold
+import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.EsBtnKind
+import com.equipseva.app.designsystem.components.EsBtnSize
+import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.ErrorBanner
-import com.equipseva.app.designsystem.components.GradientTile
-import com.equipseva.app.designsystem.components.PrimaryButton
-import com.equipseva.app.designsystem.theme.Ink400
-import com.equipseva.app.designsystem.theme.Ink500
-import com.equipseva.app.designsystem.theme.Ink900
-import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.components.Pill
+import com.equipseva.app.designsystem.components.PillKind
+import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.EsType
+import com.equipseva.app.designsystem.theme.Paper2
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaGreen50
+import com.equipseva.app.designsystem.theme.SevaGreen700
+import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk600
+import com.equipseva.app.designsystem.theme.SevaInk900
 import com.equipseva.app.features.auth.state.AuthEffect
+
+private data class RoleVisual(
+    val icon: ImageVector,
+    val label: String,
+    val desc: String,
+    val active: Boolean,
+)
+
+private fun UserRole.visual(): RoleVisual = when (this) {
+    UserRole.HOSPITAL -> RoleVisual(
+        Icons.Filled.Apartment,
+        "Hospital admin",
+        "Book engineers for your facility",
+        true,
+    )
+    UserRole.ENGINEER -> RoleVisual(
+        Icons.Filled.Build,
+        "Engineer",
+        "Independent biomedical technician",
+        true,
+    )
+    UserRole.SUPPLIER -> RoleVisual(
+        Icons.Filled.Inventory2,
+        "Supplier",
+        "Coming soon",
+        false,
+    )
+    UserRole.MANUFACTURER -> RoleVisual(
+        Icons.Filled.Layers,
+        "Manufacturer",
+        "Coming soon",
+        false,
+    )
+    UserRole.LOGISTICS -> RoleVisual(
+        Icons.Filled.LocalShipping,
+        "Logistics",
+        "Coming soon",
+        false,
+    )
+}
 
 @Composable
 fun RoleSelectScreen(
     onShowMessage: (String) -> Unit,
+    onBack: () -> Unit = {},
     viewModel: RoleSelectViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -63,39 +116,57 @@ fun RoleSelectScreen(
         }
     }
 
-    AuthScaffold(
-        title = "How will you use EquipSeva?",
-        subtitle = "Pick the role that fits you best. You can change this later in Profile.",
-    ) {
-        ErrorBanner(message = state.form.errorMessage)
+    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.systemBars),
+        ) {
+            EsTopBar(title = "Pick your role", onBack = onBack)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = "You can switch later from your profile.",
+                    style = EsType.BodySm,
+                    color = SevaInk600,
+                    modifier = Modifier.padding(bottom = 10.dp),
+                )
 
-        state.roles.forEach { role ->
-            RoleCard(
-                role = role,
-                selected = role == state.selected,
-                onClick = { viewModel.onRoleSelected(role) },
-            )
+                ErrorBanner(message = state.form.errorMessage)
+
+                state.roles.forEach { role ->
+                    RoleCard(
+                        role = role,
+                        selected = role == state.selected,
+                        onClick = { viewModel.onRoleSelected(role) },
+                    )
+                }
+            }
+            // Bottom action bar
+            Surface(color = Color.White, shadowElevation = 0.dp) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(width = 1.dp, color = BorderDefault, shape = RoundedCornerShape(0.dp))
+                        .padding(20.dp),
+                ) {
+                    EsBtn(
+                        text = "Continue",
+                        onClick = viewModel::onConfirm,
+                        kind = EsBtnKind.Primary,
+                        size = EsBtnSize.Lg,
+                        full = true,
+                        disabled = !state.canConfirm,
+                    )
+                }
+            }
         }
-
-        Spacer(Modifier.height(Spacing.md))
-
-        PrimaryButton(
-            label = "Continue",
-            onClick = viewModel::onConfirm,
-            enabled = state.canConfirm,
-            loading = state.form.submitting,
-        )
     }
-}
-
-private data class RoleVisual(val icon: ImageVector, val hue: Int)
-
-private fun UserRole.visual(): RoleVisual = when (this) {
-    UserRole.HOSPITAL -> RoleVisual(Icons.Filled.LocalHospital, 200)
-    UserRole.ENGINEER -> RoleVisual(Icons.Filled.Build, 150)
-    UserRole.SUPPLIER -> RoleVisual(Icons.Filled.Store, 40)
-    UserRole.MANUFACTURER -> RoleVisual(Icons.Filled.Factory, 280)
-    UserRole.LOGISTICS -> RoleVisual(Icons.Filled.LocalShipping, 330)
 }
 
 @Composable
@@ -104,75 +175,61 @@ private fun RoleCard(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val visual = role.visual()
-    val border = if (selected) {
-        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-    } else {
-        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    }
-    OutlinedCard(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(5.dp),
-        border = border,
-        colors = CardDefaults.outlinedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
+    val v = role.visual()
+    val borderColor = if (selected) SevaGreen700 else BorderDefault
+    val bg = if (selected) SevaGreen50 else Color.White
+    val tileBg = if (selected) SevaGreen700 else Paper2
+    val tileFg = if (selected) Color.White else SevaInk600
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(bg)
+            .border(1.5.dp, borderColor, RoundedCornerShape(12.dp))
+            .alpha(if (v.active) 1f else 0.5f)
+            .let { if (v.active) it.clickable(onClick = onClick) else it }
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Spacing.md),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            GradientTile(
-                icon = visual.icon,
-                hue = visual.hue,
-                size = 48.dp,
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = role.displayName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Ink900,
-                )
-                Text(
-                    text = role.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Ink500,
-                )
-            }
-            SelectionMark(selected = selected)
-        }
-    }
-}
-
-@Composable
-private fun SelectionMark(selected: Boolean) {
-    if (selected) {
         Box(
             modifier = Modifier
-                .size(24.dp)
-                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                .size(40.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(tileBg),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Filled.Check,
-                contentDescription = "Selected",
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(14.dp),
+                imageVector = v.icon,
+                contentDescription = null,
+                tint = tileFg,
+                modifier = Modifier.size(20.dp),
             )
         }
-    } else {
-        Box(
-            modifier = Modifier
-                .size(20.dp)
-                .border(2.dp, Ink400, CircleShape),
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = v.label,
+                style = EsType.Body.copy(fontWeight = FontWeight.SemiBold),
+                color = SevaInk900,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = v.desc,
+                style = EsType.Caption,
+                color = SevaInk500,
+            )
+        }
+        if (!v.active) {
+            Pill(text = "Soon", kind = PillKind.Default)
+        } else if (selected) {
+            Icon(
+                imageVector = Icons.Outlined.CheckCircle,
+                contentDescription = null,
+                tint = SevaGreen700,
+                modifier = Modifier.size(20.dp),
+            )
+        } else {
+            Box(modifier = Modifier.size(20.dp))
+        }
     }
 }

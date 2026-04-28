@@ -1,7 +1,6 @@
 package com.equipseva.app.features.repair
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -18,19 +17,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -51,18 +44,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobStatus
-import com.equipseva.app.designsystem.components.ESTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.EsChip
+import com.equipseva.app.designsystem.components.EsField
+import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.ShimmerListItem
 import com.equipseva.app.designsystem.maxContentWidth
-import com.equipseva.app.designsystem.theme.BrandGreen
-import com.equipseva.app.designsystem.theme.BrandGreenDark
-import com.equipseva.app.designsystem.theme.Ink500
-import com.equipseva.app.designsystem.theme.Spacing
-import com.equipseva.app.designsystem.theme.Surface200
+import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.EsType
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaGreen700
+import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.features.repair.components.EngineerRepairHeroCard
+import com.equipseva.app.features.repair.components.EngineerTipCard
 import com.equipseva.app.features.repair.components.MapJob
 import com.equipseva.app.features.repair.components.NearbyJobsMap
 import com.equipseva.app.features.repair.components.RepairJobCard
@@ -80,6 +79,8 @@ private enum class EngineerJobsTab(val label: String) {
 @Composable
 fun RepairJobsScreen(
     onJobClick: (jobId: String) -> Unit = {},
+    onTuneProfile: () -> Unit = {},
+    onViewEarnings: () -> Unit = {},
     viewModel: RepairJobsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -114,10 +115,31 @@ fun RepairJobsScreen(
         EngineerJobsTab.Mine -> state.mineErrorMessage
     }
 
-    Scaffold(topBar = { ESTopBar(title = "Jobs") }) { inner ->
-        Column(modifier = Modifier.fillMaxSize().padding(inner)) {
+    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            val nearbyCount = state.items.count { it.status == RepairJobStatus.Requested }
+            EsTopBar(
+                title = "Repair",
+                subtitle = if (selectedTab == EngineerJobsTab.Available) "$nearbyCount jobs nearby" else null,
+            )
             EngineerTabBar(selected = selectedTab, onSelect = { selectedTab = it })
             if (selectedTab == EngineerJobsTab.Available) {
+                // Hero stats card — sources counts straight from current state
+                // so no extra queries: nearby = items.size (open feed already
+                // filtered to verified-near jobs by the VM); pending bids =
+                // count of own bids still in Pending status.
+                val pendingBidCount = remember(state.ownBidsByJob) {
+                    state.ownBidsByJob.values.count { it.status == RepairBidStatus.Pending }
+                }
+                EngineerRepairHeroCard(
+                    nearbyCount = state.items.count { it.status == RepairJobStatus.Requested },
+                    pendingBidCount = pendingBidCount,
+                    radiusKm = state.radiusKm,
+                    hasBase = state.baseLatitude != null && state.baseLongitude != null,
+                    onViewEarnings = onViewEarnings,
+                    onTuneProfile = onTuneProfile,
+                )
+                EngineerTipCard()
                 SearchHeader(
                     query = state.query,
                     onQueryChange = viewModel::onQueryChange,
@@ -125,7 +147,7 @@ fun RepairJobsScreen(
                 RadiusFilterRow(
                     selected = state.radiusKm,
                     onSelect = viewModel::onRadiusChange,
-                    modifier = Modifier.padding(horizontal = Spacing.lg),
+                    modifier = Modifier.padding(horizontal = 16.dp),
                 )
                 NearbyJobsMap(
                     baseLatitude = state.baseLatitude,
@@ -145,10 +167,7 @@ fun RepairJobsScreen(
                     },
                 )
             }
-            ErrorBanner(
-                message = bannerMessage,
-                modifier = Modifier.padding(horizontal = Spacing.lg),
-            )
+            ErrorBanner(message = bannerMessage)
 
             PullToRefreshBox(
                 isRefreshing = state.refreshing,
@@ -161,8 +180,8 @@ fun RepairJobsScreen(
                     else -> LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.md),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         items(items = filtered, key = { it.id }) { job ->
                             Box(
@@ -181,7 +200,7 @@ fun RepairJobsScreen(
                             if (state.loadingMore) {
                                 item("loading_more") {
                                     Box(
-                                        modifier = Modifier.fillMaxWidth().padding(Spacing.md),
+                                        modifier = Modifier.fillMaxWidth().padding(12.dp),
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         CircularProgressIndicator(
@@ -194,11 +213,11 @@ fun RepairJobsScreen(
                                 item("end") {
                                     Text(
                                         text = "That's all the open jobs we have right now.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        style = EsType.Caption,
+                                        color = SevaInk500,
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(Spacing.md),
+                                            .padding(12.dp),
                                     )
                                 }
                             }
@@ -218,9 +237,8 @@ private fun EngineerTabBar(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, Surface200)
-            .padding(horizontal = Spacing.lg),
+            .background(Color.White)
+            .padding(horizontal = 16.dp),
     ) {
         Row(
             modifier = Modifier
@@ -236,6 +254,13 @@ private fun EngineerTabBar(
                 )
             }
         }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(BorderDefault)
+                .align(Alignment.BottomCenter),
+        )
     }
 }
 
@@ -253,43 +278,35 @@ private fun JobsTabPill(
     ) {
         Text(
             text = label,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = if (selected) BrandGreenDark else Ink500,
+            style = EsType.Label.copy(fontWeight = FontWeight.SemiBold),
+            color = if (selected) SevaInk900 else SevaInk500,
         )
         Box(
             modifier = Modifier
                 .padding(top = 8.dp)
                 .height(2.dp)
                 .fillMaxWidth()
-                .background(if (selected) BrandGreen else Color.Transparent),
+                .background(if (selected) SevaGreen700 else Color.Transparent),
         )
     }
 }
 
 @Composable
 private fun SearchHeader(query: String, onQueryChange: (String) -> Unit) {
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-        placeholder = { Text("Search by issue, brand, model") },
-        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-        trailingIcon = if (query.isNotEmpty()) {
-            {
-                IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Filled.Close, contentDescription = "Clear search")
-                }
-            }
-        } else null,
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Text,
-            imeAction = ImeAction.Search,
-        ),
-    )
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        EsField(
+            value = query,
+            onChange = onQueryChange,
+            placeholder = "Search by issue, brand, model",
+            leading = {
+                Icon(Icons.Filled.Search, contentDescription = null, tint = SevaInk500, modifier = Modifier.size(18.dp))
+            },
+        )
+    }
 }
 
 @Composable
@@ -331,20 +348,16 @@ private fun RadiusFilterRow(
         modifier = modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(bottom = Spacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            .padding(bottom = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         options.forEach { km ->
-            FilterChip(
-                selected = selected == km,
+            EsChip(
+                text = "${km} km",
+                active = selected == km,
                 onClick = { onSelect(km) },
-                label = { Text("${km} km") },
             )
         }
-        FilterChip(
-            selected = selected == null,
-            onClick = { onSelect(null) },
-            label = { Text("All") },
-        )
+        EsChip(text = "All", active = selected == null, onClick = { onSelect(null) })
     }
 }

@@ -21,17 +21,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.Group
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -47,18 +43,21 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.equipseva.app.designsystem.components.ESBackTopBar
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
-import com.equipseva.app.designsystem.theme.BrandGreen
-import com.equipseva.app.designsystem.theme.BrandGreenDark
-import com.equipseva.app.designsystem.theme.ErrorRed
-import com.equipseva.app.designsystem.theme.Ink500
-import com.equipseva.app.designsystem.theme.Ink700
-import com.equipseva.app.designsystem.theme.Ink900
-import com.equipseva.app.designsystem.theme.Spacing
-import com.equipseva.app.designsystem.theme.Surface0
-import com.equipseva.app.designsystem.theme.Surface200
-import com.equipseva.app.designsystem.theme.Surface50
+import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.EsBtnKind
+import com.equipseva.app.designsystem.components.EsChip
+import com.equipseva.app.designsystem.components.EsTopBar
+import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.Paper2
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaDanger500
+import com.equipseva.app.designsystem.theme.SevaGreen700
+import com.equipseva.app.designsystem.theme.SevaGreen900
+import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk700
+import com.equipseva.app.designsystem.theme.SevaInk900
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Job
@@ -118,7 +117,7 @@ class FounderUsersViewModel @Inject constructor(
         viewModelScope.launch {
             repo.searchUsers(query = s.query, role = s.selectedRole, limit = 50, offset = 0)
                 .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.message ?: "Failed to load") } }
+                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
         }
     }
 
@@ -147,7 +146,7 @@ class FounderUsersViewModel @Inject constructor(
                     }
                     fetch()
                 }
-                .onFailure { e -> _state.update { it.copy(acting = false, error = e.message ?: "Failed") } }
+                .onFailure { e -> _state.update { it.copy(acting = false, error = e.toUserMessage()) } }
         }
     }
 
@@ -161,18 +160,14 @@ fun FounderUsersScreen(
     viewModel: FounderUsersViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    Scaffold(topBar = { ESBackTopBar(title = "Users", onBack = onBack) }) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(Surface50),
-        ) {
+    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            EsTopBar(title = "Users", onBack = onBack)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 OutlinedTextField(
                     value = state.query,
@@ -185,26 +180,18 @@ fun FounderUsersScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    FilterChip(
-                        selected = state.selectedRole == null,
+                    EsChip(
+                        text = "All",
+                        active = state.selectedRole == null,
                         onClick = { viewModel.onRoleSelected(null) },
-                        label = { Text("All") },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = BrandGreen,
-                            selectedLabelColor = Color.White,
-                        ),
                     )
                     VALID_ROLES.forEach { role ->
-                        FilterChip(
-                            selected = state.selectedRole == role,
+                        EsChip(
+                            text = role.replace('_', ' '),
+                            active = state.selectedRole == role,
                             onClick = { viewModel.onRoleSelected(role) },
-                            label = { Text(role.replace('_', ' ')) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = BrandGreen,
-                                selectedLabelColor = Color.White,
-                            ),
                         )
                     }
                 }
@@ -228,8 +215,8 @@ fun FounderUsersScreen(
                     )
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(Spacing.md),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        contentPadding = PaddingValues(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         items(state.rows, key = { it.userId }) { row ->
                             UserRow(
@@ -250,34 +237,36 @@ fun FounderUsersScreen(
             onDismissRequest = { viewModel.closeSheet() },
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
                     text = "Change role · ${state.sheetUserName ?: "user"}",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Ink900,
+                    color = SevaInk900,
                 )
                 Text(
                     text = "Pick the new role. This change is immediate.",
-                    color = Ink500,
+                    color = SevaInk500,
                     fontSize = 13.sp,
                 )
                 VALID_ROLES.forEach { role ->
-                    Button(
+                    EsBtn(
+                        text = if (state.acting) "…" else role.replace('_', ' '),
                         onClick = { viewModel.onSetRole(state.sheetUserId!!, role) },
-                        enabled = !state.acting,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(if (state.acting) "…" else role.replace('_', ' '))
-                    }
+                        kind = EsBtnKind.Primary,
+                        full = true,
+                        disabled = state.acting,
+                    )
                 }
-                OutlinedButton(
+                EsBtn(
+                    text = "Cancel",
                     onClick = { viewModel.closeSheet() },
-                    enabled = !state.acting,
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Cancel") }
+                    kind = EsBtnKind.Secondary,
+                    full = true,
+                    disabled = state.acting,
+                )
             }
         }
     }
@@ -291,10 +280,10 @@ private fun UserRow(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Surface0)
-            .border(1.dp, Surface200, RoundedCornerShape(14.dp))
-            .padding(Spacing.md),
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
+            .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -302,7 +291,7 @@ private fun UserRow(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(BrandGreenDark),
+                    .background(SevaGreen900),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -318,23 +307,23 @@ private fun UserRow(
                     Text(
                         text = row.fullName ?: "(no name)",
                         fontWeight = FontWeight.Bold,
-                        color = Ink900,
+                        color = SevaInk900,
                     )
                     Box(
                         modifier = Modifier
                             .size(8.dp)
                             .clip(CircleShape)
-                            .background(if (row.isActive) BrandGreen else ErrorRed),
+                            .background(if (row.isActive) SevaGreen700 else SevaDanger500),
                     )
                 }
                 Text(
                     text = listOfNotNull(row.email, row.phone).joinToString(" · ").ifBlank { "no contact" },
-                    color = Ink500,
+                    color = SevaInk500,
                     fontSize = 12.sp,
                 )
             }
             IconButton(onClick = onChangeRole) {
-                Icon(Icons.Filled.Edit, contentDescription = "Change role", tint = BrandGreen)
+                Icon(Icons.Filled.Edit, contentDescription = "Change role", tint = SevaGreen700)
             }
         }
         RoleChip(role = row.role)
@@ -347,13 +336,12 @@ private fun RoleChip(role: String?) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(Surface50)
-            .border(1.dp, Surface200, RoundedCornerShape(999.dp))
+            .background(Paper2)
             .padding(horizontal = 10.dp, vertical = 3.dp),
     ) {
         Text(
             text = label.replace('_', ' '),
-            color = Ink700,
+            color = SevaInk700,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
         )

@@ -53,11 +53,20 @@ import kotlin.coroutines.resumeWithException
  * NOT a permission: the Play Integrity SDK uses Google Play Services and
  * does not require any extra Android manifest permission.
  */
+/**
+ * Tiny interface KycViewModel + the rest of the app pin to so unit tests can
+ * provide a trivial fake without instantiating the real Play Integrity stack
+ * (which needs a Context + SupabaseClient + the SDK on the device).
+ */
+interface IntegrityVerifier {
+    suspend fun requestVerification(action: String): Result<Boolean>
+}
+
 @Singleton
-class PlayIntegrityClient @Inject constructor(
+open class PlayIntegrityClient @Inject constructor(
     @ApplicationContext private val context: Context,
     private val supabase: SupabaseClient,
-) {
+) : IntegrityVerifier {
     private val json = Json { ignoreUnknownKeys = true }
 
     /**
@@ -68,7 +77,7 @@ class PlayIntegrityClient @Inject constructor(
      *
      * Always called from viewModelScope on Dispatchers.IO via [withContext].
      */
-    suspend fun requestVerification(action: String): Result<Boolean> = withContext(Dispatchers.IO) {
+    override suspend fun requestVerification(action: String): Result<Boolean> = withContext(Dispatchers.IO) {
         val outcome = withTimeoutOrNull(VERIFICATION_TIMEOUT_MS) {
             runCatching { runVerification(action) }
         }

@@ -2,23 +2,19 @@ package com.equipseva.app.navigation
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import com.equipseva.app.features.auth.ForgotPasswordScreen
-import com.equipseva.app.features.auth.OtpRequestScreen
-import com.equipseva.app.features.auth.OtpVerifyScreen
 import com.equipseva.app.features.auth.SignInScreen
 import com.equipseva.app.features.auth.SignUpScreen
 import com.equipseva.app.features.auth.WelcomeScreen
-import com.equipseva.app.features.auth.phone.PhoneOtpRequestScreen
-import com.equipseva.app.features.auth.phone.PhoneOtpVerifyScreen
 
 /**
  * Auth sub-graph wired into the root NavHost when the session is signed-out.
- * The graph is self-contained: no dependency on the main bottom-tab graph beyond
- * the showSnackbar callback supplied by the host.
+ * Email + password is the primary path: Welcome → SignIn → (Forgot password
+ * recovery) or SignUp → land on the main graph (the SessionViewModel observes
+ * the new auth state and the host swaps graphs). Google sign-in is triggered
+ * inline from SignInScreen and reaches the same SignedIn state.
  */
 fun NavGraphBuilder.authNavGraph(
     navController: NavHostController,
@@ -32,69 +28,28 @@ fun NavGraphBuilder.authNavGraph(
             WelcomeScreen(
                 onSignIn = { navController.navigate(Routes.AUTH_SIGN_IN) },
                 onSignUp = { navController.navigate(Routes.AUTH_SIGN_UP) },
-                onUseEmailCode = { navController.navigate(Routes.AUTH_OTP_REQUEST) },
-                onUsePhone = { navController.navigate(Routes.AUTH_PHONE_OTP_REQUEST) },
                 onShowMessage = showSnackbar,
-            )
-        }
-        composable(Routes.AUTH_PHONE_OTP_REQUEST) {
-            PhoneOtpRequestScreen(
-                onBack = { navController.popBackStack() },
-                onNavigateToVerify = { phone ->
-                    navController.navigate(Routes.phoneOtpVerifyRoute(phone))
-                },
-            )
-        }
-        composable(
-            route = "${Routes.AUTH_PHONE_OTP_VERIFY}/{${Routes.AUTH_PHONE_OTP_VERIFY_ARG_PHONE}}",
-            arguments = listOf(
-                navArgument(Routes.AUTH_PHONE_OTP_VERIFY_ARG_PHONE) { type = NavType.StringType },
-            ),
-        ) {
-            PhoneOtpVerifyScreen(
-                onBack = { navController.popBackStack() },
             )
         }
         composable(Routes.AUTH_SIGN_IN) {
             SignInScreen(
-                onUseOtpInstead = { navController.navigate(Routes.AUTH_OTP_REQUEST) },
+                onBack = { navController.popBackStack() },
                 onForgotPassword = { navController.navigate(Routes.AUTH_FORGOT_PASSWORD) },
+                onCreateAccount = { navController.navigate(Routes.AUTH_SIGN_UP) },
                 onShowMessage = showSnackbar,
             )
         }
         composable(Routes.AUTH_SIGN_UP) {
             SignUpScreen(
-                onOtpVerifyRequested = { email ->
-                    navController.navigate(Routes.otpVerifyRoute(email))
-                },
                 onShowMessage = showSnackbar,
+                onBack = { navController.popBackStack() },
+                onSignIn = {
+                    navController.popBackStack(Routes.AUTH_SIGN_IN, inclusive = false)
+                },
             )
         }
         composable(Routes.AUTH_FORGOT_PASSWORD) {
             ForgotPasswordScreen(onBack = { navController.popBackStack() })
-        }
-        composable(Routes.AUTH_OTP_REQUEST) {
-            OtpRequestScreen(
-                onCodeSent = { email ->
-                    navController.navigate(Routes.otpVerifyRoute(email))
-                },
-                onShowMessage = showSnackbar,
-            )
-        }
-        composable(
-            route = "${Routes.AUTH_OTP_VERIFY}/{${Routes.AUTH_OTP_VERIFY_ARG_EMAIL}}",
-            arguments = listOf(
-                navArgument(Routes.AUTH_OTP_VERIFY_ARG_EMAIL) { type = NavType.StringType },
-            ),
-        ) { entry ->
-            val raw = entry.arguments?.getString(Routes.AUTH_OTP_VERIFY_ARG_EMAIL).orEmpty()
-            val email = runCatching {
-                java.net.URLDecoder.decode(raw, Charsets.UTF_8.name())
-            }.getOrDefault(raw)
-            OtpVerifyScreen(
-                email = email,
-                onShowMessage = showSnackbar,
-            )
         }
     }
 }

@@ -25,4 +25,7 @@ interface OutboxDao {
 
     @Query("SELECT COUNT(*) FROM outbox WHERE kind = :kind")
     fun observePendingCountByKind(kind: String): Flow<Int>
+
+    @Query("DELETE FROM outbox")
+    suspend fun clearAll()
 }

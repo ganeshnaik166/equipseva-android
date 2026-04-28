@@ -14,7 +14,43 @@ fun Throwable.toUserMessage(fallback: String = "Something went wrong. Please try
     if (this is CancellationException) throw this
     return when (this) {
         is HttpRequestException, is IOException -> "Network problem. Check your connection and retry."
-        is RestException -> message ?: fallback
-        else -> message?.takeIf { it.isNotBlank() } ?: fallback
+        // Postgrest errors carry raw SQL text + URL in `message` (e.g.
+        // "permission denied for table organizations / URL: ..."). Surfacing
+        // that to users leaks schema and reads as gibberish, so map known
+        // SQLSTATE codes to friendly copy and fall back to a generic line.
+        is RestException -> friendlyRestMessage(this) ?: fallback
+        else -> message?.takeIf { it.isNotBlank() && !looksLikeRawDbError(it) } ?: fallback
     }
 }
+
+private fun friendlyRestMessage(ex: RestException): String? {
+    val raw = ex.message.orEmpty()
+    return when {
+        // PostgREST stamps PGRST301 on expired JWTs and PGRST302 on missing /
+        // malformed ones. The Supabase SDK auto-refreshes on the next request,
+        // so the user usually doesn't need to do anything — but the screen
+        // they triggered needs a friendly nudge instead of "JWT expired".
+        raw.contains("PGRST301", ignoreCase = true) ||
+            raw.contains("PGRST302", ignoreCase = true) ||
+            raw.contains("jwt expired", ignoreCase = true) ||
+            raw.contains("jwt is invalid", ignoreCase = true) ||
+            raw.contains("invalid_jwt", ignoreCase = true) ->
+            "Your session expired. Tap retry — if this keeps happening, sign in again."
+        // 42501 = insufficient_privilege; also matches the literal phrase
+        // Postgres returns when column-level grants block a SELECT.
+        raw.contains("42501") || raw.contains("permission denied", ignoreCase = true) ->
+            "You don't have access to this yet. Try again after KYC is verified."
+        raw.contains("PGRST116", ignoreCase = true) || raw.contains("not found", ignoreCase = true) ->
+            "We couldn't find that record."
+        raw.contains("23505") -> "That looks like a duplicate. Please try a different value."
+        raw.contains("23503") -> "Linked record is missing — refresh and try again."
+        raw.isNotBlank() && !looksLikeRawDbError(raw) -> raw
+        else -> null
+    }
+}
+
+private fun looksLikeRawDbError(text: String): Boolean =
+    text.contains("URL:", ignoreCase = false) ||
+        text.contains("permission denied", ignoreCase = true) ||
+        text.contains("SQLSTATE", ignoreCase = true) ||
+        Regex("\\b\\d{5}\\b").containsMatchIn(text) && text.contains("relation", ignoreCase = true)

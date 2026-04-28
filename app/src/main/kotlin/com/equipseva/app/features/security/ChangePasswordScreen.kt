@@ -9,19 +9,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,8 +32,15 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.EsBtnKind
+import com.equipseva.app.designsystem.components.EsBtnSize
+import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.SecureScreen
-import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.EsType
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaDanger500
+import com.equipseva.app.designsystem.theme.SevaInk500
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,33 +63,20 @@ fun ChangePasswordScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Change password") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                        )
-                    }
-                },
-            )
-        },
-    ) { inner ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(inner)
-                .padding(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            Text(
-                "Choose a new password for your EquipSeva account.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            EsTopBar(title = "Change password", onBack = onBack)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    "Choose a new password for your EquipSeva account.",
+                    style = EsType.BodySm,
+                    color = SevaInk500,
+                )
 
             var showNew by remember { mutableStateOf(false) }
             var showConfirm by remember { mutableStateOf(false) }
@@ -149,31 +139,23 @@ fun ChangePasswordScreen(
             if (state.errorMessage != null) {
                 Text(
                     state.errorMessage!!,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                    style = EsType.Caption,
+                    color = SevaDanger500,
                 )
             }
 
-            Spacer(Modifier.size(Spacing.sm))
+            Spacer(Modifier.size(8.dp))
 
-            Button(
+            EsBtn(
+                text = if (state.submitting) "Updating…" else "Update password",
                 onClick = viewModel::onSubmit,
-                enabled = !state.submitting &&
-                    state.newPassword.isNotBlank() &&
-                    state.confirmPassword.isNotBlank(),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (state.submitting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                    Spacer(Modifier.size(Spacing.sm))
-                    Text("Updating…")
-                } else {
-                    Text("Update password")
-                }
+                kind = EsBtnKind.Primary,
+                size = EsBtnSize.Lg,
+                full = true,
+                disabled = state.submitting ||
+                    state.newPassword.isBlank() ||
+                    state.confirmPassword.isBlank(),
+            )
             }
         }
     }

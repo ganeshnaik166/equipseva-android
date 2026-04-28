@@ -18,6 +18,8 @@ internal data class RepairJobInsertDto(
     @SerialName("equipment_model") val equipmentModel: String? = null,
     @SerialName("equipment_serial") val equipmentSerial: String? = null,
     @SerialName("site_location") val siteLocation: String? = null,
+    @SerialName("site_latitude") val siteLatitude: Double? = null,
+    @SerialName("site_longitude") val siteLongitude: Double? = null,
     val urgency: String? = null,
     @SerialName("issue_description") val issueDescription: String,
     @SerialName("issue_photos") val issuePhotos: List<String>? = null,

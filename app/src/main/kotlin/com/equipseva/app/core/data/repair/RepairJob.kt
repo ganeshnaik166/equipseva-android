@@ -21,6 +21,9 @@ data class RepairJob(
     val estimatedCostRupees: Double?,
     val scheduledDate: String?,
     val scheduledTimeSlot: String?,
+    val siteLocation: String?,
+    val siteLatitude: Double? = null,
+    val siteLongitude: Double? = null,
     val isAssignedToEngineer: Boolean,
     val engineerId: String?,
     val hospitalUserId: String?,
@@ -32,6 +35,9 @@ data class RepairJob(
     val engineerReview: String?,
     val createdAtInstant: Instant?,
     val updatedAtInstant: Instant?,
+    val issuePhotos: List<String> = emptyList(),
+    val beforePhotos: List<String> = emptyList(),
+    val afterPhotos: List<String> = emptyList(),
 ) {
     /** Short label for the equipment line, e.g. "GE Logiq P5" or "Imaging & radiology". */
     val equipmentLabel: String
@@ -64,6 +70,9 @@ internal fun RepairJobDto.toDomain(): RepairJob {
         estimatedCostRupees = estimatedCost?.takeIf { it > 0.0 },
         scheduledDate = scheduledDate?.takeIf { it.isNotBlank() },
         scheduledTimeSlot = scheduledTimeSlot?.takeIf { it.isNotBlank() },
+        siteLocation = siteLocation?.takeIf { it.isNotBlank() },
+        siteLatitude = siteLatitude,
+        siteLongitude = siteLongitude,
         isAssignedToEngineer = !engineerId.isNullOrBlank(),
         engineerId = engineerId?.takeIf { it.isNotBlank() },
         hospitalUserId = hospitalUserId?.takeIf { it.isNotBlank() },
@@ -75,6 +84,9 @@ internal fun RepairJobDto.toDomain(): RepairJob {
         engineerReview = engineerReview?.takeIf { it.isNotBlank() },
         createdAtInstant = createdAt?.toInstantOrNull(),
         updatedAtInstant = updatedAt?.toInstantOrNull(),
+        issuePhotos = issuePhotos.orEmpty().filter { it.isNotBlank() },
+        beforePhotos = beforePhotos.orEmpty().filter { it.isNotBlank() },
+        afterPhotos = afterPhotos.orEmpty().filter { it.isNotBlank() },
     )
 }
 

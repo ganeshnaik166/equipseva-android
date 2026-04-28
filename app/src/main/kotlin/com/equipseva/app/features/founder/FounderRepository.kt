@@ -168,6 +168,14 @@ class FounderRepository @Inject constructor(
         @SerialName("integrity_failures_today") val integrityFailuresToday: Int = 0,
     )
 
+    @Serializable
+    data class EngineerZoneRow(
+        val district: String,
+        @SerialName("engineer_count") val engineerCount: Int = 0,
+        @SerialName("sample_lat") val sampleLat: Double? = null,
+        @SerialName("sample_lng") val sampleLng: Double? = null,
+    )
+
     suspend fun fetchPendingEngineers(): Result<List<PendingEngineer>> = runCatching {
         client.postgrest.rpc(function = "admin_pending_engineers")
             .decodeList<PendingEngineer>()
@@ -278,6 +286,11 @@ class FounderRepository @Inject constructor(
     suspend fun fetchDashboardStats(): Result<DashboardStats> = runCatching {
         client.postgrest.rpc(function = "admin_dashboard_stats")
             .decodeSingle<DashboardStats>()
+    }
+
+    suspend fun fetchEngineersByDistrict(): Result<List<EngineerZoneRow>> = runCatching {
+        client.postgrest.rpc(function = "admin_engineers_by_district")
+            .decodeList<EngineerZoneRow>()
     }
 
     suspend fun fetchCategories(): Result<List<CategoryRow>> = runCatching {

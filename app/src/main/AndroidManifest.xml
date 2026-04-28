@@ -16,17 +16,12 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.location" android:required="false" />
 
-    <!-- Razorpay Standard Checkout launches Chrome / UPI apps; Android 11+ needs these declared. -->
+    <!-- HTTPS browser intents — used for OAuth callbacks and external links. -->
     <queries>
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />
         </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="upi" />
-        </intent>
-        <package android:name="com.razorpay.checkout" />
     </queries>
 
     <application
@@ -51,14 +46,6 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-
-            <!-- Razorpay payment return deep link (Phase 1 wires the handler). -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="equipseva.com" android:pathPrefix="/pay/return" />
             </intent-filter>
 
             <!-- Email-link / OAuth callback (Supabase). -->
