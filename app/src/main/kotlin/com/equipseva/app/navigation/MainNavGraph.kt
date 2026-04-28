@@ -494,6 +494,7 @@ fun MainNavGraph(
                     onOpenCategories = { navController.navigate(Routes.FOUNDER_CATEGORIES) },
                     onOpenBuyerKyc = { navController.navigate(Routes.FOUNDER_BUYER_KYC) },
                     onOpenEngineerZones = { navController.navigate(Routes.FOUNDER_ENGINEER_MAP) },
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.FOUNDER_ENGINEER_MAP) {

@@ -43,16 +43,14 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.equipseva.app.designsystem.components.ESTopBar
 import com.equipseva.app.core.network.toUserMessage
-import com.equipseva.app.designsystem.theme.BrandGreen
-import com.equipseva.app.designsystem.theme.BrandGreenDark
-import com.equipseva.app.designsystem.theme.Ink500
-import com.equipseva.app.designsystem.theme.Ink900
-import com.equipseva.app.designsystem.theme.Spacing
-import com.equipseva.app.designsystem.theme.Surface0
-import com.equipseva.app.designsystem.theme.Surface200
-import com.equipseva.app.designsystem.theme.Surface50
+import com.equipseva.app.designsystem.components.EsTopBar
+import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaGreen700
+import com.equipseva.app.designsystem.theme.SevaGreen900
+import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk900
 import com.equipseva.app.features.home.dashboards.DashboardSectionHeader
 import com.equipseva.app.features.home.dashboards.ListCard
 import com.equipseva.app.features.home.dashboards.StatRow
@@ -105,19 +103,20 @@ fun FounderDashboardScreen(
     onOpenCategories: () -> Unit = {},
     onOpenBuyerKyc: () -> Unit = {},
     onOpenEngineerZones: () -> Unit = {},
+    onBack: () -> Unit = {},
     viewModel: FounderDashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     val stats = state.stats
-    Scaffold(topBar = { ESTopBar(title = "Founder") }) { inner ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(inner)
-                .background(Surface50)
-                .verticalScroll(rememberScrollState()),
-        ) {
-            FounderHero()
+    androidx.compose.material3.Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            EsTopBar(title = "Founder", onBack = onBack)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                FounderHero()
 
             StatRow(
                 tiles = listOf(
@@ -230,7 +229,8 @@ fun FounderDashboardScreen(
                 subtitle = "How many verified engineers are available per district — flag low-supply zones.",
                 onClick = onOpenEngineerZones,
             )
-            Box(modifier = Modifier.size(Spacing.xl))
+                Box(modifier = Modifier.size(32.dp))
+            }
         }
     }
 }
@@ -240,10 +240,10 @@ private fun FounderHero() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
             .clip(RoundedCornerShape(20.dp))
             .background(
-                Brush.linearGradient(listOf(BrandGreen, BrandGreenDark)),
+                Brush.linearGradient(listOf(SevaGreen700, SevaGreen900)),
             )
             .padding(20.dp),
     ) {
@@ -312,38 +312,38 @@ internal fun FounderPlaceholderScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(inner)
-                .background(Surface50)
-                .padding(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                .background(PaperDefault)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Surface0)
-                    .border(1.dp, Surface200, RoundedCornerShape(16.dp))
-                    .padding(Spacing.lg),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                    .background(androidx.compose.ui.graphics.Color.White)
+                    .border(1.dp, BorderDefault, RoundedCornerShape(16.dp))
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(BrandGreen.copy(alpha = 0.12f)),
+                        .background(SevaGreen700.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(imageVector = icon, contentDescription = null, tint = BrandGreen)
+                    Icon(imageVector = icon, contentDescription = null, tint = SevaGreen700)
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ink900)
-                    Text(text = subtitle, fontSize = 13.sp, color = Ink500)
+                    Text(text = title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = SevaInk900)
+                    Text(text = subtitle, fontSize = 13.sp, color = SevaInk500)
                 }
             }
             Text(
                 text = "Live data wires in once the founder admin RPCs ship in the next pass.",
                 fontSize = 13.sp,
-                color = Ink500,
+                color = SevaInk500,
             )
         }
     }
