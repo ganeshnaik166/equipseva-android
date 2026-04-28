@@ -66,6 +66,10 @@ class ChatViewModel @Inject constructor(
         val editing: Boolean = false,
         val errorMessage: String? = null,
         val typingUserIds: Set<String> = emptySet(),
+        // Deep-link target shown in the job-context strip below the top
+        // bar. Populated from `chat_conversations.related_entity_id` when
+        // related_entity_type == "repair_job".
+        val relatedJobId: String? = null,
     ) {
         val title: String
             get() = counterpart?.displayName ?: "Chat"
@@ -284,6 +288,12 @@ class ChatViewModel @Inject constructor(
                 if (otherId != null) {
                     profileRepository.fetchById(otherId)
                         .onSuccess { other -> _state.update { it.copy(counterpart = other) } }
+                }
+                val jobId = convo
+                    ?.takeIf { it.relatedEntityType == "repair_job" }
+                    ?.relatedEntityId
+                if (jobId != null) {
+                    _state.update { it.copy(relatedJobId = jobId) }
                 }
                 // Fire-and-forget read receipt.
                 viewModelScope.launch { chatRepository.markConversationRead(conversationId, selfUserId) }

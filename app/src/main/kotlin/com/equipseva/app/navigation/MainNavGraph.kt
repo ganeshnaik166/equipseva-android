@@ -400,6 +400,7 @@ fun MainNavGraph(
             ) {
                 ChatScreen(
                     onBack = { navController.popBackStack() },
+                    onOpenJob = { jobId -> navController.navigate(Routes.repairJobDetailRoute(jobId)) },
                 )
             }
             composable(Routes.MY_BIDS) {
