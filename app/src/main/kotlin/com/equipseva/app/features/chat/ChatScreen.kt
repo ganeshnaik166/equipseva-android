@@ -101,7 +101,7 @@ fun ChatScreen(
     }
 
     Scaffold(
-        containerColor = Surface50,
+        containerColor = com.equipseva.app.designsystem.theme.PaperDefault,
         topBar = {
             ChatTopBar(
                 title = state.title,
