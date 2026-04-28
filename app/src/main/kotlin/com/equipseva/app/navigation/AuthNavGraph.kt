@@ -40,7 +40,13 @@ fun NavGraphBuilder.authNavGraph(
             )
         }
         composable(Routes.AUTH_SIGN_UP) {
-            SignUpScreen(onShowMessage = showSnackbar)
+            SignUpScreen(
+                onShowMessage = showSnackbar,
+                onBack = { navController.popBackStack() },
+                onSignIn = {
+                    navController.popBackStack(Routes.AUTH_SIGN_IN, inclusive = false)
+                },
+            )
         }
         composable(Routes.AUTH_FORGOT_PASSWORD) {
             ForgotPasswordScreen(onBack = { navController.popBackStack() })
