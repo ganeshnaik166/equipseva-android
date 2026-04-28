@@ -1,5 +1,6 @@
 package com.equipseva.app.designsystem.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -37,7 +38,9 @@ fun EsSection(
                     text = action,
                     style = EsType.Label,
                     color = SevaGreen700,
-                    modifier = Modifier.padding(start = 8.dp),
+                    modifier = Modifier
+                        .clickable(onClick = onAction)
+                        .padding(start = 8.dp),
                 )
             }
         }

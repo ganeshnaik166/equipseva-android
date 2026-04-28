@@ -209,6 +209,8 @@ fun MainNavGraph(
                     onOpenBookRepair = { navController.navigate(Routes.ENGINEER_DIRECTORY) },
                     onOpenEngineerJobs = { navController.navigate(Routes.ENGINEER_JOBS_HUB) },
                     onOpenFounder = { navController.navigate(Routes.FOUNDER_DASHBOARD) },
+                    onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
+                    onOpenKyc = { navController.navigate(Routes.KYC) },
                 )
             }
             composable(Routes.REPAIR) {

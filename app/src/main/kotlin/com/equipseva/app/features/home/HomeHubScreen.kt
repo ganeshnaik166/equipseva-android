@@ -15,18 +15,23 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Engineering
+import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.CurrencyRupee
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,106 +45,180 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.R
-import com.equipseva.app.designsystem.theme.AccentLime
-import com.equipseva.app.designsystem.theme.AccentLimeSoft
-import com.equipseva.app.designsystem.theme.BrandGreen
-import com.equipseva.app.designsystem.theme.BrandGreenDeep
-import com.equipseva.app.designsystem.theme.Ink500
-import com.equipseva.app.designsystem.theme.Ink900
-import com.equipseva.app.designsystem.theme.Spacing
-import com.equipseva.app.designsystem.theme.Surface0
-import com.equipseva.app.designsystem.theme.Surface200
-import com.equipseva.app.designsystem.theme.Surface50
+import com.equipseva.app.core.data.engineers.VerificationStatus
+import com.equipseva.app.designsystem.components.EsSection
+import com.equipseva.app.designsystem.components.Pill
+import com.equipseva.app.designsystem.components.PillKind
+import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.EsType
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaDanger500
+import com.equipseva.app.designsystem.theme.SevaGlowRaw
+import com.equipseva.app.designsystem.theme.SevaGreen50
+import com.equipseva.app.designsystem.theme.SevaGreen700
+import com.equipseva.app.designsystem.theme.SevaGreen900
+import com.equipseva.app.designsystem.theme.SevaInfo50
+import com.equipseva.app.designsystem.theme.SevaInfo500
+import com.equipseva.app.designsystem.theme.SevaInk400
+import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk600
+import com.equipseva.app.designsystem.theme.SevaInk700
+import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.designsystem.theme.SevaWarning50
+import com.equipseva.app.designsystem.theme.SevaWarning500
+import com.equipseva.app.features.auth.UserRole
+import java.time.Duration
+import java.time.Instant
 
-/**
- * The 2-card landing on the Home tab. v1 actions:
- *   - Book Repair: hospital raises a service request
- *   - Engineer Jobs: engineer takes jobs from the feed
- *
- * The Founder admin tile is the optional third tile, only rendered when
- * the signed-in user is the pinned founder. It mirrors the previous
- * Profile → Founder dashboard entry-point now that the Hub is gone.
- */
 @Composable
 fun HomeHubScreen(
     onOpenBookRepair: () -> Unit,
     onOpenEngineerJobs: () -> Unit,
     onOpenFounder: () -> Unit = {},
+    onOpenNotifications: () -> Unit = {},
+    onOpenKyc: () -> Unit = {},
     viewModel: HomeHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    Surface(modifier = Modifier.fillMaxSize(), color = Surface50) {
+    val role = state.role
+    val kyc = state.kycStatus
+
+    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
-            HubHero(displayName = state.displayName)
-            Spacer(Modifier.height(Spacing.lg))
+            HomeTopBar(onNotifications = onOpenNotifications, hasUnread = state.recent.any { it.isUnread })
+
+            // Greeting card
+            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                GreetingCard(role = role, displayName = state.displayName)
+            }
+
+            // KYC banner — engineer who isn't verified yet
+            if (role == UserRole.ENGINEER && kyc != VerificationStatus.Verified) {
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    KycBanner(status = kyc, onClick = onOpenKyc)
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Tiles
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                HubTile(
+                HomeTile(
+                    icon = Icons.Filled.Bolt,
                     title = "Book Repair",
-                    tagline = "Raise a service request — engineer comes to you",
-                    icon = Icons.Filled.Build,
+                    desc = "Browse verified engineers and post a service request",
                     onClick = onOpenBookRepair,
                 )
-                HubTile(
+                val engVerified = kyc == VerificationStatus.Verified
+                HomeTile(
+                    icon = Icons.Filled.Build,
                     title = "Engineer Jobs",
-                    tagline = "Pick up jobs, bid + earn (engineer login)",
-                    icon = Icons.Filled.Engineering,
-                    onClick = onOpenEngineerJobs,
+                    desc = if (engVerified) "Today's job board, your bids, active work"
+                           else "Submit KYC to unlock",
+                    onClick = if (role == UserRole.ENGINEER && !engVerified) onOpenKyc else onOpenEngineerJobs,
                 )
                 if (state.isFounder) {
-                    HubTile(
+                    HomeTile(
+                        icon = Icons.Filled.Shield,
                         title = "Admin Dashboard",
-                        tagline = "KYC queues, payments, integrity, categories",
-                        icon = Icons.Filled.AdminPanelSettings,
+                        desc = "Founder tools — KYC queue, reports, payments",
                         onClick = onOpenFounder,
-                        admin = true,
+                        accent = TileAccent.Admin,
                     )
                 }
             }
-            Spacer(Modifier.height(Spacing.xl))
+
+            Spacer(Modifier.height(12.dp))
+
+            // Recent activity
+            if (state.recent.isNotEmpty()) {
+                EsSection(
+                    title = "Recent activity",
+                    action = "See all",
+                    onAction = onOpenNotifications,
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White)
+                            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp)),
+                    ) {
+                        state.recent.forEachIndexed { i, n ->
+                            ActivityRow(
+                                kind = n.kind,
+                                title = n.title.ifBlank { n.body },
+                                relativeTime = relativeTime(n.sentAt),
+                                unread = n.isUnread,
+                                isLast = i == state.recent.lastIndex,
+                                onClick = onOpenNotifications,
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
         }
     }
 }
 
 @Composable
-private fun HubHero(displayName: String?) {
-    Box(
+private fun HomeTopBar(onNotifications: () -> Unit, hasUnread: Boolean) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(BrandGreen, BrandGreenDeep)))
-            .padding(horizontal = Spacing.lg, vertical = 22.dp),
+            .height(56.dp)
+            .background(PaperDefault)
+            .border(1.dp, BorderDefault, RoundedCornerShape(0.dp))
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        Image(
+            painter = painterResource(R.drawable.ic_logo_mark),
+            contentDescription = "EquipSeva",
+            modifier = Modifier
+                .size(32.dp)
+                .clip(RoundedCornerShape(8.dp)),
+        )
+        Spacer(Modifier.size(10.dp))
+        Text(
+            text = "EquipSeva",
+            style = EsType.H5,
+            color = SevaInk900,
+            modifier = Modifier.weight(1f),
+        )
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onNotifications),
+            contentAlignment = Alignment.Center,
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_logo_full),
-                contentDescription = "EquipSeva",
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(14.dp)),
+            Icon(
+                imageVector = Icons.Filled.Notifications,
+                contentDescription = "Notifications",
+                tint = SevaInk700,
+                modifier = Modifier.size(20.dp),
             )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = if (displayName.isNullOrBlank()) "Welcome to EquipSeva"
-                           else "Hi, ${displayName.split(" ").firstOrNull() ?: displayName}",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                )
-                Text(
-                    text = "What would you like to do today?",
-                    fontSize = 12.sp,
-                    color = Color.White.copy(alpha = 0.85f),
+            if (hasUnread) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(SevaDanger500)
+                        .border(2.dp, Color.White, CircleShape)
+                        .align(Alignment.TopEnd),
                 )
             }
         }
@@ -147,60 +226,233 @@ private fun HubHero(displayName: String?) {
 }
 
 @Composable
-private fun HubTile(
-    title: String,
-    tagline: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-    admin: Boolean = false,
-) {
-    val borderColor = if (admin) AccentLime else Surface200
-    val borderWidth = if (admin) 1.5.dp else 1.dp
-    val iconBg = if (admin) BrandGreenDeep else AccentLimeSoft
-    val iconTint = if (admin) AccentLime else BrandGreen
+private fun GreetingCard(role: UserRole?, displayName: String?) {
+    val greeting = remember { greetingForNow() }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Brush.linearGradient(listOf(SevaGreen700, SevaGreen900)))
+            .padding(18.dp),
+    ) {
+        // Glow blob
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(140.dp)
+                .clip(CircleShape)
+                .background(SevaGlowRaw.copy(alpha = 0.08f)),
+        )
+        Column {
+            Text(
+                text = greeting,
+                fontSize = 13.sp,
+                color = Color.White.copy(alpha = 0.75f),
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = if (role == UserRole.ENGINEER) "Ready for work today?" else "What needs fixing today?",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+            )
+            Spacer(Modifier.height(14.dp))
+            // Stat strip
+            Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                if (role == UserRole.ENGINEER) {
+                    Stat("Nearby", "—")
+                    Stat("Pending bids", "—")
+                    Stat("Active", "—")
+                } else {
+                    Stat("Open", "—")
+                    Stat("Active", "—")
+                    Stat("Engineers", "—")
+                }
+            }
+            if (!displayName.isNullOrBlank()) {
+                Spacer(Modifier.height(2.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun Stat(label: String, value: String) {
+    Column {
+        Text(label, fontSize = 12.sp, color = Color.White.copy(alpha = 0.65f))
+        Spacer(Modifier.height(2.dp))
+        Text(value, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+    }
+}
+
+@Composable
+private fun KycBanner(status: VerificationStatus?, onClick: () -> Unit) {
+    val pending = status == VerificationStatus.Pending
+    val bg = if (pending) SevaInfo50 else SevaWarning50
+    val tint = if (pending) SevaInfo500 else SevaWarning500
+    val title = when (status) {
+        VerificationStatus.Pending -> "KYC under review"
+        VerificationStatus.Rejected -> "KYC needs another try"
+        else -> "Become a verified repairman"
+    }
+    val sub = when (status) {
+        VerificationStatus.Pending -> "Usually 24h. We'll notify you."
+        VerificationStatus.Rejected -> "Re-submit the missing docs to enter the queue."
+        else -> "Submit KYC to start bidding on jobs."
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(Surface0)
-            .border(borderWidth, borderColor, RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .background(bg)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 18.dp),
+            .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(60.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(iconBg),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(32.dp),
-            )
+        Icon(Icons.Filled.Shield, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = SevaInk900)
+            Spacer(Modifier.height(2.dp))
+            Text(sub, fontSize = 11.sp, color = SevaInk600)
         }
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = title,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Ink900,
-            )
-            Text(
-                text = tagline,
-                fontSize = 12.sp,
-                lineHeight = 16.sp,
-                color = Ink500,
-            )
-        }
-        Text(
-            "›",
-            fontSize = 26.sp,
-            color = Ink500,
+        Icon(
+            Icons.Outlined.ChevronRight,
+            contentDescription = null,
+            tint = SevaInk400,
+            modifier = Modifier.size(16.dp),
         )
     }
 }
+
+private enum class TileAccent { Default, Admin }
+
+@Composable
+private fun HomeTile(
+    icon: ImageVector,
+    title: String,
+    desc: String,
+    onClick: () -> Unit,
+    badge: String? = null,
+    accent: TileAccent = TileAccent.Default,
+) {
+    val tileBg = when (accent) {
+        TileAccent.Default -> SevaGreen50
+        TileAccent.Admin -> SevaWarning50
+    }
+    val tileFg = when (accent) {
+        TileAccent.Default -> SevaGreen700
+        TileAccent.Admin -> SevaWarning500
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(tileBg),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = tileFg, modifier = Modifier.size(24.dp))
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = SevaInk900)
+                if (badge != null) Pill(text = badge, kind = PillKind.Warn)
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(desc, fontSize = 12.sp, color = SevaInk500, lineHeight = 16.sp)
+        }
+        Icon(
+            Icons.Outlined.ChevronRight,
+            contentDescription = null,
+            tint = SevaInk400,
+            modifier = Modifier.size(18.dp),
+        )
+    }
+}
+
+@Composable
+private fun ActivityRow(
+    kind: String?,
+    title: String,
+    relativeTime: String,
+    unread: Boolean,
+    isLast: Boolean,
+    onClick: () -> Unit,
+) {
+    val icon = when (kind) {
+        "bid", "job_bid" -> Icons.Filled.CurrencyRupee
+        "msg", "chat", "message" -> Icons.Filled.ChatBubbleOutline
+        "kyc", "verification" -> Icons.Filled.Shield
+        else -> Icons.Filled.Bolt
+    }
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(SevaGreen50),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, contentDescription = null, tint = SevaGreen700, modifier = Modifier.size(16.dp))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, fontSize = 13.sp, color = SevaInk900, lineHeight = 18.sp)
+                Spacer(Modifier.height(3.dp))
+                Text(relativeTime, fontSize = 11.sp, color = SevaInk400)
+            }
+            if (unread) {
+                Box(
+                    modifier = Modifier
+                        .padding(top = 6.dp)
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(SevaDanger500),
+                )
+            }
+        }
+        if (!isLast) {
+            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(BorderDefault))
+        }
+    }
+}
+
+private fun greetingForNow(): String {
+    val h = java.time.LocalTime.now().hour
+    return when {
+        h < 12 -> "Good morning"
+        h < 17 -> "Good afternoon"
+        else -> "Good evening"
+    }
+}
+
+private fun relativeTime(at: Instant?): String {
+    if (at == null) return ""
+    val d = Duration.between(at, Instant.now())
+    val mins = d.toMinutes()
+    return when {
+        mins < 1 -> "just now"
+        mins < 60 -> "${mins}m ago"
+        mins < 60 * 24 -> "${mins / 60}h ago"
+        else -> "${mins / (60 * 24)}d ago"
+    }
+}
+
