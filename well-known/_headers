@@ -1,0 +1,6 @@
+# Cloudflare Pages — header overrides for the App Links manifest.
+# Android requires application/json with no charset suffix and no auth.
+
+/.well-known/assetlinks.json
+  Content-Type: application/json
+  Cache-Control: public, max-age=300, must-revalidate

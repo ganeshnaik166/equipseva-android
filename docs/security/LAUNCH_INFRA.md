@@ -48,25 +48,43 @@ verification.
 
 ---
 
-## 2. Enable HaveIBeenPwned password check on Supabase
+## 2. HaveIBeenPwned password check on Supabase — DEFERRED
 
-**Why:** prevents users registering with passwords that have appeared
-in known breaches. One-checkbox feature on Supabase.
+**Status for v1:** SKIPPED. The Supabase HIBP toggle is **Pro-Plan only**:
 
-```
-Supabase Dashboard
-  → Project: equipseva
-  → Authentication
-  → Policies (left nav)
-  → Password Strength
-  → ☑ Prevent use of leaked passwords
-```
+> "Configuring leaked password protection via HaveIBeenPwned.org is
+> available on Pro Plans and up."
 
-That's the entire task. Cannot be done via MCP — has to be a manual
-dashboard click.
+Returned by `PATCH /v1/projects/<ref>/config/auth` when the project
+is on the free tier.
 
-**Verify:** in the Supabase advisors panel the only remaining WARN
-under "Password security" should disappear.
+**Residual risk:** users CAN sign up with passwords that have been
+seen in public breaches. Supabase still bcrypts everything correctly,
+so the risk is user-side (their password is reusable across sites
+attackers already have lists of). For an internal-track v1 with
+hand-invited users this is acceptable.
+
+**To unblock at any time, two options:**
+
+- **Pro tier upgrade** ($25/mo) — toggle works:
+  ```
+  Supabase Dashboard → Authentication → Policies → Password Strength
+    → ☑ Prevent use of leaked passwords → Save
+  ```
+  Or via Management API:
+  ```bash
+  curl -X PATCH 'https://api.supabase.com/v1/projects/<ref>/config/auth' \
+    -H 'Authorization: Bearer <sbp_…>' \
+    -H 'Content-Type: application/json' \
+    -d '{"password_hibp_enabled": true}'
+  ```
+
+- **DIY client-side** (free, ~30 min code change) — call HIBP's
+  k-anonymity API from the signup ViewModel. SHA-1 the password,
+  send the first 5 chars to `https://api.pwnedpasswords.com/range/<5-char-prefix>`,
+  check if the remaining 35 chars appear in the response. The full
+  hash never leaves the device. Cost: 1 request per signup, free
+  forever, same protection Pro gives you.
 
 ---
 
@@ -189,17 +207,21 @@ curl -X POST 'https://eyswaywvtartpvtoxtdr.supabase.co/functions/v1/ingest_openf
 
 ## Final pre-launch checklist
 
-- [ ] `assetlinks.json` returns 200 with `application/json` at the
-      well-known URL
-- [ ] Both upload + Play App Signing SHA-256 fingerprints listed in
-      that file
-- [ ] HIBP toggle enabled in Supabase Auth
+- [x] `assetlinks.json` returns 200 with `application/json` at the
+      well-known URL (live via GitHub Pages, Google verifier accepts
+      both `com.equipseva.app` + `com.equipseva.app.debug`)
+- [ ] Add Play App Signing SHA-256 to `assetlinks.json` (BOTH
+      well-known/.well-known/assetlinks.json AND
+      docs/security/assetlinks.json) after first AAB upload
+- [x] HIBP — DEFERRED for v1 (Pro-tier-only feature). Path forward
+      documented above (upgrade OR client-side k-anonymity check).
 - [ ] `EXPECTED_CERT_SHA256` populated in `local.properties` AND CI
-      secret with both fingerprints comma-joined
+      secret with both fingerprints comma-joined (post first AAB
+      upload — see §3 above)
 - [ ] `adb shell pm get-app-links com.equipseva.app` shows `verified`
-      for `equipseva.com`
-- [ ] (optional) `INGEST_OPENFDA_SECRET` set if catalog ingest is in
-      scope
+      for `equipseva.com` (do this on real device with installed APK)
+- [x] `INGEST_OPENFDA_SECRET` set on Supabase Edge Function secrets.
+      Function is otherwise gated closed.
 
 After all items: Play Console → Release → Internal testing → upload
 the first AAB → invite test users.
