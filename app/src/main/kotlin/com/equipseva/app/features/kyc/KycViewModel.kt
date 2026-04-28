@@ -36,6 +36,7 @@ class KycViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val photoUploadStash: PhotoUploadStash,
     private val playIntegrityClient: IntegrityVerifier,
+    private val locationFetcher: com.equipseva.app.core.location.LocationFetcher,
 ) : ViewModel() {
 
     data class UiState(
@@ -108,8 +109,11 @@ class KycViewModel @Inject constructor(
                         email.isNullOrBlank() -> "Email missing — add it before continuing."
                         !EMAIL_REGEX.matches(email) -> "That email doesn't look right."
                         !emailVerified -> "Verify your email — tap the Verify button."
-                        phone.isNullOrBlank() -> "Add your phone number to continue."
-                        !phoneVerified -> "Verify your phone — tap the Verify button."
+                        // Phone is collected as a contact channel (hospital
+                        // calls / WhatsApps the engineer), but it's no longer
+                        // a hard gate on the KYC flow — engineers without a
+                        // phone yet can still submit; they can add it later
+                        // from Profile → Add phone number.
                         serviceAddress.length < 8 -> "Add the area you serve."
                         serviceLatitude == null || serviceLongitude == null ->
                             "Pin your service location on the map."
@@ -382,8 +386,37 @@ class KycViewModel @Inject constructor(
     fun onServiceAddressChange(value: String) =
         _state.update { it.copy(serviceAddress = value) }
 
-    fun onServiceCoordsChange(latitude: Double?, longitude: Double?) =
+    fun onServiceCoordsChange(latitude: Double?, longitude: Double?) {
         _state.update { it.copy(serviceLatitude = latitude, serviceLongitude = longitude) }
+        // Auto-fill the service address from reverse-geocode the FIRST
+        // time the user pins a location — but only if they haven't typed
+        // their own. Subsequent pin drags refresh coords without
+        // clobbering whatever they edited. Best-effort: Geocoder fails
+        // on devices without Google Play Services, etc.
+        if (latitude == null || longitude == null) return
+        if (_state.value.serviceAddress.isNotBlank()) return
+        viewModelScope.launch {
+            val resolved = runCatching {
+                locationFetcher.reverseGeocode(
+                    com.equipseva.app.core.location.LocationFetcher.Coords(latitude, longitude),
+                )
+            }.getOrNull() ?: return@launch
+            val addressLine = listOfNotNull(
+                resolved.line1,
+                resolved.line2,
+                resolved.landmark,
+                resolved.city,
+                resolved.state,
+                resolved.pincode,
+            ).joinToString(", ").trim()
+            if (addressLine.isBlank()) return@launch
+            // Re-check inside the coroutine — user may have started typing
+            // while reverse-geocode was in flight.
+            _state.update {
+                if (it.serviceAddress.isBlank()) it.copy(serviceAddress = addressLine) else it
+            }
+        }
+    }
 
     fun onExperienceYearsChange(value: String) {
         val digits = value.filter { it.isDigit() }.take(2)
