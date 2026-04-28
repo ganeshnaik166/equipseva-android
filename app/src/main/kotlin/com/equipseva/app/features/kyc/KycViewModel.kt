@@ -157,6 +157,10 @@ class KycViewModel @Inject constructor(
 
     sealed interface Effect {
         data class ShowMessage(val text: String) : Effect
+        // Emitted once the engineer's KYC payload has landed server-side and
+        // verification_status is now `pending`. Drives the Round-G
+        // post-submit landing screen.
+        data object Submitted : Effect
     }
 
     private val _state = MutableStateFlow(UiState())
@@ -716,7 +720,7 @@ class KycViewModel @Inject constructor(
                 onSuccess = { engineer ->
                     hydrate(engineer)
                     _state.update { it.copy(saving = false) }
-                    _effects.send(Effect.ShowMessage("Verification details saved"))
+                    _effects.send(Effect.Submitted)
                 },
                 onFailure = { ex ->
                     _state.update { it.copy(saving = false) }

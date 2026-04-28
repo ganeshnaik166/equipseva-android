@@ -351,6 +351,16 @@ fun MainNavGraph(
                     onBack = { navController.popBackStack() },
                     onShowMessage = showSnackbar,
                     onAddPhone = { navController.navigate(Routes.ADD_PHONE) },
+                    onSubmitted = {
+                        navController.navigate(Routes.KYC_SUBMITTED) {
+                            popUpTo(Routes.KYC) { inclusive = true }
+                        }
+                    },
+                )
+            }
+            composable(Routes.KYC_SUBMITTED) {
+                com.equipseva.app.features.kyc.KycSubmittedScreen(
+                    onBackHome = { navController.popBackStack(Routes.HOME, inclusive = false) },
                 )
             }
             composable(Routes.ABOUT) {

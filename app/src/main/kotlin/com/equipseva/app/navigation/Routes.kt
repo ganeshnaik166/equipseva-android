@@ -36,6 +36,10 @@ object Routes {
     // Engineer KYC / verification (full-screen, engineer-only entry from Profile).
     const val KYC = "profile/kyc"
 
+    // Post-submit confirmation screen for KYC. Reached from KycScreen on
+    // successful upsert; routes back to Home on tap.
+    const val KYC_SUBMITTED = "profile/kyc/submitted"
+
     // About screen (version, licenses, links — sub-route entered from Profile).
     const val ABOUT = "profile/about"
 

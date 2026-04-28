@@ -113,6 +113,7 @@ fun KycScreen(
     onBack: () -> Unit,
     onShowMessage: (String) -> Unit,
     onAddPhone: () -> Unit = {},
+    onSubmitted: () -> Unit = {},
     viewModel: KycViewModel = hiltViewModel(),
 ) {
     SecureScreen()
@@ -123,6 +124,7 @@ fun KycScreen(
         viewModel.effects.collect { effect ->
             when (effect) {
                 is KycViewModel.Effect.ShowMessage -> onShowMessage(effect.text)
+                KycViewModel.Effect.Submitted -> onSubmitted()
             }
         }
     }
