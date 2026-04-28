@@ -17,6 +17,7 @@ import com.equipseva.app.core.data.profile.Profile
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.push.DeviceTokenRegistrar
+import com.equipseva.app.core.sync.OutboxScheduler
 import com.equipseva.app.core.sync.handlers.PhotoUploadStash
 import com.equipseva.app.features.auth.UserRole
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -43,6 +44,7 @@ class ProfileViewModel @Inject constructor(
     private val dataExportRepository: DataExportRepository,
     private val deviceTokenRegistrar: DeviceTokenRegistrar,
     private val outboxDao: OutboxDao,
+    private val outboxScheduler: OutboxScheduler,
     private val photoUploadStash: PhotoUploadStash,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
@@ -318,6 +320,7 @@ class ProfileViewModel @Inject constructor(
                     // must be wiped before the next user signs in.
                     runCatching { deviceTokenRegistrar.revoke() }
                     runCatching { outboxDao.clearAll() }
+                    runCatching { outboxScheduler.cancelAll() }
                     runCatching { photoUploadStash.clearAll() }
                     authRepository.signOut()
                     _state.update {
@@ -347,6 +350,7 @@ class ProfileViewModel @Inject constructor(
             // best-effort — sign-out should never block on a flaky DELETE.
             runCatching { deviceTokenRegistrar.revoke() }
             runCatching { outboxDao.clearAll() }
+            runCatching { outboxScheduler.cancelAll() }
             runCatching { photoUploadStash.clearAll() }
             authRepository.signOut()
                 .onFailure { error ->

@@ -44,4 +44,17 @@ class OutboxScheduler(private val workManager: WorkManager) {
             request,
         )
     }
+
+    /**
+     * Sign-out cleanup. Cancels both the periodic 15-minute drain and any
+     * pending one-shot drain enqueued by [OutboxEnqueuer]. Without this,
+     * after sign-out the worker would keep firing every 15 minutes against
+     * an empty queue (handlers would still owner-gate, but the runner
+     * cycles + log noise are wasted). Re-scheduled by EquipSevaApplication
+     * on next sign-in.
+     */
+    fun cancelAll() {
+        workManager.cancelUniqueWork(OutboxWorker.UNIQUE_NAME)
+        workManager.cancelUniqueWork(OutboxWorker.UNIQUE_NAME + "-oneshot")
+    }
 }

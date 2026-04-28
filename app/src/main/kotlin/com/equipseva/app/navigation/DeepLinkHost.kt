@@ -4,11 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.prefs.UserPrefs
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -39,18 +37,21 @@ class DeepLinkHost @Inject constructor(
         data class OpenRoute(val route: String) : VerifiedEvent
     }
 
-    private val _events = MutableSharedFlow<VerifiedEvent>(
-        replay = 0,
-        extraBufferCapacity = 4,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST,
-    )
-    val events: SharedFlow<VerifiedEvent> = _events.asSharedFlow()
+    // Channel + receiveAsFlow gives one-shot, buffered delivery so a deep
+    // link emitted from MainActivity.onCreate() before MainNavGraph has
+    // started collecting still reaches the nav graph. The previous
+    // SharedFlow(replay=0) dropped any event emitted in that cold-start
+    // window — push notifications taps that booted the app from a killed
+    // state would land the user on the home screen instead of the deep
+    // link. Buffered channel parks the event until first collection.
+    private val _events = Channel<VerifiedEvent>(Channel.BUFFERED)
+    val events: Flow<VerifiedEvent> = _events.receiveAsFlow()
 
     init {
         viewModelScope.launch {
             router.events.collect { raw ->
                 when (raw) {
-                    is DeepLinkRouter.Event.OpenRoute -> _events.tryEmit(VerifiedEvent.OpenRoute(raw.route))
+                    is DeepLinkRouter.Event.OpenRoute -> _events.trySend(VerifiedEvent.OpenRoute(raw.route))
                 }
             }
         }
