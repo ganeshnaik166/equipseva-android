@@ -17,13 +17,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -42,19 +40,17 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
-import com.equipseva.app.designsystem.theme.BrandGreen
-import com.equipseva.app.designsystem.theme.BrandGreenDark
-import com.equipseva.app.designsystem.theme.ErrorRed
-import com.equipseva.app.designsystem.theme.Ink500
-import com.equipseva.app.designsystem.theme.Ink700
-import com.equipseva.app.designsystem.theme.Ink900
-import com.equipseva.app.designsystem.theme.Spacing
-import com.equipseva.app.designsystem.theme.Surface0
-import com.equipseva.app.designsystem.theme.Surface200
-import com.equipseva.app.designsystem.theme.Surface50
+import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.EsBtnKind
+import com.equipseva.app.designsystem.components.EsTopBar
+import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaGreen900
+import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk700
+import com.equipseva.app.designsystem.theme.SevaInk900
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -165,34 +161,41 @@ fun FounderKycQueueScreen(
                 }
         }
     }
-    Scaffold(topBar = { ESBackTopBar(title = "KYC queue", onBack = onBack) }) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            when {
-                state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-                state.error != null -> EmptyStateView(
-                    icon = Icons.Outlined.Inbox,
-                    title = "Couldn't load",
-                    subtitle = state.error,
-                )
-                state.rows.isEmpty() -> EmptyStateView(
-                    icon = Icons.Outlined.Inbox,
-                    title = "All clear",
-                    subtitle = "No pending engineer verifications.",
-                )
-                else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize().background(Surface50),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(Spacing.md),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    items(state.rows, key = { it.userId }) { row ->
-                        EngineerRow(
-                            row = row,
-                            onApprove = { viewModel.openApprove(row.userId, row.fullName) },
-                            onReject = { viewModel.openReject(row.userId, row.fullName) },
-                            onViewDoc = openDoc,
-                        )
+    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            EsTopBar(
+                title = "KYC queue",
+                subtitle = if (state.rows.isNotEmpty()) "${state.rows.size} pending" else null,
+                onBack = onBack,
+            )
+            Box(modifier = Modifier.fillMaxSize()) {
+                when {
+                    state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                    state.error != null -> EmptyStateView(
+                        icon = Icons.Outlined.Inbox,
+                        title = "Couldn't load",
+                        subtitle = state.error,
+                    )
+                    state.rows.isEmpty() -> EmptyStateView(
+                        icon = Icons.Outlined.Inbox,
+                        title = "All clear",
+                        subtitle = "No pending engineer verifications.",
+                    )
+                    else -> LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(state.rows, key = { it.userId }) { row ->
+                            EngineerRow(
+                                row = row,
+                                onApprove = { viewModel.openApprove(row.userId, row.fullName) },
+                                onReject = { viewModel.openReject(row.userId, row.fullName) },
+                                onViewDoc = openDoc,
+                            )
+                        }
                     }
                 }
             }
@@ -206,14 +209,14 @@ fun FounderKycQueueScreen(
             onDismissRequest = { viewModel.closeSheet() },
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
                     if (state.rejectMode) "Reject ${state.sheetUserName}" else "Approve ${state.sheetUserName}",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Ink900,
+                    color = SevaInk900,
                 )
                 if (state.rejectMode) {
                     OutlinedTextField(
@@ -226,25 +229,31 @@ fun FounderKycQueueScreen(
                 } else {
                     Text(
                         "Engineer can take repair jobs immediately after approval.",
-                        color = Ink500,
+                        color = SevaInk500,
                         fontSize = 13.sp,
                     )
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    OutlinedButton(
-                        onClick = { viewModel.closeSheet() },
-                        enabled = !state.acting,
-                        modifier = Modifier.weight(1f),
-                    ) { Text("Cancel") }
-                    Button(
-                        onClick = { viewModel.confirm() },
-                        enabled = !state.acting,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(if (state.acting) "…" else if (state.rejectMode) "Reject" else "Approve")
+                    Box(modifier = Modifier.weight(1f)) {
+                        EsBtn(
+                            text = "Cancel",
+                            onClick = { viewModel.closeSheet() },
+                            kind = EsBtnKind.Secondary,
+                            full = true,
+                            disabled = state.acting,
+                        )
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        EsBtn(
+                            text = if (state.acting) "…" else if (state.rejectMode) "Reject" else "Approve",
+                            onClick = { viewModel.confirm() },
+                            kind = if (state.rejectMode) EsBtnKind.Danger else EsBtnKind.Primary,
+                            full = true,
+                            disabled = state.acting,
+                        )
                     }
                 }
             }
@@ -262,10 +271,10 @@ private fun EngineerRow(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Surface0)
-            .border(1.dp, Surface200, RoundedCornerShape(14.dp))
-            .padding(Spacing.md),
+            .clip(RoundedCornerShape(12.dp))
+            .background(androidx.compose.ui.graphics.Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
+            .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -273,7 +282,7 @@ private fun EngineerRow(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(BrandGreenDark),
+                    .background(SevaGreen900),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -283,10 +292,10 @@ private fun EngineerRow(
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(row.fullName, fontWeight = FontWeight.Bold, color = Ink900)
+                Text(row.fullName, fontWeight = FontWeight.Bold, color = SevaInk900)
                 Text(
                     listOfNotNull(row.email, row.phone).joinToString(" · ").ifBlank { "No contact" },
-                    color = Ink500,
+                    color = SevaInk500,
                     fontSize = 12.sp,
                 )
             }
@@ -298,30 +307,40 @@ private fun EngineerRow(
             locationLine,
         ).joinToString(" · ")
         if (metaLine.isNotBlank()) {
-            Text(metaLine, color = Ink700, fontSize = 13.sp)
+            Text(metaLine, color = SevaInk700, fontSize = 13.sp)
         }
         val docs = row.docPaths()
         if (docs.isNotEmpty()) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 docs.take(4).forEach { doc ->
-                    OutlinedButton(
-                        onClick = { onViewDoc(doc) },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text("Open ${doc.displayLabel}", fontSize = 11.sp)
+                    Box(modifier = Modifier.weight(1f)) {
+                        EsBtn(
+                            text = "Open ${doc.displayLabel}",
+                            onClick = { onViewDoc(doc) },
+                            kind = EsBtnKind.Secondary,
+                            full = true,
+                        )
                     }
                 }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Button(
-                onClick = onApprove,
-                modifier = Modifier.weight(1f),
-            ) { Text("Approve") }
-            OutlinedButton(
-                onClick = onReject,
-                modifier = Modifier.weight(1f),
-            ) { Text("Reject") }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(modifier = Modifier.weight(1f)) {
+                EsBtn(
+                    text = "Approve",
+                    onClick = onApprove,
+                    kind = EsBtnKind.Primary,
+                    full = true,
+                )
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                EsBtn(
+                    text = "Reject",
+                    onClick = onReject,
+                    kind = EsBtnKind.DangerOutline,
+                    full = true,
+                )
+            }
         }
     }
 }
