@@ -106,6 +106,22 @@ Deno.serve(async (req: Request) => {
     return new Response('method_not_allowed', { status: 405 });
   }
 
+  // Catalog ingest is an admin / cron-only seeder — should never be hit by
+  // an authenticated mobile user, let alone an unauthenticated caller.
+  // Without a secret check anyone could trigger an unbounded FDA pull +
+  // service-role upsert into catalog_brands / catalog_devices, burning
+  // Edge minutes + DB writes. Require a shared secret in
+  // x-webhook-secret matching INGEST_OPENFDA_SECRET; if the env var is
+  // unset we fail closed.
+  const expectedSecret = Deno.env.get('INGEST_OPENFDA_SECRET');
+  const incomingSecret = req.headers.get('x-webhook-secret');
+  if (!expectedSecret || incomingSecret !== expectedSecret) {
+    return new Response(JSON.stringify({ error: 'unauthenticated' }), {
+      status: 401,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
   const url = new URL(req.url);
   const maxRows = Number(url.searchParams.get('max') ?? '5000');
   const startSkip = Number(url.searchParams.get('skip') ?? '0');
