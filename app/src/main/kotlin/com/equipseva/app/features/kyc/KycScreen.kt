@@ -150,18 +150,10 @@ fun KycScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Verification (KYC)") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
+            com.equipseva.app.designsystem.components.EsTopBar(
+                title = "Verification (KYC)",
+                subtitle = "Step ${state.currentStep.ordinal + 1} of ${com.equipseva.app.features.kyc.KycStep.entries.size}",
+                onBack = onBack,
             )
         },
         bottomBar = {
@@ -175,7 +167,7 @@ fun KycScreen(
                 )
             }
         },
-        containerColor = Surface50,
+        containerColor = com.equipseva.app.designsystem.theme.PaperDefault,
     ) { inner ->
         Box(modifier = Modifier.fillMaxSize().padding(inner)) {
             when {
