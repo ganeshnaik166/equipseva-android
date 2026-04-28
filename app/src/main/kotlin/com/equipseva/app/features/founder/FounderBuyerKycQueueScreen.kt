@@ -17,13 +17,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Inbox
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -40,18 +38,18 @@ import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
-import com.equipseva.app.designsystem.theme.AccentLimeSoft
-import com.equipseva.app.designsystem.theme.BrandGreenDeep
-import com.equipseva.app.designsystem.theme.Ink500
-import com.equipseva.app.designsystem.theme.Ink700
-import com.equipseva.app.designsystem.theme.Ink900
-import com.equipseva.app.designsystem.theme.Spacing
-import com.equipseva.app.designsystem.theme.Surface0
-import com.equipseva.app.designsystem.theme.Surface200
-import com.equipseva.app.designsystem.theme.Surface50
+import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.EsBtnKind
+import com.equipseva.app.designsystem.components.EsTopBar
+import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaGreen50
+import com.equipseva.app.designsystem.theme.SevaGreen700
+import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk700
+import com.equipseva.app.designsystem.theme.SevaInk900
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -142,38 +140,45 @@ fun FounderBuyerKycQueueScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
-    Scaffold(topBar = { ESBackTopBar(title = "Buyer KYC queue", onBack = onBack) }) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            when {
-                state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-                state.error != null && state.rows.isEmpty() -> EmptyStateView(
-                    icon = Icons.Outlined.Inbox,
-                    title = "Couldn't load",
-                    subtitle = state.error,
-                )
-                state.rows.isEmpty() -> EmptyStateView(
-                    icon = Icons.Outlined.Inbox,
-                    title = "All clear",
-                    subtitle = "No pending buyer KYC submissions.",
-                )
-                else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize().background(Surface50),
-                    contentPadding = PaddingValues(Spacing.md),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    items(state.rows, key = { it.requestId }) { row ->
-                        BuyerKycRowCard(
-                            row = row,
-                            onView = {
-                                runCatching {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, row.docUrl.toUri()))
-                                }
-                            },
-                            onApprove = { viewModel.openApprove(row.requestId, row.fullName) },
-                            onReject = { viewModel.openReject(row.requestId, row.fullName) },
-                        )
+    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            EsTopBar(
+                title = "Buyer KYC queue",
+                subtitle = if (state.rows.isNotEmpty()) "${state.rows.size} pending" else null,
+                onBack = onBack,
+            )
+            Box(modifier = Modifier.fillMaxSize()) {
+                when {
+                    state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                    state.error != null && state.rows.isEmpty() -> EmptyStateView(
+                        icon = Icons.Outlined.Inbox,
+                        title = "Couldn't load",
+                        subtitle = state.error,
+                    )
+                    state.rows.isEmpty() -> EmptyStateView(
+                        icon = Icons.Outlined.Inbox,
+                        title = "All clear",
+                        subtitle = "No pending buyer KYC submissions.",
+                    )
+                    else -> LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(state.rows, key = { it.requestId }) { row ->
+                            BuyerKycRowCard(
+                                row = row,
+                                onView = {
+                                    runCatching {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, row.docUrl.toUri()))
+                                    }
+                                },
+                                onApprove = { viewModel.openApprove(row.requestId, row.fullName) },
+                                onReject = { viewModel.openReject(row.requestId, row.fullName) },
+                            )
+                        }
                     }
                 }
             }
@@ -184,12 +189,12 @@ fun FounderBuyerKycQueueScreen(
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(sheetState = sheetState, onDismissRequest = { viewModel.closeSheet() }) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
                     if (state.rejectMode) "Reject ${state.sheetUserName}" else "Approve ${state.sheetUserName}",
-                    fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Ink900,
+                    fontSize = 18.sp, fontWeight = FontWeight.Bold, color = SevaInk900,
                 )
                 if (state.rejectMode) {
                     OutlinedTextField(
@@ -202,13 +207,27 @@ fun FounderBuyerKycQueueScreen(
                 } else {
                     Text(
                         "Buyer can place orders immediately after approval.",
-                        color = Ink500, fontSize = 13.sp,
+                        color = SevaInk500, fontSize = 13.sp,
                     )
                 }
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    OutlinedButton(onClick = { viewModel.closeSheet() }, enabled = !state.acting, modifier = Modifier.weight(1f)) { Text("Cancel") }
-                    Button(onClick = { viewModel.confirm() }, enabled = !state.acting, modifier = Modifier.weight(1f)) {
-                        Text(if (state.acting) "…" else if (state.rejectMode) "Reject" else "Approve")
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        EsBtn(
+                            text = "Cancel",
+                            onClick = { viewModel.closeSheet() },
+                            kind = EsBtnKind.Secondary,
+                            full = true,
+                            disabled = state.acting,
+                        )
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        EsBtn(
+                            text = if (state.acting) "…" else if (state.rejectMode) "Reject" else "Approve",
+                            onClick = { viewModel.confirm() },
+                            kind = if (state.rejectMode) EsBtnKind.Danger else EsBtnKind.Primary,
+                            full = true,
+                            disabled = state.acting,
+                        )
                     }
                 }
             }
@@ -226,37 +245,56 @@ private fun BuyerKycRowCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Surface0)
-            .border(1.dp, Surface200, RoundedCornerShape(14.dp))
-            .padding(Spacing.md),
+            .clip(RoundedCornerShape(12.dp))
+            .background(androidx.compose.ui.graphics.Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
+            .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(row.fullName, color = Ink900, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
+            Text(row.fullName, color = SevaInk900, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(50))
-                    .background(AccentLimeSoft)
+                    .background(SevaGreen50)
                     .padding(horizontal = 10.dp, vertical = 3.dp),
             ) {
-                Text(prettyDocType(row.docType), color = BrandGreenDeep, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text(prettyDocType(row.docType), color = SevaGreen700, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
         }
         Text(
             listOfNotNull(row.email, row.phone).joinToString(" · ").ifBlank { "No contact" },
-            color = Ink500, fontSize = 12.sp,
+            color = SevaInk500, fontSize = 12.sp,
         )
         if (!row.gstNumber.isNullOrBlank()) {
-            Text("GSTIN: ${row.gstNumber}", color = Ink700, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Text("GSTIN: ${row.gstNumber}", color = SevaInk700, fontSize = 12.sp, fontWeight = FontWeight.Medium)
         }
-        Text("Submitted: ${row.submittedAt.take(10)}", color = Ink500, fontSize = 11.sp)
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            OutlinedButton(onClick = onView, modifier = Modifier.weight(1f).clickable(onClick = onView)) {
-                Text("Open doc", fontSize = 12.sp)
+        Text("Submitted: ${row.submittedAt.take(10)}", color = SevaInk500, fontSize = 11.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(modifier = Modifier.weight(1f)) {
+                EsBtn(
+                    text = "Open doc",
+                    onClick = onView,
+                    kind = EsBtnKind.Secondary,
+                    full = true,
+                )
             }
-            Button(onClick = onApprove, modifier = Modifier.weight(1f)) { Text("Approve", fontSize = 12.sp) }
-            OutlinedButton(onClick = onReject, modifier = Modifier.weight(1f)) { Text("Reject", fontSize = 12.sp) }
+            Box(modifier = Modifier.weight(1f)) {
+                EsBtn(
+                    text = "Approve",
+                    onClick = onApprove,
+                    kind = EsBtnKind.Primary,
+                    full = true,
+                )
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                EsBtn(
+                    text = "Reject",
+                    onClick = onReject,
+                    kind = EsBtnKind.DangerOutline,
+                    full = true,
+                )
+            }
         }
     }
 }
