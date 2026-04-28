@@ -88,7 +88,7 @@ import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.prefs.ThemeMode
 import com.equipseva.app.designsystem.components.BrandedPlaceholder
 import com.equipseva.app.designsystem.components.DeleteAccountSheet
-import com.equipseva.app.designsystem.components.ESTopBar
+import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.SecureScreen
 import com.equipseva.app.designsystem.components.SettingsSheet
 import com.equipseva.app.designsystem.components.StatusChip
@@ -144,7 +144,10 @@ fun ProfileScreen(
         }
     }
 
-    Scaffold(topBar = { ESTopBar(title = "Profile") }) { inner ->
+    Scaffold(
+        topBar = { EsTopBar(title = "Profile") },
+        containerColor = com.equipseva.app.designsystem.theme.PaperDefault,
+    ) { inner ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
