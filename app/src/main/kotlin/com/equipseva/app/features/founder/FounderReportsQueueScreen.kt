@@ -14,10 +14,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Inbox
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -31,16 +29,16 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
-import com.equipseva.app.designsystem.theme.Ink500
-import com.equipseva.app.designsystem.theme.Ink700
-import com.equipseva.app.designsystem.theme.Ink900
-import com.equipseva.app.designsystem.theme.Spacing
-import com.equipseva.app.designsystem.theme.Surface0
-import com.equipseva.app.designsystem.theme.Surface200
-import com.equipseva.app.designsystem.theme.Surface50
+import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.EsBtnKind
+import com.equipseva.app.designsystem.components.EsTopBar
+import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk700
+import com.equipseva.app.designsystem.theme.SevaInk900
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -100,33 +98,40 @@ fun FounderReportsQueueScreen(
     viewModel: FounderReportsQueueViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    Scaffold(topBar = { ESBackTopBar(title = "Content reports", onBack = onBack) }) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            when {
-                state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-                state.error != null -> EmptyStateView(
-                    icon = Icons.Outlined.Inbox,
-                    title = "Couldn't load",
-                    subtitle = state.error,
-                )
-                state.rows.isEmpty() -> EmptyStateView(
-                    icon = Icons.Outlined.Inbox,
-                    title = "All clear",
-                    subtitle = "No pending content reports.",
-                )
-                else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize().background(Surface50),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(Spacing.md),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    items(state.rows, key = { it.reportId }) { row ->
-                        ReportRow(
-                            row = row,
-                            acting = state.acting.contains(row.reportId),
-                            onAction = { status -> viewModel.resolve(row.reportId, status) },
-                        )
+    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            EsTopBar(
+                title = "Content reports",
+                subtitle = if (state.rows.isNotEmpty()) "${state.rows.size} open" else null,
+                onBack = onBack,
+            )
+            Box(modifier = Modifier.fillMaxSize()) {
+                when {
+                    state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                    state.error != null -> EmptyStateView(
+                        icon = Icons.Outlined.Inbox,
+                        title = "Couldn't load",
+                        subtitle = state.error,
+                    )
+                    state.rows.isEmpty() -> EmptyStateView(
+                        icon = Icons.Outlined.Inbox,
+                        title = "All clear",
+                        subtitle = "No pending content reports.",
+                    )
+                    else -> LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(state.rows, key = { it.reportId }) { row ->
+                            ReportRow(
+                                row = row,
+                                acting = state.acting.contains(row.reportId),
+                                onAction = { status -> viewModel.resolve(row.reportId, status) },
+                            )
+                        }
                     }
                 }
             }
@@ -143,56 +148,68 @@ private fun ReportRow(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Surface0)
-            .border(1.dp, Surface200, RoundedCornerShape(14.dp))
-            .padding(Spacing.md),
+            .clip(RoundedCornerShape(12.dp))
+            .background(androidx.compose.ui.graphics.Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
+            .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 row.targetType.replace('_', ' ').replaceFirstChar { it.uppercase() },
-                color = Ink900,
+                color = SevaInk900,
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
                 modifier = Modifier.weight(1f),
             )
             Text(
                 row.reason.replaceFirstChar { it.uppercase() },
-                color = Ink700,
+                color = SevaInk700,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
             )
         }
         Text(
             "Reporter: ${row.reporterName ?: row.reporterUserId.take(8)}",
-            color = Ink500,
+            color = SevaInk500,
             fontSize = 12.sp,
         )
         Text(
             "Target id: ${row.targetId}",
-            color = Ink500,
+            color = SevaInk500,
             fontSize = 11.sp,
         )
         if (!row.notes.isNullOrBlank()) {
-            Text(row.notes, color = Ink700, fontSize = 13.sp)
+            Text(row.notes, color = SevaInk700, fontSize = 13.sp)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Button(
-                onClick = { onAction("actioned") },
-                enabled = !acting,
-                modifier = Modifier.weight(1f),
-            ) { Text(if (acting) "…" else "Action") }
-            OutlinedButton(
-                onClick = { onAction("dismissed") },
-                enabled = !acting,
-                modifier = Modifier.weight(1f),
-            ) { Text("Dismiss") }
-            OutlinedButton(
-                onClick = { onAction("reviewed") },
-                enabled = !acting,
-                modifier = Modifier.weight(1f),
-            ) { Text("Review") }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(modifier = Modifier.weight(1f)) {
+                EsBtn(
+                    text = if (acting) "…" else "Action",
+                    onClick = { onAction("actioned") },
+                    kind = EsBtnKind.Primary,
+                    full = true,
+                    disabled = acting,
+                )
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                EsBtn(
+                    text = "Dismiss",
+                    onClick = { onAction("dismissed") },
+                    kind = EsBtnKind.Secondary,
+                    full = true,
+                    disabled = acting,
+                )
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                EsBtn(
+                    text = "Review",
+                    onClick = { onAction("reviewed") },
+                    kind = EsBtnKind.Secondary,
+                    full = true,
+                    disabled = acting,
+                )
+            }
         }
     }
 }
