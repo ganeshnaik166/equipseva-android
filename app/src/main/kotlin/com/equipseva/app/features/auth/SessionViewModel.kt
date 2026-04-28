@@ -6,6 +6,7 @@ import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.ProfileRepository
+import com.equipseva.app.core.push.DeviceTokenRegistrar
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -32,6 +33,7 @@ class SessionViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
     private val userPrefs: UserPrefs,
+    private val deviceTokenRegistrar: DeviceTokenRegistrar,
 ) : ViewModel() {
 
     private val bootstrapping = MutableStateFlow(false)
@@ -41,7 +43,15 @@ class SessionViewModel @Inject constructor(
             authRepository.sessionState
                 .filterIsInstance<AuthSession.SignedIn>()
                 .distinctUntilChangedBy { it.userId }
-                .collect { signedIn -> bootstrapProfile(signedIn.userId) }
+                .collect { signedIn ->
+                    // Re-register FCM token under the new user id. onNewToken
+                    // only fires on actual token rotation, so a returning
+                    // user signing in on a device whose previous session
+                    // was revoke()'d would otherwise have no row in
+                    // device_tokens and receive zero pushes. Best-effort.
+                    runCatching { deviceTokenRegistrar.refresh() }
+                    bootstrapProfile(signedIn.userId)
+                }
         }
         viewModelScope.launch {
             authRepository.sessionState.collect { session ->
