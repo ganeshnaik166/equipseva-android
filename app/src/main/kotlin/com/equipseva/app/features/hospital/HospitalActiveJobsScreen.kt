@@ -12,19 +12,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.SectionHeader
-import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.features.hospital.components.HospitalBrowseEngineersTile
 import com.equipseva.app.features.hospital.components.HospitalHowItWorksStrip
 import com.equipseva.app.features.hospital.components.HospitalRepairHeroCard
@@ -41,18 +42,15 @@ fun HospitalActiveJobsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    Scaffold(
-        topBar = { ESBackTopBar(title = "My repair jobs", onBack = onBack) },
-    ) { inner ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(inner),
-        ) {
-            ErrorBanner(
-                message = state.errorMessage,
-                modifier = Modifier.padding(horizontal = Spacing.lg),
+    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            val total = state.openJobs.size + state.inProgressJobs.size + state.closedJobs.size
+            EsTopBar(
+                title = "My repair jobs",
+                subtitle = if (total > 0) "$total total" else null,
+                onBack = onBack,
             )
+            ErrorBanner(message = state.errorMessage)
             PullToRefreshBox(
                 isRefreshing = state.refreshing,
                 onRefresh = viewModel::onRefresh,
@@ -64,8 +62,8 @@ fun HospitalActiveJobsScreen(
                     }
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(vertical = Spacing.md),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        contentPadding = PaddingValues(vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         // Hero card stays visible whether the lists are full
                         // or empty — gives the hospital one-tap access to
@@ -107,7 +105,7 @@ fun HospitalActiveJobsScreen(
                                 RepairJobCard(
                                     job = job,
                                     onClick = { onJobClick(job.id) },
-                                    modifier = Modifier.padding(horizontal = Spacing.lg),
+                                    modifier = Modifier.padding(horizontal = 16.dp),
                                 )
                             }
                         }
@@ -117,7 +115,7 @@ fun HospitalActiveJobsScreen(
                                 RepairJobCard(
                                     job = job,
                                     onClick = { onJobClick(job.id) },
-                                    modifier = Modifier.padding(horizontal = Spacing.lg),
+                                    modifier = Modifier.padding(horizontal = 16.dp),
                                 )
                             }
                         }
@@ -127,7 +125,7 @@ fun HospitalActiveJobsScreen(
                                 RepairJobCard(
                                     job = job,
                                     onClick = { onJobClick(job.id) },
-                                    modifier = Modifier.padding(horizontal = Spacing.lg),
+                                    modifier = Modifier.padding(horizontal = 16.dp),
                                 )
                             }
                         }
