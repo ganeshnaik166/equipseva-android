@@ -1,7 +1,6 @@
 package com.equipseva.app.features.profile
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,9 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,10 +27,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.network.toUserMessage
-import com.equipseva.app.designsystem.components.ESBackTopBar
-import com.equipseva.app.designsystem.theme.Ink500
-import com.equipseva.app.designsystem.theme.Ink900
-import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.EsBtnKind
+import com.equipseva.app.designsystem.components.EsBtnSize
+import com.equipseva.app.designsystem.components.EsTopBar
+import com.equipseva.app.designsystem.theme.EsType
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaGreen700
+import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk900
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
@@ -166,13 +169,14 @@ fun AddPhoneScreen(
         }
     }
 
-    Scaffold(topBar = { ESBackTopBar(title = "Add phone number", onBack = onBack) }) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            EsTopBar(title = "Add phone number", onBack = onBack)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 when (state.step) {
                     AddPhoneViewModel.Step.Request -> RequestStep(
@@ -199,11 +203,11 @@ private fun RequestStep(
     onPhoneChange: (String) -> Unit,
     onSend: () -> Unit,
 ) {
-    Text("Enter your mobile number", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Ink900)
+    Text("Enter your mobile number", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = SevaInk900)
     Text(
         "Hospitals will Call and WhatsApp you on this number once you're verified. We'll send a 6-digit code to confirm it's yours.",
         fontSize = 13.sp,
-        color = Ink500,
+        color = SevaInk500,
     )
     OutlinedTextField(
         value = state.phone,
@@ -217,13 +221,14 @@ private fun RequestStep(
         modifier = Modifier.fillMaxWidth(),
     )
     Spacer(Modifier.height(8.dp))
-    Button(
+    EsBtn(
+        text = if (state.sending) "Sending…" else "Send code",
         onClick = onSend,
-        enabled = !state.sending && state.phone.length >= 10,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text(if (state.sending) "Sending…" else "Send code")
-    }
+        kind = EsBtnKind.Primary,
+        size = EsBtnSize.Lg,
+        full = true,
+        disabled = state.sending || state.phone.length < 10,
+    )
 }
 
 @Composable
@@ -234,8 +239,8 @@ private fun VerifyStep(
     onResend: () -> Unit,
     onEditNumber: () -> Unit,
 ) {
-    Text("Enter the 6-digit code", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Ink900)
-    Text("Sent to ${state.phone}", fontSize = 13.sp, color = Ink500)
+    Text("Enter the 6-digit code", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = SevaInk900)
+    Text("Sent to ${state.phone}", fontSize = 13.sp, color = SevaInk500)
     Spacer(Modifier.height(8.dp))
     OutlinedTextField(
         value = state.code,
@@ -249,22 +254,23 @@ private fun VerifyStep(
         modifier = Modifier.fillMaxWidth(),
     )
     Spacer(Modifier.height(8.dp))
-    Button(
+    EsBtn(
+        text = if (state.verifying) "Verifying…" else "Verify",
         onClick = onVerify,
-        enabled = !state.verifying && state.code.length == 6,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text(if (state.verifying) "Verifying…" else "Verify")
-    }
+        kind = EsBtnKind.Primary,
+        size = EsBtnSize.Lg,
+        full = true,
+        disabled = state.verifying || state.code.length != 6,
+    )
     androidx.compose.foundation.layout.Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         TextButton(onClick = onEditNumber, enabled = !state.verifying && !state.resending) {
-            Text("Edit number")
+            Text("Edit number", color = SevaGreen700)
         }
         TextButton(onClick = onResend, enabled = !state.resending) {
-            Text(if (state.resending) "Resending…" else "Resend code")
+            Text(if (state.resending) "Resending…" else "Resend code", color = SevaGreen700)
         }
     }
 }
