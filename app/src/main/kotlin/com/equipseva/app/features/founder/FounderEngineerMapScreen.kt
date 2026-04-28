@@ -16,16 +16,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Engineering
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import com.equipseva.app.designsystem.components.EsTopBar
+import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaGreen700
+import com.equipseva.app.designsystem.theme.SevaGreen900
+import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk900
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,14 +45,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.theme.AccentLime
-import com.equipseva.app.designsystem.theme.BrandGreen
-import com.equipseva.app.designsystem.theme.BrandGreenDark
-import com.equipseva.app.designsystem.theme.Ink500
-import com.equipseva.app.designsystem.theme.Ink900
-import com.equipseva.app.designsystem.theme.Spacing
-import com.equipseva.app.designsystem.theme.Surface0
-import com.equipseva.app.designsystem.theme.Surface50
-import com.equipseva.app.designsystem.theme.Surface200
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
@@ -108,51 +102,36 @@ fun FounderEngineerMapScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     var selected by remember { mutableStateOf<String?>(null) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Engineer zones") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-            )
-        },
-        containerColor = Surface50,
-    ) { inner ->
-        Box(modifier = Modifier.fillMaxSize().padding(inner)) {
+    androidx.compose.material3.Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            EsTopBar(title = "Engineer zones", onBack = onBack)
+            Box(modifier = Modifier.fillMaxSize()) {
             when {
                 state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
                 state.error != null -> Column(
-                    modifier = Modifier.fillMaxSize().padding(Spacing.lg),
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(state.error!!, color = MaterialTheme.colorScheme.error)
                 }
                 state.rows.isEmpty() -> Column(
-                    modifier = Modifier.fillMaxSize().padding(Spacing.lg),
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Engineering,
                         contentDescription = null,
-                        tint = Ink500,
+                        tint = SevaInk500,
                         modifier = Modifier.size(48.dp),
                     )
                     Text(
                         "No verified engineers available yet.",
                         fontSize = 14.sp,
-                        color = Ink500,
+                        color = SevaInk500,
                     )
                 }
                 else -> Column(modifier = Modifier.fillMaxSize()) {
@@ -160,13 +139,13 @@ fun FounderEngineerMapScreen(
                     Text(
                         text = "${state.rows.size} zones · ${state.rows.sumOf { it.engineerCount }} verified engineers",
                         fontSize = 12.sp,
-                        color = Ink500,
+                        color = SevaInk500,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = Spacing.lg, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     )
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(Spacing.md),
+                        contentPadding = PaddingValues(12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         items(state.rows, key = { it.district }) { row ->
@@ -180,6 +159,7 @@ fun FounderEngineerMapScreen(
                         }
                     }
                 }
+            }
             }
         }
     }
@@ -200,15 +180,15 @@ private fun ZoneMap(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(220.dp)
-                .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Surface200),
+                .background(BorderDefault),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 "No coordinates pinned yet — engineers haven't dropped service-area pins.",
                 fontSize = 12.sp,
-                color = Ink500,
+                color = SevaInk500,
             )
         }
         return
@@ -230,7 +210,7 @@ private fun ZoneMap(
         modifier = Modifier
             .fillMaxWidth()
             .height(280.dp)
-            .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
             .clip(RoundedCornerShape(12.dp)),
         cameraPositionState = cameraPositionState,
         properties = MapProperties(isMyLocationEnabled = false),
@@ -265,9 +245,9 @@ private fun ZoneRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) AccentLime else Surface0)
+            .background(if (selected) AccentLime else androidx.compose.ui.graphics.Color.White)
             .clickable { onClick() }
-            .padding(horizontal = Spacing.md, vertical = 12.dp),
+            .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -275,7 +255,7 @@ private fun ZoneRow(
             modifier = Modifier
                 .size(40.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(if (selected) BrandGreenDark else BrandGreen),
+                .background(if (selected) SevaGreen900 else SevaGreen700),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -289,7 +269,7 @@ private fun ZoneRow(
             Text(
                 text = row.district,
                 fontSize = 14.sp,
-                color = Ink900,
+                color = SevaInk900,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
@@ -299,7 +279,7 @@ private fun ZoneRow(
                     "No coordinates pinned"
                 },
                 fontSize = 11.sp,
-                color = Ink500,
+                color = SevaInk500,
             )
         }
     }
