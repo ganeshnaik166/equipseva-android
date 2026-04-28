@@ -16,3 +16,17 @@ RAZORPAY_KEY=
 # Google Sign-in: WEB client ID from Firebase / Google Cloud Console
 # (NOT the Android client ID — Credential Manager + Supabase verify-id-token both want the WEB type)
 GOOGLE_WEB_CLIENT_ID=
+
+# Google Maps API key (for the engineer Repair-tab map).
+# Project must have Maps SDK for Android enabled.
+MAPS_API_KEY=
+
+# Anti-tamper: comma-separated SHA-256 base64 fingerprints of every
+# legitimate signing cert. SignatureVerifier compares the running APK
+# against any entry; mismatch => Verdict.Tampered.
+#   - Upload key (extract from app/equipseva-upload.jks)
+#   - Play App Signing key (paste from Play Console after first AAB)
+# Leave blank during pre-Play-Console scaffolding — the verifier
+# returns Verdict.Unknown and skips enforcement. See
+# docs/security/LAUNCH_INFRA.md §3 for the extraction recipe.
+EXPECTED_CERT_SHA256=
