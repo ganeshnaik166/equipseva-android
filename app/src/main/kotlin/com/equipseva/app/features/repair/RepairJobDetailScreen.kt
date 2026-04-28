@@ -1053,25 +1053,7 @@ private fun YourBidCard(ownBid: RepairBid?) {
 
 @Composable
 private fun StatusStepperCard(job: RepairJob) {
-    val shape = MaterialTheme.shapes.medium
-    val onSiteTime = job.startedAtInstant?.let { "${relativeLabel(it)} ago" }
-    val completedTime = job.completedAtInstant?.let { "${relativeLabel(it)} ago" }
-    val steps = listOf(
-        StepperStep(title = "Open · awaiting bids"),
-        StepperStep(title = "Bids received"),
-        StepperStep(title = "Accepted"),
-        StepperStep(title = "En route"),
-        StepperStep(title = "On site", time = onSiteTime),
-        StepperStep(title = "Completed", time = completedTime),
-    )
-    val current = when (job.status) {
-        RepairJobStatus.Requested -> 0
-        RepairJobStatus.Assigned -> 2
-        RepairJobStatus.EnRoute -> 3
-        RepairJobStatus.InProgress -> 4
-        RepairJobStatus.Completed -> 5
-        RepairJobStatus.Cancelled, RepairJobStatus.Disputed, RepairJobStatus.Unknown -> -1
-    }
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
     Column(
         modifier = Modifier
             .padding(horizontal = Spacing.lg)
@@ -1081,7 +1063,7 @@ private fun StatusStepperCard(job: RepairJob) {
             .border(1.dp, Surface200, shape)
             .padding(Spacing.md),
     ) {
-        VerticalStepper(steps = steps, current = current)
+        com.equipseva.app.designsystem.components.EsStatusStepper(current = job.status)
     }
 }
 
