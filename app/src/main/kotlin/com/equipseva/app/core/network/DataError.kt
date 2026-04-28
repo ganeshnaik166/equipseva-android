@@ -26,6 +26,16 @@ fun Throwable.toUserMessage(fallback: String = "Something went wrong. Please try
 private fun friendlyRestMessage(ex: RestException): String? {
     val raw = ex.message.orEmpty()
     return when {
+        // PostgREST stamps PGRST301 on expired JWTs and PGRST302 on missing /
+        // malformed ones. The Supabase SDK auto-refreshes on the next request,
+        // so the user usually doesn't need to do anything — but the screen
+        // they triggered needs a friendly nudge instead of "JWT expired".
+        raw.contains("PGRST301", ignoreCase = true) ||
+            raw.contains("PGRST302", ignoreCase = true) ||
+            raw.contains("jwt expired", ignoreCase = true) ||
+            raw.contains("jwt is invalid", ignoreCase = true) ||
+            raw.contains("invalid_jwt", ignoreCase = true) ->
+            "Your session expired. Tap retry — if this keeps happening, sign in again."
         // 42501 = insufficient_privilege; also matches the literal phrase
         // Postgres returns when column-level grants block a SELECT.
         raw.contains("42501") || raw.contains("permission denied", ignoreCase = true) ->
