@@ -10,6 +10,7 @@ import com.equipseva.app.core.observability.StartupTelemetry
 import com.equipseva.app.core.push.NotificationChannels
 import com.equipseva.app.core.security.DeviceIntegrityCheck
 import com.equipseva.app.core.security.SignatureVerifier
+import com.equipseva.app.core.sync.OutboxScheduler
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -19,6 +20,7 @@ class EquipSevaApplication : Application(), Configuration.Provider {
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var sentryInitializer: SentryInitializer
     @Inject lateinit var sentryUserBridge: SentryUserBridge
+    @Inject lateinit var outboxScheduler: OutboxScheduler
 
     override fun onCreate() {
         super.onCreate()
@@ -31,6 +33,13 @@ class EquipSevaApplication : Application(), Configuration.Provider {
         sentryUserBridge.attach()
         StartupTelemetry.markStart()
         NotificationChannels.register(this)
+        // Periodic 15-minute drain of the offline outbox. Without this,
+        // queued writes only flush via the one-shot piggybacked onto each
+        // enqueue() call — a user who queued a write offline, killed the
+        // app, then came back online days later would never see it sync
+        // until they triggered another write. Cancelled on sign-out by
+        // [OutboxScheduler.cancelAll].
+        outboxScheduler.schedulePeriodic()
 
         // Report-only anti-tamper: log signals on boot. Enforcement (wipe
         // session + show "not authorized" screen) flips on once the release
