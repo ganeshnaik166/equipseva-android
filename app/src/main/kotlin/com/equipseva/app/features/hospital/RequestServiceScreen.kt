@@ -137,7 +137,7 @@ fun RequestServiceScreen(
         }
     }
 
-    val stepLabels = listOf("Equipment", "Issue", "Schedule")
+    val stepLabels = listOf("Equipment", "Issue", "When", "Where")
 
     Scaffold(
         topBar = {
@@ -206,9 +206,11 @@ fun RequestServiceScreen(
                         },
                         onRemovePhoto = viewModel::onRemovePhoto,
                     )
-                    2 -> StepSchedule(
+                    2 -> StepWhen(
                         selectedSlot = selectedSlot,
                         onSelectSlot = { selectedSlot = it },
+                    )
+                    3 -> StepWhere(
                         siteLocation = state.siteLocation,
                         onSiteLocation = viewModel::onSiteLocationChange,
                         siteLatitude = state.siteLatitude,
@@ -495,19 +497,11 @@ private fun SeverityTile(
 }
 
 @Composable
-private fun StepSchedule(
+private fun StepWhen(
     selectedSlot: Int,
     onSelectSlot: (Int) -> Unit,
-    siteLocation: String,
-    onSiteLocation: (String) -> Unit,
-    siteLatitude: Double?,
-    siteLongitude: Double?,
-    onSiteCoords: (Double?, Double?) -> Unit,
-    budget: String,
-    budgetError: String?,
-    onBudget: (String) -> Unit,
 ) {
-    StepHeadline("Schedule & location")
+    StepHeadline("When?")
     Text(
         text = "Preferred slot",
         fontSize = 13.sp,
@@ -545,6 +539,20 @@ private fun StepSchedule(
             )
         }
     }
+}
+
+@Composable
+private fun StepWhere(
+    siteLocation: String,
+    onSiteLocation: (String) -> Unit,
+    siteLatitude: Double?,
+    siteLongitude: Double?,
+    onSiteCoords: (Double?, Double?) -> Unit,
+    budget: String,
+    budgetError: String?,
+    onBudget: (String) -> Unit,
+) {
+    StepHeadline("Where?")
     OutlinedTextField(
         value = siteLocation,
         onValueChange = onSiteLocation,
@@ -554,9 +562,6 @@ private fun StepSchedule(
         minLines = 2,
         modifier = Modifier.fillMaxWidth(),
     )
-    // Map picker — engineer reads the dragged pin via geo: intent on
-    // their detail screen. Auto-pins to the device's current location on
-    // first render via FusedLocation; user drags to refine.
     val pickedLatLng = if (siteLatitude != null && siteLongitude != null) {
         com.google.android.gms.maps.model.LatLng(siteLatitude, siteLongitude)
     } else null
@@ -629,7 +634,7 @@ private fun WizardBottomBar(
                     .height(Spacing.MinTouchTarget),
             ) { Text("Back") }
         }
-        val isLast = step == 2
+        val isLast = step == 3
         Button(
             onClick = if (isLast) onSubmit else onNext,
             enabled = !submitting,
