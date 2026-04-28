@@ -130,43 +130,37 @@ fun RepairJobDetailScreen(
     }
 
     Scaffold(
+        containerColor = com.equipseva.app.designsystem.theme.PaperDefault,
         topBar = {
-            TopAppBar(
-                title = { Text(state.job?.jobNumber ?: "Repair request") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
+            com.equipseva.app.designsystem.components.EsTopBar(
+                title = state.job?.jobNumber ?: "Repair request",
+                onBack = onBack,
+                right = {
                     if (state.canReport) {
                         var menuOpen by rememberSaveable { mutableStateOf(false) }
-                        IconButton(onClick = { menuOpen = true }) {
-                            Icon(
-                                imageVector = Icons.Filled.MoreVert,
-                                contentDescription = "More",
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = menuOpen,
-                            onDismissRequest = { menuOpen = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Report job") },
-                                onClick = {
-                                    menuOpen = false
-                                    viewModel.onOpenReport()
-                                },
-                            )
+                        Box {
+                            IconButton(onClick = { menuOpen = true }) {
+                                Icon(
+                                    imageVector = Icons.Filled.MoreVert,
+                                    contentDescription = "More",
+                                    tint = com.equipseva.app.designsystem.theme.SevaInk900,
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = menuOpen,
+                                onDismissRequest = { menuOpen = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Report job") },
+                                    onClick = {
+                                        menuOpen = false
+                                        viewModel.onOpenReport()
+                                    },
+                                )
+                            }
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
             )
         },
         bottomBar = {
