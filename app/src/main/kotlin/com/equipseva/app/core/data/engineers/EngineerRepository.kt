@@ -43,6 +43,17 @@ interface EngineerRepository {
     ): Result<Engineer>
 
     /**
+     * Move the engineer's base coordinates without touching KYC fields.
+     * Used by the standalone "Service location" editor reachable from the
+     * engineer Jobs hub.
+     */
+    suspend fun updateBaseLocation(
+        userId: String,
+        latitude: Double,
+        longitude: Double,
+    ): Result<Engineer>
+
+    /**
      * Upload a file (aadhaar photo, certificate, etc.) into the `kyc-docs` bucket
      * under the caller's auth.uid folder. Returns the stored object path.
      */

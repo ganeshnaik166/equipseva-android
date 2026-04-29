@@ -1,14 +1,17 @@
 package com.equipseva.app.navigation
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.firstOrNull
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.CurrencyRupee
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.WorkOutline
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -47,32 +50,53 @@ import com.equipseva.app.features.repair.RepairJobDetailScreen
 import com.equipseva.app.features.repair.RepairJobsScreen
 import kotlinx.coroutines.launch
 
-private data class TabItem(val route: String, val label: String, val icon: ImageVector)
-
-/**
- * v1: bottom nav is the same for every user — Home / Repair / Profile.
- * Marketplace / Buy-Sell / Orders / Cart / Checkout / Logistics / Manufacturer
- * / Supplier / Favorites / Scan / Hospital-RFQ surfaces were stripped along
- * with the marketplace cleanup; the tabs left over are the engineer-repair
- * core (book repair + take jobs + earnings + KYC).
- *
- * The `role` parameter stays for ABI compatibility with existing call
- * sites; it's intentionally unused.
- */
-@Suppress("UNUSED_PARAMETER")
-private fun tabsForRole(role: com.equipseva.app.features.auth.UserRole?): List<TabItem> =
-    listOf(
-        TabItem(Routes.HOME, "Home", Icons.Filled.Home),
-        TabItem(Routes.REPAIR, "Repair", Icons.Filled.Build),
-        TabItem(Routes.PROFILE, "Profile", Icons.Filled.Person),
+// Round-3 nav restructure — bottom nav is now per-role, matching
+// `shared.jsx:BottomNav`:
+//   • Hospital → 3 tabs (Home / Bookings / Profile) with Bookings
+//     pointing straight at the active-jobs list (was a buried sub-screen).
+//   • Engineer → 4 tabs (Home / Jobs / Earnings / Profile) — Earnings
+//     graduates from a Profile row to a top-level destination.
+//   • Anonymous / unknown role → engineer 4-tab default.
+private fun tabsForRole(
+    role: com.equipseva.app.features.auth.UserRole?,
+): List<com.equipseva.app.designsystem.components.EsBottomNavItem> = when (role) {
+    com.equipseva.app.features.auth.UserRole.HOSPITAL -> listOf(
+        com.equipseva.app.designsystem.components.EsBottomNavItem(
+            Routes.HOME, "Home", Icons.Outlined.Home,
+        ),
+        com.equipseva.app.designsystem.components.EsBottomNavItem(
+            Routes.HOSPITAL_ACTIVE_JOBS, "Bookings", Icons.Outlined.WorkOutline,
+        ),
+        com.equipseva.app.designsystem.components.EsBottomNavItem(
+            Routes.PROFILE, "Profile", Icons.Outlined.Person,
+        ),
     )
+    else -> listOf(
+        com.equipseva.app.designsystem.components.EsBottomNavItem(
+            Routes.HOME, "Home", Icons.Outlined.Home,
+        ),
+        com.equipseva.app.designsystem.components.EsBottomNavItem(
+            // Jobs tab opens the Engineer Jobs hub (Available jobs, My bids,
+            // Active work, Earnings, Edit profile tiles) per spec, not the
+            // raw repair feed. The hub itself navigates to REPAIR for the
+            // Available-jobs tile.
+            Routes.ENGINEER_JOBS_HUB, "Jobs", Icons.Outlined.Build,
+        ),
+        com.equipseva.app.designsystem.components.EsBottomNavItem(
+            Routes.EARNINGS, "Earnings", Icons.Outlined.CurrencyRupee,
+        ),
+        com.equipseva.app.designsystem.components.EsBottomNavItem(
+            Routes.PROFILE, "Profile", Icons.Outlined.Person,
+        ),
+    )
+}
 
 /** Routes that take over the screen and should hide the bottom navigation bar. */
 private val fullScreenRoutePrefixes = listOf(
     Routes.REPAIR_DETAIL,
     Routes.ENGINEER_DIRECTORY,
     Routes.ENGINEER_PUBLIC_PROFILE,
-    Routes.ENGINEER_JOBS_HUB,
+    // ENGINEER_JOBS_HUB removed — it's now the engineer Jobs tab.
     Routes.CONVERSATIONS,
     Routes.CHAT_DETAIL,
     Routes.KYC,
@@ -81,7 +105,6 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.MY_BIDS,
     Routes.REQUEST_SERVICE,
     Routes.ENGINEER_PROFILE,
-    Routes.HOSPITAL_ACTIVE_JOBS,
     Routes.NOTIFICATIONS,
     Routes.NOTIFICATION_SETTINGS,
     Routes.TOUR,
@@ -133,6 +156,33 @@ fun MainNavGraph(
         }
     }
 
+    // Process-death recovery: if the user was on a restorable screen (e.g.
+    // KYC) when Android reclaimed our process during the SAF picker,
+    // navigate them back instead of leaving them stranded at Home. One-shot
+    // — `consumeLastScreen` clears the pin after restore so the next Back
+    // → Home doesn't bounce right back here.
+    LaunchedEffect(navController) {
+        val pinned = deepLinkHost.lastScreen.firstOrNull()
+        if (!pinned.isNullOrBlank()) {
+            // Wait for the engineer-status read to settle so the KYC restore
+            // guard below has accurate data. firstOrNull() resolves once the
+            // DeepLinkHost session-collector pushes the verified status.
+            val resolvedStatus = deepLinkHost.engineerStatus
+                .filterNotNull()
+                .firstOrNull()
+            // Don't bounce a verified engineer back into KYC. The pin is
+            // meant for "user was mid-KYC when the SAF picker triggered
+            // process death", not for "user popped a verification screen".
+            val skip = pinned == Routes.KYC &&
+                resolvedStatus ==
+                    com.equipseva.app.core.data.engineers.VerificationStatus.Verified
+            if (!skip) {
+                navController.navigate(pinned) { launchSingleTop = true }
+            }
+            deepLinkHost.consumeLastScreen()
+        }
+    }
+
     LaunchedEffect(Unit) {
         deepLinkHost.events.collect { event ->
             when (event) {
@@ -152,34 +202,63 @@ fun MainNavGraph(
     val activeRoleKey by deepLinkHost.activeRole.collectAsStateWithLifecycle(initialValue = null)
     val activeRole = activeRoleKey?.let { com.equipseva.app.features.auth.UserRole.fromKey(it) }
     val visibleTabs = tabsForRole(activeRole)
+    val engineerStatus by deepLinkHost.engineerStatus.collectAsStateWithLifecycle()
 
     Scaffold(
         bottomBar = {
             if (!isFullScreenRoute) {
-                NavigationBar {
-                    visibleTabs.forEach { tab ->
-                        val selected = backStack?.destination?.hierarchy?.any { it.route == tab.route } == true
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = {
-                                android.util.Log.d("BottomNav", "tab tapped: ${tab.route}")
-                                navController.navigate(tab.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                        inclusive = false
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = (tab.route != Routes.PROFILE)
+                com.equipseva.app.designsystem.components.EsBottomNav(
+                    tabs = visibleTabs,
+                    currentRoute = backStack?.destination?.hierarchy
+                        ?.firstOrNull { dest -> visibleTabs.any { it.route == dest.route } }
+                        ?.route,
+                    onSelect = { route ->
+                        // Jobs tab on the engineer-side bottom nav is gated
+                        // by KYC. activeRole may not be set on signup yet,
+                        // so we trigger off the route + engineerStatus alone.
+                        val isEngineerJobsTab = route == Routes.ENGINEER_JOBS_HUB
+                        val gateMsg: String? = if (isEngineerJobsTab) {
+                            when (engineerStatus) {
+                                com.equipseva.app.core.data.engineers.VerificationStatus.Pending ->
+                                    "KYC under review — you'll be able to bid once verified (usually within 24h)."
+                                com.equipseva.app.core.data.engineers.VerificationStatus.Rejected ->
+                                    "KYC was rejected. Open Profile → Verification to fix and re-submit."
+                                null ->
+                                    "Submit your KYC first — open Profile → Verification."
+                                com.equipseva.app.core.data.engineers.VerificationStatus.Verified -> null
+                            }
+                        } else null
+
+                        if (gateMsg != null) {
+                            showSnackbar(gateMsg)
+                        } else {
+                            navController.navigate(route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                    inclusive = false
                                 }
-                            },
-                            icon = { Icon(tab.icon, contentDescription = tab.label) },
-                            label = { Text(tab.label) },
-                        )
-                    }
-                }
+                                launchSingleTop = true
+                                restoreState = (route != Routes.PROFILE)
+                            }
+                        }
+                    },
+                )
             }
         },
-        snackbarHost = { SnackbarHost(snackbarHost) },
+        snackbarHost = {
+            SnackbarHost(snackbarHost) { data ->
+                // Match `shared.jsx` toast aesthetic — dark green-900 surface,
+                // white text, 12dp radius, no Material accent line.
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = com.equipseva.app.designsystem.theme.SevaGreen900,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
+                    actionColor = com.equipseva.app.designsystem.theme.SevaGlowRaw,
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
+        },
     ) { padding ->
         NavHost(
             navController = navController,
@@ -203,14 +282,20 @@ fun MainNavGraph(
                 )
             }
             composable(Routes.HOME) {
-                // v1: Home tab — Book Repair / Engineer Jobs (+ Founder Admin
-                // tile when signed in as the pinned founder).
+                // v1: Home tab — role-aware tiles per design.
+                //   Hospital: Book engineer / My bookings / Messages
+                //   Engineer: Today's jobs / Active work / Earnings
+                //   Founder gets the admin tile in addition.
                 com.equipseva.app.features.home.HomeHubScreen(
                     onOpenBookRepair = { navController.navigate(Routes.ENGINEER_DIRECTORY) },
                     onOpenEngineerJobs = { navController.navigate(Routes.ENGINEER_JOBS_HUB) },
                     onOpenFounder = { navController.navigate(Routes.FOUNDER_DASHBOARD) },
                     onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                     onOpenKyc = { navController.navigate(Routes.KYC) },
+                    onOpenMyBookings = { navController.navigate(Routes.HOSPITAL_ACTIVE_JOBS) },
+                    onOpenMessages = { navController.navigate(Routes.CONVERSATIONS) },
+                    onOpenActiveWork = { navController.navigate(Routes.ACTIVE_WORK) },
+                    onOpenEarnings = { navController.navigate(Routes.EARNINGS) },
                 )
             }
             composable(Routes.REPAIR) {
@@ -254,14 +339,21 @@ fun MainNavGraph(
             }
             composable(Routes.ENGINEER_JOBS_HUB) {
                 com.equipseva.app.features.engineer.EngineerJobsHubScreen(
-                    onBack = { navController.popBackStack() },
+                    onBack = null,
                     onAvailableJobs = { navController.navigate(Routes.REPAIR) },
                     onMyBids = { navController.navigate(Routes.MY_BIDS) },
                     onActiveWork = { navController.navigate(Routes.ACTIVE_WORK) },
                     onEarnings = { navController.navigate(Routes.EARNINGS) },
                     onEditProfile = { navController.navigate(Routes.ENGINEER_PROFILE) },
+                    onServiceLocation = { navController.navigate(Routes.ENGINEER_LOCATION) },
                     onSubmitKyc = { navController.navigate(Routes.KYC) },
                     onSignIn = { onSignIn() },
+                )
+            }
+            composable(Routes.ENGINEER_LOCATION) {
+                com.equipseva.app.features.engineer.EngineerLocationScreen(
+                    onBack = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
                 )
             }
             composable(Routes.ENGINEER_DIRECTORY) {
@@ -321,6 +413,12 @@ fun MainNavGraph(
                         }
                     },
                     onSignIn = onSignIn,
+                    onSwitchService = {
+                        navController.navigate(Routes.HOME) {
+                            popUpTo(Routes.HOME) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
                 )
             }
             composable(Routes.NOTIFICATIONS) {
