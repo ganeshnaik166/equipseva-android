@@ -154,6 +154,37 @@ class SupabaseChatRepository @Inject constructor(
         dto.toDomain()
     }
 
+    override suspend fun getOrCreateDirect(
+        selfUserId: String,
+        peerUserId: String,
+    ): Result<ChatConversation> = runCatching {
+        require(selfUserId != peerUserId) { "Direct chat needs two distinct users" }
+
+        // De-dupe: any existing 'direct' conversation that contains BOTH user
+        // ids in its participant_user_ids array, regardless of insertion order.
+        // Filter client-side after fetching the caller's direct conversations,
+        // since Postgrest doesn't expose a clean array-contains-all match.
+        val mine = client.from(CONVERSATIONS_TABLE).select {
+            filter {
+                eq("related_entity_type", "direct")
+            }
+        }.decodeList<ConversationDto>()
+
+        val match = mine.firstOrNull { dto ->
+            dto.participantUserIds?.toSet() == setOf(selfUserId, peerUserId)
+        }
+
+        val dto = match ?: client.from(CONVERSATIONS_TABLE).insert(
+            ConversationInsertDto(
+                participantUserIds = listOf(selfUserId, peerUserId),
+                relatedEntityType = "direct",
+                relatedEntityId = null,
+            ),
+        ) { select() }.decodeSingle<ConversationDto>()
+
+        dto.toDomain()
+    }
+
     override suspend fun markConversationRead(
         conversationId: String,
         readerUserId: String,

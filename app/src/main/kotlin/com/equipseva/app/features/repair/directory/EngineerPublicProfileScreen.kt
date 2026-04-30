@@ -35,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -80,6 +81,9 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -87,6 +91,8 @@ import kotlinx.coroutines.launch
 class EngineerPublicProfileViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val repo: EngineerDirectoryRepository,
+    private val authRepository: com.equipseva.app.core.auth.AuthRepository,
+    private val chatRepository: com.equipseva.app.core.data.chat.ChatRepository,
 ) : ViewModel() {
     private val engineerId: String = savedStateHandle[Routes.ENGINEER_PUBLIC_PROFILE_ARG_ID] ?: ""
 
@@ -94,10 +100,19 @@ class EngineerPublicProfileViewModel @Inject constructor(
         val loading: Boolean = true,
         val error: String? = null,
         val profile: EngineerDirectoryRepository.PublicProfile? = null,
+        val openingChat: Boolean = false,
     )
+
+    sealed interface Effect {
+        data class NavigateToChat(val conversationId: String) : Effect
+        data class ShowMessage(val text: String) : Effect
+    }
 
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
+
+    private val _effects = kotlinx.coroutines.channels.Channel<Effect>(kotlinx.coroutines.channels.Channel.BUFFERED)
+    val effects = _effects.receiveAsFlow()
 
     init {
         viewModelScope.launch {
@@ -109,6 +124,38 @@ class EngineerPublicProfileViewModel @Inject constructor(
             repo.fetchPublicProfile(engineerId)
                 .onSuccess { p -> _state.update { it.copy(loading = false, profile = p) } }
                 .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+        }
+    }
+
+    fun openChatWithEngineer() {
+        val peerId = _state.value.profile?.userId
+        if (peerId.isNullOrBlank() || _state.value.openingChat) return
+        _state.update { it.copy(openingChat = true) }
+        viewModelScope.launch {
+            val session = authRepository.sessionState
+                .filterIsInstance<com.equipseva.app.core.auth.AuthSession.SignedIn>()
+                .firstOrNull()
+            val selfId = session?.userId
+            if (selfId == null) {
+                _state.update { it.copy(openingChat = false) }
+                _effects.send(Effect.ShowMessage("Please sign in to start a chat"))
+                return@launch
+            }
+            if (selfId == peerId) {
+                _state.update { it.copy(openingChat = false) }
+                _effects.send(Effect.ShowMessage("This is your own profile"))
+                return@launch
+            }
+            chatRepository.getOrCreateDirect(selfUserId = selfId, peerUserId = peerId).fold(
+                onSuccess = { convo ->
+                    _state.update { it.copy(openingChat = false) }
+                    _effects.send(Effect.NavigateToChat(convo.id))
+                },
+                onFailure = { ex ->
+                    _state.update { it.copy(openingChat = false) }
+                    _effects.send(Effect.ShowMessage(ex.toUserMessage()))
+                },
+            )
         }
     }
 }
@@ -216,11 +263,22 @@ private val DUMMY_PUBLIC_PROFILES: Map<String, EngineerDirectoryRepository.Publi
 fun EngineerPublicProfileScreen(
     onBack: () -> Unit,
     onRequestService: (engineerId: String) -> Unit,
-    onMessage: (engineerId: String) -> Unit = {},
+    onOpenConversation: (conversationId: String) -> Unit = {},
+    onShowMessage: (String) -> Unit = {},
     viewModel: EngineerPublicProfileViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is EngineerPublicProfileViewModel.Effect.NavigateToChat ->
+                    onOpenConversation(effect.conversationId)
+                is EngineerPublicProfileViewModel.Effect.ShowMessage ->
+                    onShowMessage(effect.text)
+            }
+        }
+    }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
@@ -278,10 +336,11 @@ fun EngineerPublicProfileScreen(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             EsBtn(
-                                text = "Message",
-                                onClick = { onMessage(state.profile!!.engineerId) },
+                                text = if (state.openingChat) "Opening…" else "Message",
+                                onClick = { viewModel.openChatWithEngineer() },
                                 kind = EsBtnKind.Secondary,
                                 size = EsBtnSize.Lg,
+                                disabled = state.openingChat,
                                 leading = {
                                     Icon(
                                         Icons.AutoMirrored.Outlined.Chat,

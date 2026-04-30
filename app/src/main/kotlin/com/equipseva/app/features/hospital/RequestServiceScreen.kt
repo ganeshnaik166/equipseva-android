@@ -1,8 +1,11 @@
 package com.equipseva.app.features.hospital
 
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import android.graphics.Bitmap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -94,6 +97,11 @@ fun RequestServiceScreen(
 
     // Camera capture (preview-resolution thumbnail). Encoded to JPEG bytes
     // before handing to the VM so the upload payload is consistent.
+    //
+    // CAMERA is declared in AndroidManifest, so the system camera intent
+    // backing TakePicturePreview returns a null bitmap when the runtime
+    // grant is missing. Gate the launch on a permission request and only
+    // open the picker after the user grants the permission.
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview(),
     ) { bitmap: Bitmap? ->
@@ -107,6 +115,26 @@ fun RequestServiceScreen(
                 bytes = bytes,
                 contentType = "image/jpeg",
             )
+        }
+    }
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) {
+            cameraLauncher.launch(null)
+        } else {
+            onShowMessage("Camera permission denied")
+        }
+    }
+    val onRequestCamera: () -> Unit = {
+        val granted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.CAMERA,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            cameraLauncher.launch(null)
+        } else {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 
@@ -197,7 +225,7 @@ fun RequestServiceScreen(
                         uploadingPhoto = state.uploadingPhoto,
                         onIssue = viewModel::onIssueChange,
                         onUrgency = viewModel::onUrgencyChange,
-                        onTakePhoto = { cameraLauncher.launch(null) },
+                        onTakePhoto = onRequestCamera,
                         onPickFromGallery = {
                             galleryLauncher.launch(
                                 PickVisualMediaRequest(
@@ -210,8 +238,12 @@ fun RequestServiceScreen(
                     2 -> StepWhen(
                         selectedSlot = selectedSlot,
                         onSelectSlot = { selectedSlot = it },
+                        pickedDateMillis = state.pickedDateMillis,
+                        onPickedDateChange = viewModel::onPickedDateChange,
                     )
                     3 -> StepWhere(
+                        siteAddress = state.siteAddress,
+                        onSiteAddress = viewModel::onSiteAddressChange,
                         siteLocation = state.siteLocation,
                         onSiteLocation = viewModel::onSiteLocationChange,
                         siteLatitude = state.siteLatitude,
@@ -497,10 +529,13 @@ private fun SeverityTile(
     }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun StepWhen(
     selectedSlot: Int,
     onSelectSlot: (Int) -> Unit,
+    pickedDateMillis: Long?,
+    onPickedDateChange: (Long?) -> Unit,
 ) {
     StepHeadline("When?")
     Text(
@@ -510,6 +545,15 @@ private fun StepWhen(
         color = Ink700,
     )
     val slots = listOf("Today · Evening", "Tomorrow · Morning", "Tomorrow · Afternoon", "Flexible")
+    var datePickerOpen by rememberSaveable { mutableStateOf(false) }
+    val datePickerState = androidx.compose.material3.rememberDatePickerState(
+        initialSelectedDateMillis = pickedDateMillis ?: System.currentTimeMillis(),
+    )
+    val customLabel = pickedDateMillis?.let {
+        val d = java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+        "Custom · ${d.dayOfMonth} ${d.month.name.lowercase().replaceFirstChar { c -> c.uppercase() }} ${d.year}"
+    } ?: "Pick a date"
+
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             SlotTile(
@@ -539,11 +583,39 @@ private fun StepWhen(
                 modifier = Modifier.weight(1f),
             )
         }
+        SlotTile(
+            label = customLabel,
+            selected = selectedSlot == 4,
+            onClick = { datePickerOpen = true },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+
+    if (datePickerOpen) {
+        androidx.compose.material3.DatePickerDialog(
+            onDismissRequest = { datePickerOpen = false },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    onPickedDateChange(datePickerState.selectedDateMillis)
+                    onSelectSlot(4)
+                    datePickerOpen = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { datePickerOpen = false }) {
+                    Text("Cancel")
+                }
+            },
+        ) {
+            androidx.compose.material3.DatePicker(state = datePickerState)
+        }
     }
 }
 
 @Composable
 private fun StepWhere(
+    siteAddress: String,
+    onSiteAddress: (String) -> Unit,
     siteLocation: String,
     onSiteLocation: (String) -> Unit,
     siteLatitude: Double?,
@@ -554,6 +626,15 @@ private fun StepWhere(
     onBudget: (String) -> Unit,
 ) {
     StepHeadline("Where?")
+    OutlinedTextField(
+        value = siteAddress,
+        onValueChange = onSiteAddress,
+        label = { Text("Address") },
+        placeholder = { Text("Hospital name, street, city — type if you can't pin on the map") },
+        singleLine = false,
+        minLines = 2,
+        modifier = Modifier.fillMaxWidth(),
+    )
     OutlinedTextField(
         value = siteLocation,
         onValueChange = onSiteLocation,
@@ -569,7 +650,6 @@ private fun StepWhere(
     com.equipseva.app.features.repair.components.LocationPickerMap(
         selected = pickedLatLng,
         onLocationPicked = { ll -> onSiteCoords(ll.latitude, ll.longitude) },
-        modifier = Modifier.fullBleedHorizontal(com.equipseva.app.designsystem.theme.Spacing.lg),
     )
     OutlinedTextField(
         value = budget,

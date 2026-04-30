@@ -38,7 +38,9 @@ class RequestServiceViewModel @Inject constructor(
         val brand: String = "",
         val model: String = "",
         val serial: String = "",
+        val siteAddress: String = "",
         val siteLocation: String = "",
+        val pickedDateMillis: Long? = null,
         val siteLatitude: Double? = null,
         val siteLongitude: Double? = null,
         val issue: String = "",
@@ -82,7 +84,9 @@ class RequestServiceViewModel @Inject constructor(
     fun onBrandChange(value: String) = _state.update { it.copy(brand = value) }
     fun onModelChange(value: String) = _state.update { it.copy(model = value) }
     fun onSerialChange(value: String) = _state.update { it.copy(serial = value) }
+    fun onSiteAddressChange(value: String) = _state.update { it.copy(siteAddress = value) }
     fun onSiteLocationChange(value: String) = _state.update { it.copy(siteLocation = value) }
+    fun onPickedDateChange(value: Long?) = _state.update { it.copy(pickedDateMillis = value) }
 
     /**
      * Picked from the LocationPickerMap composable. Pair of nullable doubles
@@ -168,6 +172,19 @@ class RequestServiceViewModel @Inject constructor(
             0 -> today.toString() to "evening"
             1 -> today.plusDays(1).toString() to "morning"
             2 -> today.plusDays(1).toString() to "afternoon"
+            4 -> {
+                // Custom date from the calendar tile. Persist the picked date
+                // with a generic "any" slot since the user did not narrow to a
+                // morning / afternoon / evening window.
+                val millis = current.pickedDateMillis
+                if (millis != null) {
+                    val picked = java.time.Instant.ofEpochMilli(millis)
+                        .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                    picked.toString() to "any"
+                } else {
+                    null to null
+                }
+            }
             else -> null to null
         }
         _state.update { it.copy(submitting = true, errorMessage = null) }
@@ -180,7 +197,10 @@ class RequestServiceViewModel @Inject constructor(
                 equipmentBrand = current.brand.trim().ifBlank { null },
                 equipmentModel = current.model.trim().ifBlank { null },
                 equipmentSerial = current.serial.trim().ifBlank { null },
-                siteLocation = current.siteLocation.trim().ifBlank { null },
+                siteLocation = listOfNotNull(
+                    current.siteAddress.trim().ifBlank { null }?.let { "Address: $it" },
+                    current.siteLocation.trim().ifBlank { null }?.let { "Notes: $it" },
+                ).joinToString("\n").ifBlank { null },
                 siteLatitude = current.siteLatitude,
                 siteLongitude = current.siteLongitude,
                 issuePhotos = current.photos,
