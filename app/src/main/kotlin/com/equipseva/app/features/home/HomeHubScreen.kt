@@ -105,6 +105,7 @@ fun HomeHubScreen(
                     openCount = state.openCount,
                     activeCount = state.activeCount,
                     pendingBidsCount = state.pendingBidsCount,
+                    nearbyEngineersCount = state.nearbyEngineersCount,
                 )
             }
 
@@ -270,6 +271,7 @@ private fun GreetingCard(
     openCount: Int?,
     activeCount: Int?,
     pendingBidsCount: Int?,
+    nearbyEngineersCount: Int?,
 ) {
     val greeting = remember { greetingForNow() }
     Box(
@@ -310,8 +312,7 @@ private fun GreetingCard(
                 } else {
                     Stat("Open", openCount?.toString() ?: "—")
                     Stat("Active", activeCount?.toString() ?: "—")
-                    // "Engineers" needs a directory count fetch; left as "—".
-                    Stat("Engineers", "—")
+                    Stat("Engineers", nearbyEngineersCount?.toString() ?: "—")
                 }
             }
             if (!displayName.isNullOrBlank()) {

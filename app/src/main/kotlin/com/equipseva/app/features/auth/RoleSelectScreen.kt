@@ -201,7 +201,7 @@ private fun RoleCard(
         ) {
             Icon(
                 imageVector = v.icon,
-                contentDescription = null,
+                contentDescription = "${v.label} role icon",
                 tint = tileFg,
                 modifier = Modifier.size(20.dp),
             )
@@ -224,7 +224,7 @@ private fun RoleCard(
         } else if (selected) {
             Icon(
                 imageVector = Icons.Outlined.CheckCircle,
-                contentDescription = null,
+                contentDescription = "Selected",
                 tint = SevaGreen700,
                 modifier = Modifier.size(20.dp),
             )

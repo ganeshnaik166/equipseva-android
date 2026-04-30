@@ -45,6 +45,8 @@ import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsTopBar
+import com.equipseva.app.designsystem.components.Pill
+import com.equipseva.app.designsystem.components.PillKind
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaGreen900
@@ -92,8 +94,21 @@ class FounderKycQueueViewModel @Inject constructor(
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             repo.fetchPendingEngineers()
-                .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+                .onSuccess { rows ->
+                    // Honest empty state on success — Buyer KYC queue
+                    // already shows "All clear" when nothing is pending,
+                    // so don't fake 3 dummy rows here either.
+                    _state.update { it.copy(loading = false, rows = rows) }
+                }
+                .onFailure { ex ->
+                    _state.update {
+                        it.copy(
+                            loading = false,
+                            rows = emptyList(),
+                            error = ex.toUserMessage(),
+                        )
+                    }
+                }
         }
     }
     fun openApprove(userId: String, name: String) {
@@ -303,6 +318,7 @@ private fun EngineerRow(
                     fontSize = 12.sp,
                 )
             }
+            Pill(text = "Review", kind = PillKind.Warn)
         }
         val locationLine = listOfNotNull(row.city, row.state).joinToString(", ").ifBlank { null }
         val metaLine = listOfNotNull(
@@ -348,3 +364,48 @@ private fun EngineerRow(
         }
     }
 }
+
+private val DUMMY_PENDING_ENGINEERS = listOf(
+    FounderRepository.PendingEngineer(
+        userId = "dummy-pending-1",
+        fullName = "Manoj Kumar",
+        email = "manoj.kumar@example.com",
+        phone = "+91 98••• ••101",
+        verificationStatus = "pending",
+        experienceYears = 5,
+        serviceRadiusKm = 30,
+        city = "Nalgonda",
+        state = "Telangana",
+        certificates = null,
+        aadhaarVerified = true,
+        createdAt = java.time.Instant.now().minusSeconds(3600 * 4).toString(),
+    ),
+    FounderRepository.PendingEngineer(
+        userId = "dummy-pending-2",
+        fullName = "Sruthi Rao",
+        email = "sruthi.rao@example.com",
+        phone = "+91 98••• ••202",
+        verificationStatus = "pending",
+        experienceYears = 8,
+        serviceRadiusKm = 40,
+        city = "Hyderabad",
+        state = "Telangana",
+        certificates = null,
+        aadhaarVerified = true,
+        createdAt = java.time.Instant.now().minusSeconds(3600 * 18).toString(),
+    ),
+    FounderRepository.PendingEngineer(
+        userId = "dummy-pending-3",
+        fullName = "Vivek Anand",
+        email = "vivek@example.com",
+        phone = "+91 98••• ••303",
+        verificationStatus = "pending",
+        experienceYears = 3,
+        serviceRadiusKm = 25,
+        city = "Suryapet",
+        state = "Telangana",
+        certificates = null,
+        aadhaarVerified = false,
+        createdAt = java.time.Instant.now().minusSeconds(3600 * 30).toString(),
+    ),
+)

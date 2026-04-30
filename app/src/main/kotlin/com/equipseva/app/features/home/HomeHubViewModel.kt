@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.notifications.Notification
@@ -41,6 +42,7 @@ class HomeHubViewModel @Inject constructor(
     private val notificationRepository: NotificationRepository,
     private val jobRepository: RepairJobRepository,
     private val bidRepository: RepairBidRepository,
+    private val engineerDirectoryRepository: EngineerDirectoryRepository,
 ) : ViewModel() {
     data class UiState(
         val displayName: String? = null,
@@ -52,6 +54,7 @@ class HomeHubViewModel @Inject constructor(
         val openCount: Int? = null,
         val activeCount: Int? = null,
         val pendingBidsCount: Int? = null,
+        val nearbyEngineersCount: Int? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -106,7 +109,10 @@ class HomeHubViewModel @Inject constructor(
                 it.copy(pendingBidsCount = pendingBids, activeCount = activeMine)
             }
         } else if (_state.value.role == UserRole.HOSPITAL) {
-            // Hospital hero strip: open + in-progress job counts.
+            // Hospital hero strip: open + in-progress job counts +
+            // verified engineers visible in the directory. The engineers
+            // count uses an unfiltered search (limit caps at 200) so it
+            // reads the platform-wide pool, not a per-district slice.
             val jobs = jobRepository.fetchByHospitalUser(userId).getOrNull().orEmpty()
             val open = jobs.count { it.status == RepairJobStatus.Requested }
             val active = jobs.count {
@@ -116,7 +122,15 @@ class HomeHubViewModel @Inject constructor(
                     RepairJobStatus.InProgress,
                 )
             }
-            _state.update { it.copy(openCount = open, activeCount = active) }
+            val engineers = engineerDirectoryRepository.search(limit = 200)
+                .getOrNull()?.size
+            _state.update {
+                it.copy(
+                    openCount = open,
+                    activeCount = active,
+                    nearbyEngineersCount = engineers,
+                )
+            }
         }
         notifJob?.cancel()
         notifJob = viewModelScope.launch {
