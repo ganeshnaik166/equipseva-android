@@ -1,6 +1,8 @@
 # EquipSeva — Pending Before Play Store Submission
 
-What's still missing / stubbed / non-functional. Updated 2026-04-25 after PRs #148–#195 cleared the code blockers.
+What's still missing / stubbed / non-functional. Updated 2026-04-30 after PRs #212 (security), #213 (legal docs).
+
+**Quick status (2026-04-30):** Code is shippable. Legal URLs live. Drafts ready for every Play Console form. Real remaining work = 3 design assets + user paste-into-Play-Console + one device E2E test + post-upload SHA-256 swap.
 
 Legend: 🔴 blocker · 🟠 needs attention · 🟡 nice-to-have · ⚪ beyond v1
 
@@ -8,29 +10,29 @@ Legend: 🔴 blocker · 🟠 needs attention · 🟡 nice-to-have · ⚪ beyond 
 
 ## 🔴 BLOCKERS — still open (NONE are code work)
 
-### Legal / Compliance — needs hosted URLs
-1. **Privacy Policy URL** — Play requires a public URL. Single-page Notion/site fine. Must cover Supabase, Sentry, Firebase Analytics, Crashlytics, Razorpay, FCM, location-on-KYC.
-2. **Terms of Service URL** — linked from settings + signup.
-3. **Play Store Data Safety form** — declare every field collected: email, phone, full name, Aadhaar #, KYC docs, location (shipping), device ID (FCM), payment info (Razorpay).
-4. **Razorpay refund policy URL** — gateway / RBI requirement. Customer-facing refund terms.
+### Legal / Compliance — hosted URLs
+1. ✅ **Privacy Policy URL** — https://equipseva.com/privacy/ (live, DPDP-compliant, covers Supabase/Sentry/Firebase/Razorpay/FCM). *Minor v2 follow-up: §2 should clarify that engineer-side coarse location is foreground only.*
+2. ✅ **Terms of Service URL** — https://equipseva.com/terms/ (live).
+3. 🟠 **Play Store Data Safety form** — answer key fully drafted in [docs/launch/DATA_SAFETY.md](docs/launch/DATA_SAFETY.md). Copy each section into Play Console manually.
+4. ✅ **Razorpay refund policy URL** — https://equipseva.com/refunds/ (live).
 5. ✅ DPDP `delete_my_account` + `export_my_data` RPCs shipped (PR #151, #153). User-facing UI live.
 6. ✅ Content report / block / mute flow shipped (PR #148, #190).
 
 ### Store Listing — design / marketing
-7. **App title** (≤30 chars) + **short description** (≤80) + **full description** (≤4000).
-8. **Feature graphic** 1024×500 PNG.
-9. **8 phone screenshots** minimum — auth, home, marketplace, cart, checkout, order detail, chat, KYC.
-10. **App icon** — `ic_launcher_foreground.xml` is currently a vector grid mark. Confirm final brand art; provide 512×512 master PNG for adaptive icon.
-11. **Content rating** questionnaire (IARC) — answered in Play Console.
-12. **Target audience** declaration + privacy note for under-18.
-13. **Ads declaration** — none, but must declare.
+7. 🟠 **App title + short + full description** — fully drafted in [docs/launch/STORE_LISTING.md](docs/launch/STORE_LISTING.md). Copy into Play Console.
+8. 🔴 **Feature graphic** 1024×500 PNG — DESIGN ASSET. Not yet created.
+9. 🔴 **8 phone screenshots** — DESIGN ASSET. Per the v1 scope (Book Repair + Engineer Jobs only, marketplace gated off): suggested set = welcome/auth, role select, home (hospital), home (engineer), repair-job detail, engineer directory, KYC submitted, chat. Need device captures.
+10. 🔴 **App icon master 512×512 PNG** — DESIGN ASSET. Current `ic_launcher_foreground.xml` is a placeholder grid mark; Play Console needs a final brand-art PNG.
+11. 🟠 **Content rating** (IARC) — answer key fully drafted in [docs/launch/CONTENT_RATING.md](docs/launch/CONTENT_RATING.md). Copy into Play Console.
+12. 🟠 **Target audience** declaration — answers in CONTENT_RATING.md (18+, no children's data).
+13. 🟠 **Ads declaration** — answer = "No ads in this app." Trivial Play Console toggle.
 
 ### Release Signing — needs first Play upload
-14. **App Signing SHA-256 from Play Console** — paste it back so `EXPECTED_CERT_SHA256` can be wired and `SignatureVerifier` flips from report-only to enforce.
+14. 🟠 **App Signing SHA-256 from Play Console** — paste it back so `EXPECTED_CERT_SHA256` can be wired and `SignatureVerifier` flips from report-only to enforce. Also: append the same SHA-256 to [well-known/.well-known/assetlinks.json](well-known/.well-known/assetlinks.json) + [docs/.well-known/assetlinks.json](docs/.well-known/assetlinks.json) so App Links keep verifying. **A scheduled remote agent is armed for 2026-05-07T03:30Z to open a GitHub issue with the exact paste-instructions** (routine `assetlinks-swap-after-first-aab`).
 
 ### Manual device tests
-35. **Razorpay return deep-link** — `equipseva.com/pay/return` filter declared, app-link assetlinks.json prepared (PR #152). Needs end-to-end real-device test on Razorpay test mode.
-46. **End-to-end Razorpay test-mode flow on real device** — same as above.
+35. 🟠 **Razorpay return deep-link** — `equipseva.com/pay/return` filter declared, assetlinks.json live + Google validator green. Needs end-to-end real-device test on Razorpay test mode.
+46. 🟠 **End-to-end Razorpay test-mode flow on real device** — same as above.
 
 ---
 
@@ -101,20 +103,26 @@ Legend: 🔴 blocker · 🟠 needs attention · 🟡 nice-to-have · ⚪ beyond 
 
 ---
 
-## SUMMARY — what v1 launch *actually* needs now
+## SUMMARY — what v1 launch *actually* needs now (2026-04-30)
 
-**Cannot code-ship — must come from outside:**
-- Privacy policy + Terms of service URLs (legal)
-- Razorpay refund policy URL (legal + gateway)
-- Data Safety form answers (Play Console)
-- Store listing copy (title / short / full description)
-- Feature graphic + 8 screenshots + final app icon (design)
-- IARC content rating + target-audience + ads declaration (Play Console)
+### 🔴 DESIGN ASSETS — true blockers, need a designer
+- **Feature graphic** 1024×500 PNG (item #8)
+- **8 phone screenshots** (item #9) — capture from emulator after design pass
+- **App icon master** 512×512 PNG (item #10) — current is a placeholder grid mark
 
-**Manual testing — needs a real device + Razorpay test creds:**
-- End-to-end Razorpay test-mode + return-deep-link flow
+### 🟠 PASTE-INTO-PLAY-CONSOLE — drafts ready, ~30 min of clicking
+- Store listing copy → [docs/launch/STORE_LISTING.md](docs/launch/STORE_LISTING.md)
+- Data Safety form → [docs/launch/DATA_SAFETY.md](docs/launch/DATA_SAFETY.md)
+- IARC + target audience + ads → [docs/launch/CONTENT_RATING.md](docs/launch/CONTENT_RATING.md)
+- Full runbook → [docs/launch/LAUNCH_CHECKLIST.md](docs/launch/LAUNCH_CHECKLIST.md)
 
-**One-shot wiring after first Play upload:**
-- Paste App Signing SHA-256 → set `EXPECTED_CERT_SHA256` in CI secrets → flip `SignatureVerifier` to enforce.
+### 🟠 ONE DEVICE TEST — needs a phone + Razorpay test creds
+- End-to-end Razorpay test-mode flow with `equipseva.com/pay/return` deep-link verification.
+
+### 🟠 ONE-SHOT POST-UPLOAD
+- Paste App Signing SHA-256 from Play Console → CI secret `EXPECTED_CERT_SHA256` + assetlinks.json append. Scheduled remote agent fires 2026-05-07T03:30Z to walk you through it.
+
+### ✅ DONE
+- All code work for v1. All RLS / security hardening (PR #212). All legal URLs hosted. All policy + form drafts in `docs/launch/`. assetlinks.json live + Google validator green.
 
 **Code work remaining: NONE for v1.** Next code waves are post-launch (admin moderation queue, managed categories table, engineering quality polish on test/staging accounts).

@@ -3,7 +3,6 @@ package com.equipseva.app.features.repair.components
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -32,17 +31,14 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.equipseva.app.core.util.fetchCurrentLocation
-import com.google.android.gms.common.api.ResolvableApiException
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.LocationSettingsRequest
-import com.google.android.gms.location.Priority
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Ink900
@@ -58,6 +54,27 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.launch
 
 private val HYDERABAD_FALLBACK = LatLng(17.385, 78.4867)
+
+/**
+ * Forces a child to span its parent's content area PLUS the parent's
+ * horizontal padding — so the child reaches the actual screen edges even
+ * when its parent column applies horizontal padding to all siblings. The
+ * child still reports its size as the parent's content width so siblings
+ * don't shift around it. Use for full-bleed maps, hero images, and other
+ * media that should ignore the form-style horizontal gutter.
+ */
+fun Modifier.fullBleedHorizontal(parentHorizontalPadding: Dp): Modifier =
+    this.layout { measurable, constraints ->
+        val pad = parentHorizontalPadding.roundToPx()
+        val widened = constraints.copy(
+            minWidth = constraints.maxWidth + 2 * pad,
+            maxWidth = constraints.maxWidth + 2 * pad,
+        )
+        val placeable = measurable.measure(widened)
+        layout(placeable.width - 2 * pad, placeable.height) {
+            placeable.place(-pad, 0)
+        }
+    }
 
 /**
  * Map picker shared by hospital RequestService Step 3 and engineer KYC
@@ -80,6 +97,11 @@ fun LocationPickerMap(
     val scope = rememberCoroutineScope()
     var permissionDenied by remember { mutableStateOf(false) }
 
+    // rememberUpdatedState keeps the latest callback alive across recompositions
+    // — critical because `tryFetch` runs in a coroutine that may complete after
+    // the parent re-composed with a fresh `onLocationPicked` lambda. The old
+    // `remember { { ... } }` block captured the *first* callback ref forever
+    // and silently dropped fixes when the parent re-composed.
     val onLocationPickedRef by rememberUpdatedState(onLocationPicked)
     val tryFetch: () -> Unit = {
         scope.launch {
@@ -87,53 +109,13 @@ fun LocationPickerMap(
             if (fix != null) {
                 onLocationPickedRef(LatLng(fix.latitude, fix.longitude))
             } else {
+                // Permission granted but GPS off / no network fix / no last
+                // location. Drop a Hyderabad fallback so the user still has a
+                // draggable marker to start from.
                 onLocationPickedRef(HYDERABAD_FALLBACK)
             }
         }
         Unit
-    }
-
-    // Resolves the "Turn on location services" system dialog. Fires when the
-    // user taps OK on Google's dialog after we detected GPS is off. On RESULT_OK
-    // we re-fetch; on cancel we still drop a fallback so the form isn't stuck.
-    val locationSettingsLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartIntentSenderForResult(),
-    ) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
-            tryFetch()
-        } else {
-            // User declined the dialog — fall back to Hyderabad pin.
-            onLocationPickedRef(HYDERABAD_FALLBACK)
-        }
-    }
-
-    /**
-     * Verifies device location services are ON before attempting a fix.
-     * If they're off, fires Google's "Turn on location services" dialog
-     * via SettingsClient + IntentSenderForResult. On success, calls
-     * [tryFetch]. On no-resolution failure, falls back to a stale fix.
-     */
-    val ensureLocationOnAndFetch: () -> Unit = {
-        val locationRequest = LocationRequest.Builder(
-            Priority.PRIORITY_BALANCED_POWER_ACCURACY, 0L,
-        ).build()
-        val settingsRequest = LocationSettingsRequest.Builder()
-            .addLocationRequest(locationRequest)
-            .setAlwaysShow(true)
-            .build()
-        val client = LocationServices.getSettingsClient(context)
-        client.checkLocationSettings(settingsRequest)
-            .addOnSuccessListener { tryFetch() }
-            .addOnFailureListener { ex ->
-                if (ex is ResolvableApiException) {
-                    val intentSender = IntentSenderRequest.Builder(ex.resolution).build()
-                    locationSettingsLauncher.launch(intentSender)
-                } else {
-                    // No resolution path — try fetch anyway; falls back to
-                    // Hyderabad if it returns null.
-                    tryFetch()
-                }
-            }
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -142,30 +124,73 @@ fun LocationPickerMap(
         val anyGranted = granted[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             granted[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         if (anyGranted) {
-            ensureLocationOnAndFetch()
+            tryFetch()
         } else {
             permissionDenied = true
+            // Defensive fallback so the form isn't stuck pin-less when the
+            // user denies location entirely.
             onLocationPickedRef(HYDERABAD_FALLBACK)
         }
     }
 
+    LaunchedEffect(Unit) {
+        if (selected != null) return@LaunchedEffect
+        val granted = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION,
+        ) == PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_COARSE_LOCATION,
+            ) == PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            tryFetch()
+        }
+    }
+
     if (selected == null) {
-        // Empty placeholder — no auto-fetch on screen open. The caller is
-        // expected to render a separate `MyLocationButton` below this map
-        // surface so the user explicitly opts in to a location lookup.
-        Box(
+        Surface(
             modifier = modifier
                 .fillMaxWidth()
-                .height(140.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-            contentAlignment = androidx.compose.ui.Alignment.Center,
+                .padding(vertical = Spacing.sm),
+            shape = RoundedCornerShape(12.dp),
+            tonalElevation = 1.dp,
         ) {
-            Text(
-                "Tap “Use my current location” below to drop a pin",
-                fontSize = 12.sp,
-                color = Ink500,
-            )
+            Column(
+                modifier = Modifier.padding(Spacing.md),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    "Pin the exact spot",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Ink900,
+                )
+                Text(
+                    text = if (permissionDenied) {
+                        "Location permission denied. Drag the pin once it loads, or grant location access in Settings."
+                    } else {
+                        "Tap below to pin your current location, then drag to refine."
+                    },
+                    fontSize = 12.sp,
+                    color = Ink500,
+                )
+                TextButton(
+                    onClick = {
+                        permissionLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION,
+                            ),
+                        )
+                    },
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.MyLocation,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text("  Use my current location", fontSize = 13.sp)
+                }
+            }
         }
         return
     }
@@ -188,8 +213,7 @@ fun LocationPickerMap(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(220.dp)
-                .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
-                .clip(RoundedCornerShape(12.dp)),
+                .padding(vertical = Spacing.sm),
             cameraPositionState = cameraPositionState,
             properties = MapProperties(isMyLocationEnabled = false),
             uiSettings = MapUiSettings(
@@ -257,106 +281,4 @@ fun LocationPickerMap(
             }
         }
     }
-}
-
-/**
- * Standalone "Use my current location" trigger. Handles permission grant +
- * the system "Turn on location services" dialog. Place this composable
- * below a [LocationPickerMap] so users explicitly opt in to a location
- * lookup (no auto-prompt on screen open).
- */
-@Composable
-fun MyLocationButton(
-    onLocationPicked: (LatLng) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val onPickedRef by rememberUpdatedState(onLocationPicked)
-
-    val tryFetch: () -> Unit = {
-        scope.launch {
-            val fix = fetchCurrentLocation(context)
-            if (fix != null) {
-                onPickedRef(LatLng(fix.latitude, fix.longitude))
-            } else {
-                onPickedRef(HYDERABAD_FALLBACK)
-            }
-        }
-        Unit
-    }
-
-    val settingsLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartIntentSenderForResult(),
-    ) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
-            tryFetch()
-        } else {
-            onPickedRef(HYDERABAD_FALLBACK)
-        }
-    }
-
-    val ensureOnAndFetch: () -> Unit = {
-        val locationRequest = LocationRequest.Builder(
-            Priority.PRIORITY_BALANCED_POWER_ACCURACY, 0L,
-        ).build()
-        val settingsRequest = LocationSettingsRequest.Builder()
-            .addLocationRequest(locationRequest)
-            .setAlwaysShow(true)
-            .build()
-        LocationServices.getSettingsClient(context)
-            .checkLocationSettings(settingsRequest)
-            .addOnSuccessListener { tryFetch() }
-            .addOnFailureListener { ex ->
-                if (ex is ResolvableApiException) {
-                    settingsLauncher.launch(
-                        IntentSenderRequest.Builder(ex.resolution).build(),
-                    )
-                } else {
-                    tryFetch()
-                }
-            }
-    }
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions(),
-    ) { granted ->
-        val ok = granted[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-            granted[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-        if (ok) ensureOnAndFetch()
-        else onPickedRef(HYDERABAD_FALLBACK)
-    }
-
-    com.equipseva.app.designsystem.components.EsBtn(
-        text = "Use my current location",
-        onClick = {
-            val granted = ContextCompat.checkSelfPermission(
-                context, Manifest.permission.ACCESS_FINE_LOCATION,
-            ) == PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(
-                    context, Manifest.permission.ACCESS_COARSE_LOCATION,
-                ) == PackageManager.PERMISSION_GRANTED
-            if (granted) {
-                ensureOnAndFetch()
-            } else {
-                permissionLauncher.launch(
-                    arrayOf(
-                        Manifest.permission.ACCESS_FINE_LOCATION,
-                        Manifest.permission.ACCESS_COARSE_LOCATION,
-                    ),
-                )
-            }
-        },
-        kind = com.equipseva.app.designsystem.components.EsBtnKind.Secondary,
-        full = true,
-        leading = {
-            Icon(
-                imageVector = Icons.Filled.MyLocation,
-                contentDescription = null,
-                tint = BrandGreen,
-                modifier = Modifier.size(16.dp),
-            )
-        },
-        modifier = modifier,
-    )
 }

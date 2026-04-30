@@ -4,8 +4,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import android.graphics.Bitmap
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,36 +13,50 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.PriorityHigh
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import com.equipseva.app.features.repair.components.fullBleedHorizontal
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,28 +64,21 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.data.repair.RepairJobUrgency
+import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.ErrorBanner
-import com.equipseva.app.designsystem.components.EsBtn
-import com.equipseva.app.designsystem.components.EsBtnKind
-import com.equipseva.app.designsystem.components.EsBtnSize
-import com.equipseva.app.designsystem.components.EsChip
-import com.equipseva.app.designsystem.components.EsField
-import com.equipseva.app.designsystem.components.EsFieldType
-import com.equipseva.app.designsystem.components.EsTopBar
-import com.equipseva.app.designsystem.theme.BorderDefault
-import com.equipseva.app.designsystem.theme.Paper2
-import com.equipseva.app.designsystem.theme.Paper3
-import com.equipseva.app.designsystem.theme.PaperDefault
-import com.equipseva.app.designsystem.theme.SevaGreen50
-import com.equipseva.app.designsystem.theme.SevaGreen700
-import com.equipseva.app.designsystem.theme.SevaInk400
-import com.equipseva.app.designsystem.theme.SevaInk500
-import com.equipseva.app.designsystem.theme.SevaInk700
-import com.equipseva.app.designsystem.theme.SevaInk900
-import androidx.compose.foundation.Canvas
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Size
+import com.equipseva.app.designsystem.components.HorizontalStepper
+import com.equipseva.app.designsystem.theme.BrandGreen
+import com.equipseva.app.designsystem.theme.BrandGreen50
+import com.equipseva.app.designsystem.theme.BrandGreenDark
+import com.equipseva.app.designsystem.theme.ErrorRed
+import com.equipseva.app.designsystem.theme.Ink700
+import com.equipseva.app.designsystem.theme.Ink900
+import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.designsystem.theme.Success
+import com.equipseva.app.designsystem.theme.Surface200
+import com.equipseva.app.designsystem.theme.Warning
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RequestServiceScreen(
     onBack: () -> Unit,
@@ -83,12 +88,12 @@ fun RequestServiceScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var step by rememberSaveable { mutableStateOf(0) }
-    // selectedSlot is preserved (VM submit takes it). Step 2 wires it.
     var selectedSlot by rememberSaveable { mutableStateOf(-1) }
 
     val context = androidx.compose.ui.platform.LocalContext.current
 
-    // Camera preview thumbnail capture; encode to JPEG before VM hand-off.
+    // Camera capture (preview-resolution thumbnail). Encoded to JPEG bytes
+    // before handing to the VM so the upload payload is consistent.
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview(),
     ) { bitmap: Bitmap? ->
@@ -133,13 +138,12 @@ fun RequestServiceScreen(
         }
     }
 
-    val totalSteps = 4
+    val stepLabels = listOf("Equipment", "Issue", "When", "Where")
 
     Scaffold(
         topBar = {
-            EsTopBar(
+            ESBackTopBar(
                 title = "Request service",
-                subtitle = "Step ${step + 1} of $totalSteps",
                 onBack = { if (step == 0) onBack() else step -= 1 },
             )
         },
@@ -148,46 +152,31 @@ fun RequestServiceScreen(
                 step = step,
                 submitting = state.submitting,
                 onBack = { if (step > 0) step -= 1 },
-                onNext = { if (step < totalSteps - 1) step += 1 },
+                onNext = { if (step < stepLabels.lastIndex) step += 1 },
                 onSubmit = { viewModel.onSubmit(selectedSlot) },
             )
         },
-        containerColor = PaperDefault,
     ) { inner ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(inner)
-                .background(PaperDefault),
+                .background(MaterialTheme.colorScheme.surface),
         ) {
-            // Progress bar — 4dp track, green-700 fill animated to (step+1)/4 over 280ms.
-            val progress by animateFloatAsState(
-                targetValue = (step + 1) / totalSteps.toFloat(),
-                animationSpec = tween(durationMillis = 280),
-                label = "wizard-progress",
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .background(Paper2),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(progress)
-                        .fillMaxHeight()
-                        .background(SevaGreen700),
-                )
+            Box(modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
+                HorizontalStepper(steps = stepLabels, current = step)
             }
             ErrorBanner(
                 message = state.errorMessage,
-                modifier = Modifier.padding(horizontal = 16.dp),
+                modifier = Modifier.padding(horizontal = Spacing.lg),
             )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
+                    .padding(horizontal = Spacing.lg)
+                    .padding(bottom = Spacing.xl),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
                 when (step) {
                     0 -> StepEquipment(
@@ -203,9 +192,11 @@ fun RequestServiceScreen(
                     1 -> StepIssue(
                         issue = state.issue,
                         issueError = state.issueError,
+                        urgency = state.urgency,
                         photos = state.photos,
                         uploadingPhoto = state.uploadingPhoto,
                         onIssue = viewModel::onIssueChange,
+                        onUrgency = viewModel::onUrgencyChange,
                         onTakePhoto = { cameraLauncher.launch(null) },
                         onPickFromGallery = {
                             galleryLauncher.launch(
@@ -214,20 +205,21 @@ fun RequestServiceScreen(
                                 ),
                             )
                         },
+                        onRemovePhoto = viewModel::onRemovePhoto,
                     )
                     2 -> StepWhen(
-                        urgency = state.urgency,
-                        onUrgency = viewModel::onUrgencyChange,
+                        selectedSlot = selectedSlot,
+                        onSelectSlot = { selectedSlot = it },
                     )
                     3 -> StepWhere(
                         siteLocation = state.siteLocation,
                         onSiteLocation = viewModel::onSiteLocationChange,
-                        onUseMyLocation = {
-                            // Defer to VM coords picker (Step "Where" preserves VM map flow).
-                        },
                         siteLatitude = state.siteLatitude,
                         siteLongitude = state.siteLongitude,
                         onSiteCoords = viewModel::onSiteCoordsChange,
+                        budget = state.budget,
+                        budgetError = state.budgetError,
+                        onBudget = viewModel::onBudgetChange,
                     )
                 }
             }
@@ -236,20 +228,15 @@ fun RequestServiceScreen(
 }
 
 @Composable
-private fun StepHeadline(text: String, subtitle: String) {
+private fun StepHeadline(text: String) {
     Text(
         text = text,
-        fontSize = 18.sp,
+        fontSize = 24.sp,
+        lineHeight = 30.sp,
         fontWeight = FontWeight.Bold,
-        color = SevaInk900,
+        color = Ink900,
+        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
     )
-    Spacer(Modifier.height(4.dp))
-    Text(
-        text = subtitle,
-        fontSize = 12.sp,
-        color = SevaInk500,
-    )
-    Spacer(Modifier.height(16.dp))
 }
 
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
@@ -264,254 +251,292 @@ private fun StepEquipment(
     onModel: (String) -> Unit,
     onSerial: (String) -> Unit,
 ) {
-    StepHeadline("Equipment", subtitle = "Tell us what needs servicing.")
+    StepHeadline("Which equipment?")
     Text(
         text = "Equipment type",
-        fontSize = 12.sp,
-        fontWeight = FontWeight.SemiBold,
-        color = SevaInk700,
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Medium,
+        color = Ink700,
     )
-    Spacer(Modifier.height(6.dp))
-    // First 8 categories — mirrors JSX `EQ_TYPES.slice(0, 8)`.
-    val visible = RepairEquipmentCategory.entries
-        .filter { it != RepairEquipmentCategory.Other }
-        .take(8)
     FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        visible.forEach { option ->
-            EsChip(
-                text = option.displayName,
-                active = option == category,
-                onClick = { onCategory(option) },
-            )
-        }
+        RepairEquipmentCategory.entries
+            .filter { it != RepairEquipmentCategory.Other }
+            .forEach { option ->
+                FilterChip(
+                    selected = option == category,
+                    onClick = { onCategory(option) },
+                    label = { Text(option.displayName) },
+                )
+            }
     }
-    Spacer(Modifier.height(12.dp))
-    EsField(
+    OutlinedTextField(
         value = brand,
-        onChange = onBrand,
-        label = "Brand",
-        placeholder = "e.g. Philips",
+        onValueChange = onBrand,
+        label = { Text("Brand") },
+        placeholder = { Text("e.g. Siemens") },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
     )
-    Spacer(Modifier.height(12.dp))
-    EsField(
+    OutlinedTextField(
         value = model,
-        onChange = onModel,
-        label = "Model",
-        placeholder = "e.g. IntelliVue MX450",
+        onValueChange = onModel,
+        label = { Text("Model") },
+        placeholder = { Text("e.g. SOMATOM go.Up") },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
     )
-    Spacer(Modifier.height(12.dp))
-    EsField(
+    OutlinedTextField(
         value = serial,
-        onChange = onSerial,
-        label = "Serial number",
-        placeholder = "Optional",
+        onValueChange = onSerial,
+        label = { Text("Serial number (optional)") },
+        placeholder = { Text("Usually behind the unit") },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
     )
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
+@Suppress("LongParameterList")
 private fun StepIssue(
     issue: String,
     issueError: String?,
+    urgency: RepairJobUrgency,
     photos: List<String>,
     uploadingPhoto: Boolean,
     onIssue: (String) -> Unit,
+    onUrgency: (RepairJobUrgency) -> Unit,
     onTakePhoto: () -> Unit,
     onPickFromGallery: () -> Unit,
+    onRemovePhoto: (String) -> Unit,
 ) {
-    StepHeadline(
-        "Issue",
-        subtitle = "Describe what's wrong. Photos help engineers bid accurately.",
-    )
-    EsField(
+    StepHeadline("What's the issue?")
+    OutlinedTextField(
         value = issue,
-        onChange = onIssue,
-        label = "Description",
-        placeholder = "e.g. SpO2 probe not detected, intermittent...",
-        type = EsFieldType.Multiline,
-        error = issueError,
+        onValueChange = onIssue,
+        label = { Text("Description") },
+        placeholder = { Text("Describe the issue clearly — symptoms, error codes, when it started.") },
+        isError = issueError != null,
+        supportingText = issueError?.let { { Text(it) } },
+        minLines = 5,
+        modifier = Modifier.fillMaxWidth(),
     )
-    Spacer(Modifier.height(16.dp))
+    PhotoPickerSection(
+        photos = photos,
+        uploading = uploadingPhoto,
+        onTakePhoto = onTakePhoto,
+        onPickFromGallery = onPickFromGallery,
+        onRemovePhoto = onRemovePhoto,
+    )
     Text(
-        text = "Photos (up to 5)",
-        fontSize = 12.sp,
-        fontWeight = FontWeight.SemiBold,
-        color = SevaInk700,
+        text = "Severity",
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Medium,
+        color = Ink700,
     )
-    Spacer(Modifier.height(8.dp))
-    val filledCount = photos.size.coerceAtMost(5)
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        repeat(5) { i ->
-            PhotoSlot(
-                filled = i < filledCount,
-                onClick = {
-                    // Tapping any empty slot launches gallery; tapping the
-                    // first empty slot also accepts camera. Match JSX
-                    // intent: any slot adds-up-to-5.
-                    if (i >= filledCount) {
-                        if (i == filledCount && !uploadingPhoto && photos.size < 5) {
-                            onPickFromGallery()
-                        } else if (!uploadingPhoto && photos.size < 5) {
-                            onPickFromGallery()
-                        }
-                    }
-                },
-                modifier = Modifier.weight(1f),
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        SeverityTile(
+            label = "Low",
+            icon = Icons.Outlined.Flag,
+            tint = Success,
+            selected = urgency == RepairJobUrgency.Scheduled,
+            onClick = { onUrgency(RepairJobUrgency.Scheduled) },
+            modifier = Modifier.weight(1f),
+        )
+        SeverityTile(
+            label = "Medium",
+            icon = Icons.Outlined.Flag,
+            tint = Warning,
+            selected = urgency == RepairJobUrgency.SameDay,
+            onClick = { onUrgency(RepairJobUrgency.SameDay) },
+            modifier = Modifier.weight(1f),
+        )
+        SeverityTile(
+            label = "Critical",
+            icon = Icons.Outlined.PriorityHigh,
+            tint = ErrorRed,
+            selected = urgency == RepairJobUrgency.Emergency,
+            onClick = { onUrgency(RepairJobUrgency.Emergency) },
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun PhotoPickerSection(
+    photos: List<String>,
+    uploading: Boolean,
+    onTakePhoto: () -> Unit,
+    onPickFromGallery: () -> Unit,
+    onRemovePhoto: (String) -> Unit,
+) {
+    Text(
+        text = "Photos (optional)",
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Medium,
+        color = Ink700,
+    )
+    Text(
+        text = "Attach photos of the nameplate or fault. Up to 5 images, JPEG/PNG/WEBP.",
+        fontSize = 12.sp,
+        color = Ink700,
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        OutlinedButton(
+            onClick = onTakePhoto,
+            enabled = !uploading && photos.size < 5,
+            modifier = Modifier.weight(1f),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.PhotoCamera,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text("Take photo")
+        }
+        OutlinedButton(
+            onClick = onPickFromGallery,
+            enabled = !uploading && photos.size < 5,
+            modifier = Modifier.weight(1f),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.PhotoLibrary,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text("From gallery")
+        }
+    }
+    if (uploading) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            androidx.compose.material3.CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                strokeWidth = 2.dp,
+            )
+            Text(
+                text = "Uploading…",
+                fontSize = 12.sp,
+                color = Ink700,
             )
         }
     }
-    if (photos.size < 5) {
-        Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            EsBtn(
-                text = "Take photo",
-                onClick = onTakePhoto,
-                kind = EsBtnKind.Secondary,
-                size = EsBtnSize.Sm,
-                disabled = uploadingPhoto,
-                modifier = Modifier.weight(1f),
-            )
-            EsBtn(
-                text = "From gallery",
-                onClick = onPickFromGallery,
-                kind = EsBtnKind.Secondary,
-                size = EsBtnSize.Sm,
-                disabled = uploadingPhoto,
-                modifier = Modifier.weight(1f),
-            )
+    if (photos.isNotEmpty()) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            photos.forEach { path ->
+                Row(
+                    modifier = Modifier
+                        .background(BrandGreen50, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = path.substringAfterLast('/').take(26),
+                        fontSize = 12.sp,
+                        color = BrandGreenDark,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                    IconButton(onClick = { onRemovePhoto(path) }) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = "Remove",
+                            tint = BrandGreenDark,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun PhotoSlot(
-    filled: Boolean,
+private fun SeverityTile(
+    label: String,
+    icon: ImageVector,
+    tint: Color,
+    selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val borderColor = if (filled) SevaGreen700 else BorderDefault
-    val bg = if (filled) Paper2 else Color.White
-    val radius = 10.dp
-    Box(
+    val borderColor = if (selected) BrandGreen else Surface200
+    val bg = if (selected) BrandGreen50 else MaterialTheme.colorScheme.surface
+    Column(
         modifier = modifier
-            .aspectRatio(1f)
-            .clip(RoundedCornerShape(radius))
-            .background(bg)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
+            .background(bg, RoundedCornerShape(12.dp))
+            .border(1.5.dp, borderColor, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // Dashed border via Canvas (Compose has no built-in dashed Modifier.border).
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val stroke = 1.5.dp.toPx()
-            val dash = PathEffect.dashPathEffect(floatArrayOf(6f, 4f), 0f)
-            drawRoundRect(
-                color = borderColor,
-                topLeft = androidx.compose.ui.geometry.Offset(stroke / 2f, stroke / 2f),
-                size = Size(size.width - stroke, size.height - stroke),
-                cornerRadius = CornerRadius(radius.toPx(), radius.toPx()),
-                style = Stroke(width = stroke, pathEffect = dash),
-            )
-        }
-        if (filled) {
-            Icon(
-                imageVector = Icons.Outlined.CheckCircle,
-                contentDescription = null,
-                tint = SevaGreen700,
-                modifier = Modifier.size(20.dp),
-            )
-        } else {
-            Icon(
-                imageVector = Icons.Outlined.PhotoCamera,
-                contentDescription = null,
-                tint = SevaInk400,
-                modifier = Modifier.size(18.dp),
-            )
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(24.dp),
+        )
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = Ink900,
+            modifier = Modifier.padding(top = 4.dp),
+        )
     }
 }
 
 @Composable
 private fun StepWhen(
-    urgency: RepairJobUrgency,
-    onUrgency: (RepairJobUrgency) -> Unit,
+    selectedSlot: Int,
+    onSelectSlot: (Int) -> Unit,
 ) {
-    StepHeadline("When?", subtitle = "How urgent is this?")
-    val options = listOf(
-        Triple(RepairJobUrgency.SameDay, "Same-day", "Today, within 8 hours"),
-        Triple(RepairJobUrgency.Scheduled, "Next-day", "Tomorrow"),
-        Triple(RepairJobUrgency.Emergency, "Within a week", "Schedule for a date"),
+    StepHeadline("When?")
+    Text(
+        text = "Preferred slot",
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Medium,
+        color = Ink700,
     )
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        options.forEach { (key, label, desc) ->
-            UrgencyCard(
-                label = label,
-                desc = desc,
-                selected = urgency == key,
-                onClick = { onUrgency(key) },
+    val slots = listOf("Today · Evening", "Tomorrow · Morning", "Tomorrow · Afternoon", "Flexible")
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            SlotTile(
+                label = slots[0],
+                selected = selectedSlot == 0,
+                onClick = { onSelectSlot(0) },
+                modifier = Modifier.weight(1f),
+            )
+            SlotTile(
+                label = slots[1],
+                selected = selectedSlot == 1,
+                onClick = { onSelectSlot(1) },
+                modifier = Modifier.weight(1f),
             )
         }
-    }
-    Spacer(Modifier.height(16.dp))
-    // Preferred date / time is a free-form note (we don't parse client-side).
-    var dateText by rememberSaveable { mutableStateOf("") }
-    EsField(
-        value = dateText,
-        onChange = { dateText = it },
-        label = "Preferred date / time",
-        placeholder = "14 May, 10:00–12:00",
-        leading = {
-            Icon(
-                imageVector = Icons.Outlined.CalendarMonth,
-                contentDescription = null,
-                tint = SevaInk500,
-                modifier = Modifier.size(16.dp),
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            SlotTile(
+                label = slots[2],
+                selected = selectedSlot == 2,
+                onClick = { onSelectSlot(2) },
+                modifier = Modifier.weight(1f),
             )
-        },
-    )
-}
-
-@Composable
-private fun UrgencyCard(
-    label: String,
-    desc: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    val border = if (selected) SevaGreen700 else BorderDefault
-    val bg = if (selected) SevaGreen50 else Color.White
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(bg)
-            .border(1.5.dp, border, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = label,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = SevaInk900,
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = desc,
-                fontSize = 12.sp,
-                color = SevaInk500,
-            )
-        }
-        if (selected) {
-            Icon(
-                imageVector = Icons.Outlined.CheckCircle,
-                contentDescription = null,
-                tint = SevaGreen700,
-                modifier = Modifier.size(20.dp),
+            SlotTile(
+                label = slots[3],
+                selected = selectedSlot == 3,
+                onClick = { onSelectSlot(3) },
+                modifier = Modifier.weight(1f),
             )
         }
     }
@@ -521,53 +546,67 @@ private fun UrgencyCard(
 private fun StepWhere(
     siteLocation: String,
     onSiteLocation: (String) -> Unit,
-    onUseMyLocation: () -> Unit,
     siteLatitude: Double?,
     siteLongitude: Double?,
     onSiteCoords: (Double?, Double?) -> Unit,
+    budget: String,
+    budgetError: String?,
+    onBudget: (String) -> Unit,
 ) {
-    StepHeadline("Where?", subtitle = "Confirm the site address.")
-    EsField(
+    StepHeadline("Where?")
+    OutlinedTextField(
         value = siteLocation,
-        onChange = onSiteLocation,
-        label = "Site / hospital",
-        placeholder = "Ward · Department · Floor · Gate to enter from",
-        type = EsFieldType.Multiline,
+        onValueChange = onSiteLocation,
+        label = { Text("Note for the engineer") },
+        placeholder = { Text("Ward · Department · Floor · Gate to enter from") },
+        singleLine = false,
+        minLines = 2,
+        modifier = Modifier.fillMaxWidth(),
     )
-    Spacer(Modifier.height(12.dp))
-    EsBtn(
-        text = "Use my location",
-        onClick = onUseMyLocation,
-        kind = EsBtnKind.Secondary,
-        full = true,
-        leading = {
-            Icon(
-                imageVector = Icons.Outlined.LocationOn,
-                contentDescription = null,
-                tint = SevaGreen700,
-                modifier = Modifier.size(16.dp),
-            )
-        },
-    )
-    Spacer(Modifier.height(12.dp))
-    // Location picker map — 160dp paper-3 background placeholder when not picked,
-    // live picker when interacted with. Preserves VM coords flow.
     val pickedLatLng = if (siteLatitude != null && siteLongitude != null) {
         com.google.android.gms.maps.model.LatLng(siteLatitude, siteLongitude)
     } else null
+    com.equipseva.app.features.repair.components.LocationPickerMap(
+        selected = pickedLatLng,
+        onLocationPicked = { ll -> onSiteCoords(ll.latitude, ll.longitude) },
+        modifier = Modifier.fullBleedHorizontal(com.equipseva.app.designsystem.theme.Spacing.lg),
+    )
+    OutlinedTextField(
+        value = budget,
+        onValueChange = { onBudget(it.filter { c -> c.isDigit() || c == '.' }) },
+        label = { Text("Budget (₹, optional)") },
+        placeholder = { Text("e.g. 5000") },
+        isError = budgetError != null,
+        supportingText = budgetError?.let { { Text(it) } },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+@Composable
+private fun SlotTile(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val borderColor = if (selected) BrandGreen else Surface200
+    val bg = if (selected) BrandGreen50 else MaterialTheme.colorScheme.surface
+    val textColor = if (selected) BrandGreenDark else Ink900
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(160.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(Paper3),
+        modifier = modifier
+            .background(bg, RoundedCornerShape(12.dp))
+            .border(1.5.dp, borderColor, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        // LocationPickerMap renders its own "Tap 'Use my current location'…"
-        // hint when selected is null, so don't stack a second "Map preview"
-        // label on top of it.
-        com.equipseva.app.features.repair.components.LocationPickerMap(
-            selected = pickedLatLng,
-            onLocationPicked = { ll -> onSiteCoords(ll.latitude, ll.longitude) },
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = textColor,
         )
     }
 }
@@ -580,36 +619,42 @@ private fun WizardBottomBar(
     onNext: () -> Unit,
     onSubmit: () -> Unit,
 ) {
-    val isLast = step == 3
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
-            .border(1.dp, BorderDefault, RoundedCornerShape(0.dp))
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, Surface200)
+            .padding(Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (step > 0) {
-            EsBtn(
-                text = "Back",
+            OutlinedButton(
                 onClick = onBack,
-                kind = EsBtnKind.Secondary,
-                size = EsBtnSize.Lg,
-            )
+                modifier = Modifier
+                    .weight(1f)
+                    .height(Spacing.MinTouchTarget),
+            ) { Text("Back") }
         }
-        EsBtn(
-            text = when {
-                isLast && submitting -> "Submitting…"
-                isLast -> "Submit request"
-                else -> "Continue"
-            },
+        val isLast = step == 3
+        Button(
             onClick = if (isLast) onSubmit else onNext,
-            kind = EsBtnKind.Primary,
-            size = EsBtnSize.Lg,
-            full = true,
-            disabled = submitting,
-            modifier = Modifier.weight(1f),
-        )
+            enabled = !submitting,
+            modifier = Modifier
+                .weight(1f)
+                .height(Spacing.MinTouchTarget),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ),
+        ) {
+            if (isLast) {
+                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(if (submitting) "Submitting…" else "Submit request")
+            } else {
+                Text("Next")
+            }
+        }
     }
 }
