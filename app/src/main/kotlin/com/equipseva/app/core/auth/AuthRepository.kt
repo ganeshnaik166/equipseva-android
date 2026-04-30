@@ -22,7 +22,15 @@ interface AuthRepository {
     suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?): Result<Unit>
 
     suspend fun sendPasswordResetEmail(email: String): Result<Unit>
-    suspend fun updatePassword(newPassword: String): Result<Unit>
+
+    /**
+     * Updates the password after re-authenticating the current session by
+     * verifying [currentPassword]. Surfaces [InvalidCurrentPasswordException]
+     * inside Result.failure when the current password is wrong so the UI can
+     * attribute the error to the right input. Without the re-auth check an
+     * unlocked-device attacker could lock the legitimate owner out.
+     */
+    suspend fun updatePassword(currentPassword: String, newPassword: String): Result<Unit>
 
     /**
      * Email OTP — KEPT for KYC Step 1's "verify your email" sheet only. Not a
@@ -60,3 +68,8 @@ sealed interface AuthSession {
     data object SignedOut : AuthSession
     data class SignedIn(val userId: String, val email: String?) : AuthSession
 }
+
+/** Thrown by [AuthRepository.updatePassword] when the supplied current
+ *  password fails the re-auth check, so the screen can attribute the error
+ *  to the current-password field instead of the new-password field. */
+class InvalidCurrentPasswordException : RuntimeException("Current password is incorrect.")
