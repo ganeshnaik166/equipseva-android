@@ -8,7 +8,6 @@ import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import javax.inject.Inject
@@ -105,10 +104,15 @@ class SupabaseProfileRepository @Inject constructor(
         fullName: String?,
         phone: String?,
     ): Result<Unit> = runCatching {
+        // Omit null fields entirely so Postgrest leaves the column unchanged.
+        // Setting a key to JsonNull writes NULL to the row, which violates
+        // profiles.full_name NOT NULL when callers update only the phone
+        // (e.g. AddPhoneScreen). Letting the null sail through historically
+        // wiped full_name on every phone save.
         client.from(TABLE).update(
             buildJsonObject {
-                put("full_name", fullName?.let { JsonPrimitive(it) } ?: JsonNull)
-                put("phone", phone?.let { JsonPrimitive(it) } ?: JsonNull)
+                if (fullName != null) put("full_name", JsonPrimitive(fullName))
+                if (phone != null) put("phone", JsonPrimitive(phone))
             },
         ) {
             filter { eq("id", userId) }
