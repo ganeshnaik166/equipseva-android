@@ -147,7 +147,7 @@ private fun BidRowCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = row.job?.title ?: "Repair job",
+                text = row.job?.equipmentLabel ?: row.job?.title ?: "Repair job",
                 style = EsType.Body.copy(fontWeight = FontWeight.SemiBold),
                 color = SevaInk900,
                 modifier = Modifier.weight(1f),
@@ -160,7 +160,7 @@ private fun BidRowCard(
             }
             Pill(text = row.bid.status.displayName, kind = pillKind)
         }
-        row.job?.equipmentLabel?.let {
+        row.job?.siteLocation?.takeIf { it.isNotBlank() }?.let {
             Text(
                 text = it,
                 style = EsType.Caption,

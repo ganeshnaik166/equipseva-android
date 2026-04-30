@@ -191,15 +191,11 @@ class RequestServiceViewModel @Inject constructor(
             )
             jobRepository.create(draft)
                 .onSuccess { job ->
-                    _state.update {
-                        UiState()
-                    }
+                    _state.update { UiState() }
                     effectChannel.trySend(Effect.Submitted(jobId = job.id, jobNumber = job.jobNumber))
                 }
                 .onFailure { error ->
-                    _state.update {
-                        it.copy(submitting = false, errorMessage = error.toUserMessage())
-                    }
+                    _state.update { it.copy(submitting = false, errorMessage = error.toUserMessage()) }
                 }
         }
     }

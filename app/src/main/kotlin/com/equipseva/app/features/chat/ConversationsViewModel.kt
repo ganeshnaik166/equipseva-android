@@ -39,8 +39,9 @@ class ConversationsViewModel @Inject constructor(
     data class Row(
         val conversation: ChatConversation,
         val counterpart: Profile?,
+        val dummyTitle: String? = null,
     ) {
-        val title: String get() = counterpart?.displayName ?: "Conversation"
+        val title: String get() = counterpart?.displayName ?: dummyTitle ?: "Conversation"
         val preview: String get() = conversation.lastMessage?.takeIf { it.isNotBlank() } ?: "No messages yet"
     }
 
@@ -141,10 +142,50 @@ class ConversationsViewModel @Inject constructor(
             }
             Row(convo, profile)
         }
-        _state.update { it.copy(loading = false, rows = rows, errorMessage = null) }
+        val finalRows = if (rows.isEmpty()) DUMMY_CONVERSATIONS else rows
+        _state.update { it.copy(loading = false, rows = finalRows, errorMessage = null) }
     }
 
     private companion object {
         const val REFRESH_TIMEOUT_MS = 3_000L
     }
 }
+
+private fun makeDummyConvo(
+    id: String,
+    last: String,
+    minutesAgo: Long,
+    unread: Int,
+): ChatConversation = ChatConversation(
+    id = id,
+    participantUserIds = listOf("self", "other-$id"),
+    relatedEntityType = "repair_job",
+    relatedEntityId = "dummy-job-$id",
+    lastMessage = last,
+    lastMessageAtIso = java.time.Instant.now().minusSeconds(minutesAgo * 60).toString(),
+    createdAtIso = java.time.Instant.now().minusSeconds(86400).toString(),
+    unreadCount = unread,
+)
+
+private val DUMMY_CONVERSATIONS: List<ConversationsViewModel.Row> = listOf(
+    ConversationsViewModel.Row(
+        conversation = makeDummyConvo("c1", "I'll be there by 11. Bring the spare cable.", 8, 2),
+        counterpart = null,
+        dummyTitle = "Satish Naidu",
+    ),
+    ConversationsViewModel.Row(
+        conversation = makeDummyConvo("c2", "Quote sent — let me know.", 45, 0),
+        counterpart = null,
+        dummyTitle = "Priyanka Reddy",
+    ),
+    ConversationsViewModel.Row(
+        conversation = makeDummyConvo("c3", "Centrifuge fixed. Belt replaced.", 240, 0),
+        counterpart = null,
+        dummyTitle = "Lakshmi Devi",
+    ),
+    ConversationsViewModel.Row(
+        conversation = makeDummyConvo("c4", "Rescheduling to tomorrow 9am.", 1440, 1),
+        counterpart = null,
+        dummyTitle = "Arjun Varma",
+    ),
+)

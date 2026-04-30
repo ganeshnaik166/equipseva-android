@@ -42,14 +42,31 @@ fun AppNavGraph(sessionViewModel: SessionViewModel = hiltViewModel()) {
 
     val tourSeen by sessionViewModel.tourSeen.collectAsStateWithLifecycle()
 
+    LaunchedEffect(sessionViewModel) {
+        sessionViewModel.messages.collect { msg -> showSnackbar(msg) }
+    }
+
+    // RootHost stays mounted across Loading↔SignedIn transitions. Earlier
+    // we swapped to SplashScreen on Loading, which DESTROYED the entire
+    // navigation back stack every time Supabase briefly re-emitted
+    // Initializing on app resume — the user's KYC entry (and any other
+    // mid-flow state) was wiped. The splash now overlays only on the very
+    // first Loading event, while the host stays alive underneath.
+    val rootMountedOnce = remember { mutableStateOf(false) }
+    LaunchedEffect(sessionState) {
+        if (sessionState !is SessionState.Loading) {
+            rootMountedOnce.value = true
+        }
+    }
     Scaffold(snackbarHost = { SnackbarHost(snackbarHost) }) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            when (sessionState) {
-                SessionState.Loading -> SplashScreen()
-                else -> RootHost(
+            if (rootMountedOnce.value) {
+                RootHost(
                     showSnackbar = showSnackbar,
                     showTour = !tourSeen,
                 )
+            } else {
+                SplashScreen()
             }
         }
     }
@@ -59,22 +76,47 @@ fun AppNavGraph(sessionViewModel: SessionViewModel = hiltViewModel()) {
 private fun RootHost(
     showSnackbar: (String) -> Unit,
     showTour: Boolean,
+    sessionViewModel: SessionViewModel = hiltViewModel(),
 ) {
     val navController = rememberNavController()
+    val sessionState by sessionViewModel.state.collectAsStateWithLifecycle()
+
+    // Cold-start gate: signed-out users land on Welcome, signed-in users
+    // land on Home. Captured once at first composition (after the Splash
+    // resolved Loading) so the NavHost's startDestination is stable.
+    val coldStartRoute = remember {
+        if (sessionState is SessionState.SignedOut) Routes.AUTH_GRAPH else MAIN_HOST_ROUTE
+    }
 
     val navigateToMain: () -> Unit = {
         navController.navigate(MAIN_HOST_ROUTE) {
-            popUpTo(MAIN_HOST_ROUTE) { inclusive = true }
+            popUpTo(0) { inclusive = true }
             launchSingleTop = true
         }
     }
 
-    // v1: cold-start lands on the 3-card Home Hub (rendered as Routes.HOME
-    // inside MainNavGraph). Auth opens as a separate composable when the
-    // user taps Sign in.
+    // Sign-out redirect: when the session transitions authenticated → SignedOut
+    // while we're on MAIN_HOST_ROUTE, route the user to Welcome (AUTH_GRAPH).
+    val sawAuthenticated = remember { mutableStateOf(false) }
+    LaunchedEffect(sessionState) {
+        when {
+            sessionState is SessionState.NeedsRole || sessionState is SessionState.Ready -> {
+                sawAuthenticated.value = true
+            }
+            sessionState is SessionState.SignedOut && sawAuthenticated.value -> {
+                sawAuthenticated.value = false
+                navController.navigate(Routes.AUTH_GRAPH) {
+                    popUpTo(0) { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+            else -> Unit
+        }
+    }
+
     NavHost(
         navController = navController,
-        startDestination = MAIN_HOST_ROUTE,
+        startDestination = coldStartRoute,
         modifier = Modifier.fillMaxSize(),
     ) {
         composable(Routes.AUTH_GRAPH) {

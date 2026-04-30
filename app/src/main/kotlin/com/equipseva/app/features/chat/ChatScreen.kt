@@ -25,15 +25,20 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.CloudSync
+import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -51,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
@@ -62,22 +68,32 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.chat.ChatMessage
+import com.equipseva.app.designsystem.components.Avatar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.OnlineStatus
 import com.equipseva.app.designsystem.components.ReportContentSheet
-import com.equipseva.app.designsystem.theme.BrandGreen
-import com.equipseva.app.designsystem.theme.BrandGreen50
-import com.equipseva.app.designsystem.theme.Ink500
-import com.equipseva.app.designsystem.theme.Ink900
-import com.equipseva.app.designsystem.theme.Spacing
-import com.equipseva.app.designsystem.theme.Surface100
-import com.equipseva.app.designsystem.theme.Surface200
-import com.equipseva.app.designsystem.theme.Surface50
-import androidx.compose.material.icons.outlined.ChatBubbleOutline
-import androidx.compose.material.icons.outlined.CloudSync
+import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.Paper2
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaGreen100
+import com.equipseva.app.designsystem.theme.SevaGreen50
+import com.equipseva.app.designsystem.theme.SevaGreen700
+import com.equipseva.app.designsystem.theme.SevaGreen900
+import com.equipseva.app.designsystem.theme.SevaInk400
+import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk900
+import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+// ChatScreen — re-skinned to match newdesign/screens-comm.jsx:ChatThread
+// (lines 40-119). Custom 52dp top bar with avatar+name+online+phone CTA,
+// green-50 job-context strip, green-700 / white message bubbles with
+// asymmetric corners, and a paper-2 pill input + 40dp circle send button.
+// All ChatViewModel hooks (send / edit / report / delete / typing / queued /
+// real-time subscriptions) are preserved unchanged.
 @Composable
 fun ChatScreen(
     onBack: () -> Unit,
@@ -103,7 +119,7 @@ fun ChatScreen(
     }
 
     Scaffold(
-        containerColor = com.equipseva.app.designsystem.theme.PaperDefault,
+        containerColor = PaperDefault,
         topBar = {
             ChatTopBar(
                 title = state.title,
@@ -143,7 +159,7 @@ fun ChatScreen(
         ) {
             ErrorBanner(
                 message = state.errorMessage,
-                modifier = Modifier.padding(horizontal = Spacing.lg),
+                modifier = Modifier.padding(horizontal = 16.dp),
             )
             state.relatedJobId?.let { jobId ->
                 JobContextStrip(jobId = jobId, onClick = { onOpenJob(jobId) })
@@ -161,20 +177,25 @@ fun ChatScreen(
                 else -> LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        horizontal = 14.dp,
-                        vertical = Spacing.md,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(items = state.messages, key = { it.id }) { msg ->
-                        MessageRow(
-                            message = msg,
-                            isSelf = msg.senderUserId == state.selfUserId,
-                            onReport = viewModel::onOpenReport,
-                            onDelete = viewModel::onDeleteMessage,
-                            onEdit = viewModel::onOpenEdit,
-                        )
+                    // Day-separator + messages, grouped by local-date so each day
+                    // boundary gets its own "Today / Yesterday / dd MMM" header.
+                    val grouped = state.messages.groupBy { dayKey(it.createdAtIso) }
+                    grouped.forEach { (key, msgs) ->
+                        item(key = "sep-$key") {
+                            DaySeparator(label = dayLabel(key))
+                        }
+                        items(items = msgs, key = { it.id }) { msg ->
+                            MessageRow(
+                                message = msg,
+                                isSelf = msg.senderUserId == state.selfUserId,
+                                onReport = viewModel::onOpenReport,
+                                onDelete = viewModel::onDeleteMessage,
+                                onEdit = viewModel::onOpenEdit,
+                            )
+                        }
                     }
                 }
             }
@@ -192,10 +213,25 @@ fun ChatScreen(
 }
 
 @Composable
+private fun DaySeparator(label: String) {
+    if (label.isBlank()) return
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            color = SevaInk400,
+        )
+    }
+}
+
+@Composable
 private fun TypingIndicatorRow(visible: Boolean) {
     if (!visible) return
-    // Low-res tick (~450ms) drives a three-dot phase; good enough to read as "alive"
-    // without burning a recomposition per frame. Re-emits while the indicator is shown.
     val phase = remember { androidx.compose.runtime.mutableIntStateOf(0) }
     androidx.compose.runtime.LaunchedEffect(visible) {
         while (true) {
@@ -206,7 +242,7 @@ private fun TypingIndicatorRow(visible: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = 4.dp),
+            .padding(horizontal = 16.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -215,13 +251,13 @@ private fun TypingIndicatorRow(visible: Boolean) {
                 modifier = Modifier
                     .size(5.dp)
                     .clip(CircleShape)
-                    .background(if (i == phase.intValue) BrandGreen else Surface200),
+                    .background(if (i == phase.intValue) SevaGreen700 else BorderDefault),
             )
         }
         Text(
             text = "typing…",
-            style = MaterialTheme.typography.bodySmall,
-            color = Ink500,
+            fontSize = 12.sp,
+            color = SevaInk500,
         )
     }
 }
@@ -232,9 +268,9 @@ private fun QueuedPill(count: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = Spacing.xs)
+            .padding(horizontal = 16.dp, vertical = 4.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(BrandGreen50)
+            .background(SevaGreen50)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -242,14 +278,14 @@ private fun QueuedPill(count: Int) {
         Icon(
             imageVector = Icons.Outlined.CloudSync,
             contentDescription = null,
-            tint = BrandGreen,
+            tint = SevaGreen700,
             modifier = Modifier.size(16.dp),
         )
         Text(
             text = if (count == 1) "1 message queued — will send when back online"
             else "$count messages queued — will send when back online",
-            style = MaterialTheme.typography.bodySmall,
-            color = Ink900,
+            fontSize = 12.sp,
+            color = SevaInk900,
         )
     }
 }
@@ -263,86 +299,101 @@ private fun ChatTopBar(
     onToggleBlock: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp,
-    ) {
-        Column {
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .background(PaperDefault)
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Left slot: back arrow + avatar + name+online — single tappable group,
+            // matches the JSX `<button>` wrapper that triggers go(-1).
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                    .weight(1f)
+                    .clickable(onClick = onBack)
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Ink900,
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                    contentDescription = "Back",
+                    tint = SevaInk900,
+                    modifier = Modifier.size(20.dp),
+                )
+                Avatar(
+                    initials = initialsOf(title),
+                    size = 32.dp,
+                    online = OnlineStatus.Available,
+                )
+                Column {
+                    Text(
+                        text = title,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = SevaInk900,
+                        maxLines = 1,
+                    )
+                    Text(
+                        text = "● Online",
+                        fontSize = 10.sp,
+                        color = SevaGreen700,
+                        maxLines = 1,
                     )
                 }
-                InitialsAvatar(name = title, size = 38.dp)
-                Text(
-                    text = title,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Ink900,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f),
+            }
+            // Phone CTA — wired when telephony lands.
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .clickable { /* call CTA — placeholder */ },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Phone,
+                    contentDescription = "Call",
+                    tint = SevaGreen700,
+                    modifier = Modifier.size(18.dp),
                 )
-                if (canBlock) {
-                    Box {
-                        IconButton(onClick = { menuOpen = true }) {
-                            Icon(Icons.Filled.MoreVert, contentDescription = "More", tint = Ink900)
-                        }
-                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            DropdownMenuItem(
-                                text = {
-                                    Text(if (counterpartBlocked) "Unblock user" else "Block user")
-                                },
-                                onClick = {
-                                    menuOpen = false
-                                    onToggleBlock()
-                                },
-                            )
-                        }
+            }
+            if (canBlock) {
+                Box {
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "More", tint = SevaInk900)
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(if (counterpartBlocked) "Unblock user" else "Block user")
+                            },
+                            onClick = {
+                                menuOpen = false
+                                onToggleBlock()
+                            },
+                        )
                     }
                 }
             }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(Surface200),
-            )
         }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(BorderDefault),
+        )
     }
 }
 
-@Composable
-private fun InitialsAvatar(name: String, size: androidx.compose.ui.unit.Dp) {
-    val initials = name
-        .split(" ", limit = 2)
+private fun initialsOf(name: String): String =
+    name.split(" ", limit = 2)
         .mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
         .joinToString("")
         .take(2)
         .ifBlank { "?" }
-    Box(
-        modifier = Modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(BrandGreen50),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = initials,
-            fontSize = (size.value * 0.32f).sp,
-            fontWeight = FontWeight.Bold,
-            color = BrandGreen,
-        )
-    }
-}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -354,28 +405,27 @@ private fun MessageRow(
     onEdit: (String) -> Unit = {},
 ) {
     val isDeleted = message.isDeleted
-    // Deleted bubbles fall back to a muted surface so the tombstone reads as disabled,
-    // regardless of sender.
+    // Deleted bubbles fall back to a muted surface so the tombstone reads as
+    // disabled, regardless of sender.
     val bubbleColor = when {
-        isDeleted -> Surface100
-        isSelf -> BrandGreen
-        else -> MaterialTheme.colorScheme.surface
+        isDeleted -> Paper2
+        isSelf -> SevaGreen700
+        else -> Color.White
     }
     val textColor = when {
-        isDeleted -> Ink500
+        isDeleted -> SevaInk500
         isSelf -> Color.White
-        else -> Ink900
+        else -> SevaInk900
     }
+    // 14dp / 4dp asymmetric corners — bottom-end on me-bubble, bottom-start on them-bubble.
     val shape = if (isSelf) {
-        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 4.dp)
+        RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp, bottomStart = 14.dp, bottomEnd = 4.dp)
     } else {
-        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 16.dp)
+        RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp, bottomStart = 4.dp, bottomEnd = 14.dp)
     }
 
     var menuOpen by remember { mutableStateOf(false) }
 
-    // Long-press is used for per-message actions. Counterpart messages can be reported;
-    // own messages can be deleted (soft). Deleted messages cannot be acted on further.
     val onLongClick: (() -> Unit)? = when {
         isDeleted -> null
         !isSelf -> { { onReport(message.id) } }
@@ -393,20 +443,20 @@ private fun MessageRow(
                     .clip(shape)
                     .background(bubbleColor)
                     .then(
-                        if (!isSelf || isDeleted) Modifier.border(1.dp, Surface200, shape) else Modifier,
+                        if (!isSelf || isDeleted) Modifier.border(1.dp, BorderDefault, shape) else Modifier,
                     )
                     .combinedClickable(
                         onClick = {},
                         onLongClick = onLongClick,
                     )
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
             ) {
                 Column {
                     if (isDeleted) {
                         Text(
                             text = "Message deleted",
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp,
+                            fontSize = 13.sp,
+                            lineHeight = (13 * 1.4f).sp,
                             color = textColor,
                             fontStyle = FontStyle.Italic,
                         )
@@ -433,18 +483,19 @@ private fun MessageRow(
                         if (message.message.isNotBlank()) {
                             Text(
                                 text = message.message,
-                                fontSize = 14.sp,
-                                lineHeight = 20.sp,
+                                fontSize = 13.sp,
+                                lineHeight = (13 * 1.4f).sp,
                                 color = textColor,
                             )
                         }
                     }
                     val timeLabel = formatTime(message.createdAtIso)
                     if (!timeLabel.isNullOrBlank()) {
+                        // 0.7 alpha on me-bubble per JSX; muted ink on them-bubble.
                         val metaColor = when {
-                            isDeleted -> Ink500
-                            isSelf -> Color.White.copy(alpha = 0.8f)
-                            else -> Ink500
+                            isDeleted -> SevaInk500
+                            isSelf -> Color.White.copy(alpha = 0.7f)
+                            else -> SevaInk500.copy(alpha = 0.7f)
                         }
                         Row(
                             modifier = Modifier
@@ -455,7 +506,7 @@ private fun MessageRow(
                         ) {
                             if (message.isEdited && !isDeleted) {
                                 Text(
-                                    text = "(edited)",
+                                    text = "edited",
                                     fontSize = 10.sp,
                                     fontStyle = FontStyle.Italic,
                                     color = metaColor,
@@ -466,6 +517,18 @@ private fun MessageRow(
                                 fontSize = 10.sp,
                                 color = metaColor,
                             )
+                            if (isSelf && !isDeleted) {
+                                // JSX shows a lime check when m.read, currentColor otherwise.
+                                // ChatMessage has no per-message read flag yet, so we always
+                                // render the muted "sent" tint; flip to SevaGlowRaw once a
+                                // read flag lands on ChatMessage.
+                                Icon(
+                                    imageVector = Icons.Outlined.Check,
+                                    contentDescription = null,
+                                    tint = metaColor,
+                                    modifier = Modifier.size(12.dp),
+                                )
+                            }
                         }
                     }
                 }
@@ -503,7 +566,7 @@ private fun ChatInputBar(
     onSend: () -> Unit,
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.surface,
+        color = Color.White,
         tonalElevation = 0.dp,
     ) {
         Column {
@@ -511,30 +574,28 @@ private fun ChatInputBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(Surface200),
+                    .background(BorderDefault),
             )
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                    .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(42.dp)
-                        .clip(CircleShape)
-                        .border(1.dp, Surface200, CircleShape)
-                        .background(MaterialTheme.colorScheme.surface)
-                        .padding(horizontal = 14.dp),
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(Paper2)
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
                     if (draft.isEmpty()) {
                         Text(
                             text = "Message…",
                             fontSize = 14.sp,
-                            color = Ink500,
+                            color = SevaInk500,
                         )
                     }
                     BasicTextField(
@@ -542,33 +603,29 @@ private fun ChatInputBar(
                         onValueChange = onDraftChange,
                         textStyle = TextStyle(
                             fontSize = 14.sp,
-                            color = Ink900,
+                            color = SevaInk900,
                         ),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                         keyboardActions = KeyboardActions(onSend = { if (canSend) onSend() }),
-                        cursorBrush = androidx.compose.ui.graphics.SolidColor(BrandGreen),
+                        cursorBrush = SolidColor(SevaGreen700),
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
+                // 40dp circle send button — green-700 when active, paper-2 disabled.
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
-                        .background(if (canSend) BrandGreen else Surface100)
-                        .padding(10.dp),
+                        .background(if (canSend) SevaGreen700 else Paper2)
+                        .clickable(enabled = canSend, onClick = onSend),
                     contentAlignment = Alignment.Center,
                 ) {
-                    IconButton(
-                        onClick = onSend,
-                        enabled = canSend,
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Send",
-                            tint = if (canSend) Color.White else Ink500,
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                        contentDescription = "Send",
+                        tint = if (canSend) Color.White else SevaInk400,
+                        modifier = Modifier.size(18.dp),
+                    )
                 }
             }
         }
@@ -585,7 +642,7 @@ private fun EditMessageBar(
     onCancel: () -> Unit,
 ) {
     Surface(
-        color = BrandGreen50,
+        color = SevaGreen50,
         tonalElevation = 0.dp,
     ) {
         Column(
@@ -598,7 +655,7 @@ private fun EditMessageBar(
                 text = "Edit message",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color = BrandGreen,
+                color = SevaGreen700,
             )
             OutlinedTextField(
                 value = draft,
@@ -607,7 +664,7 @@ private fun EditMessageBar(
                 singleLine = false,
                 maxLines = 4,
                 enabled = !submitting,
-                textStyle = TextStyle(fontSize = 14.sp, color = Ink900),
+                textStyle = TextStyle(fontSize = 14.sp, color = SevaInk900),
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -626,9 +683,30 @@ private fun EditMessageBar(
 }
 
 private val timeFormatter = DateTimeFormatter.ofPattern("h:mm a").withZone(ZoneId.systemDefault())
+private val dayHeaderFormatter = DateTimeFormatter.ofPattern("dd MMM").withZone(ZoneId.systemDefault())
 
 private fun formatTime(iso: String?): String? =
-    iso?.let { runCatching { timeFormatter.format(java.time.Instant.parse(it)) }.getOrNull() }
+    iso?.let { runCatching { timeFormatter.format(Instant.parse(it)) }.getOrNull() }
+
+// Group key by local date so the day-separator only appears at boundaries.
+// Falls back to "unknown" when a timestamp is unparseable; DaySeparator
+// short-circuits on a blank label so unparseable buckets render no header.
+private fun dayKey(iso: String?): String =
+    iso?.let {
+        runCatching { Instant.parse(it).atZone(ZoneId.systemDefault()).toLocalDate().toString() }
+            .getOrNull()
+    } ?: "unknown"
+
+private fun dayLabel(key: String): String {
+    if (key == "unknown") return ""
+    val date = runCatching { LocalDate.parse(key) }.getOrNull() ?: return ""
+    val today = LocalDate.now()
+    return when (date) {
+        today -> "Today"
+        today.minusDays(1) -> "Yesterday"
+        else -> dayHeaderFormatter.format(date.atStartOfDay(ZoneId.systemDefault()).toInstant())
+    }
+}
 
 private fun String.isImageUrl(): Boolean {
     val lower = substringBefore('?').lowercase()
@@ -638,28 +716,54 @@ private fun String.isImageUrl(): Boolean {
 
 @Composable
 private fun JobContextStrip(jobId: String, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(com.equipseva.app.designsystem.theme.SevaGreen50)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Icon(
-            Icons.Filled.MoreVert,
-            contentDescription = null,
-            tint = com.equipseva.app.designsystem.theme.SevaGreen700,
-            modifier = Modifier.size(14.dp),
-        )
-        val short = jobId.take(8)
-        Text(
-            text = "Repair job · #$short",
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = com.equipseva.app.designsystem.theme.SevaGreen900,
-            modifier = Modifier.weight(1f),
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(SevaGreen50)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Build,
+                contentDescription = null,
+                tint = SevaGreen700,
+                modifier = Modifier.size(14.dp),
+            )
+            // Job code rendered bold + " · " separator + equipment / fallback.
+            // When ChatViewModel.UiState exposes related equipment flip the
+            // suffix to that label.
+            val short = jobId.take(8)
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "RJ-$short",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = SevaGreen900,
+                )
+                Text(
+                    text = " · Repair job",
+                    fontSize = 12.sp,
+                    color = SevaGreen900,
+                )
+            }
+            Icon(
+                imageVector = Icons.Outlined.ChevronRight,
+                contentDescription = null,
+                tint = SevaGreen700,
+                modifier = Modifier.size(14.dp),
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(SevaGreen100),
         )
     }
 }

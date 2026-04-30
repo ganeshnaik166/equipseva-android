@@ -35,16 +35,14 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
+import com.equipseva.app.designsystem.components.Pill
+import com.equipseva.app.designsystem.components.PillKind
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.Paper2
 import com.equipseva.app.designsystem.theme.PaperDefault
-import com.equipseva.app.designsystem.theme.SevaDanger50
-import com.equipseva.app.designsystem.theme.SevaDanger500
-import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk700
 import com.equipseva.app.designsystem.theme.SevaInk900
-import com.equipseva.app.designsystem.theme.SevaSuccess50
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -124,9 +122,9 @@ private fun IntegrityRow(row: FounderRepository.IntegrityFlag) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(androidx.compose.ui.graphics.Color.White)
-            .border(1.dp, BorderDefault, RoundedCornerShape(14.dp))
+            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -163,19 +161,10 @@ private fun IntegrityRow(row: FounderRepository.IntegrityFlag) {
 
 @Composable
 private fun PassFailPill(pass: Boolean) {
-    val (bg, fg, txt) = if (pass) {
-        Triple(SevaSuccess50, SevaGreen700, "PASS")
-    } else {
-        Triple(SevaDanger50, SevaDanger500, "FAIL")
-    }
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(bg)
-            .padding(horizontal = 10.dp, vertical = 4.dp),
-    ) {
-        Text(text = txt, color = fg, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-    }
+    Pill(
+        text = if (pass) "PASS" else "FAIL",
+        kind = if (pass) PillKind.Success else PillKind.Danger,
+    )
 }
 
 @Composable

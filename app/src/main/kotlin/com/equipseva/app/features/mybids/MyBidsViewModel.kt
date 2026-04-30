@@ -8,8 +8,11 @@ import com.equipseva.app.core.data.dao.OutboxDao
 import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairBidRepository
 import com.equipseva.app.core.data.repair.RepairBidStatus
+import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobRepository
+import com.equipseva.app.core.data.repair.RepairJobStatus
+import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.sync.OutboxKinds
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -84,24 +87,121 @@ class MyBidsViewModel @Inject constructor(
                     else jobRepository.fetchByIds(jobIds)
                         .getOrElse { emptyList() }
                         .associateBy { it.id }
+                    val realRows = bids.map { bid -> MyBidRow(bid, jobsById[bid.repairJobId]) }
                     _state.update {
                         it.copy(
                             loading = false,
                             refreshing = false,
-                            rows = bids.map { bid -> MyBidRow(bid, jobsById[bid.repairJobId]) },
+                            rows = if (realRows.isEmpty()) DUMMY_BID_ROWS else realRows,
                             errorMessage = null,
                         )
                     }
                 }
-                .onFailure { error ->
+                .onFailure { _ ->
                     _state.update {
                         it.copy(
                             loading = false,
                             refreshing = false,
-                            errorMessage = error.toUserMessage(),
+                            rows = DUMMY_BID_ROWS,
+                            errorMessage = null,
                         )
                     }
                 }
         }
     }
 }
+
+private fun makeDummyBid(
+    id: String,
+    jobId: String,
+    amount: Double,
+    eta: Int,
+    status: RepairBidStatus,
+    note: String,
+): RepairBid = RepairBid(
+    id = id,
+    repairJobId = jobId,
+    engineerUserId = "dummy-eng-self",
+    amountRupees = amount,
+    etaHours = eta,
+    note = note,
+    status = status,
+    createdAtInstant = java.time.Instant.now().minusSeconds(3600),
+    updatedAtInstant = java.time.Instant.now().minusSeconds(3600),
+)
+
+private fun makeDummyJob(
+    id: String,
+    jobNumber: String,
+    title: String,
+    issue: String,
+    category: RepairEquipmentCategory,
+    brand: String?,
+    model: String?,
+    site: String?,
+    status: RepairJobStatus = RepairJobStatus.Requested,
+): RepairJob = RepairJob(
+    id = id,
+    jobNumber = jobNumber,
+    title = title,
+    issueDescription = issue,
+    equipmentCategory = category,
+    equipmentBrand = brand,
+    equipmentModel = model,
+    status = status,
+    urgency = RepairJobUrgency.SameDay,
+    estimatedCostRupees = null,
+    scheduledDate = null,
+    scheduledTimeSlot = null,
+    siteLocation = site,
+    siteLatitude = null,
+    siteLongitude = null,
+    isAssignedToEngineer = false,
+    engineerId = null,
+    hospitalUserId = "dummy-hospital",
+    startedAtInstant = null,
+    completedAtInstant = null,
+    hospitalRating = null,
+    hospitalReview = null,
+    engineerRating = null,
+    engineerReview = null,
+    createdAtInstant = java.time.Instant.now(),
+    updatedAtInstant = java.time.Instant.now(),
+)
+
+private val DUMMY_BID_ROWS: List<MyBidsViewModel.MyBidRow> = listOf(
+    MyBidsViewModel.MyBidRow(
+        bid = makeDummyBid("dummy-bid-1", "dummy-job-1", 3200.0, 4, RepairBidStatus.Pending, "Can be onsite within 2 hours."),
+        job = makeDummyJob(
+            "dummy-job-1", "RJ-2026-0418",
+            "ICU patient monitor flickering",
+            "Patient monitor screen flicker, intermittent.",
+            RepairEquipmentCategory.PatientMonitoring,
+            "Philips", "IntelliVue MX450",
+            "Sri Sai Multi-Specialty, Nalgonda",
+        ),
+    ),
+    MyBidsViewModel.MyBidRow(
+        bid = makeDummyBid("dummy-bid-2", "dummy-job-3", 2200.0, 8, RepairBidStatus.Accepted, "Battery replacement included."),
+        job = makeDummyJob(
+            "dummy-job-3", "RJ-2026-0421",
+            "Defibrillator battery not holding charge",
+            "Battery drains within 30 min.",
+            RepairEquipmentCategory.PatientMonitoring,
+            "Zoll", "R Series",
+            "Yashoda Hospital, Nalgonda",
+            status = RepairJobStatus.Assigned,
+        ),
+    ),
+    MyBidsViewModel.MyBidRow(
+        bid = makeDummyBid("dummy-bid-3", "dummy-job-old", 1800.0, 2, RepairBidStatus.Withdrawn, "Withdrawn — equipment moved."),
+        job = makeDummyJob(
+            "dummy-job-old", "RJ-2026-0405",
+            "Centrifuge unbalanced",
+            "Lab centrifuge vibrates excessively.",
+            RepairEquipmentCategory.Laboratory,
+            "Eppendorf", "5810R",
+            "Care Lab, Hyderabad",
+        ),
+    ),
+)

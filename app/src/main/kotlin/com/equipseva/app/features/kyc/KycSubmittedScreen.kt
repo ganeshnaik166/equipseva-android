@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -26,13 +26,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.theme.BorderDefault
-import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaInfo50
 import com.equipseva.app.designsystem.theme.SevaInfo500
@@ -69,7 +70,7 @@ fun KycSubmittedScreen(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Shield,
+                        imageVector = Icons.Outlined.Shield,
                         contentDescription = null,
                         tint = SevaInfo500,
                         modifier = Modifier.size(40.dp),
@@ -78,14 +79,16 @@ fun KycSubmittedScreen(
                 Spacer(Modifier.height(24.dp))
                 Text(
                     text = "Submitted for review",
-                    style = EsType.H2,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
                     color = SevaInk900,
                     textAlign = TextAlign.Center,
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = "We'll verify your documents in 24 hours and notify you. Until then you can browse jobs but not bid.",
-                    style = EsType.BodySm,
+                    fontSize = 13.sp,
+                    lineHeight = 19.sp,
                     color = SevaInk600,
                     textAlign = TextAlign.Center,
                 )

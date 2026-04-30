@@ -43,10 +43,10 @@ import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsTopBar
+import com.equipseva.app.designsystem.components.Pill
+import com.equipseva.app.designsystem.components.PillKind
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.PaperDefault
-import com.equipseva.app.designsystem.theme.SevaGreen50
-import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk700
 import com.equipseva.app.designsystem.theme.SevaInk900
@@ -251,16 +251,9 @@ private fun BuyerKycRowCard(
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(row.fullName, color = SevaInk900, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(SevaGreen50)
-                    .padding(horizontal = 10.dp, vertical = 3.dp),
-            ) {
-                Text(prettyDocType(row.docType), color = SevaGreen700, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            }
+            Pill(text = prettyDocType(row.docType), kind = PillKind.Default)
         }
         Text(
             listOfNotNull(row.email, row.phone).joinToString(" · ").ifBlank { "No contact" },

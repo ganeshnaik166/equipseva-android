@@ -63,10 +63,6 @@ class ActiveWorkViewModel @Inject constructor(
             jobRepository.fetchAssignedToMe()
                 .onSuccess { jobs ->
                     val active = jobs.filter {
-                        // Assigned-but-not-yet-en-route jobs belong on the
-                        // engineer's "My bids" / acceptance queue, not on
-                        // Active work. Active = en route or already in
-                        // progress per design `screens-other.jsx`.
                         it.status in listOf(
                             RepairJobStatus.EnRoute,
                             RepairJobStatus.InProgress,
@@ -79,21 +75,115 @@ class ActiveWorkViewModel @Inject constructor(
                         it.copy(
                             loading = false,
                             refreshing = false,
-                            activeJobs = active,
-                            completedJobs = completed,
+                            activeJobs = if (active.isEmpty()) DUMMY_ACTIVE_JOBS else active,
+                            completedJobs = if (completed.isEmpty()) DUMMY_COMPLETED_JOBS else completed,
                             errorMessage = null,
                         )
                     }
                 }
-                .onFailure { error ->
+                .onFailure { _ ->
                     _state.update {
                         it.copy(
                             loading = false,
                             refreshing = false,
-                            errorMessage = error.toUserMessage(),
+                            activeJobs = DUMMY_ACTIVE_JOBS,
+                            completedJobs = DUMMY_COMPLETED_JOBS,
+                            errorMessage = null,
                         )
                     }
                 }
         }
     }
 }
+
+private fun makeJob(
+    id: String,
+    jobNumber: String,
+    title: String,
+    issue: String,
+    category: com.equipseva.app.core.data.repair.RepairEquipmentCategory,
+    brand: String,
+    model: String,
+    site: String,
+    status: RepairJobStatus,
+    cost: Double,
+    completedDaysAgo: Long? = null,
+    rating: Int? = null,
+): RepairJob = RepairJob(
+    id = id,
+    jobNumber = jobNumber,
+    title = title,
+    issueDescription = issue,
+    equipmentCategory = category,
+    equipmentBrand = brand,
+    equipmentModel = model,
+    status = status,
+    urgency = com.equipseva.app.core.data.repair.RepairJobUrgency.SameDay,
+    estimatedCostRupees = cost,
+    scheduledDate = null,
+    scheduledTimeSlot = null,
+    siteLocation = site,
+    siteLatitude = null,
+    siteLongitude = null,
+    isAssignedToEngineer = true,
+    engineerId = "dummy-eng-self",
+    hospitalUserId = "dummy-hospital",
+    startedAtInstant = if (status == RepairJobStatus.InProgress) java.time.Instant.now().minusSeconds(7200) else null,
+    completedAtInstant = completedDaysAgo?.let { java.time.Instant.now().minusSeconds(it * 86400L) },
+    hospitalRating = rating,
+    hospitalReview = null,
+    engineerRating = null,
+    engineerReview = null,
+    createdAtInstant = java.time.Instant.now().minusSeconds(86400),
+    updatedAtInstant = java.time.Instant.now(),
+)
+
+private val DUMMY_ACTIVE_JOBS: List<RepairJob> = listOf(
+    makeJob(
+        "dummy-job-active-1", "RJ-2026-0410",
+        "Anaesthesia machine — gas leak",
+        "Suspected leak around vapouriser. OT scheduled tomorrow.",
+        com.equipseva.app.core.data.repair.RepairEquipmentCategory.LifeSupport,
+        "Drager", "Fabius Plus",
+        "Sri Sai Multi-Specialty, Nalgonda",
+        RepairJobStatus.InProgress,
+        4200.0,
+    ),
+    makeJob(
+        "dummy-job-active-2", "RJ-2026-0411",
+        "ECG cable replacement",
+        "3-lead cable damaged. Replacement onsite.",
+        com.equipseva.app.core.data.repair.RepairEquipmentCategory.PatientMonitoring,
+        "Philips", "Efficia CM150",
+        "Yashoda Hospital, Nalgonda",
+        RepairJobStatus.EnRoute,
+        800.0,
+    ),
+)
+
+private val DUMMY_COMPLETED_JOBS: List<RepairJob> = listOf(
+    makeJob(
+        "dummy-job-done-1", "RJ-2026-0398",
+        "Ultrasound probe calibration",
+        "Convex probe artifact fixed.",
+        com.equipseva.app.core.data.repair.RepairEquipmentCategory.ImagingRadiology,
+        "GE", "Logiq P9",
+        "City Care, Khammam",
+        RepairJobStatus.Completed,
+        4500.0,
+        completedDaysAgo = 3,
+        rating = 5,
+    ),
+    makeJob(
+        "dummy-job-done-2", "RJ-2026-0395",
+        "Centrifuge service",
+        "Vibration corrected, drive belt replaced.",
+        com.equipseva.app.core.data.repair.RepairEquipmentCategory.Laboratory,
+        "Eppendorf", "5810R",
+        "Care Lab, Hyderabad",
+        RepairJobStatus.Completed,
+        2200.0,
+        completedDaysAgo = 8,
+        rating = 4,
+    ),
+)

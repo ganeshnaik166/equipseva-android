@@ -91,10 +91,9 @@ fun ESBackTopBar(
     )
 }
 
-// Round-A redesign top bar matching `shared.jsx:TopBar`. 56dp tall,
-// optional back arrow on the left, title + subtitle stacked center,
-// optional right-slot composable. Use this for new screens; the
-// legacy ESTopBar / ESBackTopBar above stay for in-flight callers.
+// Round-A redesign top bar matching `shared.jsx:TopBar`. 52dp tall,
+// title 16sp/700 left-aligned (no left placeholder when no back),
+// optional back arrow (36dp), optional right-slot composable.
 @Composable
 fun EsTopBar(
     title: String? = null,
@@ -108,15 +107,15 @@ fun EsTopBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp)
+            .height(52.dp)
             .background(bg)
             .let { if (!transparent) it.border(width = 1.dp, color = BorderDefault, shape = RectangleShape) else it }
-            .padding(horizontal = 8.dp),
+            .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (onBack != null) {
             Box(
-                modifier = Modifier.size(40.dp).clickable(onClick = onBack),
+                modifier = Modifier.size(36.dp).clickable(onClick = onBack),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -126,16 +125,24 @@ fun EsTopBar(
                     modifier = Modifier.size(20.dp),
                 )
             }
-        } else {
-            Box(modifier = Modifier.size(40.dp))
         }
         Column(
-            modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = if (onBack != null) 4.dp else 0.dp),
             verticalArrangement = Arrangement.Center,
         ) {
-            if (title != null) Text(text = title, style = EsType.H5, color = SevaInk900)
+            if (title != null) {
+                Text(
+                    text = title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.16).sp,
+                    color = SevaInk900,
+                )
+            }
             if (subtitle != null) Text(text = subtitle, style = EsType.Caption, color = SevaInk500)
         }
-        if (right != null) right() else Box(modifier = Modifier.size(40.dp))
+        if (right != null) right()
     }
 }

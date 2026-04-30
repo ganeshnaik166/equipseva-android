@@ -42,8 +42,13 @@ import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk600
 import com.equipseva.app.designsystem.theme.SevaInk700
 import com.equipseva.app.designsystem.theme.SevaInk900
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 
 // Confirmation landing after a successful repair-job submit. Mirrors the
 // design's `screens-hospital.jsx:RequestSent` — green checkmark hero,
@@ -86,34 +91,39 @@ fun RequestSentScreen(
                 Spacer(Modifier.height(24.dp))
                 Text(
                     text = "Request posted",
-                    style = EsType.H2,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.24).sp,
                     color = SevaInk900,
                     textAlign = TextAlign.Center,
                 )
                 Spacer(Modifier.height(8.dp))
                 if (!jobNumber.isNullOrBlank()) {
                     Text(
-                        text = buildAnnotatedJobLine(jobNumber),
-                        style = EsType.BodySm,
-                        color = SevaInk700,
+                        text = jobAnnotatedLine(jobNumber),
+                        fontSize = 13.sp,
+                        lineHeight = 19.5.sp,
+                        color = SevaInk600,
                         textAlign = TextAlign.Center,
                     )
                 } else {
                     Text(
                         text = "Your repair request is live. Verified engineers in your area can now bid.",
-                        style = EsType.BodySm,
-                        color = SevaInk700,
+                        fontSize = 13.sp,
+                        lineHeight = 19.5.sp,
+                        color = SevaInk600,
                         textAlign = TextAlign.Center,
                     )
                 }
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(16.dp))
                 NextStepsCard()
             }
             Surface(color = androidx.compose.ui.graphics.Color.White) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, BorderDefault, RoundedCornerShape(0.dp))
+                        .padding(top = 1.dp)
+                        .background(androidx.compose.ui.graphics.Color.White)
                         .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -137,8 +147,13 @@ fun RequestSentScreen(
     }
 }
 
-private fun buildAnnotatedJobLine(jobNumber: String): String =
-    "Job $jobNumber is live. Verified engineers in your area can now bid."
+private fun jobAnnotatedLine(jobNumber: String): AnnotatedString = buildAnnotatedString {
+    append("Job ")
+    withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = SevaInk900)) {
+        append(jobNumber)
+    }
+    append(" is live. Verified engineers in your area can now bid.")
+}
 
 @Composable
 private fun NextStepsCard() {
