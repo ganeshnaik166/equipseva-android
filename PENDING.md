@@ -8,11 +8,11 @@ Legend: 🔴 blocker · 🟠 needs attention · 🟡 nice-to-have · ⚪ beyond 
 
 ## 🔴 BLOCKERS — still open (NONE are code work)
 
-### Legal / Compliance — needs hosted URLs
-1. **Privacy Policy URL** — Play requires a public URL. Single-page Notion/site fine. Must cover Supabase, Sentry, Firebase Analytics, Crashlytics, Razorpay, FCM, location-on-KYC.
-2. **Terms of Service URL** — linked from settings + signup.
-3. **Play Store Data Safety form** — declare every field collected: email, phone, full name, Aadhaar #, KYC docs, location (shipping), device ID (FCM), payment info (Razorpay).
-4. **Razorpay refund policy URL** — gateway / RBI requirement. Customer-facing refund terms.
+### Legal / Compliance — hosted URLs
+1. ✅ **Privacy Policy URL** — https://equipseva.com/privacy/ (live, served via Jekyll on `docs/launch/PRIVACY_POLICY.md`). DPDP-compliant. Covers Supabase, Sentry, Firebase Analytics, Crashlytics, Razorpay, FCM. *Minor follow-up: §2 currently says "we do not run a background location service" — accurate, but does not explicitly mention the foreground-only coarse-location use for engineer service-area filtering. Add a one-line clarification before publishing v2.*
+2. ✅ **Terms of Service URL** — https://equipseva.com/terms/ (live).
+3. **Play Store Data Safety form** — declare every field collected: email, phone, full name, Aadhaar #, KYC docs, location (shipping), device ID (FCM), payment info (Razorpay). *(Manual fill-in inside Play Console, no code work.)*
+4. ✅ **Razorpay refund policy URL** — https://equipseva.com/refunds/ (live).
 5. ✅ DPDP `delete_my_account` + `export_my_data` RPCs shipped (PR #151, #153). User-facing UI live.
 6. ✅ Content report / block / mute flow shipped (PR #148, #190).
 
