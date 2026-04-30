@@ -325,9 +325,16 @@ fun AddressFormScreen(
                 )
             }
 
+            // Mirror the required-field check that VM.save() runs server-side
+            // so the user sees the button as disabled instead of tapping
+            // through to a generic "fields are required" toast.
+            val f = state.form
+            val canSave = f.fullName.isNotBlank() && f.phone.isNotBlank() &&
+                f.line1.isNotBlank() && f.city.isNotBlank() &&
+                f.state.isNotBlank() && f.pincode.length in 4..10
             Button(
                 onClick = { viewModel.save() },
-                enabled = !state.saving && !state.locating,
+                enabled = !state.saving && !state.locating && canSave,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(if (state.saving) "Saving…" else if (state.form.id == null) "Save address" else "Save changes")

@@ -239,9 +239,16 @@ internal fun ProfileFormScaffold(
                         )
                     }
                     Spacer(Modifier.height(8.dp))
+                    // Don't let the user save a completely-empty form — the
+                    // generic UserSettingsRepository accepts any JSON, so
+                    // without this guard tapping Save on a blank Bank
+                    // Details / Hospital Settings / Addresses screen would
+                    // overwrite previous data with empty strings.
+                    val anyContent = state.values.values.any { it.isNotBlank() } ||
+                        state.switches.isNotEmpty()
                     Button(
                         onClick = { viewModel.onSave(onDone = onBack) },
-                        enabled = !state.saving,
+                        enabled = !state.saving && anyContent,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(if (state.saving) "Saving…" else "Save")
@@ -285,7 +292,7 @@ fun BankDetailsScreen(onBack: () -> Unit, onShowMessage: (String) -> Unit) =
         fields = listOf(
             FieldSpec("account_holder", "Account holder name"),
             FieldSpec("account_number", "Account number", FieldKind.NUMBER),
-            FieldSpec("ifsc", "IFSC code", placeholder = "HDFC0000123"),
+            FieldSpec("ifsc", "IFSC code", placeholder = "e.g., SBIN0001234"),
             FieldSpec("bank_name", "Bank name"),
             FieldSpec("branch", "Branch"),
             FieldSpec("default_payout", "Default payout account", kind = FieldKind.SWITCH, helper = "Used when you have multiple accounts"),
