@@ -459,8 +459,7 @@ private fun PersonalStep(
     KycSectionCard(title = "How hospitals reach you") {
         ReadOnlyContactRow(icon = Icons.Filled.Badge, label = "Name", value = state.fullName ?: "—")
 
-        // Phone — Add/Change button + Verified pill once auth.users
-        // confirms it (mirrored into profiles.phone_verified by trigger).
+        // Phone — direct save flow, no OTP. Add when blank, Change when set.
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -469,16 +468,12 @@ private fun PersonalStep(
             Icon(
                 imageVector = Icons.Filled.Phone,
                 contentDescription = null,
-                tint = if (state.phoneVerified) Success else Ink500,
+                tint = Ink500,
                 modifier = Modifier.size(18.dp),
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = when {
-                        state.phone.isNullOrBlank() -> "Phone — optional"
-                        state.phoneVerified -> "Phone (verified)"
-                        else -> "Phone — tap Verify"
-                    },
+                    text = "Phone",
                     fontSize = 11.sp,
                     color = Ink500,
                     fontWeight = FontWeight.SemiBold,
@@ -495,19 +490,15 @@ private fun PersonalStep(
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
             ) {
                 Text(
-                    text = when {
-                        state.phone.isNullOrBlank() -> "Add"
-                        !state.phoneVerified -> "Verify"
-                        else -> "Change"
-                    },
+                    text = if (state.phone.isNullOrBlank()) "Add" else "Change",
                     fontSize = 12.sp,
                 )
             }
         }
 
-        // Email — inline edit + Verify CTA. Once verified the trailing
-        // becomes a green check; before that it's a Verify button that
-        // opens the inline OTP sheet.
+        // Email — inline edit. Save trailing appears only when the draft
+        // diverges from the saved value. No verification step in v1; the
+        // user signed in with this address so it is already trusted.
         OutlinedTextField(
             value = state.emailDraft,
             onValueChange = onEmailDraftChange,
@@ -516,43 +507,31 @@ private fun PersonalStep(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             enabled = !state.savingEmail,
             supportingText = {
-                Text(
-                    text = when {
-                        state.email.isNullOrBlank() -> "Add the email hospitals can reach you at."
-                        state.emailVerified -> "✓ Verified"
-                        else -> "Tap Verify to receive a 6-digit code."
-                    },
-                    fontSize = 11.sp,
-                    color = if (state.emailVerified) Success else Ink500,
-                )
+                if (state.email.isNullOrBlank()) {
+                    Text(
+                        text = "Add the email hospitals can reach you at.",
+                        fontSize = 11.sp,
+                        color = Ink500,
+                    )
+                }
             },
             trailingIcon = {
                 val changed = state.emailDraft.isNotBlank() &&
                     !state.emailDraft.equals(state.email, ignoreCase = true)
-                when {
-                    changed -> androidx.compose.material3.TextButton(
+                if (changed) {
+                    androidx.compose.material3.TextButton(
                         onClick = onSaveEmail,
                         enabled = !state.savingEmail,
                     ) {
                         Text(if (state.savingEmail) "Saving…" else "Save")
                     }
-                    state.emailVerified -> Icon(
-                        Icons.Filled.CheckCircle,
-                        contentDescription = "Verified",
-                        tint = Success,
-                        modifier = Modifier.size(20.dp).padding(end = 8.dp),
-                    )
-                    !state.email.isNullOrBlank() -> androidx.compose.material3.TextButton(
-                        onClick = onVerifyEmail,
-                    ) { Text("Verify") }
-                    else -> {}
                 }
             },
             modifier = Modifier.fillMaxWidth(),
         )
 
         Text(
-            text = "Once you're verified, hospitals can Call / WhatsApp / Email you straight from your profile.",
+            text = "Hospitals can Call / WhatsApp / Email you straight from your profile.",
             fontSize = 12.sp,
             color = Ink500,
         )

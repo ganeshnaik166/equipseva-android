@@ -54,6 +54,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.equipseva.app.features.repair.components.fullBleedHorizontal
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -568,6 +569,7 @@ private fun StepWhere(
     com.equipseva.app.features.repair.components.LocationPickerMap(
         selected = pickedLatLng,
         onLocationPicked = { ll -> onSiteCoords(ll.latitude, ll.longitude) },
+        modifier = Modifier.fullBleedHorizontal(com.equipseva.app.designsystem.theme.Spacing.lg),
     )
     OutlinedTextField(
         value = budget,
