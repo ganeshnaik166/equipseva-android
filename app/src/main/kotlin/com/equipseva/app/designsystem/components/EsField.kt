@@ -47,6 +47,16 @@ fun EsField(
         EsFieldType.Password -> KeyboardType.Password
         else -> KeyboardType.Text
     }
+    // Belt-and-braces: even though KeyboardType.Password / Email usually
+    // suppress IME autocorrect on Android, some OEM keyboards still feed
+    // typed characters through the predictive-text dictionary, leaking
+    // password fragments to the system suggestions cache. Force them off.
+    val noSuggest = type == EsFieldType.Password || type == EsFieldType.Email
+    val capitalization = if (noSuggest) {
+        androidx.compose.ui.text.input.KeyboardCapitalization.None
+    } else {
+        androidx.compose.ui.text.input.KeyboardCapitalization.Sentences
+    }
     val visualTransformation: VisualTransformation =
         if (type == EsFieldType.Password) PasswordVisualTransformation() else VisualTransformation.None
     Column(modifier = modifier.fillMaxWidth()) {
@@ -69,7 +79,11 @@ fun EsField(
             singleLine = type != EsFieldType.Multiline,
             minLines = if (type == EsFieldType.Multiline) 3 else 1,
             visualTransformation = visualTransformation,
-            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = keyboardType,
+                autoCorrect = !noSuggest,
+                capitalization = capitalization,
+            ),
             enabled = enabled,
             shape = RoundedCornerShape(EsRadius.Md),
             colors = OutlinedTextFieldDefaults.colors(

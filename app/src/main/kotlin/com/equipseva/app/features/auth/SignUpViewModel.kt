@@ -34,7 +34,7 @@ class SignUpViewModel @Inject constructor(
         val canSubmit: Boolean get() = !form.submitting &&
             fullName.trim().length >= 2 &&
             Validators.emailIsValid(email) &&
-            password.length >= 6
+            password.length >= MIN_PASSWORD_LENGTH
     }
 
     private val _state = MutableStateFlow(UiState())
@@ -61,7 +61,8 @@ class SignUpViewModel @Inject constructor(
 
         val fullNameError = if (current.fullName.trim().length >= 2) null else "Enter your full name"
         val emailError = if (Validators.emailIsValid(current.email)) null else "Enter a valid email"
-        val passwordError = if (current.password.length >= 6) null else "Password must be 6+ characters"
+        val passwordError = if (current.password.length >= MIN_PASSWORD_LENGTH) null
+            else "Use at least $MIN_PASSWORD_LENGTH characters"
         if (fullNameError != null || emailError != null || passwordError != null) {
             _state.update {
                 it.copy(
@@ -95,5 +96,12 @@ class SignUpViewModel @Inject constructor(
                 },
             )
         }
+    }
+
+    companion object {
+        // Mirror Validators.kt's 8-char floor so the UI prompt and the
+        // server expectation agree. Old "6+" copy let users submit
+        // passwords the backend would refuse.
+        const val MIN_PASSWORD_LENGTH = 8
     }
 }

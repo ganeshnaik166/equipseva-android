@@ -1,10 +1,13 @@
 package com.equipseva.app.features.auth
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.toAuthError
 import com.equipseva.app.core.util.Validators
+import com.equipseva.app.features.auth.google.GoogleSignInClient
+import com.equipseva.app.features.auth.google.GoogleSignInResult
 import com.equipseva.app.features.auth.state.AuthEffect
 import com.equipseva.app.features.auth.state.EmailPasswordFormState
 import com.equipseva.app.features.auth.state.FormUiState
@@ -21,6 +24,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SignInViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val googleSignInClient: GoogleSignInClient,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(EmailPasswordFormState())
@@ -61,6 +65,47 @@ class SignInViewModel @Inject constructor(
                     }
                 },
             )
+        }
+    }
+
+    /**
+     * Continue-with-Google handler. Mirrors WelcomeViewModel.onGoogleClicked
+     * — the SignIn screen previously routed the Google button to onSubmit,
+     * which tried to sign in with whatever was typed in email/password
+     * (i.e. usually nothing) so the button was effectively a dead UI element.
+     */
+    fun onGoogleClicked(activityContext: Context) {
+        if (_state.value.form.submitting) return
+        _state.update { it.copy(form = FormUiState(submitting = true)) }
+        viewModelScope.launch {
+            when (val result = googleSignInClient.signIn(activityContext)) {
+                is GoogleSignInResult.Token -> {
+                    authRepository.signInWithGoogleIdToken(result.idToken, result.rawNonce).fold(
+                        onSuccess = {
+                            _state.update { it.copy(form = FormUiState()) }
+                            _effects.send(AuthEffect.NavigateToHome)
+                        },
+                        onFailure = { ex ->
+                            _state.update {
+                                it.copy(form = FormUiState(errorMessage = ex.toAuthError().userMessage))
+                            }
+                        },
+                    )
+                }
+                is GoogleSignInResult.Cancelled -> {
+                    _state.update { it.copy(form = FormUiState()) }
+                }
+                is GoogleSignInResult.NotConfigured -> {
+                    _state.update {
+                        it.copy(form = FormUiState(errorMessage = "Google sign-in isn't configured for this build."))
+                    }
+                }
+                is GoogleSignInResult.Error -> {
+                    _state.update {
+                        it.copy(form = FormUiState(errorMessage = result.message))
+                    }
+                }
+            }
         }
     }
 
