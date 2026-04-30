@@ -93,11 +93,12 @@ fun WelcomeScreen(
                     fontSize = 36.sp,
                     fontWeight = FontWeight.Bold,
                     lineHeight = 38.sp,
+                    letterSpacing = (-0.72).sp, // -0.02em × 36sp
                     color = Color.White,
                 )
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = "On-demand biomedical engineers for your hospital. Verified, nearby, available today.",
+                    text = "Hospitals book verified biomedical engineers. Engineers find local jobs and get paid on time.",
                     fontFamily = EsFontFamily,
                     fontSize = 16.sp,
                     lineHeight = 23.sp,

@@ -104,7 +104,7 @@ fun SignInScreen(
                     value = state.email,
                     onChange = viewModel::onEmailChange,
                     label = "Email",
-                    placeholder = "you@hospital.com",
+                    placeholder = "you@example.com",
                     type = EsFieldType.Email,
                     error = state.emailError,
                     enabled = !state.form.submitting,
