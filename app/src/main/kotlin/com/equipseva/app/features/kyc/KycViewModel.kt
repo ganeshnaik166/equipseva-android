@@ -404,7 +404,7 @@ class KycViewModel @Inject constructor(
         }
         _state.update { it.copy(savingEmail = true) }
         viewModelScope.launch {
-            authRepository.updateEmail(newEmail)
+            authRepository.updateEmailDuringKyc(newEmail)
                 .onSuccess {
                     _state.update { it.copy(savingEmail = false) }
                     _effects.send(Effect.ShowMessage("Confirmation link sent to $newEmail"))

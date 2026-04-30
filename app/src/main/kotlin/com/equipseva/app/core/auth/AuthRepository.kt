@@ -49,10 +49,22 @@ interface AuthRepository {
     suspend fun verifyPhoneAdd(phone: String, token: String): Result<Unit>
 
     /**
-     * Stamp a new email onto the *currently signed-in* user. Supabase fires
-     * a confirmation message to the new address.
+     * Stamp a new email onto the *currently signed-in* user after re-auth
+     * with [currentPassword]. Supabase fires a confirmation message to the
+     * new address. The re-auth check prevents an unlocked-device attacker
+     * from hijacking account recovery by swapping the email out from under
+     * the legitimate owner. Throws [InvalidCurrentPasswordException] inside
+     * Result.failure when the current password is wrong.
      */
-    suspend fun updateEmail(newEmail: String): Result<Unit>
+    suspend fun updateEmail(currentPassword: String, newEmail: String): Result<Unit>
+
+    /**
+     * Email update WITHOUT re-auth — strictly for the in-KYC "edit email"
+     * path where the engineer was just signed in seconds ago and the email
+     * is being corrected before any data is saved against it. Do NOT call
+     * from post-onboarding settings; use [updateEmail] there instead.
+     */
+    suspend fun updateEmailDuringKyc(newEmail: String): Result<Unit>
 
     suspend fun signOut(): Result<Unit>
 

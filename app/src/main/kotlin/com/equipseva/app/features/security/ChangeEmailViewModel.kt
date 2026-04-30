@@ -3,6 +3,7 @@ package com.equipseva.app.features.security
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
+import com.equipseva.app.core.auth.InvalidCurrentPasswordException
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.Validators
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,8 +22,10 @@ class ChangeEmailViewModel @Inject constructor(
 ) : ViewModel() {
 
     data class UiState(
+        val currentPassword: String = "",
         val newEmail: String = "",
         val submitting: Boolean = false,
+        val currentPasswordError: String? = null,
         val emailError: String? = null,
         val errorMessage: String? = null,
     )
@@ -36,6 +39,16 @@ class ChangeEmailViewModel @Inject constructor(
 
     private val _effects = Channel<Effect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
+
+    fun onCurrentPasswordChange(value: String) {
+        _state.update {
+            it.copy(
+                currentPassword = value,
+                currentPasswordError = null,
+                errorMessage = null,
+            )
+        }
+    }
 
     fun onEmailChange(value: String) {
         _state.update {
@@ -52,30 +65,43 @@ class ChangeEmailViewModel @Inject constructor(
         if (current.submitting) return
 
         val trimmed = current.newEmail.trim()
+        val pwd = current.currentPassword
+        val pwdError = if (pwd.isBlank()) "Enter your current password" else null
         val emailError = when {
             trimmed.isBlank() -> "Enter your new email"
             !Validators.emailIsValid(trimmed) -> "Enter a valid email address"
             else -> null
         }
 
-        if (emailError != null) {
-            _state.update { it.copy(emailError = emailError) }
+        if (pwdError != null || emailError != null) {
+            _state.update {
+                it.copy(currentPasswordError = pwdError, emailError = emailError)
+            }
             return
         }
 
         _state.update { it.copy(submitting = true, errorMessage = null) }
         viewModelScope.launch {
-            authRepository.updateEmail(trimmed).fold(
+            authRepository.updateEmail(pwd, trimmed).fold(
                 onSuccess = {
                     _state.update { UiState() }
                     _effects.send(Effect.Success("Check your inbox"))
                 },
                 onFailure = { ex ->
-                    _state.update {
-                        it.copy(
-                            submitting = false,
-                            errorMessage = ex.toUserMessage(),
-                        )
+                    if (ex is InvalidCurrentPasswordException) {
+                        _state.update {
+                            it.copy(
+                                submitting = false,
+                                currentPasswordError = "Current password is incorrect",
+                            )
+                        }
+                    } else {
+                        _state.update {
+                            it.copy(
+                                submitting = false,
+                                errorMessage = ex.toUserMessage(),
+                            )
+                        }
                     }
                 },
             )
