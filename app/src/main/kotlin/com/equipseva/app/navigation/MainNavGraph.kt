@@ -508,8 +508,13 @@ fun MainNavGraph(
                 )
             }
             composable(Routes.EARNINGS) {
+                // Earnings is reachable both as the engineer bottom-nav tab
+                // root AND from the Jobs hub tile. We drop the in-screen
+                // back arrow because at the tab root it would be redundant
+                // with the bottom nav, and from the hub the system back
+                // gesture pops cleanly back to the hub.
                 EarningsScreen(
-                    onBack = { navController.popBackStack() },
+                    onBack = null,
                     onJobClick = { jobId -> navController.navigate(Routes.repairJobDetailRoute(jobId)) },
                     onBankDetails = { navController.navigate(Routes.PROFILE_BANK_DETAILS) },
                 )
