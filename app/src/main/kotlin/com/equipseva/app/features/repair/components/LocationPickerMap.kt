@@ -31,8 +31,10 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -52,6 +54,27 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.launch
 
 private val HYDERABAD_FALLBACK = LatLng(17.385, 78.4867)
+
+/**
+ * Forces a child to span its parent's content area PLUS the parent's
+ * horizontal padding — so the child reaches the actual screen edges even
+ * when its parent column applies horizontal padding to all siblings. The
+ * child still reports its size as the parent's content width so siblings
+ * don't shift around it. Use for full-bleed maps, hero images, and other
+ * media that should ignore the form-style horizontal gutter.
+ */
+fun Modifier.fullBleedHorizontal(parentHorizontalPadding: Dp): Modifier =
+    this.layout { measurable, constraints ->
+        val pad = parentHorizontalPadding.roundToPx()
+        val widened = constraints.copy(
+            minWidth = constraints.maxWidth + 2 * pad,
+            maxWidth = constraints.maxWidth + 2 * pad,
+        )
+        val placeable = measurable.measure(widened)
+        layout(placeable.width - 2 * pad, placeable.height) {
+            placeable.place(-pad, 0)
+        }
+    }
 
 /**
  * Map picker shared by hospital RequestService Step 3 and engineer KYC
@@ -127,7 +150,7 @@ fun LocationPickerMap(
         Surface(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                .padding(vertical = Spacing.sm),
             shape = RoundedCornerShape(12.dp),
             tonalElevation = 1.dp,
         ) {
@@ -190,8 +213,7 @@ fun LocationPickerMap(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(220.dp)
-                .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
-                .clip(RoundedCornerShape(12.dp)),
+                .padding(vertical = Spacing.sm),
             cameraPositionState = cameraPositionState,
             properties = MapProperties(isMyLocationEnabled = false),
             uiSettings = MapUiSettings(
