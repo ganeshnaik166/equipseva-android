@@ -46,7 +46,7 @@ class SupabaseAuthRepository @Inject constructor(
         email: String,
         password: String,
         fullName: String,
-    ): Result<Unit> = runCatching {
+    ): Result<SignUpOutcome> = runCatching {
         client.auth.signUpWith(Email) {
             this.email = email
             this.password = password
@@ -57,7 +57,15 @@ class SupabaseAuthRepository @Inject constructor(
                 )
             }
         }
-        Unit
+        // When Supabase has "Confirm email" ON, signUp returns success but
+        // doesn't issue a session — the user must click the verification
+        // link first. When it's OFF, currentSessionOrNull is non-null and
+        // SessionViewModel will pick up SignedIn for an automatic redirect.
+        if (client.auth.currentSessionOrNull() != null) {
+            SignUpOutcome.AutoSignedIn
+        } else {
+            SignUpOutcome.NeedsEmailConfirmation
+        }
     }
 
     override suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?): Result<Unit> =

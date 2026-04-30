@@ -18,7 +18,7 @@ interface AuthRepository {
     val sessionState: Flow<AuthSession>
 
     suspend fun signInWithEmailPassword(email: String, password: String): Result<Unit>
-    suspend fun signUpWithEmailPassword(email: String, password: String, fullName: String): Result<Unit>
+    suspend fun signUpWithEmailPassword(email: String, password: String, fullName: String): Result<SignUpOutcome>
     suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?): Result<Unit>
 
     suspend fun sendPasswordResetEmail(email: String): Result<Unit>
@@ -85,3 +85,9 @@ sealed interface AuthSession {
  *  password fails the re-auth check, so the screen can attribute the error
  *  to the current-password field instead of the new-password field. */
 class InvalidCurrentPasswordException : RuntimeException("Current password is incorrect.")
+
+/** Distinguishes a Supabase signUp that auto-issued a session (email
+ *  confirmation off) from one that needs the user to click a confirmation
+ *  link before signing in (email confirmation on). The screen renders
+ *  different copy in each case. */
+enum class SignUpOutcome { AutoSignedIn, NeedsEmailConfirmation }

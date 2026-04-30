@@ -76,18 +76,32 @@ class SignUpViewModel @Inject constructor(
 
         _state.update { it.copy(form = FormUiState(submitting = true)) }
         viewModelScope.launch {
+            val targetEmail = current.email.trim()
             authRepository.signUpWithEmailPassword(
-                email = current.email.trim(),
+                email = targetEmail,
                 password = current.password,
                 fullName = current.fullName.trim(),
             ).fold(
-                onSuccess = {
-                    _state.update { it.copy(form = FormUiState()) }
-                    // Supabase config decides whether the new user lands signed-in
-                    // immediately (email confirmation off) or has to click a link
-                    // first. SessionViewModel observes both states; either way
-                    // the host nav graph reacts.
-                    _effects.send(AuthEffect.NavigateToHome)
+                onSuccess = { outcome ->
+                    when (outcome) {
+                        com.equipseva.app.core.auth.SignUpOutcome.AutoSignedIn -> {
+                            _state.update { it.copy(form = FormUiState()) }
+                            // Session will transition; AuthHostInline routes to Home.
+                            _effects.send(AuthEffect.NavigateToHome)
+                        }
+                        com.equipseva.app.core.auth.SignUpOutcome.NeedsEmailConfirmation -> {
+                            // Supabase "Confirm email" is ON — no session yet.
+                            // Tell the user to check their inbox + leave them
+                            // on the form so they can read the toast and back
+                            // out to Sign in once the link is clicked.
+                            _state.update { it.copy(form = FormUiState()) }
+                            _effects.send(
+                                AuthEffect.ShowMessage(
+                                    "Verification link sent to $targetEmail. Open it, then sign in.",
+                                ),
+                            )
+                        }
+                    }
                 },
                 onFailure = { ex ->
                     _state.update {
