@@ -346,11 +346,11 @@ private fun KycStepperBody(
             )
         }
 
-        // Step intro: matches design — bold step subtitle + small caption.
-        // The numeric "Step X of Y" lives in the top bar, so no circle stepper here.
+        // Step intro: matches design — short title ("Personal" / "Documents")
+        // + small caption. The numeric "Step X of Y" lives in the top bar.
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                text = state.currentStep.subtitle,
+                text = state.currentStep.title,
                 fontSize = 18.sp,
                 color = Ink900,
                 fontWeight = FontWeight.Bold,
@@ -476,82 +476,115 @@ private fun PersonalStep(
     onVerifyEmail: () -> Unit,
 ) {
     KycSectionCard(title = "How hospitals reach you") {
-        ReadOnlyContactRow(icon = Icons.Filled.Badge, label = "Name", value = state.fullName ?: "—")
-
-        // Phone — direct save flow, no OTP. Add when blank, Change when set.
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        // Full name — label above, read-only field with the user's saved name.
+        // Use disabled colors that keep the value ink-black per design.
+        val readOnlyColors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+            disabledTextColor = Ink900,
+            disabledBorderColor = Surface200,
+            disabledContainerColor = Color.White,
+            disabledPlaceholderColor = Ink500,
+        )
+        FieldLabel("Full name")
+        OutlinedTextField(
+            value = state.fullName ?: "",
+            onValueChange = {},
+            enabled = false,
+            singleLine = true,
+            colors = readOnlyColors,
             modifier = Modifier.fillMaxWidth(),
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Phone,
-                contentDescription = null,
-                tint = Ink500,
-                modifier = Modifier.size(18.dp),
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Phone",
-                    fontSize = 11.sp,
-                    color = Ink500,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    text = state.phone ?: "Add so hospitals can call you",
-                    fontSize = 13.sp,
-                    color = if (state.phone.isNullOrBlank()) Ink500 else Ink900,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-            OutlinedButton(
-                onClick = onAddPhone,
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-            ) {
-                Text(
-                    text = if (state.phone.isNullOrBlank()) "Add" else "Change",
-                    fontSize = 12.sp,
-                )
-            }
-        }
+        )
 
-        // Email — inline edit. Save trailing appears only when the draft
-        // diverges from the saved value. No verification step in v1; the
-        // user signed in with this address so it is already trusted.
+        // Email — inline edit. Trailing "Verified" pill once it matches the
+        // saved address; "Save" text-button while the draft diverges. No OTP
+        // step in v1 since the user signed in with this address.
+        FieldLabel("Email")
+        val emailChanged = state.emailDraft.isNotBlank() &&
+            !state.emailDraft.equals(state.email, ignoreCase = true)
         OutlinedTextField(
             value = state.emailDraft,
             onValueChange = onEmailDraftChange,
-            label = { Text("Email") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             enabled = !state.savingEmail,
-            supportingText = {
-                if (state.email.isNullOrBlank()) {
-                    Text(
-                        text = "Add the email hospitals can reach you at.",
-                        fontSize = 11.sp,
-                        color = Ink500,
-                    )
-                }
-            },
             trailingIcon = {
-                val changed = state.emailDraft.isNotBlank() &&
-                    !state.emailDraft.equals(state.email, ignoreCase = true)
-                if (changed) {
+                if (emailChanged) {
                     androidx.compose.material3.TextButton(
                         onClick = onSaveEmail,
                         enabled = !state.savingEmail,
+                        modifier = Modifier.padding(end = 6.dp),
                     ) {
-                        Text(if (state.savingEmail) "Saving…" else "Save")
+                        Text(
+                            text = if (state.savingEmail) "Saving…" else "Save",
+                            color = SevaGreen700,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                } else if (!state.email.isNullOrBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(SevaGreen50)
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                    ) {
+                        Text(
+                            text = "Verified",
+                            color = SevaGreen700,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
                     }
                 }
             },
             modifier = Modifier.fillMaxWidth(),
         )
 
+        // Phone — direct save flow, no OTP. Add when blank, Verified pill
+        // when set. Hint copy below from screens-kyc.jsx.
+        FieldLabel("Phone (for hospital contact)")
+        OutlinedTextField(
+            value = state.phone ?: "",
+            onValueChange = {},
+            enabled = false,
+            singleLine = true,
+            colors = readOnlyColors,
+            placeholder = { Text("+91 98765 43210", color = Ink500) },
+            trailingIcon = {
+                if (state.phone.isNullOrBlank()) {
+                    androidx.compose.material3.TextButton(
+                        onClick = onAddPhone,
+                        modifier = Modifier.padding(end = 6.dp),
+                    ) {
+                        Text(
+                            text = "Add",
+                            color = SevaGreen700,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(SevaGreen50)
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                    ) {
+                        Text(
+                            text = "Verified",
+                            color = SevaGreen700,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
         Text(
-            text = "Hospitals can Call / WhatsApp / Email you straight from your profile.",
-            fontSize = 12.sp,
+            text = "Used by hospitals to call/WhatsApp. Not for login.",
+            fontSize = 11.sp,
             color = Ink500,
         )
     }
@@ -766,6 +799,16 @@ private fun AttestationSection(state: KycViewModel.UiState, onAttestationChange:
     )
 }
 
+
+@Composable
+private fun FieldLabel(text: String) {
+    Text(
+        text = text,
+        fontSize = 14.sp,
+        fontWeight = FontWeight.Bold,
+        color = Ink900,
+    )
+}
 
 @Composable
 private fun ReadOnlyContactRow(
