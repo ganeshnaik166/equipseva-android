@@ -90,9 +90,7 @@ fun KycStatusTimeline(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(Surface0, RoundedCornerShape(12.dp))
-            .border(1.dp, Surface200, RoundedCornerShape(12.dp))
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(
