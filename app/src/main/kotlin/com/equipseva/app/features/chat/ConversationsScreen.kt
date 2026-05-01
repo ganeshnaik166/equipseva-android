@@ -90,7 +90,7 @@ fun ConversationsScreen(
                 state.rows.isEmpty() -> EmptyStateView(
                     icon = Icons.Outlined.ChatBubbleOutline,
                     title = "No conversations yet",
-                    subtitle = "Reach out from a repair job to start chatting.",
+                    subtitle = "Open an engineer's profile and tap Message to start a chat, or reach out from a repair job thread.",
                 )
                 state.displayedRows.isEmpty() -> EmptyStateView(
                     icon = Icons.Outlined.ChatBubbleOutline,
