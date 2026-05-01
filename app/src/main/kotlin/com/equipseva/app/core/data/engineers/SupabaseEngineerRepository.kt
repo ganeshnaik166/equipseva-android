@@ -86,6 +86,22 @@ class SupabaseEngineerRepository @Inject constructor(
         }.decodeSingle<EngineerDto>().toDomain()
     }
 
+    override suspend fun updateBaseLocation(
+        userId: String,
+        latitude: Double,
+        longitude: Double,
+    ): Result<Engineer> = runCatching {
+        client.from(TABLE).update(
+            {
+                set("latitude", latitude)
+                set("longitude", longitude)
+            },
+        ) {
+            filter { eq("user_id", userId) }
+            select()
+        }.decodeSingle<EngineerDto>().toDomain()
+    }
+
     override suspend fun uploadKycDoc(
         userId: String,
         fileName: String,

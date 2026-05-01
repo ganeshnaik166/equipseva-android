@@ -34,7 +34,7 @@ class SignUpViewModel @Inject constructor(
         val canSubmit: Boolean get() = !form.submitting &&
             fullName.trim().length >= 2 &&
             Validators.emailIsValid(email) &&
-            password.length >= 6
+            password.length >= MIN_PASSWORD_LENGTH
     }
 
     private val _state = MutableStateFlow(UiState())
@@ -61,7 +61,8 @@ class SignUpViewModel @Inject constructor(
 
         val fullNameError = if (current.fullName.trim().length >= 2) null else "Enter your full name"
         val emailError = if (Validators.emailIsValid(current.email)) null else "Enter a valid email"
-        val passwordError = if (current.password.length >= 6) null else "Password must be 6+ characters"
+        val passwordError = if (current.password.length >= MIN_PASSWORD_LENGTH) null
+            else "Use at least $MIN_PASSWORD_LENGTH characters"
         if (fullNameError != null || emailError != null || passwordError != null) {
             _state.update {
                 it.copy(
@@ -75,18 +76,32 @@ class SignUpViewModel @Inject constructor(
 
         _state.update { it.copy(form = FormUiState(submitting = true)) }
         viewModelScope.launch {
+            val targetEmail = current.email.trim()
             authRepository.signUpWithEmailPassword(
-                email = current.email.trim(),
+                email = targetEmail,
                 password = current.password,
                 fullName = current.fullName.trim(),
             ).fold(
-                onSuccess = {
-                    _state.update { it.copy(form = FormUiState()) }
-                    // Supabase config decides whether the new user lands signed-in
-                    // immediately (email confirmation off) or has to click a link
-                    // first. SessionViewModel observes both states; either way
-                    // the host nav graph reacts.
-                    _effects.send(AuthEffect.NavigateToHome)
+                onSuccess = { outcome ->
+                    when (outcome) {
+                        com.equipseva.app.core.auth.SignUpOutcome.AutoSignedIn -> {
+                            _state.update { it.copy(form = FormUiState()) }
+                            // Session will transition; AuthHostInline routes to Home.
+                            _effects.send(AuthEffect.NavigateToHome)
+                        }
+                        com.equipseva.app.core.auth.SignUpOutcome.NeedsEmailConfirmation -> {
+                            // Supabase "Confirm email" is ON — no session yet.
+                            // Tell the user to check their inbox + leave them
+                            // on the form so they can read the toast and back
+                            // out to Sign in once the link is clicked.
+                            _state.update { it.copy(form = FormUiState()) }
+                            _effects.send(
+                                AuthEffect.ShowMessage(
+                                    "Verification link sent to $targetEmail. Open it, then sign in.",
+                                ),
+                            )
+                        }
+                    }
                 },
                 onFailure = { ex ->
                     _state.update {
@@ -95,5 +110,12 @@ class SignUpViewModel @Inject constructor(
                 },
             )
         }
+    }
+
+    companion object {
+        // Mirror Validators.kt's 8-char floor so the UI prompt and the
+        // server expectation agree. Old "6+" copy let users submit
+        // passwords the backend would refuse.
+        const val MIN_PASSWORD_LENGTH = 8
     }
 }

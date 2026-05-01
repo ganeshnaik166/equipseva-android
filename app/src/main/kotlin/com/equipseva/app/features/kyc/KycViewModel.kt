@@ -1,5 +1,6 @@
 package com.equipseva.app.features.kyc
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
@@ -37,7 +38,52 @@ class KycViewModel @Inject constructor(
     private val photoUploadStash: PhotoUploadStash,
     private val playIntegrityClient: IntegrityVerifier,
     private val locationFetcher: com.equipseva.app.core.location.LocationFetcher,
+    private val userPrefs: com.equipseva.app.core.data.prefs.UserPrefs,
+    private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+
+    private object SavedKeys {
+        const val STEP = "kyc.currentStep"
+        const val AADHAAR = "kyc.aadhaarNumber"
+        const val PAN = "kyc.panNumber"
+        const val STATE = "kyc.serviceState"
+        const val DISTRICT = "kyc.serviceDistrict"
+        const val ADDRESS = "kyc.serviceAddress"
+        const val LAT = "kyc.serviceLat"
+        const val LNG = "kyc.serviceLng"
+        const val ATTEST = "kyc.attestation"
+    }
+
+    private fun persistStep(step: KycStep) {
+        savedStateHandle[SavedKeys.STEP] = step.name
+    }
+
+    /** Mark the user as currently inside the KYC flow so a picker-induced
+     *  process death restores them here on next cold start. */
+    fun markEntered() {
+        viewModelScope.launch { userPrefs.setLastScreen(com.equipseva.app.navigation.Routes.KYC) }
+    }
+
+    fun markExited() {
+        viewModelScope.launch { userPrefs.setLastScreen(null) }
+    }
+
+    /**
+     * Belt-and-braces clear of the lastScreen pin when the KYC ViewModel
+     * scope ends — fires when the user pops KYC off the back stack via
+     * system-back / NavigateUp / tab switch (not on config change, since
+     * ViewModel survives those). Without this, the pin set in [markEntered]
+     * leaks into the next cold-start and bounces verified users back into
+     * KYC after they navigate away normally instead of via the in-screen
+     * back arrow.
+     */
+    @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
+    override fun onCleared() {
+        // Best-effort, fire-and-forget: scope is shutting down so we cant
+        // suspend on the prefs flush.
+        kotlinx.coroutines.GlobalScope.launch { userPrefs.setLastScreen(null) }
+        super.onCleared()
+    }
 
     data class UiState(
         val loading: Boolean = true,
@@ -53,6 +99,12 @@ class KycViewModel @Inject constructor(
         val serviceAddress: String = "",
         val serviceLatitude: Double? = null,
         val serviceLongitude: Double? = null,
+        // Structured location (State → District cascade). Primary input on
+        // the Personal step. serviceAddress is composed from these on every
+        // change so the existing submit path still writes a single string
+        // into `engineers.city` and the rest of the app keeps working.
+        val serviceState: String? = null,
+        val serviceDistrict: String? = null,
         val experienceYears: String = "",
         val serviceRadiusKm: String = "25",
         val qualificationDraft: String = "",
@@ -114,9 +166,8 @@ class KycViewModel @Inject constructor(
                         // a hard gate on the KYC flow — engineers without a
                         // phone yet can still submit; they can add it later
                         // from Profile → Add phone number.
-                        serviceAddress.length < 8 -> "Add the area you serve."
-                        serviceLatitude == null || serviceLongitude == null ->
-                            "Pin your service location on the map."
+                        serviceState.isNullOrBlank() -> "Pick the state you serve."
+                        serviceDistrict.isNullOrBlank() -> "Pick the district you serve."
                         else -> null
                     }
                 }
@@ -172,6 +223,25 @@ class KycViewModel @Inject constructor(
     private var userId: String? = null
 
     init {
+        // Process-death + RootHost-remount recovery: pull restored progress
+        // out of SavedStateHandle BEFORE load() runs so the screen reopens
+        // at the right step with typed inputs intact.
+        val restoredStep = savedStateHandle.get<String>(SavedKeys.STEP)
+            ?.let { name -> runCatching { KycStep.valueOf(name) }.getOrNull() }
+            ?: KycStep.Personal
+        _state.update {
+            it.copy(
+                currentStep = restoredStep,
+                aadhaarNumber = savedStateHandle.get<String>(SavedKeys.AADHAAR) ?: it.aadhaarNumber,
+                panNumber = savedStateHandle.get<String>(SavedKeys.PAN) ?: it.panNumber,
+                serviceState = savedStateHandle.get<String>(SavedKeys.STATE) ?: it.serviceState,
+                serviceDistrict = savedStateHandle.get<String>(SavedKeys.DISTRICT) ?: it.serviceDistrict,
+                serviceAddress = savedStateHandle.get<String>(SavedKeys.ADDRESS) ?: it.serviceAddress,
+                serviceLatitude = savedStateHandle.get<Double>(SavedKeys.LAT) ?: it.serviceLatitude,
+                serviceLongitude = savedStateHandle.get<Double>(SavedKeys.LNG) ?: it.serviceLongitude,
+                attestationAccepted = savedStateHandle.get<Boolean>(SavedKeys.ATTEST) ?: it.attestationAccepted,
+            )
+        }
         viewModelScope.launch { load() }
     }
 
@@ -215,26 +285,24 @@ class KycViewModel @Inject constructor(
 
     fun goToNextStep() {
         val snap = _state.value
-        if (!snap.canAdvance) {
-            viewModelScope.launch {
-                snap.stepError()?.let { _effects.send(Effect.ShowMessage(it)) }
-            }
-            return
-        }
         val next = snap.currentStep.next() ?: return
+        persistStep(next)
         _state.update { it.copy(currentStep = next) }
     }
 
     fun goToPreviousStep() {
         val prev = _state.value.currentStep.previous() ?: return
+        persistStep(prev)
         _state.update { it.copy(currentStep = prev) }
     }
 
     fun jumpToStep(step: KycStep) {
+        persistStep(step)
         _state.update { it.copy(currentStep = step) }
     }
 
     fun onAttestationChange(value: Boolean) {
+        savedStateHandle[SavedKeys.ATTEST] = value
         _state.update { it.copy(attestationAccepted = value) }
     }
 
@@ -336,7 +404,7 @@ class KycViewModel @Inject constructor(
         }
         _state.update { it.copy(savingEmail = true) }
         viewModelScope.launch {
-            authRepository.updateEmail(newEmail)
+            authRepository.updateEmailDuringKyc(newEmail)
                 .onSuccess {
                     _state.update { it.copy(savingEmail = false) }
                     _effects.send(Effect.ShowMessage("Confirmation link sent to $newEmail"))
@@ -349,20 +417,47 @@ class KycViewModel @Inject constructor(
     }
 
     private fun hydrate(engineer: Engineer?) {
+        // Restored handle values take priority over server values for any
+        // field the user might have typed mid-flow — process death must not
+        // wipe in-progress edits when load() comes back with the older
+        // server snapshot. Server values still win for fields the user
+        // can't edit on this screen (verificationStatus, doc paths, etc.).
+        val savedAadhaar = savedStateHandle.get<String>(SavedKeys.AADHAAR)
+        val savedPan = savedStateHandle.get<String>(SavedKeys.PAN)
+        val savedState = savedStateHandle.get<String>(SavedKeys.STATE)
+        val savedDistrict = savedStateHandle.get<String>(SavedKeys.DISTRICT)
+        val savedAddress = savedStateHandle.get<String>(SavedKeys.ADDRESS)
+        val savedLat = savedStateHandle.get<Double>(SavedKeys.LAT)
+        val savedLng = savedStateHandle.get<Double>(SavedKeys.LNG)
+        val savedAttest = savedStateHandle.get<Boolean>(SavedKeys.ATTEST)
+
         _state.update {
             if (engineer == null) {
                 it.copy(loading = false)
             } else {
+                val raw = engineer.city.orEmpty()
+                val (parsedState, parsedDistrict) = run {
+                    val parts = raw.split(",").map { it.trim() }
+                    val maybeState = parts.lastOrNull()?.takeIf {
+                        it in com.equipseva.app.core.data.location.IndiaLocations.STATES
+                    }
+                    val maybeDistrict = parts.dropLast(1).lastOrNull()?.takeIf {
+                        maybeState != null && it in com.equipseva.app.core.data.location.IndiaLocations.districtsFor(maybeState)
+                    }
+                    maybeState to maybeDistrict
+                }
                 it.copy(
                     loading = false,
                     verificationStatus = engineer.verificationStatus,
                     verificationNotes = engineer.verificationNotes,
                     rejectedDocTypes = engineer.rejectedDocTypes,
                     aadhaarVerified = engineer.aadhaarVerified,
-                    aadhaarNumber = engineer.aadhaarNumber.orEmpty(),
-                    serviceAddress = engineer.city.orEmpty(),
-                    serviceLatitude = engineer.latitude,
-                    serviceLongitude = engineer.longitude,
+                    aadhaarNumber = savedAadhaar ?: engineer.aadhaarNumber.orEmpty(),
+                    serviceAddress = savedAddress ?: raw,
+                    serviceState = savedState ?: parsedState,
+                    serviceDistrict = savedDistrict ?: parsedDistrict,
+                    serviceLatitude = savedLat ?: engineer.latitude,
+                    serviceLongitude = savedLng ?: engineer.longitude,
                     experienceYears = engineer.experienceYears.toString(),
                     serviceRadiusKm = engineer.serviceRadiusKm.toString(),
                     qualifications = engineer.qualifications,
@@ -370,7 +465,8 @@ class KycViewModel @Inject constructor(
                     aadhaarDocPath = engineer.aadhaarDocPath,
                     certDocPaths = engineer.certDocPaths,
                     panDocPath = engineer.panDocPath,
-                    panNumber = engineer.panNumber.orEmpty(),
+                    panNumber = savedPan ?: engineer.panNumber.orEmpty(),
+                    attestationAccepted = savedAttest ?: it.attestationAccepted,
                 )
             }
         }
@@ -378,19 +474,61 @@ class KycViewModel @Inject constructor(
 
     fun onAadhaarNumberChange(value: String) {
         val digits = value.filter { it.isDigit() }.take(12)
+        savedStateHandle[SavedKeys.AADHAAR] = digits
         _state.update { it.copy(aadhaarNumber = digits) }
     }
 
     fun onPanNumberChange(value: String) {
         // PAN is 10 chars, A-Z + 0-9. Force uppercase + drop everything else.
         val cleaned = value.uppercase().filter { it.isLetterOrDigit() }.take(10)
+        savedStateHandle[SavedKeys.PAN] = cleaned
         _state.update { it.copy(panNumber = cleaned) }
     }
 
-    fun onServiceAddressChange(value: String) =
+    fun onServiceAddressChange(value: String) {
+        savedStateHandle[SavedKeys.ADDRESS] = value
         _state.update { it.copy(serviceAddress = value) }
+    }
+
+    /** State picked from cascade. Resets the dependent district. */
+    fun onServiceStateChange(value: String) {
+        val composed = com.equipseva.app.core.data.location.IndiaLocations.compose(
+            state = value,
+            district = null,
+            mandal = null,
+        )
+        savedStateHandle[SavedKeys.STATE] = value
+        savedStateHandle[SavedKeys.DISTRICT] = null
+        savedStateHandle[SavedKeys.ADDRESS] = composed
+        _state.update {
+            it.copy(
+                serviceState = value,
+                serviceDistrict = null,
+                serviceAddress = composed,
+            )
+        }
+    }
+
+    /** District picked from cascade. Recomposes the legacy address string. */
+    fun onServiceDistrictChange(value: String) {
+        val composed = com.equipseva.app.core.data.location.IndiaLocations.compose(
+            state = _state.value.serviceState,
+            district = value,
+            mandal = null,
+        )
+        savedStateHandle[SavedKeys.DISTRICT] = value
+        savedStateHandle[SavedKeys.ADDRESS] = composed
+        _state.update {
+            it.copy(
+                serviceDistrict = value,
+                serviceAddress = composed,
+            )
+        }
+    }
 
     fun onServiceCoordsChange(latitude: Double?, longitude: Double?) {
+        savedStateHandle[SavedKeys.LAT] = latitude
+        savedStateHandle[SavedKeys.LNG] = longitude
         _state.update { it.copy(serviceLatitude = latitude, serviceLongitude = longitude) }
         // Auto-fill the service address from reverse-geocode the FIRST
         // time the user pins a location — but only if they haven't typed
@@ -665,12 +803,9 @@ class KycViewModel @Inject constructor(
             }
             return
         }
-        if (snap.selectedSpecializations.isEmpty()) {
-            viewModelScope.launch {
-                _effects.send(Effect.ShowMessage("Pick at least one specialization"))
-            }
-            return
-        }
+        // Specializations are picked later from Edit Engineer Profile, not in
+        // the 2-step KYC flow per `screens-kyc.jsx`. We don't gate submission
+        // on them here.
         _state.update { it.copy(saving = true) }
         viewModelScope.launch {
             // Play Integrity gate before persisting KYC. Debug fails open so

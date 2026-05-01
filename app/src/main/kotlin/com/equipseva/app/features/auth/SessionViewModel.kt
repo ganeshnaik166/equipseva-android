@@ -8,6 +8,7 @@ import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.push.DeviceTokenRegistrar
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -37,6 +39,10 @@ class SessionViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val bootstrapping = MutableStateFlow(false)
+
+    /** One-shot toasts surfaced by the sign-in gate (e.g. "Account deleted"). */
+    private val _messages = Channel<String>(Channel.BUFFERED)
+    val messages = _messages.receiveAsFlow()
 
     init {
         viewModelScope.launch {
@@ -100,17 +106,41 @@ class SessionViewModel @Inject constructor(
         )
 
     private suspend fun bootstrapProfile(userId: String) {
-        // Fast path: a confirmed role already cached on this device — no need to hit the server.
-        if (!userPrefs.activeRole.first().isNullOrBlank()) return
-        bootstrapping.value = true
+        // Always fetch the profile, even when a role is cached locally. The
+        // previous fast-path skip caused a "zombie session" — when an admin
+        // hard-deleted a user server-side, the cached role kept the app on
+        // Home with stale data forever instead of bouncing to Welcome.
+        val cached = userPrefs.activeRole.first()
+        bootstrapping.value = cached.isNullOrBlank()
         try {
-            profileRepository.fetchById(userId)
-                .onSuccess { profile ->
-                    val confirmedRole = profile?.takeIf { it.roleConfirmed }?.rawRoleKey
-                    if (!confirmedRole.isNullOrBlank()) {
-                        userPrefs.setActiveRole(confirmedRole)
-                    }
-                }
+            val result = profileRepository.fetchById(userId)
+            val fetched = result.getOrNull()
+            // Server-deleted account: row is gone (success(null)) while
+            // Supabase still hands us a session token. Sign out + tell the
+            // user. Distinct from network failure (Result.failure) where we
+            // keep the cached session.
+            if (result.isSuccess && fetched == null) {
+                _messages.trySend("Your account is no longer active. Sign in again.")
+                runCatching { userPrefs.clearActiveRole() }
+                runCatching { authRepository.signOut() }
+                return
+            }
+            // Defense-in-depth gate: legacy soft-delete (is_active=false)
+            // ships us a row but flags it inactive. Hard delete normally
+            // removes the row entirely (handled above).
+            if (fetched != null && !fetched.isActive) {
+                _messages.trySend("This account was deleted. Contact support to restore it.")
+                runCatching { userPrefs.clearActiveRole() }
+                runCatching { authRepository.signOut() }
+                return
+            }
+            // Only update the cached role when the server confirms it; we
+            // don't want a transient empty fetch to wipe a previously-set
+            // active role.
+            val confirmedRole = fetched?.takeIf { it.roleConfirmed }?.rawRoleKey
+            if (!confirmedRole.isNullOrBlank() && cached.isNullOrBlank()) {
+                userPrefs.setActiveRole(confirmedRole)
+            }
         } finally {
             bootstrapping.value = false
         }

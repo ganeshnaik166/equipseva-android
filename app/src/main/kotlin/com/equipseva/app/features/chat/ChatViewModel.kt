@@ -66,13 +66,14 @@ class ChatViewModel @Inject constructor(
         val editing: Boolean = false,
         val errorMessage: String? = null,
         val typingUserIds: Set<String> = emptySet(),
+        val dummyTitle: String? = null,
         // Deep-link target shown in the job-context strip below the top
         // bar. Populated from `chat_conversations.related_entity_id` when
         // related_entity_type == "repair_job".
         val relatedJobId: String? = null,
     ) {
         val title: String
-            get() = counterpart?.displayName ?: "Chat"
+            get() = counterpart?.displayName ?: dummyTitle ?: "Chat"
         val canSend: Boolean
             get() = draft.trim().isNotEmpty() && !sending && selfUserId != null && !counterpartBlocked
         val canSubmitEdit: Boolean
@@ -100,18 +101,32 @@ class ChatViewModel @Inject constructor(
     private var lastTypingBroadcastAtMs: Long = 0L
 
     init {
-        viewModelScope.launch {
-            val session = authRepository.sessionState
-                .filterIsInstance<AuthSession.SignedIn>()
-                .first()
-            _state.update { it.copy(selfUserId = session.userId) }
-            loadConversationMeta(session.userId)
-            observeMessages(session.userId)
-            observeTyping(session.userId)
+        if (conversationId in DUMMY_CONVO_TITLES.keys) {
+            val title = DUMMY_CONVO_TITLES[conversationId]!!
+            _state.update {
+                it.copy(
+                    loading = false,
+                    selfUserId = "self",
+                    counterpart = null,
+                    dummyTitle = title,
+                    messages = dummyMessagesFor(conversationId),
+                    relatedJobId = "dummy-job-${conversationId}",
+                )
+            }
+        } else {
+            viewModelScope.launch {
+                val session = authRepository.sessionState
+                    .filterIsInstance<AuthSession.SignedIn>()
+                    .first()
+                _state.update { it.copy(selfUserId = session.userId) }
+                loadConversationMeta(session.userId)
+                observeMessages(session.userId)
+                observeTyping(session.userId)
+            }
+            outboxDao.observePendingCountByKind(OutboxKinds.CHAT_MESSAGE)
+                .onEach { count -> _state.update { it.copy(queuedCount = count) } }
+                .launchIn(viewModelScope)
         }
-        outboxDao.observePendingCountByKind(OutboxKinds.CHAT_MESSAGE)
-            .onEach { count -> _state.update { it.copy(queuedCount = count) } }
-            .launchIn(viewModelScope)
     }
 
     fun onDraftChange(value: String) {
@@ -134,6 +149,20 @@ class ChatViewModel @Inject constructor(
         val self = snap.selfUserId
         if (text.isEmpty() || self == null || snap.sending) return
         _state.update { it.copy(sending = true, draft = "") }
+        if (conversationId in DUMMY_CONVO_TITLES.keys) {
+            // Demo conversation — append locally, no backend write.
+            val newMsg = ChatMessage(
+                id = "${conversationId}-local-${System.currentTimeMillis()}",
+                conversationId = conversationId,
+                senderUserId = self,
+                message = text,
+                attachments = emptyList(),
+                isRead = true,
+                createdAtIso = java.time.Instant.now().toString(),
+            )
+            _state.update { it.copy(sending = false, messages = it.messages + newMsg) }
+            return
+        }
         viewModelScope.launch {
             chatRepository.sendMessage(conversationId, self, text)
                 .onFailure { error ->
@@ -338,5 +367,50 @@ class ChatViewModel @Inject constructor(
         // Min interval between typing broadcasts per client. Repo-side TTL is ~3s, so
         // pinging every 2s keeps the "typing…" pill stable without flooding realtime.
         const val TYPING_BROADCAST_MIN_INTERVAL_MS = 2_000L
+    }
+}
+
+private val DUMMY_CONVO_TITLES = mapOf(
+    "c1" to "Satish Naidu",
+    "c2" to "Priyanka Reddy",
+    "c3" to "Lakshmi Devi",
+    "c4" to "Arjun Varma",
+)
+
+private fun dummyMessagesFor(conversationId: String): List<ChatMessage> {
+    val now = java.time.Instant.now()
+    val baseMin: Long = 60
+    val mk = { id: String, sender: String, msg: String, mins: Long ->
+        ChatMessage(
+            id = "$conversationId-$id",
+            conversationId = conversationId,
+            senderUserId = sender,
+            message = msg,
+            attachments = emptyList(),
+            isRead = true,
+            createdAtIso = now.minusSeconds(mins * baseMin).toString(),
+        )
+    }
+    return when (conversationId) {
+        "c1" -> listOf(
+            mk("1", "other", "Hi — I'm Satish. I can take the patient monitor job.", 240),
+            mk("2", "self", "Great. ETA?", 235),
+            mk("3", "other", "I'll be there by 11. Bring the spare cable.", 8),
+        )
+        "c2" -> listOf(
+            mk("1", "self", "What's your quote for the OT lamp?", 60),
+            mk("2", "other", "₹1400/hr + parts. 2 hour estimate.", 50),
+            mk("3", "other", "Quote sent — let me know.", 45),
+        )
+        "c3" -> listOf(
+            mk("1", "other", "Onsite. Diagnosing now.", 360),
+            mk("2", "other", "Drive belt frayed — replacing.", 300),
+            mk("3", "other", "Centrifuge fixed. Belt replaced.", 240),
+        )
+        "c4" -> listOf(
+            mk("1", "self", "Are you available tomorrow morning?", 1500),
+            mk("2", "other", "Rescheduling to tomorrow 9am.", 1440),
+        )
+        else -> emptyList()
     }
 }

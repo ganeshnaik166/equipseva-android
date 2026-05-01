@@ -26,8 +26,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.designsystem.components.EsBtn
@@ -42,6 +44,7 @@ import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk600
 import com.equipseva.app.designsystem.theme.SevaInk900
 
 @Composable
@@ -70,8 +73,9 @@ fun ForgotPasswordScreen(
                 } else {
                     Text(
                         text = "Enter your email. We'll send a link to reset your password.",
-                        style = EsType.BodySm,
-                        color = SevaInk500,
+                        fontSize = 13.sp,
+                        lineHeight = 19.5.sp,
+                        color = SevaInk600,
                     )
                     Spacer(Modifier.height(20.dp))
 
@@ -81,7 +85,7 @@ fun ForgotPasswordScreen(
                         value = state.email,
                         onChange = viewModel::onEmailChange,
                         label = "Email",
-                        placeholder = "you@hospital.com",
+                        placeholder = "name@yourdomain.com",
                         type = EsFieldType.Email,
                         error = state.emailError,
                         enabled = !state.submitting,
@@ -120,7 +124,7 @@ private fun SentBlock(email: String, onBack: () -> Unit) {
         ) {
             Icon(
                 imageVector = Icons.Outlined.CheckCircle,
-                contentDescription = null,
+                contentDescription = "Email sent",
                 tint = SevaGreen700,
                 modifier = Modifier.size(32.dp),
             )
@@ -128,13 +132,15 @@ private fun SentBlock(email: String, onBack: () -> Unit) {
         Spacer(Modifier.height(20.dp))
         Text(
             text = "Check your email",
-            style = EsType.H4,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
             color = SevaInk900,
         )
         Spacer(Modifier.height(8.dp))
         Text(
             text = "We've sent a reset link to $email.",
-            style = EsType.BodySm,
+            fontSize = 13.sp,
+            lineHeight = 19.5.sp,
             color = SevaInk500,
             textAlign = TextAlign.Center,
         )

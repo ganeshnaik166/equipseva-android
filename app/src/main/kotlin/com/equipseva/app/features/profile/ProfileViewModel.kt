@@ -84,11 +84,13 @@ class ProfileViewModel @Inject constructor(
         val deleteReason: String = "",
         val deletingAccount: Boolean = false,
         val exportingData: Boolean = false,
+        val exportConfirmOpen: Boolean = false,
     )
 
     sealed interface Effect {
         data class ShowMessage(val text: String) : Effect
         data class ShareExport(val path: String) : Effect
+        data object NavigateHome : Effect
     }
 
     private val _state = MutableStateFlow(UiState())
@@ -233,6 +235,58 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    /**
+     * "Switch" CTA in the Account-type section. Toggles between Engineer ↔
+     * Hospital — adds the role first if the user doesn't have it yet, then
+     * sets it active and emits a NavigateHome effect so the host can pop
+     * back to the role-aware home graph.
+     */
+    fun onToggleRoleAndGoHome() {
+        val current = _state.value
+        if (current.roleUpdating) return
+        val profile = current.profile ?: return
+        val currentRole = profile.activeRole ?: profile.role ?: return
+        val target = when (currentRole) {
+            UserRole.ENGINEER -> UserRole.HOSPITAL
+            UserRole.HOSPITAL -> UserRole.ENGINEER
+            else -> UserRole.HOSPITAL
+        }
+        _state.update { it.copy(roleUpdating = true) }
+        viewModelScope.launch {
+            val hasRole = profile.roles.contains(target)
+            val ensureRole = if (hasRole) Result.success(Unit) else profileRepository.addRole(target.storageKey)
+            ensureRole
+                .onSuccess {
+                    profileRepository.setActiveRole(target.storageKey)
+                        .onSuccess {
+                            userPrefs.setActiveRole(target.storageKey)
+                            _state.update {
+                                it.copy(
+                                    roleUpdating = false,
+                                    profile = it.profile?.copy(
+                                        role = target,
+                                        rawRoleKey = target.storageKey,
+                                        activeRole = target,
+                                        activeRoleKey = target.storageKey,
+                                        roles = (it.profile.roles + target).distinct(),
+                                    ),
+                                )
+                            }
+                            _effects.send(Effect.ShowMessage("Switched to ${target.displayName}"))
+                            _effects.send(Effect.NavigateHome)
+                        }
+                        .onFailure { ex ->
+                            _state.update { it.copy(roleUpdating = false) }
+                            _effects.send(Effect.ShowMessage(ex.toUserMessage()))
+                        }
+                }
+                .onFailure { ex ->
+                    _state.update { it.copy(roleUpdating = false) }
+                    _effects.send(Effect.ShowMessage(ex.toUserMessage()))
+                }
+        }
+    }
+
     fun onDismissEditProfile() {
         if (_state.value.editSaving) return
         _state.update { it.copy(editProfileOpen = false, editError = null) }
@@ -275,9 +329,22 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    /** Open the export-confirmation dialog instead of exporting immediately —
+     *  the resulting JSON contains PII (profile, addresses, messages) so the
+     *  user should consent to a Share-sheet before we generate it. */
+    fun onOpenExportConfirm() {
+        if (_state.value.exportingData) return
+        _state.update { it.copy(exportConfirmOpen = true) }
+    }
+
+    fun onDismissExportConfirm() {
+        if (_state.value.exportingData) return
+        _state.update { it.copy(exportConfirmOpen = false) }
+    }
+
     fun onExportMyData() {
         if (_state.value.exportingData) return
-        _state.update { it.copy(exportingData = true) }
+        _state.update { it.copy(exportingData = true, exportConfirmOpen = false) }
         viewModelScope.launch {
             val targetDir = File(appContext.cacheDir, "exports")
             dataExportRepository.exportToFile(targetDir)
@@ -311,18 +378,11 @@ class ProfileViewModel @Inject constructor(
         val reason = _state.value.deleteReason
         _state.update { it.copy(deletingAccount = true) }
         viewModelScope.launch {
-            accountDeletionRepository.deleteMyAccount(reason)
-                .onSuccess {
-                    // Same device-resident cleanup as a manual sign-out;
-                    // the deleted account's FK cascades may already drop
-                    // device_tokens server-side, but the local cache /
-                    // outbox queue / photo stash still sit on disk and
-                    // must be wiped before the next user signs in.
-                    runCatching { deviceTokenRegistrar.revoke() }
-                    runCatching { outboxDao.clearAll() }
-                    runCatching { outboxScheduler.cancelAll() }
-                    runCatching { photoUploadStash.clearAll() }
-                    authRepository.signOut()
+            val outcome = accountDeletionRepository.deleteMyAccount(reason)
+            outcome.fold(
+                onSuccess = {
+                    // Close sheet immediately so the user gets visible
+                    // feedback even if the cleanup hangs.
                     _state.update {
                         it.copy(
                             deletingAccount = false,
@@ -330,12 +390,28 @@ class ProfileViewModel @Inject constructor(
                             deleteReason = "",
                         )
                     }
-                    _effects.send(Effect.ShowMessage("Account deleted. You have been signed out."))
-                }
-                .onFailure { error ->
-                    _state.update { it.copy(deletingAccount = false) }
-                    _effects.send(Effect.ShowMessage(error.toUserMessage()))
-                }
+                    _effects.send(Effect.ShowMessage("Account deleted. Signing you out…"))
+
+                    // Best-effort device cleanup. Each step is wrapped so a
+                    // single failure (e.g. token revoke after auth.users was
+                    // deleted) doesn't block the sign-out below.
+                    runCatching { deviceTokenRegistrar.revoke() }
+                    runCatching { outboxDao.clearAll() }
+                    runCatching { outboxScheduler.cancelAll() }
+                    runCatching { photoUploadStash.clearAll() }
+                    runCatching { userPrefs.setLastScreen(null) }
+
+                    // Sign out wipes the local session even if the network
+                    // call fails — the SDK clears the cached token unconditionally.
+                    runCatching { authRepository.signOut() }
+                },
+                onFailure = { error ->
+                    _state.update {
+                        it.copy(deletingAccount = false, deleteAccountOpen = false)
+                    }
+                    _effects.send(Effect.ShowMessage("Couldn't delete account: ${error.toUserMessage()}"))
+                },
+            )
         }
     }
 
@@ -352,6 +428,7 @@ class ProfileViewModel @Inject constructor(
             runCatching { outboxDao.clearAll() }
             runCatching { outboxScheduler.cancelAll() }
             runCatching { photoUploadStash.clearAll() }
+            runCatching { userPrefs.setLastScreen(null) }
             authRepository.signOut()
                 .onFailure { error ->
                     _state.update { it.copy(signingOut = false) }

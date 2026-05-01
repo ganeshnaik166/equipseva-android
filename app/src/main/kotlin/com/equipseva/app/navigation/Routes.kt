@@ -73,6 +73,11 @@ object Routes {
     // (available jobs, my bids, active work, earnings, profile editor).
     const val ENGINEER_JOBS_HUB = "engineer/jobs_hub"
 
+    // Standalone editor for engineer base coords (engineers.latitude/longitude).
+    // Reachable from the Jobs hub. Lets the engineer move their service centre
+    // without going back through the full KYC flow.
+    const val ENGINEER_LOCATION = "engineer/service_location"
+
     // Book Repair — public engineer directory (entry from Home Hub).
     const val ENGINEER_DIRECTORY = "engineers/directory"
 

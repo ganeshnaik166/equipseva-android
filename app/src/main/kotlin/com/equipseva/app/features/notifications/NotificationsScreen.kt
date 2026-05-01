@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -51,7 +52,6 @@ import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.theme.BorderDefault
-import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaDanger500
 import com.equipseva.app.designsystem.theme.SevaGreen50
@@ -98,7 +98,7 @@ fun NotificationsScreen(
                                     Icons.Filled.DoneAll,
                                     contentDescription = "Mark all read",
                                     tint = SevaGreen700,
-                                    modifier = Modifier.size(20.dp),
+                                    modifier = Modifier.size(18.dp),
                                 )
                             }
                         }
@@ -113,7 +113,7 @@ fun NotificationsScreen(
                                 Icons.Outlined.Settings,
                                 contentDescription = "Notification settings",
                                 tint = SevaInk700,
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(18.dp),
                             )
                         }
                     }
@@ -168,12 +168,13 @@ fun NotificationsScreen(
 private fun DayHeader(label: String) {
     Text(
         text = label,
-        style = EsType.Overline,
-        color = SevaInk500,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = SevaInk700,
         modifier = Modifier
             .fillMaxWidth()
             .background(PaperDefault)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 8.dp),
     )
 }
 
@@ -182,45 +183,39 @@ private fun NotificationRow(
     notification: Notification,
     onClick: () -> Unit,
 ) {
-    val rowBg = if (notification.isUnread) SevaGreen50 else Color.White
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(rowBg)
-            .border(0.5.dp, BorderDefault, RoundedCornerShape(0.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-    ) {
+    val rowBg = if (notification.isUnread) SevaGreen50 else Color.Transparent
+    Column(modifier = Modifier.fillMaxWidth().background(rowBg)) {
         Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             KindIcon(kind = notification.kind)
             Column(modifier = Modifier.weight(1f)) {
-                val titleStyle = if (notification.isUnread) {
-                    EsType.Body.copy(fontWeight = FontWeight.SemiBold)
-                } else {
-                    EsType.Body
-                }
                 Text(
                     text = notification.title.ifBlank { notification.body },
-                    style = titleStyle,
+                    fontSize = 13.sp,
+                    fontWeight = if (notification.isUnread) FontWeight.SemiBold else FontWeight.Normal,
                     color = SevaInk900,
-                    lineHeight = 18.sp,
+                    lineHeight = (13 * 1.4f).sp,
                 )
                 if (notification.body.isNotBlank() && notification.title.isNotBlank()) {
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = notification.body,
-                        style = EsType.Caption,
+                        fontSize = 11.sp,
                         color = SevaInk500,
+                        lineHeight = (11 * 1.4f).sp,
                     )
                 }
-                Spacer(Modifier.height(4.dp))
                 notification.sentAt?.let {
+                    Spacer(Modifier.height(4.dp))
                     Text(
                         text = relativeLabel(it) + " ago",
-                        style = EsType.Caption,
+                        fontSize = 11.sp,
                         color = SevaInk400,
                     )
                 }
@@ -228,13 +223,14 @@ private fun NotificationRow(
             if (notification.isUnread) {
                 Box(
                     modifier = Modifier
-                        .padding(top = 6.dp)
+                        .padding(top = 4.dp)
                         .size(8.dp)
                         .clip(CircleShape)
                         .background(SevaDanger500),
                 )
             }
         }
+        HorizontalDivider(color = BorderDefault, thickness = 1.dp)
     }
 }
 

@@ -17,9 +17,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.CloudSync
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -33,10 +33,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.util.relativeLabel
+import com.equipseva.app.designsystem.components.Avatar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.EsField
@@ -47,7 +50,6 @@ import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaGreen700
-import com.equipseva.app.designsystem.theme.SevaGreen900
 import com.equipseva.app.designsystem.theme.SevaInk400
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk900
@@ -74,7 +76,7 @@ fun ConversationsScreen(
                         placeholder = "Search conversations",
                         leading = {
                             Icon(
-                                Icons.Filled.Search,
+                                Icons.Outlined.Search,
                                 contentDescription = null,
                                 tint = SevaInk500,
                                 modifier = Modifier.size(18.dp),
@@ -128,26 +130,31 @@ private fun ConversationRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .background(Color.Transparent)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        InitialsAvatar(name = row.title)
+        Avatar(initials = initialsOf(row.title), size = 44.dp)
         Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Text(
                     text = row.title,
-                    style = EsType.Body.copy(fontWeight = FontWeight.SemiBold),
+                    style = EsType.Body.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
                     color = SevaInk900,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
                 val ts = row.conversation.lastMessageInstant?.let { relativeLabel(it) }
                 if (!ts.isNullOrBlank()) {
                     Text(
                         text = ts,
-                        style = EsType.Caption,
+                        fontSize = 11.sp,
                         color = SevaInk400,
                     )
                 }
@@ -155,14 +162,15 @@ private fun ConversationRow(
             Row(
                 modifier = Modifier.padding(top = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
                     text = row.preview,
-                    style = if (row.conversation.unreadCount > 0)
-                        EsType.BodySm.copy(fontWeight = FontWeight.SemiBold)
-                    else EsType.BodySm,
+                    fontSize = 13.sp,
+                    fontWeight = if (row.conversation.unreadCount > 0) FontWeight.SemiBold else FontWeight.Normal,
                     color = if (row.conversation.unreadCount > 0) SevaInk900 else SevaInk500,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
                 if (row.conversation.unreadCount > 0) {
@@ -178,42 +186,28 @@ private fun UnreadBadge(count: Int) {
     val label = if (count > 99) "99+" else count.toString()
     Box(
         modifier = Modifier
-            .padding(start = 8.dp)
             .size(18.dp)
             .clip(CircleShape)
-            .background(SevaGreen700),
+            .background(SevaGreen700)
+            .padding(horizontal = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
-            style = EsType.Caption.copy(fontWeight = FontWeight.Bold),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
             color = Color.White,
         )
     }
 }
 
-@Composable
-private fun InitialsAvatar(name: String) {
-    val initials = name
+private fun initialsOf(name: String): String =
+    name
         .split(" ", limit = 2)
         .mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
         .joinToString("")
         .take(2)
         .ifBlank { "?" }
-    Box(
-        modifier = Modifier
-            .size(44.dp)
-            .clip(CircleShape)
-            .background(SevaGreen50),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = initials,
-            style = EsType.Body.copy(fontWeight = FontWeight.Bold),
-            color = SevaGreen900,
-        )
-    }
-}
 
 @Composable
 private fun QueuedPill(count: Int) {

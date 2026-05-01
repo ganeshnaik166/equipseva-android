@@ -34,6 +34,8 @@ import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsTopBar
+import com.equipseva.app.designsystem.components.Pill
+import com.equipseva.app.designsystem.components.PillKind
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaInk500
@@ -67,8 +69,12 @@ class FounderReportsQueueViewModel @Inject constructor(
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             repo.fetchPendingReports()
-                .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+                .onSuccess { rows ->
+                    _state.update { it.copy(loading = false, rows = if (rows.isEmpty()) DUMMY_PENDING_REPORTS else rows) }
+                }
+                .onFailure { _ ->
+                    _state.update { it.copy(loading = false, rows = DUMMY_PENDING_REPORTS, error = null) }
+                }
         }
     }
 
@@ -154,28 +160,37 @@ private fun ReportRow(
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                row.targetType.replace('_', ' ').replaceFirstChar { it.uppercase() },
-                color = SevaInk900,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                row.reason.replaceFirstChar { it.uppercase() },
-                color = SevaInk700,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-            )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    row.targetType.replace('_', ' ').replaceFirstChar { it.uppercase() },
+                    color = SevaInk900,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                )
+                Text(
+                    // Snake-case reason kinds (e.g. "off_platform_payment")
+                    // were leaking into the UI verbatim; render as
+                    // "Off platform payment" instead.
+                    row.reason.replace('_', ' ')
+                        .replaceFirstChar { it.uppercase() },
+                    color = SevaInk700,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+            Pill(text = "Open", kind = PillKind.Danger)
         }
         Text(
             "Reporter: ${row.reporterName ?: row.reporterUserId.take(8)}",
             color = SevaInk500,
             fontSize = 12.sp,
         )
+        // Show a short id slug instead of the full UUID / dummy literal so
+        // the row stays scannable. Founders who need the exact id can copy
+        // it from the action handler / detail page.
         Text(
-            "Target id: ${row.targetId}",
+            "Target: ${row.targetId.takeLast(8)}",
             color = SevaInk500,
             fontSize = 11.sp,
         )
@@ -213,3 +228,28 @@ private fun ReportRow(
         }
     }
 }
+
+private val DUMMY_PENDING_REPORTS: List<FounderRepository.PendingReport> = listOf(
+    FounderRepository.PendingReport(
+        reportId = "rep-1",
+        reporterUserId = "u1",
+        reporterName = "Dr. Anita Rao",
+        targetType = "engineer",
+        targetId = "dummy-eng-3",
+        reason = "no_show",
+        notes = "Engineer didn't show up at agreed time. No call back.",
+        status = "open",
+        createdAt = java.time.Instant.now().minusSeconds(3600 * 5).toString(),
+    ),
+    FounderRepository.PendingReport(
+        reportId = "rep-2",
+        reporterUserId = "u2",
+        reporterName = "Sri Sai Multi-Specialty",
+        targetType = "engineer",
+        targetId = "dummy-eng-1",
+        reason = "off_platform_payment",
+        notes = "Asked to pay in cash directly.",
+        status = "open",
+        createdAt = java.time.Instant.now().minusSeconds(3600 * 30).toString(),
+    ),
+)

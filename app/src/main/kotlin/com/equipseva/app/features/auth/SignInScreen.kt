@@ -24,6 +24,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -40,8 +41,11 @@ import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaGreen700
+import com.equipseva.app.designsystem.theme.SevaInk400
 import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk600
 import com.equipseva.app.designsystem.theme.SevaInk900
+import androidx.compose.ui.unit.sp
 import com.equipseva.app.features.auth.state.AuthEffect
 
 @Composable
@@ -53,6 +57,7 @@ fun SignInScreen(
     viewModel: SignInViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
@@ -80,13 +85,15 @@ fun SignInScreen(
             ) {
                 Text(
                     text = "Welcome back",
-                    style = EsType.H3,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.24).sp,
                     color = SevaInk900,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = "Sign in to your EquipSeva account.",
-                    style = EsType.BodySm,
+                    fontSize = 13.sp,
                     color = SevaInk500,
                 )
                 Spacer(Modifier.height(24.dp))
@@ -97,7 +104,7 @@ fun SignInScreen(
                     value = state.email,
                     onChange = viewModel::onEmailChange,
                     label = "Email",
-                    placeholder = "you@hospital.com",
+                    placeholder = "name@yourdomain.com",
                     type = EsFieldType.Email,
                     error = state.emailError,
                     enabled = !state.form.submitting,
@@ -137,7 +144,7 @@ fun SignInScreen(
                 // doesn't yet ship the multi-colour Google glyph SVG).
                 EsBtn(
                     text = "Continue with Google",
-                    onClick = viewModel::onSubmit,
+                    onClick = { viewModel.onGoogleClicked(context) },
                     kind = EsBtnKind.Secondary,
                     size = EsBtnSize.Lg,
                     full = true,
@@ -151,12 +158,13 @@ fun SignInScreen(
                 ) {
                     Text(
                         text = "New here? ",
-                        style = EsType.BodySm,
-                        color = SevaInk500,
+                        fontSize = 13.sp,
+                        color = SevaInk600,
                     )
                     Text(
                         text = "Create account",
-                        style = EsType.BodySm.copy(fontWeight = FontWeight.SemiBold),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
                         color = SevaGreen700,
                         modifier = Modifier.clickable(onClick = onCreateAccount),
                     )
@@ -170,12 +178,12 @@ fun SignInScreen(
 @Composable
 private fun OrDivider() {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(modifier = Modifier.weight(1f).height(1.dp).background(BorderDefault))
-        Text(text = "or", style = EsType.Caption, color = SevaInk500, textAlign = TextAlign.Center)
+        Text(text = "or", fontSize = 12.sp, color = SevaInk400, textAlign = TextAlign.Center)
         Box(modifier = Modifier.weight(1f).height(1.dp).background(BorderDefault))
     }
 }

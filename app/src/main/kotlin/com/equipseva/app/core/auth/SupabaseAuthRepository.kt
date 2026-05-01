@@ -46,7 +46,7 @@ class SupabaseAuthRepository @Inject constructor(
         email: String,
         password: String,
         fullName: String,
-    ): Result<Unit> = runCatching {
+    ): Result<SignUpOutcome> = runCatching {
         client.auth.signUpWith(Email) {
             this.email = email
             this.password = password
@@ -57,7 +57,15 @@ class SupabaseAuthRepository @Inject constructor(
                 )
             }
         }
-        Unit
+        // When Supabase has "Confirm email" ON, signUp returns success but
+        // doesn't issue a session — the user must click the verification
+        // link first. When it's OFF, currentSessionOrNull is non-null and
+        // SessionViewModel will pick up SignedIn for an automatic redirect.
+        if (client.auth.currentSessionOrNull() != null) {
+            SignUpOutcome.AutoSignedIn
+        } else {
+            SignUpOutcome.NeedsEmailConfirmation
+        }
     }
 
     override suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?): Result<Unit> =
@@ -73,7 +81,22 @@ class SupabaseAuthRepository @Inject constructor(
         client.auth.resetPasswordForEmail(email)
     }
 
-    override suspend fun updatePassword(newPassword: String): Result<Unit> = runCatching {
+    override suspend fun updatePassword(currentPassword: String, newPassword: String): Result<Unit> = runCatching {
+        // Re-auth: verify the supplied current password against the active
+        // session by attempting a fresh sign-in. Without this check an
+        // unlocked-device attacker could swap the password and lock the
+        // legitimate owner out — Supabase's updateUser doesn't gate on
+        // proof of current credentials.
+        val email = client.auth.currentUserOrNull()?.email
+            ?: throw IllegalStateException("Not signed in")
+        try {
+            client.auth.signInWith(Email) {
+                this.email = email
+                this.password = currentPassword
+            }
+        } catch (ex: Throwable) {
+            throw InvalidCurrentPasswordException().also { it.initCause(ex) }
+        }
         client.auth.updateUser {
             password = newPassword
         }
@@ -145,9 +168,29 @@ class SupabaseAuthRepository @Inject constructor(
         )
     }
 
-    override suspend fun updateEmail(newEmail: String): Result<Unit> = runCatching {
+    override suspend fun updateEmail(currentPassword: String, newEmail: String): Result<Unit> = runCatching {
+        // Re-auth gate — same rationale as updatePassword. Without proof of
+        // current credentials an attacker with an unlocked device could
+        // redirect account recovery to an address they control.
+        val email = client.auth.currentUserOrNull()?.email
+            ?: throw IllegalStateException("Not signed in")
+        try {
+            client.auth.signInWith(Email) {
+                this.email = email
+                this.password = currentPassword
+            }
+        } catch (ex: Throwable) {
+            throw InvalidCurrentPasswordException().also { it.initCause(ex) }
+        }
         client.auth.updateUser {
-            email = newEmail
+            this.email = newEmail
+        }
+        Unit
+    }
+
+    override suspend fun updateEmailDuringKyc(newEmail: String): Result<Unit> = runCatching {
+        client.auth.updateUser {
+            this.email = newEmail
         }
         Unit
     }

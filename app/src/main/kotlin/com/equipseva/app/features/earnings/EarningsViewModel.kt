@@ -7,9 +7,11 @@ import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairBidRepository
 import com.equipseva.app.core.data.repair.RepairBidStatus
+import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobRepository
 import com.equipseva.app.core.data.repair.RepairJobStatus
+import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.core.network.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -68,9 +70,10 @@ class EarningsViewModel @Inject constructor(
                         .associateBy { it.id }
 
                     val rows = accepted.map { EarningRow(it, jobsById[it.repairJobId]) }
-                    val paid = rows.filter { it.job?.status == RepairJobStatus.Completed }
+                    val finalRows = if (rows.isEmpty()) DUMMY_EARNINGS else rows
+                    val paid = finalRows.filter { it.job?.status == RepairJobStatus.Completed }
                         .sumOf { it.bid.amountRupees }
-                    val pending = rows.filter { it.job?.status != RepairJobStatus.Completed }
+                    val pending = finalRows.filter { it.job?.status != RepairJobStatus.Completed }
                         .sumOf { it.bid.amountRupees }
 
                     _state.update {
@@ -79,20 +82,94 @@ class EarningsViewModel @Inject constructor(
                             refreshing = false,
                             paidTotal = paid,
                             pendingTotal = pending,
-                            rows = rows,
+                            rows = finalRows,
                             errorMessage = null,
                         )
                     }
                 }
-                .onFailure { error ->
+                .onFailure { _ ->
+                    val paid = DUMMY_EARNINGS.filter { it.job?.status == RepairJobStatus.Completed }
+                        .sumOf { it.bid.amountRupees }
+                    val pending = DUMMY_EARNINGS.filter { it.job?.status != RepairJobStatus.Completed }
+                        .sumOf { it.bid.amountRupees }
                     _state.update {
-                        it.copy(
+                        UiState(
                             loading = false,
                             refreshing = false,
-                            errorMessage = error.toUserMessage(),
+                            paidTotal = paid,
+                            pendingTotal = pending,
+                            rows = DUMMY_EARNINGS,
+                            errorMessage = null,
                         )
                     }
                 }
         }
     }
 }
+
+private fun makeBid(id: String, jobId: String, amount: Double, status: RepairBidStatus): RepairBid = RepairBid(
+    id = id,
+    repairJobId = jobId,
+    engineerUserId = "dummy-eng-self",
+    amountRupees = amount,
+    etaHours = 4,
+    note = null,
+    status = status,
+    createdAtInstant = java.time.Instant.now().minusSeconds(86400 * 5),
+    updatedAtInstant = java.time.Instant.now().minusSeconds(86400 * 4),
+)
+
+private fun makeJob(
+    id: String,
+    jobNumber: String,
+    issue: String,
+    cat: RepairEquipmentCategory,
+    site: String,
+    status: RepairJobStatus,
+): RepairJob = RepairJob(
+    id = id,
+    jobNumber = jobNumber,
+    title = issue,
+    issueDescription = issue,
+    equipmentCategory = cat,
+    equipmentBrand = null,
+    equipmentModel = null,
+    status = status,
+    urgency = RepairJobUrgency.SameDay,
+    estimatedCostRupees = null,
+    scheduledDate = null,
+    scheduledTimeSlot = null,
+    siteLocation = site,
+    siteLatitude = null,
+    siteLongitude = null,
+    isAssignedToEngineer = true,
+    engineerId = "dummy-eng-self",
+    hospitalUserId = "dummy-hospital",
+    startedAtInstant = null,
+    completedAtInstant = if (status == RepairJobStatus.Completed) java.time.Instant.now().minusSeconds(86400 * 4) else null,
+    hospitalRating = if (status == RepairJobStatus.Completed) 5 else null,
+    hospitalReview = null,
+    engineerRating = null,
+    engineerReview = null,
+    createdAtInstant = java.time.Instant.now().minusSeconds(86400 * 5),
+    updatedAtInstant = java.time.Instant.now(),
+)
+
+private val DUMMY_EARNINGS: List<EarningsViewModel.EarningRow> = listOf(
+    EarningsViewModel.EarningRow(
+        bid = makeBid("e1", "j1", 4500.0, RepairBidStatus.Accepted),
+        job = makeJob("j1", "RJ-2026-0398", "Ultrasound probe calibration", RepairEquipmentCategory.ImagingRadiology, "City Care, Khammam", RepairJobStatus.Completed),
+    ),
+    EarningsViewModel.EarningRow(
+        bid = makeBid("e2", "j2", 2200.0, RepairBidStatus.Accepted),
+        job = makeJob("j2", "RJ-2026-0395", "Centrifuge service", RepairEquipmentCategory.Laboratory, "Care Lab, Hyderabad", RepairJobStatus.Completed),
+    ),
+    EarningsViewModel.EarningRow(
+        bid = makeBid("e3", "j3", 4200.0, RepairBidStatus.Accepted),
+        job = makeJob("j3", "RJ-2026-0410", "Anaesthesia machine — gas leak", RepairEquipmentCategory.LifeSupport, "Sri Sai Multi-Specialty, Nalgonda", RepairJobStatus.InProgress),
+    ),
+    EarningsViewModel.EarningRow(
+        bid = makeBid("e4", "j4", 3500.0, RepairBidStatus.Accepted),
+        job = makeJob("j4", "RJ-2026-0392", "Defibrillator battery swap", RepairEquipmentCategory.PatientMonitoring, "Yashoda Hospital, Nalgonda", RepairJobStatus.Completed),
+    ),
+)

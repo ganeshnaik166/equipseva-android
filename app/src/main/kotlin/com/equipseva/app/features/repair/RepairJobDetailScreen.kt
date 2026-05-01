@@ -6,13 +6,14 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,24 +25,24 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.outlined.CloudSync
-import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Apartment
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -51,13 +52,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -69,13 +68,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -85,27 +86,38 @@ import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobStatus
-import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.relativeLabel
+import com.equipseva.app.designsystem.components.Avatar
 import com.equipseva.app.designsystem.components.ErrorBanner
-import com.equipseva.app.designsystem.components.GradientTile
-import com.equipseva.app.designsystem.components.PrimaryButton
+import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.EsBtnKind
+import com.equipseva.app.designsystem.components.EsBtnSize
+import com.equipseva.app.designsystem.components.EsField
+import com.equipseva.app.designsystem.components.EsFieldType
+import com.equipseva.app.designsystem.components.EsSection
+import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.ReportContentSheet
-import com.equipseva.app.designsystem.components.SectionHeader
-import com.equipseva.app.designsystem.components.StatusChip
-import com.equipseva.app.designsystem.components.StepperStep
-import com.equipseva.app.designsystem.components.VerticalStepper
-import com.equipseva.app.designsystem.theme.BrandGreen
-import com.equipseva.app.designsystem.theme.BrandGreen50
-import com.equipseva.app.designsystem.theme.BrandGreenDark
-import com.equipseva.app.designsystem.theme.Ink500
-import com.equipseva.app.designsystem.theme.Ink700
-import com.equipseva.app.designsystem.theme.Ink900
-import com.equipseva.app.designsystem.theme.Spacing
-import com.equipseva.app.designsystem.theme.Surface200
-import com.equipseva.app.features.repair.components.iconForEquipment
-import com.equipseva.app.features.repair.components.toTone
+import com.equipseva.app.designsystem.components.UrgencyPill
+import com.equipseva.app.designsystem.components.VerifiedBadge
+import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.Paper2
+import com.equipseva.app.designsystem.theme.Paper3
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaGreen50
+import com.equipseva.app.designsystem.theme.SevaGreen700
+import com.equipseva.app.designsystem.theme.SevaGreen900
+import com.equipseva.app.designsystem.theme.SevaInfo50
+import com.equipseva.app.designsystem.theme.SevaInfo500
+import com.equipseva.app.designsystem.theme.SevaInk300
+import com.equipseva.app.designsystem.theme.SevaInk400
+import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk600
+import com.equipseva.app.designsystem.theme.SevaInk700
+import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.designsystem.theme.SevaWarning500
+
+private val WarnGold = Color(0xFFF5A623)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -117,6 +129,9 @@ fun RepairJobDetailScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var withdrawConfirmOpen by rememberSaveable { mutableStateOf(false) }
+    var checkinSheetOpen by rememberSaveable { mutableStateOf(false) }
+    var cancelSheetOpen by rememberSaveable { mutableStateOf(false) }
+    var rateSheetOpen by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
         viewModel.messages.collect { onShowMessage(it) }
@@ -130,20 +145,29 @@ fun RepairJobDetailScreen(
     }
 
     Scaffold(
-        containerColor = com.equipseva.app.designsystem.theme.PaperDefault,
+        containerColor = PaperDefault,
         topBar = {
-            com.equipseva.app.designsystem.components.EsTopBar(
+            EsTopBar(
                 title = state.job?.jobNumber ?: "Repair request",
+                subtitle = state.job?.equipmentLabel,
                 onBack = onBack,
                 right = {
                     if (state.canReport) {
                         var menuOpen by rememberSaveable { mutableStateOf(false) }
                         Box {
-                            IconButton(onClick = { menuOpen = true }) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Transparent)
+                                    .clickable { menuOpen = true },
+                                contentAlignment = Alignment.Center,
+                            ) {
                                 Icon(
                                     imageVector = Icons.Filled.MoreVert,
                                     contentDescription = "More",
-                                    tint = com.equipseva.app.designsystem.theme.SevaInk900,
+                                    tint = SevaInk700,
+                                    modifier = Modifier.size(18.dp),
                                 )
                             }
                             DropdownMenu(
@@ -165,17 +189,17 @@ fun RepairJobDetailScreen(
         },
         bottomBar = {
             val job = state.job
-            // Hospital viewer has no bid CTA — they accept bids inline from
-            // the bids-received section, not from a sticky footer.
-            if (job != null && state.viewerRole != RepairJobDetailViewModel.ViewerRole.Hospital) {
+            if (job != null) {
                 StickyBottomBar(
                     job = job,
                     ownBid = state.ownBid,
-                    withdrawing = state.withdrawingBid,
-                    openingChat = state.openingChat,
-                    onMessageHospital = viewModel::openChatWithHospital,
+                    viewerRole = state.viewerRole,
+                    updatingStatus = state.updatingStatus,
                     onPlaceBid = viewModel::openBidComposer,
-                    onWithdraw = { withdrawConfirmOpen = true },
+                    onCheckIn = { checkinSheetOpen = true },
+                    onMarkDone = viewModel::openProofSheet,
+                    onRate = { rateSheetOpen = true },
+                    onCancel = { cancelSheetOpen = true },
                 )
             }
         },
@@ -203,17 +227,13 @@ fun RepairJobDetailScreen(
                     hospitalName = state.hospitalName,
                     hospitalLocation = state.hospitalLocation,
                     viewerRole = state.viewerRole,
-                    updatingStatus = state.updatingStatus,
-                    submittingRating = state.submittingRating,
                     acceptingBidId = state.acceptingBidId,
                     openingChat = state.openingChat,
                     afterPhotoSignedUrls = state.afterPhotoSignedUrls,
-                    onCheckIn = viewModel::checkIn,
-                    onMarkDone = viewModel::openProofSheet,
-                    onCancelJob = viewModel::cancelJob,
-                    onSubmitRating = viewModel::submitRating,
-                    onAcceptBid = viewModel::acceptBid,
                     onMessageEngineer = viewModel::openChatWithEngineer,
+                    onMessageHospital = viewModel::openChatWithHospital,
+                    onAcceptBid = viewModel::acceptBid,
+                    onWithdraw = { withdrawConfirmOpen = true },
                 )
             }
         }
@@ -234,6 +254,44 @@ fun RepairJobDetailScreen(
             onDismiss = viewModel::closeProofSheet,
             onSubmit = viewModel::submitCompletionProof,
         )
+    }
+
+    if (checkinSheetOpen) {
+        CheckinSheet(
+            updating = state.updatingStatus,
+            onDismiss = { if (!state.updatingStatus) checkinSheetOpen = false },
+            onConfirm = {
+                checkinSheetOpen = false
+                viewModel.checkIn()
+            },
+        )
+    }
+
+    if (cancelSheetOpen) {
+        CancelSheet(
+            updating = state.updatingStatus,
+            onDismiss = { if (!state.updatingStatus) cancelSheetOpen = false },
+            onConfirm = {
+                cancelSheetOpen = false
+                viewModel.cancelJob()
+            },
+        )
+    }
+
+    if (rateSheetOpen) {
+        val job = state.job
+        if (job != null) {
+            RateSheet(
+                job = job,
+                viewerRole = state.viewerRole,
+                submitting = state.submittingRating,
+                onDismiss = { if (!state.submittingRating) rateSheetOpen = false },
+                onSubmit = { stars, note ->
+                    viewModel.submitRating(stars, note)
+                    rateSheetOpen = false
+                },
+            )
+        }
     }
 
     if (state.reportingTargetId != null) {
@@ -283,524 +341,652 @@ private fun JobBody(
     hospitalName: String?,
     hospitalLocation: String?,
     viewerRole: RepairJobDetailViewModel.ViewerRole,
-    updatingStatus: Boolean,
-    submittingRating: Boolean,
     acceptingBidId: String?,
     openingChat: Boolean,
     afterPhotoSignedUrls: List<String>,
-    onCheckIn: () -> Unit,
-    onMarkDone: () -> Unit,
-    onCancelJob: () -> Unit,
-    onSubmitRating: (Int, String?) -> Unit,
-    onAcceptBid: (String) -> Unit,
     onMessageEngineer: () -> Unit,
+    onMessageHospital: () -> Unit,
+    onAcceptBid: (String) -> Unit,
+    onWithdraw: () -> Unit,
 ) {
     val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
-    val canHospitalCancel = isHospital && job.status in setOf(
-        RepairJobStatus.Requested,
-        RepairJobStatus.Assigned,
-    )
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(bottom = Spacing.xl),
+            .verticalScroll(rememberScrollState()),
     ) {
-        EquipmentBannerCard(
-            job = job,
-            hospitalName = hospitalName.takeIf { !isHospital },
-            hospitalLocation = hospitalLocation.takeIf { !isHospital },
+        // Hospital banner — site name + verified + location + urgency.
+        HospitalBanner(
+            siteName = hospitalName ?: "Hospital",
+            siteCity = hospitalLocation,
+            urgency = job.urgency,
         )
 
-        if (viewerRole == RepairJobDetailViewModel.ViewerRole.Engineer) {
-            EngineerActionStrip(
-                job = job,
-                updatingStatus = updatingStatus,
-                onCheckIn = onCheckIn,
-                onMarkDone = onMarkDone,
-            )
+        // Status stepper — 5 step linear timeline.
+        StatusStepperRow(currentStatus = job.status)
+
+        EsSection(title = "Equipment") {
+            EquipmentCard(job = job)
         }
 
-        SectionHeader(title = "Issue described")
-        IssueCard(job = job)
-
-        SectionHeader(title = "Location")
-        LocationCard(
-            siteLocation = job.siteLocation,
-            siteLatitude = job.siteLatitude,
-            siteLongitude = job.siteLongitude,
-            // Engineer sees the real address + a Navigate CTA only after a
-            // bid is accepted (job.isAssignedToEngineer). Other roles either
-            // already know it (hospital posted it) or aren't entitled.
-            revealAddressForEngineer = job.isAssignedToEngineer,
-            viewerRole = viewerRole,
-        )
-
-        if (isHospital) {
-            SectionHeader(title = "Bids received")
-            HospitalBidsList(
-                job = job,
-                bids = bids,
-                engineerNames = engineerNames,
-                acceptingBidId = acceptingBidId,
-                openingChat = openingChat,
-                onAcceptBid = onAcceptBid,
-                onMessageEngineer = onMessageEngineer,
-            )
-        } else {
-            SectionHeader(title = "Your bid")
-            YourBidCard(ownBid = ownBid)
+        EsSection(title = "Issue") {
+            IssueCard(job = job)
         }
 
-        SectionHeader(title = "Status")
-        StatusStepperCard(job = job)
-
-        if (afterPhotoSignedUrls.isNotEmpty()) {
-            SectionHeader(title = "Completion proof")
-            CompletionProofGallery(urls = afterPhotoSignedUrls)
-        }
-
-        if (job.status == RepairJobStatus.Completed &&
-            viewerRole != RepairJobDetailViewModel.ViewerRole.Other
-        ) {
-            SectionHeader(title = "Rate this job")
-            RatingCard(
-                job = job,
-                viewerRole = viewerRole,
-                submitting = submittingRating,
-                onSubmit = onSubmitRating,
-            )
-        }
-
-        if (canHospitalCancel) {
-            CancelJobSection(
-                updating = updatingStatus,
-                onConfirm = onCancelJob,
-            )
-        }
-    }
-}
-
-@Composable
-private fun CancelJobSection(
-    updating: Boolean,
-    onConfirm: () -> Unit,
-) {
-    var confirmOpen by rememberSaveable { mutableStateOf(false) }
-    Box(
-        modifier = Modifier
-            .padding(horizontal = Spacing.lg)
-            .padding(bottom = Spacing.md)
-            .fillMaxWidth(),
-        contentAlignment = Alignment.Center,
-    ) {
-        TextButton(
-            onClick = { confirmOpen = true },
-            enabled = !updating,
-        ) {
-            Text(
-                text = if (updating) "Cancelling…" else "Cancel this job",
-                color = MaterialTheme.colorScheme.error,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
-    }
-    if (confirmOpen) {
-        AlertDialog(
-            onDismissRequest = { confirmOpen = false },
-            title = { Text("Cancel this job?") },
-            text = {
-                Text(
-                    "The engineer will be notified. You can post a new request later if you still need help.",
+        // Assigned engineer (only if engineer is assigned + viewer is hospital).
+        if (job.engineerId != null && isHospital) {
+            EsSection(title = "Assigned engineer") {
+                AssignedEngineerCard(
+                    name = engineerNames[job.engineerId] ?: "Engineer",
+                    openingChat = openingChat,
+                    onMessage = onMessageEngineer,
                 )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        confirmOpen = false
-                        onConfirm()
-                    },
-                ) {
-                    Text(
-                        text = "Cancel job",
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmOpen = false }) {
-                    Text("Keep it")
-                }
-            },
-        )
+            }
+        }
+
+        // Bids — hospital + status==requested + bids.size>0.
+        if (isHospital && job.status == RepairJobStatus.Requested && bids.isNotEmpty()) {
+            EsSection(title = "Bids (${bids.size})") {
+                BidsList(
+                    bids = bids,
+                    engineerNames = engineerNames,
+                    acceptingBidId = acceptingBidId,
+                    openingChat = openingChat,
+                    onAccept = onAcceptBid,
+                    onMessage = onMessageEngineer,
+                )
+            }
+        }
+
+        // Engineer-side: own bid quick view (when not requested or own bid present).
+        if (!isHospital && ownBid != null) {
+            EsSection(title = "Your bid") {
+                YourBidCard(ownBid = ownBid, onWithdraw = onWithdraw)
+            }
+        }
+
+        EsSection(title = "Location") {
+            LocationCard(job = job, viewerRole = viewerRole)
+        }
+
+        if (job.status == RepairJobStatus.Completed && afterPhotoSignedUrls.isNotEmpty()) {
+            EsSection(title = "Completion proof") {
+                CompletionProofCard(urls = afterPhotoSignedUrls)
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
     }
 }
 
+// --- Hospital banner --------------------------------------------------------
 @Composable
-private fun EngineerActionStrip(
-    job: RepairJob,
-    updatingStatus: Boolean,
-    onCheckIn: () -> Unit,
-    onMarkDone: () -> Unit,
-) {
-    val canCheckIn = job.status == RepairJobStatus.Assigned ||
-        job.status == RepairJobStatus.EnRoute
-    val canMarkDone = job.status == RepairJobStatus.InProgress ||
-        job.status == RepairJobStatus.EnRoute
-    if (!canCheckIn && !canMarkDone) return
-    val shape = MaterialTheme.shapes.medium
+private fun HospitalBanner(siteName: String, siteCity: String?, urgency: com.equipseva.app.core.data.repair.RepairJobUrgency) {
     Row(
         modifier = Modifier
-            .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
             .fillMaxWidth()
-            .background(BrandGreen50, shape)
-            .padding(Spacing.md),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            .background(Color.White)
+            .border(width = 1.dp, color = BorderDefault, shape = RectangleShape)
+            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        if (canCheckIn) {
-            Button(
-                onClick = onCheckIn,
-                enabled = !updatingStatus,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-            ) {
-                Icon(Icons.Outlined.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(if (updatingStatus) "Checking in…" else "Check in")
-            }
-        }
-        if (canMarkDone) {
-            Button(
-                onClick = onMarkDone,
-                enabled = !updatingStatus,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary,
-                    contentColor = MaterialTheme.colorScheme.onSecondary,
-                ),
-            ) {
-                Icon(Icons.Outlined.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(if (updatingStatus) "Saving…" else "Mark done")
-            }
-        }
-    }
-}
-
-@Composable
-private fun RatingCard(
-    job: RepairJob,
-    viewerRole: RepairJobDetailViewModel.ViewerRole,
-    submitting: Boolean,
-    onSubmit: (Int, String?) -> Unit,
-) {
-    val shape = MaterialTheme.shapes.medium
-    val existing = when (viewerRole) {
-        RepairJobDetailViewModel.ViewerRole.Hospital -> job.hospitalRating
-        RepairJobDetailViewModel.ViewerRole.Engineer -> job.engineerRating
-        RepairJobDetailViewModel.ViewerRole.Other -> null
-    }
-    val existingReview = when (viewerRole) {
-        RepairJobDetailViewModel.ViewerRole.Hospital -> job.hospitalReview
-        RepairJobDetailViewModel.ViewerRole.Engineer -> job.engineerReview
-        RepairJobDetailViewModel.ViewerRole.Other -> null
-    }
-
-    var stars by rememberSaveable(existing) { mutableStateOf(existing ?: 0) }
-    var review by rememberSaveable(existingReview) {
-        mutableStateOf(existingReview.orEmpty())
-    }
-    val prompt = when (viewerRole) {
-        RepairJobDetailViewModel.ViewerRole.Hospital -> "How did the engineer do?"
-        RepairJobDetailViewModel.ViewerRole.Engineer -> "How was this customer?"
-        RepairJobDetailViewModel.ViewerRole.Other -> ""
-    }
-
-    Column(
-        modifier = Modifier
-            .padding(horizontal = Spacing.lg)
-            .padding(bottom = Spacing.md)
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, shape)
-            .border(1.dp, Surface200, shape)
-            .padding(Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Text(
-            text = prompt,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = Ink900,
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            (1..5).forEach { n ->
-                val filled = n <= stars
-                IconButton(
-                    onClick = { if (existing == null) stars = n },
-                    enabled = existing == null && !submitting,
-                    modifier = Modifier.size(36.dp),
-                ) {
-                    Icon(
-                        imageVector = if (filled) Icons.Filled.Star else Icons.Outlined.StarOutline,
-                        contentDescription = "$n star",
-                        tint = if (filled) Color(0xFFF5A623) else Ink500,
-                        modifier = Modifier.size(28.dp),
-                    )
-                }
-            }
-        }
-        if (existing == null) {
-            OutlinedTextField(
-                value = review,
-                onValueChange = { review = it },
-                label = { Text("Leave a note (optional)") },
-                maxLines = 4,
-                enabled = !submitting,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            PrimaryButton(
-                label = if (submitting) "Submitting…" else "Submit rating",
-                onClick = { onSubmit(stars, review.trim().ifBlank { null }) },
-                enabled = stars in 1..5 && !submitting,
-                loading = submitting,
-            )
-        } else {
-            Text(
-                text = "Thanks — your rating is locked in.",
-                fontSize = 13.sp,
-                color = Ink700,
-            )
-            if (!existingReview.isNullOrBlank()) {
-                Text(
-                    text = "\"$existingReview\"",
-                    fontSize = 13.sp,
-                    color = Ink500,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun EquipmentBannerCard(job: RepairJob, hospitalName: String?, hospitalLocation: String?) {
-    val shape = MaterialTheme.shapes.medium
-    val isDark = isSystemInDarkTheme()
-    val bannerGradient = if (isDark) {
-        listOf(Color(0xFF1F2A26), Color(0xFF18211E))
-    } else {
-        listOf(Color(0xFFF2F6F4), Color(0xFFE7EEEB))
-    }
-    val pillBg = if (isDark) Color(0xCC1B1F26) else Color(0xD9FFFFFF)
-    val pillBorder = if (isDark) Color(0x662E8B6E) else Color(0x260B6E4F)
-    Column(
-        modifier = Modifier
-            .padding(Spacing.lg)
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, shape)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape),
-    ) {
-        // Banner — simple tinted surface with centered equipment pill.
-        // Fallback layout used in place of diagonal-line pattern (see deviation notes).
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(180.dp)
-                .background(
-                    brush = Brush.verticalGradient(colors = bannerGradient),
-                ),
+                .size(40.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(SevaGreen50),
             contentAlignment = Alignment.Center,
         ) {
+            Icon(
+                imageVector = Icons.Outlined.Apartment,
+                contentDescription = null,
+                tint = SevaGreen700,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
             Row(
-                modifier = Modifier
-                    .background(pillBg, RoundedCornerShape(8.dp))
-                    .border(1.dp, pillBorder, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 18.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                val (hue, icon) = iconForEquipment(job)
-                GradientTile(icon = icon, hue = hue, size = 28.dp)
                 Text(
-                    text = job.equipmentCategory.displayName.uppercase(),
-                    fontSize = 11.sp,
+                    text = siteName,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 1.sp,
-                    color = Ink700,
+                    color = SevaInk900,
+                )
+                VerifiedBadge(small = true)
+            }
+            if (!siteCity.isNullOrBlank()) {
+                Text(
+                    text = siteCity,
+                    fontSize = 12.sp,
+                    color = SevaInk500,
                 )
             }
         }
-        Column(modifier = Modifier.padding(Spacing.md)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = job.equipmentLabel,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Ink900,
-                )
-                if (job.urgency != RepairJobUrgency.Unknown) {
-                    StatusChip(
-                        label = job.urgency.displayName,
-                        tone = job.urgency.toTone(),
+        UrgencyPill(urgency = urgency)
+    }
+}
+
+// --- Status stepper ---------------------------------------------------------
+private val StepLabels = listOf("Requested", "Assigned", "En route", "In progress", "Completed")
+private val StepStatuses = listOf(
+    RepairJobStatus.Requested,
+    RepairJobStatus.Assigned,
+    RepairJobStatus.EnRoute,
+    RepairJobStatus.InProgress,
+    RepairJobStatus.Completed,
+)
+
+@Composable
+private fun StatusStepperRow(currentStatus: RepairJobStatus) {
+    val currentIdx = StepStatuses.indexOf(currentStatus).let { if (it < 0) -1 else it }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .border(width = 1.dp, color = BorderDefault, shape = RectangleShape)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            StepStatuses.forEachIndexed { i, _ ->
+                val done = currentIdx in 0 until i
+                val active = i == currentIdx
+                Column(
+                    modifier = Modifier.width(56.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    StepDot(done = done, active = active, number = i + 1)
+                    Text(
+                        text = StepLabels[i],
+                        fontSize = 9.sp,
+                        fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
+                        color = if (active) SevaInk900 else SevaInk400,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+                if (i < StepStatuses.lastIndex) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(bottom = 18.dp)
+                            .height(2.dp)
+                            .background(if (i < currentIdx) SevaGreen700 else BorderDefault),
                     )
                 }
             }
-            val modelLine = listOfNotNull(job.equipmentBrand, job.equipmentModel)
-                .joinToString(" ")
-                .ifBlank { null }
-            if (modelLine != null && modelLine != job.equipmentLabel) {
-                Text(
-                    text = modelLine,
-                    fontSize = 13.sp,
-                    color = Ink500,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-            }
-            val postedLine = buildString {
-                job.createdAtInstant?.let { posted ->
-                    append("Posted ${relativeLabel(posted)} ago")
+        }
+    }
+}
+
+@Composable
+private fun StepDot(done: Boolean, active: Boolean, number: Int) {
+    val bg = when {
+        done -> SevaGreen700
+        active -> Color.White
+        else -> Paper2
+    }
+    val borderColor = when {
+        done -> SevaGreen700
+        active -> SevaGreen700
+        else -> BorderDefault
+    }
+    val borderW = if (active) 2.dp else 1.dp
+    Box(
+        modifier = Modifier
+            .size(22.dp)
+            .clip(CircleShape)
+            .background(bg)
+            .border(borderW, borderColor, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        when {
+            done -> Icon(
+                imageVector = Icons.Outlined.Check,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(12.dp),
+            )
+            else -> Text(
+                text = number.toString(),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (active) SevaGreen700 else SevaInk400,
+            )
+        }
+    }
+}
+
+// --- Equipment card ---------------------------------------------------------
+@Composable
+private fun EquipmentCard(job: RepairJob) {
+    val schedule = listOfNotNull(
+        job.scheduledDate?.takeIf { it.isNotBlank() },
+        job.scheduledTimeSlot?.takeIf { it.isNotBlank() },
+    ).joinToString(" ").ifBlank { "—" }
+    Column(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
+            .padding(14.dp),
+    ) {
+        EqRow("Brand", job.equipmentBrand?.takeIf { it.isNotBlank() } ?: "—")
+        Spacer(Modifier.height(8.dp))
+        EqRow("Model", job.equipmentModel?.takeIf { it.isNotBlank() } ?: "—")
+        Spacer(Modifier.height(8.dp))
+        EqRow("Category", job.equipmentCategory.displayName)
+        Spacer(Modifier.height(8.dp))
+        EqRow("Schedule", schedule)
+    }
+}
+
+@Composable
+private fun EqRow(label: String, value: String) {
+    Row(verticalAlignment = Alignment.Top) {
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            color = SevaInk500,
+            modifier = Modifier.width(90.dp),
+        )
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text = value,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = SevaInk900,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+// --- Issue card -------------------------------------------------------------
+@Composable
+private fun IssueCard(job: RepairJob) {
+    val photoCount = job.issuePhotos.size
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color.White)
+                .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
+                .padding(14.dp),
+        ) {
+            Text(
+                text = job.issueDescription,
+                fontSize = 13.sp,
+                color = SevaInk700,
+                lineHeight = 19.sp,
+            )
+        }
+        if (photoCount > 0) {
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 8.dp)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                repeat(photoCount.coerceAtMost(4)) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Paper2),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.PhotoCamera,
+                            contentDescription = null,
+                            tint = SevaInk400,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
                 }
-                if (!hospitalName.isNullOrBlank()) {
-                    if (isNotEmpty()) append(" · ")
-                    append("by ").append(hospitalName)
-                }
             }
-            if (postedLine.isNotBlank()) {
-                Text(
-                    text = postedLine,
-                    fontSize = 12.sp,
-                    color = Ink500,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
-            if (!hospitalLocation.isNullOrBlank()) {
-                Text(
-                    text = hospitalLocation,
-                    fontSize = 12.sp,
-                    color = Ink500,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-            }
-            val schedule = listOfNotNull(job.scheduledDate, job.scheduledTimeSlot).joinToString(" ")
-            if (schedule.isNotBlank()) {
+        }
+    }
+}
+
+// --- Assigned engineer card ------------------------------------------------
+@Composable
+private fun AssignedEngineerCard(
+    name: String,
+    openingChat: Boolean,
+    onMessage: () -> Unit,
+) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color.White)
+                .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Avatar(initials = initialsOf(name), size = 44.dp)
+            Column(modifier = Modifier.weight(1f)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(top = 10.dp),
                 ) {
+                    Text(
+                        text = name,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = SevaInk900,
+                    )
+                    VerifiedBadge(small = true)
+                }
+            }
+            Icon(
+                imageVector = Icons.Outlined.ChevronRight,
+                contentDescription = null,
+                tint = SevaInk400,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        Row(
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            EsBtn(
+                text = if (openingChat) "Opening…" else "Message",
+                onClick = onMessage,
+                kind = EsBtnKind.Secondary,
+                full = true,
+                disabled = openingChat,
+                leading = {
                     Icon(
-                        imageVector = Icons.Outlined.LocationOn,
+                        imageVector = Icons.Outlined.ChatBubbleOutline,
                         contentDescription = null,
-                        tint = BrandGreen,
+                        tint = SevaInk700,
                         modifier = Modifier.size(16.dp),
                     )
+                },
+                modifier = Modifier.weight(1f),
+            )
+            EsBtn(
+                text = "Call",
+                onClick = onMessage,
+                kind = EsBtnKind.Secondary,
+                disabled = true,
+                leading = {
+                    Icon(
+                        imageVector = Icons.Outlined.Phone,
+                        contentDescription = null,
+                        tint = SevaGreen700,
+                        modifier = Modifier.size(16.dp),
+                    )
+                },
+            )
+        }
+    }
+}
+
+// --- Bids list (hospital view) ---------------------------------------------
+@Composable
+private fun BidsList(
+    bids: List<RepairBid>,
+    engineerNames: Map<String, String>,
+    acceptingBidId: String?,
+    openingChat: Boolean,
+    onAccept: (String) -> Unit,
+    onMessage: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        bids.forEach { bid ->
+            BidCard(
+                bid = bid,
+                engineerName = engineerNames[bid.engineerUserId] ?: "Engineer",
+                accepting = acceptingBidId == bid.id,
+                anyAccepting = acceptingBidId != null,
+                openingChat = openingChat,
+                onAccept = onAccept,
+                onMessage = onMessage,
+            )
+        }
+    }
+}
+
+@Composable
+private fun BidCard(
+    bid: RepairBid,
+    engineerName: String,
+    accepting: Boolean,
+    anyAccepting: Boolean,
+    openingChat: Boolean,
+    onAccept: (String) -> Unit,
+    onMessage: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
+            .padding(14.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Avatar(initials = initialsOf(engineerName), size = 36.dp)
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
                     Text(
-                        text = schedule,
+                        text = engineerName,
                         fontSize = 13.sp,
-                        color = Ink700,
+                        fontWeight = FontWeight.SemiBold,
+                        color = SevaInk900,
+                    )
+                    VerifiedBadge(small = true)
+                }
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = formatRupees(bid.amountRupees),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = SevaGreen700,
+                )
+                bid.createdAtInstant?.let { placed ->
+                    Text(
+                        text = "${relativeLabel(placed)} ago",
+                        fontSize = 10.sp,
+                        color = SevaInk400,
                     )
                 }
             }
-            job.estimatedCostRupees?.let { budget ->
-                Text(
-                    text = "Budget ~ ${formatRupees(budget)}",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Ink700,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(BorderDefault),
+        )
+        Spacer(Modifier.height(8.dp))
+        val etaText = bid.etaHours?.let { "ETA: ${it}h" } ?: "ETA: —"
+        Text(
+            text = etaText,
+            fontSize = 12.sp,
+            color = SevaInk600,
+            lineHeight = 17.sp,
+        )
+        if (!bid.note.isNullOrBlank()) {
+            Text(
+                text = bid.note,
+                fontSize = 12.sp,
+                color = SevaInk600,
+                lineHeight = 17.sp,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+        Row(
+            modifier = Modifier
+                .padding(top = 10.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            EsBtn(
+                text = "Message",
+                onClick = onMessage,
+                kind = EsBtnKind.Secondary,
+                disabled = openingChat,
+            )
+            EsBtn(
+                text = if (accepting) "Accepting…" else "Accept this bid",
+                onClick = { if (!anyAccepting) onAccept(bid.id) },
+                kind = EsBtnKind.Primary,
+                full = true,
+                disabled = anyAccepting,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }
 
+// --- Engineer's own bid card -----------------------------------------------
 @Composable
-private fun IssueCard(job: RepairJob) {
-    val shape = MaterialTheme.shapes.medium
+private fun YourBidCard(ownBid: RepairBid, onWithdraw: () -> Unit) {
     Column(
         modifier = Modifier
-            .padding(horizontal = Spacing.lg)
+            .padding(horizontal = 16.dp)
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, shape)
-            .border(1.dp, Surface200, shape)
-            .padding(Spacing.md),
+            .clip(RoundedCornerShape(12.dp))
+            .background(SevaGreen50)
+            .padding(14.dp),
     ) {
         Text(
-            text = job.issueDescription,
-            fontSize = 14.sp,
-            lineHeight = 20.sp,
-            color = Ink900,
+            text = "Your bid",
+            fontSize = 12.sp,
+            color = SevaInk500,
         )
+        Text(
+            text = buildString {
+                append(formatRupees(ownBid.amountRupees))
+                ownBid.etaHours?.let { append(" · ETA ${it}h") }
+            },
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = SevaGreen900,
+            modifier = Modifier.padding(top = 2.dp),
+        )
+        Text(
+            text = "Status: ${ownBid.status.displayName}",
+            fontSize = 12.sp,
+            color = SevaInk700,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        if (!ownBid.note.isNullOrBlank()) {
+            Text(
+                text = ownBid.note,
+                fontSize = 12.sp,
+                color = SevaInk700,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+        if (ownBid.status == RepairBidStatus.Pending) {
+            Spacer(Modifier.height(10.dp))
+            EsBtn(
+                text = "Withdraw bid",
+                onClick = onWithdraw,
+                kind = EsBtnKind.DangerOutline,
+                size = EsBtnSize.Sm,
+            )
+        }
     }
 }
 
+// --- Location card ----------------------------------------------------------
 @Composable
 private fun LocationCard(
-    siteLocation: String?,
-    siteLatitude: Double?,
-    siteLongitude: Double?,
-    revealAddressForEngineer: Boolean,
+    job: RepairJob,
     viewerRole: RepairJobDetailViewModel.ViewerRole,
 ) {
-    val shape = MaterialTheme.shapes.medium
     val context = LocalContext.current
     val isEngineer = viewerRole == RepairJobDetailViewModel.ViewerRole.Engineer
     val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
-    // Engineer can see + navigate once they're assigned. Hospital always sees
-    // the address they typed. Other roles get a generic placeholder.
-    val canShowAddress = !siteLocation.isNullOrBlank() &&
-        (isHospital || (isEngineer && revealAddressForEngineer))
-    Column(
-        modifier = Modifier
-            .padding(horizontal = Spacing.lg)
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, shape)
-            .border(1.dp, Surface200, shape)
-            .padding(Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(
-                imageVector = Icons.Outlined.LocationOn,
-                contentDescription = null,
-                tint = BrandGreen,
-                modifier = Modifier.size(18.dp),
-            )
-            Text(
-                text = "Service site",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Ink700,
-            )
+    val canShowAddress = !job.siteLocation.isNullOrBlank() &&
+        (isHospital || (isEngineer && job.isAssignedToEngineer))
+
+    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(140.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Paper3),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.LocationOn,
+                    contentDescription = null,
+                    tint = SevaGreen700,
+                    modifier = Modifier.size(28.dp),
+                )
+                Text(
+                    text = "Map preview",
+                    fontSize = 11.sp,
+                    color = SevaInk500,
+                )
+                if (canShowAddress) {
+                    Text(
+                        text = job.siteLocation!!.lineSequence().firstOrNull().orEmpty(),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = SevaInk900,
+                    )
+                }
+            }
         }
         if (canShowAddress) {
             Text(
-                text = siteLocation!!,
-                fontSize = 14.sp,
-                color = Ink900,
+                text = job.siteLocation!!,
+                fontSize = 13.sp,
+                color = SevaInk900,
                 fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(top = 8.dp),
             )
-            // Engineer-only Navigate CTA. Hospitals already know where they
-            // are; the button would be visual noise for them.
             if (isEngineer) {
-                OutlinedButton(
+                Spacer(Modifier.height(8.dp))
+                EsBtn(
+                    text = "Navigate to site",
                     onClick = {
-                        // Prefer geo:lat,lng?q=lat,lng(label) when the
-                        // hospital pinned a marker — Maps opens straight to
-                        // the dropped pin instead of guessing from the text
-                        // address. Falls back to geo:0,0?q=<address> when
-                        // only the free-text label exists (legacy rows or
-                        // engineer signed up before the picker landed).
-                        val encoded = Uri.encode(siteLocation)
-                        val uri = if (siteLatitude != null && siteLongitude != null) {
+                        val encoded = Uri.encode(job.siteLocation)
+                        val uri = if (job.siteLatitude != null && job.siteLongitude != null) {
                             val label = Uri.encode("Service site")
-                            Uri.parse("geo:$siteLatitude,$siteLongitude?q=$siteLatitude,$siteLongitude($label)")
+                            Uri.parse("geo:${job.siteLatitude},${job.siteLongitude}?q=${job.siteLatitude},${job.siteLongitude}($label)")
                         } else {
                             Uri.parse("geo:0,0?q=$encoded")
                         }
@@ -808,8 +994,8 @@ private fun LocationCard(
                         try {
                             context.startActivity(intent)
                         } catch (_: android.content.ActivityNotFoundException) {
-                            val fallbackUrl = if (siteLatitude != null && siteLongitude != null) {
-                                "https://www.google.com/maps/dir/?api=1&destination=$siteLatitude,$siteLongitude"
+                            val fallbackUrl = if (job.siteLatitude != null && job.siteLongitude != null) {
+                                "https://www.google.com/maps/dir/?api=1&destination=${job.siteLatitude},${job.siteLongitude}"
                             } else {
                                 "https://www.google.com/maps/dir/?api=1&destination=$encoded"
                             }
@@ -820,15 +1006,16 @@ private fun LocationCard(
                             try { context.startActivity(fallback) } catch (_: Throwable) {}
                         }
                     },
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.LocationOn,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text("Navigate to site")
-                }
+                    kind = EsBtnKind.Secondary,
+                    leading = {
+                        Icon(
+                            imageVector = Icons.Outlined.LocationOn,
+                            contentDescription = null,
+                            tint = SevaGreen700,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    },
+                )
             }
         } else {
             Text(
@@ -836,351 +1023,163 @@ private fun LocationCard(
                     "Full address shows up after the hospital accepts your bid."
                 else
                     "Address will be shared once the bid is accepted.",
-                fontSize = 13.sp,
-                color = Ink700,
+                fontSize = 12.sp,
+                color = SevaInk500,
+                modifier = Modifier.padding(top = 8.dp),
             )
         }
     }
 }
 
+// --- Completion proof card --------------------------------------------------
 @Composable
-private fun HospitalBidsList(
-    job: RepairJob,
-    bids: List<RepairBid>,
-    engineerNames: Map<String, String>,
-    acceptingBidId: String?,
-    openingChat: Boolean,
-    onAcceptBid: (String) -> Unit,
-    onMessageEngineer: () -> Unit,
-) {
-    val shape = MaterialTheme.shapes.medium
-    if (bids.isEmpty()) {
-        Column(
-            modifier = Modifier
-                .padding(horizontal = Spacing.lg)
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface, shape)
-                .border(1.dp, Surface200, shape)
-                .padding(Spacing.md),
-        ) {
-            Text(
-                text = "No bids yet. Engineers will be notified when your job is posted.",
-                fontSize = 13.sp,
-                color = Ink500,
-            )
-        }
-        return
-    }
-    val canAccept = job.status == RepairJobStatus.Requested
+private fun CompletionProofCard(urls: List<String>) {
     Column(
         modifier = Modifier
-            .padding(horizontal = Spacing.lg)
-            .fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        bids.forEach { bid ->
-            HospitalBidRow(
-                bid = bid,
-                engineerName = engineerNames[bid.engineerUserId],
-                canAccept = canAccept,
-                accepting = acceptingBidId == bid.id,
-                anyAccepting = acceptingBidId != null,
-                openingChat = openingChat,
-                onAcceptBid = onAcceptBid,
-                onMessageEngineer = onMessageEngineer,
-            )
-        }
-    }
-}
-
-@Composable
-private fun HospitalBidRow(
-    bid: RepairBid,
-    engineerName: String?,
-    canAccept: Boolean,
-    accepting: Boolean,
-    anyAccepting: Boolean,
-    openingChat: Boolean,
-    onAcceptBid: (String) -> Unit,
-    onMessageEngineer: () -> Unit,
-) {
-    val shape = MaterialTheme.shapes.medium
-    val isAccepted = bid.status == RepairBidStatus.Accepted
-    val bg = if (isAccepted) BrandGreen50 else MaterialTheme.colorScheme.surface
-    Column(
-        modifier = Modifier
+            .padding(horizontal = 16.dp)
             .fillMaxWidth()
-            .background(bg, shape)
-            .border(1.dp, if (isAccepted) BrandGreen else Surface200, shape)
-            .padding(Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
+            .padding(14.dp),
     ) {
-        Row(
+        LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = engineerName ?: "Engineer",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Ink700,
-                )
-                Text(
-                    text = formatRupees(bid.amountRupees),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isAccepted) BrandGreenDark else Ink900,
+            items(urls, key = { it }) { url ->
+                AsyncImage(
+                    model = url,
+                    contentDescription = "Completion photo",
+                    modifier = Modifier
+                        .size(96.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Paper2),
+                    contentScale = ContentScale.Crop,
                 )
             }
-            StatusChip(
-                label = bid.status.displayName,
-                tone = bid.status.toTone(),
-            )
         }
-        bid.createdAtInstant?.let { placed ->
-            Text(
-                text = "Placed ${relativeLabel(placed)} ago",
-                fontSize = 12.sp,
-                color = Ink500,
-            )
-        }
-        val meta = buildString {
-            bid.etaHours?.let { append("ETA ${it}h") }
-            if (isNotEmpty() && !bid.note.isNullOrBlank()) append(" · ")
-            if (!bid.note.isNullOrBlank()) append(bid.note)
-        }
-        if (meta.isNotBlank()) {
-            Text(
-                text = meta,
-                fontSize = 13.sp,
-                color = Ink700,
-            )
-        }
-        if (canAccept && bid.status == RepairBidStatus.Pending) {
-            Button(
-                onClick = { onAcceptBid(bid.id) },
-                enabled = !anyAccepting,
-                modifier = Modifier
-                    .padding(top = 4.dp)
-                    .fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-            ) {
-                Text(if (accepting) "Accepting…" else "Accept bid")
-            }
-        }
-        if (isAccepted) {
-            OutlinedButton(
-                onClick = onMessageEngineer,
-                enabled = !openingChat,
-                modifier = Modifier
-                    .padding(top = 4.dp)
-                    .fillMaxWidth(),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.ChatBubbleOutline,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(if (openingChat) "Opening…" else "Message engineer")
-            }
-        }
+        Text(
+            text = "Photos uploaded by the engineer.",
+            fontSize = 12.sp,
+            color = SevaInk500,
+            modifier = Modifier.padding(top = 10.dp),
+        )
     }
 }
 
-@Composable
-private fun YourBidCard(ownBid: RepairBid?) {
-    val shape = MaterialTheme.shapes.medium
-    if (ownBid == null) {
-        Column(
-            modifier = Modifier
-                .padding(horizontal = Spacing.lg)
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface, shape)
-                .border(1.dp, Surface200, shape)
-                .padding(Spacing.md),
-        ) {
-            Text(
-                text = "You haven't placed a bid on this job yet.",
-                fontSize = 13.sp,
-                color = Ink500,
-            )
-        }
-    } else {
-        Column(
-            modifier = Modifier
-                .padding(horizontal = Spacing.lg)
-                .fillMaxWidth()
-                .background(BrandGreen50, shape)
-                .padding(Spacing.md),
-        ) {
-            Text(
-                text = "Your bid",
-                fontSize = 13.sp,
-                color = Ink500,
-            )
-            Text(
-                text = buildString {
-                    append(formatRupees(ownBid.amountRupees))
-                    ownBid.etaHours?.let { append(" · ETA ${it}h") }
-                },
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = BrandGreenDark,
-                modifier = Modifier.padding(top = 2.dp),
-            )
-            Text(
-                text = "Status: ${ownBid.status.displayName}",
-                fontSize = 12.sp,
-                color = Ink700,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-            if (!ownBid.note.isNullOrBlank()) {
-                Text(
-                    text = "Note: ${ownBid.note}",
-                    fontSize = 12.sp,
-                    color = Ink700,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatusStepperCard(job: RepairJob) {
-    val shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
-    Column(
-        modifier = Modifier
-            .padding(horizontal = Spacing.lg)
-            .padding(bottom = Spacing.xl)
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, shape)
-            .border(1.dp, Surface200, shape)
-            .padding(Spacing.md),
-    ) {
-        com.equipseva.app.designsystem.components.EsStatusStepper(current = job.status)
-    }
-}
-
+// --- Sticky bottom bar ------------------------------------------------------
 @Composable
 private fun StickyBottomBar(
     job: RepairJob,
     ownBid: RepairBid?,
-    withdrawing: Boolean,
-    openingChat: Boolean,
-    onMessageHospital: () -> Unit,
+    viewerRole: RepairJobDetailViewModel.ViewerRole,
+    updatingStatus: Boolean,
     onPlaceBid: () -> Unit,
-    onWithdraw: () -> Unit,
+    onCheckIn: () -> Unit,
+    onMarkDone: () -> Unit,
+    onRate: () -> Unit,
+    onCancel: () -> Unit,
 ) {
-    val acceptsBids = job.status == RepairJobStatus.Requested
-    Column(
+    val isEngineer = viewerRole == RepairJobDetailViewModel.ViewerRole.Engineer
+    val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
+    val rated = when (viewerRole) {
+        RepairJobDetailViewModel.ViewerRole.Hospital -> job.hospitalRating != null
+        RepairJobDetailViewModel.ViewerRole.Engineer -> job.engineerRating != null
+        RepairJobDetailViewModel.ViewerRole.Other -> true
+    }
+    val canCancel = (isHospital || isEngineer) &&
+        job.status in setOf(RepairJobStatus.Requested, RepairJobStatus.Assigned)
+
+    // Resolve which primary CTA to show. Null = no primary (e.g. Other role,
+    // or terminal states without a CTA + without cancel).
+    val primaryKind: PrimaryCta? = when {
+        isEngineer && job.status == RepairJobStatus.Requested ->
+            PrimaryCta.PlaceBid(editing = ownBid?.status == RepairBidStatus.Pending)
+        isEngineer && job.status == RepairJobStatus.Assigned -> PrimaryCta.CheckIn
+        isEngineer && (job.status == RepairJobStatus.EnRoute || job.status == RepairJobStatus.InProgress) ->
+            PrimaryCta.MarkDone
+        isHospital && job.status == RepairJobStatus.Completed && !rated -> PrimaryCta.Rate
+        isHospital && job.status == RepairJobStatus.Completed && rated -> PrimaryCta.RatedDone
+        else -> null
+    }
+
+    if (primaryKind == null && !canCancel) return
+
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, Surface200)
-            .padding(Spacing.lg),
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RectangleShape)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (job.hospitalUserId != null) {
-                OutlinedButton(
-                    onClick = onMessageHospital,
-                    enabled = !openingChat,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = null)
-                    Spacer(Modifier.width(6.dp))
-                    Text(if (openingChat) "Opening…" else "Message")
-                }
-            }
-            when {
-                !acceptsBids -> Box(
-                    modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = "Bidding closed",
-                        fontSize = 13.sp,
-                        color = Ink500,
-                    )
-                }
-                ownBid == null -> Button(
-                    onClick = onPlaceBid,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-                ) { Text("Place bid") }
-                ownBid.status == RepairBidStatus.Pending -> Button(
-                    onClick = onPlaceBid,
-                    enabled = !withdrawing,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-                ) { Text("Edit bid") }
-                else -> Box(
-                    modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = "Bid ${ownBid.status.displayName.lowercase()}",
-                        fontSize = 13.sp,
-                        color = Ink500,
-                    )
-                }
-            }
+        when (primaryKind) {
+            is PrimaryCta.PlaceBid -> EsBtn(
+                text = if (primaryKind.editing) "Edit bid" else "Place bid",
+                onClick = onPlaceBid,
+                kind = EsBtnKind.Primary,
+                full = true,
+                size = EsBtnSize.Lg,
+                modifier = Modifier.weight(1f),
+            )
+            PrimaryCta.CheckIn -> EsBtn(
+                text = if (updatingStatus) "Working…" else "Check in on-site",
+                onClick = onCheckIn,
+                kind = EsBtnKind.Primary,
+                full = true,
+                size = EsBtnSize.Lg,
+                disabled = updatingStatus,
+                modifier = Modifier.weight(1f),
+            )
+            PrimaryCta.MarkDone -> EsBtn(
+                text = "Mark done",
+                onClick = onMarkDone,
+                kind = EsBtnKind.Primary,
+                full = true,
+                size = EsBtnSize.Lg,
+                modifier = Modifier.weight(1f),
+            )
+            PrimaryCta.Rate -> EsBtn(
+                text = "Rate engineer",
+                onClick = onRate,
+                kind = EsBtnKind.Primary,
+                full = true,
+                size = EsBtnSize.Lg,
+                modifier = Modifier.weight(1f),
+            )
+            PrimaryCta.RatedDone -> EsBtn(
+                text = "Rated · Thanks!",
+                onClick = {},
+                kind = EsBtnKind.Secondary,
+                full = true,
+                size = EsBtnSize.Lg,
+                disabled = true,
+                modifier = Modifier.weight(1f),
+            )
+            null -> Unit
         }
-        if (ownBid?.status == RepairBidStatus.Pending) {
-            TextButton(
-                onClick = onWithdraw,
-                enabled = !withdrawing,
-                modifier = Modifier
-                    .padding(top = 4.dp)
-                    .fillMaxWidth(),
-            ) {
-                Text(if (withdrawing) "Withdrawing…" else "Withdraw bid")
-            }
+        if (canCancel) {
+            EsBtn(
+                text = "Cancel",
+                onClick = onCancel,
+                kind = EsBtnKind.DangerOutline,
+                size = EsBtnSize.Lg,
+            )
         }
     }
 }
 
-@Composable
-private fun NotFoundState(onBack: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(Spacing.xl),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            "This repair job is no longer available.",
-            style = MaterialTheme.typography.titleMedium,
-        )
-        Button(onClick = onBack) { Text("Back") }
-    }
+private sealed interface PrimaryCta {
+    data class PlaceBid(val editing: Boolean) : PrimaryCta
+    data object CheckIn : PrimaryCta
+    data object MarkDone : PrimaryCta
+    data object Rate : PrimaryCta
+    data object RatedDone : PrimaryCta
 }
 
-@Composable
-private fun ErrorState(message: String, onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(Spacing.xl),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        ErrorBanner(message = message)
-        Button(onClick = onRetry) { Text("Retry") }
-    }
-}
+// --- Sheets -----------------------------------------------------------------
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1223,49 +1222,35 @@ private fun BidComposerSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.lg)
-                .padding(bottom = Spacing.xl),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
                 text = if (existingBid != null) "Update your bid" else "Place your bid",
-                style = MaterialTheme.typography.titleLarge,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = SevaInk900,
             )
-
-            // Branded "YOUR PRICE" pill — matches design `screens-repair.jsx
-            // PlaceBidSheet`. The amount field reads as the primary action;
-            // ETA + note stay below as secondary details.
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
-                    .background(com.equipseva.app.designsystem.theme.BrandGreen50)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
+            // Price field
+            Column {
                 Text(
-                    text = "YOUR PRICE",
-                    fontSize = 11.sp,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                    color = com.equipseva.app.designsystem.theme.BrandGreenDark,
-                    letterSpacing = 1.2.sp,
+                    text = "Your price (₹)",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = SevaInk700,
+                    modifier = Modifier.padding(bottom = 6.dp),
                 )
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it.filter { ch -> ch.isDigit() || ch == '.' } },
-                    placeholder = { Text("0", style = MaterialTheme.typography.headlineLarge) },
-                    leadingIcon = {
-                        Text(
-                            text = "₹",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = com.equipseva.app.designsystem.theme.BrandGreenDark,
-                        )
-                    },
+                    placeholder = { Text("0") },
+                    leadingIcon = { Text("₹", color = SevaInk500, fontSize = 16.sp) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = amountError,
-                    textStyle = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = SevaGreen700,
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1274,48 +1259,60 @@ private fun BidComposerSheet(
                             amountFocused = focusState.isFocused
                         },
                 )
-                Text(
-                    text = "Market range: ₹2,800 – ₹4,500 for similar jobs",
-                    fontSize = 12.sp,
-                    color = com.equipseva.app.designsystem.theme.Ink700,
-                )
                 if (amountError) {
                     Text(
                         text = "Enter a valid amount",
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(start = 4.dp, top = 4.dp),
                     )
                 }
             }
-
-            OutlinedTextField(
+            // ETA field
+            EsField(
                 value = eta,
-                onValueChange = { eta = it.filter(Char::isDigit) },
-                label = { Text("ETA hours (optional)") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                isError = etaError,
-                supportingText = {
-                    if (etaError) Text("Enter hours as a positive whole number")
+                onChange = { eta = it.filter(Char::isDigit) },
+                label = "When can you arrive? (hours)",
+                placeholder = "e.g. 4",
+                type = EsFieldType.Number,
+                error = if (etaError) "Enter hours as a positive whole number" else null,
+                modifier = Modifier.onFocusChanged { focusState ->
+                    if (!focusState.isFocused && etaFocused) etaTouched = true
+                    etaFocused = focusState.isFocused
                 },
+            )
+            // Note field
+            EsField(
+                value = note,
+                onChange = { note = it },
+                label = "Note to hospital",
+                placeholder = "Mention spare parts, prior work…",
+                type = EsFieldType.Multiline,
+            )
+            // Info banner
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .onFocusChanged { focusState ->
-                        if (!focusState.isFocused && etaFocused) etaTouched = true
-                        etaFocused = focusState.isFocused
-                    },
-            )
-
-            OutlinedTextField(
-                value = note,
-                onValueChange = { note = it },
-                label = { Text("Note (optional)") },
-                maxLines = 4,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            PrimaryButton(
-                label = if (placingBid) "Submitting…" else "Submit",
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(SevaInfo50)
+                    .padding(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Shield,
+                    contentDescription = null,
+                    tint = SevaInfo500,
+                    modifier = Modifier.size(14.dp),
+                )
+                Text(
+                    text = "Your bid is locked once submitted. Hospital sees your verified profile.",
+                    fontSize = 11.sp,
+                    color = SevaInfo500,
+                )
+            }
+            EsBtn(
+                text = if (placingBid) "Submitting…" else "Submit bid",
                 onClick = {
                     amountTouched = true
                     etaTouched = true
@@ -1324,70 +1321,81 @@ private fun BidComposerSheet(
                         onSubmit(value, parsedEta, note.trim().ifBlank { null })
                     }
                 },
-                enabled = amountValid && etaValid && !placingBid,
-                loading = placingBid,
+                kind = EsBtnKind.Primary,
+                full = true,
+                size = EsBtnSize.Lg,
+                disabled = !(amountValid && etaValid) || placingBid,
             )
-
-            TextButton(
+            EsBtn(
+                text = "Cancel",
                 onClick = onDismiss,
-                enabled = !placingBid,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Cancel")
-            }
+                kind = EsBtnKind.Ghost,
+                full = true,
+                disabled = placingBid,
+            )
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun QueuedOutboxPill(bidCount: Int, statusCount: Int) {
-    if (bidCount <= 0 && statusCount <= 0) return
-    val parts = buildList {
-        if (bidCount > 0) add(if (bidCount == 1) "1 bid" else "$bidCount bids")
-        if (statusCount > 0) add(if (statusCount == 1) "1 status change" else "$statusCount status changes")
-    }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = Spacing.xs)
-            .clip(RoundedCornerShape(12.dp))
-            .background(BrandGreen50)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.CloudSync,
-            contentDescription = null,
-            tint = BrandGreen,
-            modifier = Modifier.size(16.dp),
-        )
-        Text(
-            text = "${parts.joinToString(" + ")} queued — will sync when back online",
-            style = MaterialTheme.typography.bodySmall,
-            color = Ink900,
-        )
-    }
-}
-
-@Composable
-private fun CompletionProofGallery(urls: List<String>) {
-    LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(vertical = 4.dp),
-    ) {
-        items(urls, key = { it }) { url ->
-            AsyncImage(
-                model = url,
-                contentDescription = "Completion photo",
+private fun CheckinSheet(
+    updating: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(
                 modifier = Modifier
-                    .size(96.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Surface200),
-                contentScale = ContentScale.Crop,
+                    .size(72.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(SevaGreen50),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.LocationOn,
+                    contentDescription = null,
+                    tint = SevaGreen700,
+                    modifier = Modifier.size(32.dp),
+                )
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = "Confirm you've reached the site?",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = SevaInk900,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                text = "This notifies the hospital and changes status to \"In progress\".",
+                fontSize = 12.sp,
+                color = SevaInk500,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(8.dp))
+            EsBtn(
+                text = if (updating) "Confirming…" else "Yes, I'm here",
+                onClick = onConfirm,
+                kind = EsBtnKind.Primary,
+                full = true,
+                size = EsBtnSize.Lg,
+                disabled = updating,
+            )
+            EsBtn(
+                text = "Not yet",
+                onClick = onDismiss,
+                kind = EsBtnKind.Ghost,
+                full = true,
+                disabled = updating,
             )
         }
     }
@@ -1403,6 +1411,7 @@ private fun CompletionProofSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
     var picked by rememberSaveable(stateSaver = UriListSaver) { mutableStateOf(emptyList<Uri>()) }
+    var note by rememberSaveable { mutableStateOf("") }
     val maxPhotos = 4
 
     val launcher = rememberLauncherForActivityResult(
@@ -1420,150 +1429,340 @@ private fun CompletionProofSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "Mark this job done",
-                fontWeight = FontWeight.Bold,
+                text = "Mark job done",
                 fontSize = 18.sp,
-                color = Ink900,
+                fontWeight = FontWeight.Bold,
+                color = SevaInk900,
             )
             Text(
-                text = "Add up to $maxPhotos photos so the hospital can see the work. You can skip if you really need to.",
-                fontSize = 13.sp,
-                color = Ink500,
+                text = "After-photos (required)",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = SevaInk700,
             )
-
-            // Picked previews + add tile
-            LazyRow(
+            Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(vertical = 4.dp),
             ) {
-                items(picked, key = { it.toString() }) { uri ->
+                repeat(maxPhotos) { i ->
+                    val hasPhoto = i < picked.size
+                    val uri = picked.getOrNull(i)
                     Box(
                         modifier = Modifier
-                            .size(96.dp)
+                            .weight(1f)
+                            .aspectRatio(1f)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(Surface200),
-                    ) {
-                        AsyncImage(
-                            model = uri,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(10.dp)),
-                            contentScale = ContentScale.Crop,
-                        )
-                        IconButton(
-                            onClick = { picked = picked - uri },
-                            enabled = !submitting,
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .size(24.dp)
-                                .padding(2.dp)
-                                .background(Color.Black.copy(alpha = 0.55f), CircleShape),
-                        ) {
-                            Icon(
-                                Icons.Filled.Close,
-                                contentDescription = "Remove photo",
-                                tint = Color.White,
-                                modifier = Modifier.size(14.dp),
+                            .background(if (hasPhoto) Paper2 else Color.White)
+                            .border(
+                                width = 1.5.dp,
+                                color = if (hasPhoto) SevaGreen700 else BorderDefault,
+                                shape = RoundedCornerShape(10.dp),
                             )
-                        }
-                    }
-                }
-                if (picked.size < maxPhotos) {
-                    item("add") {
-                        Box(
-                            modifier = Modifier
-                                .size(96.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(BrandGreen50)
-                                .border(1.dp, BrandGreen, RoundedCornerShape(10.dp))
-                                .padding(8.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
+                            .clickable(enabled = !submitting && !hasPhoto) {
+                                launcher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                )
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (hasPhoto && uri != null) {
+                            AsyncImage(
+                                model = uri,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(10.dp)),
+                                contentScale = ContentScale.Crop,
+                            )
                             IconButton(
-                                onClick = {
-                                    launcher.launch(
-                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                                    )
-                                },
+                                onClick = { picked = picked - uri },
                                 enabled = !submitting,
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .size(22.dp)
+                                    .padding(2.dp)
+                                    .background(Color.Black.copy(alpha = 0.55f), CircleShape),
                             ) {
                                 Icon(
-                                    Icons.Filled.AddPhotoAlternate,
-                                    contentDescription = "Add photos",
-                                    tint = BrandGreen,
-                                    modifier = Modifier.size(28.dp),
+                                    Icons.Filled.Close,
+                                    contentDescription = "Remove",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(12.dp),
                                 )
                             }
-                        }
-                    }
-                }
-            }
-            if (picked.isEmpty()) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.PhotoLibrary,
-                        contentDescription = null,
-                        tint = Ink500,
-                        modifier = Modifier.size(14.dp),
-                    )
-                    Text("No photos yet — tap + to add", fontSize = 12.sp, color = Ink500)
-                }
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedButton(
-                    onClick = onDismiss,
-                    enabled = !submitting,
-                    modifier = Modifier.weight(1f),
-                ) { Text("Cancel") }
-                Button(
-                    onClick = {
-                        // Read each URI to bytes here (off-thread is overkill;
-                        // photo picker payloads are small and the stash also
-                        // copies to disk inside enqueue()). The ViewModel then
-                        // hands them to PhotoUploadStash + flips the status.
-                        val resolver = context.contentResolver
-                        val photos = picked.mapNotNull { uri ->
-                            val mime = resolver.getType(uri) ?: "image/jpeg"
-                            val name = uri.lastPathSegment ?: "after-${System.currentTimeMillis()}.jpg"
-                            val bytes = runCatching {
-                                resolver.openInputStream(uri)?.use { it.readBytes() }
-                            }.getOrNull() ?: return@mapNotNull null
-                            RepairJobDetailViewModel.CompletionProofPhoto(
-                                fileName = name,
-                                mimeType = mime,
-                                bytes = bytes,
+                        } else if (i == picked.size) {
+                            Icon(
+                                imageVector = Icons.Filled.AddPhotoAlternate,
+                                contentDescription = "Add photo",
+                                tint = SevaGreen700,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Outlined.PhotoCamera,
+                                contentDescription = null,
+                                tint = SevaInk400,
+                                modifier = Modifier.size(18.dp),
                             )
                         }
-                        onSubmit(photos)
-                    },
-                    enabled = !submitting,
-                    modifier = Modifier.weight(1.4f),
-                ) {
-                    if (submitting) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text("Saving…")
-                    } else {
-                        Text(if (picked.isEmpty()) "Mark done without photos" else "Submit + mark done")
                     }
                 }
             }
-            Spacer(Modifier.height(Spacing.sm))
+            EsField(
+                value = note,
+                onChange = { note = it },
+                label = "Work summary",
+                placeholder = "Replaced SpO2 module. Calibration verified.",
+                type = EsFieldType.Multiline,
+            )
+            EsBtn(
+                text = if (submitting) "Saving…" else "Mark done",
+                onClick = {
+                    val resolver = context.contentResolver
+                    val photos = picked.mapNotNull { uri ->
+                        val mime = resolver.getType(uri) ?: "image/jpeg"
+                        val name = uri.lastPathSegment ?: "after-${System.currentTimeMillis()}.jpg"
+                        val bytes = runCatching {
+                            resolver.openInputStream(uri)?.use { it.readBytes() }
+                        }.getOrNull() ?: return@mapNotNull null
+                        RepairJobDetailViewModel.CompletionProofPhoto(
+                            fileName = name,
+                            mimeType = mime,
+                            bytes = bytes,
+                        )
+                    }
+                    onSubmit(photos)
+                },
+                kind = EsBtnKind.Primary,
+                full = true,
+                size = EsBtnSize.Lg,
+                disabled = picked.isEmpty() || submitting,
+            )
+            EsBtn(
+                text = "Cancel",
+                onClick = onDismiss,
+                kind = EsBtnKind.Ghost,
+                full = true,
+                disabled = submitting,
+            )
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RateSheet(
+    job: RepairJob,
+    viewerRole: RepairJobDetailViewModel.ViewerRole,
+    submitting: Boolean,
+    onDismiss: () -> Unit,
+    onSubmit: (Int, String?) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val existing = when (viewerRole) {
+        RepairJobDetailViewModel.ViewerRole.Hospital -> job.hospitalRating
+        RepairJobDetailViewModel.ViewerRole.Engineer -> job.engineerRating
+        RepairJobDetailViewModel.ViewerRole.Other -> null
+    }
+    var rating by rememberSaveable(existing) { mutableStateOf(existing ?: 0) }
+    var note by rememberSaveable { mutableStateOf("") }
+    val labels = listOf("Poor", "Fair", "Good", "Great", "Excellent")
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = "Rate engineer",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = SevaInk900,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                (1..5).forEach { n ->
+                    val filled = n <= rating
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .clickable(enabled = existing == null && !submitting) {
+                                rating = n
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = if (filled) Icons.Filled.Star else Icons.Outlined.StarOutline,
+                            contentDescription = "$n star",
+                            tint = if (filled) WarnGold else SevaInk300,
+                            modifier = Modifier.size(36.dp),
+                        )
+                    }
+                }
+            }
+            Text(
+                text = if (rating == 0) "Tap to rate" else labels[rating - 1],
+                fontSize = 13.sp,
+                color = SevaInk500,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            EsField(
+                value = note,
+                onChange = { note = it },
+                label = "Notes (optional)",
+                placeholder = "What stood out?",
+                type = EsFieldType.Multiline,
+            )
+            EsBtn(
+                text = if (submitting) "Submitting…" else "Submit rating",
+                onClick = { onSubmit(rating, note.trim().ifBlank { null }) },
+                kind = EsBtnKind.Primary,
+                full = true,
+                size = EsBtnSize.Lg,
+                disabled = rating == 0 || submitting,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CancelSheet(
+    updating: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var reason by rememberSaveable { mutableStateOf("") }
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = "Cancel job?",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = SevaInk900,
+            )
+            Text(
+                text = "This cannot be undone. The other party will be notified.",
+                fontSize = 13.sp,
+                color = SevaInk600,
+            )
+            EsField(
+                value = reason,
+                onChange = { reason = it },
+                label = "Reason",
+                placeholder = "Why are you cancelling?",
+                type = EsFieldType.Multiline,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                EsBtn(
+                    text = "Keep job",
+                    onClick = onDismiss,
+                    kind = EsBtnKind.Secondary,
+                    full = true,
+                    disabled = updating,
+                    modifier = Modifier.weight(1f),
+                )
+                EsBtn(
+                    text = if (updating) "Cancelling…" else "Cancel job",
+                    onClick = onConfirm,
+                    kind = EsBtnKind.Danger,
+                    full = true,
+                    disabled = updating,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+// --- Misc helpers -----------------------------------------------------------
+
+@Composable
+private fun QueuedOutboxPill(bidCount: Int, statusCount: Int) {
+    if (bidCount <= 0 && statusCount <= 0) return
+    val parts = buildList {
+        if (bidCount > 0) add(if (bidCount == 1) "1 bid" else "$bidCount bids")
+        if (statusCount > 0) add(if (statusCount == 1) "1 status change" else "$statusCount status changes")
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(SevaGreen50)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.CheckCircle,
+            contentDescription = null,
+            tint = SevaGreen700,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = "${parts.joinToString(" + ")} queued — will sync when back online",
+            fontSize = 12.sp,
+            color = SevaInk900,
+        )
+    }
+}
+
+@Composable
+private fun NotFoundState(onBack: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            "This repair job is no longer available.",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = SevaInk900,
+        )
+        EsBtn(text = "Back", onClick = onBack, kind = EsBtnKind.Primary)
+    }
+}
+
+@Composable
+private fun ErrorState(message: String, onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        ErrorBanner(message = message)
+        EsBtn(text = "Retry", onClick = onRetry, kind = EsBtnKind.Primary)
+    }
+}
+
+private fun initialsOf(name: String): String {
+    val parts = name.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+    return when {
+        parts.isEmpty() -> "?"
+        parts.size == 1 -> parts[0].take(2)
+        else -> "${parts[0].first()}${parts[1].first()}"
     }
 }
 

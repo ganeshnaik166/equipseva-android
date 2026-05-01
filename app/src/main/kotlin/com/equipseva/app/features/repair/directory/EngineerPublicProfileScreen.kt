@@ -10,6 +10,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,13 +24,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.Security
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -50,27 +50,27 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
-import com.equipseva.app.designsystem.components.EsChip
+import com.equipseva.app.designsystem.components.EsSection
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
 import com.equipseva.app.designsystem.theme.BorderDefault
-import com.equipseva.app.designsystem.theme.EsType
+import com.equipseva.app.designsystem.theme.Paper2
+import com.equipseva.app.designsystem.theme.Paper3
 import com.equipseva.app.designsystem.theme.PaperDefault
-import com.equipseva.app.designsystem.theme.SevaGlowRaw
+import com.equipseva.app.designsystem.theme.SevaGreen100
 import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaGreen700
-import com.equipseva.app.designsystem.theme.SevaGreen900
 import com.equipseva.app.designsystem.theme.SevaInfo50
 import com.equipseva.app.designsystem.theme.SevaInfo500
 import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk600
 import com.equipseva.app.designsystem.theme.SevaInk700
 import com.equipseva.app.designsystem.theme.SevaInk900
 import com.equipseva.app.features.repair.components.ServiceAreaMap
@@ -101,12 +101,116 @@ class EngineerPublicProfileViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            val dummy = DUMMY_PUBLIC_PROFILES[engineerId]
+            if (dummy != null) {
+                _state.update { it.copy(loading = false, profile = dummy) }
+                return@launch
+            }
             repo.fetchPublicProfile(engineerId)
                 .onSuccess { p -> _state.update { it.copy(loading = false, profile = p) } }
                 .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
         }
     }
 }
+
+private val DUMMY_PUBLIC_PROFILES: Map<String, EngineerDirectoryRepository.PublicProfile> = mapOf(
+    "dummy-eng-1" to EngineerDirectoryRepository.PublicProfile(
+        engineerId = "dummy-eng-1",
+        userId = null,
+        fullName = "Satish Naidu",
+        avatarUrl = null,
+        phone = "+91 98••• ••321",
+        email = null,
+        city = "Nalgonda",
+        state = "Telangana",
+        serviceAreas = listOf("Nalgonda", "Suryapet"),
+        specializations = listOf("Patient Monitors", "Ventilators", "Defibrillators"),
+        brandsServiced = listOf("Philips", "GE", "Mindray"),
+        oemTrainingBadges = listOf("Philips IntelliVue", "GE CARESCAPE"),
+        experienceYears = 8,
+        ratingAvg = 4.9,
+        totalJobs = 142,
+        completionRate = 98.0,
+        hourlyRate = 1500.0,
+        bio = "Independent biomedical engineer with 8 years experience servicing critical-care equipment across Nalgonda and Suryapet districts. Same-day onsite for ICU/OT equipment.",
+        isAvailable = true,
+        baseLatitude = null,
+        baseLongitude = null,
+        serviceRadiusKm = 30,
+    ),
+    "dummy-eng-2" to EngineerDirectoryRepository.PublicProfile(
+        engineerId = "dummy-eng-2",
+        userId = null,
+        fullName = "Priyanka Reddy",
+        avatarUrl = null,
+        phone = "+91 98••• ••456",
+        email = null,
+        city = "Nalgonda",
+        state = "Telangana",
+        serviceAreas = listOf("Nalgonda"),
+        specializations = listOf("Surgical", "Anaesthesia", "OT equipment"),
+        brandsServiced = listOf("Drager", "Medtronic"),
+        oemTrainingBadges = listOf("Drager Anaesthesia"),
+        experienceYears = 6,
+        ratingAvg = 4.8,
+        totalJobs = 67,
+        completionRate = 100.0,
+        hourlyRate = 1400.0,
+        bio = "Specialist in OT and anaesthesia equipment. Certified by Drager. 6 years across multi-specialty hospitals in Nalgonda.",
+        isAvailable = true,
+        baseLatitude = null,
+        baseLongitude = null,
+        serviceRadiusKm = 20,
+    ),
+    "dummy-eng-3" to EngineerDirectoryRepository.PublicProfile(
+        engineerId = "dummy-eng-3",
+        userId = null,
+        fullName = "Arjun Varma",
+        avatarUrl = null,
+        phone = "+91 98••• ••782",
+        email = null,
+        city = "Nalgonda",
+        state = "Telangana",
+        serviceAreas = listOf("Nalgonda"),
+        specializations = listOf("Imaging", "Ultrasound", "X-ray"),
+        brandsServiced = listOf("Siemens", "GE"),
+        oemTrainingBadges = listOf("Siemens MRI"),
+        experienceYears = 10,
+        ratingAvg = 4.7,
+        totalJobs = 203,
+        completionRate = 96.0,
+        hourlyRate = 1800.0,
+        bio = "Senior imaging engineer — MRI/CT/ultrasound. 10 years across Telangana. Currently busy through next week.",
+        isAvailable = false,
+        baseLatitude = null,
+        baseLongitude = null,
+        serviceRadiusKm = 50,
+    ),
+    "dummy-eng-4" to EngineerDirectoryRepository.PublicProfile(
+        engineerId = "dummy-eng-4",
+        userId = null,
+        fullName = "Lakshmi Devi",
+        avatarUrl = null,
+        phone = "+91 98••• ••109",
+        email = null,
+        city = "Suryapet",
+        state = "Telangana",
+        serviceAreas = listOf("Suryapet", "Nalgonda"),
+        specializations = listOf("Laboratory", "Centrifuges", "Analyzers"),
+        brandsServiced = listOf("Roche", "Beckman"),
+        oemTrainingBadges = emptyList(),
+        experienceYears = 5,
+        ratingAvg = 4.6,
+        totalJobs = 54,
+        completionRate = 94.0,
+        hourlyRate = 1200.0,
+        bio = "Lab equipment specialist — centrifuges, analyzers, biochem. Covers Suryapet/Nalgonda.",
+        isAvailable = true,
+        baseLatitude = null,
+        baseLongitude = null,
+        serviceRadiusKm = 40,
+    ),
+)
 
 @Composable
 fun EngineerPublicProfileScreen(
@@ -119,7 +223,26 @@ fun EngineerPublicProfileScreen(
     val context = LocalContext.current
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
-            EsTopBar(title = "Engineer", onBack = onBack)
+            EsTopBar(
+                title = "Engineer",
+                onBack = onBack,
+                right = {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .clickable { /* share */ },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Outlined.Share,
+                            contentDescription = "Share",
+                            tint = SevaInk700,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                },
+            )
             Box(modifier = Modifier.weight(1f)) {
                 when {
                     state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -134,43 +257,49 @@ fun EngineerPublicProfileScreen(
                         p = state.profile!!,
                         onCall = { dial(context, state.profile!!.phone) },
                         onWhatsApp = { whatsapp(context, state.profile!!.phone) },
-                        onEmail = { email(context, state.profile!!.email, state.profile!!.fullName) },
                     )
                 }
             }
             // Sticky CTA bar
             if (state.profile != null) {
                 Surface(color = Color.White) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(1.dp, BorderDefault, RoundedCornerShape(0.dp))
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        EsBtn(
-                            text = "Message",
-                            onClick = { onMessage(state.profile!!.engineerId) },
-                            kind = EsBtnKind.Secondary,
-                            size = EsBtnSize.Lg,
-                            leading = {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.Chat,
-                                    contentDescription = null,
-                                    tint = SevaInk700,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                            },
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(BorderDefault),
                         )
-                        Box(modifier = Modifier.weight(1f)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             EsBtn(
-                                text = "Request this engineer",
-                                onClick = { onRequestService(state.profile!!.engineerId) },
-                                kind = EsBtnKind.Primary,
+                                text = "Message",
+                                onClick = { onMessage(state.profile!!.engineerId) },
+                                kind = EsBtnKind.Secondary,
                                 size = EsBtnSize.Lg,
-                                full = true,
+                                leading = {
+                                    Icon(
+                                        Icons.AutoMirrored.Outlined.Chat,
+                                        contentDescription = null,
+                                        tint = SevaInk700,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                },
                             )
+                            Box(modifier = Modifier.weight(1f)) {
+                                EsBtn(
+                                    text = "Request this engineer",
+                                    onClick = { onRequestService(state.profile!!.engineerId) },
+                                    kind = EsBtnKind.Primary,
+                                    size = EsBtnSize.Lg,
+                                    full = true,
+                                )
+                            }
                         }
                     }
                 }
@@ -184,75 +313,57 @@ private fun ProfileBody(
     p: EngineerDirectoryRepository.PublicProfile,
     onCall: () -> Unit,
     onWhatsApp: () -> Unit,
-    onEmail: () -> Unit,
 ) {
+    val hasRelationship = !p.phone.isNullOrBlank() || !p.email.isNullOrBlank()
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
-        // White hero card
+        // Hero block — white bg + 1dp bottom border, padding 8/16/16
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color.White)
-                .border(1.dp, BorderDefault, RoundedCornerShape(0.dp))
-                .padding(16.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
         ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalAlignment = Alignment.Top,
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(SevaGreen50),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    val img = p.avatarUrl
-                    if (!img.isNullOrBlank()) {
-                        AsyncImage(
-                            model = img,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize().clip(CircleShape),
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                        )
-                    } else {
-                        Text(
-                            p.fullName.firstOrNull()?.uppercaseChar()?.toString() ?: "E",
-                            color = SevaGreen900,
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
-                }
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(p.fullName, color = SevaInk900, style = EsType.H4)
-                        Icon(
-                            imageVector = Icons.Filled.Verified,
-                            contentDescription = "Verified",
-                            tint = SevaGreen700,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-                    val locLine = listOfNotNull(p.city, p.state).joinToString(" · ").ifBlank { null }
-                    if (locLine != null) {
-                        Text(locLine, color = SevaInk500, style = EsType.Caption)
-                    }
+                AvatarBlock(
+                    initials = p.fullName.take(2).uppercase(),
+                    avatarUrl = p.avatarUrl,
+                    size = 64.dp,
+                    online = p.isAvailable,
+                )
+                Column(modifier = Modifier.weight(1f)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Icon(Icons.Filled.Star, contentDescription = null, tint = SevaGlowRaw, modifier = Modifier.size(13.dp))
-                            Text(
-                                "${"%.1f".format(p.ratingAvg)} · ${p.totalJobs} jobs",
-                                color = SevaInk700,
-                                fontSize = 12.sp,
-                            )
-                        }
+                        Text(
+                            p.fullName,
+                            color = SevaInk900,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        InlineVerifiedBadge(small = false)
+                    }
+                    val locLine = listOfNotNull(
+                        p.city?.takeIf { it.isNotBlank() },
+                        p.state?.takeIf { it.isNotBlank() },
+                    ).joinToString(", ")
+                    if (locLine.isNotBlank()) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(locLine, color = SevaInk500, fontSize = 12.sp)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        InlineStars(rating = p.ratingAvg, count = p.totalJobs)
                         Pill(
                             text = if (p.isAvailable) "Available" else "Busy",
                             kind = if (p.isAvailable) PillKind.Success else PillKind.Warn,
@@ -260,88 +371,164 @@ private fun ProfileBody(
                     }
                 }
             }
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(16.dp))
             Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(BorderDefault))
             Spacer(Modifier.height(12.dp))
             // 3-stat grid
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Stat(modifier = Modifier.weight(1f), label = "Hourly", value = p.hourlyRate?.let { "₹${it.toInt()}" } ?: "—", color = SevaInk900)
-                Stat(modifier = Modifier.weight(1f), label = "Jobs done", value = p.totalJobs.toString(), color = SevaInk900)
-                Stat(modifier = Modifier.weight(1f), label = "Completion", value = "${(p.completionRate * 100).toInt()}%", color = SevaGreen700)
+                Stat(
+                    modifier = Modifier.weight(1f),
+                    label = "Hourly",
+                    value = p.hourlyRate?.let { "₹${it.toInt()}" } ?: "—",
+                    color = SevaInk900,
+                )
+                Stat(
+                    modifier = Modifier.weight(1f),
+                    label = "Jobs done",
+                    value = p.totalJobs.toString(),
+                    color = SevaInk900,
+                )
+                Stat(
+                    modifier = Modifier.weight(1f),
+                    label = "Completion",
+                    value = run {
+                        val pct = if (p.completionRate <= 1.0) p.completionRate * 100 else p.completionRate
+                        "${pct.toInt()}%"
+                    },
+                    color = SevaGreen700,
+                )
             }
         }
+        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(BorderDefault))
 
         // About
         if (!p.bio.isNullOrBlank()) {
-            ProfileSection(title = "About") {
-                Text(p.bio, style = EsType.BodySm, color = SevaInk700)
+            EsSection(title = "About") {
+                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    Text(
+                        p.bio,
+                        color = SevaInk700,
+                        fontSize = 13.sp,
+                        lineHeight = 19.5.sp,
+                    )
+                }
             }
         }
 
-        // Specializations
+        // Specializations — soft (green-50) chips
         if (!p.specializations.isNullOrEmpty()) {
-            ProfileSection(title = "Specializations") {
-                ChipFlow(items = p.specializations.orEmpty())
+            EsSection(title = "Specializations") {
+                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    ChipFlowSoft(items = p.specializations.orEmpty())
+                }
             }
         }
 
-        // Brands
+        // Brands serviced — neutral (paper-2) chips
         if (!p.brandsServiced.isNullOrEmpty()) {
-            ProfileSection(title = "Brands serviced") {
-                ChipFlow(items = p.brandsServiced.orEmpty())
+            EsSection(title = "Brands serviced") {
+                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    ChipFlowNeutral(items = p.brandsServiced.orEmpty())
+                }
+            }
+        }
+
+        // OEM training (only when present)
+        if (!p.oemTrainingBadges.isNullOrEmpty()) {
+            EsSection(title = "OEM training") {
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    p.oemTrainingBadges.orEmpty().forEach { o ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Icon(
+                                Icons.Outlined.Verified,
+                                contentDescription = null,
+                                tint = SevaGreen700,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(o, color = SevaInk700, fontSize = 13.sp)
+                        }
+                    }
+                }
             }
         }
 
         // Service area
         if (p.baseLatitude != null && p.baseLongitude != null) {
-            ProfileSection(title = "Service area") {
-                ServiceAreaMap(
-                    baseLatitude = p.baseLatitude,
-                    baseLongitude = p.baseLongitude,
-                    serviceRadiusKm = p.serviceRadiusKm,
-                    engineerName = p.fullName,
-                    modifier = Modifier,
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "Service radius: ${p.serviceRadiusKm} km",
-                    style = EsType.Caption,
-                    color = SevaInk500,
-                )
+            EsSection(title = "Service area") {
+                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(140.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Paper3),
+                    ) {
+                        ServiceAreaMap(
+                            baseLatitude = p.baseLatitude,
+                            baseLongitude = p.baseLongitude,
+                            serviceRadiusKm = p.serviceRadiusKm,
+                            engineerName = p.fullName,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Service radius: ${p.serviceRadiusKm ?: "—"} km",
+                        color = SevaInk500,
+                        fontSize = 12.sp,
+                    )
+                }
             }
         } else if (!p.serviceAreas.isNullOrEmpty() || !p.city.isNullOrBlank()) {
-            ProfileSection(title = "Service area") {
-                val all = listOfNotNull(p.city) + p.serviceAreas.orEmpty()
-                Text(all.joinToString(" · "), style = EsType.BodySm, color = SevaInk700)
+            EsSection(title = "Service area") {
+                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(140.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Paper3),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            "Map preview",
+                            color = SevaInk500,
+                            fontSize = 12.sp,
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Service radius: ${p.serviceRadiusKm ?: 25} km",
+                        color = SevaInk500,
+                        fontSize = 12.sp,
+                    )
+                }
             }
         }
 
-        // Contact section — gated by relationship; server returns phone/email
-        // only when the hospital has a chat or past job with the engineer.
-        val hasContact = !p.phone.isNullOrBlank() || !p.email.isNullOrBlank()
-        if (hasContact) {
-            ProfileSection(title = "Contact") {
-                ContactRow(
-                    icon = Icons.Filled.Call,
-                    title = p.phone ?: "Phone unavailable",
-                    subtitle = "Tap to call",
-                    enabled = !p.phone.isNullOrBlank(),
-                    onClick = onCall,
-                )
-                ContactRow(
-                    icon = Icons.AutoMirrored.Filled.Chat,
-                    title = "WhatsApp",
-                    subtitle = "Open chat",
-                    enabled = !p.phone.isNullOrBlank(),
-                    onClick = onWhatsApp,
-                )
-                ContactRow(
-                    icon = Icons.Filled.Email,
-                    title = p.email ?: "Email unavailable",
-                    subtitle = "Send email",
-                    enabled = !p.email.isNullOrBlank(),
-                    onClick = onEmail,
-                )
+        // Contact section — only when relationship lit
+        if (hasRelationship) {
+            EsSection(title = "Contact") {
+                if (!p.phone.isNullOrBlank()) {
+                    ContactRow(
+                        icon = Icons.Outlined.Phone,
+                        title = p.phone,
+                        subtitle = "Tap to call",
+                        onClick = onCall,
+                    )
+                    ContactRow(
+                        icon = Icons.AutoMirrored.Outlined.Chat,
+                        title = "WhatsApp",
+                        subtitle = "Open chat",
+                        onClick = onWhatsApp,
+                    )
+                }
             }
         } else {
             Box(
@@ -357,15 +544,18 @@ private fun ProfileBody(
                     verticalAlignment = Alignment.Top,
                 ) {
                     Icon(
-                        Icons.Filled.Build,
+                        Icons.Outlined.Security,
                         contentDescription = null,
                         tint = SevaInfo500,
-                        modifier = Modifier.size(16.dp).padding(top = 2.dp),
+                        modifier = Modifier
+                            .padding(top = 1.dp)
+                            .size(16.dp),
                     )
                     Text(
                         "Phone and email are shown after you start a chat or have a past job with this engineer.",
-                        style = EsType.Caption,
                         color = SevaInfo500,
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp,
                     )
                 }
             }
@@ -376,50 +566,63 @@ private fun ProfileBody(
 }
 
 @Composable
-private fun Stat(modifier: Modifier = Modifier, label: String, value: String, color: Color) {
+private fun Stat(
+    modifier: Modifier = Modifier,
+    label: String,
+    value: String,
+    color: Color,
+) {
     Column(modifier = modifier) {
         Text(label, fontSize = 11.sp, color = SevaInk500)
         Spacer(Modifier.height(2.dp))
-        Text(value, style = EsType.H5, color = color)
+        Text(
+            value,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+            color = color,
+        )
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ProfileSection(
-    title: String,
-    content: @Composable () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(title, style = EsType.H5, color = SevaInk900)
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color.White)
-                .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            content()
-        }
-    }
-}
-
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
-@Composable
-private fun ChipFlow(items: List<String>) {
-    androidx.compose.foundation.layout.FlowRow(
+private fun ChipFlowSoft(items: List<String>) {
+    FlowRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         items.forEach { item ->
-            EsChip(text = prettyKey(item))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(SevaGreen50)
+                    .border(1.dp, SevaGreen100, RoundedCornerShape(999.dp))
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                Text(prettyKey(item), color = SevaGreen700, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ChipFlowNeutral(items: List<String>) {
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        items.forEach { item ->
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Paper2)
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                Text(item, color = SevaInk600, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            }
         }
     }
 }
@@ -429,21 +632,20 @@ private fun ContactRow(
     icon: ImageVector,
     title: String,
     subtitle: String,
-    enabled: Boolean,
     onClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(onClick = onClick)
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Icon(icon, contentDescription = null, tint = SevaGreen700, modifier = Modifier.size(18.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = EsType.Body, color = SevaInk900)
-            Text(subtitle, style = EsType.Caption, color = SevaInk500)
+            Text(title, color = SevaInk900, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Text(subtitle, color = SevaInk500, fontSize = 12.sp)
         }
     }
 }
@@ -472,26 +674,6 @@ private fun whatsapp(context: android.content.Context, phone: String?) {
         context.startActivity(Intent(Intent.ACTION_VIEW, uri))
     } catch (_: ActivityNotFoundException) {
         Toast.makeText(context, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
-    }
-}
-
-private fun email(context: android.content.Context, address: String?, name: String) {
-    if (address.isNullOrBlank()) {
-        Toast.makeText(context, "Email not available", Toast.LENGTH_SHORT).show()
-        return
-    }
-    val intent = Intent(Intent.ACTION_SENDTO).apply {
-        data = Uri.parse("mailto:$address")
-        putExtra(Intent.EXTRA_SUBJECT, "Service request via EquipSeva")
-        putExtra(
-            Intent.EXTRA_TEXT,
-            "Hi $name,\n\nI found your profile on EquipSeva and would like to discuss a repair request.\n\nThanks.",
-        )
-    }
-    try {
-        context.startActivity(intent)
-    } catch (_: ActivityNotFoundException) {
-        Toast.makeText(context, "No email app installed", Toast.LENGTH_SHORT).show()
     }
 }
 

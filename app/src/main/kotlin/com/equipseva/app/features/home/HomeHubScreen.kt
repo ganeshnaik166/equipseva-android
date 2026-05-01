@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.ChatBubbleOutline
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.filled.CurrencyRupee
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.WorkOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -77,6 +79,10 @@ fun HomeHubScreen(
     onOpenFounder: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     onOpenKyc: () -> Unit = {},
+    onOpenMyBookings: () -> Unit = {},
+    onOpenMessages: () -> Unit = {},
+    onOpenActiveWork: () -> Unit = {},
+    onOpenEarnings: () -> Unit = {},
     viewModel: HomeHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -93,7 +99,14 @@ fun HomeHubScreen(
 
             // Greeting card
             Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                GreetingCard(role = role, displayName = state.displayName)
+                GreetingCard(
+                    role = role,
+                    displayName = state.displayName,
+                    openCount = state.openCount,
+                    activeCount = state.activeCount,
+                    pendingBidsCount = state.pendingBidsCount,
+                    nearbyEngineersCount = state.nearbyEngineersCount,
+                )
             }
 
             // KYC banner — engineer who isn't verified yet
@@ -105,27 +118,53 @@ fun HomeHubScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            // Tiles
+            // Tiles — role-aware per design (`screens-home.jsx:103-140`).
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                HomeTile(
-                    icon = Icons.Filled.Bolt,
-                    title = "Book Repair",
-                    desc = "Browse verified engineers and post a service request",
-                    onClick = onOpenBookRepair,
-                )
-                val engVerified = kyc == VerificationStatus.Verified
-                HomeTile(
-                    icon = Icons.Filled.Build,
-                    title = "Engineer Jobs",
-                    desc = if (engVerified) "Today's job board, your bids, active work"
-                           else "Submit KYC to unlock",
-                    onClick = if (role == UserRole.ENGINEER && !engVerified) onOpenKyc else onOpenEngineerJobs,
-                )
+                if (role == UserRole.HOSPITAL) {
+                    HomeTile(
+                        icon = Icons.Filled.Bolt,
+                        title = "Book a repair engineer",
+                        desc = "Browse verified biomedical engineers near you",
+                        onClick = onOpenBookRepair,
+                    )
+                    HomeTile(
+                        icon = Icons.Outlined.WorkOutline,
+                        title = "My bookings",
+                        desc = "Track open and active repair jobs",
+                        onClick = onOpenMyBookings,
+                    )
+                    HomeTile(
+                        icon = Icons.AutoMirrored.Outlined.Chat,
+                        title = "Messages",
+                        desc = "Chat with engineers",
+                        onClick = onOpenMessages,
+                    )
+                } else {
+                    val engVerified = kyc == VerificationStatus.Verified
+                    HomeTile(
+                        icon = Icons.Filled.Build,
+                        title = "Today's jobs",
+                        desc = if (engVerified) "New requests near you" else "Browse open repair jobs",
+                        onClick = onOpenEngineerJobs,
+                    )
+                    HomeTile(
+                        icon = Icons.Outlined.WorkOutline,
+                        title = "Active work",
+                        desc = "Jobs in progress",
+                        onClick = onOpenActiveWork,
+                    )
+                    HomeTile(
+                        icon = Icons.Filled.CurrencyRupee,
+                        title = "Earnings",
+                        desc = "This month, payouts, tax docs",
+                        onClick = onOpenEarnings,
+                    )
+                }
                 if (state.isFounder) {
                     HomeTile(
                         icon = Icons.Filled.Shield,
@@ -226,7 +265,14 @@ private fun HomeTopBar(onNotifications: () -> Unit, hasUnread: Boolean) {
 }
 
 @Composable
-private fun GreetingCard(role: UserRole?, displayName: String?) {
+private fun GreetingCard(
+    role: UserRole?,
+    displayName: String?,
+    openCount: Int?,
+    activeCount: Int?,
+    pendingBidsCount: Int?,
+    nearbyEngineersCount: Int?,
+) {
     val greeting = remember { greetingForNow() }
     Box(
         modifier = Modifier
@@ -235,7 +281,6 @@ private fun GreetingCard(role: UserRole?, displayName: String?) {
             .background(Brush.linearGradient(listOf(SevaGreen700, SevaGreen900)))
             .padding(18.dp),
     ) {
-        // Glow blob
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -257,16 +302,17 @@ private fun GreetingCard(role: UserRole?, displayName: String?) {
                 color = Color.White,
             )
             Spacer(Modifier.height(14.dp))
-            // Stat strip
             Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                 if (role == UserRole.ENGINEER) {
+                    // "Nearby" is location-derived and not yet wired into this
+                    // hero — left as "—" until a radius RPC stream lands.
                     Stat("Nearby", "—")
-                    Stat("Pending bids", "—")
-                    Stat("Active", "—")
+                    Stat("Pending bids", pendingBidsCount?.toString() ?: "—")
+                    Stat("Active", activeCount?.toString() ?: "—")
                 } else {
-                    Stat("Open", "—")
-                    Stat("Active", "—")
-                    Stat("Engineers", "—")
+                    Stat("Open", openCount?.toString() ?: "—")
+                    Stat("Active", activeCount?.toString() ?: "—")
+                    Stat("Engineers", nearbyEngineersCount?.toString() ?: "—")
                 }
             }
             if (!displayName.isNullOrBlank()) {

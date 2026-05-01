@@ -1,7 +1,6 @@
 package com.equipseva.app.features.activework
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,7 +15,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.Handyman
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -34,13 +32,12 @@ import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.ListSkeleton
-import com.equipseva.app.designsystem.components.SectionHeader
 import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInk900
-import com.equipseva.app.features.repair.components.RepairJobCard
+import com.equipseva.app.features.repair.components.EngineerJobCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,10 +50,19 @@ fun ActiveWorkScreen(
 
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
-            val total = state.activeJobs.size + state.completedJobs.size
+            val combined = state.activeJobs + state.completedJobs
+            // Subtitle reads "X in progress · Y done" so the screen doesn't
+            // miscount completed rows as "in progress" (the previous wording
+            // was wrong — combined.size counted completed too).
+            val subtitle = when {
+                combined.isEmpty() -> null
+                state.completedJobs.isEmpty() -> "${state.activeJobs.size} in progress"
+                state.activeJobs.isEmpty() -> "${state.completedJobs.size} completed"
+                else -> "${state.activeJobs.size} in progress · ${state.completedJobs.size} done"
+            }
             EsTopBar(
                 title = "Active work",
-                subtitle = if (total > 0) "$total jobs in progress" else null,
+                subtitle = subtitle,
                 onBack = onBack,
             )
             ErrorBanner(message = state.errorMessage)
@@ -68,35 +74,22 @@ fun ActiveWorkScreen(
             ) {
                 when {
                     state.loading -> ListSkeleton(rows = 6)
-                    state.activeJobs.isEmpty() && state.completedJobs.isEmpty() -> EmptyStateView(
+                    combined.isEmpty() -> EmptyStateView(
                         icon = Icons.Outlined.Handyman,
                         title = "No assigned jobs",
                         subtitle = "Jobs you win from the feed will show up here.",
                     )
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(vertical = 12.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        if (state.activeJobs.isNotEmpty()) {
-                            item("active_header") { SectionHeader(title = "In progress") }
-                            items(items = state.activeJobs, key = { "a-${it.id}" }) { job ->
-                                RepairJobCard(
-                                    job = job,
-                                    onClick = { onJobClick(job.id) },
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                )
-                            }
-                        }
-                        if (state.completedJobs.isNotEmpty()) {
-                            item("completed_header") { SectionHeader(title = "Recently completed") }
-                            items(items = state.completedJobs, key = { "c-${it.id}" }) { job ->
-                                RepairJobCard(
-                                    job = job,
-                                    onClick = { onJobClick(job.id) },
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                )
-                            }
+                        items(items = combined, key = { it.id }) { job ->
+                            EngineerJobCard(
+                                job = job,
+                                onClick = { onJobClick(job.id) },
+                                showStatus = true,
+                            )
                         }
                     }
                 }

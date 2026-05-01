@@ -2,11 +2,23 @@ package com.equipseva.app.navigation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.core.auth.AuthRepository
+import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.data.engineers.EngineerRepository
+import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.prefs.UserPrefs
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -23,10 +35,59 @@ import javax.inject.Inject
 @HiltViewModel
 class DeepLinkHost @Inject constructor(
     router: DeepLinkRouter,
-    userPrefs: UserPrefs,
+    private val userPrefs: UserPrefs,
+    private val authRepository: AuthRepository,
+    private val engineerRepository: EngineerRepository,
 ) : ViewModel() {
 
     val activeRole: Flow<String?> = userPrefs.activeRole
+
+    /**
+     * Engineer KYC verification status for the signed-in user, refreshed
+     * on every sign-in. `null` while loading, when the user isn't an
+     * engineer, or when signed out. Used by the bottom nav to gate the
+     * Jobs tab — Pending → snackbar nudge instead of navigating.
+     */
+    private val _engineerStatus = MutableStateFlow<VerificationStatus?>(null)
+    val engineerStatus: StateFlow<VerificationStatus?> = _engineerStatus.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            authRepository.sessionState
+                .filterIsInstance<AuthSession.SignedIn>()
+                .distinctUntilChangedBy { it.userId }
+                .collect { session ->
+                    val status = engineerRepository.fetchByUserId(session.userId)
+                        .getOrNull()
+                        ?.verificationStatus
+                    _engineerStatus.value = status
+                }
+        }
+    }
+
+    /** Manual refresh — call after KYC submit so the badge flips to Pending
+     *  without waiting for a session re-emit. */
+    fun refreshEngineerStatus() {
+        viewModelScope.launch {
+            val uid = authRepository.sessionState
+                .filterIsInstance<AuthSession.SignedIn>()
+                .firstOrNull()?.userId ?: return@launch
+            _engineerStatus.value = engineerRepository.fetchByUserId(uid)
+                .getOrNull()?.verificationStatus
+        }
+    }
+
+    /**
+     * Restorable last-screen route. MainNavGraph reads this once on cold
+     * composition; if non-null, we navigate to it immediately so a
+     * picker-induced process death drops the user back where they were.
+     */
+    val lastScreen: Flow<String?> = userPrefs.lastScreen
+
+    /** Clear after restore so a Back / cold-start fallback lands at Home. */
+    fun consumeLastScreen() {
+        viewModelScope.launch { userPrefs.setLastScreen(null) }
+    }
 
     sealed interface VerifiedEvent {
         /**

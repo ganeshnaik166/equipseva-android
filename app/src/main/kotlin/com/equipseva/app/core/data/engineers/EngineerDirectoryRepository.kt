@@ -6,6 +6,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -37,6 +38,8 @@ class EngineerDirectoryRepository @Inject constructor(
         @SerialName("hourly_rate") val hourlyRate: Double? = null,
         @SerialName("bio") val bio: String? = null,
         @SerialName("is_available") val isAvailable: Boolean = false,
+        @Transient val distanceKm: Double? = null,
+        @Transient val completionPctOverride: Int? = null,
     )
 
     @Serializable

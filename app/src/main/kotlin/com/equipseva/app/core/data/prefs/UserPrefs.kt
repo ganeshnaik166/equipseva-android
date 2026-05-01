@@ -44,6 +44,12 @@ class UserPrefs @Inject constructor(
         val QUIET_HOURS_ENABLED = booleanPreferencesKey("quiet_hours_enabled")
         val QUIET_HOURS_START_MINUTES = intPreferencesKey("quiet_hours_start_minutes")
         val QUIET_HOURS_END_MINUTES = intPreferencesKey("quiet_hours_end_minutes")
+        // Last interactive screen the user was on. Used to restore them after
+        // process death (especially during heavy intents like the SAF document
+        // picker, which can cause Android to reclaim our process). The value
+        // is a Routes.* string. Cleared when the user explicitly leaves the
+        // restorable screen via Back / nav.
+        val LAST_SCREEN = stringPreferencesKey("last_screen")
     }
 
     private object QuietHoursDefaults {
@@ -84,6 +90,21 @@ class UserPrefs @Inject constructor(
     suspend fun clearActiveRole() {
         securePrefs.putString(SecureKeys.ACTIVE_ROLE, null)
         context.prefsStore.edit { it.remove(Keys.ACTIVE_ROLE) }
+    }
+
+    /**
+     * Last interactive screen route. Restored after process death so heavy
+     * intents (SAF picker, camera) don't dump the user back at Home.
+     * Pass null to clear (e.g. when leaving via explicit Back).
+     */
+    val lastScreen: Flow<String?> =
+        context.prefsStore.data.map { it[Keys.LAST_SCREEN] }
+
+    suspend fun setLastScreen(route: String?) {
+        context.prefsStore.edit { prefs ->
+            if (route.isNullOrBlank()) prefs.remove(Keys.LAST_SCREEN)
+            else prefs[Keys.LAST_SCREEN] = route
+        }
     }
 
     suspend fun setThemeMode(mode: ThemeMode) {

@@ -17,13 +17,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.CurrencyRupee
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Sell
-import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.CurrencyRupee
+import androidx.compose.material.icons.outlined.LocalOffer
+import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -112,12 +113,13 @@ class EngineerJobsHubViewModel @Inject constructor(
 
 @Composable
 fun EngineerJobsHubScreen(
-    onBack: () -> Unit,
+    onBack: (() -> Unit)? = null,
     onAvailableJobs: () -> Unit,
     onMyBids: () -> Unit,
     onActiveWork: () -> Unit,
     onEarnings: () -> Unit,
     onEditProfile: () -> Unit,
+    onServiceLocation: () -> Unit,
     onSubmitKyc: () -> Unit,
     onSignIn: () -> Unit,
     viewModel: EngineerJobsHubViewModel = hiltViewModel(),
@@ -180,33 +182,39 @@ fun EngineerJobsHubScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     HubTile(
-                        icon = Icons.Filled.Bolt,
+                        icon = Icons.Outlined.Bolt,
                         title = "Available jobs",
-                        desc = "Browse open repair requests near you",
+                        desc = "Nearby repair leads in your radius",
                         onClick = onAvailableJobs,
                     )
                     HubTile(
-                        icon = Icons.Filled.Sell,
+                        icon = Icons.Outlined.LocalOffer,
                         title = "My bids",
-                        desc = "Track every bid you've placed",
+                        desc = "Bids you've placed",
                         onClick = onMyBids,
                     )
                     HubTile(
-                        icon = Icons.Filled.Build,
+                        icon = Icons.Outlined.Build,
                         title = "Active work",
-                        desc = "Jobs you've been assigned",
+                        desc = "Jobs in progress",
                         onClick = onActiveWork,
                     )
                     HubTile(
-                        icon = Icons.Filled.CurrencyRupee,
+                        icon = Icons.Outlined.CurrencyRupee,
                         title = "Earnings",
-                        desc = "This month + lifetime payouts",
+                        desc = "Payouts and history",
                         onClick = onEarnings,
                     )
                     HubTile(
-                        icon = Icons.Filled.Person,
+                        icon = Icons.Outlined.LocationOn,
+                        title = "Service location",
+                        desc = "Move your base on the map",
+                        onClick = onServiceLocation,
+                    )
+                    HubTile(
+                        icon = Icons.Outlined.Person,
                         title = "Edit profile",
-                        desc = "Bio, service areas, brands, hourly rate",
+                        desc = "Bio, rate, service area",
                         onClick = onEditProfile,
                     )
                 }
@@ -237,7 +245,7 @@ private fun OnboardingHero(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Filled.Shield,
+                imageVector = Icons.Outlined.Shield,
                 contentDescription = null,
                 tint = SevaGreen700,
                 modifier = Modifier.size(32.dp),
@@ -308,7 +316,6 @@ private fun HubTile(
         }
         if (badge != null) {
             Pill(text = badge, kind = PillKind.Warn)
-            Spacer(Modifier.size(6.dp))
         }
         Icon(
             Icons.Outlined.ChevronRight,

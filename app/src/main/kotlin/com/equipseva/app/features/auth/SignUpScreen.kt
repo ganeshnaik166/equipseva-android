@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.designsystem.components.EsBtn
@@ -36,6 +37,7 @@ import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk600
 import com.equipseva.app.designsystem.theme.SevaInk900
 import com.equipseva.app.features.auth.state.AuthEffect
 
@@ -73,13 +75,15 @@ fun SignUpScreen(
             ) {
                 Text(
                     text = "Get started",
-                    style = EsType.H3,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.24).sp,
                     color = SevaInk900,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "Free for hospitals. Engineers go through a quick KYC.",
-                    style = EsType.BodySm,
+                    text = "Free to join. Engineers complete a quick KYC after signing up.",
+                    fontSize = 13.sp,
                     color = SevaInk500,
                 )
                 Spacer(Modifier.height(24.dp))
@@ -99,7 +103,7 @@ fun SignUpScreen(
                     value = state.email,
                     onChange = viewModel::onEmailChange,
                     label = "Email",
-                    placeholder = "you@hospital.com",
+                    placeholder = "name@yourdomain.com",
                     type = EsFieldType.Email,
                     error = state.emailError,
                     enabled = !state.form.submitting,
@@ -117,7 +121,7 @@ fun SignUpScreen(
 
                 Spacer(Modifier.height(24.dp))
                 EsBtn(
-                    text = "Create account",
+                    text = "Continue",
                     onClick = viewModel::onSubmit,
                     kind = EsBtnKind.Primary,
                     size = EsBtnSize.Lg,
@@ -125,19 +129,20 @@ fun SignUpScreen(
                     disabled = !state.canSubmit || state.form.submitting,
                 )
 
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
                 ) {
                     Text(
                         text = "Already have an account? ",
-                        style = EsType.BodySm,
-                        color = SevaInk500,
+                        fontSize = 13.sp,
+                        color = SevaInk600,
                     )
                     Text(
                         text = "Sign in",
-                        style = EsType.BodySm.copy(fontWeight = FontWeight.SemiBold),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
                         color = SevaGreen700,
                         modifier = Modifier.clickable(onClick = onSignIn),
                     )

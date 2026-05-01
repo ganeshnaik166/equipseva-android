@@ -46,7 +46,6 @@ import com.equipseva.app.designsystem.components.EsSection
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.SecureScreen
 import com.equipseva.app.designsystem.theme.BorderDefault
-import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaGlowRaw
 import com.equipseva.app.designsystem.theme.SevaGreen50
@@ -60,7 +59,7 @@ import com.equipseva.app.designsystem.theme.SevaWarning500
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EarningsScreen(
-    onBack: () -> Unit,
+    onBack: (() -> Unit)? = null,
     onJobClick: (String) -> Unit,
     onBankDetails: () -> Unit = {},
     viewModel: EarningsViewModel = hiltViewModel(),
@@ -86,7 +85,14 @@ fun EarningsScreen(
                         contentPadding = PaddingValues(bottom = 24.dp),
                     ) {
                         item("hero") {
-                            Box(modifier = Modifier.padding(16.dp)) {
+                            Box(
+                                modifier = Modifier.padding(
+                                    start = 16.dp,
+                                    end = 16.dp,
+                                    top = 8.dp,
+                                    bottom = 16.dp,
+                                ),
+                            ) {
                                 EarningsHero(
                                     paidTotal = state.paidTotal,
                                     pendingTotal = state.pendingTotal,
@@ -142,7 +148,7 @@ private fun EarningsHero(paidTotal: Double, pendingTotal: Double) {
             text = formatRupees(total),
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
-            letterSpacing = (-0.6).sp,
+            letterSpacing = (-0.64).sp,
             color = Color.White,
         )
         Spacer(Modifier.height(14.dp))
@@ -153,7 +159,7 @@ private fun EarningsHero(paidTotal: Double, pendingTotal: Double) {
                 .background(Color.White.copy(alpha = 0.15f)),
         )
         Spacer(Modifier.height(14.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             HeroStat(label = "Paid", value = formatRupees(paidTotal), tint = Color.White)
             HeroStat(label = "Pending", value = formatRupees(pendingTotal), tint = SevaGlowRaw)
         }
@@ -232,25 +238,32 @@ private fun TransactionRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = row.job?.title ?: "Repair job",
-                style = EsType.Body.copy(fontWeight = FontWeight.SemiBold),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
                 color = SevaInk900,
                 maxLines = 1,
             )
             val timestamp = if (paid) row.job?.completedAtInstant else row.bid.createdAtInstant
             val timeLine = timestamp?.let { "${if (paid) "Paid" else "Quoted"} ${relativeLabel(it)} ago" }
                 ?: row.job?.status?.displayName ?: ""
-            Text(text = timeLine, style = EsType.Caption, color = SevaInk500, maxLines = 1)
+            Text(
+                text = timeLine,
+                fontSize = 11.sp,
+                color = SevaInk500,
+                maxLines = 1,
+            )
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(
                 text = formatRupees(row.bid.amountRupees),
-                style = EsType.Body.copy(fontWeight = FontWeight.Bold),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
                 color = SevaInk900,
             )
-            Spacer(Modifier.height(2.dp))
             Text(
                 text = if (paid) "paid" else "pending",
-                style = EsType.Caption.copy(fontWeight = FontWeight.SemiBold),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
                 color = if (paid) SevaGreen700 else SevaWarning500,
             )
         }

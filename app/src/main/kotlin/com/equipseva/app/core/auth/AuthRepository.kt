@@ -18,11 +18,19 @@ interface AuthRepository {
     val sessionState: Flow<AuthSession>
 
     suspend fun signInWithEmailPassword(email: String, password: String): Result<Unit>
-    suspend fun signUpWithEmailPassword(email: String, password: String, fullName: String): Result<Unit>
+    suspend fun signUpWithEmailPassword(email: String, password: String, fullName: String): Result<SignUpOutcome>
     suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?): Result<Unit>
 
     suspend fun sendPasswordResetEmail(email: String): Result<Unit>
-    suspend fun updatePassword(newPassword: String): Result<Unit>
+
+    /**
+     * Updates the password after re-authenticating the current session by
+     * verifying [currentPassword]. Surfaces [InvalidCurrentPasswordException]
+     * inside Result.failure when the current password is wrong so the UI can
+     * attribute the error to the right input. Without the re-auth check an
+     * unlocked-device attacker could lock the legitimate owner out.
+     */
+    suspend fun updatePassword(currentPassword: String, newPassword: String): Result<Unit>
 
     /**
      * Email OTP — KEPT for KYC Step 1's "verify your email" sheet only. Not a
@@ -41,10 +49,22 @@ interface AuthRepository {
     suspend fun verifyPhoneAdd(phone: String, token: String): Result<Unit>
 
     /**
-     * Stamp a new email onto the *currently signed-in* user. Supabase fires
-     * a confirmation message to the new address.
+     * Stamp a new email onto the *currently signed-in* user after re-auth
+     * with [currentPassword]. Supabase fires a confirmation message to the
+     * new address. The re-auth check prevents an unlocked-device attacker
+     * from hijacking account recovery by swapping the email out from under
+     * the legitimate owner. Throws [InvalidCurrentPasswordException] inside
+     * Result.failure when the current password is wrong.
      */
-    suspend fun updateEmail(newEmail: String): Result<Unit>
+    suspend fun updateEmail(currentPassword: String, newEmail: String): Result<Unit>
+
+    /**
+     * Email update WITHOUT re-auth — strictly for the in-KYC "edit email"
+     * path where the engineer was just signed in seconds ago and the email
+     * is being corrected before any data is saved against it. Do NOT call
+     * from post-onboarding settings; use [updateEmail] there instead.
+     */
+    suspend fun updateEmailDuringKyc(newEmail: String): Result<Unit>
 
     suspend fun signOut(): Result<Unit>
 
@@ -60,3 +80,14 @@ sealed interface AuthSession {
     data object SignedOut : AuthSession
     data class SignedIn(val userId: String, val email: String?) : AuthSession
 }
+
+/** Thrown by [AuthRepository.updatePassword] when the supplied current
+ *  password fails the re-auth check, so the screen can attribute the error
+ *  to the current-password field instead of the new-password field. */
+class InvalidCurrentPasswordException : RuntimeException("Current password is incorrect.")
+
+/** Distinguishes a Supabase signUp that auto-issued a session (email
+ *  confirmation off) from one that needs the user to click a confirmation
+ *  link before signing in (email confirmation on). The screen renders
+ *  different copy in each case. */
+enum class SignUpOutcome { AutoSignedIn, NeedsEmailConfirmation }

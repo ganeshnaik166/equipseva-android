@@ -18,8 +18,10 @@ import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairBidPayload
 import com.equipseva.app.core.data.repair.RepairBidRepository
 import com.equipseva.app.core.data.repair.RepairBidStatus
+import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobRepository
+import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.storage.StorageRepository
@@ -602,6 +604,19 @@ class RepairJobDetailViewModel @Inject constructor(
 
     private fun load() {
         _state.update { it.copy(loading = true, errorMessage = null, notFound = false) }
+        if (jobId.startsWith("dummy-")) {
+            _state.update {
+                it.copy(
+                    loading = false,
+                    job = buildDummyJob(jobId),
+                    notFound = false,
+                    viewerRole = ViewerRole.Hospital,
+                    hospitalName = "Sri Sai Multi-Specialty",
+                    hospitalLocation = "Nalgonda, Telangana",
+                )
+            }
+            return
+        }
         viewModelScope.launch {
             val selfId = (authRepository.sessionState.firstOrNull() as? AuthSession.SignedIn)?.userId
             val selfEngineerRowId = selfId
@@ -711,4 +726,137 @@ class RepairJobDetailViewModel @Inject constructor(
             else -> ViewerRole.Other
         }
     }
+
+    private fun buildDummyJob(id: String): RepairJob {
+        // Pre-canned dummies for the hospital Bookings list. Switching on the
+        // suffix here mirrors what HospitalActiveJobsViewModel seeds when the
+        // backend returns no rows so taps land on the matching job, not a
+        // generic Patient-monitor stand-in.
+        return when (id) {
+            "dummy-h-open-1" -> dummyJob(
+                id, "RJ-2026-0420",
+                "Patient monitor — intermittent screen flicker",
+                "ICU bay 3 monitor flickers intermittently for the past 2 days. Sometimes goes blank for ~5s. No alarm sounded but readings stop updating.",
+                RepairEquipmentCategory.PatientMonitoring, "Philips", "IntelliVue MX450",
+                "ICU bay 3, Sri Sai Multi-Specialty, Nalgonda",
+                RepairJobStatus.Requested, RepairJobUrgency.SameDay, 3500.0,
+            )
+            "dummy-h-prog-1" -> dummyJob(
+                id, "RJ-2026-0410",
+                "Anaesthesia machine — gas leak",
+                "Suspected leak around vapouriser seat. OT scheduled tomorrow.",
+                RepairEquipmentCategory.LifeSupport, "Drager", "Fabius Plus",
+                "OT 2, Sri Sai Multi-Specialty, Nalgonda",
+                RepairJobStatus.InProgress, RepairJobUrgency.Emergency, 4200.0,
+            )
+            "dummy-h-prog-2" -> dummyJob(
+                id, "RJ-2026-0411",
+                "ECG cable replacement",
+                "3-lead cable damaged. Replacement bringing tomorrow.",
+                RepairEquipmentCategory.PatientMonitoring, "Philips", "Efficia CM150",
+                "Ward 4, Yashoda Hospital, Nalgonda",
+                RepairJobStatus.Assigned, RepairJobUrgency.Scheduled, 800.0,
+            )
+            "dummy-h-done-1" -> dummyJob(
+                id, "RJ-2026-0398",
+                "Ultrasound probe calibration",
+                "Convex probe calibration completed. Image quality verified.",
+                RepairEquipmentCategory.ImagingRadiology, "GE", "Logiq P9",
+                "Radiology, City Care, Khammam",
+                RepairJobStatus.Completed, RepairJobUrgency.Scheduled, 4500.0,
+            )
+            "dummy-h-done-2" -> dummyJob(
+                id, "RJ-2026-0395",
+                "Centrifuge service",
+                "Belt replaced, vibration corrected. Ran calibration cycle.",
+                RepairEquipmentCategory.Laboratory, "Eppendorf", "5810R",
+                "Lab, Care Lab, Hyderabad",
+                RepairJobStatus.Completed, RepairJobUrgency.Scheduled, 2200.0,
+            )
+            // Mirror ActiveWorkViewModel's seeded engineer-side dummies so a
+            // tap on one of those rows opens the matching detail instead of
+            // the generic Patient-monitor stand-in.
+            "dummy-job-active-1" -> dummyJob(
+                id, "RJ-2026-0410",
+                "Anaesthesia machine — gas leak",
+                "Suspected leak around vapouriser seat. OT scheduled tomorrow.",
+                RepairEquipmentCategory.LifeSupport, "Drager", "Fabius Plus",
+                "OT 2, Sri Sai Multi-Specialty, Nalgonda",
+                RepairJobStatus.InProgress, RepairJobUrgency.Emergency, 4200.0,
+            )
+            "dummy-job-active-2" -> dummyJob(
+                id, "RJ-2026-0411",
+                "ECG cable replacement",
+                "3-lead cable damaged. Replacement onsite.",
+                RepairEquipmentCategory.PatientMonitoring, "Philips", "Efficia CM150",
+                "Ward 4, Yashoda Hospital, Nalgonda",
+                RepairJobStatus.EnRoute, RepairJobUrgency.Scheduled, 800.0,
+            )
+            "dummy-job-done-1" -> dummyJob(
+                id, "RJ-2026-0398",
+                "Ultrasound probe calibration",
+                "Convex probe calibration completed. Image quality verified.",
+                RepairEquipmentCategory.ImagingRadiology, "GE", "Logiq P9",
+                "Radiology, City Care, Khammam",
+                RepairJobStatus.Completed, RepairJobUrgency.Scheduled, 4500.0,
+            )
+            "dummy-job-done-2" -> dummyJob(
+                id, "RJ-2026-0395",
+                "Centrifuge service",
+                "Belt replaced, vibration corrected.",
+                RepairEquipmentCategory.Laboratory, "Eppendorf", "5810R",
+                "Lab, Care Lab, Hyderabad",
+                RepairJobStatus.Completed, RepairJobUrgency.Scheduled, 2200.0,
+            )
+            else -> dummyJob(
+                id, "RJ-2026-0420",
+                "Patient monitor — intermittent screen flicker",
+                "Patient monitor in ICU bay 3 shows intermittent screen flicker for the past 2 days. Sometimes goes blank for ~5s. No alarm sounded but readings stop updating during the blackout.",
+                RepairEquipmentCategory.PatientMonitoring, "Philips", "IntelliVue MX450",
+                "ICU bay 3, Sri Sai Multi-Specialty, Nalgonda",
+                RepairJobStatus.Requested, RepairJobUrgency.SameDay, 3500.0,
+            )
+        }
+    }
+
+    private fun dummyJob(
+        id: String,
+        no: String,
+        title: String,
+        issue: String,
+        cat: RepairEquipmentCategory,
+        brand: String,
+        model: String,
+        site: String,
+        status: RepairJobStatus,
+        urgency: RepairJobUrgency,
+        cost: Double,
+    ): RepairJob = RepairJob(
+        id = id,
+        jobNumber = no,
+        title = title,
+        issueDescription = issue,
+        equipmentCategory = cat,
+        equipmentBrand = brand,
+        equipmentModel = model,
+        status = status,
+        urgency = urgency,
+        estimatedCostRupees = cost,
+        scheduledDate = java.time.LocalDate.now().plusDays(1).toString(),
+        scheduledTimeSlot = "morning",
+        siteLocation = site,
+        siteLatitude = null,
+        siteLongitude = null,
+        isAssignedToEngineer = status != RepairJobStatus.Requested,
+        engineerId = if (status != RepairJobStatus.Requested) "dummy-eng-1" else null,
+        hospitalUserId = "dummy-hospital",
+        startedAtInstant = if (status == RepairJobStatus.InProgress) java.time.Instant.now().minusSeconds(7200) else null,
+        completedAtInstant = if (status == RepairJobStatus.Completed) java.time.Instant.now().minusSeconds(86400 * 3) else null,
+        hospitalRating = if (status == RepairJobStatus.Completed) 5 else null,
+        hospitalReview = null,
+        engineerRating = null,
+        engineerReview = null,
+        createdAtInstant = java.time.Instant.now().minusSeconds(86400),
+        updatedAtInstant = java.time.Instant.now(),
+    )
 }
