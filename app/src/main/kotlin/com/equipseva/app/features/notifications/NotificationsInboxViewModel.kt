@@ -60,7 +60,7 @@ class NotificationsInboxViewModel @Inject constructor(
                         it.copy(
                             loading = false,
                             refreshing = false,
-                            rows = if (rows.isEmpty()) buildDummyNotifications(session.userId) else rows,
+                            rows = rows,
                             errorMessage = null,
                         )
                     }
