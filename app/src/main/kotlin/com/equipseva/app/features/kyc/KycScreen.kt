@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -79,7 +80,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
-import com.equipseva.app.designsystem.components.GradientTile
 import com.equipseva.app.designsystem.components.SecureScreen
 import com.equipseva.app.features.repair.components.LocationPickerMap
 import com.google.android.gms.maps.model.LatLng
@@ -95,6 +95,8 @@ import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.designsystem.theme.Success
 import com.equipseva.app.designsystem.theme.SuccessBg
+import com.equipseva.app.designsystem.theme.SevaGreen50
+import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.Surface0
 import com.equipseva.app.designsystem.theme.Surface50
 import com.equipseva.app.designsystem.theme.Surface200
@@ -344,7 +346,24 @@ private fun KycStepperBody(
             )
         }
 
-        StepHeader(current = state.currentStep, onJump = onJumpToStep)
+        // Step intro: matches design — bold step subtitle + small caption.
+        // The numeric "Step X of Y" lives in the top bar, so no circle stepper here.
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = state.currentStep.subtitle,
+                fontSize = 18.sp,
+                color = Ink900,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = when (state.currentStep) {
+                    KycStep.Personal -> "How hospitals reach you and where you operate."
+                    KycStep.Documents -> "Upload identity and qualification proof."
+                },
+                fontSize = 12.sp,
+                color = Ink500,
+            )
+        }
 
         // Per-step body. Each step renders only what's relevant to that step
         // so the form feels short — best-practice gig-app onboarding caps each
@@ -698,37 +717,53 @@ private fun CertificateSection(state: KycViewModel.UiState, onPickCertificate: (
 
 @Composable
 private fun AttestationSection(state: KycViewModel.UiState, onAttestationChange: (Boolean) -> Unit) {
-    KycSectionCard(title = "Attestation") {
-        Row(
+    val checked = state.attestationAccepted
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Surface0)
+            .border(1.dp, Surface200, RoundedCornerShape(10.dp))
+            .clickable { onAttestationChange(!checked) }
+            .padding(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(10.dp))
-                .background(InfoBg)
-                .padding(12.dp),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                .size(22.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(if (checked) SevaGreen700 else Color.White)
+                .border(
+                    width = 2.dp,
+                    color = if (checked) SevaGreen700 else Ink300,
+                    shape = RoundedCornerShape(6.dp),
+                ),
+            contentAlignment = Alignment.Center,
         ) {
-            Checkbox(checked = state.attestationAccepted, onCheckedChange = onAttestationChange)
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = "I confirm that the documents and details above are mine.",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Ink900,
-                )
-                Text(
-                    text = "Submitting fake or borrowed documents will get your account permanently banned.",
-                    fontSize = 11.sp,
-                    color = Ink500,
+            if (checked) {
+                Icon(
+                    Icons.Filled.Check,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(14.dp),
                 )
             }
         }
         Text(
-            text = "After submit: typically reviewed within 4–24 hours. We'll push-notify you with the outcome.",
-            fontSize = 11.sp,
-            color = Info,
+            text = "I confirm the above information is accurate and the documents are mine. False info may lead to permanent ban.",
+            fontSize = 12.sp,
+            color = Ink700,
+            lineHeight = 17.sp,
+            modifier = Modifier.weight(1f),
         )
     }
+    Spacer(Modifier.height(6.dp))
+    Text(
+        text = "After submit: typically reviewed within 4–24 hours. We'll push-notify you with the outcome.",
+        fontSize = 11.sp,
+        color = Info,
+    )
 }
 
 
@@ -835,17 +870,20 @@ private fun StatusBanner(status: VerificationStatus, submitted: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(bg)
-            .padding(14.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.Top,
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = fg, modifier = Modifier.size(24.dp))
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(label, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = fg)
-            Text(subtitle, fontSize = 13.sp, color = Ink700)
-        }
+        Icon(imageVector = icon, contentDescription = null, tint = fg, modifier = Modifier.size(14.dp))
+        Text(
+            text = "$label · $subtitle",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = fg,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
@@ -937,88 +975,24 @@ private fun DocumentRow(
     onClick: (() -> Unit)?,
 ) {
     val errorState = failed && !uploaded && !uploading
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Surface0),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            if (errorState) ErrorRed else Surface200,
-        ),
-        shape = RoundedCornerShape(5.dp),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            if (uploaded) {
-                GradientTile(icon = icon, hue = hue, size = 56.dp)
-            } else {
-                DashedPlaceholderTile(icon = icon)
-            }
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Ink900)
-                val subtitle = when {
-                    errorState -> "Upload failed — tap retry"
-                    subtitleOverride != null -> subtitleOverride
-                    uploaded -> "✓ Uploaded"
-                    else -> "Required"
-                }
-                Text(
-                    text = subtitle,
-                    fontSize = 12.sp,
-                    color = when {
-                        errorState -> ErrorRed
-                        uploaded -> Success
-                        else -> Ink500
-                    },
-                )
-            }
-            if (onClick != null) {
-                if (uploading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-                } else if (uploaded) {
-                    OutlinedButton(
-                        onClick = onClick,
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    ) { Text("Replace", fontSize = 13.sp) }
-                } else if (errorState) {
-                    Button(
-                        onClick = onClick,
-                        colors = ButtonDefaults.buttonColors(containerColor = ErrorRed),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    ) {
-                        Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.size(6.dp))
-                        Text("Retry", fontSize = 13.sp)
-                    }
-                } else {
-                    Button(
-                        onClick = onClick,
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    ) {
-                        Icon(Icons.Outlined.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.size(6.dp))
-                        Text("Upload", fontSize = 13.sp)
-                    }
-                }
-            }
-        }
+    val borderColor = when {
+        errorState -> ErrorRed
+        uploaded -> SevaGreen700
+        else -> Surface200
     }
-}
+    val bgColor = if (uploaded) SevaGreen50 else Surface0
+    val tileBg = if (uploaded) SevaGreen700 else Surface50
 
-@Composable
-private fun DashedPlaceholderTile(icon: ImageVector) {
-    val dashColor = Ink300
     Box(
         modifier = Modifier
-            .size(56.dp)
+            .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(Surface50)
+            .background(bgColor)
+            .let { m -> if (onClick != null && !uploading) m.clickable(onClick = onClick) else m }
             .drawBehind {
                 val stroke = Stroke(
                     width = 1.5.dp.toPx(),
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx()), 0f),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(8.dp.toPx(), 4.dp.toPx()), 0f),
                 )
                 val path = Path().apply {
                     addRoundRect(
@@ -1031,11 +1005,51 @@ private fun DashedPlaceholderTile(icon: ImageVector) {
                         ),
                     )
                 }
-                drawPath(path = path, color = dashColor, style = stroke)
-            },
-        contentAlignment = Alignment.Center,
+                drawPath(path = path, color = borderColor, style = stroke)
+            }
+            .padding(14.dp),
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = Ink500, modifier = Modifier.size(24.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(tileBg),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (uploaded) Icons.Filled.Check else icon,
+                    contentDescription = null,
+                    tint = if (uploaded) Color.White else Ink500,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Ink900)
+                val subtitle = when {
+                    errorState -> "Upload failed — tap to retry"
+                    subtitleOverride != null -> subtitleOverride
+                    uploaded -> "Uploaded · tap to replace"
+                    else -> "JPG, PNG, or PDF · up to 5 MB"
+                }
+                Text(
+                    text = subtitle,
+                    fontSize = 11.sp,
+                    color = when {
+                        errorState -> ErrorRed
+                        uploaded -> SevaGreen700
+                        else -> Ink500
+                    },
+                )
+            }
+            if (uploading) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+            }
+        }
     }
 }
 
@@ -1044,19 +1058,19 @@ private fun KycSectionCard(title: String, content: @Composable () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Surface0),
         border = androidx.compose.foundation.BorderStroke(1.dp, Surface200),
-        shape = RoundedCornerShape(5.dp),
+        shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier = Modifier.padding(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
                 text = title.uppercase(),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = Ink700,
-                letterSpacing = 0.3.sp,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Ink500,
+                letterSpacing = 0.6.sp,
             )
             content()
         }
