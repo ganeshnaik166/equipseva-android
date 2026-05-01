@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.Icon
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -54,6 +55,18 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.launch
 
 private val HYDERABAD_FALLBACK = LatLng(17.385, 78.4867)
+
+private fun isSystemLocationEnabled(context: android.content.Context): Boolean {
+    val lm = context.getSystemService(android.content.Context.LOCATION_SERVICE) as? android.location.LocationManager
+        ?: return false
+    return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+        lm.isLocationEnabled
+    } else {
+        @Suppress("DEPRECATION")
+        lm.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER) ||
+            lm.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER)
+    }
+}
 
 /**
  * Forces a child to span its parent's content area PLUS the parent's
@@ -96,6 +109,8 @@ fun LocationPickerMap(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var permissionDenied by remember { mutableStateOf(false) }
+    var fetching by remember { mutableStateOf(false) }
+    var feedback by remember { mutableStateOf<String?>(null) }
 
     // rememberUpdatedState keeps the latest callback alive across recompositions
     // — critical because `tryFetch` runs in a coroutine that may complete after
@@ -104,15 +119,37 @@ fun LocationPickerMap(
     // and silently dropped fixes when the parent re-composed.
     val onLocationPickedRef by rememberUpdatedState(onLocationPicked)
     val tryFetch: () -> Unit = {
-        scope.launch {
-            val fix = fetchCurrentLocation(context)
-            if (fix != null) {
-                onLocationPickedRef(LatLng(fix.latitude, fix.longitude))
-            } else {
-                // Permission granted but GPS off / no network fix / no last
-                // location. Drop a Hyderabad fallback so the user still has a
-                // draggable marker to start from.
-                onLocationPickedRef(HYDERABAD_FALLBACK)
+        if (!fetching) {
+            fetching = true
+            feedback = null
+            scope.launch {
+                val fix = fetchCurrentLocation(context)
+                fetching = false
+                if (fix != null) {
+                    onLocationPickedRef(LatLng(fix.latitude, fix.longitude))
+                    feedback = "Pin set to your location"
+                } else {
+                    // Permission granted but no fix arrived. Distinguish the
+                    // most common cause — system location toggle is OFF — so
+                    // the user knows to fix it instead of just dragging a pin.
+                    val locationOn = isSystemLocationEnabled(context)
+                    if (!locationOn) {
+                        feedback = "Turn on Location in Quick Settings to use this"
+                        try {
+                            context.startActivity(
+                                android.content.Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+                            )
+                        } catch (_: Exception) { /* device with no settings app — ignore */ }
+                    } else {
+                        feedback = "Couldn't get a GPS fix — drag pin to refine"
+                    }
+                    // Only seed Hyderabad fallback when there's no existing pin
+                    // so we don't clobber a user-set location on a failed re-fetch.
+                    if (selected == null) {
+                        onLocationPickedRef(HYDERABAD_FALLBACK)
+                    }
+                }
             }
         }
         Unit
@@ -199,7 +236,15 @@ fun LocationPickerMap(
         position = CameraPosition.fromLatLngZoom(selected, 16f)
     }
     LaunchedEffect(selected) {
-        cameraPositionState.position = CameraPosition.fromLatLngZoom(selected, 16f)
+        // Animate so the user sees something happen even if the new fix is
+        // close to the old one (common when "My location" returns the same
+        // GPS coords as the existing pin).
+        cameraPositionState.animate(
+            update = com.google.android.gms.maps.CameraUpdateFactory.newCameraPosition(
+                CameraPosition.fromLatLngZoom(selected, 16f),
+            ),
+            durationMs = 400,
+        )
     }
     val markerState = remember(selected) { MarkerState(position = selected) }
     LaunchedEffect(markerState.position) {
@@ -252,6 +297,7 @@ fun LocationPickerMap(
             )
             androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
             TextButton(
+                enabled = !fetching,
                 onClick = {
                     val granted = ContextCompat.checkSelfPermission(
                         context, Manifest.permission.ACCESS_FINE_LOCATION,
@@ -271,14 +317,33 @@ fun LocationPickerMap(
                     }
                 },
             ) {
-                Icon(
-                    imageVector = Icons.Filled.MyLocation,
-                    contentDescription = null,
-                    modifier = Modifier.size(12.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Text("  My location", fontSize = 11.sp)
+                if (fetching) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(12.dp),
+                        strokeWidth = 1.5.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text("  Locating…", fontSize = 11.sp)
+                } else {
+                    Icon(
+                        imageVector = Icons.Filled.MyLocation,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Text("  My location", fontSize = 11.sp)
+                }
             }
+        }
+        feedback?.let { msg ->
+            Text(
+                text = msg,
+                fontSize = 11.sp,
+                color = Ink500,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.lg, vertical = 2.dp),
+            )
         }
     }
 }
