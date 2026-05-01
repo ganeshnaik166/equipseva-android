@@ -63,7 +63,13 @@ class ActiveWorkViewModel @Inject constructor(
             jobRepository.fetchAssignedToMe()
                 .onSuccess { jobs ->
                     val active = jobs.filter {
+                        // Include Assigned so engineers see jobs the moment a
+                        // hospital accepts their bid — without this they had
+                        // no entry point to the job until they Check-in
+                        // flipped status to InProgress, which is impossible
+                        // to do from a screen the assignment doesn't appear on.
                         it.status in listOf(
+                            RepairJobStatus.Assigned,
                             RepairJobStatus.EnRoute,
                             RepairJobStatus.InProgress,
                         )
