@@ -103,16 +103,20 @@ class SupabaseProfileRepository @Inject constructor(
         userId: String,
         fullName: String?,
         phone: String?,
+        email: String?,
+        avatarUrl: String?,
     ): Result<Unit> = runCatching {
         // Omit null fields entirely so Postgrest leaves the column unchanged.
         // Setting a key to JsonNull writes NULL to the row, which violates
-        // profiles.full_name NOT NULL when callers update only the phone
-        // (e.g. AddPhoneScreen). Letting the null sail through historically
+        // profiles.full_name NOT NULL when callers update only one field
+        // (e.g. AddPhoneScreen). Letting null sail through historically
         // wiped full_name on every phone save.
         client.from(TABLE).update(
             buildJsonObject {
                 if (fullName != null) put("full_name", JsonPrimitive(fullName))
                 if (phone != null) put("phone", JsonPrimitive(phone))
+                if (email != null) put("email", JsonPrimitive(email))
+                if (avatarUrl != null) put("avatar_url", JsonPrimitive(avatarUrl))
             },
         ) {
             filter { eq("id", userId) }
