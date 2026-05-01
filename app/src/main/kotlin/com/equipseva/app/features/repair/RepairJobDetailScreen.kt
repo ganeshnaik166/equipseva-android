@@ -230,6 +230,7 @@ fun RepairJobDetailScreen(
                     acceptingBidId = state.acceptingBidId,
                     openingChat = state.openingChat,
                     afterPhotoSignedUrls = state.afterPhotoSignedUrls,
+                    issuePhotoSignedUrls = state.issuePhotoSignedUrls,
                     onMessageEngineer = viewModel::openChatWithEngineer,
                     onMessageHospital = viewModel::openChatWithHospital,
                     onAcceptBid = viewModel::acceptBid,
@@ -344,6 +345,7 @@ private fun JobBody(
     acceptingBidId: String?,
     openingChat: Boolean,
     afterPhotoSignedUrls: List<String>,
+    issuePhotoSignedUrls: List<String>,
     onMessageEngineer: () -> Unit,
     onMessageHospital: () -> Unit,
     onAcceptBid: (String) -> Unit,
@@ -370,7 +372,7 @@ private fun JobBody(
         }
 
         EsSection(title = "Issue") {
-            IssueCard(job = job)
+            IssueCard(job = job, issuePhotoUrls = issuePhotoSignedUrls)
         }
 
         // Assigned engineer (only if engineer is assigned + viewer is hospital).
@@ -612,8 +614,8 @@ private fun EqRow(label: String, value: String) {
 
 // --- Issue card -------------------------------------------------------------
 @Composable
-private fun IssueCard(job: RepairJob) {
-    val photoCount = job.issuePhotos.size
+private fun IssueCard(job: RepairJob, issuePhotoUrls: List<String>) {
+    val urls = issuePhotoUrls.take(4)
     Column(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
@@ -631,7 +633,7 @@ private fun IssueCard(job: RepairJob) {
                 lineHeight = 19.sp,
             )
         }
-        if (photoCount > 0) {
+        if (urls.isNotEmpty()) {
             Row(
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
@@ -639,22 +641,17 @@ private fun IssueCard(job: RepairJob) {
                     .fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                repeat(photoCount.coerceAtMost(4)) {
-                    Box(
+                urls.forEach { url ->
+                    coil3.compose.AsyncImage(
+                        model = url,
+                        contentDescription = null,
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                         modifier = Modifier
                             .weight(1f)
                             .aspectRatio(1f)
                             .clip(RoundedCornerShape(10.dp))
                             .background(Paper2),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.PhotoCamera,
-                            contentDescription = null,
-                            tint = SevaInk400,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
+                    )
                 }
             }
         }
@@ -937,36 +934,70 @@ private fun LocationCard(
         (isHospital || (isEngineer && job.isAssignedToEngineer))
 
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(140.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Paper3),
-            contentAlignment = Alignment.Center,
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+        // Render a real map when we have coords; fall back to the placeholder
+        // tile when the job row never captured a lat/lng (legacy rows from
+        // before PR #219 wired the map picker into RequestService Step 4).
+        if (job.siteLatitude != null && job.siteLongitude != null) {
+            val target = com.google.android.gms.maps.model.LatLng(job.siteLatitude!!, job.siteLongitude!!)
+            val cameraState = com.google.maps.android.compose.rememberCameraPositionState {
+                position = com.google.android.gms.maps.model.CameraPosition.fromLatLngZoom(target, 15f)
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp)
+                    .clip(RoundedCornerShape(12.dp)),
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.LocationOn,
-                    contentDescription = null,
-                    tint = SevaGreen700,
-                    modifier = Modifier.size(28.dp),
-                )
-                Text(
-                    text = "Map preview",
-                    fontSize = 11.sp,
-                    color = SevaInk500,
-                )
-                if (canShowAddress) {
-                    Text(
-                        text = job.siteLocation!!.lineSequence().firstOrNull().orEmpty(),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = SevaInk900,
+                com.google.maps.android.compose.GoogleMap(
+                    cameraPositionState = cameraState,
+                    properties = com.google.maps.android.compose.MapProperties(isMyLocationEnabled = false),
+                    uiSettings = com.google.maps.android.compose.MapUiSettings(
+                        zoomControlsEnabled = false,
+                        mapToolbarEnabled = false,
+                        scrollGesturesEnabled = true,
+                        zoomGesturesEnabled = true,
+                        tiltGesturesEnabled = false,
+                        rotationGesturesEnabled = false,
+                    ),
+                ) {
+                    com.google.maps.android.compose.Marker(
+                        state = com.google.maps.android.compose.MarkerState(position = target),
+                        title = "Service site",
                     )
+                }
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(140.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Paper3),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.LocationOn,
+                        contentDescription = null,
+                        tint = SevaGreen700,
+                        modifier = Modifier.size(28.dp),
+                    )
+                    Text(
+                        text = if (canShowAddress) "No map pin saved for this job" else "Address hidden until you start work",
+                        fontSize = 11.sp,
+                        color = SevaInk500,
+                    )
+                    if (canShowAddress) {
+                        Text(
+                            text = job.siteLocation!!.lineSequence().firstOrNull().orEmpty(),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = SevaInk900,
+                        )
+                    }
                 }
             }
         }

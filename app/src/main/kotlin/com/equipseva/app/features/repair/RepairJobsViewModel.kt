@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.repair.RepairBidRepository
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
@@ -182,27 +183,26 @@ class RepairJobsViewModel @Inject constructor(
                     onSuccess = { rows ->
                         val ownBids = bidsDeferred.await().getOrNull().orEmpty()
                             .associateBy { it.repairJobId }
-                        val finalRows = if (rows.isEmpty()) DUMMY_OPEN_JOBS else rows
                         _state.update {
                             it.copy(
-                                items = finalRows,
-                                distanceByJobId = if (rows.isEmpty()) DUMMY_DISTANCES else emptyMap(),
+                                items = rows,
+                                distanceByJobId = emptyMap(),
                                 coordsByJobId = emptyMap(),
                                 ownBidsByJob = ownBids,
                                 initialLoading = false,
                                 refreshing = false,
-                                endReached = finalRows.size < PAGE_SIZE,
+                                endReached = rows.size < PAGE_SIZE,
                             )
                         }
                     },
-                    onFailure = { _ ->
+                    onFailure = { ex ->
                         _state.update {
                             it.copy(
-                                items = DUMMY_OPEN_JOBS,
-                                distanceByJobId = DUMMY_DISTANCES,
+                                items = emptyList(),
+                                distanceByJobId = emptyMap(),
                                 initialLoading = false,
                                 refreshing = false,
-                                errorMessage = null,
+                                errorMessage = ex.toUserMessage(),
                                 endReached = true,
                             )
                         }
@@ -211,14 +211,13 @@ class RepairJobsViewModel @Inject constructor(
             }
             mineDeferred.await().fold(
                 onSuccess = { rows ->
-                    val finalMine = if (rows.isEmpty()) DUMMY_ASSIGNED_JOBS else rows
                     _state.update {
-                        it.copy(mineItems = finalMine, mineLoading = false, mineErrorMessage = null)
+                        it.copy(mineItems = rows, mineLoading = false, mineErrorMessage = null)
                     }
                 },
-                onFailure = { _ ->
+                onFailure = { ex ->
                     _state.update {
-                        it.copy(mineItems = DUMMY_ASSIGNED_JOBS, mineLoading = false, mineErrorMessage = null)
+                        it.copy(mineItems = emptyList(), mineLoading = false, mineErrorMessage = ex.toUserMessage())
                     }
                 },
             )

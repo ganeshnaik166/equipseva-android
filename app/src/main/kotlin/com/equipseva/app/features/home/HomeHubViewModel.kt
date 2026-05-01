@@ -137,16 +137,7 @@ class HomeHubViewModel @Inject constructor(
             notificationRepository.observeNotifications(userId)
                 .catch { /* swallow stream errors — Recent Activity is informational */ }
                 .collect { list ->
-                    val recent = if (list.isEmpty()) {
-                        // Round-3 design preview — seed Recent Activity with
-                        // role-tinted dummies so the section is visible while
-                        // the real notification stream is empty. Replaced
-                        // automatically once real notifications land.
-                        sampleRecent(userId, _state.value.role)
-                    } else {
-                        list.take(3)
-                    }
-                    _state.update { it.copy(recent = recent) }
+                    _state.update { it.copy(recent = list.take(3)) }
                 }
         }
     }

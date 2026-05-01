@@ -75,20 +75,20 @@ class ActiveWorkViewModel @Inject constructor(
                         it.copy(
                             loading = false,
                             refreshing = false,
-                            activeJobs = if (active.isEmpty()) DUMMY_ACTIVE_JOBS else active,
-                            completedJobs = if (completed.isEmpty()) DUMMY_COMPLETED_JOBS else completed,
+                            activeJobs = active,
+                            completedJobs = completed,
                             errorMessage = null,
                         )
                     }
                 }
-                .onFailure { _ ->
+                .onFailure { ex ->
                     _state.update {
                         it.copy(
                             loading = false,
                             refreshing = false,
-                            activeJobs = DUMMY_ACTIVE_JOBS,
-                            completedJobs = DUMMY_COMPLETED_JOBS,
-                            errorMessage = null,
+                            activeJobs = emptyList(),
+                            completedJobs = emptyList(),
+                            errorMessage = ex.toUserMessage(),
                         )
                     }
                 }

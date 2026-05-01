@@ -95,7 +95,7 @@ class EngineerDirectoryViewModel @Inject constructor(
         val loading: Boolean = true,
         val error: String? = null,
         val query: String = "",
-        val district: String = "Nalgonda",
+        val district: String = "All Telangana",
         val specialization: String? = null,
         val rows: List<EngineerDirectoryRepository.DirectoryRow> = emptyList(),
     ) {
@@ -132,11 +132,12 @@ class EngineerDirectoryViewModel @Inject constructor(
         viewModelScope.launch {
             repo.search(query = _state.value.query.takeIf { it.isNotBlank() })
                 .onSuccess { rows ->
-                    val final = if (rows.isEmpty()) DUMMY_ENGINEERS else rows
-                    _state.update { it.copy(loading = false, rows = final) }
+                    _state.update { it.copy(loading = false, rows = rows) }
                 }
-                .onFailure { _ ->
-                    _state.update { it.copy(loading = false, error = null, rows = DUMMY_ENGINEERS) }
+                .onFailure { ex ->
+                    _state.update {
+                        it.copy(loading = false, rows = emptyList(), error = ex.toUserMessage())
+                    }
                 }
         }
     }
@@ -223,12 +224,12 @@ private val DUMMY_ENGINEERS = listOf(
 
 // Telangana districts the design's directory chip row enumerates.
 private val DEFAULT_DISTRICTS = listOf(
+    "All Telangana",
     "Hyderabad",
     "Nalgonda",
     "Suryapet",
     "Warangal",
     "Khammam",
-    "All Telangana",
 )
 
 private val DEFAULT_SPECS = listOf(

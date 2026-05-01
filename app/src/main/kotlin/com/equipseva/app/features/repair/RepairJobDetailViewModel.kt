@@ -605,19 +605,6 @@ class RepairJobDetailViewModel @Inject constructor(
 
     private fun load() {
         _state.update { it.copy(loading = true, errorMessage = null, notFound = false) }
-        if (jobId.startsWith("dummy-")) {
-            _state.update {
-                it.copy(
-                    loading = false,
-                    job = buildDummyJob(jobId),
-                    notFound = false,
-                    viewerRole = ViewerRole.Hospital,
-                    hospitalName = "Sri Sai Multi-Specialty",
-                    hospitalLocation = "Nalgonda, Telangana",
-                )
-            }
-            return
-        }
         viewModelScope.launch {
             val selfId = (authRepository.sessionState.firstOrNull() as? AuthSession.SignedIn)?.userId
             val selfEngineerRowId = selfId

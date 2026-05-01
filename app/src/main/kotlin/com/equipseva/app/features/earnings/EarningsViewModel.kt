@@ -70,10 +70,9 @@ class EarningsViewModel @Inject constructor(
                         .associateBy { it.id }
 
                     val rows = accepted.map { EarningRow(it, jobsById[it.repairJobId]) }
-                    val finalRows = if (rows.isEmpty()) DUMMY_EARNINGS else rows
-                    val paid = finalRows.filter { it.job?.status == RepairJobStatus.Completed }
+                    val paid = rows.filter { it.job?.status == RepairJobStatus.Completed }
                         .sumOf { it.bid.amountRupees }
-                    val pending = finalRows.filter { it.job?.status != RepairJobStatus.Completed }
+                    val pending = rows.filter { it.job?.status != RepairJobStatus.Completed }
                         .sumOf { it.bid.amountRupees }
 
                     _state.update {
@@ -82,24 +81,20 @@ class EarningsViewModel @Inject constructor(
                             refreshing = false,
                             paidTotal = paid,
                             pendingTotal = pending,
-                            rows = finalRows,
+                            rows = rows,
                             errorMessage = null,
                         )
                     }
                 }
-                .onFailure { _ ->
-                    val paid = DUMMY_EARNINGS.filter { it.job?.status == RepairJobStatus.Completed }
-                        .sumOf { it.bid.amountRupees }
-                    val pending = DUMMY_EARNINGS.filter { it.job?.status != RepairJobStatus.Completed }
-                        .sumOf { it.bid.amountRupees }
+                .onFailure { ex ->
                     _state.update {
                         UiState(
                             loading = false,
                             refreshing = false,
-                            paidTotal = paid,
-                            pendingTotal = pending,
-                            rows = DUMMY_EARNINGS,
-                            errorMessage = null,
+                            paidTotal = 0.0,
+                            pendingTotal = 0.0,
+                            rows = emptyList(),
+                            errorMessage = ex.toUserMessage(),
                         )
                     }
                 }
