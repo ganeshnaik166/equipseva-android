@@ -551,12 +551,23 @@ private fun PersonalStep(
         // Phone — direct save flow, no OTP. Add when blank, Verified pill
         // when set. Hint copy below from screens-kyc.jsx.
         FieldLabel("Phone (for hospital contact)")
+        // readOnly (not enabled=false) so the trailing TextButton stays
+        // clickable. Material 3 treats `enabled=false` as "everything inside
+        // this field is non-interactive", which would have eaten the Add tap.
+        val phoneReadOnlyColors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+            unfocusedTextColor = Ink900,
+            focusedTextColor = Ink900,
+            unfocusedBorderColor = Surface200,
+            focusedBorderColor = Surface200,
+            unfocusedContainerColor = Color.White,
+            focusedContainerColor = Color.White,
+        )
         OutlinedTextField(
             value = state.phone ?: "",
             onValueChange = {},
-            enabled = false,
+            readOnly = true,
             singleLine = true,
-            colors = readOnlyColors,
+            colors = phoneReadOnlyColors,
             placeholder = { Text("+91 98765 43210", color = Ink500) },
             trailingIcon = {
                 if (state.phone.isNullOrBlank()) {
