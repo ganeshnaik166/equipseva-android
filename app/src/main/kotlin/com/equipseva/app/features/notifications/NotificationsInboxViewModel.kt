@@ -11,11 +11,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -64,6 +66,22 @@ class NotificationsInboxViewModel @Inject constructor(
                             errorMessage = null,
                         )
                     }
+                }
+                // Retry the realtime subscription with capped exponential backoff
+                // on transient errors (network blip, token refresh) instead of
+                // collapsing into a permanent error state. Without this the user
+                // sees an empty inbox + stale error until they kill the app.
+                .retryWhen { cause, attempt ->
+                    val delayMs = minOf(30_000L, 1_000L * (1L shl attempt.coerceAtMost(5).toInt()))
+                    _state.update {
+                        it.copy(
+                            loading = false,
+                            refreshing = false,
+                            errorMessage = "Reconnecting… (${cause.toUserMessage()})",
+                        )
+                    }
+                    delay(delayMs)
+                    true
                 }
                 .catch { ex ->
                     // Stream errored — surface the failure instead of seeding
