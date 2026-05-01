@@ -84,37 +84,10 @@ fun ChangeEmailScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     Text(
-                        text = "We'll send a confirmation link to the new address. " +
-                            "Your email stays the same until you click it.",
+                        text = "Updates the contact email shown on your profile. " +
+                            "Your sign-in email stays unchanged.",
                         style = EsType.BodySm,
                         color = SevaInk500,
-                    )
-
-                    OutlinedTextField(
-                        value = state.currentPassword,
-                        onValueChange = viewModel::onCurrentPasswordChange,
-                        label = { Text("Current password") },
-                        singleLine = true,
-                        enabled = !state.submitting,
-                        isError = state.currentPasswordError != null,
-                        supportingText = {
-                            state.currentPasswordError?.let { Text(it) }
-                        },
-                        visualTransformation = if (showCurrent) VisualTransformation.None else PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.None,
-                            autoCorrect = false,
-                            imeAction = ImeAction.Next,
-                        ),
-                        trailingIcon = {
-                            IconButton(onClick = { showCurrent = !showCurrent }) {
-                                Icon(
-                                    imageVector = if (showCurrent) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                    contentDescription = if (showCurrent) "Hide password" else "Show password",
-                                )
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
                     )
 
                     OutlinedTextField(
@@ -156,14 +129,12 @@ fun ChangeEmailScreen(
                 Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(BorderDefault))
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                     EsBtn(
-                        text = if (state.submitting) "Sending…" else "Send confirmation",
+                        text = if (state.submitting) "Saving…" else "Save email",
                         onClick = viewModel::onSubmit,
                         kind = EsBtnKind.Primary,
                         size = EsBtnSize.Lg,
                         full = true,
-                        disabled = state.submitting ||
-                            state.currentPassword.isBlank() ||
-                            state.newEmail.isBlank(),
+                        disabled = state.submitting || state.newEmail.isBlank(),
                     )
                 }
             }

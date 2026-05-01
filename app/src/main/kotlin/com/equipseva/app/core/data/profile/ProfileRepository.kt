@@ -12,8 +12,19 @@ interface ProfileRepository {
      */
     suspend fun updateRole(userId: String, role: UserRole): Result<Unit>
 
-    /** Update the signed-in user's display name + phone. Either can be null to clear. */
-    suspend fun updateBasicInfo(userId: String, fullName: String?, phone: String?): Result<Unit>
+    /**
+     * Update any subset of the signed-in user's profile fields. Pass null
+     * for any field you don't want to touch — only non-null params hit the
+     * Postgrest update payload, so `updateBasicInfo(uid, phone = "+91...")`
+     * leaves full_name / email / avatar_url alone.
+     */
+    suspend fun updateBasicInfo(
+        userId: String,
+        fullName: String? = null,
+        phone: String? = null,
+        email: String? = null,
+        avatarUrl: String? = null,
+    ): Result<Unit>
 
     /**
      * Bulk-resolve display names for a set of user ids. Missing ids are simply
