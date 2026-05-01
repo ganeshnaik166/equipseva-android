@@ -92,18 +92,18 @@ class MyBidsViewModel @Inject constructor(
                         it.copy(
                             loading = false,
                             refreshing = false,
-                            rows = if (realRows.isEmpty()) DUMMY_BID_ROWS else realRows,
+                            rows = realRows,
                             errorMessage = null,
                         )
                     }
                 }
-                .onFailure { _ ->
+                .onFailure { ex ->
                     _state.update {
                         it.copy(
                             loading = false,
                             refreshing = false,
-                            rows = DUMMY_BID_ROWS,
-                            errorMessage = null,
+                            rows = emptyList(),
+                            errorMessage = ex.toUserMessage(),
                         )
                     }
                 }

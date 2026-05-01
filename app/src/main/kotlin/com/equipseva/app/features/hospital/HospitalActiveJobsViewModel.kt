@@ -90,31 +90,26 @@ class HospitalActiveJobsViewModel @Inject constructor(
                             RepairJobStatus.Disputed,
                         )
                     }
-                    val (fOpen, fInProg, fClosed) = if (jobs.isEmpty()) {
-                        Triple(DUMMY_HOSPITAL_OPEN, DUMMY_HOSPITAL_IN_PROGRESS, DUMMY_HOSPITAL_CLOSED)
-                    } else {
-                        Triple(open, inProgress, closed)
-                    }
                     _state.update {
                         UiState(
                             loading = false,
                             refreshing = false,
-                            openJobs = fOpen,
-                            inProgressJobs = fInProg,
-                            closedJobs = fClosed,
+                            openJobs = open,
+                            inProgressJobs = inProgress,
+                            closedJobs = closed,
                             errorMessage = null,
                         )
                     }
                 }
-                .onFailure { _ ->
+                .onFailure { ex ->
                     _state.update {
                         UiState(
                             loading = false,
                             refreshing = false,
-                            openJobs = DUMMY_HOSPITAL_OPEN,
-                            inProgressJobs = DUMMY_HOSPITAL_IN_PROGRESS,
-                            closedJobs = DUMMY_HOSPITAL_CLOSED,
-                            errorMessage = null,
+                            openJobs = emptyList(),
+                            inProgressJobs = emptyList(),
+                            closedJobs = emptyList(),
+                            errorMessage = ex.toUserMessage(),
                         )
                     }
                 }
