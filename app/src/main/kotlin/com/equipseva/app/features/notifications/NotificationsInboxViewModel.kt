@@ -65,13 +65,16 @@ class NotificationsInboxViewModel @Inject constructor(
                         )
                     }
                 }
-                .catch { _ ->
+                .catch { ex ->
+                    // Stream errored — surface the failure instead of seeding
+                    // dummy "Satish Naidu placed a bid" rows that would mask
+                    // the real auth/network problem from the user.
                     _state.update {
                         it.copy(
                             loading = false,
                             refreshing = false,
-                            rows = buildDummyNotifications(session.userId),
-                            errorMessage = null,
+                            rows = emptyList(),
+                            errorMessage = ex.toUserMessage(),
                         )
                     }
                 }

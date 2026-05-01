@@ -64,6 +64,18 @@ fun MyBidsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val activeFilter = state.statusFilter ?: RepairBidStatus.Pending
+
+    // Re-fetch on every ON_RESUME so a status change in the detail screen
+    // (e.g., an accepted bid that flips status server-side) reflects when
+    // the user pops back to this list.
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) viewModel.onRefresh()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(title = "My bids", onBack = onBack)

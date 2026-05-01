@@ -48,6 +48,17 @@ fun ActiveWorkScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    // Refresh on tab resume so a status change made on the detail screen
+    // (Check-in, Mark done) reflects when the user pops back to the list.
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) viewModel.onRefresh()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             val combined = state.activeJobs + state.completedJobs
