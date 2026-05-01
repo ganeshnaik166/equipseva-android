@@ -249,6 +249,30 @@ class KycViewModel @Inject constructor(
         viewModelScope.launch { load() }
     }
 
+    /**
+     * Pulls just the profile fields (email, phone, fullName, verified
+     * flags) from Supabase without re-running the full engineer fetch.
+     * Called by the screen on lifecycle ON_RESUME so changes made on
+     * sub-screens — Add phone, Change email, etc. — show up the moment
+     * the user pops back to KYC.
+     */
+    fun refreshProfileFields() {
+        val uid = userId ?: return
+        viewModelScope.launch {
+            val profile = profileRepository.fetchById(uid).getOrNull() ?: return@launch
+            _state.update {
+                it.copy(
+                    email = profile.email,
+                    phone = profile.phone,
+                    fullName = profile.fullName,
+                    emailVerified = profile.emailVerified,
+                    phoneVerified = profile.phoneVerified,
+                    emailDraft = if (it.emailDraft.isBlank()) profile.email.orEmpty() else it.emailDraft,
+                )
+            }
+        }
+    }
+
     private suspend fun load() {
         _state.update { it.copy(loading = true, errorMessage = null) }
         val session = authRepository.sessionState
