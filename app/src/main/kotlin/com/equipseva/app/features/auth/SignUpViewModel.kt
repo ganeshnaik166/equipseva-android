@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.toAuthError
+import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.util.Validators
 import com.equipseva.app.features.auth.state.AuthEffect
 import com.equipseva.app.features.auth.state.FormUiState
@@ -13,6 +14,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -20,12 +23,14 @@ import javax.inject.Inject
 @HiltViewModel
 class SignUpViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val profileRepository: ProfileRepository,
 ) : ViewModel() {
 
     data class UiState(
         val fullName: String = "",
         val email: String = "",
         val password: String = "",
+        val role: UserRole? = null,
         val fullNameError: String? = null,
         val emailError: String? = null,
         val passwordError: String? = null,
@@ -34,7 +39,8 @@ class SignUpViewModel @Inject constructor(
         val canSubmit: Boolean get() = !form.submitting &&
             fullName.trim().length >= 2 &&
             Validators.emailIsValid(email) &&
-            password.length >= MIN_PASSWORD_LENGTH
+            password.length >= MIN_PASSWORD_LENGTH &&
+            role != null
     }
 
     private val _state = MutableStateFlow(UiState())
@@ -55,6 +61,10 @@ class SignUpViewModel @Inject constructor(
         _state.update { it.copy(password = value, passwordError = null, form = it.form.copy(errorMessage = null)) }
     }
 
+    fun onRoleChange(value: UserRole) {
+        _state.update { it.copy(role = value, form = it.form.copy(errorMessage = null)) }
+    }
+
     fun onSubmit() {
         val current = _state.value
         if (current.form.submitting) return
@@ -63,12 +73,14 @@ class SignUpViewModel @Inject constructor(
         val emailError = if (Validators.emailIsValid(current.email)) null else "Enter a valid email"
         val passwordError = if (current.password.length >= MIN_PASSWORD_LENGTH) null
             else "Use at least $MIN_PASSWORD_LENGTH characters"
-        if (fullNameError != null || emailError != null || passwordError != null) {
+        val role = current.role
+        if (fullNameError != null || emailError != null || passwordError != null || role == null) {
             _state.update {
                 it.copy(
                     fullNameError = fullNameError,
                     emailError = emailError,
                     passwordError = passwordError,
+                    form = if (role == null) it.form.copy(errorMessage = "Pick how you'll use EquipSeva") else it.form,
                 )
             }
             return
@@ -81,10 +93,20 @@ class SignUpViewModel @Inject constructor(
                 email = targetEmail,
                 password = current.password,
                 fullName = current.fullName.trim(),
+                role = role,
             ).fold(
                 onSuccess = { outcome ->
                     when (outcome) {
                         com.equipseva.app.core.auth.SignUpOutcome.AutoSignedIn -> {
+                            // Belt-and-braces: trigger picks up
+                            // raw_user_meta_data.role, but write profiles.role
+                            // explicitly too in case the trigger isn't present.
+                            val signed = authRepository.sessionState
+                                .filterIsInstance<com.equipseva.app.core.auth.AuthSession.SignedIn>()
+                                .firstOrNull()
+                            signed?.userId?.let { uid ->
+                                profileRepository.updateRole(uid, role)
+                            }
                             _state.update { it.copy(form = FormUiState()) }
                             // Session will transition; AuthHostInline routes to Home.
                             _effects.send(AuthEffect.NavigateToHome)

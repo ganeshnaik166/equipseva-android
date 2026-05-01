@@ -1,7 +1,10 @@
 package com.equipseva.app.features.auth
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,16 +14,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,8 +42,10 @@ import com.equipseva.app.designsystem.components.EsField
 import com.equipseva.app.designsystem.components.EsFieldType
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk600
@@ -119,6 +130,30 @@ fun SignUpScreen(
                     enabled = !state.form.submitting,
                 )
 
+                Spacer(Modifier.height(20.dp))
+                Text(
+                    text = "I'm signing up as",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = SevaInk900,
+                )
+                Spacer(Modifier.height(10.dp))
+                RoleTile(
+                    title = "Hospital",
+                    subtitle = "Book biomedical engineers for repairs",
+                    selected = state.role == UserRole.HOSPITAL,
+                    enabled = !state.form.submitting,
+                    onClick = { viewModel.onRoleChange(UserRole.HOSPITAL) },
+                )
+                Spacer(Modifier.height(10.dp))
+                RoleTile(
+                    title = "Biomedical engineer",
+                    subtitle = "Pick up local repair jobs and get paid",
+                    selected = state.role == UserRole.ENGINEER,
+                    enabled = !state.form.submitting,
+                    onClick = { viewModel.onRoleChange(UserRole.ENGINEER) },
+                )
+
                 Spacer(Modifier.height(24.dp))
                 EsBtn(
                     text = "Continue",
@@ -149,6 +184,50 @@ fun SignUpScreen(
                 }
                 Spacer(Modifier.height(24.dp))
             }
+        }
+    }
+}
+
+@Composable
+private fun RoleTile(
+    title: String,
+    subtitle: String,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val borderColor = if (selected) SevaGreen700 else BorderDefault
+    val bgColor = if (selected) SevaGreen50 else Color.White
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .let { m -> if (enabled) m.clickable(onClick = onClick) else m }
+            .background(bgColor)
+            .border(1.dp, borderColor, RoundedCornerShape(10.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(22.dp)
+                .clip(CircleShape)
+                .border(2.dp, borderColor, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (selected) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(SevaGreen700),
+                )
+            }
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = SevaInk900)
+            Text(subtitle, fontSize = 12.sp, color = SevaInk500)
         }
     }
 }

@@ -156,7 +156,12 @@ private class FakeAuthRepository(userId: String) : AuthRepository {
         MutableStateFlow(AuthSession.SignedIn(userId = userId, email = "e@x"))
 
     override suspend fun signInWithEmailPassword(email: String, password: String) = Result.success(Unit)
-    override suspend fun signUpWithEmailPassword(email: String, password: String, fullName: String) = Result.success(Unit)
+    override suspend fun signUpWithEmailPassword(
+        email: String,
+        password: String,
+        fullName: String,
+        role: com.equipseva.app.features.auth.UserRole,
+    ) = Result.success(com.equipseva.app.core.auth.SignUpOutcome.AutoSignedIn)
     override suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?) = Result.success(Unit)
     override suspend fun sendPasswordResetEmail(email: String) = Result.success(Unit)
     override suspend fun updatePassword(newPassword: String) = Result.success(Unit)
