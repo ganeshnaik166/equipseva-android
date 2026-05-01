@@ -46,6 +46,7 @@ class SupabaseAuthRepository @Inject constructor(
         email: String,
         password: String,
         fullName: String,
+        role: com.equipseva.app.features.auth.UserRole,
     ): Result<SignUpOutcome> = runCatching {
         client.auth.signUpWith(Email) {
             this.email = email
@@ -54,6 +55,13 @@ class SupabaseAuthRepository @Inject constructor(
                 put(
                     "full_name",
                     kotlinx.serialization.json.JsonPrimitive(fullName),
+                )
+                // Picked up by the public.handle_new_user() trigger on
+                // auth.users insert so the profiles row gets the right role
+                // even when "Confirm email" is on (no session post-signup).
+                put(
+                    "role",
+                    kotlinx.serialization.json.JsonPrimitive(role.storageKey),
                 )
             }
         }

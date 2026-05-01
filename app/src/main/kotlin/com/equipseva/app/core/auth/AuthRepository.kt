@@ -18,7 +18,12 @@ interface AuthRepository {
     val sessionState: Flow<AuthSession>
 
     suspend fun signInWithEmailPassword(email: String, password: String): Result<Unit>
-    suspend fun signUpWithEmailPassword(email: String, password: String, fullName: String): Result<SignUpOutcome>
+    suspend fun signUpWithEmailPassword(
+        email: String,
+        password: String,
+        fullName: String,
+        role: com.equipseva.app.features.auth.UserRole,
+    ): Result<SignUpOutcome>
     suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?): Result<Unit>
 
     suspend fun sendPasswordResetEmail(email: String): Result<Unit>
