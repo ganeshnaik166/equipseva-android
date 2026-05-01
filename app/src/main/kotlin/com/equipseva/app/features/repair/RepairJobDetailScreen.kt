@@ -377,9 +377,17 @@ private fun JobBody(
 
         // Assigned engineer (only if engineer is assigned + viewer is hospital).
         if (job.engineerId != null && isHospital) {
+            // engineerNames is keyed by engineer **user_id** (auth.uid) — but
+            // job.engineerId points at the engineers row id. Pull the
+            // accepted bid's engineerUserId to bridge the two so the card
+            // shows "Ravi Kumar" instead of the generic "Engineer" fallback.
+            val acceptedEngineerUserId = bids.firstOrNull {
+                it.status == com.equipseva.app.core.data.repair.RepairBidStatus.Accepted
+            }?.engineerUserId
+            val engineerName = acceptedEngineerUserId?.let { engineerNames[it] } ?: "Engineer"
             EsSection(title = "Assigned engineer") {
                 AssignedEngineerCard(
-                    name = engineerNames[job.engineerId] ?: "Engineer",
+                    name = engineerName,
                     openingChat = openingChat,
                     onMessage = onMessageEngineer,
                 )
