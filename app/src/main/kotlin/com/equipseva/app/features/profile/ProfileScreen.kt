@@ -394,7 +394,7 @@ private fun ProfileContent(
 
         sections.forEach { section ->
             if (section.title == "Danger zone") {
-                AccountTypeSection(role = profile.role, onSwitch = onSwitchService)
+                AccountTypeSection(role = profile.role)
             }
             ProfileSectionView(section)
         }
@@ -404,7 +404,7 @@ private fun ProfileContent(
 }
 
 @Composable
-private fun AccountTypeSection(role: UserRole?, onSwitch: () -> Unit) {
+private fun AccountTypeSection(role: UserRole?) {
     val isEngineer = role == UserRole.ENGINEER
     val title = if (isEngineer) "Biomedical engineer" else "Hospital admin"
     val subtitle = if (isEngineer) "You bid on and complete repair jobs" else "You book engineers for repairs"
@@ -448,29 +448,7 @@ private fun AccountTypeSection(role: UserRole?, onSwitch: () -> Unit) {
                     color = com.equipseva.app.designsystem.theme.SevaInk500,
                 )
             }
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(com.equipseva.app.designsystem.theme.SevaGreen50)
-                    .clickable(onClick = onSwitch)
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-            ) {
-                Text(
-                    text = "Switch",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = com.equipseva.app.designsystem.theme.SevaGreen700,
-                )
-            }
         }
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = "Switching role re-uses your account credentials. KYC is per-role.",
-            fontSize = 11.sp,
-            lineHeight = 15.4.sp,
-            color = com.equipseva.app.designsystem.theme.SevaInk500,
-            modifier = Modifier.padding(horizontal = 4.dp),
-        )
     }
 }
 
