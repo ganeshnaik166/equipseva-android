@@ -118,7 +118,11 @@ fun LocationPickerMap(
     // `remember { { ... } }` block captured the *first* callback ref forever
     // and silently dropped fixes when the parent re-composed.
     val onLocationPickedRef by rememberUpdatedState(onLocationPicked)
-    val tryFetch: () -> Unit = {
+    // userInitiated = true → user tapped the My location button (or granted
+    // permission via the system dialog they kicked off): show feedback + open
+    // Settings if location toggle is off. userInitiated = false → silent
+    // initial auto-fetch on first composition; never popup or open Settings.
+    val tryFetch: (userInitiated: Boolean) -> Unit = { userInitiated ->
         if (!fetching) {
             fetching = true
             feedback = null
@@ -127,8 +131,8 @@ fun LocationPickerMap(
                 fetching = false
                 if (fix != null) {
                     onLocationPickedRef(LatLng(fix.latitude, fix.longitude))
-                    feedback = "Pin set to your location"
-                } else {
+                    if (userInitiated) feedback = "Pin set to your location"
+                } else if (userInitiated) {
                     // Permission granted but no fix arrived. Distinguish the
                     // most common cause — system location toggle is OFF — so
                     // the user knows to fix it instead of just dragging a pin.
@@ -144,11 +148,12 @@ fun LocationPickerMap(
                     } else {
                         feedback = "Couldn't get a GPS fix — drag pin to refine"
                     }
-                    // Only seed Hyderabad fallback when there's no existing pin
-                    // so we don't clobber a user-set location on a failed re-fetch.
-                    if (selected == null) {
-                        onLocationPickedRef(HYDERABAD_FALLBACK)
-                    }
+                }
+                // Hyderabad fallback only seeds the initial pin so the form
+                // isn't stuck pin-less. Re-fetches that fail leave the
+                // existing pin alone — never clobber a user-set location.
+                if (fix == null && selected == null) {
+                    onLocationPickedRef(HYDERABAD_FALLBACK)
                 }
             }
         }
@@ -161,7 +166,7 @@ fun LocationPickerMap(
         val anyGranted = granted[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             granted[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         if (anyGranted) {
-            tryFetch()
+            tryFetch(true)
         } else {
             permissionDenied = true
             // Defensive fallback so the form isn't stuck pin-less when the
@@ -179,7 +184,7 @@ fun LocationPickerMap(
                 context, Manifest.permission.ACCESS_COARSE_LOCATION,
             ) == PackageManager.PERMISSION_GRANTED
         if (granted) {
-            tryFetch()
+            tryFetch(false)
         }
     }
 
@@ -306,7 +311,7 @@ fun LocationPickerMap(
                             context, Manifest.permission.ACCESS_COARSE_LOCATION,
                         ) == PackageManager.PERMISSION_GRANTED
                     if (granted) {
-                        tryFetch()
+                        tryFetch(true)
                     } else {
                         permissionLauncher.launch(
                             arrayOf(
