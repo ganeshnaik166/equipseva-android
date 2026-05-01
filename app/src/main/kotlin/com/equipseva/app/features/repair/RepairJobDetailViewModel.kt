@@ -56,6 +56,7 @@ class RepairJobDetailViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val engineerRepository: EngineerRepository,
     private val profileRepository: ProfileRepository,
+    private val userPrefs: com.equipseva.app.core.data.prefs.UserPrefs,
     private val outboxEnqueuer: OutboxEnqueuer,
     private val outboxDao: OutboxDao,
     private val reportRepository: ContentReportRepository,
@@ -621,10 +622,21 @@ class RepairJobDetailViewModel @Inject constructor(
             val selfId = (authRepository.sessionState.firstOrNull() as? AuthSession.SignedIn)?.userId
             val selfEngineerRowId = selfId
                 ?.let { engineerRepository.fetchByUserId(it).getOrNull()?.id }
+            // Falls back to in-app active role when the engineers row hasn't
+            // been created yet — a brand-new engineer signed up via the role
+            // tile (PR #225) may have role='engineer' in profiles but no
+            // engineers row until they finish KYC. UserPrefs.activeRole is
+            // also the source of truth for which Hub the user is currently in
+            // (Hub can switch role without touching the auth profile). We
+            // still want Place bid visible for them; server RLS rejects with
+            // a clear error if they tap Submit without an engineers row.
+            val selfProfileRole = selfId
+                ?.let { profileRepository.fetchById(it).getOrNull()?.role?.storageKey }
+            val selfActiveRole = userPrefs.activeRole.firstOrNull()
             val jobResult = jobRepository.fetchById(jobId)
             jobResult.fold(
                 onSuccess = { job ->
-                    val role = resolveViewerRole(job, selfId, selfEngineerRowId)
+                    val role = resolveViewerRole(job, selfId, selfEngineerRowId, selfProfileRole, selfActiveRole)
                     // Hospital viewer wants every bid to pick a winner; engineer
                     // viewer only needs their own row for the "Your bid" card.
                     val bids = when (role) {
@@ -715,24 +727,26 @@ class RepairJobDetailViewModel @Inject constructor(
         job: RepairJob?,
         selfId: String?,
         selfEngineerRowId: String?,
+        selfProfileRole: String?,
+        selfActiveRole: String?,
     ): ViewerRole {
         if (job == null || selfId.isNullOrBlank()) return ViewerRole.Other
         return when {
             selfId == job.hospitalUserId -> ViewerRole.Hospital
-            // Anyone with an engineers row is an Engineer viewer of any job —
-            // including unassigned (Requested) jobs they haven't bid on yet.
-            // Previously only the *assigned* engineer was tagged Engineer,
-            // which meant fresh engineers tapping a job from the feed lost
-            // the Place bid CTA in StickyBottomBar (primaryKind fell through
-            // to null because isEngineer was false). Job-status / RLS still
-            // gates whether Place bid actually fires.
-            //
-            // `repair_jobs.engineer_id` FKs to `engineers.id`, not auth.uid —
-            // so we compare against the resolved engineer row id when the
-            // job *is* assigned (we still want Engineer here even though the
-            // first branch already covers it; the explicit clause documents
-            // intent).
+            // Three signals counted as "user is an engineer", in order of
+            // server-side trust:
+            //   1. engineers row exists (fully onboarded, KYC complete)
+            //   2. profiles.role == 'engineer' (signed up via role tile #225)
+            //   3. UserPrefs.activeRole == 'engineer' (currently in Engineer
+            //      Hub on this device — Hub can switch persona without
+            //      writing to the auth profile)
+            // 1 lets them actually bid server-side; 2 and 3 let them at
+            // least see the Place bid CTA so they discover the next-step
+            // prompt. RLS surfaces a clear error if they tap Submit without
+            // an engineers row.
             !selfEngineerRowId.isNullOrBlank() -> ViewerRole.Engineer
+            selfProfileRole == "engineer" -> ViewerRole.Engineer
+            selfActiveRole == "engineer" -> ViewerRole.Engineer
             else -> ViewerRole.Other
         }
     }
