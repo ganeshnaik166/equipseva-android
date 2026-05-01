@@ -90,19 +90,11 @@ fun KycStatusTimeline(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(Surface0, RoundedCornerShape(14.dp))
-            .border(1.dp, Surface200, RoundedCornerShape(14.dp))
-            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            .background(Surface0, RoundedCornerShape(12.dp))
+            .border(1.dp, Surface200, RoundedCornerShape(12.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(
-            text = "Verification status",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = Ink700,
-            letterSpacing = 0.3.sp,
-        )
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top,

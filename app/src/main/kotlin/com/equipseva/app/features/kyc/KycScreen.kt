@@ -346,7 +346,24 @@ private fun KycStepperBody(
             )
         }
 
-        StepHeader(current = state.currentStep, onJump = onJumpToStep)
+        // Step intro: matches design — bold step subtitle + small caption.
+        // The numeric "Step X of Y" lives in the top bar, so no circle stepper here.
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = state.currentStep.subtitle,
+                fontSize = 18.sp,
+                color = Ink900,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = when (state.currentStep) {
+                    KycStep.Personal -> "How hospitals reach you and where you operate."
+                    KycStep.Documents -> "Upload identity and qualification proof."
+                },
+                fontSize = 12.sp,
+                color = Ink500,
+            )
+        }
 
         // Per-step body. Each step renders only what's relevant to that step
         // so the form feels short — best-practice gig-app onboarding caps each
@@ -853,17 +870,20 @@ private fun StatusBanner(status: VerificationStatus, submitted: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(bg)
-            .padding(14.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.Top,
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = fg, modifier = Modifier.size(24.dp))
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(label, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = fg)
-            Text(subtitle, fontSize = 13.sp, color = Ink700)
-        }
+        Icon(imageVector = icon, contentDescription = null, tint = fg, modifier = Modifier.size(14.dp))
+        Text(
+            text = "$label · $subtitle",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = fg,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
