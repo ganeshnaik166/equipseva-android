@@ -407,7 +407,7 @@ fun MainNavGraph(
                         // ticketing system yet.
                         val ctx = navController.context
                         val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
-                            data = android.net.Uri.parse("mailto:support@equipseva.com")
+                            data = android.net.Uri.parse("mailto:equipseva@gmail.com")
                             putExtra(android.content.Intent.EXTRA_SUBJECT, "EquipSeva support request")
                         }
                         try {
