@@ -492,38 +492,20 @@ class KycViewModel @Inject constructor(
 
     /** State picked from cascade. Resets the dependent district. */
     fun onServiceStateChange(value: String) {
-        val composed = com.equipseva.app.core.data.location.IndiaLocations.compose(
-            state = value,
-            district = null,
-            mandal = null,
-        )
         savedStateHandle[SavedKeys.STATE] = value
         savedStateHandle[SavedKeys.DISTRICT] = null
-        savedStateHandle[SavedKeys.ADDRESS] = composed
         _state.update {
             it.copy(
                 serviceState = value,
                 serviceDistrict = null,
-                serviceAddress = composed,
             )
         }
     }
 
-    /** District picked from cascade. Recomposes the legacy address string. */
+    /** District picked from cascade. */
     fun onServiceDistrictChange(value: String) {
-        val composed = com.equipseva.app.core.data.location.IndiaLocations.compose(
-            state = _state.value.serviceState,
-            district = value,
-            mandal = null,
-        )
         savedStateHandle[SavedKeys.DISTRICT] = value
-        savedStateHandle[SavedKeys.ADDRESS] = composed
-        _state.update {
-            it.copy(
-                serviceDistrict = value,
-                serviceAddress = composed,
-            )
-        }
+        _state.update { it.copy(serviceDistrict = value) }
     }
 
     fun onServiceCoordsChange(latitude: Double?, longitude: Double?) {
@@ -536,7 +518,6 @@ class KycViewModel @Inject constructor(
         // clobbering whatever they edited. Best-effort: Geocoder fails
         // on devices without Google Play Services, etc.
         if (latitude == null || longitude == null) return
-        if (_state.value.serviceAddress.isNotBlank()) return
         viewModelScope.launch {
             val resolved = runCatching {
                 locationFetcher.reverseGeocode(
@@ -548,15 +529,41 @@ class KycViewModel @Inject constructor(
                 resolved.line2,
                 resolved.landmark,
                 resolved.city,
+                resolved.district,
                 resolved.state,
                 resolved.pincode,
             ).joinToString(", ").trim()
-            if (addressLine.isBlank()) return@launch
-            // Re-check inside the coroutine — user may have started typing
-            // while reverse-geocode was in flight.
-            _state.update {
-                if (it.serviceAddress.isBlank()) it.copy(serviceAddress = addressLine) else it
+            // Match resolved.state against the canonical IndiaLocations.STATES
+            // list (case-insensitive contains both ways) so dropdowns
+            // pre-select correctly even when the geocoder uses a slightly
+            // different label ("Telangana State" vs "Telangana").
+            val matchedState = resolved.state?.let { rs ->
+                com.equipseva.app.core.data.location.IndiaLocations.STATES.firstOrNull { st ->
+                    st.equals(rs, ignoreCase = true) ||
+                        st.contains(rs, ignoreCase = true) ||
+                        rs.contains(st, ignoreCase = true)
+                }
             }
+            val matchedDistrict = if (matchedState != null && resolved.district != null) {
+                com.equipseva.app.core.data.location.IndiaLocations.districtsFor(matchedState).firstOrNull { d ->
+                    d.equals(resolved.district, ignoreCase = true) ||
+                        d.contains(resolved.district, ignoreCase = true) ||
+                        resolved.district.contains(d, ignoreCase = true)
+                }
+            } else null
+            // Re-check inside the coroutine — user may have started typing
+            // while reverse-geocode was in flight. Only fill blank fields so
+            // we never clobber a user's edit.
+            _state.update {
+                it.copy(
+                    serviceAddress = if (it.serviceAddress.isBlank() && addressLine.isNotBlank()) addressLine else it.serviceAddress,
+                    serviceState = it.serviceState ?: matchedState,
+                    serviceDistrict = it.serviceDistrict ?: matchedDistrict,
+                )
+            }
+            if (matchedState != null) savedStateHandle[SavedKeys.STATE] = matchedState
+            if (matchedDistrict != null) savedStateHandle[SavedKeys.DISTRICT] = matchedDistrict
+            if (addressLine.isNotBlank()) savedStateHandle[SavedKeys.ADDRESS] = addressLine
         }
     }
 

@@ -33,6 +33,7 @@ class LocationFetcher @Inject constructor(
         val line2: String? = null,
         val landmark: String? = null,
         val city: String? = null,
+        val district: String? = null,
         val state: String? = null,
         val pincode: String? = null,
     )
@@ -94,8 +95,11 @@ class LocationFetcher @Inject constructor(
         val line2 = listOfNotNull(addr.subLocality, addr.locality)
             .filter { it != line1 }
             .joinToString(", ").ifBlank { null }
-        val landmark = addr.premises ?: addr.subAdminArea
-        val city = addr.locality ?: addr.subAdminArea
+        val landmark = addr.premises
+        val city = addr.locality
+        // In Indian Geocoder responses, subAdminArea maps to the district
+        // (e.g. "Hyderabad", "Pune") while adminArea is the state.
+        val district = addr.subAdminArea
         val state = addr.adminArea
         val pincode = addr.postalCode
 
@@ -105,6 +109,7 @@ class LocationFetcher @Inject constructor(
             line2 = line2,
             landmark = landmark,
             city = city,
+            district = district,
             state = state,
             pincode = pincode,
         )

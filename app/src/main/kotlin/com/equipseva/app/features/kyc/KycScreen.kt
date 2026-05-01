@@ -194,6 +194,8 @@ fun KycScreen(
                     onPanNumberChange = viewModel::onPanNumberChange,
                     onServiceAddressChange = viewModel::onServiceAddressChange,
                     onServiceCoordsChange = viewModel::onServiceCoordsChange,
+                    onServiceStateChange = viewModel::onServiceStateChange,
+                    onServiceDistrictChange = viewModel::onServiceDistrictChange,
                     onAttestationChange = viewModel::onAttestationChange,
                     onPickAadhaar = {
                         aadhaarPicker.launch(
@@ -304,6 +306,8 @@ private fun KycStepperBody(
     onPanNumberChange: (String) -> Unit,
     onServiceAddressChange: (String) -> Unit,
     onServiceCoordsChange: (Double?, Double?) -> Unit,
+    onServiceStateChange: (String) -> Unit,
+    onServiceDistrictChange: (String) -> Unit,
     onAttestationChange: (Boolean) -> Unit,
     onPickAadhaar: () -> Unit,
     onPickPan: () -> Unit,
@@ -373,6 +377,8 @@ private fun KycStepperBody(
                 state = state,
                 onServiceAddressChange = onServiceAddressChange,
                 onServiceCoordsChange = onServiceCoordsChange,
+                onServiceStateChange = onServiceStateChange,
+                onServiceDistrictChange = onServiceDistrictChange,
                 onEmailDraftChange = onEmailDraftChange,
                 onSaveEmail = onSaveEmail,
                 onAddPhone = onAddPhone,
@@ -470,6 +476,8 @@ private fun PersonalStep(
     state: KycViewModel.UiState,
     onServiceAddressChange: (String) -> Unit,
     onServiceCoordsChange: (Double?, Double?) -> Unit,
+    onServiceStateChange: (String) -> Unit,
+    onServiceDistrictChange: (String) -> Unit,
     onEmailDraftChange: (String) -> Unit,
     onSaveEmail: () -> Unit,
     onAddPhone: () -> Unit,
@@ -589,10 +597,32 @@ private fun PersonalStep(
         )
     }
     KycSectionCard(title = "Where you operate") {
+        // State + district dropdowns. Auto-pre-filled from reverse-geocode
+        // when the engineer taps "My location"; can also be picked manually.
+        val districts = remember(state.serviceState) {
+            com.equipseva.app.core.data.location.IndiaLocations.districtsFor(state.serviceState)
+        }
+        FieldLabel("State")
+        com.equipseva.app.designsystem.components.EsDropdown(
+            value = state.serviceState,
+            onValueChange = onServiceStateChange,
+            options = com.equipseva.app.core.data.location.IndiaLocations.STATES,
+            placeholder = "Select state",
+            modifier = Modifier.fillMaxWidth(),
+        )
+        FieldLabel("District")
+        com.equipseva.app.designsystem.components.EsDropdown(
+            value = state.serviceDistrict,
+            onValueChange = onServiceDistrictChange,
+            options = districts,
+            placeholder = if (state.serviceState.isNullOrBlank()) "Pick state first" else "Select district",
+            enabled = !state.serviceState.isNullOrBlank() && districts.isNotEmpty(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        FieldLabel("Service address")
         OutlinedTextField(
             value = state.serviceAddress,
             onValueChange = onServiceAddressChange,
-            label = { Text("Service address") },
             placeholder = { Text("House #, area, city — landmark for our records") },
             minLines = 2,
             maxLines = 4,
