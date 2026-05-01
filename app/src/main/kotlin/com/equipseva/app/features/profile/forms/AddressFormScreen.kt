@@ -88,6 +88,9 @@ class AddressFormViewModel @Inject constructor(
         val error: String? = null,
         val form: Form = Form(),
         val saved: Boolean = false,
+        /** Transient feedback after "Use my current location" — summarises which
+         *  address fields the geocoder actually filled. Cleared on next edit. */
+        val locationInfo: String? = null,
     )
 
     private val addressId: String? = savedStateHandle[Routes.PROFILE_ADDRESS_FORM_ARG_ID]
@@ -131,7 +134,7 @@ class AddressFormViewModel @Inject constructor(
     }
 
     fun update(transform: (Form) -> Form) {
-        _state.update { it.copy(form = transform(it.form), error = null) }
+        _state.update { it.copy(form = transform(it.form), error = null, locationInfo = null) }
     }
 
     fun hasLocationPermission(): Boolean = locationFetcher.hasPermission()
@@ -152,8 +155,20 @@ class AddressFormViewModel @Inject constructor(
             val resolved = locationFetcher.reverseGeocode(coords)
             _state.update { st ->
                 val current = st.form
+                val filledFields = buildList {
+                    if (!resolved?.line1.isNullOrBlank() && current.line1.isBlank()) add("line 1")
+                    if (!resolved?.city.isNullOrBlank() && current.city.isBlank()) add("city")
+                    if (!resolved?.state.isNullOrBlank() && current.state.isBlank()) add("state")
+                    if (!resolved?.pincode.isNullOrBlank() && current.pincode.isBlank()) add("pincode")
+                }
+                val info = when {
+                    filledFields.isNotEmpty() -> "Filled ${filledFields.joinToString()} from your GPS pin."
+                    resolved != null -> "Saved your GPS pin — fill the address fields manually."
+                    else -> "Saved your GPS pin (couldn't read a street address here)."
+                }
                 st.copy(
                     locating = false,
+                    locationInfo = info,
                     form = current.copy(
                         line1 = resolved?.line1?.takeIf { it.isNotBlank() } ?: current.line1,
                         line2 = resolved?.line2?.takeIf { it.isNotBlank() } ?: current.line2,
@@ -274,6 +289,14 @@ fun AddressFormScreen(
                 Text(
                     if (state.locating) "Reading your location…" else "Use my current location",
                     modifier = Modifier.padding(start = 6.dp),
+                )
+            }
+
+            state.locationInfo?.let { info ->
+                Text(
+                    text = info,
+                    fontSize = 12.sp,
+                    color = com.equipseva.app.designsystem.theme.SevaInk500,
                 )
             }
 

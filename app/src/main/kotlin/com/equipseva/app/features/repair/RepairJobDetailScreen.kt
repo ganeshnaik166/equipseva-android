@@ -938,8 +938,14 @@ private fun LocationCard(
     val context = LocalContext.current
     val isEngineer = viewerRole == RepairJobDetailViewModel.ViewerRole.Engineer
     val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
-    val canShowAddress = !job.siteLocation.isNullOrBlank() &&
+    val hasAddressOnFile = !job.siteLocation.isNullOrBlank()
+    val canShowAddress = hasAddressOnFile &&
         (isHospital || (isEngineer && job.isAssignedToEngineer))
+    val placeholderCopy = when {
+        canShowAddress -> "No map pin saved for this job"
+        !hasAddressOnFile -> "No address on file yet"
+        else -> "Address hidden until you accept the job"
+    }
 
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         // Render a real map when we have coords; fall back to the placeholder
@@ -994,7 +1000,7 @@ private fun LocationCard(
                         modifier = Modifier.size(28.dp),
                     )
                     Text(
-                        text = if (canShowAddress) "No map pin saved for this job" else "Address hidden until you start work",
+                        text = placeholderCopy,
                         fontSize = 11.sp,
                         color = SevaInk500,
                     )
