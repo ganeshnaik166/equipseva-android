@@ -2,6 +2,9 @@ package com.equipseva.app.features.profile
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -239,6 +242,7 @@ fun ProfileScreen(
                         onOpenHelp = onOpenHelp,
                         onOpenPublicPreview = onOpenPublicPreview,
                         onSwitchService = viewModel::onToggleRoleAndGoHome,
+                        onPickAvatar = viewModel::uploadAvatar,
                     )
                 }
             }
@@ -328,6 +332,7 @@ private fun ProfileContent(
     onOpenHelp: () -> Unit,
     onOpenPublicPreview: (engineerId: String) -> Unit,
     onSwitchService: () -> Unit,
+    onPickAvatar: (Uri) -> Unit,
 ) {
     val profile = state.profile!!
     val isEngineer = profile.role == UserRole.ENGINEER
@@ -336,6 +341,9 @@ private fun ProfileContent(
     val isManufacturer = profile.role == UserRole.MANUFACTURER
     val isLogistics = profile.role == UserRole.LOGISTICS
     val isFounder = profile.isFounder()
+    val avatarPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+    ) { uri: Uri? -> if (uri != null) onPickAvatar(uri) }
 
     Column(
         modifier = Modifier
@@ -350,6 +358,8 @@ private fun ProfileContent(
             role = profile.role,
             engineerStatus = state.engineerStatus,
             engineerKycSubmitted = state.engineerKycSubmitted,
+            avatarUploading = state.avatarUploading,
+            onPickAvatar = { avatarPicker.launch("image/*") },
             onEdit = onEditProfile,
         )
 
@@ -636,6 +646,8 @@ private fun ProfileHero(
     role: UserRole?,
     engineerStatus: VerificationStatus?,
     engineerKycSubmitted: Boolean,
+    avatarUploading: Boolean,
+    onPickAvatar: () -> Unit,
     onEdit: () -> Unit,
 ) {
     val initials = displayName
@@ -660,12 +672,14 @@ private fun ProfileHero(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            if (!avatarUrl.isNullOrBlank()) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape),
-                ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .clickable(enabled = !avatarUploading, onClick = onPickAvatar),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (!avatarUrl.isNullOrBlank()) {
                     AsyncImage(
                         model = avatarUrl,
                         contentDescription = null,
@@ -673,13 +687,28 @@ private fun ProfileHero(
                             .size(56.dp)
                             .clip(CircleShape),
                     )
+                } else {
+                    com.equipseva.app.designsystem.components.Avatar(
+                        initials = initials,
+                        size = 56.dp,
+                        online = com.equipseva.app.designsystem.components.OnlineStatus.Available,
+                    )
                 }
-            } else {
-                com.equipseva.app.designsystem.components.Avatar(
-                    initials = initials,
-                    size = 56.dp,
-                    online = com.equipseva.app.designsystem.components.OnlineStatus.Available,
-                )
+                if (avatarUploading) {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.35f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = androidx.compose.ui.graphics.Color.White,
+                        )
+                    }
+                }
             }
             Column(
                 modifier = Modifier.weight(1f),

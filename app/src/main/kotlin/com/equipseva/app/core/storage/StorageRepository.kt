@@ -16,6 +16,7 @@ class StorageRepository @Inject constructor(
         const val KYC_DOCS = "kyc-docs"
         const val CATALOG_IMAGES = "catalog-images"
         const val CATEGORY_IMAGES = "category-images"
+        const val AVATARS = "avatars"
     }
 
     /** Public URL for a bucket+path; only meaningful for buckets flagged public. */
