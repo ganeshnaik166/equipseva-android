@@ -623,8 +623,10 @@ private fun PersonalStep(
         )
     }
     KycSectionCard(title = "Where you operate") {
-        // State + district dropdowns. Auto-pre-filled from reverse-geocode
-        // when the engineer taps "My location"; can also be picked manually.
+        // State + district only. v1 simplified the service-area capture to
+        // just two dropdowns — the free-form address text field + draggable
+        // map pin were dropped because most engineers were leaving them
+        // blank and hospitals only ever filtered by district anyway.
         val districts = remember(state.serviceState) {
             com.equipseva.app.core.data.location.IndiaLocations.districtsFor(state.serviceState)
         }
@@ -644,29 +646,6 @@ private fun PersonalStep(
             placeholder = if (state.serviceState.isNullOrBlank()) "Pick state first" else "Select district",
             enabled = !state.serviceState.isNullOrBlank() && districts.isNotEmpty(),
             modifier = Modifier.fillMaxWidth(),
-        )
-        FieldLabel("Service address")
-        OutlinedTextField(
-            value = state.serviceAddress,
-            onValueChange = onServiceAddressChange,
-            placeholder = { Text("House #, area, city — landmark for our records") },
-            minLines = 2,
-            maxLines = 4,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Text(
-            text = "Pin the area you serve so hospitals nearby see you first.",
-            fontSize = 12.sp,
-            color = Ink500,
-        )
-        val pinned = state.serviceLatitude?.let { lat ->
-            state.serviceLongitude?.let { lng -> LatLng(lat, lng) }
-        }
-        LocationPickerMap(
-            selected = pinned,
-            onLocationPicked = { latLng ->
-                onServiceCoordsChange(latLng.latitude, latLng.longitude)
-            },
         )
     }
 }
