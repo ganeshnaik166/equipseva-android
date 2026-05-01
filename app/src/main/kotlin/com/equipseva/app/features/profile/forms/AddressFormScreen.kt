@@ -134,6 +134,8 @@ class AddressFormViewModel @Inject constructor(
         _state.update { it.copy(form = transform(it.form), error = null) }
     }
 
+    fun hasLocationPermission(): Boolean = locationFetcher.hasPermission()
+
     fun useCurrentLocation() {
         if (_state.value.locating) return
         if (!locationFetcher.hasPermission()) {
@@ -249,12 +251,21 @@ fun AddressFormScreen(
         ) {
             OutlinedButton(
                 onClick = {
-                    permissionLauncher.launch(
-                        arrayOf(
-                            Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION,
-                        ),
-                    )
+                    // Skip the permission dialog if we already have it — go
+                    // straight to the fetch. The dialog used to fire on every
+                    // tap, which on Android 14+ devices either auto-dismisses
+                    // or shows a stale "Allowed once" prompt that confuses
+                    // users into thinking nothing happened.
+                    if (viewModel.hasLocationPermission()) {
+                        viewModel.useCurrentLocation()
+                    } else {
+                        permissionLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION,
+                            ),
+                        )
+                    }
                 },
                 enabled = !state.saving && !state.locating,
                 modifier = Modifier.fillMaxWidth(),
