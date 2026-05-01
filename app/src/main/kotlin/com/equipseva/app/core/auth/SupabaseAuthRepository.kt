@@ -78,7 +78,15 @@ class SupabaseAuthRepository @Inject constructor(
         }
 
     override suspend fun sendPasswordResetEmail(email: String): Result<Unit> = runCatching {
-        client.auth.resetPasswordForEmail(email)
+        // Land users on the hosted reset page on equipseva.com (GitHub
+        // Pages, see docs/auth/reset.html). The page captures the recovery
+        // token Supabase appends as a URL fragment, prompts for a new
+        // password, and calls supabase-js's updateUser to set it. The user
+        // then signs in with the new password — no app deep link needed for v1.
+        client.auth.resetPasswordForEmail(
+            email = email,
+            redirectUrl = "https://equipseva.com/auth/reset",
+        )
     }
 
     override suspend fun updatePassword(currentPassword: String, newPassword: String): Result<Unit> = runCatching {

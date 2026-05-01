@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Reset password — EquipSeva</title>
+  <link rel="icon" href="/favicon.ico" />
+  <style>
+    :root {
+      --green-700: #0B6E4F;
+      --green-50: #E8F5EF;
+      --ink-900: #111418;
+      --ink-700: #3F4650;
+      --ink-500: #6B7280;
+      --paper: #F6F8F5;
+      --border: #E2E5DE;
+      --danger: #B42318;
+      --danger-50: #FEE4E2;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, sans-serif;
+      background: var(--paper);
+      color: var(--ink-900);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px 22px;
+      box-shadow: 0 2px 14px rgba(11, 110, 79, 0.06);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .brand-dot {
+      width: 32px; height: 32px;
+      background: var(--green-700);
+      border-radius: 8px;
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .brand-name { font-weight: 700; font-size: 18px; color: var(--ink-900); }
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--ink-900);
+      margin: 4px 0 6px;
+    }
+    .sub {
+      color: var(--ink-500);
+      font-size: 13px;
+      margin: 0 0 18px;
+      line-height: 1.45;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-900);
+      margin: 12px 0 6px;
+    }
+    input[type="password"] {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 15px;
+      color: var(--ink-900);
+      background: #fff;
+      outline: none;
+    }
+    input[type="password"]:focus {
+      border-color: var(--green-700);
+      box-shadow: 0 0 0 2px rgba(11, 110, 79, 0.15);
+    }
+    button.primary {
+      width: 100%;
+      margin-top: 18px;
+      padding: 14px;
+      background: var(--green-700);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button.primary:disabled {
+      background: #9CA3AF;
+      cursor: not-allowed;
+    }
+    .alert {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.4;
+      display: none;
+    }
+    .alert.error {
+      background: var(--danger-50);
+      color: var(--danger);
+      border: 1px solid #FCA5A5;
+      display: block;
+    }
+    .alert.success {
+      background: var(--green-50);
+      color: var(--green-700);
+      border: 1px solid #95D2B2;
+      display: block;
+    }
+    .footer {
+      font-size: 12px;
+      color: var(--ink-500);
+      text-align: center;
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand">
+      <div class="brand-dot">E</div>
+      <div class="brand-name">EquipSeva</div>
+    </div>
+
+    <h1>Set a new password</h1>
+    <p class="sub">Choose a strong password you haven't used elsewhere. After saving, sign in to the app with the new password.</p>
+
+    <form id="form">
+      <label for="pw1">New password</label>
+      <input id="pw1" type="password" minlength="8" required autocomplete="new-password" />
+
+      <label for="pw2">Confirm new password</label>
+      <input id="pw2" type="password" minlength="8" required autocomplete="new-password" />
+
+      <button class="primary" id="submit" type="submit">Update password</button>
+    </form>
+
+    <div id="alert" class="alert"></div>
+
+    <p class="footer">Need help? Email <a href="mailto:support@equipseva.com" style="color:var(--green-700);text-decoration:none;font-weight:600">support@equipseva.com</a></p>
+  </main>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    const SUPABASE_URL = 'https://eyswaywvtartpvtoxtdr.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5c3dheXd2dGFydHB2dG94dGRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwODU3NzEsImV4cCI6MjA5MTY2MTc3MX0.2TMlyW03NJYNHCgVJGsQzkM4zHij-BR3K6HlBoYHHOA';
+
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { detectSessionInUrl: true, flowType: 'implicit' },
+    });
+
+    const alertEl = document.getElementById('alert');
+    const form = document.getElementById('form');
+    const btn = document.getElementById('submit');
+
+    function show(kind, msg) {
+      alertEl.className = 'alert ' + kind;
+      alertEl.textContent = msg;
+    }
+
+    // Confirm a recovery session is in the URL fragment. Supabase appends
+    // access_token + refresh_token + type=recovery to the redirect URL;
+    // detectSessionInUrl auto-imports them.
+    const fragment = window.location.hash.replace(/^#/, '');
+    const params = new URLSearchParams(fragment);
+    if (params.get('error_description')) {
+      show('error', decodeURIComponent(params.get('error_description')));
+      btn.disabled = true;
+    } else if (params.get('type') !== 'recovery' && !params.get('access_token')) {
+      show('error', 'This link is invalid or has expired. Open the EquipSeva app and request a new reset email.');
+      btn.disabled = true;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const pw1 = document.getElementById('pw1').value;
+      const pw2 = document.getElementById('pw2').value;
+      if (pw1 !== pw2) { show('error', 'Passwords do not match.'); return; }
+      if (pw1.length < 8) { show('error', 'Use at least 8 characters.'); return; }
+
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      show('error', '');
+      alertEl.className = 'alert';
+
+      const { data, error } = await sb.auth.updateUser({ password: pw1 });
+      if (error) {
+        show('error', error.message || 'Could not save password. Try again.');
+        btn.disabled = false;
+        btn.textContent = 'Update password';
+        return;
+      }
+      show('success', 'Password updated. Open the EquipSeva app and sign in with your new password.');
+      btn.textContent = 'Done';
+    });
+  </script>
+</body>
+</html>
