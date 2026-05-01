@@ -1088,8 +1088,16 @@ private fun StickyBottomBar(
         RepairJobDetailViewModel.ViewerRole.Engineer -> job.engineerRating != null
         RepairJobDetailViewModel.ViewerRole.Other -> true
     }
-    val canCancel = (isHospital || isEngineer) &&
-        job.status in setOf(RepairJobStatus.Requested, RepairJobStatus.Assigned)
+    // Hospital can cancel their own job (Requested or Assigned).
+    // Engineer can cancel only if they're the assigned engineer (Assigned status).
+    // Random engineer browsing a Requested job: no Cancel — they haven't
+    // committed to anything yet; the negative action would be a no-op.
+    val isAssignedEngineer = isEngineer && job.engineerId != null && ownBid?.status == RepairBidStatus.Accepted
+    val canCancel = when {
+        isHospital -> job.status in setOf(RepairJobStatus.Requested, RepairJobStatus.Assigned)
+        isAssignedEngineer -> job.status == RepairJobStatus.Assigned
+        else -> false
+    }
 
     // Resolve which primary CTA to show. Null = no primary (e.g. Other role,
     // or terminal states without a CTA + without cancel).

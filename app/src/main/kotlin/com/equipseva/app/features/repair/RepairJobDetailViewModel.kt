@@ -719,10 +719,20 @@ class RepairJobDetailViewModel @Inject constructor(
         if (job == null || selfId.isNullOrBlank()) return ViewerRole.Other
         return when {
             selfId == job.hospitalUserId -> ViewerRole.Hospital
+            // Anyone with an engineers row is an Engineer viewer of any job —
+            // including unassigned (Requested) jobs they haven't bid on yet.
+            // Previously only the *assigned* engineer was tagged Engineer,
+            // which meant fresh engineers tapping a job from the feed lost
+            // the Place bid CTA in StickyBottomBar (primaryKind fell through
+            // to null because isEngineer was false). Job-status / RLS still
+            // gates whether Place bid actually fires.
+            //
             // `repair_jobs.engineer_id` FKs to `engineers.id`, not auth.uid —
-            // compare against the engineer row id we resolved for this user.
-            !selfEngineerRowId.isNullOrBlank() && selfEngineerRowId == job.engineerId ->
-                ViewerRole.Engineer
+            // so we compare against the resolved engineer row id when the
+            // job *is* assigned (we still want Engineer here even though the
+            // first branch already covers it; the explicit clause documents
+            // intent).
+            !selfEngineerRowId.isNullOrBlank() -> ViewerRole.Engineer
             else -> ViewerRole.Other
         }
     }
