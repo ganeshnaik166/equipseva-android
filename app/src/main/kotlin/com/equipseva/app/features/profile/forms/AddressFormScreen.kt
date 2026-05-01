@@ -166,16 +166,21 @@ class AddressFormViewModel @Inject constructor(
                     resolved != null -> "Saved your GPS pin — fill the address fields manually."
                     else -> "Saved your GPS pin (couldn't read a street address here)."
                 }
+                // Only fill BLANK fields — never overwrite text the user
+                // already typed. The geocoder is best-effort; preserving
+                // user input matters more than freshness.
+                fun fill(current: String, resolved: String?): String =
+                    if (current.isBlank()) resolved?.takeIf { it.isNotBlank() } ?: current else current
                 st.copy(
                     locating = false,
                     locationInfo = info,
                     form = current.copy(
-                        line1 = resolved?.line1?.takeIf { it.isNotBlank() } ?: current.line1,
-                        line2 = resolved?.line2?.takeIf { it.isNotBlank() } ?: current.line2,
-                        landmark = resolved?.landmark?.takeIf { it.isNotBlank() } ?: current.landmark,
-                        city = resolved?.city?.takeIf { it.isNotBlank() } ?: current.city,
-                        state = resolved?.state?.takeIf { it.isNotBlank() } ?: current.state,
-                        pincode = resolved?.pincode?.takeIf { it.isNotBlank() } ?: current.pincode,
+                        line1 = fill(current.line1, resolved?.line1),
+                        line2 = fill(current.line2, resolved?.line2),
+                        landmark = fill(current.landmark, resolved?.landmark),
+                        city = fill(current.city, resolved?.city),
+                        state = fill(current.state, resolved?.state),
+                        pincode = fill(current.pincode, resolved?.pincode),
                         latitude = coords.lat,
                         longitude = coords.lng,
                     ),
