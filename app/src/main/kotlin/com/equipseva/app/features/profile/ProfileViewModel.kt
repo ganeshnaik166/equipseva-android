@@ -429,6 +429,12 @@ class ProfileViewModel @Inject constructor(
             runCatching { outboxScheduler.cancelAll() }
             runCatching { photoUploadStash.clearAll() }
             runCatching { userPrefs.setLastScreen(null) }
+            // Wipe activeRole too — otherwise the next user signing in on
+            // the same device sees the previous user's Hub (hospital tabs
+            // for an engineer account, etc.). profile.role is the truth on
+            // first launch; activeRole gets re-set on Hub pick / first
+            // dispatch by SessionViewModel.
+            runCatching { userPrefs.clearActiveRole() }
             authRepository.signOut()
                 .onFailure { error ->
                     _state.update { it.copy(signingOut = false) }

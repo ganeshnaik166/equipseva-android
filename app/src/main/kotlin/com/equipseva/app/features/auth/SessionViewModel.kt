@@ -134,11 +134,15 @@ class SessionViewModel @Inject constructor(
                 runCatching { authRepository.signOut() }
                 return
             }
-            // Only update the cached role when the server confirms it; we
-            // don't want a transient empty fetch to wipe a previously-set
-            // active role.
+            // Always overwrite the cached role with the server-confirmed
+            // value when present. The previous version only wrote when
+            // cached was blank — but on a multi-user device, user A's
+            // cached role would survive after user A signed out and user B
+            // signed in, dispatching B to A's Hub (hospital → engineer
+            // home, etc.). A blank confirmedRole still leaves cached alone
+            // so a transient empty fetch doesn't wipe a valid role.
             val confirmedRole = fetched?.takeIf { it.roleConfirmed }?.rawRoleKey
-            if (!confirmedRole.isNullOrBlank() && cached.isNullOrBlank()) {
+            if (!confirmedRole.isNullOrBlank() && cached != confirmedRole) {
                 userPrefs.setActiveRole(confirmedRole)
             }
         } finally {
