@@ -3,6 +3,7 @@ package com.equipseva.app.navigation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -58,17 +59,29 @@ fun AppNavGraph(sessionViewModel: SessionViewModel = hiltViewModel()) {
             rootMountedOnce.value = true
         }
     }
-    Scaffold(snackbarHost = { SnackbarHost(snackbarHost) }) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (rootMountedOnce.value) {
-                RootHost(
-                    showSnackbar = showSnackbar,
-                    showTour = !tourSeen,
-                )
-            } else {
-                SplashScreen()
+    // Snackbar sits at the top of the screen (overlay) instead of the
+    // Scaffold's default bottom slot. Top-aligned alerts read as system-style
+    // banners rather than competing with bottom-nav and primary CTAs that
+    // hug the bottom edge across hospital/engineer/founder surfaces.
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold { padding ->
+            Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+                if (rootMountedOnce.value) {
+                    RootHost(
+                        showSnackbar = showSnackbar,
+                        showTour = !tourSeen,
+                    )
+                } else {
+                    SplashScreen()
+                }
             }
         }
+        SnackbarHost(
+            hostState = snackbarHost,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding(),
+        )
     }
 }
 
