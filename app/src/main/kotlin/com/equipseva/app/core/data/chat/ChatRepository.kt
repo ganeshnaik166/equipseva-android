@@ -42,6 +42,17 @@ interface ChatRepository {
         participantUserIds: List<String>,
     ): Result<ChatConversation>
 
+    /**
+     * Returns an existing direct (peer-to-peer) conversation between the two
+     * participants, or inserts a new one with `related_entity_type='direct'`.
+     * Used from the engineer public profile so a hospital can message an
+     * engineer without first booking a job.
+     */
+    suspend fun getOrCreateDirect(
+        selfUserId: String,
+        peerUserId: String,
+    ): Result<ChatConversation>
+
     /** Mark inbound messages (not authored by the reader) as read. */
     suspend fun markConversationRead(conversationId: String, readerUserId: String): Result<Unit>
 

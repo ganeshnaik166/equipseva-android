@@ -376,6 +376,10 @@ fun MainNavGraph(
                     onRequestService = { _ ->
                         navController.navigate(Routes.REQUEST_SERVICE)
                     },
+                    onOpenConversation = { conversationId ->
+                        navController.navigate(Routes.chatRoute(conversationId))
+                    },
+                    onShowMessage = showSnackbar,
                 )
             }
             composable(Routes.PROFILE) {
