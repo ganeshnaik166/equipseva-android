@@ -22,6 +22,7 @@ object UploadValidator {
         StorageRepository.Buckets.CATEGORY_IMAGES to Policy(imageMimeTypes, 5L * 1024 * 1024),
         StorageRepository.Buckets.KYC_DOCS to Policy(imageMimeTypes + pdfMimeTypes, 15L * 1024 * 1024),
         StorageRepository.Buckets.INVOICES to Policy(pdfMimeTypes, 10L * 1024 * 1024),
+        StorageRepository.Buckets.AVATARS to Policy(imageMimeTypes, 5L * 1024 * 1024),
     )
 
     fun validate(bucket: String, contentType: String?, size: Long): Result<Policy> {

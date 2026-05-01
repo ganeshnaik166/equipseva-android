@@ -1,6 +1,7 @@
 package com.equipseva.app.features.profile
 
 import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
@@ -46,6 +47,7 @@ class ProfileViewModel @Inject constructor(
     private val outboxDao: OutboxDao,
     private val outboxScheduler: OutboxScheduler,
     private val photoUploadStash: PhotoUploadStash,
+    private val storageRepository: com.equipseva.app.core.storage.StorageRepository,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -83,6 +85,8 @@ class ProfileViewModel @Inject constructor(
         val deleteAccountOpen: Boolean = false,
         val deleteReason: String = "",
         val deletingAccount: Boolean = false,
+        /** True while an avatar image is being uploaded + the profile row updated. */
+        val avatarUploading: Boolean = false,
         val exportingData: Boolean = false,
         val exportConfirmOpen: Boolean = false,
     )
@@ -325,6 +329,66 @@ class ProfileViewModel @Inject constructor(
                 }
                 .onFailure { error ->
                     _state.update { it.copy(editSaving = false, editError = error.toUserMessage()) }
+                }
+        }
+    }
+
+    /**
+     * Pick an image from the gallery and upload it to the `avatars` bucket
+     * keyed by the signed-in user's id. On success, persist the public URL
+     * (with a cache-bust query param) on `profiles.avatar_url` so the hero
+     * + every consumer of the column re-renders without restart.
+     */
+    fun uploadAvatar(uri: Uri) {
+        val current = _state.value
+        if (current.avatarUploading) return
+        val profile = current.profile ?: return
+        val resolver = appContext.contentResolver
+        val mime = resolver.getType(uri) ?: "image/jpeg"
+        _state.update { it.copy(avatarUploading = true, errorMessage = null) }
+        viewModelScope.launch {
+            val bytes = runCatching { resolver.openInputStream(uri)?.use { it.readBytes() } }
+                .getOrNull()
+            if (bytes == null) {
+                _state.update { it.copy(avatarUploading = false) }
+                _effects.send(Effect.ShowMessage("Couldn't read image"))
+                return@launch
+            }
+            val ext = when (mime.lowercase()) {
+                "image/png" -> "png"
+                "image/webp" -> "webp"
+                else -> "jpg"
+            }
+            val path = "${profile.id}/avatar.$ext"
+            storageRepository.upload(
+                bucket = com.equipseva.app.core.storage.StorageRepository.Buckets.AVATARS,
+                path = path,
+                bytes = bytes,
+                contentType = mime,
+            )
+                .onSuccess {
+                    val url = storageRepository.publicUrl(
+                        com.equipseva.app.core.storage.StorageRepository.Buckets.AVATARS,
+                        path,
+                    ) + "?v=" + System.currentTimeMillis()
+                    profileRepository.updateBasicInfo(profile.id, avatarUrl = url)
+                        .onSuccess {
+                            _state.update {
+                                it.copy(
+                                    avatarUploading = false,
+                                    profile = it.profile?.copy(avatarUrl = url),
+                                )
+                            }
+                            _effects.send(Effect.ShowMessage("Photo updated"))
+                        }
+                        .onFailure { ex ->
+                            _state.update { it.copy(avatarUploading = false) }
+                            _effects.send(Effect.ShowMessage(ex.toUserMessage()))
+                        }
+                }
+                .onFailure { ex ->
+                    _state.update { it.copy(avatarUploading = false) }
+                    _effects.send(Effect.ShowMessage(ex.toUserMessage()))
                 }
         }
     }
