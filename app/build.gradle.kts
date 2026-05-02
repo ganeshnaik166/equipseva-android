@@ -44,7 +44,7 @@ android {
         buildConfigField("String", "SUPABASE_URL", "\"${localOrEnv("SUPABASE_URL")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localOrEnv("SUPABASE_ANON_KEY")}\"")
         buildConfigField("String", "SENTRY_DSN", "\"${localOrEnv("SENTRY_DSN")}\"")
-        buildConfigField("String", "RAZORPAY_KEY", "\"${localOrEnv("RAZORPAY_KEY")}\"")
+        // RAZORPAY_KEY removed for v1 — payments deferred to v2.
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localOrEnv("GOOGLE_WEB_CLIENT_ID")}\"")
 
         // Base64(SHA-256(signing cert DER)). Blank until the release keystore
@@ -211,8 +211,9 @@ dependencies {
     // Sentry
     implementation(libs.sentry.android)
 
-    // Razorpay Standard Checkout
-    implementation(libs.razorpay.checkout)
+    // Razorpay Standard Checkout — removed for v1 (free monetization, no
+    // payments). Keep the version catalog entry so v2 can re-add with
+    // a one-line `implementation(libs.razorpay.checkout)`.
 
     // SQLCipher for Room at-rest encryption.
     // Passphrase lives in Android Keystore (see DbPassphraseStore).

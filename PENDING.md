@@ -31,8 +31,8 @@ Legend: 🔴 blocker · 🟠 needs attention · 🟡 nice-to-have · ⚪ beyond 
 14. 🟠 **App Signing SHA-256 from Play Console** — paste it back so `EXPECTED_CERT_SHA256` can be wired and `SignatureVerifier` flips from report-only to enforce. Also: append the same SHA-256 to [well-known/.well-known/assetlinks.json](well-known/.well-known/assetlinks.json) + [docs/.well-known/assetlinks.json](docs/.well-known/assetlinks.json) so App Links keep verifying. **A scheduled remote agent is armed for 2026-05-07T03:30Z to open a GitHub issue with the exact paste-instructions** (routine `assetlinks-swap-after-first-aab`).
 
 ### Manual device tests
-35. 🟠 **Razorpay return deep-link** — `equipseva.com/pay/return` filter declared, assetlinks.json live + Google validator green. Needs end-to-end real-device test on Razorpay test mode.
-46. 🟠 **End-to-end Razorpay test-mode flow on real device** — same as above.
+35. ⚪ ~~**Razorpay return deep-link**~~ — N/A for v1. Payments deferred to v2 per `project_v1_monetization_free.md` (locked 2026-04-30). Razorpay client SDK + RAZORPAY_KEY BuildConfig removed; edge functions + DB schema kept dormant for v2.
+46. ⚪ ~~**End-to-end Razorpay test-mode flow on real device**~~ — N/A for v1.
 
 ---
 
@@ -116,8 +116,8 @@ Legend: 🔴 blocker · 🟠 needs attention · 🟡 nice-to-have · ⚪ beyond 
 - IARC + target audience + ads → [docs/launch/CONTENT_RATING.md](docs/launch/CONTENT_RATING.md)
 - Full runbook → [docs/launch/LAUNCH_CHECKLIST.md](docs/launch/LAUNCH_CHECKLIST.md)
 
-### 🟠 ONE DEVICE TEST — needs a phone + Razorpay test creds
-- End-to-end Razorpay test-mode flow with `equipseva.com/pay/return` deep-link verification.
+### ⚪ DEVICE TEST — N/A for v1
+- ~~End-to-end Razorpay test-mode flow~~ — payments deferred to v2 per `project_v1_monetization_free.md`. v1 ships free, no checkout flow.
 
 ### 🟠 ONE-SHOT POST-UPLOAD
 - Paste App Signing SHA-256 from Play Console → CI secret `EXPECTED_CERT_SHA256` + assetlinks.json append. Scheduled remote agent fires 2026-05-07T03:30Z to walk you through it.
