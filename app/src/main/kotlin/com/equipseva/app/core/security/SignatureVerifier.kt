@@ -79,7 +79,13 @@ object SignatureVerifier {
                 PackageManager.GET_SIGNATURES,
             )
             @Suppress("DEPRECATION")
-            info.signatures!!.first().toByteArray()
+            // Some OEMs (notably stripped Android Go ROMs) have shipped
+            // PackageInfo with a null signatures array even when the APK
+            // is signed; bang-bang would crash the verifier itself rather
+            // than fall back to Verdict.Unknown via the caller's
+            // runCatching wrapper.
+            (info.signatures?.firstOrNull()
+                ?: error("signatures array is null/empty")).toByteArray()
         }
         val sha = MessageDigest.getInstance("SHA-256").digest(certBytes)
         return Base64.encodeToString(sha, Base64.NO_WRAP)
