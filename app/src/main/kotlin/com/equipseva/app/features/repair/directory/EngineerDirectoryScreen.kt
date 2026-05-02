@@ -80,6 +80,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -115,9 +116,13 @@ class EngineerDirectoryViewModel @Inject constructor(
     init {
         refresh()
         _state
-            .map { it.query }
+            .map { it.query.trim() }
             .distinctUntilChanged()
             .drop(1)
+            // Skip 1-char queries: a single letter matches half the
+            // directory and burns a server round-trip per keystroke.
+            // Empty string is the "cleared search" reset, so let it pass.
+            .filter { it.isEmpty() || it.length >= 2 }
             .debounce(300L)
             .onEach { refresh() }
             .launchIn(viewModelScope)
@@ -130,7 +135,9 @@ class EngineerDirectoryViewModel @Inject constructor(
     private fun refresh() {
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
-            repo.search(query = _state.value.query.takeIf { it.isNotBlank() })
+            // Trim before sending — leading/trailing whitespace silently
+            // missed real matches under server-side ILIKE / FTS rules.
+            repo.search(query = _state.value.query.trim().takeIf { it.isNotEmpty() })
                 .onSuccess { rows ->
                     _state.update { it.copy(loading = false, rows = rows) }
                 }
