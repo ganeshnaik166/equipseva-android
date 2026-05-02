@@ -219,6 +219,31 @@ class SupabaseChatRepository @Inject constructor(
         Unit
     }
 
+    override suspend fun recomputeConversationPreview(
+        conversationId: String,
+    ): Result<Unit> = runCatching {
+        // Pick the newest non-tombstoned message and write its body /
+        // created_at back onto the conversation row so the Conversations
+        // list shows current preview text. RLS already gates this column
+        // set (last_message + last_message_at only) for participants.
+        val latest = client.from(MESSAGES_TABLE).select {
+            filter {
+                eq("conversation_id", conversationId)
+                exact("deleted_at", null)
+            }
+            order("created_at", order = Order.DESCENDING)
+            limit(count = 1)
+        }.decodeList<MessageDto>().firstOrNull()
+
+        client.from(CONVERSATIONS_TABLE).update({
+            set("last_message", latest?.message)
+            set("last_message_at", latest?.createdAt)
+        }) {
+            filter { eq("id", conversationId) }
+        }
+        Unit
+    }
+
     override suspend fun editMessage(messageId: String, newBody: String): Result<Unit> = runCatching {
         // Ownership, column set (message + edited_at only), body length 1..4000, and
         // the 15-minute window are all enforced by edit_my_chat_message (SECURITY
@@ -297,14 +322,20 @@ class SupabaseChatRepository @Inject constructor(
     override suspend fun broadcastTyping(conversationId: String, selfUserId: String) {
         // Caller is expected to throttle — we intentionally don't debounce here so the
         // repo stays stateless per call. Errors are swallowed: a missed typing frame is
-        // not worth surfacing to the user.
+        // not worth surfacing to the user. We also tear the channel back down once the
+        // broadcast lands; otherwise every keystroke would leak a Realtime channel
+        // until the websocket reconnect cleans them up.
         runCatching {
             val channel = client.channel("chat:typing:$conversationId")
-            channel.subscribe()
-            channel.broadcast(
-                event = TYPING_EVENT,
-                message = TypingPayload(userId = selfUserId, t = System.currentTimeMillis()),
-            )
+            try {
+                channel.subscribe()
+                channel.broadcast(
+                    event = TYPING_EVENT,
+                    message = TypingPayload(userId = selfUserId, t = System.currentTimeMillis()),
+                )
+            } finally {
+                runCatching { client.realtime.removeChannel(channel) }
+            }
         }
     }
 

@@ -196,8 +196,12 @@ class AddressFormViewModel @Inject constructor(
             _state.update { it.copy(error = "Name, phone, line 1, city, state, pincode are required.") }
             return
         }
-        if (f.pincode.length !in 4..10) {
-            _state.update { it.copy(error = "Pincode must be 4-10 chars.") }
+        // India-only flow (city / state cascade is hard-coded to Indian
+        // states), so the pincode is exactly 6 digits. The earlier 4..10
+        // window let through international formats that the rest of the
+        // form can't actually deliver to.
+        if (f.pincode.length != 6 || !f.pincode.all { it.isDigit() }) {
+            _state.update { it.copy(error = "Pincode must be 6 digits.") }
             return
         }
         _state.update { it.copy(saving = true, error = null) }

@@ -67,6 +67,15 @@ interface ChatRepository {
     suspend fun deleteMessage(messageId: String): Result<Unit>
 
     /**
+     * Re-derive the `last_message` / `last_message_at` preview on a conversation
+     * row from the newest non-deleted message. Call after [deleteMessage] when
+     * the deleted message may have been the most recent — otherwise the
+     * Conversations list keeps showing the now-tombstoned text. Safe to call
+     * on conversations with no remaining messages: clears the preview.
+     */
+    suspend fun recomputeConversationPreview(conversationId: String): Result<Unit>
+
+    /**
      * Edit the body of a message the caller sent, within the 15-minute window enforced
      * by the server. Fails if the caller is not the sender, the message is deleted,
      * the window has elapsed, or the new body is empty / over 4000 chars.
