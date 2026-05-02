@@ -1,10 +1,14 @@
 package com.equipseva.app.core.sync
 
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.equipseva.app.core.data.dao.OutboxDao
 import com.equipseva.app.core.data.entities.OutboxEntryEntity
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -28,7 +32,25 @@ class OutboxEnqueuer @Inject constructor(
                 createdAt = System.currentTimeMillis(),
             ),
         )
-        val request = OneTimeWorkRequestBuilder<OutboxWorker>().build()
+        // Network-required + exponential backoff: without these, queueing
+        // five messages while offline immediately ran the worker five times,
+        // each attempt failed instantly, and the per-entry attempts counter
+        // hit MAX_ATTEMPTS in seconds — entries got poison-dropped before
+        // the user even reconnected. With CONNECTED + EXPONENTIAL, WorkManager
+        // defers the run until the device is online and spaces out failed
+        // retries so transient 5xx errors don't burn the attempts budget.
+        val request = OneTimeWorkRequestBuilder<OutboxWorker>()
+            .setConstraints(
+                Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build(),
+            )
+            .setBackoffCriteria(
+                BackoffPolicy.EXPONENTIAL,
+                30,
+                TimeUnit.SECONDS,
+            )
+            .build()
         workManager.enqueueUniqueWork(
             OutboxWorker.UNIQUE_NAME + "-oneshot",
             ExistingWorkPolicy.REPLACE,
