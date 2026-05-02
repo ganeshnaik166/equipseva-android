@@ -138,8 +138,12 @@ private fun EarningsHero(paidTotal: Double, pendingTotal: Double) {
             .background(Brush.linearGradient(listOf(SevaGreen700, SevaGreen900)))
             .padding(18.dp),
     ) {
+        // The hero sums every accepted bid the engineer has ever placed —
+        // there is no month boundary in the underlying query. Labeling it
+        // "This month" was misleading for bank reconciliation; show the
+        // honest "All-time" label until a per-month rollup ships.
         Text(
-            text = "This month",
+            text = "All-time",
             fontSize = 12.sp,
             color = Color.White.copy(alpha = 0.7f),
         )
