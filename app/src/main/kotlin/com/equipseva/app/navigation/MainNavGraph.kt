@@ -189,8 +189,11 @@ fun MainNavGraph(
                 is DeepLinkHost.VerifiedEvent.OpenRoute -> {
                     // Route comes pre-resolved from NotificationDeepLink; the
                     // server-emitted (kind, data) was mapped to a known
-                    // Routes helper before the PendingIntent fired.
-                    navController.navigate(event.route)
+                    // Routes helper before the PendingIntent fired. We still
+                    // guard against malformed adb-injected routes and stale
+                    // pre-server-PR-#192 deep_link strings so a bad payload
+                    // can't crash MainActivity with IllegalArgumentException.
+                    runCatching { navController.navigate(event.route) }
                 }
             }
         }

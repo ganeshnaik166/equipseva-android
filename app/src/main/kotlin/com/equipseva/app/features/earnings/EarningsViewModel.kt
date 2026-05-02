@@ -70,9 +70,15 @@ class EarningsViewModel @Inject constructor(
                         .associateBy { it.id }
 
                     val rows = accepted.map { EarningRow(it, jobsById[it.repairJobId]) }
-                    val paid = rows.filter { it.job?.status == RepairJobStatus.Completed }
+                    // Drop bids whose job we couldn't resolve (server-side
+                    // delete, RLS hides it, or the row dropped) — counting
+                    // them as "pending" inflated the engineer's expected
+                    // payout. They surface in the row list with a null-job
+                    // hint so the engineer can investigate.
+                    val resolved = rows.filter { it.job != null }
+                    val paid = resolved.filter { it.job?.status == RepairJobStatus.Completed }
                         .sumOf { it.bid.amountRupees }
-                    val pending = rows.filter { it.job?.status != RepairJobStatus.Completed }
+                    val pending = resolved.filter { it.job?.status != RepairJobStatus.Completed }
                         .sumOf { it.bid.amountRupees }
 
                     _state.update {

@@ -103,23 +103,25 @@ class FounderDashboardViewModel @Inject constructor(
         viewModelScope.launch {
             repo.fetchDashboardStats()
                 .onSuccess { s ->
-                    val final = if (s.pendingKyc == 0 && s.ordersToday == 0 && s.pendingReports == 0) DUMMY_STATS else s
-                    _state.update { it.copy(loading = false, stats = final) }
+                    // No more DUMMY_STATS substitution — an empty platform
+                    // is a real signal (no pending KYC / no orders today),
+                    // not a query failure to paper over. Founder needs to
+                    // see honest zeros, not a fake "7 / 3 / 14" tile that
+                    // implies operational load that doesn't exist.
+                    _state.update { it.copy(loading = false, stats = s) }
                 }
-                .onFailure { _ ->
-                    _state.update { it.copy(loading = false, stats = DUMMY_STATS, error = null) }
+                .onFailure { err ->
+                    _state.update {
+                        it.copy(
+                            loading = false,
+                            stats = FounderRepository.DashboardStats(),
+                            error = err.toUserMessage(),
+                        )
+                    }
                 }
         }
     }
 }
-
-private val DUMMY_STATS = FounderRepository.DashboardStats(
-    pendingKyc = 7,
-    pendingSellers = 3,
-    pendingReports = 2,
-    ordersToday = 14,
-    integrityFailuresToday = 1,
-)
 
 /**
  * Founder dashboard. Round 10 (admin) re-skin to match newdesign.zip:
