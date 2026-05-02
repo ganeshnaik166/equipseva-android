@@ -113,7 +113,16 @@ fun ChatScreen(
     }
 
     LaunchedEffect(state.messages.size) {
-        if (state.messages.isNotEmpty()) {
+        if (state.messages.isEmpty()) return@LaunchedEffect
+        // Only auto-scroll to the newest message when the user is already
+        // parked near the bottom — otherwise a new inbound message would
+        // yank them away from the history they're reading. The threshold
+        // is generous enough to cover small layout shifts during typing.
+        val info = listState.layoutInfo
+        val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: -1
+        val total = info.totalItemsCount
+        val nearBottom = total == 0 || lastVisible >= total - 3
+        if (nearBottom) {
             listState.animateScrollToItem(state.messages.lastIndex)
         }
     }

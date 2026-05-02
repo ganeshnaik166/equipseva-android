@@ -1112,7 +1112,7 @@ private fun DocumentRow(
                     errorState -> "Upload failed — tap to retry"
                     subtitleOverride != null -> subtitleOverride
                     uploaded -> "Uploaded · tap to replace"
-                    else -> "JPG, PNG, or PDF · up to 5 MB"
+                    else -> "JPG, PNG, or PDF · up to 15 MB"
                 }
                 Text(
                     text = subtitle,
