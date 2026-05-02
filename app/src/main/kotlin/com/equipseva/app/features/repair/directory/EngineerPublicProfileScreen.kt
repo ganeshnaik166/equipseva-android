@@ -116,7 +116,12 @@ class EngineerPublicProfileViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            val dummy = DUMMY_PUBLIC_PROFILES[engineerId]
+            // Dummy profiles are seed data for the directory's design
+            // mocks. In release builds we never want a hardcoded entry to
+            // mask a real backend failure during QA, so gate the lookup
+            // to debug — production always hits the RPC and surfaces real
+            // errors via toUserMessage().
+            val dummy = if (com.equipseva.app.BuildConfig.DEBUG) DUMMY_PUBLIC_PROFILES[engineerId] else null
             if (dummy != null) {
                 _state.update { it.copy(loading = false, profile = dummy) }
                 return@launch
