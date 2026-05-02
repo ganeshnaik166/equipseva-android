@@ -61,6 +61,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class FounderBuyerKycQueueViewModel @Inject constructor(
     private val repo: FounderRepository,
+    private val storage: com.equipseva.app.core.storage.StorageRepository,
 ) : ViewModel() {
     data class UiState(
         val loading: Boolean = true,
@@ -102,6 +103,25 @@ class FounderBuyerKycQueueViewModel @Inject constructor(
 
     fun onReasonChange(v: String) {
         _state.update { it.copy(reasonDraft = v.take(500)) }
+    }
+
+    /**
+     * Re-mint a short-lived signed URL on tap so admins can still view KYC
+     * docs after the persisted URL has expired. The repo stores a 24h URL
+     * to keep the leak window narrow; this helper extracts the storage
+     * path back out of that URL and asks Storage for a fresh 15-min link.
+     */
+    suspend fun signedDocUrl(row: FounderRepository.PendingBuyerKyc): String? {
+        val bucket = com.equipseva.app.core.storage.StorageRepository.Buckets.KYC_DOCS
+        val marker = "/object/sign/$bucket/"
+        val idx = row.docUrl.indexOf(marker)
+        val path = if (idx >= 0) {
+            row.docUrl.substring(idx + marker.length).substringBefore('?')
+        } else {
+            return row.docUrl // fall back to the persisted URL on parse failure
+        }
+        return runCatching { storage.signedUrl(bucket, path, expiresInMinutes = 15) }
+            .getOrNull() ?: row.docUrl
     }
 
     fun confirm() {
@@ -171,8 +191,11 @@ fun FounderBuyerKycQueueScreen(
                             BuyerKycRowCard(
                                 row = row,
                                 onView = {
-                                    runCatching {
-                                        context.startActivity(Intent(Intent.ACTION_VIEW, row.docUrl.toUri()))
+                                    viewModel.viewModelScope.launch {
+                                        val url = viewModel.signedDocUrl(row) ?: return@launch
+                                        runCatching {
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                                        }
                                     }
                                 },
                                 onApprove = { viewModel.openApprove(row.requestId, row.fullName) },

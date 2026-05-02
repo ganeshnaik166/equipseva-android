@@ -54,6 +54,17 @@ class DeviceTokenRegistrar @Inject constructor(
 
         val userId = supabase.auth.currentUserOrNull()?.id ?: return
         runCatching {
+            // Shared-device hardening: when user A signs out and B signs in,
+            // A's revoke() may have failed silently (network glitch). Strip
+            // any other user's claim on this same FCM token before binding
+            // it to the current user — otherwise pushes meant for A would
+            // continue routing to B's physical device until the token
+            // rotates. This DELETE is owner-gated by RLS so it can only
+            // remove rows that belong to the caller (B); rows owned by A
+            // are deferred to the server-side dedupe in send_push.
+            supabase.from("device_tokens").delete {
+                filter { eq("token", token) }
+            }
             supabase.from("device_tokens").upsert(
                 DeviceTokenRow(user_id = userId, platform = "android", token = token),
             )
