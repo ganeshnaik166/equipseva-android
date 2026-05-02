@@ -183,27 +183,33 @@ fun ChatScreen(
                     title = "Say hello",
                     subtitle = "This is the start of your conversation.",
                 )
-                else -> LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    // Day-separator + messages, grouped by local-date so each day
-                    // boundary gets its own "Today / Yesterday / dd MMM" header.
-                    val grouped = state.messages.groupBy { dayKey(it.createdAtIso) }
-                    grouped.forEach { (key, msgs) ->
-                        item(key = "sep-$key") {
-                            DaySeparator(label = dayLabel(key))
-                        }
-                        items(items = msgs, key = { it.id }) { msg ->
-                            MessageRow(
-                                message = msg,
-                                isSelf = msg.senderUserId == state.selfUserId,
-                                onReport = viewModel::onOpenReport,
-                                onDelete = viewModel::onDeleteMessage,
-                                onEdit = viewModel::onOpenEdit,
-                            )
+                else -> {
+                    // Day-separator grouping is O(messages) — without remember
+                    // it would re-run every parent recomposition (typing,
+                    // realtime tick, scroll). Keyed on the message list ref
+                    // so groupBy only re-fires when messages actually change.
+                    val grouped = remember(state.messages) {
+                        state.messages.groupBy { dayKey(it.createdAtIso) }
+                    }
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        grouped.forEach { (key, msgs) ->
+                            item(key = "sep-$key") {
+                                DaySeparator(label = dayLabel(key))
+                            }
+                            items(items = msgs, key = { it.id }) { msg ->
+                                MessageRow(
+                                    message = msg,
+                                    isSelf = msg.senderUserId == state.selfUserId,
+                                    onReport = viewModel::onOpenReport,
+                                    onDelete = viewModel::onDeleteMessage,
+                                    onEdit = viewModel::onOpenEdit,
+                                )
+                            }
                         }
                     }
                 }
