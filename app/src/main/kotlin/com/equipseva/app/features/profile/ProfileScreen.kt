@@ -415,9 +415,22 @@ private fun ProfileContent(
 
 @Composable
 private fun AccountTypeSection(role: UserRole?) {
-    val isEngineer = role == UserRole.ENGINEER
-    val title = if (isEngineer) "Biomedical engineer" else "Hospital admin"
-    val subtitle = if (isEngineer) "You bid on and complete repair jobs" else "You book engineers for repairs"
+    // role can legitimately be null while the profile is mid-fetch — in
+    // that case we want a neutral label, not a misleading "Hospital admin"
+    // (which used to appear because the old `else` branch swallowed null
+    // and ENGINEER-not-equal cases together).
+    val title = when (role) {
+        UserRole.ENGINEER -> "Biomedical engineer"
+        UserRole.HOSPITAL -> "Hospital admin"
+        null -> "Loading…"
+        else -> role.displayName
+    }
+    val subtitle = when (role) {
+        UserRole.ENGINEER -> "You bid on and complete repair jobs"
+        UserRole.HOSPITAL -> "You book engineers for repairs"
+        null -> ""
+        else -> role.description
+    }
     Text(
         text = "Account type",
         fontSize = 18.sp,

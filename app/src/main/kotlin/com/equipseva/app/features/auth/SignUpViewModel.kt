@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.toAuthError
+import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.util.Validators
 import com.equipseva.app.features.auth.state.AuthEffect
@@ -14,8 +15,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -24,6 +23,7 @@ import javax.inject.Inject
 class SignUpViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
+    private val userPrefs: UserPrefs,
 ) : ViewModel() {
 
     data class UiState(
@@ -39,7 +39,7 @@ class SignUpViewModel @Inject constructor(
         val canSubmit: Boolean get() = !form.submitting &&
             fullName.trim().length >= 2 &&
             Validators.emailIsValid(email) &&
-            password.length >= MIN_PASSWORD_LENGTH &&
+            Validators.passwordIsStrong(password) &&
             role != null
     }
 
@@ -71,8 +71,7 @@ class SignUpViewModel @Inject constructor(
 
         val fullNameError = if (current.fullName.trim().length >= 2) null else "Enter your full name"
         val emailError = if (Validators.emailIsValid(current.email)) null else "Enter a valid email"
-        val passwordError = if (current.password.length >= MIN_PASSWORD_LENGTH) null
-            else "Use at least $MIN_PASSWORD_LENGTH characters"
+        val passwordError = Validators.passwordWeakness(current.password)
         val role = current.role
         if (fullNameError != null || emailError != null || passwordError != null || role == null) {
             _state.update {
@@ -98,15 +97,20 @@ class SignUpViewModel @Inject constructor(
                 onSuccess = { outcome ->
                     when (outcome) {
                         com.equipseva.app.core.auth.SignUpOutcome.AutoSignedIn -> {
-                            // Belt-and-braces: trigger picks up
-                            // raw_user_meta_data.role, but write profiles.role
-                            // explicitly too in case the trigger isn't present.
-                            val signed = authRepository.sessionState
-                                .filterIsInstance<com.equipseva.app.core.auth.AuthSession.SignedIn>()
-                                .firstOrNull()
-                            signed?.userId?.let { uid ->
-                                profileRepository.updateRole(uid, role)
-                            }
+                            // The handle_new_user trigger hardcodes role to
+                            // 'engineer' (security fix to block admin escalation
+                            // via signup metadata) and `UPDATE` on the role
+                            // column is revoked from authenticated. Apply the
+                            // selected role through the gated add_role RPC so
+                            // active_role + role_confirmed land server-side,
+                            // and only mirror the value into UserPrefs after
+                            // the server write succeeds — that way a failed
+                            // RPC doesn't leave the bottom nav lying about
+                            // the role until the next refresh corrects it.
+                            profileRepository.addRole(role.storageKey)
+                                .onSuccess {
+                                    runCatching { userPrefs.setActiveRole(role.storageKey) }
+                                }
                             _state.update { it.copy(form = FormUiState()) }
                             // Session will transition; AuthHostInline routes to Home.
                             _effects.send(AuthEffect.NavigateToHome)
@@ -134,10 +138,4 @@ class SignUpViewModel @Inject constructor(
         }
     }
 
-    companion object {
-        // Mirror Validators.kt's 8-char floor so the UI prompt and the
-        // server expectation agree. Old "6+" copy let users submit
-        // passwords the backend would refuse.
-        const val MIN_PASSWORD_LENGTH = 8
-    }
 }

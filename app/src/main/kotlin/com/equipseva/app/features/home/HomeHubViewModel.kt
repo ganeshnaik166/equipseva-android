@@ -9,6 +9,7 @@ import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.notifications.Notification
 import com.equipseva.app.core.data.notifications.NotificationRepository
+import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.data.repair.RepairBidRepository
 import com.equipseva.app.core.data.repair.RepairBidStatus
@@ -43,6 +44,7 @@ class HomeHubViewModel @Inject constructor(
     private val jobRepository: RepairJobRepository,
     private val bidRepository: RepairBidRepository,
     private val engineerDirectoryRepository: EngineerDirectoryRepository,
+    private val userPrefs: UserPrefs,
 ) : ViewModel() {
     data class UiState(
         val displayName: String? = null,
@@ -75,15 +77,35 @@ class HomeHubViewModel @Inject constructor(
                 }
             }
         }
+        // Fresh signups race the profiles row trigger: HomeHub can fetch
+        // before profiles.role is populated and end up rendering the
+        // engineer fallback for a hospital user. UserPrefs.activeRole is
+        // written on signup / role-confirm and survives across launches,
+        // so observe it as a fallback when the profile fetch hasn't yet
+        // resolved a role — keeps the tiles + KYC banner aligned with the
+        // bottom-nav (which already reads from this prefs key).
+        viewModelScope.launch {
+            userPrefs.activeRole.collect { key ->
+                val cached = key?.let { k -> UserRole.entries.firstOrNull { it.storageKey == k } }
+                if (cached != null && _state.value.role == null) {
+                    _state.update { it.copy(role = cached) }
+                }
+            }
+        }
     }
 
     private suspend fun refresh(userId: String) {
         profileRepository.fetchById(userId).onSuccess { profile ->
+            // Don't clobber a role we already resolved (eg. via UserPrefs)
+            // when the profile fetch returns a row without a role yet — that
+            // happens during the trigger / updateRole race after fresh signup
+            // and would flip the tiles to engineer for a hospital user.
+            val fetchedRole = profile?.activeRole ?: profile?.role
             _state.update {
                 it.copy(
                     displayName = profile?.fullName,
                     isFounder = profile?.isFounder() == true,
-                    role = profile?.activeRole ?: profile?.role,
+                    role = fetchedRole ?: it.role,
                 )
             }
         }

@@ -141,7 +141,13 @@ class SessionViewModel @Inject constructor(
             // signed in, dispatching B to A's Hub (hospital → engineer
             // home, etc.). A blank confirmedRole still leaves cached alone
             // so a transient empty fetch doesn't wipe a valid role.
-            val confirmedRole = fetched?.takeIf { it.roleConfirmed }?.rawRoleKey
+            //
+            // Use active_role (multi-role hub) over the scalar role: the
+            // handle_new_user trigger hardcodes scalar role='engineer' for
+            // every signup as a security guard, so reading rawRoleKey here
+            // would dispatch every Hospital signup to the engineer hub.
+            val confirmedRole = fetched?.takeIf { it.roleConfirmed }
+                ?.let { it.activeRoleKey ?: it.rawRoleKey }
             if (!confirmedRole.isNullOrBlank() && cached != confirmedRole) {
                 userPrefs.setActiveRole(confirmedRole)
             }

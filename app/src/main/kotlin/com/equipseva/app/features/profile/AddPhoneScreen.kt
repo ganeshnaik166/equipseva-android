@@ -88,7 +88,12 @@ class AddPhoneViewModel @Inject constructor(
 
     fun onSave() {
         val phone = _state.value.phone.trim()
-        if (!phone.startsWith("+") || phone.length < 10) {
+        // E.164 floor: '+' + country code (1-3) + national number (4-14) =
+        // 8-18 chars. The previous '< 10' floor accepted '+12345678' (9
+        // chars) which silently routed SMS/WhatsApp to the wrong number.
+        // 11 covers India ('+91' + 10) plus the global minimum where it
+        // matters.
+        if (!phone.startsWith("+") || phone.length < 11) {
             _state.update { it.copy(error = "Enter the number in international format, e.g. +919999999999") }
             return
         }
@@ -168,7 +173,7 @@ fun AddPhoneScreen(
                     kind = EsBtnKind.Primary,
                     size = EsBtnSize.Lg,
                     full = true,
-                    disabled = state.saving || state.phone.length < 10,
+                    disabled = state.saving || state.phone.length < 11,
                 )
             }
         }

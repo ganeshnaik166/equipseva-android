@@ -96,8 +96,12 @@ class RequestServiceViewModel @Inject constructor(
     fun onSiteCoordsChange(latitude: Double?, longitude: Double?) {
         _state.update { it.copy(siteLatitude = latitude, siteLongitude = longitude) }
     }
-    fun onIssueChange(value: String) = _state.update { it.copy(issue = value, issueError = null) }
-    fun onBudgetChange(value: String) = _state.update { it.copy(budget = value, budgetError = null) }
+    fun onIssueChange(value: String) = _state.update {
+        it.copy(issue = value, issueError = null, errorMessage = null)
+    }
+    fun onBudgetChange(value: String) = _state.update {
+        it.copy(budget = value, budgetError = null, errorMessage = null)
+    }
 
     /**
      * Uploads [bytes] to the `repair-photos` bucket under the signed-in user's
@@ -153,7 +157,19 @@ class RequestServiceViewModel @Inject constructor(
         val current = _state.value
         val issue = current.issue.trim()
         if (issue.length < 10) {
-            _state.update { it.copy(issueError = "Please describe the issue (10 characters or more).") }
+            // Issue lives on step 1, but Submit is on step 4 — without
+            // surfacing the message at top-level the user just sees the
+            // button do nothing. Mirror it into errorMessage (the banner
+            // is rendered above every step) and emit a snackbar so the
+            // failure is unmissable.
+            val msg = "Please describe the issue (10 characters or more) on the Issue step."
+            _state.update {
+                it.copy(
+                    issueError = "Please describe the issue (10 characters or more).",
+                    errorMessage = msg,
+                )
+            }
+            effectChannel.trySend(Effect.ShowMessage(msg))
             return
         }
         val budgetText = current.budget.trim()
@@ -172,6 +188,10 @@ class RequestServiceViewModel @Inject constructor(
             0 -> today.toString() to "evening"
             1 -> today.plusDays(1).toString() to "morning"
             2 -> today.plusDays(1).toString() to "afternoon"
+            // "Flexible" tile — the user picked it intentionally, so record
+            // the preference rather than collapsing to no-selection. Date
+            // stays null since they did not commit to a specific day.
+            3 -> null to "flexible"
             4 -> {
                 // Custom date from the calendar tile. Persist the picked date
                 // with a generic "any" slot since the user did not narrow to a

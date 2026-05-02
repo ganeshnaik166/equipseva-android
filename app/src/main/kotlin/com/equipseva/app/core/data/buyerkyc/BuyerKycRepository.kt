@@ -56,7 +56,16 @@ class BuyerKycRepository @Inject constructor(
         }
         val path = "$uid/buyer_kyc_${docType.key}.$ext"
         storage.upload(StorageRepository.Buckets.KYC_DOCS, path, bytes, mimeType).getOrThrow()
-        val docUrl = storage.signedUrl(StorageRepository.Buckets.KYC_DOCS, path, expiresInMinutes = 60 * 24 * 30)
+        // KYC docs contain Aadhaar / PAN / GST / drug-license PII, so keep
+        // the persisted signed URL window narrow (was 30 days, far longer
+        // than any realistic review SLA). Admins approve same-day in
+        // practice; if a review slips past the window the founder console
+        // re-mints from the path via FounderRepository.signedUrlFor.
+        val docUrl = storage.signedUrl(
+            StorageRepository.Buckets.KYC_DOCS,
+            path,
+            expiresInMinutes = 60 * 24, // 24h
+        )
         client.postgrest.from("buyer_kyc_verifications")
             .insert(
                 Insertion(

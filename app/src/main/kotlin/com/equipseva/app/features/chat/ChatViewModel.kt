@@ -189,6 +189,16 @@ class ChatViewModel @Inject constructor(
         if (msg.senderUserId != self || msg.isDeleted) return
         viewModelScope.launch {
             chatRepository.deleteMessage(messageId)
+                .onSuccess {
+                    // The Conversations list reads `conversations.last_message`
+                    // verbatim — without re-deriving the preview server would
+                    // keep showing the tombstoned text until a new message
+                    // arrives. Fire-and-forget; if the recompute fails (e.g.
+                    // RLS hiccup) the next sendMessage will overwrite anyway.
+                    runCatching {
+                        chatRepository.recomputeConversationPreview(conversationId)
+                    }
+                }
                 .onFailure { err ->
                     _effects.send(Effect.ShowMessage(err.toUserMessage()))
                 }

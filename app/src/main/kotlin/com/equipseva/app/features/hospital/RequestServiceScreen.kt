@@ -546,8 +546,20 @@ private fun StepWhen(
     )
     val slots = listOf("Today · Evening", "Tomorrow · Morning", "Tomorrow · Afternoon", "Flexible")
     var datePickerOpen by rememberSaveable { mutableStateOf(false) }
+    // Block past dates: a job scheduled for yesterday is nonsense and the
+    // server-side scheduled_date check would later reject it with a vague
+    // error. Allow today + future days only.
+    val todayMillis = remember {
+        java.time.LocalDate.now()
+            .atStartOfDay(java.time.ZoneId.systemDefault())
+            .toInstant().toEpochMilli()
+    }
     val datePickerState = androidx.compose.material3.rememberDatePickerState(
         initialSelectedDateMillis = pickedDateMillis ?: System.currentTimeMillis(),
+        selectableDates = object : androidx.compose.material3.SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                utcTimeMillis >= todayMillis
+        },
     )
     val customLabel = pickedDateMillis?.let {
         val d = java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
