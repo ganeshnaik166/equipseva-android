@@ -171,10 +171,14 @@ private fun ZoneMap(
     rows: List<FounderRepository.EngineerZoneRow>,
     selected: String?,
 ) {
-    val pinned = rows.mapNotNull { row ->
-        val lat = row.sampleLat ?: return@mapNotNull null
-        val lng = row.sampleLng ?: return@mapNotNull null
-        Triple(row, lat, lng)
+    // Memoize the lat/lng filter so it doesn't re-fire every parent
+    // recomposition (founder dashboard ticks every realtime event).
+    val pinned = androidx.compose.runtime.remember(rows) {
+        rows.mapNotNull { row ->
+            val lat = row.sampleLat ?: return@mapNotNull null
+            val lng = row.sampleLng ?: return@mapNotNull null
+            Triple(row, lat, lng)
+        }
     }
     if (pinned.isEmpty()) {
         Box(
@@ -195,10 +199,12 @@ private fun ZoneMap(
         return
     }
 
-    val center = pinned
-        .firstOrNull { it.first.district == selected }
-        ?.let { LatLng(it.second, it.third) }
-        ?: pinned.maxBy { it.first.engineerCount }.let { LatLng(it.second, it.third) }
+    val center = androidx.compose.runtime.remember(pinned, selected) {
+        pinned
+            .firstOrNull { it.first.district == selected }
+            ?.let { LatLng(it.second, it.third) }
+            ?: pinned.maxBy { it.first.engineerCount }.let { LatLng(it.second, it.third) }
+    }
 
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(center, 9f)
