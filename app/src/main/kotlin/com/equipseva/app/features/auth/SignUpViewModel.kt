@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.toAuthError
+import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.util.Validators
 import com.equipseva.app.features.auth.state.AuthEffect
@@ -24,6 +25,7 @@ import javax.inject.Inject
 class SignUpViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
+    private val userPrefs: UserPrefs,
 ) : ViewModel() {
 
     data class UiState(
@@ -98,15 +100,20 @@ class SignUpViewModel @Inject constructor(
                 onSuccess = { outcome ->
                     when (outcome) {
                         com.equipseva.app.core.auth.SignUpOutcome.AutoSignedIn -> {
-                            // Belt-and-braces: trigger picks up
-                            // raw_user_meta_data.role, but write profiles.role
-                            // explicitly too in case the trigger isn't present.
-                            val signed = authRepository.sessionState
+                            // The handle_new_user trigger hardcodes role to
+                            // 'engineer' (security fix to block admin escalation
+                            // via signup metadata) and `UPDATE` on the role
+                            // column is revoked from authenticated. Apply the
+                            // selected role through the gated add_role RPC so
+                            // active_role + role_confirmed land server-side,
+                            // and mirror the value into UserPrefs so the bottom
+                            // nav + Home tiles render the correct hub on the
+                            // very first frame.
+                            authRepository.sessionState
                                 .filterIsInstance<com.equipseva.app.core.auth.AuthSession.SignedIn>()
                                 .firstOrNull()
-                            signed?.userId?.let { uid ->
-                                profileRepository.updateRole(uid, role)
-                            }
+                            profileRepository.addRole(role.storageKey)
+                            runCatching { userPrefs.setActiveRole(role.storageKey) }
                             _state.update { it.copy(form = FormUiState()) }
                             // Session will transition; AuthHostInline routes to Home.
                             _effects.send(AuthEffect.NavigateToHome)
