@@ -57,6 +57,7 @@ import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.components.EsChip
+import com.equipseva.app.designsystem.components.InlineStars
 import com.equipseva.app.designsystem.components.EsField
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.theme.BorderDefault
@@ -577,31 +578,9 @@ internal fun InlineVerifiedBadge(small: Boolean = false) {
     }
 }
 
-@Composable
-internal fun InlineStars(rating: Double, count: Int, small: Boolean = false) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Icon(
-            Icons.Filled.Star,
-            contentDescription = null,
-            tint = SevaWarning500,
-            modifier = Modifier.size(if (small) 11.dp else 13.dp),
-        )
-        Text(
-            "%.1f".format(rating),
-            color = SevaInk700,
-            fontSize = if (small) 11.sp else 12.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Text(
-            "($count)",
-            color = SevaInk400,
-            fontSize = if (small) 11.sp else 12.sp,
-        )
-    }
-}
+// InlineStars promoted to a shared component so the new
+// EngineerRatingCard + ReviewItem render the same glyph without a fork.
+// See app/src/main/kotlin/com/equipseva/app/designsystem/components/InlineStars.kt
 
 private fun prettyKey(k: String): String =
     k.split('_', '-').joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
