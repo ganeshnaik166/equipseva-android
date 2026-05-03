@@ -1187,11 +1187,16 @@ private fun StickyBottomBar(
                 modifier = Modifier.weight(1f),
             )
             PrimaryCta.MarkDone -> EsBtn(
-                text = "Mark done",
+                text = if (updatingStatus) "Marking…" else "Mark done",
                 onClick = onMarkDone,
                 kind = EsBtnKind.Primary,
                 full = true,
                 size = EsBtnSize.Lg,
+                // Mirror CheckIn: a stray double-tap while the in-flight
+                // status flip is still resolving used to fire two
+                // 'Completed' RPC calls — server-side trigger rejects the
+                // second one but the user saw a spurious error toast.
+                disabled = updatingStatus,
                 modifier = Modifier.weight(1f),
             )
             PrimaryCta.Rate -> EsBtn(
