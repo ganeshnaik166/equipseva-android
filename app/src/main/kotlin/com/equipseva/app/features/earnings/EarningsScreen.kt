@@ -62,6 +62,7 @@ fun EarningsScreen(
     onBack: (() -> Unit)? = null,
     onJobClick: (String) -> Unit,
     onBankDetails: () -> Unit = {},
+    onBrowseJobs: () -> Unit = {},
     viewModel: EarningsViewModel = hiltViewModel(),
 ) {
     SecureScreen()
@@ -105,6 +106,8 @@ fun EarningsScreen(
                                     icon = Icons.Outlined.Payments,
                                     title = "No earnings yet",
                                     subtitle = "Complete accepted jobs to start earning.",
+                                    ctaLabel = "Browse open jobs",
+                                    onCta = onBrowseJobs,
                                 )
                             }
                         } else {

@@ -60,6 +60,7 @@ import com.equipseva.app.designsystem.theme.SevaInk900
 fun MyBidsScreen(
     onBack: () -> Unit,
     onJobClick: (String) -> Unit,
+    onBrowseJobs: () -> Unit = {},
     viewModel: MyBidsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -119,6 +120,8 @@ fun MyBidsScreen(
                         subtitle = if (activeFilter == RepairBidStatus.Pending)
                             "Bids you place on repair jobs will appear here."
                         else "Switch tabs to see other bid states.",
+                        ctaLabel = if (activeFilter == RepairBidStatus.Pending) "Browse open jobs" else null,
+                        onCta = if (activeFilter == RepairBidStatus.Pending) onBrowseJobs else null,
                     )
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),

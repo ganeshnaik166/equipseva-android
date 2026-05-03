@@ -512,6 +512,7 @@ fun MainNavGraph(
                 MyBidsScreen(
                     onBack = { navController.popBackStack() },
                     onJobClick = { jobId -> navController.navigate(Routes.repairJobDetailRoute(jobId)) },
+                    onBrowseJobs = { navController.navigate(Routes.REPAIR) },
                 )
             }
             composable(Routes.EARNINGS) {
@@ -524,6 +525,7 @@ fun MainNavGraph(
                     onBack = null,
                     onJobClick = { jobId -> navController.navigate(Routes.repairJobDetailRoute(jobId)) },
                     onBankDetails = { navController.navigate(Routes.PROFILE_BANK_DETAILS) },
+                    onBrowseJobs = { navController.navigate(Routes.REPAIR) },
                 )
             }
             composable(Routes.ACTIVE_WORK) {
