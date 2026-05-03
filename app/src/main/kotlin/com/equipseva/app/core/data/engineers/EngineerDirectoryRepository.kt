@@ -43,6 +43,18 @@ class EngineerDirectoryRepository @Inject constructor(
     )
 
     @Serializable
+    data class EngineerReview(
+        @SerialName("rating") val rating: Int,
+        @SerialName("review") val review: String,
+        @SerialName("completed_at") val completedAtIso: String? = null,
+        // Hospital identity is NEVER returned — only city. The
+        // engineer_recent_reviews RPC drops user_id and org name on
+        // purpose so reviews stay anonymized when shown to other
+        // hospitals browsing the directory.
+        @SerialName("hospital_city") val hospitalCity: String? = null,
+    )
+
+    @Serializable
     data class PublicProfile(
         @SerialName("engineer_id") val engineerId: String,
         @SerialName("user_id") val userId: String? = null,
@@ -96,5 +108,23 @@ class EngineerDirectoryRepository @Inject constructor(
                 put("p_engineer_id", JsonPrimitive(engineerId))
             },
         ).decodeList<PublicProfile>().firstOrNull()
+    }
+
+    /**
+     * Latest non-empty hospital reviews for this engineer. Caps server-side
+     * at 50; the [limit] argument is clamped on the SQL side too. Returns
+     * empty list if the engineer has no rated-with-text completed jobs.
+     */
+    suspend fun fetchRecentReviews(
+        engineerId: String,
+        limit: Int = 10,
+    ): Result<List<EngineerReview>> = runCatching {
+        client.postgrest.rpc(
+            function = "engineer_recent_reviews",
+            parameters = buildJsonObject {
+                put("p_engineer_id", JsonPrimitive(engineerId))
+                put("p_limit", JsonPrimitive(limit))
+            },
+        ).decodeList<EngineerReview>()
     }
 }

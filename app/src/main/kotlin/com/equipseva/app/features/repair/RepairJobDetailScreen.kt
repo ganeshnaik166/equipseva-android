@@ -1154,6 +1154,11 @@ private fun StickyBottomBar(
             PrimaryCta.MarkDone
         isHospital && job.status == RepairJobStatus.Completed && !rated -> PrimaryCta.Rate
         isHospital && job.status == RepairJobStatus.Completed && rated -> PrimaryCta.RatedDone
+        // Engineer side mirrors hospital: once the job lands in Completed,
+        // give the engineer the same Rate / RatedDone CTA against
+        // engineer_rating (server enforces side-identity).
+        isEngineer && job.status == RepairJobStatus.Completed && !rated -> PrimaryCta.Rate
+        isEngineer && job.status == RepairJobStatus.Completed && rated -> PrimaryCta.RatedDone
         else -> null
     }
 
@@ -1200,7 +1205,10 @@ private fun StickyBottomBar(
                 modifier = Modifier.weight(1f),
             )
             PrimaryCta.Rate -> EsBtn(
-                text = "Rate engineer",
+                // Hospital rates the engineer; engineer rates the hospital.
+                // Same CTA + same flow, different counterpart label so the
+                // copy isn't ambiguous on the engineer side.
+                text = if (isHospital) "Rate engineer" else "Rate hospital",
                 onClick = onRate,
                 kind = EsBtnKind.Primary,
                 full = true,
@@ -1629,6 +1637,10 @@ private fun RateSheet(
     var rating by rememberSaveable(existing) { mutableStateOf(existing ?: 0) }
     var note by rememberSaveable { mutableStateOf("") }
     val labels = listOf("Poor", "Fair", "Good", "Great", "Excellent")
+    val sheetTitle = when (viewerRole) {
+        RepairJobDetailViewModel.ViewerRole.Engineer -> "Rate hospital"
+        else -> "Rate engineer"
+    }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
@@ -1638,7 +1650,7 @@ private fun RateSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "Rate engineer",
+                text = sheetTitle,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = SevaInk900,

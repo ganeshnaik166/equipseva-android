@@ -38,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -58,6 +59,7 @@ import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.components.EsSection
+import com.equipseva.app.designsystem.components.InlineStars
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
@@ -101,6 +103,8 @@ class EngineerPublicProfileViewModel @Inject constructor(
         val error: String? = null,
         val profile: EngineerDirectoryRepository.PublicProfile? = null,
         val openingChat: Boolean = false,
+        val reviews: List<EngineerDirectoryRepository.EngineerReview> = emptyList(),
+        val reviewsLoading: Boolean = false,
     )
 
     sealed interface Effect {
@@ -129,6 +133,12 @@ class EngineerPublicProfileViewModel @Inject constructor(
             repo.fetchPublicProfile(engineerId)
                 .onSuccess { p -> _state.update { it.copy(loading = false, profile = p) } }
                 .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+            // Reviews are best-effort: a failure here doesn't blank the
+            // whole profile — the rating-card still renders aggregates.
+            _state.update { it.copy(reviewsLoading = true) }
+            repo.fetchRecentReviews(engineerId, limit = 10)
+                .onSuccess { rows -> _state.update { it.copy(reviewsLoading = false, reviews = rows) } }
+                .onFailure { _state.update { it.copy(reviewsLoading = false) } }
         }
     }
 
@@ -320,6 +330,8 @@ fun EngineerPublicProfileScreen(
                         p = state.profile!!,
                         onCall = { dial(context, state.profile!!.phone) },
                         onWhatsApp = { whatsapp(context, state.profile!!.phone) },
+                        reviews = state.reviews,
+                        reviewsLoading = state.reviewsLoading,
                     )
                 }
             }
@@ -377,6 +389,8 @@ private fun ProfileBody(
     p: EngineerDirectoryRepository.PublicProfile,
     onCall: () -> Unit,
     onWhatsApp: () -> Unit,
+    reviews: List<EngineerDirectoryRepository.EngineerReview>,
+    reviewsLoading: Boolean,
 ) {
     val hasRelationship = !p.phone.isNullOrBlank() || !p.email.isNullOrBlank()
     Column(
@@ -626,6 +640,88 @@ private fun ProfileBody(
         }
 
         Spacer(Modifier.height(16.dp))
+
+        ReviewsSection(reviews = reviews, loading = reviewsLoading)
+
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun ReviewsSection(
+    reviews: List<EngineerDirectoryRepository.EngineerReview>,
+    loading: Boolean,
+) {
+    // Header is always rendered so the layout doesn't jump when reviews
+    // arrive a moment later than the profile body. Empty + loading both
+    // collapse to a one-liner.
+    EsSection(title = "Recent reviews") {
+        when {
+            loading && reviews.isEmpty() -> Text(
+                text = "Loading reviews…",
+                color = SevaInk500,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+            reviews.isEmpty() -> Text(
+                text = "No reviews yet — be the first to leave one after a completed job.",
+                color = SevaInk500,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+            else -> Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                reviews.forEach { r -> ReviewItem(r) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReviewItem(r: EngineerDirectoryRepository.EngineerReview) {
+    val whenLabel: String = remember(r.completedAtIso) {
+        runCatching {
+            r.completedAtIso?.let { iso ->
+                com.equipseva.app.core.util.relativeLabel(java.time.Instant.parse(iso))
+            }
+        }.getOrNull().orEmpty()
+    }
+    val cityLabel = r.hospitalCity?.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(10.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            InlineStars(rating = r.rating.toDouble(), count = 0, small = false)
+            // count=0 reads as a redundant "(0)" — strip it via a thin
+            // wrapper that hides the count chip when 0. Falls back to the
+            // shared component for the star + number.
+            Text(
+                text = whenLabel + cityLabel,
+                color = SevaInk500,
+                fontSize = 11.sp,
+            )
+        }
+        if (r.review.isNotBlank()) {
+            Text(
+                text = r.review,
+                color = SevaInk700,
+                fontSize = 13.sp,
+                lineHeight = 18.sp,
+                maxLines = 6,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
