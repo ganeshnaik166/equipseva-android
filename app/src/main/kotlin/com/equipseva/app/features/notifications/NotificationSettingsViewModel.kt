@@ -66,13 +66,10 @@ class NotificationSettingsViewModel @Inject constructor(
         viewModelScope.launch { userPrefs.setQuietHoursWindow(startMin, endMin) }
     }
 
+    // "Order updates" deliberately omitted — v1 has no orders / cart /
+    // checkout (marketplace deferred to v2 per project_v1_monetization_free.md).
+    // Showing the toggle would let users mute a category that never fires.
     private fun buildCategories(muted: Set<String>): List<PushCategoryToggle> = listOf(
-        PushCategoryToggle(
-            channelId = NotificationChannels.ORDERS,
-            label = "Order updates",
-            description = "Order status, delivery, returns",
-            muted = NotificationChannels.ORDERS in muted,
-        ),
         PushCategoryToggle(
             channelId = NotificationChannels.JOBS,
             label = "Available jobs",

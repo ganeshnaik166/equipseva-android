@@ -52,7 +52,7 @@ fun DeleteAccountSheet(
                 color = Ink900,
             )
             Text(
-                text = "This removes your profile, cart, messages and push tokens. " +
+                text = "This removes your profile, messages and push tokens. " +
                     "Your account enters a 30-day grace period before full deletion, during " +
                     "which you can email support to restore it. After that, your data " +
                     "cannot be recovered.",
