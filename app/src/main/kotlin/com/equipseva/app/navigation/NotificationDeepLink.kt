@@ -50,7 +50,16 @@ object NotificationDeepLink {
             KIND_REPAIR_BID_NEW,
             KIND_REPAIR_BID_ACCEPTED,
             KIND_REPAIR_BID_REJECTED,
-            KIND_REPAIR_JOB_CANCELLED ->
+            KIND_REPAIR_JOB_CANCELLED,
+            // v2 cost-revision lifecycle — server emits these from
+            // propose_cost_revision / decide_cost_revision (migration
+            // 20260504130000). Repair job detail screen surfaces the
+            // banner / decision sheet for the right side automatically.
+            KIND_RATE_ENGINEER,
+            KIND_RATE_HOSPITAL,
+            KIND_COST_REVISION_PROPOSED,
+            KIND_COST_REVISION_APPROVED,
+            KIND_COST_REVISION_REJECTED ->
                 data["repair_job_id"]?.takeIfUuid()?.let(Routes::repairJobDetailRoute)
             // KYC is a single-user screen — no id needed in payload, just open it.
             KIND_KYC_STATUS_CHANGED -> Routes.KYC
@@ -69,4 +78,12 @@ object NotificationDeepLink {
     const val KIND_REPAIR_BID_REJECTED = "repair_bid_rejected"
     const val KIND_REPAIR_JOB_CANCELLED = "repair_job_cancelled"
     const val KIND_KYC_STATUS_CHANGED = "kyc_status_changed"
+    // v2 — rating reminders + cost-revision lifecycle. All deep-link to
+    // the repair job detail screen which renders the right CTA / banner
+    // for the receiving side.
+    const val KIND_RATE_ENGINEER = "rate_engineer"
+    const val KIND_RATE_HOSPITAL = "rate_hospital"
+    const val KIND_COST_REVISION_PROPOSED = "cost_revision_proposed"
+    const val KIND_COST_REVISION_APPROVED = "cost_revision_approved"
+    const val KIND_COST_REVISION_REJECTED = "cost_revision_rejected"
 }
