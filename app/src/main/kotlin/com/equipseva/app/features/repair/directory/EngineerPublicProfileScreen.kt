@@ -1,9 +1,5 @@
 package com.equipseva.app.features.repair.directory
 
-import android.content.ActivityNotFoundException
-import android.content.Intent
-import android.net.Uri
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,7 +21,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
-import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Verified
@@ -43,8 +38,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -76,14 +69,18 @@ import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk600
 import com.equipseva.app.designsystem.theme.SevaInk700
 import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.features.repair.components.CallConnectingDialog
+import com.equipseva.app.features.repair.components.MaskedContactPanel
 import com.equipseva.app.features.repair.components.ServiceAreaMap
 import com.equipseva.app.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
@@ -96,6 +93,8 @@ class EngineerPublicProfileViewModel @Inject constructor(
     private val authRepository: com.equipseva.app.core.auth.AuthRepository,
     private val chatRepository: com.equipseva.app.core.data.chat.ChatRepository,
     private val virtualCallRepository: com.equipseva.app.core.data.calls.VirtualCallRepository,
+    private val repairJobRepository: com.equipseva.app.core.data.repair.RepairJobRepository,
+    private val userPrefs: com.equipseva.app.core.data.prefs.UserPrefs,
 ) : ViewModel() {
     private val engineerId: String = savedStateHandle[Routes.ENGINEER_PUBLIC_PROFILE_ARG_ID] ?: ""
 
@@ -111,6 +110,17 @@ class EngineerPublicProfileViewModel @Inject constructor(
         // bridge so the user can read the "your phone will ring" copy.
         val callBusy: Boolean = false,
         val callConnectingMessage: String? = null,
+        // True when the signed-in viewer's active role is hospital — only
+        // hospitals book + call engineers, so the masked-call panel is
+        // hospital-only. Engineer-to-engineer profile browse just sees the
+        // privacy disclosure box.
+        val viewerIsHospital: Boolean = false,
+        // Most recent in-flight job between viewer (hospital) + this
+        // engineer in (assigned, en_route, in_progress). Required by the
+        // server-side participants_for_repair_job RPC — calls are scoped
+        // to a job. Null means viewer has no active job → tap Call routes
+        // them to chat first.
+        val activeRepairJobId: String? = null,
     )
 
     sealed interface Effect {
@@ -145,7 +155,44 @@ class EngineerPublicProfileViewModel @Inject constructor(
             repo.fetchRecentReviews(engineerId, limit = 10)
                 .onSuccess { rows -> _state.update { it.copy(reviewsLoading = false, reviews = rows) } }
                 .onFailure { _state.update { it.copy(reviewsLoading = false) } }
+            resolveCallContext()
         }
+    }
+
+    /**
+     * Resolve role + most-recent active job between viewer and this
+     * engineer. Best-effort: any failure leaves callEnabled=false, the
+     * masked panel falls through to the chat-only path. We never block
+     * profile render on this.
+     */
+    private suspend fun resolveCallContext() {
+        val role = runCatching { userPrefs.activeRole.first() }.getOrNull()
+        val isHospital = role == com.equipseva.app.features.auth.UserRole.HOSPITAL.storageKey
+        val viewerUserId = authRepository.sessionState
+            .filterIsInstance<com.equipseva.app.core.auth.AuthSession.SignedIn>()
+            .firstOrNull()?.userId
+        if (!isHospital || viewerUserId.isNullOrBlank()) {
+            _state.update { it.copy(viewerIsHospital = isHospital) }
+            return
+        }
+        val activeId = runCatching {
+            repairJobRepository.fetchByHospitalUser(viewerUserId).getOrNull().orEmpty()
+                .filter {
+                    it.engineerId == engineerId &&
+                        it.status in ACTIVE_STATUSES_FOR_CALL
+                }
+                .maxByOrNull { it.createdAtInstant ?: java.time.Instant.EPOCH }
+                ?.id
+        }.getOrNull()
+        _state.update { it.copy(viewerIsHospital = true, activeRepairJobId = activeId) }
+    }
+
+    private companion object {
+        val ACTIVE_STATUSES_FOR_CALL = setOf(
+            com.equipseva.app.core.data.repair.RepairJobStatus.Assigned,
+            com.equipseva.app.core.data.repair.RepairJobStatus.EnRoute,
+            com.equipseva.app.core.data.repair.RepairJobStatus.InProgress,
+        )
     }
 
     fun openChatWithEngineer() {
@@ -361,7 +408,6 @@ fun EngineerPublicProfileScreen(
     viewModel: EngineerPublicProfileViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    val context = LocalContext.current
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
@@ -371,6 +417,20 @@ fun EngineerPublicProfileScreen(
                     onShowMessage(effect.text)
             }
         }
+    }
+    state.callConnectingMessage?.let { msg ->
+        // Once the bridge POST returns 200 the user's phone is already
+        // ringing — hold the dialog ~4s so they can read the privacy
+        // copy, then auto-dismiss. Cancel button + onDismissRequest
+        // both call dismissCallConnecting() too.
+        LaunchedEffect(msg) {
+            delay(4000)
+            viewModel.dismissCallConnecting()
+        }
+        CallConnectingDialog(
+            message = msg,
+            onCancel = { viewModel.dismissCallConnecting() },
+        )
     }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -406,8 +466,12 @@ fun EngineerPublicProfileScreen(
                     )
                     else -> ProfileBody(
                         p = state.profile!!,
-                        onCall = { dial(context, state.profile!!.phone) },
-                        onWhatsApp = { whatsapp(context, state.profile!!.phone) },
+                        viewerIsHospital = state.viewerIsHospital,
+                        activeRepairJobId = state.activeRepairJobId,
+                        callBusy = state.callBusy,
+                        chatBusy = state.openingChat,
+                        onCall = { viewModel.startMaskedCall(state.activeRepairJobId) },
+                        onOpenChat = { viewModel.openChatWithEngineer() },
                         reviews = state.reviews,
                         reviewsLoading = state.reviewsLoading,
                     )
@@ -465,8 +529,12 @@ fun EngineerPublicProfileScreen(
 @Composable
 private fun ProfileBody(
     p: EngineerDirectoryRepository.PublicProfile,
+    viewerIsHospital: Boolean,
+    activeRepairJobId: String?,
+    callBusy: Boolean,
+    chatBusy: Boolean,
     onCall: () -> Unit,
-    onWhatsApp: () -> Unit,
+    onOpenChat: () -> Unit,
     reviews: List<EngineerDirectoryRepository.EngineerReview>,
     reviewsLoading: Boolean,
 ) {
@@ -668,21 +736,66 @@ private fun ProfileBody(
             }
         }
 
-        // Contact section — only when relationship lit
-        if (hasRelationship) {
+        // Contact section — masked-call + chat for hospitals; privacy
+        // disclosure for everyone else (engineer-to-engineer browse).
+        // Real phone number is never rendered: calls bridge through
+        // EquipSeva's ExoPhone so neither side ever sees the other's MSISDN.
+        if (viewerIsHospital) {
             EsSection(title = "Contact") {
-                if (!p.phone.isNullOrBlank()) {
-                    ContactRow(
-                        icon = Icons.Outlined.Phone,
-                        title = p.phone,
-                        subtitle = "Tap to call",
-                        onClick = onCall,
+                MaskedContactPanel(
+                    onCall = onCall,
+                    onOpenChat = onOpenChat,
+                    callEnabled = true,
+                    chatEnabled = true,
+                    callBusy = callBusy,
+                    chatBusy = chatBusy,
+                )
+            }
+            // Soft nudge if hospital has no active job yet — Call still
+            // works (server returns NotParticipant → snackbar nudges them
+            // to chat first), but this sets expectations up front.
+            if (activeRepairJobId == null) {
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .fillMaxWidth(),
+                ) {
+                    Text(
+                        text = "Book a job or open chat first — calls are scoped to active jobs.",
+                        color = SevaInk500,
+                        fontSize = 12.sp,
                     )
-                    ContactRow(
-                        icon = Icons.AutoMirrored.Outlined.Chat,
-                        title = "WhatsApp",
-                        subtitle = "Open chat",
-                        onClick = onWhatsApp,
+                }
+            }
+        } else if (hasRelationship) {
+            // Engineer-to-engineer (or other-role) browse with relationship.
+            // Skip the masked-call panel; just nudge to chat from the
+            // sticky CTA bar above. Keep a privacy footer for parity.
+            Box(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(SevaInfo50)
+                    .padding(12.dp),
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Icon(
+                        Icons.Outlined.Security,
+                        contentDescription = null,
+                        tint = SevaInfo500,
+                        modifier = Modifier
+                            .padding(top = 1.dp)
+                            .size(16.dp),
+                    )
+                    Text(
+                        "Use Message above — direct calls are scoped to hospital ↔ engineer job pairs.",
+                        color = SevaInfo500,
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp,
                     )
                 }
             }
@@ -708,7 +821,7 @@ private fun ProfileBody(
                             .size(16.dp),
                     )
                     Text(
-                        "Phone and email are shown after you start a chat or have a past job with this engineer.",
+                        "Real numbers stay private. Use Message above to start a conversation.",
                         color = SevaInfo500,
                         fontSize = 12.sp,
                         lineHeight = 17.sp,
@@ -862,56 +975,6 @@ private fun ChipFlowNeutral(items: List<String>) {
                 Text(item, color = SevaInk600, fontSize = 12.sp, fontWeight = FontWeight.Medium)
             }
         }
-    }
-}
-
-@Composable
-private fun ContactRow(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Icon(icon, contentDescription = null, tint = SevaGreen700, modifier = Modifier.size(18.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, color = SevaInk900, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            Text(subtitle, color = SevaInk500, fontSize = 12.sp)
-        }
-    }
-}
-
-private fun dial(context: android.content.Context, phone: String?) {
-    if (phone.isNullOrBlank()) {
-        Toast.makeText(context, "Phone not available", Toast.LENGTH_SHORT).show()
-        return
-    }
-    try {
-        context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
-    } catch (_: ActivityNotFoundException) {
-        Toast.makeText(context, "No dialer app installed", Toast.LENGTH_SHORT).show()
-    }
-}
-
-private fun whatsapp(context: android.content.Context, phone: String?) {
-    if (phone.isNullOrBlank()) {
-        Toast.makeText(context, "Phone not available", Toast.LENGTH_SHORT).show()
-        return
-    }
-    val cleaned = phone.replace("+", "").replace(" ", "").replace("-", "")
-    val msg = "Hi, I'd like to discuss a repair request from EquipSeva."
-    val uri = Uri.parse("https://wa.me/$cleaned?text=" + Uri.encode(msg))
-    try {
-        context.startActivity(Intent(Intent.ACTION_VIEW, uri))
-    } catch (_: ActivityNotFoundException) {
-        Toast.makeText(context, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
     }
 }
 
