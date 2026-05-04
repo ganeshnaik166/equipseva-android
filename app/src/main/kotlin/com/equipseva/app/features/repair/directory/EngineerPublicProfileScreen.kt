@@ -95,6 +95,7 @@ class EngineerPublicProfileViewModel @Inject constructor(
     private val repo: EngineerDirectoryRepository,
     private val authRepository: com.equipseva.app.core.auth.AuthRepository,
     private val chatRepository: com.equipseva.app.core.data.chat.ChatRepository,
+    private val virtualCallRepository: com.equipseva.app.core.data.calls.VirtualCallRepository,
 ) : ViewModel() {
     private val engineerId: String = savedStateHandle[Routes.ENGINEER_PUBLIC_PROFILE_ARG_ID] ?: ""
 
@@ -105,6 +106,11 @@ class EngineerPublicProfileViewModel @Inject constructor(
         val openingChat: Boolean = false,
         val reviews: List<EngineerDirectoryRepository.EngineerReview> = emptyList(),
         val reviewsLoading: Boolean = false,
+        // v2 phone-masking — set while request-call-session is in
+        // flight + while we hold the dialog open after a successful
+        // bridge so the user can read the "your phone will ring" copy.
+        val callBusy: Boolean = false,
+        val callConnectingMessage: String? = null,
     )
 
     sealed interface Effect {
@@ -172,6 +178,78 @@ class EngineerPublicProfileViewModel @Inject constructor(
                 },
             )
         }
+    }
+
+    /**
+     * Trigger the masked-call bridge for the most recent active job
+     * shared with this engineer. Caller is the hospital — the bridge
+     * dials both legs from EquipSeva's ExoPhone via Exotel. While
+     * Exotel onboarding is still in progress server-side, the edge
+     * function returns ProviderNotConfigured and we surface a "calls
+     * coming soon" snackbar instead of crashing.
+     *
+     * The repairJobId is the only required input — server validates
+     * caller participation. Resolving "which job to attach the call
+     * to" is the caller's responsibility (typically the most recent
+     * Assigned/EnRoute/InProgress job; null if none). When null we
+     * tell the user to start a job first.
+     */
+    fun startMaskedCall(repairJobId: String?) {
+        if (_state.value.callBusy) return
+        if (repairJobId.isNullOrBlank()) {
+            viewModelScope.launch {
+                _effects.send(
+                    Effect.ShowMessage("Open a chat or book a job to start a call."),
+                )
+            }
+            return
+        }
+        _state.update { it.copy(callBusy = true) }
+        viewModelScope.launch {
+            virtualCallRepository.requestCallSession(repairJobId)
+                .onSuccess { result ->
+                    when (result) {
+                        is com.equipseva.app.core.data.calls.VirtualCallRepository.CallSessionResult.ClickToCall ->
+                            _state.update {
+                                it.copy(callBusy = false, callConnectingMessage = result.message)
+                            }
+                        com.equipseva.app.core.data.calls.VirtualCallRepository.CallSessionResult.ProviderNotConfigured -> {
+                            _state.update { it.copy(callBusy = false, callConnectingMessage = null) }
+                            _effects.send(
+                                Effect.ShowMessage("In-app calls coming soon — chat for now."),
+                            )
+                        }
+                        is com.equipseva.app.core.data.calls.VirtualCallRepository.CallSessionResult.RateLimited -> {
+                            _state.update { it.copy(callBusy = false) }
+                            _effects.send(Effect.ShowMessage(result.message))
+                        }
+                        com.equipseva.app.core.data.calls.VirtualCallRepository.CallSessionResult.MissingPhone -> {
+                            _state.update { it.copy(callBusy = false) }
+                            _effects.send(
+                                Effect.ShowMessage("Engineer hasn't added a phone yet. Use chat instead."),
+                            )
+                        }
+                        com.equipseva.app.core.data.calls.VirtualCallRepository.CallSessionResult.NotParticipant -> {
+                            _state.update { it.copy(callBusy = false) }
+                            _effects.send(
+                                Effect.ShowMessage("Open a chat first — calls are scoped to active jobs."),
+                            )
+                        }
+                        is com.equipseva.app.core.data.calls.VirtualCallRepository.CallSessionResult.Error -> {
+                            _state.update { it.copy(callBusy = false) }
+                            _effects.send(Effect.ShowMessage(result.message))
+                        }
+                    }
+                }
+                .onFailure { ex ->
+                    _state.update { it.copy(callBusy = false) }
+                    _effects.send(Effect.ShowMessage(ex.toUserMessage()))
+                }
+        }
+    }
+
+    fun dismissCallConnecting() {
+        _state.update { it.copy(callConnectingMessage = null) }
     }
 }
 
