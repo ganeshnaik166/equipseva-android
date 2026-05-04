@@ -56,15 +56,15 @@
 # Firebase
 -keep class com.google.firebase.** { *; }
 
-# Strip non-error log statements in release. Log.e is preserved so genuine errors still
-# surface. println / System.out paths are removed as well. R8 treats these as side-effect
-# free so the calls (and their argument expressions) drop out entirely.
+# Strip noisy, non-actionable log statements in release. Log.w / Log.e / Log.wtf are
+# preserved so genuine warnings + errors + "should never happen" assertions still surface
+# in Logcat for post-incident triage (e.g. SignatureVerifier mismatch reasons).
+# println / System.out paths are removed since release code should never use them.
+# R8 treats these as side-effect free so the calls (and their argument expressions) drop out.
 -assumenosideeffects class android.util.Log {
     public static *** v(...);
     public static *** d(...);
     public static *** i(...);
-    public static *** w(...);
-    public static *** wtf(...);
 }
 -assumenosideeffects class java.io.PrintStream {
     public void print(...);

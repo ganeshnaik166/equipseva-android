@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.BuildConfig
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
@@ -117,10 +118,24 @@ class FounderUsersViewModel @Inject constructor(
         viewModelScope.launch {
             repo.searchUsers(query = s.query, role = s.selectedRole, limit = 50, offset = 0)
                 .onSuccess { rows ->
-                    _state.update { it.copy(loading = false, rows = if (rows.isEmpty()) DUMMY_USERS else rows) }
+                    // Debug builds get sample fixtures when the live result is empty so the
+                    // founder UI is browsable without a real DB. Release builds show the
+                    // genuine empty list — empty-state UI handles it.
+                    val resolved = if (rows.isEmpty() && BuildConfig.DEBUG) DUMMY_USERS else rows
+                    _state.update { it.copy(loading = false, rows = resolved) }
                 }
-                .onFailure { _ ->
-                    _state.update { it.copy(loading = false, rows = DUMMY_USERS, error = null) }
+                .onFailure { err ->
+                    val message = err.toUserMessage()
+                    _state.update {
+                        if (BuildConfig.DEBUG) {
+                            // Mirror legacy behaviour for local dev: keep the screen populated
+                            // even when the network is dead.
+                            it.copy(loading = false, rows = DUMMY_USERS, error = null)
+                        } else {
+                            // Release: never silently mask a real error with fixture data.
+                            it.copy(loading = false, rows = emptyList(), error = message)
+                        }
+                    }
                 }
         }
     }

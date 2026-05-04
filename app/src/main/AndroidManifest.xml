@@ -50,13 +50,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Email-link / OAuth callback (Supabase). -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="equipseva" android:host="auth-callback" />
-            </intent-filter>
+            <!--
+              Auth flow uses Credential Manager + Supabase ID-token; no callback URI needed.
+              The previous `equipseva://auth-callback` custom-scheme intent filter was hijackable
+              by any app declaring the same scheme. If a magic-link / OAuth web flow is added
+              later, switch to https App Links with android:autoVerify="true" backed by
+              well-known/.well-known/assetlinks.json instead of a custom scheme.
+            -->
         </activity>
 
         <service

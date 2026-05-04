@@ -27,6 +27,34 @@ val keystoreProps = Properties().apply {
 val hasReleaseKeystore: Boolean =
     keystoreProps.getProperty("storeFile")?.let { project.file(it).exists() } == true
 
+// Fail-fast guard: a real release build (signed with the upload key) must have
+// Supabase secrets wired or the resulting APK silently points at the
+// `https://placeholder.invalid/` fallback in NetworkModule and bricks itself in
+// production. EXPECTED_CERT_SHA256 is allowed blank because it is filled in only
+// after the first Play upload (PENDING.md item 14); we surface a warning instead
+// of a hard failure so the first AAB can still be cut.
+gradle.taskGraph.whenReady {
+    val assemblingRelease = allTasks.any { it.path == ":app:assembleRelease" || it.path == ":app:bundleRelease" }
+    if (hasReleaseKeystore && assemblingRelease) {
+        val required = mapOf(
+            "SUPABASE_URL" to localOrEnv("SUPABASE_URL"),
+            "SUPABASE_ANON_KEY" to localOrEnv("SUPABASE_ANON_KEY"),
+        )
+        val missing = required.filterValues { it.isBlank() }.keys
+        check(missing.isEmpty()) {
+            "Release build is signed with the upload keystore but required secrets are blank: " +
+                "$missing. Set them in local.properties or as environment variables before " +
+                "assembling a build for distribution."
+        }
+        if (localOrEnv("EXPECTED_CERT_SHA256").isBlank()) {
+            logger.warn(
+                "WARN: EXPECTED_CERT_SHA256 is blank — SignatureVerifier will return Unknown. " +
+                "Fill in after the first Play Console upload (see PENDING.md #14).",
+            )
+        }
+    }
+}
+
 android {
     namespace = "com.equipseva.app"
     compileSdk = 35

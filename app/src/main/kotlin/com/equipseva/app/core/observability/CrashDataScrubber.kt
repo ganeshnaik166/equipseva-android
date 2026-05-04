@@ -22,6 +22,17 @@ object CrashDataScrubber {
         Regex("""[?&]token=[A-Za-z0-9._\-]+"""),
         // Authorization headers leaked via HTTP exceptions.
         Regex("""(?i)authorization:\s*bearer\s+[A-Za-z0-9._\-]+"""),
+        // Indian PII surfaced via KYC flows — DPDP requires keeping these out of telemetry.
+        // Indian mobile: optional +91 / 0 prefix + 10 digits starting 6-9. Run before
+        // Aadhaar so a `+91` mobile isn't partially redacted by the 12-digit Aadhaar regex.
+        Regex("""(?<![+\d])(?:\+?91[\s-]?|0)?[6-9]\d{9}(?!\d)"""),
+        // Aadhaar: 12 digits, optionally space/dash-grouped 4-4-4.
+        Regex("""(?<![+\d])\d{4}[\s-]?\d{4}[\s-]?\d{4}(?!\d)"""),
+        // GSTIN: 2-digit state + 10-char PAN + 1 entity + Z + 1 checksum (run before PAN
+        // so the embedded PAN substring isn't redacted first and break the GSTIN match).
+        Regex("""\b\d{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]Z[0-9A-Z]\b"""),
+        // PAN: 5 letters + 4 digits + 1 letter.
+        Regex("""\b[A-Z]{5}[0-9]{4}[A-Z]\b"""),
     )
 
     fun scrub(input: String?): String? {

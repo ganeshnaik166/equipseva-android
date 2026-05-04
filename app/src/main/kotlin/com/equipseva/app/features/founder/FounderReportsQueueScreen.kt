@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.BuildConfig
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
@@ -70,10 +71,18 @@ class FounderReportsQueueViewModel @Inject constructor(
         viewModelScope.launch {
             repo.fetchPendingReports()
                 .onSuccess { rows ->
-                    _state.update { it.copy(loading = false, rows = if (rows.isEmpty()) DUMMY_PENDING_REPORTS else rows) }
+                    val resolved = if (rows.isEmpty() && BuildConfig.DEBUG) DUMMY_PENDING_REPORTS else rows
+                    _state.update { it.copy(loading = false, rows = resolved) }
                 }
-                .onFailure { _ ->
-                    _state.update { it.copy(loading = false, rows = DUMMY_PENDING_REPORTS, error = null) }
+                .onFailure { err ->
+                    _state.update {
+                        if (BuildConfig.DEBUG) {
+                            it.copy(loading = false, rows = DUMMY_PENDING_REPORTS, error = null)
+                        } else {
+                            // Release: surface the real failure instead of papering it over.
+                            it.copy(loading = false, rows = emptyList(), error = err.toUserMessage())
+                        }
+                    }
                 }
         }
     }

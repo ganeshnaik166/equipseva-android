@@ -32,7 +32,6 @@ import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.CloudSync
-import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -360,21 +359,9 @@ private fun ChatTopBar(
                     )
                 }
             }
-            // Phone CTA — wired when telephony lands.
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .clickable { /* call CTA — placeholder */ },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Phone,
-                    contentDescription = "Call",
-                    tint = SevaGreen700,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
+            // Phone CTA is intentionally hidden in v1. The masked-call path lives behind the
+            // v2 EngineerPublicProfile flow (PR #254); a tap-target with no handler here was
+            // shipping as a dead button. Re-add when ChatScreen gets a real masked-dial action.
             if (canBlock) {
                 Box {
                     IconButton(onClick = { menuOpen = true }) {

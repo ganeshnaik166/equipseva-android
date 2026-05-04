@@ -59,4 +59,27 @@ class CrashDataScrubberTest {
         val out = CrashDataScrubber.scrub("network timeout after 30s")
         assertEquals("network timeout after 30s", out)
     }
+
+    @Test fun `aadhaar numbers are redacted`() {
+        assertEquals("aadhaar [redacted] failed", CrashDataScrubber.scrub("aadhaar 1234 5678 9012 failed"))
+        assertEquals("aadhaar [redacted] failed", CrashDataScrubber.scrub("aadhaar 1234-5678-9012 failed"))
+        assertEquals("aadhaar [redacted] failed", CrashDataScrubber.scrub("aadhaar 123456789012 failed"))
+    }
+
+    @Test fun `pan numbers are redacted`() {
+        assertEquals("pan [redacted] rejected", CrashDataScrubber.scrub("pan ABCDE1234F rejected"))
+    }
+
+    @Test fun `gstin numbers are redacted`() {
+        assertEquals(
+            "gst [redacted] for invoice",
+            CrashDataScrubber.scrub("gst 27ABCDE1234F1Z5 for invoice"),
+        )
+    }
+
+    @Test fun `indian mobile numbers are redacted`() {
+        assertEquals("ring [redacted]", CrashDataScrubber.scrub("ring +919876543210"))
+        assertEquals("ring [redacted]", CrashDataScrubber.scrub("ring 9876543210"))
+        assertEquals("ring [redacted]", CrashDataScrubber.scrub("ring 09876543210"))
+    }
 }
