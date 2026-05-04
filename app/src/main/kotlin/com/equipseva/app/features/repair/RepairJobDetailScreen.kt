@@ -195,11 +195,13 @@ fun RepairJobDetailScreen(
                     ownBid = state.ownBid,
                     viewerRole = state.viewerRole,
                     updatingStatus = state.updatingStatus,
+                    pendingCostRevision = state.pendingCostRevision,
                     onPlaceBid = viewModel::openBidComposer,
                     onCheckIn = { checkinSheetOpen = true },
                     onMarkDone = viewModel::openProofSheet,
                     onRate = { rateSheetOpen = true },
                     onCancel = { cancelSheetOpen = true },
+                    onReviseQuote = viewModel::openReviseQuoteSheet,
                 )
             }
         },
@@ -209,6 +211,24 @@ fun RepairJobDetailScreen(
                 bidCount = state.queuedBidCount,
                 statusCount = state.queuedStatusCount,
             )
+            // v2 — hospital-only revised-quote banner. Tap → decision sheet.
+            // Engineer side sees "awaiting hospital approval" copy below.
+            val pendingRev = state.pendingCostRevision
+            if (pendingRev != null) {
+                when (state.viewerRole) {
+                    RepairJobDetailViewModel.ViewerRole.Hospital ->
+                        com.equipseva.app.features.repair.components.CostRevisionBanner(
+                            revision = pendingRev,
+                            onTap = viewModel::openRevisionDecisionSheet,
+                        )
+                    RepairJobDetailViewModel.ViewerRole.Engineer ->
+                        com.equipseva.app.features.repair.components.CostRevisionBanner(
+                            revision = pendingRev,
+                            onTap = {}, // engineer view is informational only
+                        )
+                    else -> Unit
+                }
+            }
             when {
                 state.loading -> Box(
                     modifier = Modifier.fillMaxSize(),
@@ -291,6 +311,30 @@ fun RepairJobDetailScreen(
                     viewModel.submitRating(stars, note)
                     rateSheetOpen = false
                 },
+            )
+        }
+    }
+
+    if (state.reviseQuoteSheetOpen) {
+        val current = state.job?.contractedAmountRupees
+        if (current != null) {
+            com.equipseva.app.features.repair.components.ReviseQuoteSheet(
+                currentContractedRupees = current,
+                submitting = state.proposingRevision,
+                onDismiss = viewModel::closeReviseQuoteSheet,
+                onSubmit = { amount, reason -> viewModel.proposeCostRevision(amount, reason) },
+            )
+        }
+    }
+
+    if (state.revisionDecisionSheetOpen) {
+        val rev = state.pendingCostRevision
+        if (rev != null) {
+            com.equipseva.app.features.repair.components.CostRevisionDecisionSheet(
+                revision = rev,
+                deciding = state.decidingRevision,
+                onDismiss = viewModel::closeRevisionDecisionSheet,
+                onDecide = { approve -> viewModel.decideCostRevision(approve) },
             )
         }
     }
@@ -1120,11 +1164,13 @@ private fun StickyBottomBar(
     ownBid: RepairBid?,
     viewerRole: RepairJobDetailViewModel.ViewerRole,
     updatingStatus: Boolean,
+    pendingCostRevision: com.equipseva.app.core.data.repair.CostRevision?,
     onPlaceBid: () -> Unit,
     onCheckIn: () -> Unit,
     onMarkDone: () -> Unit,
     onRate: () -> Unit,
     onCancel: () -> Unit,
+    onReviseQuote: () -> Unit,
 ) {
     val isEngineer = viewerRole == RepairJobDetailViewModel.ViewerRole.Engineer
     val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
@@ -1231,6 +1277,20 @@ private fun StickyBottomBar(
                 text = "Cancel",
                 onClick = onCancel,
                 kind = EsBtnKind.DangerOutline,
+                size = EsBtnSize.Lg,
+            )
+        }
+        // v2 — engineer-only "Revise quote" affordance, only while
+        // working the job and only when no proposal is already pending.
+        if (
+            isEngineer &&
+            (job.status == RepairJobStatus.EnRoute || job.status == RepairJobStatus.InProgress) &&
+            pendingCostRevision == null
+        ) {
+            EsBtn(
+                text = "Revise quote",
+                onClick = onReviseQuote,
+                kind = EsBtnKind.Secondary,
                 size = EsBtnSize.Lg,
             )
         }

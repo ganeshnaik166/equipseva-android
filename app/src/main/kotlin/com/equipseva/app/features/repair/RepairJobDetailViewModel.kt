@@ -62,6 +62,7 @@ class RepairJobDetailViewModel @Inject constructor(
     private val reportRepository: ContentReportRepository,
     private val photoUploadStash: PhotoUploadStash,
     private val storageRepository: StorageRepository,
+    private val costRevisionRepository: com.equipseva.app.core.data.repair.CostRevisionRepository,
     private val json: Json,
 ) : ViewModel() {
 
@@ -122,6 +123,16 @@ class RepairJobDetailViewModel @Inject constructor(
         val proofSheetOpen: Boolean = false,
         /** True while we're enqueuing photos + flipping the status row. */
         val submittingProof: Boolean = false,
+        /** v2 — pending revised quote (engineer proposed; hospital hasn't decided). */
+        val pendingCostRevision: com.equipseva.app.core.data.repair.CostRevision? = null,
+        /** v2 — engineer-side bottom sheet to compose a revised quote. */
+        val reviseQuoteSheetOpen: Boolean = false,
+        /** v2 — true while propose_cost_revision is in flight. */
+        val proposingRevision: Boolean = false,
+        /** v2 — hospital-side bottom sheet to approve / reject the pending revision. */
+        val revisionDecisionSheetOpen: Boolean = false,
+        /** v2 — true while decide_cost_revision is in flight. */
+        val decidingRevision: Boolean = false,
         /**
          * Signed-URL projections of [RepairJob.afterPhotos] / [RepairJob.beforePhotos]
          * / [RepairJob.issuePhotos]. The DB stores object paths because the
@@ -161,6 +172,12 @@ class RepairJobDetailViewModel @Inject constructor(
             .launchIn(viewModelScope)
         outboxDao.observePendingCountByKind(OutboxKinds.JOB_STATUS)
             .onEach { count -> _state.update { it.copy(queuedStatusCount = count) } }
+            .launchIn(viewModelScope)
+        // v2 — pending revised-quote stream. Banner / sheet visibility on
+        // both sides keys off this. Realtime sub means an approved /
+        // rejected / expired revision automatically collapses the UI.
+        costRevisionRepository.observePending(jobId)
+            .onEach { rev -> _state.update { it.copy(pendingCostRevision = rev) } }
             .launchIn(viewModelScope)
     }
 
@@ -404,6 +421,96 @@ class RepairJobDetailViewModel @Inject constructor(
     fun closeProofSheet() {
         if (_state.value.submittingProof) return
         _state.update { it.copy(proofSheetOpen = false) }
+    }
+
+    // -----------------------------------------------------------------
+    // v2 cost-revision flow.
+    //   Engineer side: openReviseQuote → proposeCostRevision
+    //   Hospital side: openRevisionDecision → decideCostRevision
+    // The realtime sub in init() automatically clears
+    // pendingCostRevision when the row leaves 'proposed', so the UI
+    // banner / sticky CTAs collapse without an explicit refresh.
+    // -----------------------------------------------------------------
+
+    fun openReviseQuoteSheet() {
+        val snap = _state.value
+        if (snap.viewerRole != ViewerRole.Engineer) return
+        if (snap.pendingCostRevision != null) return
+        val status = snap.job?.status ?: return
+        if (status != RepairJobStatus.EnRoute && status != RepairJobStatus.InProgress) return
+        _state.update { it.copy(reviseQuoteSheetOpen = true) }
+    }
+
+    fun closeReviseQuoteSheet() {
+        if (_state.value.proposingRevision) return
+        _state.update { it.copy(reviseQuoteSheetOpen = false) }
+    }
+
+    fun proposeCostRevision(revisedRupees: Double, reason: String) {
+        if (_state.value.proposingRevision) return
+        _state.update { it.copy(proposingRevision = true) }
+        viewModelScope.launch {
+            costRevisionRepository.propose(jobId, revisedRupees, reason)
+                .onSuccess { rev ->
+                    _state.update {
+                        it.copy(
+                            proposingRevision = false,
+                            reviseQuoteSheetOpen = false,
+                            pendingCostRevision = rev,
+                        )
+                    }
+                }
+                .onFailure { err ->
+                    _state.update {
+                        it.copy(
+                            proposingRevision = false,
+                            errorMessage = err.toUserMessage(),
+                        )
+                    }
+                }
+        }
+    }
+
+    fun openRevisionDecisionSheet() {
+        val snap = _state.value
+        if (snap.viewerRole != ViewerRole.Hospital) return
+        if (snap.pendingCostRevision == null) return
+        _state.update { it.copy(revisionDecisionSheetOpen = true) }
+    }
+
+    fun closeRevisionDecisionSheet() {
+        if (_state.value.decidingRevision) return
+        _state.update { it.copy(revisionDecisionSheetOpen = false) }
+    }
+
+    fun decideCostRevision(approve: Boolean) {
+        val snap = _state.value
+        val rev = snap.pendingCostRevision ?: return
+        if (snap.decidingRevision) return
+        _state.update { it.copy(decidingRevision = true) }
+        viewModelScope.launch {
+            costRevisionRepository.decide(rev.id, approve)
+                .onSuccess {
+                    // Realtime sub will null pendingCostRevision; close
+                    // the sheet locally + refresh the job to pick up the
+                    // overwritten contractedAmountRupees.
+                    _state.update {
+                        it.copy(
+                            decidingRevision = false,
+                            revisionDecisionSheetOpen = false,
+                        )
+                    }
+                    if (approve) load()
+                }
+                .onFailure { err ->
+                    _state.update {
+                        it.copy(
+                            decidingRevision = false,
+                            errorMessage = err.toUserMessage(),
+                        )
+                    }
+                }
+        }
     }
 
     /**
