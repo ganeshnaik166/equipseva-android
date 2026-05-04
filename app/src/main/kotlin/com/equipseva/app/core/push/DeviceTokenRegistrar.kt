@@ -4,12 +4,13 @@ import com.equipseva.app.core.data.dao.DeviceTokenDao
 import com.equipseva.app.core.data.entities.DeviceTokenEntity
 import com.google.firebase.messaging.FirebaseMessaging
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -18,13 +19,6 @@ class DeviceTokenRegistrar @Inject constructor(
     private val dao: DeviceTokenDao,
     private val supabase: SupabaseClient,
 ) {
-
-    @Serializable
-    private data class DeviceTokenRow(
-        val user_id: String,
-        val platform: String,
-        val token: String,
-    )
 
     /**
      * Re-register the current FCM token under the signed-in user's id.
@@ -52,21 +46,20 @@ class DeviceTokenRegistrar @Inject constructor(
         val now = System.currentTimeMillis()
         dao.upsert(DeviceTokenEntity(token = token, registeredAt = now))
 
-        val userId = supabase.auth.currentUserOrNull()?.id ?: return
+        if (supabase.auth.currentUserOrNull()?.id == null) return
         runCatching {
-            // Shared-device hardening: when user A signs out and B signs in,
-            // A's revoke() may have failed silently (network glitch). Strip
-            // any other user's claim on this same FCM token before binding
-            // it to the current user — otherwise pushes meant for A would
-            // continue routing to B's physical device until the token
-            // rotates. This DELETE is owner-gated by RLS so it can only
-            // remove rows that belong to the caller (B); rows owned by A
-            // are deferred to the server-side dedupe in send_push.
-            supabase.from("device_tokens").delete {
-                filter { eq("token", token) }
-            }
-            supabase.from("device_tokens").upsert(
-                DeviceTokenRow(user_id = userId, platform = "android", token = token),
+            // SECURITY DEFINER RPC (migration 20260506110000) handles both
+            // "strip prior claim from another user" and "bind to me" atomically.
+            // The previous client-side delete + upsert pair started failing
+            // silently after migration 20260428320000 revoked DELETE on
+            // device_tokens for the authenticated role; the RPC restores the
+            // shared-device behaviour without re-opening that grant.
+            supabase.postgrest.rpc(
+                function = "register_device_token",
+                parameters = buildJsonObject {
+                    put("p_token", JsonPrimitive(token))
+                    put("p_platform", JsonPrimitive("android"))
+                },
             )
         }
     }
@@ -76,21 +69,19 @@ class DeviceTokenRegistrar @Inject constructor(
      * outgoing user stops receiving FCM messages on this device, and
      * wipes the local cached token so the next sign-in re-registers
      * cleanly. Must be called BEFORE [SupabaseAuthRepository.signOut]
-     * so the DELETE still has a valid auth session; runCatching on the
+     * so the RPC still has a valid auth session; runCatching on the
      * network call so a flaky connection doesn't block sign-out.
      */
     suspend fun revoke() {
-        val userId = supabase.auth.currentUserOrNull()?.id
         val cachedToken = runCatching { dao.current()?.token }.getOrNull()
-        if (userId != null && !cachedToken.isNullOrBlank()) {
+        if (supabase.auth.currentUserOrNull()?.id != null && !cachedToken.isNullOrBlank()) {
             runCatching {
-                supabase.from("device_tokens")
-                    .delete {
-                        filter {
-                            eq("user_id", userId)
-                            eq("token", cachedToken)
-                        }
-                    }
+                supabase.postgrest.rpc(
+                    function = "revoke_device_token",
+                    parameters = buildJsonObject {
+                        put("p_token", JsonPrimitive(cachedToken))
+                    },
+                )
             }
         }
         runCatching { dao.clear() }

@@ -1,5 +1,6 @@
 package com.equipseva.app.core.auth
 
+import com.equipseva.app.core.security.TamperPolicy
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.Google
@@ -16,6 +17,7 @@ import javax.inject.Singleton
 @Singleton
 class SupabaseAuthRepository @Inject constructor(
     private val client: SupabaseClient,
+    private val tamperPolicy: TamperPolicy,
 ) : AuthRepository {
 
     override val sessionState: Flow<AuthSession> =
@@ -98,6 +100,12 @@ class SupabaseAuthRepository @Inject constructor(
     }
 
     override suspend fun updatePassword(currentPassword: String, newPassword: String): Result<Unit> = runCatching {
+        // Anti-tamper gate: a Frida-hooked or repackaged APK can skip the local
+        // re-auth check by patching the catch block out. The Play Integrity
+        // attestation is server-verified, so a tampered client fails closed in
+        // release builds before the password mutation reaches Supabase.
+        tamperPolicy.enforce(action = "auth_change").getOrThrow()
+
         // Re-auth: verify the supplied current password against the active
         // session by attempting a fresh sign-in. Without this check an
         // unlocked-device attacker could swap the password and lock the
@@ -185,6 +193,10 @@ class SupabaseAuthRepository @Inject constructor(
     }
 
     override suspend fun updateEmail(currentPassword: String, newEmail: String): Result<Unit> = runCatching {
+        // See updatePassword: same anti-tamper rationale. Email change is the
+        // recovery-redirect vector, so this gate is the most important one.
+        tamperPolicy.enforce(action = "auth_change").getOrThrow()
+
         // Re-auth gate — same rationale as updatePassword. Without proof of
         // current credentials an attacker with an unlocked device could
         // redirect account recovery to an address they control.

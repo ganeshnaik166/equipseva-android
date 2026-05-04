@@ -10,6 +10,7 @@ import com.equipseva.app.core.observability.StartupTelemetry
 import com.equipseva.app.core.push.NotificationChannels
 import com.equipseva.app.core.security.DeviceIntegrityCheck
 import com.equipseva.app.core.security.SignatureVerifier
+import com.equipseva.app.core.security.TamperPolicy
 import com.equipseva.app.core.sync.OutboxScheduler
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -21,6 +22,7 @@ class EquipSevaApplication : Application(), Configuration.Provider {
     @Inject lateinit var sentryInitializer: SentryInitializer
     @Inject lateinit var sentryUserBridge: SentryUserBridge
     @Inject lateinit var outboxScheduler: OutboxScheduler
+    @Inject lateinit var tamperPolicy: TamperPolicy
 
     override fun onCreate() {
         super.onCreate()
@@ -41,12 +43,14 @@ class EquipSevaApplication : Application(), Configuration.Provider {
         // [OutboxScheduler.cancelAll].
         outboxScheduler.schedulePeriodic()
 
-        // Report-only anti-tamper: log signals on boot. Enforcement (wipe
-        // session + show "not authorized" screen) flips on once the release
-        // keystore lands and EXPECTED_CERT_SHA256 is filled in, and once the
-        // server-side Play Integrity verify endpoint ships.
+        // Anti-tamper signals captured once at boot and routed through
+        // [TamperPolicy.enforce] for any sensitive action (auth mutations,
+        // delete account, KYC submit). Today the signature signal only denies
+        // when EXPECTED_CERT_SHA256 is wired (see PENDING.md #14); the device
+        // integrity signal is informational until v2.
         val sigVerdict = SignatureVerifier.verify(this)
         val devVerdict = DeviceIntegrityCheck.run()
+        tamperPolicy.setSignatureVerdict(sigVerdict)
         Log.i(TAG, "Integrity boot: sig=$sigVerdict ${devVerdict.toTag()}")
     }
 

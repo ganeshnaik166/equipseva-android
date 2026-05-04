@@ -284,9 +284,28 @@ serve(async (req) => {
       if (tokenPkg && tokenPkg !== packageName) {
         googleErr = `package_name mismatch: expected ${packageName} got ${tokenPkg}`;
       } else {
-        device = payload.deviceIntegrity?.deviceRecognitionVerdict;
-        app = payload.appIntegrity?.appRecognitionVerdict;
-        licensing = payload.accountDetails?.appLicensingVerdict;
+        // Nonce binding — added with migration 20260506100000_play_integrity_challenges.
+        // Reject the token unless the nonce baked into it matches a single-use
+        // challenge we issued to *this* user for *this* action.
+        const tokenNonce = payload.requestDetails?.nonce;
+        if (!tokenNonce) {
+          googleErr = "nonce missing from decoded token";
+        } else {
+          const admin = createClient(supabaseUrl, serviceKey);
+          const { data: nonceStatus, error: nonceErr } = await admin.rpc(
+            "consume_integrity_challenge",
+            { p_nonce: tokenNonce, p_user_id: userId, p_action: action },
+          );
+          if (nonceErr) {
+            googleErr = `nonce check failed: ${nonceErr.message}`;
+          } else if (nonceStatus !== "ok") {
+            googleErr = `nonce ${nonceStatus}`;
+          } else {
+            device = payload.deviceIntegrity?.deviceRecognitionVerdict;
+            app = payload.appIntegrity?.appRecognitionVerdict;
+            licensing = payload.accountDetails?.appLicensingVerdict;
+          }
+        }
       }
     }
   } catch (e) {

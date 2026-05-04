@@ -8,6 +8,7 @@ import com.google.android.play.core.integrity.IntegrityTokenRequest
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
+import io.github.jan.supabase.postgrest.postgrest
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.Dispatchers
@@ -101,7 +102,12 @@ open class PlayIntegrityClient @Inject constructor(
     }
 
     private suspend fun runVerification(action: String): Boolean {
-        val token = requestToken()
+        // Server-issued nonce — bound to (user_id, action) and single-use, so a
+        // token harvested from another device or replayed against a different
+        // action is rejected at decode time. See migration
+        // 20260506100000_play_integrity_challenges.sql.
+        val nonce = requestServerNonce(action)
+        val token = requestToken(nonce)
         val res = supabase.functions.invoke(
             function = "verify-play-integrity",
             body = buildJsonObject {
@@ -119,19 +125,29 @@ open class PlayIntegrityClient @Inject constructor(
         return parsed.ok && parsed.pass
     }
 
+    private suspend fun requestServerNonce(action: String): String {
+        val raw = supabase.postgrest.rpc(
+            function = "request_integrity_challenge",
+            parameters = buildJsonObject {
+                put("p_action", JsonPrimitive(action))
+            },
+        ).data
+        // Postgres RPC returns the scalar wrapped in JSON quotes, e.g. "abc...".
+        val nonce = raw.trim().removeSurrounding("\"")
+        if (nonce.isEmpty()) {
+            throw IllegalStateException("request_integrity_challenge returned empty nonce")
+        }
+        return nonce
+    }
+
     /**
      * Bridges [IntegrityManager.requestIntegrityToken] (which exposes a Play
      * Tasks API) into a suspend function. Cancellation propagates: if the
      * caller is cancelled (e.g. checkout screen leaves), the Task is left
      * to complete on its own — there's no public cancel API for it.
      */
-    private suspend fun requestToken(): String = suspendCancellableCoroutine { cont ->
+    private suspend fun requestToken(nonce: String): String = suspendCancellableCoroutine { cont ->
         val manager = IntegrityManagerFactory.create(context.applicationContext)
-        // Nonce binds the token to *this* request. We use a per-call random
-        // nonce to make replay across calls harder. The server doesn't pin
-        // the nonce today — when it starts, switch this to an opaque value
-        // returned from the backend.
-        val nonce = generateNonce()
         val request = IntegrityTokenRequest.builder()
             .setNonce(nonce)
             .build()
@@ -142,15 +158,6 @@ open class PlayIntegrityClient @Inject constructor(
             .addOnFailureListener { error ->
                 if (cont.isActive) cont.resumeWithException(error)
             }
-    }
-
-    private fun generateNonce(): String {
-        val bytes = ByteArray(16)
-        java.security.SecureRandom().nextBytes(bytes)
-        return android.util.Base64.encodeToString(
-            bytes,
-            android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP or android.util.Base64.NO_PADDING,
-        )
     }
 
     @Serializable
