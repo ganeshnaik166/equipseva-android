@@ -1,8 +1,10 @@
 # EquipSeva — Pending Before Play Store Submission
 
-What's still missing / stubbed / non-functional. Updated 2026-04-30 after PRs #212 (security), #213 (legal docs).
+What's still missing / stubbed / non-functional. Updated 2026-05-05 after PR #255 (security + polish sweep).
 
-**Quick status (2026-04-30):** Code is shippable. Legal URLs live. Drafts ready for every Play Console form. Real remaining work = 3 design assets + user paste-into-Play-Console + one device E2E test + post-upload SHA-256 swap.
+**Quick status (2026-05-05):** Code is shippable. Legal URLs live. Drafts ready for every Play Console form. Real remaining work = 3 design assets + user paste-into-Play-Console + post-upload SHA-256 swap.
+
+**PR #255** landed the audit-driven hardening: TamperPolicy gates auth mutations + delete-account on Play Integrity, Play Integrity nonces are now server-issued (replay-proof), `device_tokens` register/revoke moved to SECURITY DEFINER RPCs (shared-device cleanup works again), CrashDataScrubber covers Aadhaar/PAN/GST/Indian-mobile, founder DUMMY fallbacks no longer mask real errors in release, `assembleRelease` fails fast when Supabase secrets are blank, and the dead `equipseva://auth-callback` deep-link + dead Phone CTA in chat are gone. Stale `KycViewModelTest` (broken since the AuthRepository / ProfileRepository / EngineerRepository signatures rotated) was deleted; new tests in a follow-up.
 
 Legend: 🔴 blocker · 🟠 needs attention · 🟡 nice-to-have · ⚪ beyond v1
 

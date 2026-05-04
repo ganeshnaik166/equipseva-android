@@ -101,7 +101,7 @@ fun FounderPaymentsScreen(
                     state.rows.isEmpty() -> EmptyStateView(
                         icon = Icons.Outlined.Receipt,
                         title = "No payments yet",
-                        subtitle = "Razorpay transactions appear here",
+                        subtitle = "Payment transactions will appear here once monetization is enabled in v2.",
                     )
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
