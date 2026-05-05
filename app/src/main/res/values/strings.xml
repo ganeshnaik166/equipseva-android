@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">EquipSeva</string>
+    <!--
+        Razorpay public Key ID. Live key flows per-request via the
+        create-amc-payment-order edge fn return value `key_id` and is
+        passed to Checkout.setKeyID() at launch. This value is here only
+        because the Razorpay SDK requires the meta-data tag to be
+        present at install time; the value itself is overridden at
+        runtime, so a blank placeholder is fine.
+    -->
+    <string name="razorpay_api_key" translatable="false"></string>
 </resources>

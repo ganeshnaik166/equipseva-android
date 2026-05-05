@@ -103,5 +103,14 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}" />
+
+        <!-- Razorpay Standard Checkout SDK init meta-data. Required to
+             be present at install time; the actual public Key ID is
+             passed per-request via Checkout.setKeyID() using the
+             `key_id` returned by the create-amc-payment-order edge fn,
+             so the placeholder string can stay blank. -->
+        <meta-data
+            android:name="com.razorpay.ApiKey"
+            android:value="@string/razorpay_api_key" />
     </application>
 </manifest>

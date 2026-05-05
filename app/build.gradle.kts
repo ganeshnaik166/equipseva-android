@@ -211,9 +211,12 @@ dependencies {
     // Sentry
     implementation(libs.sentry.android)
 
-    // Razorpay Standard Checkout — removed for v1 (free monetization, no
-    // payments). Keep the version catalog entry so v2 can re-add with
-    // a one-line `implementation(libs.razorpay.checkout)`.
+    // Razorpay Standard Checkout — re-added for v2.1 AMC monthly fee
+    // payments (PR-C6). Catalog entry already at version 1.6.41. Live
+    // key flows through the create-amc-payment-order edge fn return
+    // value `key_id`; the manifest meta-data placeholder is just to
+    // satisfy SDK init (the SDK reads key from Checkout.setKeyID()).
+    implementation(libs.razorpay.checkout)
 
     // SQLCipher for Room at-rest encryption.
     // Passphrase lives in Android Keystore (see DbPassphraseStore).
