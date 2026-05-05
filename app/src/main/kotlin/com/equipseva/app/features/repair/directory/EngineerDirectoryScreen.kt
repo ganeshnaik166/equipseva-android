@@ -46,12 +46,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.app.Application
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil3.compose.AsyncImage
+import com.equipseva.app.core.data.engineers.DirectorySortMode
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.fetchCurrentLocation
 import com.equipseva.app.designsystem.components.EsBottomSheet
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
@@ -92,6 +95,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class EngineerDirectoryViewModel @Inject constructor(
     private val repo: EngineerDirectoryRepository,
+    private val app: Application,
 ) : ViewModel() {
     data class UiState(
         val loading: Boolean = true,
@@ -100,6 +104,16 @@ class EngineerDirectoryViewModel @Inject constructor(
         val district: String = "All Telangana",
         val specialization: String? = null,
         val rows: List<EngineerDirectoryRepository.DirectoryRow> = emptyList(),
+        // Hospital location — null until either GPS resolves or we give
+        // up. When null, sortMode falls back to Rating regardless of
+        // user pick (no coords ⇒ no nearest sort).
+        val hospitalLat: Double? = null,
+        val hospitalLng: Double? = null,
+        // True while a fresh GPS fetch is in flight. Used to dim the
+        // "Nearest" sort chip until coords land so the user doesn't see
+        // it as a no-op tap.
+        val resolvingLocation: Boolean = false,
+        val sortMode: DirectorySortMode = DirectorySortMode.Rating,
     ) {
         val filteredRows: List<EngineerDirectoryRepository.DirectoryRow>
             get() = rows.filter { row ->
@@ -109,12 +123,23 @@ class EngineerDirectoryViewModel @Inject constructor(
                     row.specializations.orEmpty().any { it.equals(specialization, ignoreCase = true) }
                 matchesDistrict && matchesSpec
             }
+
+        /** True iff the server can return real distance values + a
+         * Nearest sort makes sense. */
+        val hasLocation: Boolean
+            get() = hospitalLat != null && hospitalLng != null
     }
 
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     init {
+        // Fetch GPS in parallel with the first directory load. Either
+        // races to completion: if location lands first, the next refresh
+        // (debounced query change OR explicit sort flip) picks it up.
+        // If the directory loads first with rating-sort, we re-sort on
+        // the next interaction once coords arrive — no UX flicker.
+        resolveLocationThenMaybeRefresh()
         refresh()
         _state
             .map { it.query.trim() }
@@ -132,13 +157,58 @@ class EngineerDirectoryViewModel @Inject constructor(
     fun onQueryChange(v: String) = _state.update { it.copy(query = v) }
     fun onDistrictChange(d: String) = _state.update { it.copy(district = d) }
     fun onSpecializationChange(s: String?) = _state.update { it.copy(specialization = s) }
+    fun onSortModeChange(mode: DirectorySortMode) {
+        _state.update { it.copy(sortMode = mode) }
+        refresh()
+    }
+
+    private fun resolveLocationThenMaybeRefresh() {
+        _state.update { it.copy(resolvingLocation = true) }
+        viewModelScope.launch {
+            val loc = fetchCurrentLocation(app)
+            val hadCoords = _state.value.hasLocation
+            _state.update {
+                it.copy(
+                    resolvingLocation = false,
+                    hospitalLat = loc?.latitude ?: it.hospitalLat,
+                    hospitalLng = loc?.longitude ?: it.hospitalLng,
+                    // Auto-flip default to Nearest the first time coords
+                    // arrive — only if user hasn't already picked a sort.
+                    sortMode = if (loc != null && !hadCoords && it.sortMode == DirectorySortMode.Rating) {
+                        DirectorySortMode.Nearest
+                    } else {
+                        it.sortMode
+                    },
+                )
+            }
+            // Re-fetch with coords now that we have them — the first
+            // search() call went out without lat/lng, so distance
+            // chips would be missing on the cards.
+            if (loc != null) refresh()
+        }
+    }
 
     private fun refresh() {
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
+            val s = _state.value
+            // Effective sort: if caller picked Nearest but we have no
+            // coords, fall back to Rating server-side (the SQL handles
+            // the null-coord case gracefully but this keeps the request
+            // explicit + cacheable).
+            val effectiveSort = if (s.sortMode == DirectorySortMode.Nearest && !s.hasLocation) {
+                DirectorySortMode.Rating
+            } else {
+                s.sortMode
+            }
             // Trim before sending — leading/trailing whitespace silently
             // missed real matches under server-side ILIKE / FTS rules.
-            repo.search(query = _state.value.query.trim().takeIf { it.isNotEmpty() })
+            repo.search(
+                query = s.query.trim().takeIf { it.isNotEmpty() },
+                hospitalLat = s.hospitalLat,
+                hospitalLng = s.hospitalLng,
+                sortMode = effectiveSort,
+            )
                 .onSuccess { rows ->
                     _state.update { it.copy(loading = false, rows = rows) }
                 }
@@ -342,7 +412,11 @@ fun EngineerDirectoryScreen(
         if (showFilters) {
             FilterSheet(
                 current = state.specialization,
+                sortMode = state.sortMode,
+                hasLocation = state.hasLocation,
+                resolvingLocation = state.resolvingLocation,
                 onPick = { viewModel.onSpecializationChange(it) },
+                onSortPick = { viewModel.onSortModeChange(it) },
                 onClose = { showFilters = false },
             )
         }
@@ -384,11 +458,55 @@ private fun EmptyEngineers() {
 @Composable
 private fun FilterSheet(
     current: String?,
+    sortMode: DirectorySortMode,
+    hasLocation: Boolean,
+    resolvingLocation: Boolean,
     onPick: (String?) -> Unit,
+    onSortPick: (DirectorySortMode) -> Unit,
     onClose: () -> Unit,
 ) {
     EsBottomSheet(onClose = onClose, title = "Filters") {
         Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "Sort by",
+                color = SevaInk700,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.height(8.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                // Nearest is offered always but greyed out + disabled
+                // when we have no coords — clearer than hiding it.
+                EsChip(
+                    text = if (resolvingLocation && !hasLocation) "Nearest…" else "Nearest",
+                    active = sortMode == DirectorySortMode.Nearest && hasLocation,
+                    onClick = {
+                        if (hasLocation) onSortPick(DirectorySortMode.Nearest)
+                    },
+                )
+                EsChip(
+                    text = "Top rated",
+                    active = sortMode == DirectorySortMode.Rating,
+                    onClick = { onSortPick(DirectorySortMode.Rating) },
+                )
+                EsChip(
+                    text = "Lowest price",
+                    active = sortMode == DirectorySortMode.PriceAsc,
+                    onClick = { onSortPick(DirectorySortMode.PriceAsc) },
+                )
+            }
+            if (!hasLocation && !resolvingLocation) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Enable location for distance-based sort",
+                    color = SevaInk500,
+                    fontSize = 11.sp,
+                )
+            }
+            Spacer(Modifier.height(16.dp))
             Text(
                 "Specialization",
                 color = SevaInk700,

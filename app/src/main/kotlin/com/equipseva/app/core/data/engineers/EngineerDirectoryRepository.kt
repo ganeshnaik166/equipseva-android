@@ -11,6 +11,14 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 
+/** Sort mode for [EngineerDirectoryRepository.search]. Mirrors the
+ * `p_sort_mode` parameter on `engineers_directory_search`. */
+enum class DirectorySortMode(val storageKey: String) {
+    Nearest("nearest"),
+    Rating("rating"),
+    PriceAsc("price_asc"),
+}
+
 /**
  * Public-read access to the engineer directory. Backed by two SECURITY
  * DEFINER RPCs in `20260427010000_engineers_directory_rpcs.sql` that
@@ -38,7 +46,9 @@ class EngineerDirectoryRepository @Inject constructor(
         @SerialName("hourly_rate") val hourlyRate: Double? = null,
         @SerialName("bio") val bio: String? = null,
         @SerialName("is_available") val isAvailable: Boolean = false,
-        @Transient val distanceKm: Double? = null,
+        // Server-populated when caller passes lat/lng to search(). Null
+        // when caller didn't pass coords or engineer has no base coords.
+        @SerialName("distance_km") val distanceKm: Double? = null,
         @Transient val completionPctOverride: Int? = null,
     )
 
@@ -87,6 +97,9 @@ class EngineerDirectoryRepository @Inject constructor(
         brand: String? = null,
         limit: Int = 50,
         offset: Int = 0,
+        hospitalLat: Double? = null,
+        hospitalLng: Double? = null,
+        sortMode: DirectorySortMode = DirectorySortMode.Rating,
     ): Result<List<DirectoryRow>> = runCatching {
         client.postgrest.rpc(
             function = "engineers_directory_search",
@@ -97,6 +110,9 @@ class EngineerDirectoryRepository @Inject constructor(
                 put("p_brand", brand?.let { JsonPrimitive(it) } ?: JsonNull)
                 put("p_limit", JsonPrimitive(limit))
                 put("p_offset", JsonPrimitive(offset))
+                put("p_hospital_lat", hospitalLat?.let { JsonPrimitive(it) } ?: JsonNull)
+                put("p_hospital_lng", hospitalLng?.let { JsonPrimitive(it) } ?: JsonNull)
+                put("p_sort_mode", JsonPrimitive(sortMode.storageKey))
             },
         ).decodeList<DirectoryRow>()
     }
