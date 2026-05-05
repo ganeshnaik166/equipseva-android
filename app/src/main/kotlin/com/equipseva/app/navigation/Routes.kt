@@ -136,4 +136,20 @@ object Routes {
     const val PROFILE_ADDRESS_FORM_ARG_ID = "addressId"
     fun addressFormRoute(addressId: String? = null): String =
         if (addressId == null) PROFILE_ADDRESS_FORM else "$PROFILE_ADDRESS_FORM?addressId=$addressId"
+
+    // v2.1 PR-C6 — AMC (Annual Maintenance Contract) surfaces.
+    // Hospital opens AMC_CONTRACTS_LIST from the Profile menu; from a
+    // verified engineer's public profile they can launch CREATE_AMC
+    // pre-filled with that engineer as primary; tapping a list row
+    // navigates to AMC_CONTRACT_DETAIL.
+    const val AMC_CONTRACTS_LIST = "amc/contracts"
+    const val AMC_CONTRACT_DETAIL = "amc/contract"
+    const val AMC_CONTRACT_DETAIL_ARG_ID = "contractId"
+    fun amcContractDetailRoute(contractId: String): String =
+        "$AMC_CONTRACT_DETAIL/$contractId"
+
+    const val CREATE_AMC = "amc/create"
+    const val CREATE_AMC_ARG_ENGINEER_ID = "engineerId"
+    fun createAmcRoute(engineerId: String): String =
+        "$CREATE_AMC/$engineerId"
 }

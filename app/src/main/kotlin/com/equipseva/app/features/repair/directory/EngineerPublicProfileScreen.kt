@@ -449,6 +449,7 @@ fun EngineerPublicProfileScreen(
     onRequestService: (engineerId: String) -> Unit,
     onOpenConversation: (conversationId: String) -> Unit = {},
     onShowMessage: (String) -> Unit = {},
+    onSetupMaintenance: (engineerId: String) -> Unit = {},
     viewModel: EngineerPublicProfileViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -573,6 +574,30 @@ fun EngineerPublicProfileScreen(
                                     size = EsBtnSize.Lg,
                                     full = true,
                                 )
+                            }
+                        }
+                        // PR-C6 secondary CTA — only hospitals see this.
+                        // Engineers browsing other engineers don't book
+                        // AMC contracts so the row is suppressed in
+                        // that case.
+                        if (state.viewerIsHospital) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                                    .padding(bottom = 12.dp),
+                            ) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    EsBtn(
+                                        text = "Set up monthly maintenance",
+                                        onClick = {
+                                            onSetupMaintenance(state.profile!!.engineerId)
+                                        },
+                                        kind = EsBtnKind.Lime,
+                                        size = EsBtnSize.Lg,
+                                        full = true,
+                                    )
+                                }
                             }
                         }
                     }

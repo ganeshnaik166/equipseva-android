@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Apartment
 import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.CurrencyRupee
 import androidx.compose.material.icons.outlined.Description
@@ -119,6 +120,7 @@ fun ProfileScreen(
     onOpenMyRepairJobs: () -> Unit = {},
     onOpenHelp: () -> Unit = {},
     onOpenPublicPreview: (engineerId: String) -> Unit = {},
+    onOpenMaintenanceContracts: () -> Unit = {},
     onSwitchService: () -> Unit = {},
     onSignIn: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -241,6 +243,7 @@ fun ProfileScreen(
                         onOpenMyRepairJobs = onOpenMyRepairJobs,
                         onOpenHelp = onOpenHelp,
                         onOpenPublicPreview = onOpenPublicPreview,
+                        onOpenMaintenanceContracts = onOpenMaintenanceContracts,
                         onSwitchService = viewModel::onToggleRoleAndGoHome,
                         onPickAvatar = viewModel::uploadAvatar,
                     )
@@ -331,6 +334,7 @@ private fun ProfileContent(
     onOpenMyRepairJobs: () -> Unit,
     onOpenHelp: () -> Unit,
     onOpenPublicPreview: (engineerId: String) -> Unit,
+    onOpenMaintenanceContracts: () -> Unit,
     onSwitchService: () -> Unit,
     onPickAvatar: (Uri) -> Unit,
 ) {
@@ -393,6 +397,7 @@ private fun ProfileContent(
             engineerStatus = state.engineerStatus,
             engineerKycSubmitted = state.engineerKycSubmitted,
             onOpenPublicPreview = onOpenPublicPreview,
+            onOpenMaintenanceContracts = onOpenMaintenanceContracts,
             onSwitchService = onSwitchService,
             onSignOut = onSignOut,
             signingOut = state.signingOut,
@@ -539,6 +544,7 @@ private fun buildProfileSections(
     engineerStatus: VerificationStatus?,
     engineerKycSubmitted: Boolean,
     onOpenPublicPreview: (engineerId: String) -> Unit,
+    onOpenMaintenanceContracts: () -> Unit,
     onSwitchService: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
@@ -559,6 +565,14 @@ private fun buildProfileSections(
             chipTone = if (phoneMissing) StatusTone.Warn else StatusTone.Neutral,
             trailing = phone.takeUnless { it.isNullOrBlank() },
             onClick = onOpenAddPhone,
+        ),
+        // v2.1 PR-C6 — Maintenance contracts (AMC). Visible to both
+        // hospital + engineer; the screen itself dispatches the right
+        // RPC based on active role.
+        SettingsRow(
+            icon = Icons.Outlined.CalendarMonth,
+            label = "Maintenance contracts",
+            onClick = onOpenMaintenanceContracts,
         ),
         SettingsRow(icon = Icons.Outlined.Notifications, label = "Notifications", onClick = onOpenNotifications),
         SettingsRow(icon = Icons.Outlined.Lock, label = "Change password", onClick = onOpenChangePassword),

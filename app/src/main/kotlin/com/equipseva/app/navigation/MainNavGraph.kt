@@ -96,6 +96,9 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.REPAIR_DETAIL,
     Routes.ENGINEER_DIRECTORY,
     Routes.ENGINEER_PUBLIC_PROFILE,
+    Routes.AMC_CONTRACTS_LIST,
+    Routes.AMC_CONTRACT_DETAIL,
+    Routes.CREATE_AMC,
     // ENGINEER_JOBS_HUB removed — it's now the engineer Jobs tab.
     Routes.CONVERSATIONS,
     Routes.CHAT_DETAIL,
@@ -386,6 +389,51 @@ fun MainNavGraph(
                         navController.navigate(Routes.chatRoute(conversationId))
                     },
                     onShowMessage = showSnackbar,
+                    onSetupMaintenance = { engineerId ->
+                        navController.navigate(Routes.createAmcRoute(engineerId))
+                    },
+                )
+            }
+            // v2.1 PR-C6 — AMC (Annual Maintenance Contract) surfaces.
+            composable(Routes.AMC_CONTRACTS_LIST) {
+                com.equipseva.app.features.amc.MaintenanceContractsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenContract = { contractId ->
+                        navController.navigate(Routes.amcContractDetailRoute(contractId))
+                    },
+                    onBrowseEngineers = {
+                        navController.navigate(Routes.ENGINEER_DIRECTORY)
+                    },
+                )
+            }
+            composable(
+                route = "${Routes.AMC_CONTRACT_DETAIL}/{${Routes.AMC_CONTRACT_DETAIL_ARG_ID}}",
+                arguments = listOf(
+                    navArgument(Routes.AMC_CONTRACT_DETAIL_ARG_ID) { type = NavType.StringType },
+                ),
+            ) {
+                com.equipseva.app.features.amc.AmcDetailScreen(
+                    onBack = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
+                )
+            }
+            composable(
+                route = "${Routes.CREATE_AMC}/{${Routes.CREATE_AMC_ARG_ENGINEER_ID}}",
+                arguments = listOf(
+                    navArgument(Routes.CREATE_AMC_ARG_ENGINEER_ID) { type = NavType.StringType },
+                ),
+            ) {
+                com.equipseva.app.features.amc.CreateAmcWizardScreen(
+                    onBack = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
+                    onCreated = { contractId ->
+                        navController.navigate(Routes.amcContractDetailRoute(contractId)) {
+                            // Pop the wizard so Back from detail goes
+                            // back to the engineer profile, not the
+                            // wizard.
+                            popUpTo(Routes.CREATE_AMC) { inclusive = true }
+                        }
+                    },
                 )
             }
             composable(Routes.PROFILE) {
@@ -404,6 +452,7 @@ fun MainNavGraph(
                     onOpenChangeEmail = { navController.navigate(Routes.CHANGE_EMAIL) },
                     onOpenEarnings = { navController.navigate(Routes.EARNINGS) },
                     onOpenMyRepairJobs = { navController.navigate(Routes.HOSPITAL_ACTIVE_JOBS) },
+                    onOpenMaintenanceContracts = { navController.navigate(Routes.AMC_CONTRACTS_LIST) },
                     onOpenPublicPreview = { engineerId ->
                         navController.navigate(Routes.engineerPublicProfileRoute(engineerId))
                     },

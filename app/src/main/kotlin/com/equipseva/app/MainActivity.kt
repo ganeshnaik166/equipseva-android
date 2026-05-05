@@ -17,14 +17,17 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.equipseva.app.core.data.prefs.ThemeMode
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.observability.StartupTelemetry
+import com.equipseva.app.core.payments.PaymentBridge
 import com.equipseva.app.designsystem.theme.EquipSevaTheme
 import com.equipseva.app.navigation.AppNavGraph
 import com.equipseva.app.navigation.DeepLinkRouter
+import com.razorpay.PaymentData
+import com.razorpay.PaymentResultWithDataListener
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
 
     @Inject lateinit var userPrefs: UserPrefs
     @Inject lateinit var deepLinkRouter: DeepLinkRouter
@@ -62,6 +65,22 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         deepLinkRouter.dispatch(intent)
+    }
+
+    // ---- Razorpay Standard Checkout result hooks (PR-C6 AMC payments).
+    //  The Razorpay SDK posts checkout outcomes back to the *calling
+    //  Activity*. Implementing PaymentResultWithDataListener here lets
+    //  us forward both callbacks straight into PaymentBridge, which the
+    //  RazorpayCheckoutLauncher uses to complete its CompletableDeferred.
+    override fun onPaymentSuccess(razorpayPaymentId: String?, paymentData: PaymentData?) {
+        PaymentBridge.completeSuccess(
+            razorpayPaymentId = razorpayPaymentId,
+            paymentDataJson = paymentData?.data?.toString(),
+        )
+    }
+
+    override fun onPaymentError(code: Int, response: String?, paymentData: PaymentData?) {
+        PaymentBridge.completeFailure(code = code, response = response)
     }
 
     private fun maybeRequestNotificationPermission() {
