@@ -1,5 +1,6 @@
 package com.equipseva.app.features.home
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
@@ -15,6 +16,7 @@ import com.equipseva.app.core.data.repair.RepairBidRepository
 import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.data.repair.RepairJobRepository
 import com.equipseva.app.core.data.repair.RepairJobStatus
+import com.equipseva.app.core.util.fetchCurrentLocation
 import com.equipseva.app.features.auth.UserRole
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
@@ -45,6 +47,7 @@ class HomeHubViewModel @Inject constructor(
     private val bidRepository: RepairBidRepository,
     private val engineerDirectoryRepository: EngineerDirectoryRepository,
     private val userPrefs: UserPrefs,
+    private val app: Application,
 ) : ViewModel() {
     data class UiState(
         val displayName: String? = null,
@@ -57,6 +60,12 @@ class HomeHubViewModel @Inject constructor(
         val activeCount: Int? = null,
         val pendingBidsCount: Int? = null,
         val nearbyEngineersCount: Int? = null,
+        // PR-B: hospital-only carousel of top-N engineers ranked by
+        // server-side match_score (proximity + specialization + rating).
+        // Empty until GPS resolves AND the RPC returns ≥1 row — caller
+        // hides the section gracefully so we never show an empty band.
+        val recommended: List<EngineerDirectoryRepository.RecommendedRow> = emptyList(),
+        val recommendedLoading: Boolean = false,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -153,6 +162,10 @@ class HomeHubViewModel @Inject constructor(
                     nearbyEngineersCount = engineers,
                 )
             }
+            // PR-B: kick off the recommended-engineers carousel fetch.
+            // Best-effort: GPS may not be granted, the RPC may return
+            // zero rows, etc. — the UI just hides the section.
+            loadRecommendedCarousel()
         }
         notifJob?.cancel()
         notifJob = viewModelScope.launch {
@@ -160,6 +173,38 @@ class HomeHubViewModel @Inject constructor(
                 .catch { /* swallow stream errors — Recent Activity is informational */ }
                 .collect { list ->
                     _state.update { it.copy(recent = list.take(3)) }
+                }
+        }
+    }
+
+    /**
+     * PR-B: pull top-N recommended engineers for the hospital home
+     * carousel. Requires GPS — when permission is missing or no fix
+     * arrives within the timeout, [recommended] stays empty and the
+     * UI falls back to the static "Book a repair engineer" tile.
+     * Equipment category is left null on the home call (no per-job
+     * context); the SQL ranks on proximity + rating only.
+     */
+    private fun loadRecommendedCarousel() {
+        viewModelScope.launch {
+            _state.update { it.copy(recommendedLoading = true) }
+            val loc = fetchCurrentLocation(app)
+            if (loc == null) {
+                _state.update { it.copy(recommendedLoading = false, recommended = emptyList()) }
+                return@launch
+            }
+            engineerDirectoryRepository
+                .recommendedEngineers(
+                    hospitalLat = loc.latitude,
+                    hospitalLng = loc.longitude,
+                    equipmentCategory = null,
+                    limit = 5,
+                )
+                .onSuccess { rows ->
+                    _state.update { it.copy(recommendedLoading = false, recommended = rows) }
+                }
+                .onFailure {
+                    _state.update { it.copy(recommendedLoading = false, recommended = emptyList()) }
                 }
         }
     }

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -69,8 +70,10 @@ import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk600
 import com.equipseva.app.designsystem.theme.SevaInk700
 import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.designsystem.components.EsChip
 import com.equipseva.app.features.repair.components.CallConnectingDialog
 import com.equipseva.app.features.repair.components.MaskedContactPanel
+import com.equipseva.app.features.repair.components.RepeatBookingNudge
 import com.equipseva.app.features.repair.components.ServiceAreaMap
 import com.equipseva.app.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -105,6 +108,15 @@ class EngineerPublicProfileViewModel @Inject constructor(
         val openingChat: Boolean = false,
         val reviews: List<EngineerDirectoryRepository.EngineerReview> = emptyList(),
         val reviewsLoading: Boolean = false,
+        // PR-B: per-category review aggregates rendered as pills above
+        // the Reviews section. Empty until the RPC returns.
+        val reviewCategorySummary: List<EngineerDirectoryRepository.CategoryReviewSummary> = emptyList(),
+        // PR-B: alternatives shown by the repeat-booking nudge when
+        // this engineer is far away AND viewer has booked them before.
+        // Empty unless the nudge gate is active.
+        val nudgeAlternatives: List<EngineerDirectoryRepository.RecommendedRow> = emptyList(),
+        val nudgeDistanceKm: Double? = null,
+        val nudgeDismissed: Boolean = false,
         // v2 phone-masking — set while request-call-session is in
         // flight + while we hold the dialog open after a successful
         // bridge so the user can read the "your phone will ring" copy.
@@ -155,6 +167,10 @@ class EngineerPublicProfileViewModel @Inject constructor(
             repo.fetchRecentReviews(engineerId, limit = 10)
                 .onSuccess { rows -> _state.update { it.copy(reviewsLoading = false, reviews = rows) } }
                 .onFailure { _state.update { it.copy(reviewsLoading = false) } }
+            // PR-B: per-category aggregates for the pills row. Failure
+            // is silent — pills row collapses to nothing.
+            repo.fetchReviewSummaryByCategory(engineerId)
+                .onSuccess { rows -> _state.update { it.copy(reviewCategorySummary = rows) } }
             resolveCallContext()
         }
     }
@@ -297,6 +313,34 @@ class EngineerPublicProfileViewModel @Inject constructor(
 
     fun dismissCallConnecting() {
         _state.update { it.copy(callConnectingMessage = null) }
+    }
+
+    /**
+     * PR-B test trigger for the repeat-booking nudge. The real frequency
+     * rule (booked >=3 times AND >50km) is a follow-up. For now the caller
+     * (eg. an internal QA toggle) hands us the engineer's distance + a
+     * pre-fetched alternatives list and the component renders.
+     *
+     * The hospital coords used to compute distance and alternatives must
+     * be resolved by the caller; we don't refetch GPS here so the nudge
+     * stays cheap to mount.
+     */
+    fun primeRepeatBookingNudge(
+        engineerDistanceKm: Double,
+        alternatives: List<EngineerDirectoryRepository.RecommendedRow>,
+    ) {
+        if (engineerDistanceKm < 50.0) return
+        _state.update {
+            it.copy(
+                nudgeAlternatives = alternatives,
+                nudgeDistanceKm = engineerDistanceKm,
+                nudgeDismissed = false,
+            )
+        }
+    }
+
+    fun dismissRepeatBookingNudge() {
+        _state.update { it.copy(nudgeDismissed = true) }
     }
 }
 
@@ -474,6 +518,18 @@ fun EngineerPublicProfileScreen(
                         onOpenChat = { viewModel.openChatWithEngineer() },
                         reviews = state.reviews,
                         reviewsLoading = state.reviewsLoading,
+                        categorySummary = state.reviewCategorySummary,
+                        nudgeAlternatives = if (state.nudgeDismissed) emptyList() else state.nudgeAlternatives,
+                        nudgeDistanceKm = state.nudgeDistanceKm,
+                        onPickAlternative = { id ->
+                            viewModel.dismissRepeatBookingNudge()
+                            // nav handled at top-level via onRequestService
+                            // -ish path is OK; here we just dismiss and let
+                            // the caller's onRequestService relaunch the
+                            // profile route for the picked engineer.
+                            onRequestService(id)
+                        },
+                        onDismissNudge = { viewModel.dismissRepeatBookingNudge() },
                     )
                 }
             }
@@ -537,6 +593,11 @@ private fun ProfileBody(
     onOpenChat: () -> Unit,
     reviews: List<EngineerDirectoryRepository.EngineerReview>,
     reviewsLoading: Boolean,
+    categorySummary: List<EngineerDirectoryRepository.CategoryReviewSummary>,
+    nudgeAlternatives: List<EngineerDirectoryRepository.RecommendedRow>,
+    nudgeDistanceKm: Double?,
+    onPickAlternative: (engineerId: String) -> Unit,
+    onDismissNudge: () -> Unit,
 ) {
     val hasRelationship = !p.phone.isNullOrBlank() || !p.email.isNullOrBlank()
     Column(
@@ -832,7 +893,25 @@ private fun ProfileBody(
 
         Spacer(Modifier.height(16.dp))
 
-        ReviewsSection(reviews = reviews, loading = reviewsLoading)
+        ReviewsSection(
+            reviews = reviews,
+            loading = reviewsLoading,
+            categorySummary = categorySummary,
+        )
+
+        // PR-B: repeat-booking nudge — only renders if alternatives are
+        // present. Sits above the sticky CTA so a hospital scrolling to
+        // tap "Request this engineer" sees it on the way down.
+        if (nudgeAlternatives.isNotEmpty() && nudgeDistanceKm != null) {
+            Spacer(Modifier.height(12.dp))
+            RepeatBookingNudge(
+                engineerName = p.fullName,
+                distanceKm = nudgeDistanceKm,
+                alternatives = nudgeAlternatives,
+                onPickAlternative = onPickAlternative,
+                onDismiss = onDismissNudge,
+            )
+        }
 
         Spacer(Modifier.height(16.dp))
     }
@@ -842,11 +921,32 @@ private fun ProfileBody(
 private fun ReviewsSection(
     reviews: List<EngineerDirectoryRepository.EngineerReview>,
     loading: Boolean,
+    categorySummary: List<EngineerDirectoryRepository.CategoryReviewSummary>,
 ) {
     // Header is always rendered so the layout doesn't jump when reviews
     // arrive a moment later than the profile body. Empty + loading both
     // collapse to a one-liner.
     EsSection(title = "Recent reviews") {
+        // PR-B: per-category aggregate pills rendered above the review
+        // list. One pill per category with non-zero reviews. Hidden
+        // when the RPC has nothing to render.
+        if (categorySummary.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                categorySummary.forEach { sum ->
+                    EsChip(
+                        text = "${prettyKey(sum.equipmentCategory)} · ${sum.reviewCount} · ${"%.1f".format(sum.ratingAvg)}★",
+                        active = false,
+                    )
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+        }
         when {
             loading && reviews.isEmpty() -> Text(
                 text = "Loading reviews…",
@@ -902,6 +1002,18 @@ private fun ReviewItem(r: EngineerDirectoryRepository.EngineerReview) {
                 color = SevaInk500,
                 fontSize = 11.sp,
             )
+        }
+        // PR-B: tiny category chip when the review has an associated
+        // equipment category. Hidden if the field is null/blank.
+        r.equipmentCategory?.takeIf { it.isNotBlank() }?.let { cat ->
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Paper2)
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
+            ) {
+                Text(prettyKey(cat), color = SevaInk600, fontSize = 10.sp)
+            }
         }
         if (r.review.isNotBlank()) {
             Text(

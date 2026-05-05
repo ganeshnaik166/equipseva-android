@@ -5,6 +5,7 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import javax.inject.Inject
@@ -32,10 +33,17 @@ class SupabaseRepairBidRepository @Inject constructor(
     }
 
     override suspend fun fetchBidsForJob(jobId: String): Result<List<RepairBid>> = runCatching {
-        client.from(TABLE).select {
-            filter { eq("repair_job_id", jobId) }
-            order("created_at", order = Order.ASCENDING)
-        }.decodeList<RepairBidDto>().map(RepairBidDto::toDomain)
+        // PR-B: replaces the direct table SELECT with the enrichment RPC
+        // so each bid card carries engineer name/avatar/rating/city +
+        // distance_km without a per-row profile fetch. The RPC is RLS-
+        // wrapped — it returns the same row scope the table SELECT did
+        // (engineer sees own; hospital sees every bid on owned jobs).
+        client.postgrest.rpc(
+            function = "list_repair_job_bids_with_distance",
+            parameters = buildJsonObject {
+                put("p_repair_job_id", JsonPrimitive(jobId))
+            },
+        ).decodeList<RepairBidWithDistanceDto>().map(RepairBidWithDistanceDto::toDomain)
     }
 
     override suspend fun placeBid(

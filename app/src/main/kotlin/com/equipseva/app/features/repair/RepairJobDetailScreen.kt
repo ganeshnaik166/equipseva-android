@@ -881,13 +881,28 @@ private fun BidCard(
                 .background(BorderDefault),
         )
         Spacer(Modifier.height(8.dp))
-        val etaText = bid.etaHours?.let { "ETA: ${it}h" } ?: "ETA: —"
-        Text(
-            text = etaText,
-            fontSize = 12.sp,
-            color = SevaInk600,
-            lineHeight = 17.sp,
-        )
+        // PR-B: ETA + distance chip line. Distance comes from the new
+        // list_repair_job_bids_with_distance RPC; null when the engineer
+        // has no base coords or the job has no site coords — chip hides.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            val etaText = bid.etaHours?.let { "ETA: ${it}h" } ?: "ETA: —"
+            Text(
+                text = etaText,
+                fontSize = 12.sp,
+                color = SevaInk600,
+                lineHeight = 17.sp,
+            )
+            bid.distanceKm?.let { km ->
+                Text(
+                    text = "· ${"%.1f".format(km)} km away",
+                    fontSize = 12.sp,
+                    color = SevaInk500,
+                )
+            }
+        }
         if (!bid.note.isNullOrBlank()) {
             Text(
                 text = bid.note,

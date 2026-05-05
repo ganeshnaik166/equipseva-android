@@ -299,6 +299,9 @@ fun MainNavGraph(
                     onOpenMessages = { navController.navigate(Routes.CONVERSATIONS) },
                     onOpenActiveWork = { navController.navigate(Routes.ACTIVE_WORK) },
                     onOpenEarnings = { navController.navigate(Routes.EARNINGS) },
+                    onOpenEngineerProfile = { id ->
+                        navController.navigate(Routes.engineerPublicProfileRoute(id))
+                    },
                 )
             }
             composable(Routes.REPAIR) {

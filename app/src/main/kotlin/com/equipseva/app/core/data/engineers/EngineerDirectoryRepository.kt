@@ -62,6 +62,51 @@ class EngineerDirectoryRepository @Inject constructor(
         // purpose so reviews stay anonymized when shown to other
         // hospitals browsing the directory.
         @SerialName("hospital_city") val hospitalCity: String? = null,
+        // PR-B: equipment_category added to engineer_recent_reviews
+        // return shape so review cards can render the category chip.
+        // Default null keeps forward compat if the column is absent
+        // (older RPC version → silently hides the chip).
+        @SerialName("equipment_category") val equipmentCategory: String? = null,
+    )
+
+    /**
+     * Row from `recommended_engineers_for_hospital`. Same shape as
+     * [DirectoryRow] plus a server-side relevance score in 0..100.
+     * Used to back the hospital-home carousel + the repeat-booking
+     * nudge alternatives. Sort is already match_score DESC server-side.
+     */
+    @Serializable
+    data class RecommendedRow(
+        @SerialName("engineer_id") val engineerId: String,
+        @SerialName("user_id") val userId: String? = null,
+        @SerialName("full_name") val fullName: String,
+        @SerialName("avatar_url") val avatarUrl: String? = null,
+        @SerialName("city") val city: String? = null,
+        @SerialName("state") val state: String? = null,
+        @SerialName("service_areas") val serviceAreas: List<String>? = null,
+        @SerialName("specializations") val specializations: List<String>? = null,
+        @SerialName("brands_serviced") val brandsServiced: List<String>? = null,
+        @SerialName("experience_years") val experienceYears: Int = 0,
+        @SerialName("rating_avg") val ratingAvg: Double = 0.0,
+        @SerialName("total_jobs") val totalJobs: Int = 0,
+        @SerialName("hourly_rate") val hourlyRate: Double? = null,
+        @SerialName("bio") val bio: String? = null,
+        @SerialName("is_available") val isAvailable: Boolean = false,
+        @SerialName("distance_km") val distanceKm: Double? = null,
+        @SerialName("match_score") val matchScore: Double = 0.0,
+    )
+
+    /**
+     * Per-category review aggregate for an engineer profile. Source:
+     * `engineer_review_summary_by_category(p_engineer_id)`. One row per
+     * `equipment_category` with non-zero reviews. Drives the pills
+     * row above the Reviews section ("Patient Monitoring · 5 · 4.9★").
+     */
+    @Serializable
+    data class CategoryReviewSummary(
+        @SerialName("equipment_category") val equipmentCategory: String,
+        @SerialName("review_count") val reviewCount: Int = 0,
+        @SerialName("rating_avg") val ratingAvg: Double = 0.0,
     )
 
     @Serializable
@@ -142,5 +187,49 @@ class EngineerDirectoryRepository @Inject constructor(
                 put("p_limit", JsonPrimitive(limit))
             },
         ).decodeList<EngineerReview>()
+    }
+
+    /**
+     * PR-B: top-N recommended engineers for a hospital, ranked by
+     * server-side match_score (proximity + specialization overlap +
+     * rating). [equipmentCategory] is optional — when provided, the
+     * server biases the score toward engineers who have completed
+     * jobs in that category. Used by the hospital-home carousel.
+     */
+    suspend fun recommendedEngineers(
+        hospitalLat: Double,
+        hospitalLng: Double,
+        equipmentCategory: String? = null,
+        limit: Int = 5,
+    ): Result<List<RecommendedRow>> = runCatching {
+        client.postgrest.rpc(
+            function = "recommended_engineers_for_hospital",
+            parameters = buildJsonObject {
+                put("p_hospital_lat", JsonPrimitive(hospitalLat))
+                put("p_hospital_lng", JsonPrimitive(hospitalLng))
+                put(
+                    "p_equipment_category",
+                    equipmentCategory?.let { JsonPrimitive(it) } ?: JsonNull,
+                )
+                put("p_limit", JsonPrimitive(limit))
+            },
+        ).decodeList<RecommendedRow>()
+    }
+
+    /**
+     * PR-B: per-category review aggregates for the engineer profile.
+     * Returns one row per `equipment_category` the engineer has been
+     * rated on. Caller renders these as pills above the Reviews
+     * section so a hospital can scan trust by category at a glance.
+     */
+    suspend fun fetchReviewSummaryByCategory(
+        engineerId: String,
+    ): Result<List<CategoryReviewSummary>> = runCatching {
+        client.postgrest.rpc(
+            function = "engineer_review_summary_by_category",
+            parameters = buildJsonObject {
+                put("p_engineer_id", JsonPrimitive(engineerId))
+            },
+        ).decodeList<CategoryReviewSummary>()
     }
 }
