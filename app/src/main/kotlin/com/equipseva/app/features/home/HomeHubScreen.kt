@@ -44,11 +44,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.width
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import com.equipseva.app.R
+import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.designsystem.components.EsSection
+import com.equipseva.app.designsystem.components.InlineStars
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
 import com.equipseva.app.designsystem.theme.BorderDefault
@@ -83,6 +88,7 @@ fun HomeHubScreen(
     onOpenMessages: () -> Unit = {},
     onOpenActiveWork: () -> Unit = {},
     onOpenEarnings: () -> Unit = {},
+    onOpenEngineerProfile: (engineerId: String) -> Unit = {},
     viewModel: HomeHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -117,6 +123,19 @@ fun HomeHubScreen(
             }
 
             Spacer(Modifier.height(8.dp))
+
+            // PR-B: hospital home carousel of top-N recommended engineers.
+            // Hidden gracefully when no GPS / no rows so we never render
+            // an empty band. The static "Book a repair engineer" tile
+            // below remains the always-on fallback path.
+            if (role == UserRole.HOSPITAL && state.recommended.isNotEmpty()) {
+                RecommendedEngineersCarousel(
+                    rows = state.recommended,
+                    onPick = onOpenEngineerProfile,
+                    onSeeAll = onOpenBookRepair,
+                )
+                Spacer(Modifier.height(4.dp))
+            }
 
             // Tiles — role-aware per design (`screens-home.jsx:103-140`).
             Column(
@@ -477,6 +496,118 @@ private fun ActivityRow(
         }
         if (!isLast) {
             Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(BorderDefault))
+        }
+    }
+}
+
+@Composable
+private fun RecommendedEngineersCarousel(
+    rows: List<EngineerDirectoryRepository.RecommendedRow>,
+    onPick: (engineerId: String) -> Unit,
+    onSeeAll: () -> Unit,
+) {
+    EsSection(
+        title = "Verified engineers near you",
+        action = "See all",
+        onAction = onSeeAll,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            rows.forEach { row ->
+                RecommendedEngineerCard(row = row, onPick = { onPick(row.engineerId) })
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecommendedEngineerCard(
+    row: EngineerDirectoryRepository.RecommendedRow,
+    onPick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .width(220.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(14.dp))
+            .clickable(onClick = onPick)
+            .padding(12.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.linearGradient(listOf(SevaGreen700, SevaGreen900)),
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (!row.avatarUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = row.avatarUrl,
+                        contentDescription = null,
+                        modifier = Modifier.size(44.dp).clip(CircleShape),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    )
+                } else {
+                    Text(
+                        text = row.fullName.take(2).uppercase(),
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                    )
+                }
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = row.fullName,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = SevaInk900,
+                    maxLines = 1,
+                )
+                val parts = listOfNotNull(
+                    row.city,
+                    row.distanceKm?.let { "${"%.1f".format(it)} km" },
+                )
+                if (parts.isNotEmpty()) {
+                    Text(
+                        text = parts.joinToString(" · "),
+                        fontSize = 11.sp,
+                        color = SevaInk500,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            InlineStars(rating = row.ratingAvg, count = row.totalJobs, small = true)
+            Text(
+                text = "Book",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = SevaGreen700,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(SevaGreen50)
+                    .clickable(onClick = onPick)
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            )
         }
     }
 }
