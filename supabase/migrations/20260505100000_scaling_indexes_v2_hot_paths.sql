@@ -21,11 +21,11 @@
 -- ---------------------------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_engineers_verified_rating
   ON public.engineers (rating_avg DESC, total_jobs DESC)
-  WHERE coalesce(verification_status::text, 'pending') = 'verified';
+  WHERE verification_status = 'verified';
 
 CREATE INDEX IF NOT EXISTS idx_engineers_city_verified
   ON public.engineers (city, rating_avg DESC)
-  WHERE coalesce(verification_status::text, 'pending') = 'verified';
+  WHERE verification_status = 'verified';
 
 -- Trigram-style ILIKE search on full_name lives on profiles, not
 -- engineers — but the directory RPC joins through engineers.user_id
@@ -42,14 +42,14 @@ CREATE INDEX IF NOT EXISTS idx_engineers_city_verified
 -- ---------------------------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_repair_jobs_status_open
   ON public.repair_jobs (status, created_at DESC)
-  WHERE status::text IN ('requested', 'assigned');
+  WHERE status IN ('requested', 'assigned');
 
 CREATE INDEX IF NOT EXISTS idx_repair_jobs_hospital_user_status
   ON public.repair_jobs (hospital_user_id, status, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_repair_jobs_engineer_completed
   ON public.repair_jobs (engineer_id, completed_at DESC)
-  WHERE status::text = 'completed' AND engineer_id IS NOT NULL;
+  WHERE status = 'completed' AND engineer_id IS NOT NULL;
 
 -- engineer_recent_reviews: filter is (engineer_id, status='completed',
 -- hospital_review IS NOT NULL), order by completed_at DESC. The above
@@ -57,7 +57,7 @@ CREATE INDEX IF NOT EXISTS idx_repair_jobs_engineer_completed
 -- so the planner skips rated-but-no-text rows.
 CREATE INDEX IF NOT EXISTS idx_repair_jobs_engineer_completed_with_review
   ON public.repair_jobs (engineer_id, completed_at DESC)
-  WHERE status::text = 'completed'
+  WHERE status = 'completed'
     AND engineer_id IS NOT NULL
     AND hospital_review IS NOT NULL;
 
