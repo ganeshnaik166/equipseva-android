@@ -62,7 +62,10 @@ object NotificationDeepLink {
             KIND_COST_REVISION_REJECTED,
             // PR-D9: 30-day warranty auto-flag — open the new job's
             // detail screen where the badge + waiver explanation lives.
-            KIND_WARRANTY_COVERED ->
+            // PR-D12: engineer-side fee-waiver notification — same
+            // destination (job detail surfaces the warranty banner).
+            KIND_WARRANTY_COVERED,
+            KIND_WARRANTY_FEE_WAIVED ->
                 data["repair_job_id"]?.takeIfUuid()?.let(Routes::repairJobDetailRoute)
             // KYC is a single-user screen — no id needed in payload, just open it.
             KIND_KYC_STATUS_CHANGED -> Routes.KYC
@@ -100,4 +103,7 @@ object NotificationDeepLink {
     // PR-D9 — 30-day platform warranty auto-detection. Trigger fires
     // on INSERT when the new job matches a recently completed repair.
     const val KIND_WARRANTY_COVERED = "warranty_covered"
+    // PR-D12 — engineer learns the platform absorbed the commission
+    // on a warranty re-visit (their payout = full contracted amount).
+    const val KIND_WARRANTY_FEE_WAIVED = "warranty_fee_waived"
 }

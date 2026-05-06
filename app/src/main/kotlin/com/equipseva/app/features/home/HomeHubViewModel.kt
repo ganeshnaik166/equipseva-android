@@ -8,6 +8,7 @@ import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.cashsurvey.CashSurveyRepository
+import com.equipseva.app.core.data.commissiontier.CommissionTierRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.notifications.Notification
 import com.equipseva.app.core.data.notifications.NotificationRepository
@@ -48,6 +49,7 @@ class HomeHubViewModel @Inject constructor(
     private val bidRepository: RepairBidRepository,
     private val engineerDirectoryRepository: EngineerDirectoryRepository,
     private val cashSurveyRepository: CashSurveyRepository,
+    private val commissionTierRepository: CommissionTierRepository,
     private val userPrefs: UserPrefs,
     private val app: Application,
 ) : ViewModel() {
@@ -72,6 +74,9 @@ class HomeHubViewModel @Inject constructor(
         // hospital has a completed job 24h..7d old without a survey row;
         // home renders a one-question bottom-sheet on the next foreground.
         val pendingCashSurvey: CashSurveyRepository.PendingSurvey? = null,
+        // PR-D15: hospital loyalty progress pill — non-null when the
+        // get_my_commission_tier RPC returns a row.
+        val commissionTier: CommissionTierRepository.TierInfo? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -177,6 +182,11 @@ class HomeHubViewModel @Inject constructor(
             // simply doesn't appear if the call fails.
             cashSurveyRepository.fetchPending().onSuccess { pending ->
                 _state.update { it.copy(pendingCashSurvey = pending) }
+            }
+            // PR-D15: pull the hospital's commission-tier progress
+            // (PR-D2 RPC). Quiet on errors — pill just won't render.
+            commissionTierRepository.fetchMyTier().onSuccess { tier ->
+                _state.update { it.copy(commissionTier = tier) }
             }
         }
         notifJob?.cancel()
