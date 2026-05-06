@@ -21,6 +21,7 @@ import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobRepository
+import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
 import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.data.servicereport.ServiceReportRepository
@@ -65,6 +66,7 @@ class RepairJobDetailViewModel @Inject constructor(
     private val storageRepository: StorageRepository,
     private val costRevisionRepository: com.equipseva.app.core.data.repair.CostRevisionRepository,
     private val serviceReportRepository: ServiceReportRepository,
+    private val escrowRepository: RepairJobEscrowRepository,
     private val json: Json,
 ) : ViewModel() {
 
@@ -126,6 +128,12 @@ class RepairJobDetailViewModel @Inject constructor(
         val submittingReport: Boolean = false,
         // PR-D3 — generate-service-report edge function call in flight.
         val generatingServiceReport: Boolean = false,
+        // PR-D5 — per-job escrow row + in-flight action flags.
+        val escrow: RepairJobEscrowRepository.EscrowRow? = null,
+        val confirmingEscrowRelease: Boolean = false,
+        val openingEscrowDispute: Boolean = false,
+        val escrowDisputeSheetOpen: Boolean = false,
+        val escrowPaymentSheetOpen: Boolean = false,
         /** Open the completion-proof picker sheet (engineer-side, on Mark Done). */
         val proofSheetOpen: Boolean = false,
         /** True while we're enqueuing photos + flipping the status row. */
@@ -241,6 +249,58 @@ class RepairJobDetailViewModel @Inject constructor(
                 }
                 .onFailure { err ->
                     _state.update { it.copy(generatingServiceReport = false) }
+                    _messages.send(err.toUserMessage())
+                }
+        }
+    }
+
+    /** PR-D5: refresh per-job escrow state (no-op on no row). */
+    fun refreshEscrow() {
+        viewModelScope.launch {
+            escrowRepository.fetchByJob(jobId).onSuccess { row ->
+                _state.update { it.copy(escrow = row) }
+            }
+        }
+    }
+
+    fun openEscrowPaymentSheet() = _state.update { it.copy(escrowPaymentSheetOpen = true) }
+    fun closeEscrowPaymentSheet() = _state.update { it.copy(escrowPaymentSheetOpen = false) }
+    fun openEscrowDisputeSheet() = _state.update { it.copy(escrowDisputeSheetOpen = true) }
+    fun closeEscrowDisputeSheet() = _state.update { it.copy(escrowDisputeSheetOpen = false) }
+
+    /** Hospital releases escrow early after completion. */
+    fun confirmEscrowRelease() {
+        if (_state.value.confirmingEscrowRelease) return
+        _state.update { it.copy(confirmingEscrowRelease = true) }
+        viewModelScope.launch {
+            escrowRepository.confirmRelease(jobId)
+                .onSuccess {
+                    _state.update { it.copy(confirmingEscrowRelease = false) }
+                    _messages.send("Released to engineer.")
+                    refreshEscrow()
+                }
+                .onFailure { err ->
+                    _state.update { it.copy(confirmingEscrowRelease = false) }
+                    _messages.send(err.toUserMessage())
+                }
+        }
+    }
+
+    /** Hospital opens a dispute (within 48h of completion). */
+    fun openEscrowDispute(reason: String) {
+        if (_state.value.openingEscrowDispute) return
+        _state.update { it.copy(openingEscrowDispute = true) }
+        viewModelScope.launch {
+            escrowRepository.openDispute(jobId, reason)
+                .onSuccess {
+                    _state.update {
+                        it.copy(openingEscrowDispute = false, escrowDisputeSheetOpen = false)
+                    }
+                    _messages.send("Dispute opened — our team will review.")
+                    refreshEscrow()
+                }
+                .onFailure { err ->
+                    _state.update { it.copy(openingEscrowDispute = false) }
                     _messages.send(err.toUserMessage())
                 }
         }
@@ -803,6 +863,7 @@ class RepairJobDetailViewModel @Inject constructor(
                         )
                     }
                     job?.let { resolvePhotoSignedUrls(it) }
+                    if (job != null) refreshEscrow()
                 },
                 onFailure = { ex ->
                     _state.update {
