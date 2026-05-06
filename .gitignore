@@ -33,6 +33,9 @@ captures/
 # Claude Code local project cache
 .claude/
 
+# Supabase CLI local cache (linked-project.json, version pins, etc.)
+supabase/.temp/
+
 # OS
 .DS_Store
 Thumbs.db
