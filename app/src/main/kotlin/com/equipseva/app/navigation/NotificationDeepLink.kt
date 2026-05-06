@@ -63,6 +63,11 @@ object NotificationDeepLink {
                 data["repair_job_id"]?.takeIfUuid()?.let(Routes::repairJobDetailRoute)
             // KYC is a single-user screen — no id needed in payload, just open it.
             KIND_KYC_STATUS_CHANGED -> Routes.KYC
+            // PR-D8: loyal hospital→engineer pair AMC upsell. Deep-links
+            // to the engineer's public profile, which hosts the
+            // "Set up monthly maintenance" CTA shipped in PR-C6.
+            KIND_AMC_LOYAL_PAIR_NUDGE ->
+                data["engineer_id"]?.takeIfUuid()?.let(Routes::engineerPublicProfileRoute)
             else -> null
         }
     }
@@ -86,4 +91,7 @@ object NotificationDeepLink {
     const val KIND_COST_REVISION_PROPOSED = "cost_revision_proposed"
     const val KIND_COST_REVISION_APPROVED = "cost_revision_approved"
     const val KIND_COST_REVISION_REJECTED = "cost_revision_rejected"
+    // PR-D8 — server-side AMC upsell when a hospital→engineer pair
+    // hits 3+ completed jobs without an active AMC contract.
+    const val KIND_AMC_LOYAL_PAIR_NUDGE = "amc_loyal_pair_nudge"
 }
