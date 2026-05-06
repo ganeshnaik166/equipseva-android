@@ -7,6 +7,7 @@ import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
 import com.equipseva.app.core.data.engineers.EngineerRepository
+import com.equipseva.app.core.data.cashsurvey.CashSurveyRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.notifications.Notification
 import com.equipseva.app.core.data.notifications.NotificationRepository
@@ -46,6 +47,7 @@ class HomeHubViewModel @Inject constructor(
     private val jobRepository: RepairJobRepository,
     private val bidRepository: RepairBidRepository,
     private val engineerDirectoryRepository: EngineerDirectoryRepository,
+    private val cashSurveyRepository: CashSurveyRepository,
     private val userPrefs: UserPrefs,
     private val app: Application,
 ) : ViewModel() {
@@ -66,6 +68,10 @@ class HomeHubViewModel @Inject constructor(
         // hides the section gracefully so we never show an empty band.
         val recommended: List<EngineerDirectoryRepository.RecommendedRow> = emptyList(),
         val recommendedLoading: Boolean = false,
+        // PR-D1: post-completion cash-payment survey. Non-null when the
+        // hospital has a completed job 24h..7d old without a survey row;
+        // home renders a one-question bottom-sheet on the next foreground.
+        val pendingCashSurvey: CashSurveyRepository.PendingSurvey? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -166,6 +172,12 @@ class HomeHubViewModel @Inject constructor(
             // Best-effort: GPS may not be granted, the RPC may return
             // zero rows, etc. — the UI just hides the section.
             loadRecommendedCarousel()
+            // PR-D1: ask the cash-survey RPC whether a completed job
+            // is awaiting feedback. Quiet on errors — the bottom-sheet
+            // simply doesn't appear if the call fails.
+            cashSurveyRepository.fetchPending().onSuccess { pending ->
+                _state.update { it.copy(pendingCashSurvey = pending) }
+            }
         }
         notifJob?.cancel()
         notifJob = viewModelScope.launch {
@@ -207,6 +219,25 @@ class HomeHubViewModel @Inject constructor(
                     _state.update { it.copy(recommendedLoading = false, recommended = emptyList()) }
                 }
         }
+    }
+
+    /**
+     * PR-D1: hospital answered the one-question cash-payment survey.
+     * Posts to the RPC and clears the pending row regardless of result —
+     * the worst case is we re-prompt next foreground (idempotent on the
+     * server via the unique repair_job_id).
+     */
+    fun submitCashSurvey(response: CashSurveyRepository.Response) {
+        val pending = _state.value.pendingCashSurvey ?: return
+        viewModelScope.launch {
+            cashSurveyRepository.submit(pending.repairJobId, response)
+            _state.update { it.copy(pendingCashSurvey = null) }
+        }
+    }
+
+    /** PR-D1: dismiss the cash survey for this app open without recording. */
+    fun dismissCashSurvey() {
+        _state.update { it.copy(pendingCashSurvey = null) }
     }
 
     private fun sampleRecent(userId: String, role: UserRole?): List<Notification> {

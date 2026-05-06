@@ -28,9 +28,12 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.WorkOutline
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -50,6 +53,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.equipseva.app.R
+import com.equipseva.app.core.data.cashsurvey.CashSurveyRepository
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.designsystem.components.EsSection
@@ -77,6 +81,7 @@ import com.equipseva.app.features.auth.UserRole
 import java.time.Duration
 import java.time.Instant
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeHubScreen(
     onOpenBookRepair: () -> Unit,
@@ -228,6 +233,96 @@ fun HomeHubScreen(
 
             Spacer(Modifier.height(24.dp))
         }
+
+        // PR-D1: post-completion cash-payment survey. Bottom-sheet pops
+        // when refresh() finds an un-surveyed completed job 24h..7d old.
+        // Hospital answers once → submit_cash_survey records it; "Skip"
+        // just dismisses for this app open and the prompt re-fires next
+        // foreground (idempotent on the server).
+        val pendingSurvey = state.pendingCashSurvey
+        if (pendingSurvey != null) {
+            val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ModalBottomSheet(
+                onDismissRequest = { viewModel.dismissCashSurvey() },
+                sheetState = sheetState,
+            ) {
+                CashSurveySheetBody(
+                    survey = pendingSurvey,
+                    onAnswer = { response ->
+                        viewModel.submitCashSurvey(response)
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CashSurveySheetBody(
+    survey: CashSurveyRepository.PendingSurvey,
+    onAnswer: (CashSurveyRepository.Response) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = "Quick check-in",
+            style = EsType.H2,
+            color = SevaInk900,
+        )
+        Text(
+            text = "Job ${survey.jobNumber} with ${survey.engineerName} just wrapped. Did the engineer ask for any payment outside the app?",
+            style = EsType.Body,
+            color = SevaInk700,
+        )
+        Text(
+            text = "Your answer is private and only visible to our team.",
+            style = EsType.Caption,
+            color = SevaInk500,
+        )
+        Spacer(Modifier.height(4.dp))
+        SurveyAnswerButton(
+            label = "Yes — engineer asked for cash",
+            primary = false,
+            onClick = { onAnswer(CashSurveyRepository.Response.AskedCash) },
+        )
+        SurveyAnswerButton(
+            label = "No — payment was through the app",
+            primary = true,
+            onClick = { onAnswer(CashSurveyRepository.Response.NoCash) },
+        )
+        SurveyAnswerButton(
+            label = "Prefer not to say",
+            primary = false,
+            onClick = { onAnswer(CashSurveyRepository.Response.Declined) },
+        )
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun SurveyAnswerButton(
+    label: String,
+    primary: Boolean,
+    onClick: () -> Unit,
+) {
+    val bg = if (primary) SevaGreen700 else PaperDefault
+    val fg = if (primary) Color.White else SevaInk900
+    val border = if (primary) SevaGreen700 else BorderDefault
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(bg)
+            .border(1.dp, border, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 14.dp, horizontal = 16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text = label, style = EsType.Body, color = fg, fontWeight = FontWeight.SemiBold)
     }
 }
 
