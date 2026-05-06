@@ -1,5 +1,6 @@
 package com.equipseva.app.features.repair
 
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -136,10 +137,20 @@ fun RepairJobDetailScreen(
     LaunchedEffect(viewModel) {
         viewModel.messages.collect { onShowMessage(it) }
     }
+    val context = LocalContext.current
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 is RepairJobDetailViewModel.Effect.NavigateToChat -> onOpenChat(effect.conversationId)
+                // PR-D3: hand the signed report URL to the system browser.
+                // Chrome / WebView render the HTML with photos and the
+                // user can use the print menu to save as PDF if needed.
+                is RepairJobDetailViewModel.Effect.OpenServiceReport -> {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(effect.url)).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(intent)
+                }
             }
         }
     }
@@ -251,10 +262,12 @@ fun RepairJobDetailScreen(
                     openingChat = state.openingChat,
                     afterPhotoSignedUrls = state.afterPhotoSignedUrls,
                     issuePhotoSignedUrls = state.issuePhotoSignedUrls,
+                    generatingServiceReport = state.generatingServiceReport,
                     onMessageEngineer = viewModel::openChatWithEngineer,
                     onMessageHospital = viewModel::openChatWithHospital,
                     onAcceptBid = viewModel::acceptBid,
                     onWithdraw = { withdrawConfirmOpen = true },
+                    onDownloadReport = viewModel::generateServiceReport,
                 )
             }
         }
@@ -390,10 +403,12 @@ private fun JobBody(
     openingChat: Boolean,
     afterPhotoSignedUrls: List<String>,
     issuePhotoSignedUrls: List<String>,
+    generatingServiceReport: Boolean,
     onMessageEngineer: () -> Unit,
     onMessageHospital: () -> Unit,
     onAcceptBid: (String) -> Unit,
     onWithdraw: () -> Unit,
+    onDownloadReport: () -> Unit,
 ) {
     val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
     Column(
@@ -469,7 +484,64 @@ private fun JobBody(
             }
         }
 
+        // PR-D3: compliance audit-trail HTML report. Available to both
+        // sides on Completed jobs — hospital saves it for NABH/JCI
+        // archives, engineer keeps it as proof of work delivered.
+        if (job.status == RepairJobStatus.Completed) {
+            EsSection(title = "Compliance report") {
+                ServiceReportCard(
+                    loading = generatingServiceReport,
+                    onDownload = onDownloadReport,
+                )
+            }
+        }
+
         Spacer(Modifier.height(20.dp))
+    }
+}
+
+@Composable
+private fun ServiceReportCard(
+    loading: Boolean,
+    onDownload: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(
+            text = "Service report (HTML)",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = SevaInk900,
+        )
+        Text(
+            text = "Audit-trail of equipment, work performed, parts replaced, photos and timeline. Suitable for NABH / JCI compliance archives.",
+            fontSize = 12.sp,
+            color = SevaInk500,
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(SevaGreen700)
+                .clickable(enabled = !loading, onClick = onDownload)
+                .padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = if (loading) "Generating…" else "Download report",
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+            )
+        }
     }
 }
 
