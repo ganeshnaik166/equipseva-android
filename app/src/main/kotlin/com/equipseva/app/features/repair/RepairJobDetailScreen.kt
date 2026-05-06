@@ -467,6 +467,16 @@ private fun JobBody(
         // Status stepper — 5 step linear timeline.
         StatusStepperRow(currentStatus = job.status)
 
+        // PR-D9 + PR-D12 — 30-day warranty banner. Server stamped this
+        // on insert (find_warranty_source_job matched a recent
+        // completed job for the same equipment); PR-D12 will zero the
+        // engineer-side commission on completion. Surfaces as a soft
+        // banner so the hospital sees the promise + the engineer sees
+        // why the platform is covering them.
+        if (job.isWarrantyCovered) {
+            WarrantyBanner()
+        }
+
         EsSection(title = "Equipment") {
             EquipmentCard(job = job)
         }
@@ -761,6 +771,39 @@ private fun ServiceReportCard(
                 color = Color.White,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
+            )
+        }
+    }
+}
+
+@Composable
+private fun WarrantyBanner() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(SevaGreen50)
+            .border(1.dp, SevaGreen700, RectangleShape)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Shield,
+            contentDescription = null,
+            tint = SevaGreen700,
+            modifier = Modifier.size(20.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Covered by 30-day warranty",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = SevaGreen900,
+            )
+            Text(
+                text = "Service fee waived — within 30 days of an earlier completed repair on the same equipment.",
+                fontSize = 11.sp,
+                color = SevaInk500,
             )
         }
     }
