@@ -871,6 +871,10 @@ class RepairJobDetailViewModel @Inject constructor(
                             engineerNames = refreshedNames,
                         )
                     }
+                    // accept_repair_bid trigger creates a pending escrow row;
+                    // pull it so the "Pay to escrow" CTA appears without
+                    // requiring a back-and-reopen.
+                    refreshEscrow()
                     _messages.send("Bid accepted — engineer notified")
                 },
                 onFailure = { ex ->
