@@ -50,6 +50,9 @@ data class RepairJobDto(
     @SerialName("engineer_review") val engineerReview: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
+    // PR-D9: 30-day platform warranty auto-flag.
+    @SerialName("is_warranty_covered") val isWarrantyCovered: Boolean = false,
+    @SerialName("warranty_source_job_id") val warrantySourceJobId: String? = null,
 )
 
 /**

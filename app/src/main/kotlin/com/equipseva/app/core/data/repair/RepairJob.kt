@@ -39,6 +39,10 @@ data class RepairJob(
     val issuePhotos: List<String> = emptyList(),
     val beforePhotos: List<String> = emptyList(),
     val afterPhotos: List<String> = emptyList(),
+    // PR-D9 — server stamps these on insert when a 30-day warranty match
+    // exists; PR-D12 zeros platform_commission on completion.
+    val isWarrantyCovered: Boolean = false,
+    val warrantySourceJobId: String? = null,
 ) {
     /** Short label for the equipment line, e.g. "GE Logiq P5" or "Imaging & radiology". */
     val equipmentLabel: String
@@ -89,6 +93,8 @@ internal fun RepairJobDto.toDomain(): RepairJob {
         issuePhotos = issuePhotos.orEmpty().filter { it.isNotBlank() },
         beforePhotos = beforePhotos.orEmpty().filter { it.isNotBlank() },
         afterPhotos = afterPhotos.orEmpty().filter { it.isNotBlank() },
+        isWarrantyCovered = isWarrantyCovered,
+        warrantySourceJobId = warrantySourceJobId?.takeIf { it.isNotBlank() },
     )
 }
 
