@@ -23,6 +23,7 @@ import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobRepository
 import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.core.data.repair.RepairJobStatus
+import com.equipseva.app.core.data.servicereport.ServiceReportRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.storage.StorageRepository
 import com.equipseva.app.core.sync.OutboxEnqueuer
@@ -63,11 +64,15 @@ class RepairJobDetailViewModel @Inject constructor(
     private val photoUploadStash: PhotoUploadStash,
     private val storageRepository: StorageRepository,
     private val costRevisionRepository: com.equipseva.app.core.data.repair.CostRevisionRepository,
+    private val serviceReportRepository: ServiceReportRepository,
     private val json: Json,
 ) : ViewModel() {
 
     sealed interface Effect {
         data class NavigateToChat(val conversationId: String) : Effect
+        // PR-D3: open the freshly-generated service report HTML in the
+        // user's browser. URL is a 30-day signed Supabase Storage URL.
+        data class OpenServiceReport(val url: String) : Effect
     }
 
     /**
@@ -119,6 +124,8 @@ class RepairJobDetailViewModel @Inject constructor(
         val queuedStatusCount: Int = 0,
         val reportingTargetId: String? = null,
         val submittingReport: Boolean = false,
+        // PR-D3 — generate-service-report edge function call in flight.
+        val generatingServiceReport: Boolean = false,
         /** Open the completion-proof picker sheet (engineer-side, on Mark Done). */
         val proofSheetOpen: Boolean = false,
         /** True while we're enqueuing photos + flipping the status row. */
@@ -212,6 +219,30 @@ class RepairJobDetailViewModel @Inject constructor(
                 _state.update { it.copy(submittingReport = false) }
                 _messages.send(err.toUserMessage())
             }
+        }
+    }
+
+    /**
+     * PR-D3: download the compliance audit-trail HTML report. Calls the
+     * edge function (which always re-renders so the doc reflects current
+     * row state), then emits OpenServiceReport so the screen can hand
+     * the URL to the system browser.
+     */
+    fun generateServiceReport() {
+        val job = _state.value.job ?: return
+        if (job.status != RepairJobStatus.Completed) return
+        if (_state.value.generatingServiceReport) return
+        _state.update { it.copy(generatingServiceReport = true) }
+        viewModelScope.launch {
+            serviceReportRepository.generate(job.id)
+                .onSuccess { url ->
+                    _state.update { it.copy(generatingServiceReport = false) }
+                    _effects.send(Effect.OpenServiceReport(url))
+                }
+                .onFailure { err ->
+                    _state.update { it.copy(generatingServiceReport = false) }
+                    _messages.send(err.toUserMessage())
+                }
         }
     }
 
