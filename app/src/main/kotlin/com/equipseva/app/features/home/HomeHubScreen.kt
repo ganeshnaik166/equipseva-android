@@ -129,6 +129,15 @@ fun HomeHubScreen(
 
             Spacer(Modifier.height(8.dp))
 
+            // PR-D15: hospital loyalty progress pill — surfaces the
+            // commission tier (PR-D2) so hospitals can see what they
+            // unlock at 10 / 50 completed jobs/yr.
+            val tier = state.commissionTier
+            if (role == UserRole.HOSPITAL && tier != null) {
+                CommissionTierPill(tier = tier)
+                Spacer(Modifier.height(8.dp))
+            }
+
             // PR-B: hospital home carousel of top-N recommended engineers.
             // Hidden gracefully when no GPS / no rows so we never render
             // an empty band. The static "Book a repair engineer" tile
@@ -323,6 +332,53 @@ private fun SurveyAnswerButton(
         contentAlignment = Alignment.Center,
     ) {
         Text(text = label, style = EsType.Body, color = fg, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun CommissionTierPill(
+    tier: com.equipseva.app.core.data.commissiontier.CommissionTierRepository.TierInfo,
+) {
+    val sub = if (tier.isTopTier) {
+        "Top tier — ${tier.currentRateLabel} commission on every job."
+    } else {
+        "${tier.completed12m} jobs in last 12 months · ${tier.jobsToNextTier} more to ${tier.nextRateLabel} commission."
+    }
+    Row(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(SevaInfo50)
+            .border(1.dp, SevaInfo500, RoundedCornerShape(12.dp))
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .background(Color.White)
+                .border(1.dp, SevaInfo500, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = tier.currentRateLabel,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = SevaInfo500,
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Loyalty commission tier",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = SevaInk900,
+            )
+            Text(text = sub, fontSize = 11.sp, color = SevaInk500)
+        }
     }
 }
 
