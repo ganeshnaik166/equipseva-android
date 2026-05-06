@@ -142,6 +142,10 @@ fun FounderDashboardScreen(
     onOpenCategories: () -> Unit = {},
     onOpenBuyerKyc: () -> Unit = {},
     onOpenEngineerZones: () -> Unit = {},
+    onOpenEscrowDisputes: () -> Unit = {},
+    onOpenAmcEscalations: () -> Unit = {},
+    onOpenCashSuspended: () -> Unit = {},
+    onOpenPartsOutliers: () -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: FounderDashboardViewModel = hiltViewModel(),
 ) {
@@ -202,6 +206,21 @@ fun FounderDashboardScreen(
                         QueuesCardOps(
                             onOpenCategories = onOpenCategories,
                             onOpenZones = onOpenEngineerZones,
+                        )
+                    }
+                }
+
+                // v2.1 PR-D21 — anti-disintermediation ops queues. These
+                // surface admin RPCs that previously had no UI: escrow
+                // disputes, AMC rotation escalations, cash-flag
+                // auto-suspensions, parts-cost outliers.
+                EsSection(title = "Anti-leak ops") {
+                    Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        QueuesCardAntiLeak(
+                            onOpenEscrowDisputes = onOpenEscrowDisputes,
+                            onOpenAmcEscalations = onOpenAmcEscalations,
+                            onOpenCashSuspended = onOpenCashSuspended,
+                            onOpenPartsOutliers = onOpenPartsOutliers,
                         )
                     }
                 }
@@ -451,6 +470,59 @@ private fun QueuesCardOps(
             subtitle = "Verified engineers per district",
             trailingPill = null,
             onClick = onOpenZones,
+            showDivider = false,
+        )
+    }
+}
+
+@Composable
+private fun QueuesCardAntiLeak(
+    onOpenEscrowDisputes: () -> Unit,
+    onOpenAmcEscalations: () -> Unit,
+    onOpenCashSuspended: () -> Unit,
+    onOpenPartsOutliers: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp)),
+    ) {
+        QueueRow(
+            icon = Icons.Outlined.CurrencyRupee,
+            iconTint = SevaDanger500,
+            title = "Escrow disputes",
+            subtitle = "Hospital opened a dispute",
+            trailingPill = null,
+            onClick = onOpenEscrowDisputes,
+            showDivider = true,
+        )
+        QueueRow(
+            icon = Icons.Outlined.Bolt,
+            iconTint = SevaWarning500,
+            title = "AMC escalations",
+            subtitle = "Rotation exhausted / no engineer",
+            trailingPill = null,
+            onClick = onOpenAmcEscalations,
+            showDivider = true,
+        )
+        QueueRow(
+            icon = Icons.Outlined.Shield,
+            iconTint = SevaDanger500,
+            title = "Cash-flag suspensions",
+            subtitle = "Engineers auto-paused for off-platform",
+            trailingPill = null,
+            onClick = onOpenCashSuspended,
+            showDivider = true,
+        )
+        QueueRow(
+            icon = Icons.Outlined.CurrencyRupee,
+            iconTint = SevaWarning500,
+            title = "Parts-cost outliers",
+            subtitle = "Charges >5× category average",
+            trailingPill = null,
+            onClick = onOpenPartsOutliers,
             showDivider = false,
         )
     }

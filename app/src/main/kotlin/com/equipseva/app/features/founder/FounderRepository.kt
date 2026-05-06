@@ -340,4 +340,134 @@ class FounderRepository @Inject constructor(
         )
         Unit
     }
+
+    // ---------------------------------------------------------------
+    // v2.1 PR-D21 — admin ops queues (escrow disputes, AMC escalations,
+    // cash-flagged engineers, parts-cost outliers).
+    // ---------------------------------------------------------------
+
+    @Serializable
+    data class EscrowDispute(
+        @SerialName("escrow_id") val escrowId: String,
+        @SerialName("repair_job_id") val repairJobId: String,
+        @SerialName("job_number") val jobNumber: String? = null,
+        @SerialName("hospital_user_id") val hospitalUserId: String,
+        @SerialName("hospital_name") val hospitalName: String? = null,
+        @SerialName("engineer_user_id") val engineerUserId: String,
+        @SerialName("engineer_name") val engineerName: String? = null,
+        @SerialName("amount_rupees") val amountRupees: Double,
+        @SerialName("dispute_opened_at") val disputeOpenedAt: String? = null,
+        @SerialName("dispute_reason") val disputeReason: String? = null,
+        @SerialName("scheduled_release_at") val scheduledReleaseAt: String? = null,
+    )
+
+    @Serializable
+    data class AmcEscalation(
+        @SerialName("escalation_id") val escalationId: String,
+        @SerialName("amc_contract_id") val amcContractId: String,
+        @SerialName("hospital_user_id") val hospitalUserId: String? = null,
+        @SerialName("hospital_name") val hospitalName: String? = null,
+        @SerialName("visit_id") val visitId: String? = null,
+        @SerialName("visit_number") val visitNumber: Int? = null,
+        @SerialName("reason") val reason: String,
+        @SerialName("notes") val notes: String? = null,
+        @SerialName("created_at") val createdAt: String? = null,
+    )
+
+    @Serializable
+    data class CashSuspendedEngineer(
+        @SerialName("engineer_id") val engineerId: String,
+        @SerialName("user_id") val userId: String? = null,
+        @SerialName("full_name") val fullName: String? = null,
+        @SerialName("cash_auto_suspended_at") val suspendedAt: String? = null,
+        @SerialName("cash_auto_suspension_reason") val reason: String? = null,
+        @SerialName("flag_count_90d") val flagCount90d: Int = 0,
+    )
+
+    @Serializable
+    data class PartsCostOutlier(
+        @SerialName("repair_job_id") val repairJobId: String,
+        @SerialName("job_number") val jobNumber: String? = null,
+        @SerialName("engineer_id") val engineerId: String? = null,
+        @SerialName("engineer_name") val engineerName: String? = null,
+        @SerialName("hospital_user_id") val hospitalUserId: String? = null,
+        @SerialName("hospital_name") val hospitalName: String? = null,
+        @SerialName("equipment_type") val equipmentType: String? = null,
+        @SerialName("equipment_brand") val equipmentBrand: String? = null,
+        @SerialName("equipment_model") val equipmentModel: String? = null,
+        @SerialName("parts_cost") val partsCost: Double,
+        @SerialName("category_avg_parts") val categoryAvgParts: Double,
+        @SerialName("ratio") val ratio: Double,
+        @SerialName("completed_at") val completedAt: String? = null,
+    )
+
+    suspend fun fetchOpenEscrowDisputes(): Result<List<EscrowDispute>> = runCatching {
+        client.postgrest.rpc(function = "admin_list_open_escrow_disputes")
+            .decodeList<EscrowDispute>()
+    }
+
+    suspend fun resolveEscrowDispute(
+        escrowId: String,
+        outcome: String, // "release" or "refund"
+    ): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "admin_resolve_escrow_dispute",
+            parameters = buildJsonObject {
+                put("p_escrow_id", JsonPrimitive(escrowId))
+                put("p_outcome", JsonPrimitive(outcome))
+            },
+        )
+        Unit
+    }
+
+    suspend fun fetchOpenAmcEscalations(): Result<List<AmcEscalation>> = runCatching {
+        client.postgrest.rpc(function = "admin_list_open_amc_escalations")
+            .decodeList<AmcEscalation>()
+    }
+
+    suspend fun resolveAmcEscalation(
+        escalationId: String,
+        notes: String?,
+    ): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "admin_resolve_amc_escalation",
+            parameters = buildJsonObject {
+                put("p_escalation_id", JsonPrimitive(escalationId))
+                put("p_notes", notes?.let { JsonPrimitive(it) } ?: kotlinx.serialization.json.JsonNull)
+            },
+        )
+        Unit
+    }
+
+    suspend fun fetchCashSuspendedEngineers(): Result<List<CashSuspendedEngineer>> = runCatching {
+        client.postgrest.rpc(function = "admin_list_cash_suspended_engineers")
+            .decodeList<CashSuspendedEngineer>()
+    }
+
+    suspend fun clearCashAutoSuspension(
+        engineerId: String,
+        note: String?,
+    ): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "clear_cash_auto_suspension",
+            parameters = buildJsonObject {
+                put("p_engineer_id", JsonPrimitive(engineerId))
+                put("p_note", note?.let { JsonPrimitive(it) } ?: kotlinx.serialization.json.JsonNull)
+            },
+        )
+        Unit
+    }
+
+    suspend fun fetchPartsCostOutliers(
+        windowDays: Int = 90,
+        multiplier: Double = 5.0,
+    ): Result<List<PartsCostOutlier>> = runCatching {
+        client.postgrest.rpc(
+            function = "list_parts_cost_outliers",
+            parameters = buildJsonObject {
+                put("p_window_days", JsonPrimitive(windowDays))
+                put("p_multiplier", JsonPrimitive(multiplier))
+            },
+        ).decodeList<PartsCostOutlier>()
+    }
 }

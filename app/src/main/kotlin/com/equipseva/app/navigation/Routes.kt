@@ -129,6 +129,11 @@ object Routes {
     const val FOUNDER_CATEGORIES = "founder/categories"
     const val FOUNDER_BUYER_KYC = "founder/buyer_kyc"
     const val FOUNDER_ENGINEER_MAP = "founder/engineers_map"
+    // v2.1 PR-D21 ops queues — surface admin RPCs that previously had no UI.
+    const val FOUNDER_ESCROW_DISPUTES = "founder/escrow_disputes"
+    const val FOUNDER_AMC_ESCALATIONS = "founder/amc_escalations"
+    const val FOUNDER_CASH_SUSPENDED = "founder/cash_suspended"
+    const val FOUNDER_PARTS_OUTLIERS = "founder/parts_outliers"
 
     // Address book add/edit (sub-route of PROFILE_ADDRESSES). Optional id arg
     // distinguishes "new" from "edit existing".
