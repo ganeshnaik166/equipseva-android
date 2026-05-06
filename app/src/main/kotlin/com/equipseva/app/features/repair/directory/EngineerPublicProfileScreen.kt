@@ -98,6 +98,7 @@ class EngineerPublicProfileViewModel @Inject constructor(
     private val virtualCallRepository: com.equipseva.app.core.data.calls.VirtualCallRepository,
     private val repairJobRepository: com.equipseva.app.core.data.repair.RepairJobRepository,
     private val userPrefs: com.equipseva.app.core.data.prefs.UserPrefs,
+    private val app: android.app.Application,
 ) : ViewModel() {
     private val engineerId: String = savedStateHandle[Routes.ENGINEER_PUBLIC_PROFILE_ARG_ID] ?: ""
 
@@ -172,7 +173,62 @@ class EngineerPublicProfileViewModel @Inject constructor(
             repo.fetchReviewSummaryByCategory(engineerId)
                 .onSuccess { rows -> _state.update { it.copy(reviewCategorySummary = rows) } }
             resolveCallContext()
+            evaluateRepeatBookingNudge()
         }
+    }
+
+    /**
+     * v2.1 follow-up to PR-B: real frequency rule for the repeat-booking
+     * nudge. Fires when:
+     *   - viewer is a hospital (UserPrefs.activeRole)
+     *   - this engineer's base coords are known
+     *   - device GPS resolves
+     *   - count_completed_jobs_with_engineer(engineerId) >= 3
+     *   - haversine(viewer, engineer) >= 50 km
+     * On match, fetches top-3 recommended local engineers (excluding
+     * this one) and primes the nudge state. Failures are silent — the
+     * nudge just doesn't appear.
+     */
+    private suspend fun evaluateRepeatBookingNudge() {
+        val role = runCatching { userPrefs.activeRole.first() }.getOrNull()
+        if (role != com.equipseva.app.features.auth.UserRole.HOSPITAL.storageKey) return
+        val profile = _state.value.profile ?: return
+        val engBaseLat = profile.baseLatitude ?: return
+        val engBaseLng = profile.baseLongitude ?: return
+
+        val coords = runCatching {
+            com.equipseva.app.core.util.fetchCurrentLocation(app)
+        }.getOrNull() ?: return
+        val distanceKm = haversineKm(coords.latitude, coords.longitude, engBaseLat, engBaseLng)
+        if (distanceKm < 50.0) return
+
+        val count = repo.countCompletedJobsWithEngineer(engineerId).getOrNull() ?: 0
+        if (count < 3) return
+
+        val alternatives = repo.recommendedEngineers(
+            hospitalLat = coords.latitude,
+            hospitalLng = coords.longitude,
+            equipmentCategory = null,
+            limit = 5,
+        ).getOrNull().orEmpty()
+            .filter { it.engineerId != engineerId }
+            .take(3)
+        if (alternatives.isEmpty()) return
+
+        primeRepeatBookingNudge(distanceKm, alternatives)
+    }
+
+    private fun haversineKm(
+        lat1: Double, lng1: Double, lat2: Double, lng2: Double,
+    ): Double {
+        val r = 6371.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLng = Math.toRadians(lng2 - lng1)
+        val a = kotlin.math.sin(dLat / 2).let { it * it } +
+            kotlin.math.cos(Math.toRadians(lat1)) *
+            kotlin.math.cos(Math.toRadians(lat2)) *
+            kotlin.math.sin(dLng / 2).let { it * it }
+        return 2 * r * kotlin.math.asin(kotlin.math.sqrt(a))
     }
 
     /**
