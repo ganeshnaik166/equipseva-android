@@ -481,13 +481,52 @@ class RepairJobDetailViewModel @Inject constructor(
     }
 
     /**
+     * PR-D10 (T2.9): engineer must capture before-photos before
+     * checking in. Photos enqueue async via PhotoUploadStash with
+     * CONTEXT_REPAIR_JOB_BEFORE → drains into repair_jobs.before_photos.
+     * Then the existing geofenced check-in runs. UI gates on
+     * photos.isNotEmpty() so server-side enforcement isn't required
+     * for v1 — the audit-trail report (PR-D3) flags any check-in
+     * with empty before_photos for ops review.
+     */
+    fun submitCheckinWithProof(photos: List<CompletionProofPhoto>) {
+        val snap = _state.value
+        val job = snap.job ?: return
+        if (snap.viewerRole != ViewerRole.Engineer) return
+        if (snap.updatingStatus) return
+        if (job.status !in setOf(RepairJobStatus.Assigned, RepairJobStatus.EnRoute)) return
+        viewModelScope.launch {
+            val session = authRepository.sessionState.firstOrNull() as? AuthSession.SignedIn
+            val uid = session?.userId
+            if (uid.isNullOrBlank()) {
+                _messages.send("Sign in to check in.")
+                return@launch
+            }
+            photos.forEachIndexed { index, photo ->
+                runCatching {
+                    val storedName = "before-${System.currentTimeMillis()}-$index-${photo.fileName.take(40).replace(Regex("[^A-Za-z0-9._-]"), "_")}"
+                    val objectPath = "$uid/${job.id}/$storedName"
+                    photoUploadStash.enqueue(
+                        bucket = StorageRepository.Buckets.REPAIR_PHOTOS,
+                        objectPath = objectPath,
+                        bytes = photo.bytes,
+                        mimeType = photo.mimeType,
+                        contextType = PhotoUploadPayload.CONTEXT_REPAIR_JOB_BEFORE,
+                        contextId = job.id,
+                        uploaderUserId = uid,
+                    )
+                }
+            }
+            checkIn()
+        }
+    }
+
+    /**
      * PR-D6: GPS-geofenced check-in. Fetches the device fix, calls the
      * SECDEF RPC which enforces a 250m radius vs site_latitude/longitude
-     * server-side, and updates UI state from the response. Falls back
-     * to the legacy non-geofenced status hop only if location can't be
-     * obtained at all (permission denied / GPS off) — and even then
-     * the server still records engineer_latitude/longitude as null,
-     * so the audit trail flags it.
+     * server-side, and updates UI state from the response. Photos are
+     * a separate concern — see [submitCheckinWithProof] which calls
+     * this after stashing the before-photos.
      */
     fun checkIn() {
         val job = _state.value.job ?: return

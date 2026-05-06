@@ -301,9 +301,9 @@ fun RepairJobDetailScreen(
         CheckinSheet(
             updating = state.updatingStatus,
             onDismiss = { if (!state.updatingStatus) checkinSheetOpen = false },
-            onConfirm = {
+            onConfirm = { photos ->
                 checkinSheetOpen = false
-                viewModel.checkIn()
+                viewModel.submitCheckinWithProof(photos)
             },
         )
     }
@@ -1776,56 +1776,145 @@ private fun BidComposerSheet(
 private fun CheckinSheet(
     updating: Boolean,
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
+    onConfirm: (List<RepairJobDetailViewModel.CompletionProofPhoto>) -> Unit,
 ) {
+    // PR-D10 (T2.9): before-photos required at check-in. Mirrors the
+    // CompletionProofSheet photo-grid pattern. 1+ photo is the minimum
+    // strategy memo enforces ("photo of equipment before any work");
+    // we cap at 4 to keep the upload payload sane on bad reception.
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    val context = LocalContext.current
+    var picked by rememberSaveable(stateSaver = UriListSaver) { mutableStateOf(emptyList<Uri>()) }
+    val maxPhotos = 4
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = maxPhotos),
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            picked = (picked + uris).distinct().take(maxPhotos)
+        }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = { if (!updating) onDismiss() },
+        sheetState = sheetState,
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(72.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(SevaGreen50),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.LocationOn,
-                    contentDescription = null,
-                    tint = SevaGreen700,
-                    modifier = Modifier.size(32.dp),
-                )
-            }
-            Spacer(Modifier.height(6.dp))
             Text(
-                text = "Confirm you've reached the site?",
-                fontSize = 15.sp,
+                text = "Check in on-site",
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = SevaInk900,
-                textAlign = TextAlign.Center,
             )
             Text(
-                text = "This notifies the hospital and changes status to \"In progress\".",
+                text = "Capture 1–4 photos of the equipment before you start. Required by hospital compliance archives.",
                 fontSize = 12.sp,
                 color = SevaInk500,
-                textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Before-photos (required)",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = SevaInk700,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                repeat(maxPhotos) { i ->
+                    val hasPhoto = i < picked.size
+                    val uri = picked.getOrNull(i)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (hasPhoto) Paper2 else Color.White)
+                            .border(
+                                width = 1.5.dp,
+                                color = if (hasPhoto) SevaGreen700 else BorderDefault,
+                                shape = RoundedCornerShape(10.dp),
+                            )
+                            .clickable(enabled = !updating && !hasPhoto) {
+                                launcher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                )
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (hasPhoto && uri != null) {
+                            AsyncImage(
+                                model = uri,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(10.dp)),
+                                contentScale = ContentScale.Crop,
+                            )
+                            IconButton(
+                                onClick = { picked = picked - uri },
+                                enabled = !updating,
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .size(22.dp)
+                                    .padding(2.dp)
+                                    .background(Color.Black.copy(alpha = 0.55f), CircleShape),
+                            ) {
+                                Icon(
+                                    Icons.Filled.Close,
+                                    contentDescription = "Remove",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(12.dp),
+                                )
+                            }
+                        } else if (i == picked.size) {
+                            Icon(
+                                imageVector = Icons.Filled.AddPhotoAlternate,
+                                contentDescription = "Add photo",
+                                tint = SevaGreen700,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Outlined.PhotoCamera,
+                                contentDescription = null,
+                                tint = SevaInk400,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    }
+                }
+            }
             EsBtn(
-                text = if (updating) "Confirming…" else "Yes, I'm here",
-                onClick = onConfirm,
+                text = if (updating) "Checking in…" else "I'm here · check in",
+                onClick = {
+                    val resolver = context.contentResolver
+                    val photos = picked.mapNotNull { uri ->
+                        val mime = resolver.getType(uri) ?: "image/jpeg"
+                        val name = uri.lastPathSegment ?: "before-${System.currentTimeMillis()}.jpg"
+                        val bytes = runCatching {
+                            resolver.openInputStream(uri)?.use { it.readBytes() }
+                        }.getOrNull() ?: return@mapNotNull null
+                        RepairJobDetailViewModel.CompletionProofPhoto(
+                            fileName = name,
+                            mimeType = mime,
+                            bytes = bytes,
+                        )
+                    }
+                    onConfirm(photos)
+                },
                 kind = EsBtnKind.Primary,
                 full = true,
                 size = EsBtnSize.Lg,
-                disabled = updating,
+                disabled = picked.isEmpty() || updating,
             )
             EsBtn(
-                text = "Not yet",
+                text = "Cancel",
                 onClick = onDismiss,
                 kind = EsBtnKind.Ghost,
                 full = true,
