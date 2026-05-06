@@ -50,13 +50,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Email-link / OAuth callback (Supabase). -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="equipseva" android:host="auth-callback" />
-            </intent-filter>
+            <!-- equipseva://auth-callback custom scheme intentionally
+                 NOT registered. Squattable by other apps; current auth
+                 flows (password, OTP-by-code, Google ID token) don't
+                 need a callback URL. Magic-link / OAuth redirect lives
+                 on the App Link route below. -->
 
             <!-- App Links for equipseva.com. autoVerify=true makes
                  Android fetch /.well-known/assetlinks.json on install
