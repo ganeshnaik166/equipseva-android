@@ -71,7 +71,27 @@ interface RepairJobRepository {
         stars: Int,
         review: String?,
     ): Result<RepairJob>
+
+    /**
+     * v2.1 PR-D6 — geofenced engineer check-in. Server-side checks the
+     * supplied GPS coordinates against the job's site_latitude/site_longitude
+     * with a 250m radius before flipping status to in_progress; rejects with
+     * 22023 'too far from site' otherwise. Returns the measured distance so
+     * the UI can show a "checked in 47m from site" toast.
+     */
+    suspend fun engineerCheckInWithGeo(
+        jobId: String,
+        latitude: Double,
+        longitude: Double,
+    ): Result<CheckInResult>
 }
+
+data class CheckInResult(
+    val statusKey: String,
+    val distanceMeters: Double?,
+    val geofencePassed: Boolean,
+    val geofenceSkipped: Boolean,
+)
 
 enum class RatingRole {
     /** Hospital requester scoring the engineer who completed the job. */

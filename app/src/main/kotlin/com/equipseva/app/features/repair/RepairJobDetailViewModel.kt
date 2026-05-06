@@ -52,6 +52,7 @@ import javax.inject.Inject
 @HiltViewModel
 class RepairJobDetailViewModel @Inject constructor(
     savedState: SavedStateHandle,
+    private val app: android.app.Application,
     private val jobRepository: RepairJobRepository,
     private val bidRepository: RepairBidRepository,
     private val chatRepository: ChatRepository,
@@ -479,13 +480,53 @@ class RepairJobDetailViewModel @Inject constructor(
         }
     }
 
-    fun checkIn() = transitionStatus(
-        target = RepairJobStatus.InProgress,
-        allowedFrom = setOf(RepairJobStatus.Assigned, RepairJobStatus.EnRoute),
-        requireEngineer = true,
-        successMessage = "Checked in",
-        setStartedAt = true,
-    )
+    /**
+     * PR-D6: GPS-geofenced check-in. Fetches the device fix, calls the
+     * SECDEF RPC which enforces a 250m radius vs site_latitude/longitude
+     * server-side, and updates UI state from the response. Falls back
+     * to the legacy non-geofenced status hop only if location can't be
+     * obtained at all (permission denied / GPS off) — and even then
+     * the server still records engineer_latitude/longitude as null,
+     * so the audit trail flags it.
+     */
+    fun checkIn() {
+        val job = _state.value.job ?: return
+        if (_state.value.updatingStatus) return
+        if (job.status !in setOf(RepairJobStatus.Assigned, RepairJobStatus.EnRoute)) return
+
+        _state.update { it.copy(updatingStatus = true) }
+        viewModelScope.launch {
+            val fix = com.equipseva.app.core.util.fetchCurrentLocation(app)
+            if (fix == null) {
+                _state.update { it.copy(updatingStatus = false) }
+                _messages.send("Turn on location to check in. Geofence is part of the audit trail.")
+                return@launch
+            }
+            jobRepository.engineerCheckInWithGeo(jobId, fix.latitude, fix.longitude)
+                .onSuccess { result ->
+                    // Refresh row to pick up the new status + started_at.
+                    jobRepository.fetchById(jobId).onSuccess { fresh ->
+                        if (fresh != null) {
+                            _state.update { it.copy(job = fresh, updatingStatus = false) }
+                        } else {
+                            _state.update { it.copy(updatingStatus = false) }
+                        }
+                    }.onFailure {
+                        _state.update { it.copy(updatingStatus = false) }
+                    }
+                    val toast = when {
+                        result.geofenceSkipped -> "Checked in"
+                        result.distanceMeters == null -> "Checked in"
+                        else -> "Checked in · ${result.distanceMeters.toInt()}m from site"
+                    }
+                    _messages.send(toast)
+                }
+                .onFailure { err ->
+                    _state.update { it.copy(updatingStatus = false) }
+                    _messages.send(err.toUserMessage())
+                }
+        }
+    }
 
     fun markDone() = transitionStatus(
         target = RepairJobStatus.Completed,

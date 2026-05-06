@@ -109,6 +109,37 @@ class SupabaseRepairJobRepository @Inject constructor(
         }.decodeList<RepairJobDto>().map(RepairJobDto::toDomain)
     }
 
+    @Serializable
+    private data class CheckInWithGeoRow(
+        @SerialName("status") val status: String,
+        @SerialName("distance_meters") val distanceMeters: Double? = null,
+        @SerialName("geofence_passed") val geofencePassed: Boolean = true,
+        @SerialName("geofence_skipped") val geofenceSkipped: Boolean = false,
+    )
+
+    override suspend fun engineerCheckInWithGeo(
+        jobId: String,
+        latitude: Double,
+        longitude: Double,
+    ): Result<CheckInResult> = runCatching {
+        val response = client.postgrest.rpc(
+            function = "engineer_check_in_with_geo",
+            parameters = buildJsonObject {
+                put("p_repair_job_id", JsonPrimitive(jobId))
+                put("p_lat", JsonPrimitive(latitude))
+                put("p_lng", JsonPrimitive(longitude))
+            },
+        )
+        val row = response.decodeList<CheckInWithGeoRow>().firstOrNull()
+            ?: error("check-in returned no row")
+        CheckInResult(
+            statusKey = row.status,
+            distanceMeters = row.distanceMeters,
+            geofencePassed = row.geofencePassed,
+            geofenceSkipped = row.geofenceSkipped,
+        )
+    }
+
     override suspend fun updateStatus(
         jobId: String,
         newStatus: RepairJobStatus,
