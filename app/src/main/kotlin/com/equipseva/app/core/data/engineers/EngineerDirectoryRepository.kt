@@ -172,6 +172,25 @@ class EngineerDirectoryRepository @Inject constructor(
     }
 
     /**
+     * Number of completed repair_jobs (any kind) the caller-hospital has
+     * had with this engineer's engineers.id. Drives the repeat-booking
+     * nudge gate on EngineerPublicProfileScreen — count >= 3 AND
+     * distance >= 50 km surfaces "try a local engineer" alternatives.
+     * Backed by `count_completed_jobs_with_engineer` SECDEF RPC.
+     */
+    suspend fun countCompletedJobsWithEngineer(
+        engineerId: String,
+    ): Result<Int> = runCatching {
+        val raw = client.postgrest.rpc(
+            function = "count_completed_jobs_with_engineer",
+            parameters = buildJsonObject {
+                put("p_engineer_id", JsonPrimitive(engineerId))
+            },
+        ).data
+        raw.trim().trim('"').toIntOrNull() ?: 0
+    }
+
+    /**
      * Latest non-empty hospital reviews for this engineer. Caps server-side
      * at 50; the [limit] argument is clamped on the SQL side too. Returns
      * empty list if the engineer has no rated-with-text completed jobs.

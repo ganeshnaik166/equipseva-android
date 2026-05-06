@@ -59,9 +59,11 @@ import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaDanger50
 import com.equipseva.app.designsystem.theme.SevaDanger500
 import com.equipseva.app.designsystem.theme.SevaGreen700
+import com.equipseva.app.designsystem.theme.SevaInk400
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk700
 import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.designsystem.theme.SevaWarning500
 import com.equipseva.app.features.auth.UserRole
 import com.equipseva.app.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -97,6 +99,8 @@ class AmcDetailViewModel @Inject constructor(
         val hospital: AmcRepository.HospitalContract? = null,
         val engineerView: AmcRepository.EngineerContract? = null,
         val poolBalance: Double? = null,
+        val poolLedger: List<AmcRepository.PoolLedgerRow> = emptyList(),
+        val visits: List<AmcRepository.AmcVisitRow> = emptyList(),
         val rotation: List<AmcRepository.AmcRotationRow> = emptyList(),
         val breaches: List<AmcRepository.AmcSlaBreach> = emptyList(),
         val cancelling: Boolean = false,
@@ -144,6 +148,10 @@ class AmcDetailViewModel @Inject constructor(
 
             repo.getPoolBalance(contractId)
                 .onSuccess { v -> _state.update { it.copy(poolBalance = v) } }
+            repo.listPoolLedger(contractId)
+                .onSuccess { v -> _state.update { it.copy(poolLedger = v) } }
+            repo.listVisits(contractId)
+                .onSuccess { v -> _state.update { it.copy(visits = v) } }
             repo.listRotation(contractId)
                 .onSuccess { v -> _state.update { it.copy(rotation = v) } }
             repo.listSlaBreaches(contractId)
@@ -294,6 +302,8 @@ fun AmcDetailScreen(
                 viewModel.dismissTopUp()
                 viewModel.refresh()
             },
+            engineerName = state.hospital!!.primaryEngineerName.takeIf { it.isNotBlank() }
+                ?: "your engineer",
         )
     }
 }
@@ -453,16 +463,62 @@ private fun PoolTab(state: AmcDetailViewModel.UiState, onTopUp: () -> Unit) {
         }
     }
     EsSection(title = "Recent activity") {
-        // Ledger detail isn't exposed by a dedicated RPC yet — show a
-        // soft hint rather than render an empty list. Hospitals can
-        // see the running balance + visit history above; ledger CSV
-        // export ships in a follow-up.
-        Text(
-            "Ledger entries appear here once visits complete or top-ups land.",
-            color = SevaInk500,
-            fontSize = 12.sp,
-            modifier = Modifier.padding(horizontal = 16.dp),
-        )
+        if (state.poolLedger.isEmpty()) {
+            Text(
+                "Ledger entries appear here once visits complete or top-ups land.",
+                color = SevaInk500,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        } else {
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                state.poolLedger.forEach { row -> PoolLedgerRow(row) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PoolLedgerRow(row: AmcRepository.PoolLedgerRow) {
+    val isCredit = row.ledgerKind == "credit" || row.ledgerKind == "refund"
+    val sign = if (isCredit) "+" else "−"
+    val color = if (isCredit) SevaGreen700 else SevaDanger500
+    val label = when (row.ledgerKind) {
+        "credit" -> if (row.sourceBreachId != null) "SLA credit" else "Top-up"
+        "debit" -> "Visit fair share"
+        "refund" -> "Refund"
+        else -> row.ledgerKind.replaceFirstChar { it.uppercase() }
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, color = SevaInk900, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            row.description?.takeIf { it.isNotBlank() }?.let {
+                Text(it, color = SevaInk500, fontSize = 11.sp)
+            }
+            row.createdAtIso?.let {
+                Text(prettyDate(it), color = SevaInk400, fontSize = 11.sp)
+            }
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                "$sign₹${"%.0f".format(row.amountRupees)}",
+                color = color,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                "Bal ₹${"%.0f".format(row.balanceAfter)}",
+                color = SevaInk500,
+                fontSize = 11.sp,
+            )
+        }
     }
 }
 
@@ -472,23 +528,69 @@ private fun VisitsTab(state: AmcDetailViewModel.UiState) {
     val visitsPerYr = state.hospital?.visitsPerYear ?: state.engineerView?.visitsPerYear ?: 12
     val freq = state.hospital?.visitFrequency ?: state.engineerView?.visitFrequency ?: ""
     val nextVisit = state.hospital?.nextVisitAt ?: state.engineerView?.nextVisitAt
-    EsSection(title = "Visits") {
+    EsSection(title = "Cadence") {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            LabelRow("Cadence", prettyFrequency(freq))
+            LabelRow("Frequency", prettyFrequency(freq))
             LabelRow("Completed", "$visitsDone / $visitsPerYr")
             if (!nextVisit.isNullOrBlank()) {
                 LabelRow("Next scheduled", prettyDate(nextVisit))
             }
-            Spacer(Modifier.height(4.dp))
+        }
+    }
+    EsSection(title = "Visit history") {
+        if (state.visits.isEmpty()) {
             Text(
-                "Maintenance visits show up alongside repair jobs in the existing Active work / My bookings tabs. Look for the 'Maintenance' badge.",
+                "No visits scheduled yet. The first one shows up here once the AMC cron fires (runs daily at 09:00 IST).",
                 color = SevaInk500,
                 fontSize = 12.sp,
+                modifier = Modifier.padding(horizontal = 16.dp),
             )
+        } else {
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                state.visits.forEach { v -> VisitRow(v) }
+            }
         }
+    }
+}
+
+@Composable
+private fun VisitRow(v: AmcRepository.AmcVisitRow) {
+    val statusColor = when (v.status) {
+        "completed" -> SevaGreen700
+        "cancelled" -> SevaInk500
+        else -> SevaWarning500
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                "Visit #${v.amcVisitNumber ?: '-'} · ${v.jobNumber ?: ""}".trim(),
+                color = SevaInk900,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            v.engineerName?.let {
+                Text(it, color = SevaInk500, fontSize = 11.sp)
+            }
+            v.scheduledDate?.let {
+                Text(prettyDate(it), color = SevaInk400, fontSize = 11.sp)
+            }
+        }
+        Text(
+            v.status.replaceFirstChar { it.uppercase() },
+            color = statusColor,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }
 

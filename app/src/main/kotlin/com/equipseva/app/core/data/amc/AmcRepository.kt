@@ -229,6 +229,62 @@ class AmcRepository @Inject constructor(
         Unit
     }
 
+    @Serializable
+    data class PoolLedgerRow(
+        @SerialName("id") val id: String,
+        @SerialName("ledger_kind") val ledgerKind: String,
+        @SerialName("amount_rupees") val amountRupees: Double,
+        @SerialName("balance_after") val balanceAfter: Double,
+        @SerialName("source_payment_order_id") val sourcePaymentOrderId: String? = null,
+        @SerialName("source_visit_id") val sourceVisitId: String? = null,
+        @SerialName("source_breach_id") val sourceBreachId: String? = null,
+        @SerialName("description") val description: String? = null,
+        @SerialName("created_at") val createdAtIso: String? = null,
+    )
+
+    suspend fun listPoolLedger(
+        contractId: String,
+        limit: Int = 50,
+    ): Result<List<PoolLedgerRow>> = runCatching {
+        supabase.postgrest.rpc(
+            function = "list_amc_pool_ledger",
+            parameters = buildJsonObject {
+                put("p_contract_id", JsonPrimitive(contractId))
+                put("p_limit", JsonPrimitive(limit))
+            },
+        ).decodeList<PoolLedgerRow>()
+    }
+
+    @Serializable
+    data class AmcVisitRow(
+        @SerialName("id") val id: String,
+        @SerialName("job_number") val jobNumber: String? = null,
+        @SerialName("status") val status: String,
+        @SerialName("amc_visit_number") val amcVisitNumber: Int? = null,
+        @SerialName("scheduled_date") val scheduledDate: String? = null,
+        @SerialName("scheduled_time_slot") val scheduledTimeSlot: String? = null,
+        @SerialName("engineer_id") val engineerId: String? = null,
+        @SerialName("engineer_name") val engineerName: String? = null,
+        @SerialName("equipment_type") val equipmentType: String? = null,
+        @SerialName("created_at") val createdAtIso: String? = null,
+        @SerialName("completed_at") val completedAtIso: String? = null,
+        @SerialName("hospital_rating") val hospitalRating: Int? = null,
+    )
+
+    suspend fun listVisits(
+        contractId: String,
+        limit: Int = 50,
+    ): Result<List<AmcVisitRow>> = runCatching {
+        supabase.postgrest.rpc(
+            function = "list_amc_visits_for_contract",
+            parameters = buildJsonObject {
+                put("p_contract_id", JsonPrimitive(contractId))
+                put("p_limit", JsonPrimitive(limit))
+            },
+        ).decodeList<AmcVisitRow>()
+    }
+
+
     /**
      * Calls `create_amc_contract` RPC. Returns the new contract uuid.
      * `fallbackEngineerIds` may be empty.
