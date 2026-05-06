@@ -57,6 +57,21 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="equipseva" android:host="auth-callback" />
             </intent-filter>
+
+            <!-- App Links for equipseva.com. autoVerify=true makes
+                 Android fetch /.well-known/assetlinks.json on install
+                 and bind https://equipseva.com/* (+ www) directly to
+                 this activity. Future deep-link paths ride this same
+                 filter without re-verification. Hosting the
+                 assetlinks.json lives in website/.well-known/. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="equipseva.com" />
+                <data android:host="www.equipseva.com" />
+            </intent-filter>
         </activity>
 
         <service
