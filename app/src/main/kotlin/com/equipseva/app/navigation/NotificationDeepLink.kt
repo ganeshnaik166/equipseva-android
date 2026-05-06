@@ -59,7 +59,10 @@ object NotificationDeepLink {
             KIND_RATE_HOSPITAL,
             KIND_COST_REVISION_PROPOSED,
             KIND_COST_REVISION_APPROVED,
-            KIND_COST_REVISION_REJECTED ->
+            KIND_COST_REVISION_REJECTED,
+            // PR-D9: 30-day warranty auto-flag — open the new job's
+            // detail screen where the badge + waiver explanation lives.
+            KIND_WARRANTY_COVERED ->
                 data["repair_job_id"]?.takeIfUuid()?.let(Routes::repairJobDetailRoute)
             // KYC is a single-user screen — no id needed in payload, just open it.
             KIND_KYC_STATUS_CHANGED -> Routes.KYC
@@ -94,4 +97,7 @@ object NotificationDeepLink {
     // PR-D8 — server-side AMC upsell when a hospital→engineer pair
     // hits 3+ completed jobs without an active AMC contract.
     const val KIND_AMC_LOYAL_PAIR_NUDGE = "amc_loyal_pair_nudge"
+    // PR-D9 — 30-day platform warranty auto-detection. Trigger fires
+    // on INSERT when the new job matches a recently completed repair.
+    const val KIND_WARRANTY_COVERED = "warranty_covered"
 }
