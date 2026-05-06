@@ -105,6 +105,8 @@ import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.Paper2
 import com.equipseva.app.designsystem.theme.Paper3
 import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.components.EsBottomSheet
+import com.equipseva.app.designsystem.theme.SevaDanger500
 import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaGreen900
@@ -263,11 +265,16 @@ fun RepairJobDetailScreen(
                     afterPhotoSignedUrls = state.afterPhotoSignedUrls,
                     issuePhotoSignedUrls = state.issuePhotoSignedUrls,
                     generatingServiceReport = state.generatingServiceReport,
+                    escrow = state.escrow,
+                    confirmingEscrowRelease = state.confirmingEscrowRelease,
                     onMessageEngineer = viewModel::openChatWithEngineer,
                     onMessageHospital = viewModel::openChatWithHospital,
                     onAcceptBid = viewModel::acceptBid,
                     onWithdraw = { withdrawConfirmOpen = true },
                     onDownloadReport = viewModel::generateServiceReport,
+                    onPayEscrow = viewModel::openEscrowPaymentSheet,
+                    onConfirmEscrowRelease = viewModel::confirmEscrowRelease,
+                    onOpenEscrowDispute = viewModel::openEscrowDisputeSheet,
                 )
             }
         }
@@ -361,6 +368,35 @@ fun RepairJobDetailScreen(
         )
     }
 
+    // PR-D5: per-job escrow pay-in.
+    val escrow = state.escrow
+    if (state.escrowPaymentSheetOpen && state.job != null && escrow != null) {
+        // Engineer name comes from the accepted bid's engineer profile.
+        val engineerName = run {
+            val acceptedEngineerUserId = state.bids.firstOrNull {
+                it.status == RepairBidStatus.Accepted
+            }?.engineerUserId
+            acceptedEngineerUserId?.let { state.engineerNames[it] } ?: "the engineer"
+        }
+        JobEscrowPaymentSheet(
+            repairJobId = state.job!!.id,
+            amountRupees = escrow.amountRupees,
+            engineerName = engineerName,
+            onClose = viewModel::closeEscrowPaymentSheet,
+            onShowMessage = onShowMessage,
+            onCompleted = viewModel::refreshEscrow,
+        )
+    }
+
+    // PR-D5: hospital opens a dispute (within 48h post-completion).
+    if (state.escrowDisputeSheetOpen) {
+        EscrowDisputeSheet(
+            submitting = state.openingEscrowDispute,
+            onDismiss = viewModel::closeEscrowDisputeSheet,
+            onSubmit = viewModel::openEscrowDispute,
+        )
+    }
+
     if (withdrawConfirmOpen) {
         AlertDialog(
             onDismissRequest = {
@@ -404,11 +440,16 @@ private fun JobBody(
     afterPhotoSignedUrls: List<String>,
     issuePhotoSignedUrls: List<String>,
     generatingServiceReport: Boolean,
+    escrow: com.equipseva.app.core.data.escrow.RepairJobEscrowRepository.EscrowRow?,
+    confirmingEscrowRelease: Boolean,
     onMessageEngineer: () -> Unit,
     onMessageHospital: () -> Unit,
     onAcceptBid: (String) -> Unit,
     onWithdraw: () -> Unit,
     onDownloadReport: () -> Unit,
+    onPayEscrow: () -> Unit,
+    onConfirmEscrowRelease: () -> Unit,
+    onOpenEscrowDispute: () -> Unit,
 ) {
     val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
     Column(
@@ -484,6 +525,21 @@ private fun JobBody(
             }
         }
 
+        // PR-D5: per-job escrow status + actions.
+        if (escrow != null) {
+            EsSection(title = "Escrow") {
+                EscrowStatusCard(
+                    escrow = escrow,
+                    isHospital = isHospital,
+                    isJobCompleted = job.status == RepairJobStatus.Completed,
+                    confirmingRelease = confirmingEscrowRelease,
+                    onPay = onPayEscrow,
+                    onConfirmRelease = onConfirmEscrowRelease,
+                    onOpenDispute = onOpenEscrowDispute,
+                )
+            }
+        }
+
         // PR-D3: compliance audit-trail HTML report. Available to both
         // sides on Completed jobs — hospital saves it for NABH/JCI
         // archives, engineer keeps it as proof of work delivered.
@@ -497,6 +553,171 @@ private fun JobBody(
         }
 
         Spacer(Modifier.height(20.dp))
+    }
+}
+
+@Composable
+private fun EscrowDisputeSheet(
+    submitting: Boolean,
+    onDismiss: () -> Unit,
+    onSubmit: (String) -> Unit,
+) {
+    var reason by rememberSaveable { mutableStateOf("") }
+    EsBottomSheet(onClose = onDismiss, title = "Open a dispute") {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                "Tell us what went wrong. Funds stay paused until our team reviews. Disputes must be opened within 48h of completion.",
+                fontSize = 12.sp,
+                color = SevaInk500,
+            )
+            OutlinedTextField(
+                value = reason,
+                onValueChange = { if (it.length <= 500) reason = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("e.g. Engineer asked for extra cash on-site to swap parts.") },
+                minLines = 3,
+                maxLines = 6,
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (reason.trim().length >= 10 && !submitting) SevaDanger500 else SevaInk300)
+                    .clickable(enabled = reason.trim().length >= 10 && !submitting) {
+                        onSubmit(reason.trim())
+                    }
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    if (submitting) "Opening…" else "Open dispute",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun EscrowStatusCard(
+    escrow: com.equipseva.app.core.data.escrow.RepairJobEscrowRepository.EscrowRow,
+    isHospital: Boolean,
+    isJobCompleted: Boolean,
+    confirmingRelease: Boolean,
+    onPay: () -> Unit,
+    onConfirmRelease: () -> Unit,
+    onOpenDispute: () -> Unit,
+) {
+    val (label, sub, accent) = when {
+        escrow.isPending -> Triple(
+            "Awaiting payment",
+            "Pay ₹${"%,.0f".format(escrow.amountRupees)} into escrow to release the engineer to start work.",
+            WarnGold,
+        )
+        escrow.isHeld -> Triple(
+            "Funds in escrow",
+            "₹${"%,.0f".format(escrow.amountRupees)} is held by EquipSeva. Auto-released to engineer 48h after completion.",
+            SevaGreen700,
+        )
+        escrow.isInDispute -> Triple(
+            "Dispute open",
+            "Our team is reviewing this escrow. Funds are paused until resolved.",
+            SevaDanger500,
+        )
+        escrow.isReleased -> Triple(
+            "Released to engineer",
+            "₹${"%,.0f".format(escrow.amountRupees)} released. Settlement to engineer's bank account.",
+            SevaGreen700,
+        )
+        escrow.isRefunded -> Triple(
+            "Refunded",
+            "₹${"%,.0f".format(escrow.amountRupees)} refunded.",
+            SevaInk700,
+        )
+        else -> Triple("Escrow ${escrow.status}", "", SevaInk500)
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = accent)
+        if (sub.isNotBlank()) {
+            Text(text = sub, fontSize = 12.sp, color = SevaInk500)
+        }
+        if (isHospital && escrow.isPending) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(SevaGreen700)
+                    .clickable(onClick = onPay)
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "Pay ₹${"%,.0f".format(escrow.amountRupees)} to escrow",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                )
+            }
+        }
+        if (isHospital && escrow.isHeld && isJobCompleted) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(SevaGreen700)
+                        .clickable(enabled = !confirmingRelease, onClick = onConfirmRelease)
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        if (confirmingRelease) "Releasing…" else "Confirm + release",
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                    )
+                }
+                if (escrow.isInDisputeWindow) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color.White)
+                            .border(1.dp, SevaDanger500, RoundedCornerShape(10.dp))
+                            .clickable(onClick = onOpenDispute)
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            "Open dispute",
+                            color = SevaDanger500,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
