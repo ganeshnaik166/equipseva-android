@@ -266,6 +266,30 @@ ksp {
 // take a long time. Team can opt in once stable.
 val apkSizeBudget = extra.properties.getOrDefault("apkSizeBudgetMb", "28").toString().toLong() * 1024 * 1024
 
+// Pre-release configuration guard — fails any release build when the
+// launch-checklist gaps from the pre-Play-Store memo aren't closed.
+// Wired as a dependency on bundleRelease + assembleRelease so a casual
+// "./gradlew :app:bundleRelease" can never silently ship with
+// EXPECTED_CERT_SHA256 empty / assetlinks.json missing / keystore
+// references broken. CI dry-runs that intentionally bypass should set
+// PRECHECK_LOOSE=1.
+tasks.register<Exec>("preReleaseCheck") {
+    group = "verification"
+    description = "Run scripts/pre-release-checks.sh — guards launch-checklist gaps"
+    workingDir = rootDir
+    commandLine = listOf("bash", "scripts/pre-release-checks.sh")
+    standardOutput = System.out
+    errorOutput = System.err
+}
+
+// Wire the guard onto release outputs so engineers can't forget to run
+// it. afterEvaluate so the AGP-generated tasks exist.
+afterEvaluate {
+    listOf("assembleRelease", "bundleRelease").forEach { name ->
+        tasks.findByName(name)?.dependsOn("preReleaseCheck")
+    }
+}
+
 tasks.register("checkApkSize") {
     group = "verification"
     description = "Fail if release APK exceeds the size budget"
