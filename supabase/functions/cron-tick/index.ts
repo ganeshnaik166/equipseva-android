@@ -6,6 +6,11 @@
 // external cron source: cron-job.org, GitHub Actions, EasyCron, your
 // own server crontab — anything that can POST.
 //
+// PR-D39 wires the actual GitHub Actions schedule:
+//   * .github/workflows/cron-tick-hourly.yml — slot=hourly
+//   * .github/workflows/cron-tick-daily.yml  — slot=daily at 03:00 UTC
+// Both POST here with X-Cron-Secret = repo secret CRON_TICK_SECRET.
+//
 // The matching pg_cron migration (20260529100000) self-installs on
 // Pro+; on Free it sits dormant and this function is the substitute.
 // Once the project moves to Pro, this can be deleted (or kept as a

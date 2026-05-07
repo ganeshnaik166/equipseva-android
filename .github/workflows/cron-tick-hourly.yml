@@ -1,0 +1,59 @@
+name: cron-tick (hourly)
+
+# v2.1 PR-D39 — drives the Free-tier pg_cron substitute (PR-D20).
+#
+# pg_cron is Pro-only on Supabase. PR-D19's schedules sit dormant on
+# Free; PR-D20's `cron-tick` edge function is the substitute, but it
+# needs an external trigger. GitHub Actions has free cron, so we wire
+# it here.
+#
+# `?slot=hourly` runs only the time-sensitive jobs:
+#   * repair-job escrow auto-release (PR-D4)
+#   * cost-revision expiry (PR #251)
+#
+# Daily TTL purges run from cron-tick-daily.yml at 03:00 UTC. When
+# the project upgrades to Supabase Pro and pg_cron self-installs, the
+# `cron.schedule` calls in 20260529100000 take over and these
+# workflows can be disabled (or kept as belt-and-suspenders).
+#
+# Required repo secrets:
+#   CRON_TICK_SECRET — same value as the Supabase secret of the same
+#                       name (set via `supabase secrets set`)
+
+on:
+  schedule:
+    # Every hour at :07 to avoid the top-of-hour congestion that hits
+    # public free schedulers.
+    - cron: "7 * * * *"
+  workflow_dispatch:
+
+# Single-flight: a slow run shouldn't double-fire. cron-tick itself
+# uses FOR UPDATE SKIP LOCKED so concurrent invocations are safe, but
+# limiting at the workflow level reduces useless retries.
+concurrency:
+  group: cron-tick-hourly
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: POST cron-tick ?slot=hourly
+        env:
+          CRON_TICK_SECRET: ${{ secrets.CRON_TICK_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_TICK_SECRET}" ]; then
+            echo "::error::CRON_TICK_SECRET not configured. Add it under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          URL="https://eyswaywvtartpvtoxtdr.supabase.co/functions/v1/cron-tick?slot=hourly"
+          # `--fail-with-body` lets us print the body on non-2xx.
+          curl --fail-with-body \
+               --silent --show-error \
+               --max-time 60 \
+               -X POST "$URL" \
+               -H "X-Cron-Secret: ${CRON_TICK_SECRET}" \
+               -H "Content-Type: application/json" \
+               -d '{}'
