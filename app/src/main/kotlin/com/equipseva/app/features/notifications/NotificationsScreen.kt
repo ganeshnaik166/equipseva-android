@@ -271,6 +271,8 @@ private fun iconForKind(kind: String?): Pair<ImageVector, Color> = when (kind) {
     "repair_job_cancelled" -> Icons.Filled.Bolt to SevaDanger500
     // Rating prompts.
     "rate_engineer", "rate_hospital" -> Icons.Filled.Star to SevaWarning500
+    // PR-D31 commission tier upgrade celebration — green star.
+    "commission_tier_upgraded" -> Icons.Filled.Star to SevaGreen700
     // Warranty (PR-D9 / PR-D12).
     "warranty_covered", "warranty_fee_waived" -> Icons.Filled.Verified to SevaGreen700
     // AMC (PR-C series).

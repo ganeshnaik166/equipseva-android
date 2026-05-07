@@ -77,6 +77,9 @@ object NotificationDeepLink {
             // PR-D11: cash-flag survey lands on the hospital home where
             // the modal sheet auto-opens via HomeHubViewModel.
             KIND_CASH_SURVEY -> Routes.HOME
+            // PR-D31: commission-tier upgrade celebration lands on Home
+            // where the CommissionTierPill renders the new tier inline.
+            KIND_COMMISSION_TIER_UPGRADED -> Routes.HOME
             // PR-D11: engineer-side auto-suspend explainer. No
             // dedicated screen — Profile shows the suspended state via
             // the live `engineers.cash_auto_suspended_at` column.
@@ -145,6 +148,9 @@ object NotificationDeepLink {
     const val KIND_WARRANTY_FEE_WAIVED = "warranty_fee_waived"
     // PR-D1 — post-completion cash-payment survey on hospital home.
     const val KIND_CASH_SURVEY = "cash_survey"
+    // PR-D31 — hospital crosses the 10-job (Loyal) or 50-job (Anchor)
+    // commission tier threshold.
+    const val KIND_COMMISSION_TIER_UPGRADED = "commission_tier_upgraded"
     // PR-D11 — engineer auto-suspended after 3+ cash flags / 90 days.
     const val KIND_ENGINEER_AUTO_SUSPENDED = "engineer_auto_suspended"
     const val KIND_ADMIN_ENGINEER_AUTO_SUSPENDED = "admin_engineer_auto_suspended"
