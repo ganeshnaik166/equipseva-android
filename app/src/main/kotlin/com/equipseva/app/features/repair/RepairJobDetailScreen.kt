@@ -275,6 +275,7 @@ fun RepairJobDetailScreen(
                     onPayEscrow = viewModel::openEscrowPaymentSheet,
                     onConfirmEscrowRelease = viewModel::confirmEscrowRelease,
                     onOpenEscrowDispute = viewModel::openEscrowDisputeSheet,
+                    onOpenEngineerResponseSheet = viewModel::openEngineerResponseSheet,
                 )
             }
         }
@@ -397,6 +398,15 @@ fun RepairJobDetailScreen(
         )
     }
 
+    // PR-D29: engineer responds to a hospital's dispute.
+    if (state.engineerResponseSheetOpen) {
+        EngineerResponseSheet(
+            submitting = state.submittingEngineerResponse,
+            onDismiss = viewModel::closeEngineerResponseSheet,
+            onSubmit = viewModel::submitEngineerResponse,
+        )
+    }
+
     if (withdrawConfirmOpen) {
         AlertDialog(
             onDismissRequest = {
@@ -450,6 +460,7 @@ private fun JobBody(
     onPayEscrow: () -> Unit,
     onConfirmEscrowRelease: () -> Unit,
     onOpenEscrowDispute: () -> Unit,
+    onOpenEngineerResponseSheet: () -> Unit,
 ) {
     val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
     Column(
@@ -546,6 +557,7 @@ private fun JobBody(
                     onPay = onPayEscrow,
                     onConfirmRelease = onConfirmEscrowRelease,
                     onOpenDispute = onOpenEscrowDispute,
+                    onOpenEngineerResponse = onOpenEngineerResponseSheet,
                 )
             }
         }
@@ -617,6 +629,56 @@ private fun EscrowDisputeSheet(
 }
 
 @Composable
+private fun EngineerResponseSheet(
+    submitting: Boolean,
+    onDismiss: () -> Unit,
+    onSubmit: (String) -> Unit,
+) {
+    var response by rememberSaveable { mutableStateOf("") }
+    EsBottomSheet(onClose = onDismiss, title = "Respond to dispute") {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                "Tell EquipSeva your side of the story. Admin reviews both before deciding release vs refund. You can only respond once — make it count.",
+                fontSize = 12.sp,
+                color = SevaInk500,
+            )
+            OutlinedTextField(
+                value = response,
+                onValueChange = { if (it.length <= 500) response = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("e.g. Replaced the failing PCB on-site, hospital signed off the work order, photos uploaded.") },
+                minLines = 3,
+                maxLines = 6,
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (response.trim().length >= 10 && !submitting) SevaGreen700 else SevaInk300)
+                    .clickable(enabled = response.trim().length >= 10 && !submitting) {
+                        onSubmit(response.trim())
+                    }
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    if (submitting) "Submitting…" else "Submit response",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
 private fun EscrowStatusCard(
     escrow: com.equipseva.app.core.data.escrow.RepairJobEscrowRepository.EscrowRow,
     isHospital: Boolean,
@@ -625,6 +687,7 @@ private fun EscrowStatusCard(
     onPay: () -> Unit,
     onConfirmRelease: () -> Unit,
     onOpenDispute: () -> Unit,
+    onOpenEngineerResponse: () -> Unit,
 ) {
     val (label, sub, accent) = when {
         escrow.isPending -> Triple(
@@ -667,6 +730,46 @@ private fun EscrowStatusCard(
         Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = accent)
         if (sub.isNotBlank()) {
             Text(text = sub, fontSize = 12.sp, color = SevaInk500)
+        }
+        // Show the dispute reason text + the engineer's response (when set)
+        // on both sides — admins, hospitals, and engineers all benefit from
+        // seeing the back-and-forth before the resolution lands.
+        if (escrow.isInDispute) {
+            if (!escrow.disputeReason.isNullOrBlank()) {
+                Text(
+                    "Hospital: ${escrow.disputeReason}",
+                    color = SevaInk700,
+                    fontSize = 13.sp,
+                )
+            }
+            if (!escrow.engineerResponse.isNullOrBlank()) {
+                Text(
+                    "Engineer: ${escrow.engineerResponse}",
+                    color = SevaInk700,
+                    fontSize = 13.sp,
+                )
+            } else if (!isHospital) {
+                // Engineer hasn't responded yet — surface the CTA. One-shot;
+                // server rejects a second submission so the UI hides this
+                // once `engineer_response` is set.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color.White)
+                        .border(1.dp, SevaDanger500, RoundedCornerShape(10.dp))
+                        .clickable(onClick = onOpenEngineerResponse)
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "Respond to dispute",
+                        color = SevaDanger500,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                    )
+                }
+            }
         }
         if (isHospital && escrow.isPending) {
             Box(

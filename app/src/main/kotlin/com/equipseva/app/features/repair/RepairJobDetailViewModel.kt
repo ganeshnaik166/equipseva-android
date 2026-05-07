@@ -135,6 +135,9 @@ class RepairJobDetailViewModel @Inject constructor(
         val openingEscrowDispute: Boolean = false,
         val escrowDisputeSheetOpen: Boolean = false,
         val escrowPaymentSheetOpen: Boolean = false,
+        // PR-D29 — engineer's response to a hospital's dispute.
+        val engineerResponseSheetOpen: Boolean = false,
+        val submittingEngineerResponse: Boolean = false,
         /** Open the completion-proof picker sheet (engineer-side, on Mark Done). */
         val proofSheetOpen: Boolean = false,
         /** True while we're enqueuing photos + flipping the status row. */
@@ -282,6 +285,32 @@ class RepairJobDetailViewModel @Inject constructor(
                 }
                 .onFailure { err ->
                     _state.update { it.copy(confirmingEscrowRelease = false) }
+                    _messages.send(err.toUserMessage())
+                }
+        }
+    }
+
+    fun openEngineerResponseSheet() = _state.update { it.copy(engineerResponseSheetOpen = true) }
+    fun closeEngineerResponseSheet() = _state.update { it.copy(engineerResponseSheetOpen = false) }
+
+    /** Engineer-side reply to a hospital's escrow dispute (PR-D29). */
+    fun submitEngineerResponse(response: String) {
+        if (_state.value.submittingEngineerResponse) return
+        _state.update { it.copy(submittingEngineerResponse = true) }
+        viewModelScope.launch {
+            escrowRepository.submitEngineerResponse(jobId, response)
+                .onSuccess {
+                    _state.update {
+                        it.copy(
+                            submittingEngineerResponse = false,
+                            engineerResponseSheetOpen = false,
+                        )
+                    }
+                    _messages.send("Response submitted — admin will see it on review.")
+                    refreshEscrow()
+                }
+                .onFailure { err ->
+                    _state.update { it.copy(submittingEngineerResponse = false) }
                     _messages.send(err.toUserMessage())
                 }
         }

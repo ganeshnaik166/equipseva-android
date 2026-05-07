@@ -38,6 +38,8 @@ class RepairJobEscrowRepository @Inject constructor(
         @SerialName("dispute_reason") val disputeReason: String? = null,
         @SerialName("dispute_resolution") val disputeResolution: String? = null,
         @SerialName("is_in_dispute_window") val isInDisputeWindow: Boolean = false,
+        @SerialName("engineer_response") val engineerResponse: String? = null,
+        @SerialName("engineer_responded_at") val engineerRespondedAt: String? = null,
     ) {
         val isPending: Boolean get() = status == "pending"
         val isHeld: Boolean get() = status == "held"
@@ -135,6 +137,23 @@ class RepairJobEscrowRepository @Inject constructor(
             parameters = buildJsonObject {
                 put("p_repair_job_id", JsonPrimitive(repairJobId))
                 put("p_reason", JsonPrimitive(reason))
+            },
+        )
+        Unit
+    }
+
+    // PR-D29: engineer-side response to a hospital's dispute. One-shot
+    // (the SQL rejects a second call) so the UI must hide the CTA after
+    // the first successful submission.
+    suspend fun submitEngineerResponse(
+        repairJobId: String,
+        response: String,
+    ): Result<Unit> = runCatching {
+        supabase.postgrest.rpc(
+            function = "engineer_respond_to_escrow_dispute",
+            parameters = buildJsonObject {
+                put("p_repair_job_id", JsonPrimitive(repairJobId))
+                put("p_response", JsonPrimitive(response))
             },
         )
         Unit
