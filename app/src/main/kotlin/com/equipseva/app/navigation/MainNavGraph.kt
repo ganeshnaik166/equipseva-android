@@ -659,6 +659,30 @@ fun MainNavGraph(
                     onOpenCategories = { navController.navigate(Routes.FOUNDER_CATEGORIES) },
                     onOpenBuyerKyc = { navController.navigate(Routes.FOUNDER_BUYER_KYC) },
                     onOpenEngineerZones = { navController.navigate(Routes.FOUNDER_ENGINEER_MAP) },
+                    onOpenEscrowDisputes = { navController.navigate(Routes.FOUNDER_ESCROW_DISPUTES) },
+                    onOpenAmcEscalations = { navController.navigate(Routes.FOUNDER_AMC_ESCALATIONS) },
+                    onOpenCashSuspended = { navController.navigate(Routes.FOUNDER_CASH_SUSPENDED) },
+                    onOpenPartsOutliers = { navController.navigate(Routes.FOUNDER_PARTS_OUTLIERS) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.FOUNDER_ESCROW_DISPUTES) {
+                com.equipseva.app.features.founder.FounderEscrowDisputesScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.FOUNDER_AMC_ESCALATIONS) {
+                com.equipseva.app.features.founder.FounderAmcEscalationsScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.FOUNDER_CASH_SUSPENDED) {
+                com.equipseva.app.features.founder.FounderCashSuspendedScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.FOUNDER_PARTS_OUTLIERS) {
+                com.equipseva.app.features.founder.FounderPartsOutliersScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
