@@ -258,6 +258,7 @@ class FounderAmcEscalationsViewModel @Inject constructor(
 @Composable
 fun FounderAmcEscalationsScreen(
     onBack: () -> Unit,
+    onOpenDetail: (escalationId: String) -> Unit = {},
     viewModel: FounderAmcEscalationsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -285,6 +286,7 @@ fun FounderAmcEscalationsScreen(
                             row = row,
                             acting = state.acting.contains(row.escalationId),
                             onResolve = { viewModel.resolve(row.escalationId) },
+                            onOpenDetail = { onOpenDetail(row.escalationId) },
                         )
                     }
                 }
@@ -298,6 +300,7 @@ private fun AmcEscalationRow(
     row: FounderRepository.AmcEscalation,
     acting: Boolean,
     onResolve: () -> Unit,
+    onOpenDetail: () -> Unit,
 ) {
     QueueCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -339,14 +342,23 @@ private fun AmcEscalationRow(
         if (!row.createdAt.isNullOrBlank()) {
             Text("Raised: ${row.createdAt.take(19).replace('T', ' ')}", color = SevaInk500, fontSize = 11.sp)
         }
-        EsBtn(
-            text = if (acting) "..." else "Mark resolved",
-            kind = EsBtnKind.Primary,
-            size = EsBtnSize.Sm,
-            disabled = acting,
-            onClick = onResolve,
-            full = true,
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            EsBtn(
+                text = "View detail",
+                kind = EsBtnKind.Secondary,
+                size = EsBtnSize.Sm,
+                onClick = onOpenDetail,
+                modifier = Modifier.weight(1f),
+            )
+            EsBtn(
+                text = if (acting) "..." else "Mark resolved",
+                kind = EsBtnKind.Primary,
+                size = EsBtnSize.Sm,
+                disabled = acting,
+                onClick = onResolve,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 

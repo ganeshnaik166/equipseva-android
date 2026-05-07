@@ -696,6 +696,21 @@ fun MainNavGraph(
             composable(Routes.FOUNDER_AMC_ESCALATIONS) {
                 com.equipseva.app.features.founder.FounderAmcEscalationsScreen(
                     onBack = { navController.popBackStack() },
+                    onOpenDetail = { escalationId ->
+                        navController.navigate(Routes.founderAmcEscalationDetailRoute(escalationId))
+                    },
+                )
+            }
+            composable(
+                route = "${Routes.FOUNDER_AMC_ESCALATION_DETAIL}/{${Routes.FOUNDER_AMC_ESCALATION_DETAIL_ARG_ESCALATION_ID}}",
+                arguments = listOf(
+                    androidx.navigation.navArgument(Routes.FOUNDER_AMC_ESCALATION_DETAIL_ARG_ESCALATION_ID) {
+                        type = androidx.navigation.NavType.StringType
+                    },
+                ),
+            ) {
+                com.equipseva.app.features.founder.FounderAmcEscalationDetailScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.FOUNDER_CASH_SUSPENDED) {

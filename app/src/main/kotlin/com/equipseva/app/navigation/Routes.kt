@@ -150,6 +150,12 @@ object Routes {
     fun founderEscrowDisputeDetailRoute(escrowId: String): String =
         "$FOUNDER_ESCROW_DISPUTE_DETAIL/$escrowId"
 
+    // v2.1 PR-D27 — admin drill-down on AMC escalation w/ rotation roster.
+    const val FOUNDER_AMC_ESCALATION_DETAIL = "founder/amc_escalation_detail"
+    const val FOUNDER_AMC_ESCALATION_DETAIL_ARG_ESCALATION_ID = "escalationId"
+    fun founderAmcEscalationDetailRoute(escalationId: String): String =
+        "$FOUNDER_AMC_ESCALATION_DETAIL/$escalationId"
+
     // Address book add/edit (sub-route of PROFILE_ADDRESSES). Optional id arg
     // distinguishes "new" from "edit existing".
     const val PROFILE_ADDRESS_FORM = "profile/addresses/form"
