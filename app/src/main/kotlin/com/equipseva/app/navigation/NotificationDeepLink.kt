@@ -87,7 +87,11 @@ object NotificationDeepLink {
             KIND_AMC_ADMIN_ESCALATION_RAISED -> Routes.FOUNDER_AMC_ESCALATIONS
             // PR-D22: engineer-side dispute alert. Open the repair job
             // detail where the EscrowStatusCard surfaces the dispute.
-            KIND_ESCROW_DISPUTE_OPENED ->
+            KIND_ESCROW_DISPUTE_OPENED,
+            // PR-D28: both parties notified when admin resolves the
+            // dispute. Same destination — the EscrowStatusCard reflects
+            // the resolved status (released | refunded) inline.
+            KIND_ESCROW_DISPUTE_RESOLVED ->
                 data["repair_job_id"]?.takeIfUuid()?.let(Routes::repairJobDetailRoute)
             // PR-C4: AMC SLA breach. Server payload carries the AMC
             // contract id; route to the contract detail where the SLA
@@ -147,6 +151,8 @@ object NotificationDeepLink {
     // PR-D22 — admin / engineer alert when hospital opens a dispute.
     const val KIND_ESCROW_DISPUTE_OPENED = "escrow_dispute_opened"
     const val KIND_ADMIN_ESCROW_DISPUTE_OPENED = "admin_escrow_dispute_opened"
+    // PR-D28 — both parties notified when admin resolves a dispute.
+    const val KIND_ESCROW_DISPUTE_RESOLVED = "escrow_dispute_resolved"
     // PR-D22 — admin alert when AMC rotation fully exhausted.
     const val KIND_AMC_ADMIN_ESCALATION_RAISED = "amc_admin_escalation_raised"
     // PR-C4 — AMC SLA breach on a maintenance visit.

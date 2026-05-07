@@ -285,9 +285,10 @@ private fun iconForKind(kind: String?): Pair<ImageVector, Color> = when (kind) {
     "cash_survey" -> Icons.Filled.HelpOutline to SevaWarning500
     "engineer_auto_suspended",
     "admin_engineer_auto_suspended" -> Icons.Outlined.Block to SevaDanger500
-    // Escrow disputes (PR-D22).
+    // Escrow disputes (PR-D22 + PR-D28).
     "escrow_dispute_opened",
     "admin_escrow_dispute_opened" -> Icons.Filled.Gavel to SevaDanger500
+    "escrow_dispute_resolved" -> Icons.Filled.Gavel to SevaGreen700
     // Generic notification fallback.
     else -> Icons.Filled.Bolt to SevaGreen700
 }
