@@ -166,6 +166,29 @@ This is *low priority* — apex already verifies, so the App Link works. Only ma
 
 ---
 
+## 7. Restrict the Google Maps API key (~5 min, MEDIUM)
+
+`MAPS_API_KEY` is baked into the release APK by Gradle. Anyone can extract the APK + read it. Without a key restriction, an attacker can run their own app against your Google Cloud quota — burning your Maps credits and potentially racking up a bill.
+
+1. Google Cloud Console → **APIs & Services** → **Credentials**.
+2. Click the Android Maps key currently in `local.properties`.
+3. **Application restrictions** → choose **Android apps**.
+4. Add an entry:
+   - Package name: `com.equipseva.app`
+   - SHA-1 certificate fingerprint: paste the SHA-1 (not SHA-256) of the upload-key. Get it via:
+
+     ```bash
+     keytool -list -v -keystore app/equipseva-upload.jks \
+       -alias equipseva-upload -storepass <pwd> | grep "SHA1:"
+     ```
+
+5. **API restrictions** → restrict to: Maps SDK for Android (only).
+6. Save.
+
+After this, the key only works for APKs signed by your upload key + bundle id. Required: also add the **Play App Signing** SHA-1 entry once that lands (analogous to the assetlinks step in §5c).
+
+---
+
 ## Done state
 
 After all items above, the v2.1 product is fully activated:
