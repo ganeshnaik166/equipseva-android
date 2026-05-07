@@ -23,7 +23,13 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CurrencyRupee
 import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Gavel
+import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.CircularProgressIndicator
@@ -250,10 +256,39 @@ private fun KindIcon(kind: String?) {
 }
 
 private fun iconForKind(kind: String?): Pair<ImageVector, Color> = when (kind) {
-    "bid", "job_bid", "bid_accepted" -> Icons.Filled.CurrencyRupee to SevaGreen700
-    "msg", "chat", "message" -> Icons.AutoMirrored.Filled.Chat to SevaGreen700
-    "kyc", "verification" -> Icons.Filled.Shield to SevaInfo500
-    "status", "job_status", "job_state" -> Icons.Filled.Bolt to SevaWarning500
+    // Money / commerce kinds — green ₹.
+    "repair_bid_new",
+    "repair_bid_accepted",
+    "repair_bid_rejected",
+    "cost_revision_proposed",
+    "cost_revision_approved",
+    "cost_revision_rejected" -> Icons.Filled.CurrencyRupee to SevaGreen700
+    // Chat.
+    "chat_message_new" -> Icons.AutoMirrored.Filled.Chat to SevaGreen700
+    // KYC.
+    "kyc_status_changed" -> Icons.Filled.Shield to SevaInfo500
+    // Repair-job lifecycle alerts.
+    "repair_job_cancelled" -> Icons.Filled.Bolt to SevaDanger500
+    // Rating prompts.
+    "rate_engineer", "rate_hospital" -> Icons.Filled.Star to SevaWarning500
+    // Warranty (PR-D9 / PR-D12).
+    "warranty_covered", "warranty_fee_waived" -> Icons.Filled.Verified to SevaGreen700
+    // AMC (PR-C series).
+    "amc_loyal_pair_nudge",
+    "amc_visit_assigned",
+    "amc_visit_engineer_assigned",
+    "amc_visit_engineer_changed",
+    "amc_visit_pending_assignment" -> Icons.Filled.Build to SevaInfo500
+    "amc_sla_breach",
+    "amc_admin_escalation_raised" -> Icons.Filled.Build to SevaDanger500
+    // Cash survey + auto-suspend (PR-D1 / PR-D11).
+    "cash_survey" -> Icons.Filled.HelpOutline to SevaWarning500
+    "engineer_auto_suspended",
+    "admin_engineer_auto_suspended" -> Icons.Outlined.Block to SevaDanger500
+    // Escrow disputes (PR-D22).
+    "escrow_dispute_opened",
+    "admin_escrow_dispute_opened" -> Icons.Filled.Gavel to SevaDanger500
+    // Generic notification fallback.
     else -> Icons.Filled.Bolt to SevaGreen700
 }
 

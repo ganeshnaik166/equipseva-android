@@ -63,6 +63,7 @@ fun EarningsScreen(
     onJobClick: (String) -> Unit,
     onBankDetails: () -> Unit = {},
     onBrowseJobs: () -> Unit = {},
+    onOpenActiveEscrows: () -> Unit = {},
     viewModel: EarningsViewModel = hiltViewModel(),
 ) {
     SecureScreen()
@@ -111,6 +112,13 @@ fun EarningsScreen(
                                 it.countPendingPayment > 0 ||
                                 it.totalReleased30d > 0
                         }?.let { sum ->
+                            // Card is tappable when there are *active* rows
+                            // (held / dispute / pending) — released-only
+                            // means nothing to drill into; the dedicated
+                            // list filters those out anyway.
+                            val hasActive = sum.countHeld > 0 ||
+                                sum.countInDispute > 0 ||
+                                sum.countPendingPayment > 0
                             item("escrow_summary") {
                                 Box(
                                     modifier = Modifier.padding(
@@ -119,7 +127,10 @@ fun EarningsScreen(
                                         bottom = 12.dp,
                                     ),
                                 ) {
-                                    EscrowSummaryCard(summary = sum)
+                                    EscrowSummaryCard(
+                                        summary = sum,
+                                        onClick = if (hasActive) onOpenActiveEscrows else null,
+                                    )
                                 }
                             }
                         }
@@ -199,6 +210,7 @@ private fun EarningsHero(paidTotal: Double, pendingTotal: Double) {
 @Composable
 private fun EscrowSummaryCard(
     summary: com.equipseva.app.core.data.escrow.RepairJobEscrowRepository.EngineerEscrowSummary,
+    onClick: (() -> Unit)? = null,
 ) {
     Column(
         modifier = Modifier
@@ -206,6 +218,7 @@ private fun EscrowSummaryCard(
             .clip(RoundedCornerShape(14.dp))
             .background(Color.White)
             .border(1.dp, BorderDefault, RoundedCornerShape(14.dp))
+            .let { if (onClick != null) it.clickable(onClick = onClick) else it }
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {

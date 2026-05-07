@@ -135,6 +135,9 @@ object Routes {
     const val FOUNDER_CASH_SUSPENDED = "founder/cash_suspended"
     const val FOUNDER_PARTS_OUTLIERS = "founder/parts_outliers"
 
+    // v2.1 PR-D24 — engineer drill-down from the money-in-flight card.
+    const val ENGINEER_ACTIVE_ESCROWS = "engineer/escrows/active"
+
     // Address book add/edit (sub-route of PROFILE_ADDRESSES). Optional id arg
     // distinguishes "new" from "edit existing".
     const val PROFILE_ADDRESS_FORM = "profile/addresses/form"

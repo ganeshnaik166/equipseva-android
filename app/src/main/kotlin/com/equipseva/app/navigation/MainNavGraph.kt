@@ -578,6 +578,13 @@ fun MainNavGraph(
                     onJobClick = { jobId -> navController.navigate(Routes.repairJobDetailRoute(jobId)) },
                     onBankDetails = { navController.navigate(Routes.PROFILE_BANK_DETAILS) },
                     onBrowseJobs = { navController.navigate(Routes.REPAIR) },
+                    onOpenActiveEscrows = { navController.navigate(Routes.ENGINEER_ACTIVE_ESCROWS) },
+                )
+            }
+            composable(Routes.ENGINEER_ACTIVE_ESCROWS) {
+                com.equipseva.app.features.earnings.EngineerActiveEscrowsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenJob = { jobId -> navController.navigate(Routes.repairJobDetailRoute(jobId)) },
                 )
             }
             composable(Routes.ACTIVE_WORK) {
