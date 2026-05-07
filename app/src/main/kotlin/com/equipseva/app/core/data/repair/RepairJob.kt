@@ -43,6 +43,13 @@ data class RepairJob(
     // exists; PR-D12 zeros platform_commission on completion.
     val isWarrantyCovered: Boolean = false,
     val warrantySourceJobId: String? = null,
+    // PR-D36 — engineer payout breakdown after the BEFORE-UPDATE
+    // commission trigger fires on status -> completed (PR #259 + PR-D2
+    // tier-aware). Both nullable: only populated for completed jobs;
+    // pending jobs read these as null and the engineer UI falls back
+    // to the bid amount as an estimate.
+    val platformCommissionRupees: Double? = null,
+    val engineerPayoutRupees: Double? = null,
 ) {
     /** Short label for the equipment line, e.g. "GE Logiq P5" or "Imaging & radiology". */
     val equipmentLabel: String
@@ -95,6 +102,8 @@ internal fun RepairJobDto.toDomain(): RepairJob {
         afterPhotos = afterPhotos.orEmpty().filter { it.isNotBlank() },
         isWarrantyCovered = isWarrantyCovered,
         warrantySourceJobId = warrantySourceJobId?.takeIf { it.isNotBlank() },
+        platformCommissionRupees = platformCommissionRupees?.takeIf { it >= 0.0 },
+        engineerPayoutRupees = engineerPayoutRupees?.takeIf { it >= 0.0 },
     )
 }
 

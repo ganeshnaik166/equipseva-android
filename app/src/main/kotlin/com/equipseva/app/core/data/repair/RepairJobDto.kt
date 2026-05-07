@@ -53,6 +53,11 @@ data class RepairJobDto(
     // PR-D9: 30-day platform warranty auto-flag.
     @SerialName("is_warranty_covered") val isWarrantyCovered: Boolean = false,
     @SerialName("warranty_source_job_id") val warrantySourceJobId: String? = null,
+    // PR-D36: post-completion commission breakdown. Populated by
+    // compute_repair_job_commission_on_complete (BEFORE-UPDATE trigger
+    // on status -> completed). Null for non-completed rows.
+    @SerialName("platform_commission") val platformCommissionRupees: Double? = null,
+    @SerialName("engineer_payout") val engineerPayoutRupees: Double? = null,
 )
 
 /**
