@@ -47,12 +47,30 @@ android {
         // RAZORPAY_KEY removed for v1 — payments deferred to v2.
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localOrEnv("GOOGLE_WEB_CLIENT_ID")}\"")
 
-        // Base64(SHA-256(signing cert DER)). Blank until the release keystore
-        // is provisioned — SignatureVerifier skips the check when empty so
-        // debug builds and CI don't fail before the Play Console blocker
-        // clears. Fill from keystore.properties / CI secret once the upload
-        // key lands; SignatureVerifier flips to enforce on release then.
+        // Base64(SHA-256(signing cert DER)). Comma-separated for multi-cert
+        // setups: the upload-key fingerprint AND the Play App Signing key
+        // fingerprint (Google re-signs distributed APKs after first AAB
+        // upload). Blank until the release keystore is provisioned —
+        // SignatureVerifier returns Verdict.Unknown when empty so debug +
+        // CI builds don't fail. Compute via:
+        //   keytool -list -v -keystore app/equipseva-upload.jks \
+        //     -alias equipseva-upload -storepass <pwd> | grep -A1 SHA256
+        //   (then strip colons, hex-decode, base64-encode — see
+        //   docs/launch/V21_ACTIVATION_RUNBOOK.md §5a)
         buildConfigField("String", "EXPECTED_CERT_SHA256", "\"${localOrEnv("EXPECTED_CERT_SHA256")}\"")
+
+        // PR-D46: hard fail-closed on tamper verdict. Default false so
+        // local + CI + first Play-Internal-Testing builds still boot. Flip
+        // to true in local.properties / CI secret AFTER both upload-key
+        // SHA and Play App Signing SHA have been added to
+        // EXPECTED_CERT_SHA256 (per runbook §5c). When true and the
+        // current cert isn't in the expected list, EquipSevaApplication
+        // hard-exits before any auth / network code runs.
+        run {
+            val raw = localOrEnv("TAMPER_ENFORCE").trim().ifEmpty { "false" }
+            val flag = raw.equals("true", ignoreCase = true) || raw == "1"
+            buildConfigField("boolean", "TAMPER_ENFORCE", flag.toString())
+        }
 
         // Google Maps API key — passed both as a BuildConfig string for the
         // Kotlin side and via manifestPlaceholders so the Maps SDK picks it
