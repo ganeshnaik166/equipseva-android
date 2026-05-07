@@ -79,8 +79,13 @@ class EarningsViewModel @Inject constructor(
                     // payout. They surface in the row list with a null-job
                     // hint so the engineer can investigate.
                     val resolved = rows.filter { it.job != null }
+                    // PR-D36: paid total reflects ACTUAL payout after the
+                    // commission split (PR #259 + tier-aware PR-D2). Falls
+                    // back to bid amount only when payout column is null
+                    // (legacy completed rows pre-trigger). Pending stays
+                    // on bid amount — it's an estimate.
                     val paid = resolved.filter { it.job?.status == RepairJobStatus.Completed }
-                        .sumOf { it.bid.amountRupees }
+                        .sumOf { it.job?.engineerPayoutRupees ?: it.bid.amountRupees }
                     val pending = resolved.filter { it.job?.status != RepairJobStatus.Completed }
                         .sumOf { it.bid.amountRupees }
 

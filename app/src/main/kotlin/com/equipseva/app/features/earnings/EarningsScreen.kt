@@ -358,10 +358,31 @@ private fun TransactionRow(
                 color = SevaInk500,
                 maxLines = 1,
             )
+            // PR-D36: commission breakdown for completed jobs. Skip when
+            // commission was waived (warranty path zeros it; row still
+            // says "paid full bid"). Skip pending — it's an estimate.
+            if (paid) {
+                val commission = row.job?.platformCommissionRupees
+                if (commission != null && commission > 0.0) {
+                    Text(
+                        text = "Commission: ${formatRupees(commission)}",
+                        fontSize = 10.sp,
+                        color = SevaInk500,
+                    )
+                }
+            }
         }
         Column(horizontalAlignment = Alignment.End) {
+            // PR-D36: show actual payout (post-commission) when set.
+            // Bid amount stays the source of truth for pending rows
+            // (no payout populated yet) and legacy pre-trigger rows.
+            val displayAmount = if (paid) {
+                row.job?.engineerPayoutRupees ?: row.bid.amountRupees
+            } else {
+                row.bid.amountRupees
+            }
             Text(
-                text = formatRupees(row.bid.amountRupees),
+                text = formatRupees(displayAmount),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = SevaInk900,
