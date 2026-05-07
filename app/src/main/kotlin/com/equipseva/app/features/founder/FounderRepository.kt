@@ -501,6 +501,29 @@ class FounderRepository @Inject constructor(
         @SerialName("payload") val payload: kotlinx.serialization.json.JsonElement? = null,
     )
 
+    @Serializable
+    data class DisputePartyTrackRecord(
+        @SerialName("hospital_user_id") val hospitalUserId: String? = null,
+        @SerialName("hospital_disputes_filed") val hospitalDisputesFiled: Int = 0,
+        @SerialName("hospital_disputes_won") val hospitalDisputesWon: Int = 0,
+        @SerialName("hospital_disputes_lost") val hospitalDisputesLost: Int = 0,
+        @SerialName("hospital_disputes_open") val hospitalDisputesOpen: Int = 0,
+        @SerialName("engineer_user_id") val engineerUserId: String? = null,
+        @SerialName("engineer_disputes_recv") val engineerDisputesRecv: Int = 0,
+        @SerialName("engineer_disputes_won") val engineerDisputesWon: Int = 0,
+        @SerialName("engineer_disputes_lost") val engineerDisputesLost: Int = 0,
+        @SerialName("engineer_disputes_open") val engineerDisputesOpen: Int = 0,
+    )
+
+    suspend fun fetchDisputePartyTrackRecord(escrowId: String): Result<DisputePartyTrackRecord?> = runCatching {
+        client.postgrest.rpc(
+            function = "admin_dispute_party_track_record",
+            parameters = buildJsonObject {
+                put("p_escrow_id", JsonPrimitive(escrowId))
+            },
+        ).decodeList<DisputePartyTrackRecord>().firstOrNull()
+    }
+
     suspend fun fetchEscrowEventTimeline(escrowId: String): Result<List<EscrowEventRow>> = runCatching {
         client.postgrest.rpc(
             function = "admin_escrow_event_timeline",

@@ -68,6 +68,7 @@ class FounderEscrowDisputeDetailViewModel @Inject constructor(
         val loading: Boolean = true,
         val error: String? = null,
         val rows: List<FounderRepository.EscrowEventRow> = emptyList(),
+        val track: FounderRepository.DisputePartyTrackRecord? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -82,9 +83,15 @@ class FounderEscrowDisputeDetailViewModel @Inject constructor(
         }
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
-            repo.fetchEscrowEventTimeline(escrowId)
-                .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+            val timeline = repo.fetchEscrowEventTimeline(escrowId)
+            val track = repo.fetchDisputePartyTrackRecord(escrowId)
+            timeline
+                .onSuccess { rows ->
+                    _state.update { it.copy(loading = false, rows = rows, track = track.getOrNull()) }
+                }
+                .onFailure { e ->
+                    _state.update { it.copy(loading = false, error = e.toUserMessage()) }
+                }
         }
     }
 }
@@ -122,6 +129,12 @@ fun FounderEscrowDisputeDetailScreen(
                         contentPadding = PaddingValues(12.dp),
                         verticalArrangement = Arrangement.spacedBy(0.dp),
                     ) {
+                        // PR-D35: dispute-pattern context. 90-day breakdown
+                        // for both parties so admin can see "this hospital
+                        // filed 5 disputes, 1 upheld" before deciding.
+                        state.track?.let { rec ->
+                            item("track") { TrackRecordCard(rec) }
+                        }
                         items(state.rows, key = { it.eventId }) { row -> EscrowEventRow(row) }
                     }
                 }
@@ -194,5 +207,81 @@ private fun EscrowEventRow(row: FounderRepository.EscrowEventRow) {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun TrackRecordCard(rec: FounderRepository.DisputePartyTrackRecord) {
+    androidx.compose.foundation.layout.Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp)
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(
+                1.dp,
+                com.equipseva.app.designsystem.theme.BorderDefault,
+                androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            )
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = "PARTY TRACK RECORD · LAST 90 DAYS",
+            color = SevaInk500,
+            fontSize = 11.sp,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+            letterSpacing = 0.5.sp,
+        )
+        TrackPartyRow(
+            label = "Hospital",
+            filed = rec.hospitalDisputesFiled,
+            wonLabel = "won",
+            won = rec.hospitalDisputesWon,
+            lost = rec.hospitalDisputesLost,
+            open = rec.hospitalDisputesOpen,
+        )
+        TrackPartyRow(
+            label = "Engineer",
+            filed = rec.engineerDisputesRecv,
+            wonLabel = "released to them",
+            won = rec.engineerDisputesWon,
+            lost = rec.engineerDisputesLost,
+            open = rec.engineerDisputesOpen,
+        )
+        if (rec.hospitalDisputesFiled >= 3 || rec.engineerDisputesRecv >= 3) {
+            Text(
+                text = "Pattern flag — 3+ disputes in window. Weight evidence accordingly.",
+                color = SevaWarning500,
+                fontSize = 11.sp,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+            )
+        }
+    }
+}
+
+@Composable
+private fun TrackPartyRow(
+    label: String,
+    filed: Int,
+    wonLabel: String,
+    won: Int,
+    lost: Int,
+    open: Int,
+) {
+    androidx.compose.foundation.layout.Column(
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(
+            text = label,
+            color = com.equipseva.app.designsystem.theme.SevaInk900,
+            fontSize = 13.sp,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+        )
+        Text(
+            text = "$filed total · $won $wonLabel · $lost lost · $open open",
+            color = SevaInk700,
+            fontSize = 12.sp,
+        )
     }
 }
