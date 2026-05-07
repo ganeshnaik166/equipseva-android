@@ -239,7 +239,8 @@ serve(async (req) => {
     .maybeSingle();
 
   if (jobErr || !job) {
-    return bad("job_not_found", jobErr?.message ?? "missing or no access", 404);
+    if (jobErr) console.error("generate_service_report: job fetch failed", jobErr);
+    return bad("job_not_found", "missing or no access", 404);
   }
   if (job.status !== "completed") {
     return bad("not_completed", "report only available for completed jobs");
@@ -297,7 +298,8 @@ serve(async (req) => {
       contentType: "text/html",
     });
   if (upload.error) {
-    return bad("server_error", `upload_failed: ${upload.error.message}`, 500);
+    console.error("generate_service_report: upload failed", upload.error);
+    return bad("server_error", "report upload failed", 500);
   }
 
   const { data: signed, error: signErr } = await admin.storage
@@ -305,7 +307,8 @@ serve(async (req) => {
     .createSignedUrl(path, 60 * 60 * 24 * 30);
 
   if (signErr || !signed?.signedUrl) {
-    return bad("server_error", `sign_failed: ${signErr?.message ?? "no url"}`, 500);
+    console.error("generate_service_report: sign failed", signErr);
+    return bad("server_error", "report sign failed", 500);
   }
 
   await admin

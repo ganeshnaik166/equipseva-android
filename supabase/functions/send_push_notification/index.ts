@@ -61,6 +61,15 @@ const json = (status: number, body: unknown) =>
     headers: { "content-type": "application/json" },
   });
 
+// Constant-time string compare so a timing oracle can't recover the
+// shared secret / service-key one byte at a time.
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 // ---------- JWT signing ----------
 
 function b64urlEncode(bytes: Uint8Array): string {
@@ -226,13 +235,15 @@ serve(async (req) => {
 
   // Webhook auth: accept either service-role bearer (Supabase webhook signs
   // with the service-role JWT) or x-webhook-secret matching PUSH_WEBHOOK_SECRET.
+  // Both compares are constant-time so a timing oracle can't recover either
+  // secret byte-by-byte.
   const authHeader = req.headers.get("authorization") ?? "";
   const presentedSecret = req.headers.get("x-webhook-secret") ?? "";
   const bearer = authHeader.toLowerCase().startsWith("bearer ")
     ? authHeader.slice(7).trim()
     : "";
-  const bearerOk = bearer === serviceKey;
-  const secretOk = !!webhookSecret && presentedSecret === webhookSecret;
+  const bearerOk = timingSafeEqual(bearer, serviceKey);
+  const secretOk = !!webhookSecret && timingSafeEqual(presentedSecret, webhookSecret);
   if (!bearerOk && !secretOk) {
     return json(401, { ok: false, code: "unauthenticated" });
   }

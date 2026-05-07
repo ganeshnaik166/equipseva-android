@@ -153,7 +153,9 @@ serve(async (req) => {
       .from("amc_payment_orders")
       .update({ status: "failed", updated_at: new Date().toISOString() })
       .eq("id", paymentOrderId);
-    return bad("razorpay_error", rzpBody, 502);
+    // Don't echo Razorpay error body to the client.
+    console.error("create-amc-payment-order: razorpay non-2xx", rzpRes.status, rzpBody);
+    return bad("razorpay_error", "payment provider unavailable", 502);
   }
   const rzpOrder = JSON.parse(rzpBody) as {
     id: string;

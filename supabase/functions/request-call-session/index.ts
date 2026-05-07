@@ -213,11 +213,16 @@ serve(async (req) => {
       body: form.toString(),
     });
   } catch (e) {
-    return bad("exotel_error", `network: ${(e as Error).message}`, 502);
+    // Don't surface raw network/Exotel error text to the client — it can echo
+    // the From=/To= MSISDNs we sent in the form body or internal diagnostics.
+    // Log full detail server-side; return generic code to caller.
+    console.error("request-call-session: exotel network error", e);
+    return bad("exotel_error", "call provider unavailable", 502);
   }
   if (!exotelResp.ok) {
     const txt = await exotelResp.text().catch(() => "");
-    return bad("exotel_error", `exotel ${exotelResp.status}: ${txt.slice(0, 200)}`, 502);
+    console.error("request-call-session: exotel non-2xx", exotelResp.status, txt.slice(0, 400));
+    return bad("exotel_error", "call provider unavailable", 502);
   }
   let exotelJson: any = null;
   try {
