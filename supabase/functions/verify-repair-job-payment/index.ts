@@ -124,7 +124,7 @@ serve(async (req) => {
   if (fetchErr) return bad("server_error", fetchErr.message, 500);
   if (!escrow) return bad("escrow_not_found", "escrow row missing", 404);
   if (escrow.hospital_user_id !== userId) {
-    return bad("unauthenticated", "not the hospital on this escrow", 403);
+    return bad("not_owner", "not the hospital on this escrow", 403);
   }
 
   // Replay-attack guard. Without this a valid signature on any other

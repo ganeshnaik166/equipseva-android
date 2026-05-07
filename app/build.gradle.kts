@@ -24,8 +24,24 @@ val keystoreProps = Properties().apply {
     val f = project.file("keystore.properties")
     if (f.exists()) f.inputStream().use { load(it) }
 }
+
+// Resolve signing creds env-first so CI (and a future at-rest-hardened
+// local setup) can drop keystore.properties entirely. Local dev keeps
+// using the file. Env keys: RELEASE_KEYSTORE_PATH, RELEASE_KEYSTORE_PASSWORD,
+// RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD.
+fun keystoreField(envKey: String, fileKey: String): String? =
+    System.getenv(envKey)?.takeIf { it.isNotBlank() }
+        ?: keystoreProps.getProperty(fileKey)?.takeIf { it.isNotBlank() }
+
+val releaseStorePath: String? = keystoreField("RELEASE_KEYSTORE_PATH", "storeFile")
+val releaseStorePassword: String? = keystoreField("RELEASE_KEYSTORE_PASSWORD", "storePassword")
+val releaseKeyAlias: String? = keystoreField("RELEASE_KEY_ALIAS", "keyAlias")
+val releaseKeyPassword: String? = keystoreField("RELEASE_KEY_PASSWORD", "keyPassword")
 val hasReleaseKeystore: Boolean =
-    keystoreProps.getProperty("storeFile")?.let { project.file(it).exists() } == true
+    releaseStorePath?.let { project.file(it).exists() } == true
+        && releaseStorePassword != null
+        && releaseKeyAlias != null
+        && releaseKeyPassword != null
 
 android {
     namespace = "com.equipseva.app"
@@ -44,7 +60,11 @@ android {
         buildConfigField("String", "SUPABASE_URL", "\"${localOrEnv("SUPABASE_URL")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localOrEnv("SUPABASE_ANON_KEY")}\"")
         buildConfigField("String", "SENTRY_DSN", "\"${localOrEnv("SENTRY_DSN")}\"")
-        // RAZORPAY_KEY removed for v1 — payments deferred to v2.
+        // Razorpay key id is no longer baked into the APK — both order
+        // creation (create-razorpay-order, create-amc-payment-order,
+        // create-repair-job-payment-order) and HMAC verify happen on
+        // edge functions using server-side env. Client only carries
+        // the order_id returned from those edge fns.
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localOrEnv("GOOGLE_WEB_CLIENT_ID")}\"")
 
         // Base64(SHA-256(signing cert DER)). Comma-separated for multi-cert
@@ -84,10 +104,10 @@ android {
     signingConfigs {
         if (hasReleaseKeystore) {
             create("release") {
-                storeFile = project.file(keystoreProps.getProperty("storeFile"))
-                storePassword = keystoreProps.getProperty("storePassword")
-                keyAlias = keystoreProps.getProperty("keyAlias")
-                keyPassword = keystoreProps.getProperty("keyPassword")
+                storeFile = project.file(releaseStorePath!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
             }
         }
     }
