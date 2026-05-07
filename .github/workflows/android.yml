@@ -87,7 +87,14 @@ jobs:
       # Validates R8 full-mode + ProGuard rules catch new shrink/obfuscate
       # regressions before they hit main. Release build is unsigned (signing
       # config lands with the Play Console access blocker).
+      # PRECHECK_LOOSE=1 demotes the preReleaseCheck task's keystore +
+      # EXPECTED_CERT_SHA256 + assetlinks checks to warnings — CI doesn't
+      # have those secrets and the script's hint says to set this on
+      # CI dry-runs. The real launch-checklist gate runs locally before
+      # the operator builds the AAB they actually upload to Play.
       - name: assembleRelease (R8 validation)
+        env:
+          PRECHECK_LOOSE: "1"
         run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
 
       - name: Upload debug APK
