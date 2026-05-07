@@ -120,8 +120,15 @@ serve(async (req) => {
     return bad("missing_phone", "counterpart hasn't added a phone yet", 422);
   }
 
-  // 4. Rate-limit: 5 calls/job/day per caller. Counts session rows
-  // created in the last 24h where the same caller initiated.
+  // 4. Rate-limit: two concentric caps so a malicious caller can't
+  // enumerate counterpart phones across many active jobs.
+  //
+  //   (a) per-(job, caller): 5/day. Catches a frustrated user
+  //       hammering one bridge.
+  //   (b) per-caller global: 20/day across all jobs. Catches a
+  //       hostile caller iterating across N jobs to sweep up phones
+  //       (without (b), 100 active jobs * 5/day = 500 enumeration
+  //       attempts/day — high enough to harvest a directory).
   const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const callerCol = isHospital ? "hospital_user_id" : "engineer_user_id";
   const { count: recentCount } = await admin
@@ -134,6 +141,18 @@ serve(async (req) => {
     return bad(
       "rate_limited",
       "Too many call attempts today. Chat the counterpart instead.",
+      429,
+    );
+  }
+  const { count: globalCount } = await admin
+    .from("virtual_call_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq(callerCol, callerId)
+    .gte("created_at", dayAgo);
+  if ((globalCount ?? 0) >= 20) {
+    return bad(
+      "rate_limited",
+      "Daily call limit reached. Use chat for now.",
       429,
     );
   }
