@@ -147,6 +147,7 @@ fun FounderDashboardScreen(
     onOpenCashSuspended: () -> Unit = {},
     onOpenPartsOutliers: () -> Unit = {},
     onOpenResolvedDisputes: () -> Unit = {},
+    onOpenSpotAudits: () -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: FounderDashboardViewModel = hiltViewModel(),
 ) {
@@ -223,6 +224,7 @@ fun FounderDashboardScreen(
                             onOpenCashSuspended = onOpenCashSuspended,
                             onOpenPartsOutliers = onOpenPartsOutliers,
                             onOpenResolvedDisputes = onOpenResolvedDisputes,
+                            onOpenSpotAudits = onOpenSpotAudits,
                         )
                     }
                 }
@@ -484,6 +486,7 @@ private fun QueuesCardAntiLeak(
     onOpenCashSuspended: () -> Unit,
     onOpenPartsOutliers: () -> Unit,
     onOpenResolvedDisputes: () -> Unit,
+    onOpenSpotAudits: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -535,6 +538,15 @@ private fun QueuesCardAntiLeak(
             subtitle = "Last 30 days · audit ledger",
             trailingPill = null,
             onClick = onOpenResolvedDisputes,
+            showDivider = true,
+        )
+        QueueRow(
+            icon = Icons.Outlined.Person,
+            iconTint = SevaInfo500,
+            title = "Spot-audit responses",
+            subtitle = "1-in-20 random sweep",
+            trailingPill = null,
+            onClick = onOpenSpotAudits,
             showDivider = false,
         )
     }

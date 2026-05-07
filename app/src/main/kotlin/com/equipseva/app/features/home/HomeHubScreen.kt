@@ -36,6 +36,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -274,6 +276,100 @@ fun HomeHubScreen(
                 )
             }
         }
+
+        // PR-D43: spot-audit invitation. 1-in-20 sample of completed
+        // jobs, server-rate-limited to one open per hospital. Skip just
+        // dismisses for this app open; sheet re-renders next foreground
+        // until expires_at lapses (7 days).
+        val pendingAudit = state.pendingSpotAudit
+        if (pendingAudit != null) {
+            val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ModalBottomSheet(
+                onDismissRequest = { viewModel.dismissSpotAudit() },
+                sheetState = sheetState,
+            ) {
+                SpotAuditSheetBody(
+                    invitation = pendingAudit,
+                    submitting = state.submittingSpotAudit,
+                    onSubmit = { rating, feedback ->
+                        viewModel.submitSpotAudit(rating, feedback)
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpotAuditSheetBody(
+    invitation: com.equipseva.app.core.data.spotaudit.SpotAuditRepository.PendingInvitation,
+    submitting: Boolean,
+    onSubmit: (rating: Int, feedback: String?) -> Unit,
+) {
+    var rating by rememberSaveable { androidx.compose.runtime.mutableStateOf(0) }
+    var feedback by rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = "Quick quality check",
+            style = EsType.H2,
+            color = SevaInk900,
+        )
+        Text(
+            text = "Job ${invitation.jobNumber ?: "RPR-${invitation.repairJobId.take(6)}"} with ${invitation.engineerName ?: "the engineer"} just wrapped. Rate the work.",
+            style = EsType.Body,
+            color = SevaInk700,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            (1..5).forEach { star ->
+                val isOn = rating >= star
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(
+                            if (isOn) com.equipseva.app.designsystem.theme.SevaWarning500 else androidx.compose.ui.graphics.Color.White,
+                        )
+                        .border(
+                            1.dp,
+                            com.equipseva.app.designsystem.theme.SevaWarning500,
+                            androidx.compose.foundation.shape.CircleShape,
+                        )
+                        .clickable { rating = star }
+                        .padding(8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = star.toString(),
+                        color = if (isOn) androidx.compose.ui.graphics.Color.White
+                        else com.equipseva.app.designsystem.theme.SevaWarning500,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    )
+                }
+            }
+        }
+        androidx.compose.material3.OutlinedTextField(
+            value = feedback,
+            onValueChange = { if (it.length <= 500) feedback = it },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Optional comments (e.g. parts replaced as expected, slow response, etc.)") },
+            minLines = 2,
+            maxLines = 5,
+        )
+        SurveyAnswerButton(
+            label = if (submitting) "Submitting…" else "Submit",
+            primary = true,
+            onClick = {
+                if (rating in 1..5 && !submitting) {
+                    onSubmit(rating, feedback.trim().takeIf { it.isNotBlank() })
+                }
+            },
+        )
+        Spacer(Modifier.height(8.dp))
     }
 }
 

@@ -49,6 +49,7 @@ class HomeHubViewModel @Inject constructor(
     private val bidRepository: RepairBidRepository,
     private val engineerDirectoryRepository: EngineerDirectoryRepository,
     private val cashSurveyRepository: CashSurveyRepository,
+    private val spotAuditRepository: com.equipseva.app.core.data.spotaudit.SpotAuditRepository,
     private val commissionTierRepository: CommissionTierRepository,
     private val amcRepository: com.equipseva.app.core.data.amc.AmcRepository,
     private val userPrefs: UserPrefs,
@@ -75,6 +76,10 @@ class HomeHubViewModel @Inject constructor(
         // hospital has a completed job 24h..7d old without a survey row;
         // home renders a one-question bottom-sheet on the next foreground.
         val pendingCashSurvey: CashSurveyRepository.PendingSurvey? = null,
+        // PR-D43 — random spot-audit invitation. Caller-scoped RPC
+        // returns at most one open invitation per hospital.
+        val pendingSpotAudit: com.equipseva.app.core.data.spotaudit.SpotAuditRepository.PendingInvitation? = null,
+        val submittingSpotAudit: Boolean = false,
         // PR-D15: hospital loyalty progress pill — non-null when the
         // get_my_commission_tier RPC returns a row.
         val commissionTier: CommissionTierRepository.TierInfo? = null,
@@ -187,6 +192,11 @@ class HomeHubViewModel @Inject constructor(
             cashSurveyRepository.fetchPending().onSuccess { pending ->
                 _state.update { it.copy(pendingCashSurvey = pending) }
             }
+            // PR-D43: spot-audit invitation (1-in-20 sample of completed
+            // jobs). Quiet on errors; sheet just won't render.
+            spotAuditRepository.fetchPending().onSuccess { pending ->
+                _state.update { it.copy(pendingSpotAudit = pending) }
+            }
             // PR-D15: pull the hospital's commission-tier progress
             // (PR-D2 RPC). Quiet on errors — pill just won't render.
             commissionTierRepository.fetchMyTier().onSuccess { tier ->
@@ -259,6 +269,24 @@ class HomeHubViewModel @Inject constructor(
     /** PR-D1: dismiss the cash survey for this app open without recording. */
     fun dismissCashSurvey() {
         _state.update { it.copy(pendingCashSurvey = null) }
+    }
+
+    /** PR-D43: submit spot audit response (rating 1..5 + free-text). */
+    fun submitSpotAudit(rating: Int, feedback: String?) {
+        val pending = _state.value.pendingSpotAudit ?: return
+        if (_state.value.submittingSpotAudit) return
+        _state.update { it.copy(submittingSpotAudit = true) }
+        viewModelScope.launch {
+            spotAuditRepository.submit(pending.invitationId, rating, feedback)
+            _state.update {
+                it.copy(submittingSpotAudit = false, pendingSpotAudit = null)
+            }
+        }
+    }
+
+    /** PR-D43: dismiss spot-audit sheet for this app open without recording. */
+    fun dismissSpotAudit() {
+        _state.update { it.copy(pendingSpotAudit = null) }
     }
 
     private fun sampleRecent(userId: String, role: UserRole?): List<Notification> {

@@ -77,6 +77,9 @@ object NotificationDeepLink {
             // PR-D11: cash-flag survey lands on the hospital home where
             // the modal sheet auto-opens via HomeHubViewModel.
             KIND_CASH_SURVEY -> Routes.HOME
+            // PR-D43: spot-audit invitation lands on the hospital home —
+            // same modal-sheet pattern as cash survey, sister auto-opener.
+            KIND_SPOT_AUDIT_INVITED -> Routes.HOME
             // PR-D31: commission-tier upgrade celebration lands on Home
             // where the CommissionTierPill renders the new tier inline.
             KIND_COMMISSION_TIER_UPGRADED -> Routes.HOME
@@ -148,6 +151,8 @@ object NotificationDeepLink {
     const val KIND_WARRANTY_FEE_WAIVED = "warranty_fee_waived"
     // PR-D1 — post-completion cash-payment survey on hospital home.
     const val KIND_CASH_SURVEY = "cash_survey"
+    // PR-D43 — random 1-in-20 spot-audit invitation on hospital home.
+    const val KIND_SPOT_AUDIT_INVITED = "spot_audit_invited"
     // PR-D31 — hospital crosses the 10-job (Loyal) or 50-job (Anchor)
     // commission tier threshold.
     const val KIND_COMMISSION_TIER_UPGRADED = "commission_tier_upgraded"
