@@ -459,6 +459,37 @@ class FounderRepository @Inject constructor(
     }
 
     @Serializable
+    data class AmcEscalationDetail(
+        @SerialName("escalation_id") val escalationId: String,
+        @SerialName("amc_contract_id") val amcContractId: String,
+        @SerialName("visit_id") val visitId: String? = null,
+        @SerialName("reason") val reason: String,
+        @SerialName("notes") val notes: String? = null,
+        @SerialName("resolved_at") val resolvedAt: String? = null,
+        @SerialName("created_at") val createdAt: String? = null,
+        @SerialName("hospital_user_id") val hospitalUserId: String? = null,
+        @SerialName("hospital_name") val hospitalName: String? = null,
+        @SerialName("contract_status") val contractStatus: String? = null,
+        @SerialName("visit_frequency") val visitFrequency: String? = null,
+        @SerialName("monthly_fee_rupees") val monthlyFeeRupees: Double? = null,
+        @SerialName("next_visit_at") val nextVisitAt: String? = null,
+        @SerialName("contract_end_date") val contractEndDate: String? = null,
+        @SerialName("visit_number") val visitNumber: Int? = null,
+        @SerialName("visit_status") val visitStatus: String? = null,
+        @SerialName("visit_scheduled_date") val visitScheduledDate: String? = null,
+        @SerialName("visit_equipment_type") val visitEquipmentType: String? = null,
+    )
+
+    suspend fun fetchAmcEscalationDetail(escalationId: String): Result<AmcEscalationDetail?> = runCatching {
+        client.postgrest.rpc(
+            function = "admin_amc_escalation_detail",
+            parameters = buildJsonObject {
+                put("p_escalation_id", JsonPrimitive(escalationId))
+            },
+        ).decodeList<AmcEscalationDetail>().firstOrNull()
+    }
+
+    @Serializable
     data class EscrowEventRow(
         @SerialName("event_id") val eventId: String,
         @SerialName("event_kind") val eventKind: String,
