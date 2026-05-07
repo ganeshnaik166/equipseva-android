@@ -211,6 +211,24 @@ class AmcRepository @Inject constructor(
             .decodeList<EngineerAmcVisit>()
     }
 
+    @Serializable
+    data class HospitalSlaCreditSummary(
+        @SerialName("total_credit_rupees") val totalCreditRupees: Double = 0.0,
+        @SerialName("breach_count") val breachCount: Int = 0,
+        @SerialName("most_recent_at") val mostRecentAt: String? = null,
+    )
+
+    /**
+     * v2.1 PR-D34 — aggregated AMC SLA credits issued to the caller
+     * (hospital) in the trailing window. Used by the hospital home
+     * card; surface only when totalCreditRupees > 0.
+     */
+    suspend fun hospitalRecentAmcSlaCredits(): Result<HospitalSlaCreditSummary> = runCatching {
+        supabase.postgrest.rpc(function = "hospital_recent_amc_sla_credits")
+            .decodeList<HospitalSlaCreditSummary>()
+            .firstOrNull() ?: HospitalSlaCreditSummary()
+    }
+
     suspend fun listRotation(contractId: String): Result<List<AmcRotationRow>> = runCatching {
         supabase.postgrest.rpc(
             function = "list_amc_rotation",

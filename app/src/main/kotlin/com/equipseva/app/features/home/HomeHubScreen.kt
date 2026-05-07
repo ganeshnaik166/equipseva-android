@@ -94,6 +94,7 @@ fun HomeHubScreen(
     onOpenActiveWork: () -> Unit = {},
     onOpenEarnings: () -> Unit = {},
     onOpenEngineerProfile: (engineerId: String) -> Unit = {},
+    onOpenAmcContracts: () -> Unit = {},
     viewModel: HomeHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -135,6 +136,16 @@ fun HomeHubScreen(
             val tier = state.commissionTier
             if (role == UserRole.HOSPITAL && tier != null) {
                 CommissionTierPill(tier = tier)
+                Spacer(Modifier.height(8.dp))
+            }
+
+            // PR-D34: aggregated AMC SLA breach credits this hospital
+            // received in the trailing 30 days. Only rendered when
+            // total > 0 (handled in the VM). Tap routes to the AMC
+            // contracts list where the SLA tab lives.
+            val slaCredits = state.recentSlaCredits
+            if (role == UserRole.HOSPITAL && slaCredits != null) {
+                SlaCreditsCard(summary = slaCredits, onClick = onOpenAmcContracts)
                 Spacer(Modifier.height(8.dp))
             }
 
@@ -332,6 +343,56 @@ private fun SurveyAnswerButton(
         contentAlignment = Alignment.Center,
     ) {
         Text(text = label, style = EsType.Body, color = fg, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun SlaCreditsCard(
+    summary: com.equipseva.app.core.data.amc.AmcRepository.HospitalSlaCreditSummary,
+    onClick: () -> Unit,
+) {
+    val rupeesLabel = "%,.0f".format(summary.totalCreditRupees)
+    val sub = if (summary.breachCount == 1) {
+        "1 SLA breach in the last 30 days. Tap to review."
+    } else {
+        "${summary.breachCount} SLA breaches in the last 30 days. Tap to review."
+    }
+    Row(
+        modifier = androidx.compose.ui.Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(com.equipseva.app.designsystem.theme.SevaGreen50)
+            .border(1.dp, com.equipseva.app.designsystem.theme.SevaGreen700, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(
+            modifier = androidx.compose.ui.Modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .background(Color.White)
+                .border(1.dp, com.equipseva.app.designsystem.theme.SevaGreen700, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = "₹",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = com.equipseva.app.designsystem.theme.SevaGreen700,
+            )
+        }
+        Column(modifier = androidx.compose.ui.Modifier.weight(1f)) {
+            Text(
+                text = "₹$rupeesLabel credited for SLA misses",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = SevaInk900,
+            )
+            Text(text = sub, fontSize = 11.sp, color = SevaInk500)
+        }
     }
 }
 
