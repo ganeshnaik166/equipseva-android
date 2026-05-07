@@ -96,6 +96,22 @@ class AmcRepository @Inject constructor(
         @SerialName("is_available") val isAvailable: Boolean = false,
     )
 
+    /** Row returned by `engineer_my_amc_visits` (PR-D33). */
+    @Serializable
+    data class EngineerAmcVisit(
+        @SerialName("visit_id") val visitId: String,
+        @SerialName("job_number") val jobNumber: String? = null,
+        @SerialName("amc_contract_id") val amcContractId: String,
+        @SerialName("hospital_user_id") val hospitalUserId: String? = null,
+        @SerialName("hospital_name") val hospitalName: String? = null,
+        @SerialName("visit_number") val visitNumber: Int? = null,
+        @SerialName("status") val status: String,
+        @SerialName("scheduled_date") val scheduledDate: String? = null,
+        @SerialName("completed_at") val completedAt: String? = null,
+        @SerialName("equipment_type") val equipmentType: String? = null,
+        @SerialName("breach_count") val breachCount: Int = 0,
+    )
+
     /** Row returned by `list_amc_sla_breaches_for_contract`. */
     @Serializable
     data class AmcSlaBreach(
@@ -188,6 +204,11 @@ class AmcRepository @Inject constructor(
                 put("p_contract_id", JsonPrimitive(contractId))
             },
         ).decodeList<AmcSlaBreach>()
+    }
+
+    suspend fun listMyAmcVisits(): Result<List<EngineerAmcVisit>> = runCatching {
+        supabase.postgrest.rpc(function = "engineer_my_amc_visits")
+            .decodeList<EngineerAmcVisit>()
     }
 
     suspend fun listRotation(contractId: String): Result<List<AmcRotationRow>> = runCatching {

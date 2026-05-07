@@ -357,6 +357,15 @@ fun MainNavGraph(
                     onServiceLocation = { navController.navigate(Routes.ENGINEER_LOCATION) },
                     onSubmitKyc = { navController.navigate(Routes.KYC) },
                     onSignIn = { onSignIn() },
+                    onAmcVisits = { navController.navigate(Routes.ENGINEER_AMC_VISITS) },
+                )
+            }
+            composable(Routes.ENGINEER_AMC_VISITS) {
+                com.equipseva.app.features.engineer.EngineerAmcVisitsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenVisit = { visitId ->
+                        navController.navigate(Routes.repairJobDetailRoute(visitId))
+                    },
                 )
             }
             composable(Routes.ENGINEER_LOCATION) {
