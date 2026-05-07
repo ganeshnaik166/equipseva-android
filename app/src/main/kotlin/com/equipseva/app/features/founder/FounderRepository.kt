@@ -409,12 +409,14 @@ class FounderRepository @Inject constructor(
     suspend fun resolveEscrowDispute(
         escrowId: String,
         outcome: String, // "release" or "refund"
+        note: String? = null,
     ): Result<Unit> = runCatching {
         client.postgrest.rpc(
             function = "admin_resolve_escrow_dispute",
             parameters = buildJsonObject {
                 put("p_escrow_id", JsonPrimitive(escrowId))
                 put("p_outcome", JsonPrimitive(outcome))
+                put("p_note", note?.let { JsonPrimitive(it) } ?: kotlinx.serialization.json.JsonNull)
             },
         )
         Unit

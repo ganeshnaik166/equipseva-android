@@ -2,6 +2,7 @@ package com.equipseva.app.features.founder
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,9 +17,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -33,6 +39,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
+import com.equipseva.app.designsystem.components.EsBottomSheet
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
@@ -66,6 +73,8 @@ class FounderEscrowDisputesViewModel @Inject constructor(
         val error: String? = null,
         val rows: List<FounderRepository.EscrowDispute> = emptyList(),
         val acting: Set<String> = emptySet(),
+        // PR-D32 — sheet keyed by escrowId; null = closed.
+        val resolveSheetForEscrowId: String? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -82,15 +91,21 @@ class FounderEscrowDisputesViewModel @Inject constructor(
         }
     }
 
-    fun resolve(escrowId: String, outcome: String) {
+    fun openResolveSheet(escrowId: String) =
+        _state.update { it.copy(resolveSheetForEscrowId = escrowId) }
+    fun closeResolveSheet() =
+        _state.update { it.copy(resolveSheetForEscrowId = null) }
+
+    fun resolve(escrowId: String, outcome: String, note: String?) {
         if (_state.value.acting.contains(escrowId)) return
         _state.update { it.copy(acting = it.acting + escrowId, error = null) }
         viewModelScope.launch {
-            repo.resolveEscrowDispute(escrowId, outcome)
+            repo.resolveEscrowDispute(escrowId, outcome, note)
                 .onSuccess {
                     _state.update {
                         it.copy(
                             acting = it.acting - escrowId,
+                            resolveSheetForEscrowId = null,
                             rows = it.rows.filterNot { row -> row.escrowId == escrowId },
                         )
                     }
@@ -109,6 +124,18 @@ fun FounderEscrowDisputesScreen(
     viewModel: FounderEscrowDisputesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    // PR-D32 — resolve sheet (note + outcome).
+    state.resolveSheetForEscrowId?.let { escrowId ->
+        val target = state.rows.firstOrNull { it.escrowId == escrowId }
+        AdminResolveDisputeSheet(
+            target = target,
+            submitting = state.acting.contains(escrowId),
+            onDismiss = viewModel::closeResolveSheet,
+            onSubmit = { outcome, note -> viewModel.resolve(escrowId, outcome, note) },
+        )
+    }
+
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
@@ -131,8 +158,7 @@ fun FounderEscrowDisputesScreen(
                     items(state.rows, key = { it.escrowId }) { row ->
                         EscrowDisputeRow(
                             row = row,
-                            acting = state.acting.contains(row.escrowId),
-                            onAction = { outcome -> viewModel.resolve(row.escrowId, outcome) },
+                            onResolve = { viewModel.openResolveSheet(row.escrowId) },
                             onOpenTimeline = { onOpenTimeline(row.escrowId) },
                         )
                     }
@@ -145,8 +171,7 @@ fun FounderEscrowDisputesScreen(
 @Composable
 private fun EscrowDisputeRow(
     row: FounderRepository.EscrowDispute,
-    acting: Boolean,
-    onAction: (String) -> Unit,
+    onResolve: () -> Unit,
     onOpenTimeline: () -> Unit,
 ) {
     QueueCard {
@@ -178,28 +203,19 @@ private fun EscrowDisputeRow(
         if (!row.disputeOpenedAt.isNullOrBlank()) {
             Text("Opened: ${row.disputeOpenedAt.take(19).replace('T', ' ')}", color = SevaInk500, fontSize = 11.sp)
         }
-        EsBtn(
-            text = "View timeline",
-            kind = EsBtnKind.Secondary,
-            size = EsBtnSize.Sm,
-            onClick = onOpenTimeline,
-            full = true,
-        )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             EsBtn(
-                text = if (acting) "..." else "Release to engineer",
-                kind = EsBtnKind.Primary,
+                text = "View timeline",
+                kind = EsBtnKind.Secondary,
                 size = EsBtnSize.Sm,
-                disabled = acting,
-                onClick = { onAction("release") },
+                onClick = onOpenTimeline,
                 modifier = Modifier.weight(1f),
             )
             EsBtn(
-                text = if (acting) "..." else "Refund hospital",
-                kind = EsBtnKind.Secondary,
+                text = "Resolve",
+                kind = EsBtnKind.Primary,
                 size = EsBtnSize.Sm,
-                disabled = acting,
-                onClick = { onAction("refund") },
+                onClick = onResolve,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -644,4 +660,119 @@ private fun QueueCard(content: @Composable androidx.compose.foundation.layout.Co
         verticalArrangement = Arrangement.spacedBy(8.dp),
         content = content,
     )
+}
+
+// =====================================================================
+// PR-D32 — Admin resolve-dispute sheet (outcome radio + note field)
+// =====================================================================
+
+@Composable
+private fun AdminResolveDisputeSheet(
+    target: FounderRepository.EscrowDispute?,
+    submitting: Boolean,
+    onDismiss: () -> Unit,
+    onSubmit: (outcome: String, note: String?) -> Unit,
+) {
+    var outcome by rememberSaveable { mutableStateOf("release") }
+    var note by rememberSaveable { mutableStateOf("") }
+    EsBottomSheet(onClose = onDismiss, title = "Resolve dispute") {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            target?.let {
+                Text(
+                    "${it.jobNumber ?: "RPR-${it.repairJobId.take(6)}"} · ₹${"%.0f".format(it.amountRupees)} held",
+                    color = SevaInk900,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp,
+                )
+                if (!it.disputeReason.isNullOrBlank()) {
+                    Text(
+                        "Hospital: ${it.disputeReason}",
+                        color = SevaInk700,
+                        fontSize = 12.sp,
+                    )
+                }
+            }
+            Text(
+                "Pick an outcome and (optionally) record a short note explaining the call. Note appears in the audit timeline.",
+                color = SevaInk500,
+                fontSize = 12.sp,
+            )
+            OutcomeOption(
+                label = "Release to engineer",
+                sub = "Funds clear to engineer's payout queue.",
+                selected = outcome == "release",
+                onClick = { outcome = "release" },
+            )
+            OutcomeOption(
+                label = "Refund hospital",
+                sub = "Funds return to the hospital. Engineer paid nothing.",
+                selected = outcome == "refund",
+                onClick = { outcome = "refund" },
+            )
+            OutlinedTextField(
+                value = note,
+                onValueChange = { if (it.length <= 500) note = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("e.g. Engineer's response confirmed by completion photos and hospital sign-off log.") },
+                minLines = 2,
+                maxLines = 5,
+            )
+            EsBtn(
+                text = if (submitting) "Submitting…" else "Confirm resolution",
+                kind = EsBtnKind.Primary,
+                size = EsBtnSize.Md,
+                disabled = submitting,
+                full = true,
+                onClick = {
+                    onSubmit(outcome, note.trim().takeIf { it.isNotBlank() })
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun OutcomeOption(
+    label: String,
+    sub: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color.White)
+            .border(
+                width = 1.dp,
+                color = if (selected) SevaDanger500 else BorderDefault,
+                shape = RoundedCornerShape(10.dp),
+            )
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(top = 2.dp)
+                .clip(RoundedCornerShape(50))
+                .background(if (selected) SevaDanger500 else Color.Transparent)
+                .border(
+                    width = 1.dp,
+                    color = if (selected) SevaDanger500 else BorderDefault,
+                    shape = RoundedCornerShape(50),
+                )
+                .padding(6.dp),
+        ) { Box(modifier = Modifier.padding(2.dp)) {} }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, color = SevaInk900, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+            Text(sub, color = SevaInk500, fontSize = 11.sp)
+        }
+    }
 }
