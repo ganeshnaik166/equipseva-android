@@ -406,6 +406,30 @@ class FounderRepository @Inject constructor(
             .decodeList<EscrowDispute>()
     }
 
+    @Serializable
+    data class ResolvedDispute(
+        @SerialName("escrow_id") val escrowId: String,
+        @SerialName("repair_job_id") val repairJobId: String,
+        @SerialName("job_number") val jobNumber: String? = null,
+        @SerialName("hospital_user_id") val hospitalUserId: String? = null,
+        @SerialName("hospital_name") val hospitalName: String? = null,
+        @SerialName("engineer_user_id") val engineerUserId: String? = null,
+        @SerialName("engineer_name") val engineerName: String? = null,
+        @SerialName("amount_rupees") val amountRupees: Double,
+        @SerialName("outcome") val outcome: String,
+        @SerialName("resolved_at") val resolvedAt: String? = null,
+        @SerialName("resolved_by") val resolvedBy: String? = null,
+        @SerialName("resolved_by_name") val resolvedByName: String? = null,
+        @SerialName("resolution_note") val resolutionNote: String? = null,
+        @SerialName("dispute_reason") val disputeReason: String? = null,
+        @SerialName("engineer_response") val engineerResponse: String? = null,
+    )
+
+    suspend fun fetchRecentResolvedDisputes(): Result<List<ResolvedDispute>> = runCatching {
+        client.postgrest.rpc(function = "admin_list_recent_resolved_disputes")
+            .decodeList<ResolvedDispute>()
+    }
+
     suspend fun resolveEscrowDispute(
         escrowId: String,
         outcome: String, // "release" or "refund"

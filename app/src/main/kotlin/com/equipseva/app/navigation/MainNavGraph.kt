@@ -680,11 +680,20 @@ fun MainNavGraph(
                     onOpenAmcEscalations = { navController.navigate(Routes.FOUNDER_AMC_ESCALATIONS) },
                     onOpenCashSuspended = { navController.navigate(Routes.FOUNDER_CASH_SUSPENDED) },
                     onOpenPartsOutliers = { navController.navigate(Routes.FOUNDER_PARTS_OUTLIERS) },
+                    onOpenResolvedDisputes = { navController.navigate(Routes.FOUNDER_RESOLVED_DISPUTES) },
                     onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.FOUNDER_ESCROW_DISPUTES) {
                 com.equipseva.app.features.founder.FounderEscrowDisputesScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenTimeline = { escrowId ->
+                        navController.navigate(Routes.founderEscrowDisputeDetailRoute(escrowId))
+                    },
+                )
+            }
+            composable(Routes.FOUNDER_RESOLVED_DISPUTES) {
+                com.equipseva.app.features.founder.FounderResolvedDisputesScreen(
                     onBack = { navController.popBackStack() },
                     onOpenTimeline = { escrowId ->
                         navController.navigate(Routes.founderEscrowDisputeDetailRoute(escrowId))
