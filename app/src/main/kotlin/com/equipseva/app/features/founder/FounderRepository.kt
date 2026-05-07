@@ -458,16 +458,14 @@ class FounderRepository @Inject constructor(
         Unit
     }
 
-    suspend fun fetchPartsCostOutliers(
-        windowDays: Int = 90,
-        multiplier: Double = 5.0,
-    ): Result<List<PartsCostOutlier>> = runCatching {
-        client.postgrest.rpc(
-            function = "list_parts_cost_outliers",
-            parameters = buildJsonObject {
-                put("p_window_days", JsonPrimitive(windowDays))
-                put("p_multiplier", JsonPrimitive(multiplier))
-            },
-        ).decodeList<PartsCostOutlier>()
+    suspend fun fetchPartsCostOutliers(): Result<List<PartsCostOutlier>> = runCatching {
+        // Pass no parameters — let the RPC's SQL defaults (window=90,
+        // multiplier=5.0) apply. supabase-kt's JsonPrimitive(Double=5.0)
+        // gets serialized as JSON `5` once the value is integral, which
+        // breaks PostgREST's (int, numeric) overload resolution and fails
+        // the call with a 404 "no function matches". UI controls for
+        // tuning the window / multiplier can land later.
+        client.postgrest.rpc(function = "list_parts_cost_outliers")
+            .decodeList<PartsCostOutlier>()
     }
 }
