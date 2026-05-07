@@ -369,6 +369,14 @@ fun MainNavGraph(
                     },
                 )
             }
+            composable(Routes.HOSPITAL_MY_DISPUTES) {
+                com.equipseva.app.features.hospital.HospitalMyDisputesScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenJob = { jobId ->
+                        navController.navigate(Routes.repairJobDetailRoute(jobId))
+                    },
+                )
+            }
             composable(Routes.ENGINEER_LOCATION) {
                 com.equipseva.app.features.engineer.EngineerLocationScreen(
                     onBack = { navController.popBackStack() },
@@ -463,6 +471,7 @@ fun MainNavGraph(
                     onOpenEarnings = { navController.navigate(Routes.EARNINGS) },
                     onOpenMyRepairJobs = { navController.navigate(Routes.HOSPITAL_ACTIVE_JOBS) },
                     onOpenMaintenanceContracts = { navController.navigate(Routes.AMC_CONTRACTS_LIST) },
+                    onOpenMyDisputes = { navController.navigate(Routes.HOSPITAL_MY_DISPUTES) },
                     onOpenPublicPreview = { engineerId ->
                         navController.navigate(Routes.engineerPublicProfileRoute(engineerId))
                     },
