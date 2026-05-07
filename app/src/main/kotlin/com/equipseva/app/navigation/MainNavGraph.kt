@@ -305,6 +305,7 @@ fun MainNavGraph(
                     onOpenEngineerProfile = { id ->
                         navController.navigate(Routes.engineerPublicProfileRoute(id))
                     },
+                    onOpenAmcContracts = { navController.navigate(Routes.AMC_CONTRACTS_LIST) },
                 )
             }
             composable(Routes.REPAIR) {

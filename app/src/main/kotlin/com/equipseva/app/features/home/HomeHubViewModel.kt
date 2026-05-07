@@ -50,6 +50,7 @@ class HomeHubViewModel @Inject constructor(
     private val engineerDirectoryRepository: EngineerDirectoryRepository,
     private val cashSurveyRepository: CashSurveyRepository,
     private val commissionTierRepository: CommissionTierRepository,
+    private val amcRepository: com.equipseva.app.core.data.amc.AmcRepository,
     private val userPrefs: UserPrefs,
     private val app: Application,
 ) : ViewModel() {
@@ -77,6 +78,9 @@ class HomeHubViewModel @Inject constructor(
         // PR-D15: hospital loyalty progress pill — non-null when the
         // get_my_commission_tier RPC returns a row.
         val commissionTier: CommissionTierRepository.TierInfo? = null,
+        // PR-D34: aggregated AMC SLA credits issued to hospital in the
+        // trailing 30-day window. Card renders only when total > 0.
+        val recentSlaCredits: com.equipseva.app.core.data.amc.AmcRepository.HospitalSlaCreditSummary? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -187,6 +191,13 @@ class HomeHubViewModel @Inject constructor(
             // (PR-D2 RPC). Quiet on errors — pill just won't render.
             commissionTierRepository.fetchMyTier().onSuccess { tier ->
                 _state.update { it.copy(commissionTier = tier) }
+            }
+            // PR-D34: pull hospital's recent AMC SLA credits summary.
+            // Quiet on errors — card just won't render.
+            amcRepository.hospitalRecentAmcSlaCredits().onSuccess { sum ->
+                if (sum.totalCreditRupees > 0.0) {
+                    _state.update { it.copy(recentSlaCredits = sum) }
+                }
             }
         }
         notifJob?.cancel()
