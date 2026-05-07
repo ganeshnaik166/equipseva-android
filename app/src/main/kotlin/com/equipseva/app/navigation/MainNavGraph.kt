@@ -359,6 +359,7 @@ fun MainNavGraph(
                     onSubmitKyc = { navController.navigate(Routes.KYC) },
                     onSignIn = { onSignIn() },
                     onAmcVisits = { navController.navigate(Routes.ENGINEER_AMC_VISITS) },
+                    onMyDisputes = { navController.navigate(Routes.ENGINEER_MY_DISPUTES) },
                 )
             }
             composable(Routes.ENGINEER_AMC_VISITS) {
@@ -371,6 +372,14 @@ fun MainNavGraph(
             }
             composable(Routes.HOSPITAL_MY_DISPUTES) {
                 com.equipseva.app.features.hospital.HospitalMyDisputesScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenJob = { jobId ->
+                        navController.navigate(Routes.repairJobDetailRoute(jobId))
+                    },
+                )
+            }
+            composable(Routes.ENGINEER_MY_DISPUTES) {
+                com.equipseva.app.features.engineer.EngineerMyDisputesScreen(
                     onBack = { navController.popBackStack() },
                     onOpenJob = { jobId ->
                         navController.navigate(Routes.repairJobDetailRoute(jobId))

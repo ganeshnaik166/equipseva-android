@@ -165,6 +165,9 @@ object Routes {
     // v2.1 PR-D41 — hospital self-view of their dispute filing history.
     const val HOSPITAL_MY_DISPUTES = "hospital/my_disputes"
 
+    // v2.1 PR-D42 — engineer self-view of disputes received.
+    const val ENGINEER_MY_DISPUTES = "engineer/my_disputes"
+
     // Address book add/edit (sub-route of PROFILE_ADDRESSES). Optional id arg
     // distinguishes "new" from "edit existing".
     const val PROFILE_ADDRESS_FORM = "profile/addresses/form"
