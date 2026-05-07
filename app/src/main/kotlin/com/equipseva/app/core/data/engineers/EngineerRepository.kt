@@ -3,6 +3,21 @@ package com.equipseva.app.core.data.engineers
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 
 interface EngineerRepository {
+
+    /**
+     * Engineer self-suspension snapshot. Null when the engineer row is
+     * missing OR not currently auto-suspended. Used to render the
+     * suspension banner on Profile (PR-D30) so the engineer understands
+     * why their availability flipped off + how to clear.
+     */
+    data class MySuspension(
+        val suspendedAt: String?,
+        val reason: String?,
+        val flagCount90d: Int,
+    )
+
+    suspend fun fetchMySuspension(): Result<MySuspension?>
+
     suspend fun fetchByUserId(userId: String): Result<Engineer?>
 
     suspend fun upsert(

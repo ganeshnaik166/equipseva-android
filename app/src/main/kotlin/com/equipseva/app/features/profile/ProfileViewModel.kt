@@ -89,6 +89,13 @@ class ProfileViewModel @Inject constructor(
         val avatarUploading: Boolean = false,
         val exportingData: Boolean = false,
         val exportConfirmOpen: Boolean = false,
+        /**
+         * v2.1 PR-D30 — engineer-side cash-flag auto-suspension snapshot.
+         * Null when the user is not an engineer or not currently
+         * suspended. Drives the suspension banner on Profile so the
+         * engineer understands why their availability flipped off.
+         */
+        val mySuspension: com.equipseva.app.core.data.engineers.EngineerRepository.MySuspension? = null,
     )
 
     sealed interface Effect {
@@ -520,6 +527,9 @@ class ProfileViewModel @Inject constructor(
                 val engineer = if (profile?.role == UserRole.ENGINEER) {
                     engineerRepository.fetchByUserId(userId).getOrNull()
                 } else null
+                val mySuspension = if (profile?.role == UserRole.ENGINEER) {
+                    engineerRepository.fetchMySuspension().getOrNull()
+                } else null
                 _state.update {
                     it.copy(
                         loading = false,
@@ -532,6 +542,7 @@ class ProfileViewModel @Inject constructor(
                             !engineer.aadhaarDocPath.isNullOrBlank() &&
                             !engineer.panDocPath.isNullOrBlank() &&
                             engineer.certDocPaths.isNotEmpty(),
+                        mySuspension = mySuspension,
                         errorMessage = if (profile == null) "Profile not found" else null,
                     )
                 }
