@@ -105,6 +105,7 @@ class FounderEscrowDisputesViewModel @Inject constructor(
 @Composable
 fun FounderEscrowDisputesScreen(
     onBack: () -> Unit,
+    onOpenTimeline: (escrowId: String) -> Unit = {},
     viewModel: FounderEscrowDisputesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -132,6 +133,7 @@ fun FounderEscrowDisputesScreen(
                             row = row,
                             acting = state.acting.contains(row.escrowId),
                             onAction = { outcome -> viewModel.resolve(row.escrowId, outcome) },
+                            onOpenTimeline = { onOpenTimeline(row.escrowId) },
                         )
                     }
                 }
@@ -145,6 +147,7 @@ private fun EscrowDisputeRow(
     row: FounderRepository.EscrowDispute,
     acting: Boolean,
     onAction: (String) -> Unit,
+    onOpenTimeline: () -> Unit,
 ) {
     QueueCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -175,6 +178,13 @@ private fun EscrowDisputeRow(
         if (!row.disputeOpenedAt.isNullOrBlank()) {
             Text("Opened: ${row.disputeOpenedAt.take(19).replace('T', ' ')}", color = SevaInk500, fontSize = 11.sp)
         }
+        EsBtn(
+            text = "View timeline",
+            kind = EsBtnKind.Secondary,
+            size = EsBtnSize.Sm,
+            onClick = onOpenTimeline,
+            full = true,
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             EsBtn(
                 text = if (acting) "..." else "Release to engineer",

@@ -144,6 +144,12 @@ object Routes {
     fun founderCashFlagHistoryRoute(engineerId: String): String =
         "$FOUNDER_CASH_FLAG_HISTORY/$engineerId"
 
+    // v2.1 PR-D26 — admin drill-down on escrow dispute event timeline.
+    const val FOUNDER_ESCROW_DISPUTE_DETAIL = "founder/escrow_dispute_detail"
+    const val FOUNDER_ESCROW_DISPUTE_DETAIL_ARG_ESCROW_ID = "escrowId"
+    fun founderEscrowDisputeDetailRoute(escrowId: String): String =
+        "$FOUNDER_ESCROW_DISPUTE_DETAIL/$escrowId"
+
     // Address book add/edit (sub-route of PROFILE_ADDRESSES). Optional id arg
     // distinguishes "new" from "edit existing".
     const val PROFILE_ADDRESS_FORM = "profile/addresses/form"
