@@ -122,6 +122,7 @@ fun EngineerJobsHubScreen(
     onServiceLocation: () -> Unit,
     onSubmitKyc: () -> Unit,
     onSignIn: () -> Unit,
+    onAmcVisits: () -> Unit = {},
     viewModel: EngineerJobsHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -204,6 +205,12 @@ fun EngineerJobsHubScreen(
                         title = "Earnings",
                         desc = "Payouts and history",
                         onClick = onEarnings,
+                    )
+                    HubTile(
+                        icon = Icons.Outlined.Build,
+                        title = "AMC visits",
+                        desc = "Hospital maintenance contracts you're on",
+                        onClick = onAmcVisits,
                     )
                     HubTile(
                         icon = Icons.Outlined.LocationOn,

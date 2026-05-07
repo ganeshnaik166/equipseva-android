@@ -156,6 +156,9 @@ object Routes {
     fun founderAmcEscalationDetailRoute(escalationId: String): String =
         "$FOUNDER_AMC_ESCALATION_DETAIL/$escalationId"
 
+    // v2.1 PR-D33 — engineer's AMC visit list.
+    const val ENGINEER_AMC_VISITS = "engineer/amc_visits"
+
     // Address book add/edit (sub-route of PROFILE_ADDRESSES). Optional id arg
     // distinguishes "new" from "edit existing".
     const val PROFILE_ADDRESS_FORM = "profile/addresses/form"
