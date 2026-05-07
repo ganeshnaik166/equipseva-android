@@ -146,6 +146,7 @@ fun FounderDashboardScreen(
     onOpenAmcEscalations: () -> Unit = {},
     onOpenCashSuspended: () -> Unit = {},
     onOpenPartsOutliers: () -> Unit = {},
+    onOpenResolvedDisputes: () -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: FounderDashboardViewModel = hiltViewModel(),
 ) {
@@ -221,6 +222,7 @@ fun FounderDashboardScreen(
                             onOpenAmcEscalations = onOpenAmcEscalations,
                             onOpenCashSuspended = onOpenCashSuspended,
                             onOpenPartsOutliers = onOpenPartsOutliers,
+                            onOpenResolvedDisputes = onOpenResolvedDisputes,
                         )
                     }
                 }
@@ -481,6 +483,7 @@ private fun QueuesCardAntiLeak(
     onOpenAmcEscalations: () -> Unit,
     onOpenCashSuspended: () -> Unit,
     onOpenPartsOutliers: () -> Unit,
+    onOpenResolvedDisputes: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -523,6 +526,15 @@ private fun QueuesCardAntiLeak(
             subtitle = "Charges >5× category average",
             trailingPill = null,
             onClick = onOpenPartsOutliers,
+            showDivider = true,
+        )
+        QueueRow(
+            icon = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+            iconTint = SevaInk600,
+            title = "Resolved disputes",
+            subtitle = "Last 30 days · audit ledger",
+            trailingPill = null,
+            onClick = onOpenResolvedDisputes,
             showDivider = false,
         )
     }

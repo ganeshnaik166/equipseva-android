@@ -156,6 +156,9 @@ object Routes {
     fun founderAmcEscalationDetailRoute(escalationId: String): String =
         "$FOUNDER_AMC_ESCALATION_DETAIL/$escalationId"
 
+    // v2.1 PR-D40 — admin ledger of recently resolved escrow disputes.
+    const val FOUNDER_RESOLVED_DISPUTES = "founder/resolved_disputes"
+
     // v2.1 PR-D33 — engineer's AMC visit list.
     const val ENGINEER_AMC_VISITS = "engineer/amc_visits"
 
