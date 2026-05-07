@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Apartment
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.CalendarMonth
@@ -367,6 +368,13 @@ private fun ProfileContent(
             onEdit = onEditProfile,
         )
 
+        // PR-D30 — engineer-side cash-flag suspension banner. Renders only
+        // when isEngineer + an active auto-suspension. Tells engineer the
+        // count + the official path to clear (admin reviews via PR-D25).
+        state.mySuspension?.let { sus ->
+            EngineerSuspensionBanner(suspension = sus)
+        }
+
         val sections = buildProfileSections(
             isEngineer = isEngineer,
             isHospital = isHospital,
@@ -415,6 +423,55 @@ private fun ProfileContent(
         }
 
         Spacer(Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun EngineerSuspensionBanner(
+    suspension: com.equipseva.app.core.data.engineers.EngineerRepository.MySuspension,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(com.equipseva.app.designsystem.theme.SevaDanger50)
+            .border(1.dp, com.equipseva.app.designsystem.theme.SevaDanger500, RoundedCornerShape(12.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(
+                imageVector = Icons.Outlined.Block,
+                contentDescription = null,
+                tint = com.equipseva.app.designsystem.theme.SevaDanger500,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = "Account paused — under review",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = com.equipseva.app.designsystem.theme.SevaDanger500,
+            )
+        }
+        Text(
+            text = suspension.reason
+                ?: "${suspension.flagCount90d} hospital cash-payment flags in the last 90 days. EquipSeva paused your availability while we review.",
+            fontSize = 12.sp,
+            color = com.equipseva.app.designsystem.theme.SevaInk700,
+        )
+        suspension.suspendedAt?.let {
+            Text(
+                text = "Paused: " + it.take(19).replace('T', ' '),
+                fontSize = 11.sp,
+                color = com.equipseva.app.designsystem.theme.SevaInk500,
+            )
+        }
+        Text(
+            text = "Reach support to walk through the flagged jobs and reactivate.",
+            fontSize = 12.sp,
+            color = com.equipseva.app.designsystem.theme.SevaInk700,
+        )
     }
 }
 

@@ -4,8 +4,11 @@ import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.storage.StorageRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.postgrest
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 @Singleton
 class SupabaseEngineerRepository @Inject constructor(
@@ -19,6 +22,26 @@ class SupabaseEngineerRepository @Inject constructor(
             limit(count = 1)
         }.decodeList<EngineerDto>().firstOrNull()?.toDomain()
     }
+
+    override suspend fun fetchMySuspension(): Result<EngineerRepository.MySuspension?> = runCatching {
+        val rows = client.postgrest.rpc(function = "engineer_my_suspension")
+            .decodeList<MySuspensionDto>()
+        val row = rows.firstOrNull() ?: return@runCatching null
+        if (!row.isSuspended) null
+        else EngineerRepository.MySuspension(
+            suspendedAt = row.suspendedAt,
+            reason = row.reason,
+            flagCount90d = row.flagCount90d,
+        )
+    }
+
+    @Serializable
+    private data class MySuspensionDto(
+        @SerialName("is_suspended") val isSuspended: Boolean = false,
+        @SerialName("suspended_at") val suspendedAt: String? = null,
+        @SerialName("reason") val reason: String? = null,
+        @SerialName("flag_count_90d") val flagCount90d: Int = 0,
+    )
 
     override suspend fun upsert(
         userId: String,
