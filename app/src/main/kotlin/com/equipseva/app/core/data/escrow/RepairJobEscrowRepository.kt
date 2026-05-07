@@ -119,6 +119,31 @@ class RepairJobEscrowRepository @Inject constructor(
             .decodeList<ActiveEscrowRow>()
     }
 
+    @Serializable
+    data class HospitalDisputeRow(
+        @SerialName("escrow_id") val escrowId: String,
+        @SerialName("repair_job_id") val repairJobId: String,
+        @SerialName("job_number") val jobNumber: String? = null,
+        @SerialName("engineer_user_id") val engineerUserId: String? = null,
+        @SerialName("engineer_name") val engineerName: String? = null,
+        @SerialName("amount_rupees") val amountRupees: Double,
+        @SerialName("status") val status: String,
+        @SerialName("outcome") val outcome: String? = null,
+        @SerialName("dispute_opened_at") val disputeOpenedAt: String? = null,
+        @SerialName("dispute_resolved_at") val disputeResolvedAt: String? = null,
+        @SerialName("dispute_reason") val disputeReason: String? = null,
+        @SerialName("resolution_note") val resolutionNote: String? = null,
+    )
+
+    /**
+     * v2.1 PR-D41 — caller-scoped list of disputes the hospital has
+     * filed in the trailing window. Default 365 days.
+     */
+    suspend fun fetchHospitalDisputeHistory(): Result<List<HospitalDisputeRow>> = runCatching {
+        supabase.postgrest.rpc(function = "hospital_my_disputes")
+            .decodeList<HospitalDisputeRow>()
+    }
+
     // ---- Hospital actions -------------------------------------------
 
     suspend fun confirmRelease(repairJobId: String): Result<Unit> = runCatching {

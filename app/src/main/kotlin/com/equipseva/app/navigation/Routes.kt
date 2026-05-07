@@ -162,6 +162,9 @@ object Routes {
     // v2.1 PR-D33 — engineer's AMC visit list.
     const val ENGINEER_AMC_VISITS = "engineer/amc_visits"
 
+    // v2.1 PR-D41 — hospital self-view of their dispute filing history.
+    const val HOSPITAL_MY_DISPUTES = "hospital/my_disputes"
+
     // Address book add/edit (sub-route of PROFILE_ADDRESSES). Optional id arg
     // distinguishes "new" from "edit existing".
     const val PROFILE_ADDRESS_FORM = "profile/addresses/form"

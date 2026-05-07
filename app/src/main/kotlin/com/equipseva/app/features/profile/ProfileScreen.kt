@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Apartment
+import androidx.compose.material.icons.outlined.Gavel
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Close
@@ -122,6 +123,8 @@ fun ProfileScreen(
     onOpenHelp: () -> Unit = {},
     onOpenPublicPreview: (engineerId: String) -> Unit = {},
     onOpenMaintenanceContracts: () -> Unit = {},
+    // PR-D41 — hospital self-view of dispute filing history.
+    onOpenMyDisputes: () -> Unit = {},
     onSwitchService: () -> Unit = {},
     onSignIn: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -245,6 +248,7 @@ fun ProfileScreen(
                         onOpenHelp = onOpenHelp,
                         onOpenPublicPreview = onOpenPublicPreview,
                         onOpenMaintenanceContracts = onOpenMaintenanceContracts,
+                        onOpenMyDisputes = onOpenMyDisputes,
                         onSwitchService = viewModel::onToggleRoleAndGoHome,
                         onPickAvatar = viewModel::uploadAvatar,
                     )
@@ -336,6 +340,7 @@ private fun ProfileContent(
     onOpenHelp: () -> Unit,
     onOpenPublicPreview: (engineerId: String) -> Unit,
     onOpenMaintenanceContracts: () -> Unit,
+    onOpenMyDisputes: () -> Unit,
     onSwitchService: () -> Unit,
     onPickAvatar: (Uri) -> Unit,
 ) {
@@ -406,6 +411,7 @@ private fun ProfileContent(
             engineerKycSubmitted = state.engineerKycSubmitted,
             onOpenPublicPreview = onOpenPublicPreview,
             onOpenMaintenanceContracts = onOpenMaintenanceContracts,
+            onOpenMyDisputes = onOpenMyDisputes,
             onSwitchService = onSwitchService,
             onSignOut = onSignOut,
             signingOut = state.signingOut,
@@ -602,6 +608,7 @@ private fun buildProfileSections(
     engineerKycSubmitted: Boolean,
     onOpenPublicPreview: (engineerId: String) -> Unit,
     onOpenMaintenanceContracts: () -> Unit,
+    onOpenMyDisputes: () -> Unit,
     onSwitchService: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
@@ -668,6 +675,8 @@ private fun buildProfileSections(
             ))
             add(SettingsRow(icon = Icons.Outlined.LocationOn, label = "Addresses", onClick = onOpenAddresses))
             add(SettingsRow(icon = Icons.Outlined.Apartment, label = "Hospital settings", onClick = onOpenHospitalSettings))
+            // PR-D41 — hospital self-view of dispute filing history.
+            add(SettingsRow(icon = Icons.Outlined.Gavel, label = "Your disputes", onClick = onOpenMyDisputes))
         }
     }
 
