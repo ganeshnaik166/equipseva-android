@@ -50,6 +50,15 @@ interface FdaResponse {
   results?: FdaRow[];
 }
 
+// Constant-time string compare so a timing oracle can't recover the
+// shared secret one byte at a time. Length-leak is harmless here.
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 function slugify(s: string): string {
   return s
     .toLowerCase()
@@ -114,8 +123,8 @@ Deno.serve(async (req: Request) => {
   // x-webhook-secret matching INGEST_OPENFDA_SECRET; if the env var is
   // unset we fail closed.
   const expectedSecret = Deno.env.get('INGEST_OPENFDA_SECRET');
-  const incomingSecret = req.headers.get('x-webhook-secret');
-  if (!expectedSecret || incomingSecret !== expectedSecret) {
+  const incomingSecret = req.headers.get('x-webhook-secret') ?? '';
+  if (!expectedSecret || !timingSafeEqual(incomingSecret, expectedSecret)) {
     return new Response(JSON.stringify({ error: 'unauthenticated' }), {
       status: 401,
       headers: { 'content-type': 'application/json' },

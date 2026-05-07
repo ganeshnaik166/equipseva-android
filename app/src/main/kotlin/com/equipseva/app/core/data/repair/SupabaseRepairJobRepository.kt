@@ -146,15 +146,33 @@ class SupabaseRepairJobRepository @Inject constructor(
         startedAt: Instant?,
         completedAt: Instant?,
     ): Result<RepairJob> = runCatching {
-        val patch = RepairJobStatusPatchDto(
-            status = newStatus.storageKey,
-            startedAt = startedAt?.toString(),
-            completedAt = completedAt?.toString(),
-        )
-        client.from(TABLE).update(patch) {
-            filter { eq("id", jobId) }
-            select()
-        }.decodeSingle<RepairJobDto>().toDomain()
+        // PR-D45: the in_progress/en_route → completed transitions were
+        // removed from the non-admin status-transition allow-list in
+        // 20260620100000 because raw PATCH let an engineer mark a job
+        // done without going on-site (and start the 48h escrow auto-
+        // release timer). Route through the SECDEF complete_repair_job
+        // RPC, which verifies caller is the assigned engineer and the
+        // row is in a transitional state, then flips status as postgres.
+        if (newStatus == RepairJobStatus.Completed) {
+            val response = client.postgrest.rpc(
+                function = "complete_repair_job",
+                parameters = buildJsonObject {
+                    put("p_repair_job_id", JsonPrimitive(jobId))
+                },
+            )
+            response.decodeList<RepairJobDto>().firstOrNull()?.toDomain()
+                ?: error("complete_repair_job returned no row")
+        } else {
+            val patch = RepairJobStatusPatchDto(
+                status = newStatus.storageKey,
+                startedAt = startedAt?.toString(),
+                completedAt = completedAt?.toString(),
+            )
+            client.from(TABLE).update(patch) {
+                filter { eq("id", jobId) }
+                select()
+            }.decodeSingle<RepairJobDto>().toDomain()
+        }
     }
 
     override suspend fun submitRating(

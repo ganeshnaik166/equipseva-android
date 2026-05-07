@@ -272,7 +272,10 @@ serve(async (req) => {
     });
     const decodeBody = await decodeRes.text();
     if (!decodeRes.ok) {
-      googleErr = `decode failed: ${decodeRes.status} ${decodeBody}`;
+      // Google's response body can carry quota / project diagnostics —
+      // log full detail server-side; surface only a generic marker.
+      console.error("verify-play-integrity: decode failed", decodeRes.status, decodeBody);
+      googleErr = `decode_failed_${decodeRes.status}`;
     } else {
       const decoded = JSON.parse(decodeBody) as DecodedIntegrity;
       const payload = decoded.tokenPayloadExternal ?? {};
@@ -318,7 +321,7 @@ serve(async (req) => {
     return json(502, {
       ok: false,
       code: "google_error",
-      message: googleErr,
+      message: "integrity check unavailable",
       pass: false,
     });
   }

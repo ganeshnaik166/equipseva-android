@@ -99,7 +99,10 @@ serve(async (req) => {
   });
   const rzpBody = await rzpRes.text();
   if (!rzpRes.ok) {
-    return bad("razorpay_error", rzpBody, 502);
+    // Don't echo Razorpay error body to the client — it can leak merchant /
+    // account ids + internal codes. Keep raw text in server logs.
+    console.error("create-razorpay-order: razorpay non-2xx", rzpRes.status, rzpBody);
+    return bad("razorpay_error", "payment provider unavailable", 502);
   }
   const rzpOrder = JSON.parse(rzpBody) as {
     id: string;

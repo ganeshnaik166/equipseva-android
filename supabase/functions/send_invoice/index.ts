@@ -29,6 +29,15 @@ const formatRupee = (n: unknown) =>
     Number(n) || 0,
   );
 
+// Constant-time string compare so a timing oracle can't recover the
+// shared secret one byte at a time.
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 function esc(s: unknown): string {
   return String(s ?? "")
     .replace(/&/g, "&amp;")
@@ -150,8 +159,8 @@ serve(async (req) => {
   if (req.method !== "POST") return bad("bad_request", "POST only", 405);
 
   const expectedSecret = Deno.env.get("INVOICE_WEBHOOK_SECRET");
-  const incomingSecret = req.headers.get("x-webhook-secret");
-  if (!expectedSecret || incomingSecret !== expectedSecret) {
+  const incomingSecret = req.headers.get("x-webhook-secret") ?? "";
+  if (!expectedSecret || !timingSafeEqual(incomingSecret, expectedSecret)) {
     return bad("unauthenticated", "bad webhook secret", 401);
   }
 
