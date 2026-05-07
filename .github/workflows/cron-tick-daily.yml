@@ -1,0 +1,48 @@
+name: cron-tick (daily TTL purges)
+
+# v2.1 PR-D39 — daily slice of the Free-tier pg_cron substitute.
+# See cron-tick-hourly.yml for the design rationale.
+#
+# `?slot=daily` runs the TTL purges (PR #252):
+#   * old notifications
+#   * old content reports
+#   * old device-integrity checks
+#   * old virtual-call sessions
+#
+# 03:00 UTC = 08:30 IST — picked to land before working hours so any
+# incidental table-lock churn doesn't hit live traffic.
+#
+# Required repo secrets:
+#   CRON_TICK_SECRET — same value as Supabase's CRON_TICK_SECRET
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: cron-tick-daily
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: POST cron-tick ?slot=daily
+        env:
+          CRON_TICK_SECRET: ${{ secrets.CRON_TICK_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_TICK_SECRET}" ]; then
+            echo "::error::CRON_TICK_SECRET not configured. Add it under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          URL="https://eyswaywvtartpvtoxtdr.supabase.co/functions/v1/cron-tick?slot=daily"
+          curl --fail-with-body \
+               --silent --show-error \
+               --max-time 120 \
+               -X POST "$URL" \
+               -H "X-Cron-Secret: ${CRON_TICK_SECRET}" \
+               -H "Content-Type: application/json" \
+               -d '{}'
