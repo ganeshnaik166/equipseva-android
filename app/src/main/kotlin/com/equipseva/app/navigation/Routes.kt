@@ -138,6 +138,12 @@ object Routes {
     // v2.1 PR-D24 — engineer drill-down from the money-in-flight card.
     const val ENGINEER_ACTIVE_ESCROWS = "engineer/escrows/active"
 
+    // v2.1 PR-D25 — admin drill-down on cash-flag suspended engineer rows.
+    const val FOUNDER_CASH_FLAG_HISTORY = "founder/cash_flag_history"
+    const val FOUNDER_CASH_FLAG_HISTORY_ARG_ENGINEER_ID = "engineerId"
+    fun founderCashFlagHistoryRoute(engineerId: String): String =
+        "$FOUNDER_CASH_FLAG_HISTORY/$engineerId"
+
     // Address book add/edit (sub-route of PROFILE_ADDRESSES). Optional id arg
     // distinguishes "new" from "edit existing".
     const val PROFILE_ADDRESS_FORM = "profile/addresses/form"

@@ -458,6 +458,27 @@ class FounderRepository @Inject constructor(
         Unit
     }
 
+    @Serializable
+    data class CashFlagHistoryRow(
+        @SerialName("response_id") val responseId: String,
+        @SerialName("repair_job_id") val repairJobId: String,
+        @SerialName("job_number") val jobNumber: String? = null,
+        @SerialName("hospital_user_id") val hospitalUserId: String,
+        @SerialName("hospital_name") val hospitalName: String? = null,
+        @SerialName("response") val response: String,
+        @SerialName("responded_at") val respondedAt: String? = null,
+        @SerialName("completed_at") val completedAt: String? = null,
+    )
+
+    suspend fun fetchEngineerCashFlagHistory(engineerId: String): Result<List<CashFlagHistoryRow>> = runCatching {
+        client.postgrest.rpc(
+            function = "admin_engineer_cash_flag_history",
+            parameters = buildJsonObject {
+                put("p_engineer_id", JsonPrimitive(engineerId))
+            },
+        ).decodeList<CashFlagHistoryRow>()
+    }
+
     suspend fun fetchPartsCostOutliers(): Result<List<PartsCostOutlier>> = runCatching {
         // Pass no parameters — let the RPC's SQL defaults (window=90,
         // multiplier=5.0) apply. supabase-kt's JsonPrimitive(Double=5.0)

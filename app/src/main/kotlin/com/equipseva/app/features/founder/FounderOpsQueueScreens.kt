@@ -392,6 +392,7 @@ class FounderCashSuspendedViewModel @Inject constructor(
 @Composable
 fun FounderCashSuspendedScreen(
     onBack: () -> Unit,
+    onOpenHistory: (engineerId: String) -> Unit = {},
     viewModel: FounderCashSuspendedViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -419,6 +420,7 @@ fun FounderCashSuspendedScreen(
                             row = row,
                             acting = state.acting.contains(row.engineerId),
                             onClear = { viewModel.clear(row.engineerId) },
+                            onOpenHistory = { onOpenHistory(row.engineerId) },
                         )
                     }
                 }
@@ -432,6 +434,7 @@ private fun CashSuspendedRow(
     row: FounderRepository.CashSuspendedEngineer,
     acting: Boolean,
     onClear: () -> Unit,
+    onOpenHistory: () -> Unit,
 ) {
     QueueCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -457,14 +460,23 @@ private fun CashSuspendedRow(
         if (!row.suspendedAt.isNullOrBlank()) {
             Text("Since: ${row.suspendedAt.take(19).replace('T', ' ')}", color = SevaInk500, fontSize = 11.sp)
         }
-        EsBtn(
-            text = if (acting) "..." else "Clear suspension",
-            kind = EsBtnKind.Secondary,
-            size = EsBtnSize.Sm,
-            disabled = acting,
-            onClick = onClear,
-            full = true,
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            EsBtn(
+                text = "View history",
+                kind = EsBtnKind.Secondary,
+                size = EsBtnSize.Sm,
+                onClick = onOpenHistory,
+                modifier = Modifier.weight(1f),
+            )
+            EsBtn(
+                text = if (acting) "..." else "Clear suspension",
+                kind = EsBtnKind.Primary,
+                size = EsBtnSize.Sm,
+                disabled = acting,
+                onClick = onClear,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 
