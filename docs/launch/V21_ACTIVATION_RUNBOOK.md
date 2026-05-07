@@ -166,6 +166,24 @@ This is *low priority* — apex already verifies, so the App Link works. Only ma
 
 ---
 
+## 6b. (Optional) Move signing creds to env-only (~5 min, hardening)
+
+`keystore.properties` keeps the upload-key passphrase in cleartext at the repo root. It's gitignored (verified), so the leak surface is whoever has shell access to your laptop. PR-D48 added env-var precedence to `app/build.gradle.kts` so CI (and a hardened local setup) can drop the file entirely.
+
+To use env-only on a new machine / CI:
+
+```bash
+export RELEASE_KEYSTORE_PATH="$(pwd)/app/equipseva-upload.jks"
+export RELEASE_KEYSTORE_PASSWORD="<store-pass>"
+export RELEASE_KEY_ALIAS=equipseva-upload
+export RELEASE_KEY_PASSWORD="<key-pass>"
+./gradlew :app:bundleRelease
+```
+
+Once that's in CI / 1Password, delete `keystore.properties` locally. Note: rotating the passphrase itself requires Play Console upload-key reset, which only becomes available after the first AAB upload.
+
+---
+
 ## 7. Restrict the Google Maps API key (~5 min, MEDIUM)
 
 `MAPS_API_KEY` is baked into the release APK by Gradle. Anyone can extract the APK + read it. Without a key restriction, an attacker can run their own app against your Google Cloud quota — burning your Maps credits and potentially racking up a bill.

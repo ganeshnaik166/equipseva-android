@@ -141,7 +141,7 @@ serve(async (req) => {
     : ((order as { amc_contracts: { hospital_user_id: string; status: string } })
         .amc_contracts);
   if (!contract || contract.hospital_user_id !== userId) {
-    return bad("unauthenticated", "not owner", 403);
+    return bad("not_owner", "not the hospital on this contract", 403);
   }
 
   // Replay-attack guard — require client-submitted razorpay_order_id
