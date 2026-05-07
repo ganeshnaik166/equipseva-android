@@ -686,6 +686,21 @@ fun MainNavGraph(
             composable(Routes.FOUNDER_CASH_SUSPENDED) {
                 com.equipseva.app.features.founder.FounderCashSuspendedScreen(
                     onBack = { navController.popBackStack() },
+                    onOpenHistory = { engineerId ->
+                        navController.navigate(Routes.founderCashFlagHistoryRoute(engineerId))
+                    },
+                )
+            }
+            composable(
+                route = "${Routes.FOUNDER_CASH_FLAG_HISTORY}/{${Routes.FOUNDER_CASH_FLAG_HISTORY_ARG_ENGINEER_ID}}",
+                arguments = listOf(
+                    androidx.navigation.navArgument(Routes.FOUNDER_CASH_FLAG_HISTORY_ARG_ENGINEER_ID) {
+                        type = androidx.navigation.NavType.StringType
+                    },
+                ),
+            ) {
+                com.equipseva.app.features.founder.FounderCashFlagHistoryScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.FOUNDER_PARTS_OUTLIERS) {
