@@ -144,6 +144,32 @@ class RepairJobEscrowRepository @Inject constructor(
             .decodeList<HospitalDisputeRow>()
     }
 
+    @Serializable
+    data class EngineerDisputeRow(
+        @SerialName("escrow_id") val escrowId: String,
+        @SerialName("repair_job_id") val repairJobId: String,
+        @SerialName("job_number") val jobNumber: String? = null,
+        @SerialName("hospital_user_id") val hospitalUserId: String? = null,
+        @SerialName("hospital_name") val hospitalName: String? = null,
+        @SerialName("amount_rupees") val amountRupees: Double,
+        @SerialName("status") val status: String,
+        @SerialName("outcome") val outcome: String? = null,
+        @SerialName("dispute_opened_at") val disputeOpenedAt: String? = null,
+        @SerialName("dispute_resolved_at") val disputeResolvedAt: String? = null,
+        @SerialName("dispute_reason") val disputeReason: String? = null,
+        @SerialName("engineer_response") val engineerResponse: String? = null,
+        @SerialName("resolution_note") val resolutionNote: String? = null,
+    )
+
+    /**
+     * v2.1 PR-D42 — caller-scoped list of disputes filed against the
+     * engineer in the trailing window. Symmetric to D41 hospital side.
+     */
+    suspend fun fetchEngineerDisputeHistory(): Result<List<EngineerDisputeRow>> = runCatching {
+        supabase.postgrest.rpc(function = "engineer_my_disputes")
+            .decodeList<EngineerDisputeRow>()
+    }
+
     // ---- Hospital actions -------------------------------------------
 
     suspend fun confirmRelease(repairJobId: String): Result<Unit> = runCatching {

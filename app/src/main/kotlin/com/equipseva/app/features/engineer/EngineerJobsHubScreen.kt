@@ -21,6 +21,7 @@ import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.CurrencyRupee
+import androidx.compose.material.icons.outlined.Gavel
 import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Person
@@ -123,6 +124,7 @@ fun EngineerJobsHubScreen(
     onSubmitKyc: () -> Unit,
     onSignIn: () -> Unit,
     onAmcVisits: () -> Unit = {},
+    onMyDisputes: () -> Unit = {},
     viewModel: EngineerJobsHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -211,6 +213,12 @@ fun EngineerJobsHubScreen(
                         title = "AMC visits",
                         desc = "Hospital maintenance contracts you're on",
                         onClick = onAmcVisits,
+                    )
+                    HubTile(
+                        icon = Icons.Outlined.Gavel,
+                        title = "Disputes received",
+                        desc = "Hospital-filed disputes + outcomes",
+                        onClick = onMyDisputes,
                     )
                     HubTile(
                         icon = Icons.Outlined.LocationOn,
