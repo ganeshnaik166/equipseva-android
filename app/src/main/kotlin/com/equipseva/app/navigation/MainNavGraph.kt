@@ -676,6 +676,21 @@ fun MainNavGraph(
             composable(Routes.FOUNDER_ESCROW_DISPUTES) {
                 com.equipseva.app.features.founder.FounderEscrowDisputesScreen(
                     onBack = { navController.popBackStack() },
+                    onOpenTimeline = { escrowId ->
+                        navController.navigate(Routes.founderEscrowDisputeDetailRoute(escrowId))
+                    },
+                )
+            }
+            composable(
+                route = "${Routes.FOUNDER_ESCROW_DISPUTE_DETAIL}/{${Routes.FOUNDER_ESCROW_DISPUTE_DETAIL_ARG_ESCROW_ID}}",
+                arguments = listOf(
+                    androidx.navigation.navArgument(Routes.FOUNDER_ESCROW_DISPUTE_DETAIL_ARG_ESCROW_ID) {
+                        type = androidx.navigation.NavType.StringType
+                    },
+                ),
+            ) {
+                com.equipseva.app.features.founder.FounderEscrowDisputeDetailScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.FOUNDER_AMC_ESCALATIONS) {

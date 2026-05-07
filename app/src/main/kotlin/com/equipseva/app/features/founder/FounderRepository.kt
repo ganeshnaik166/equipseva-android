@@ -459,6 +459,25 @@ class FounderRepository @Inject constructor(
     }
 
     @Serializable
+    data class EscrowEventRow(
+        @SerialName("event_id") val eventId: String,
+        @SerialName("event_kind") val eventKind: String,
+        @SerialName("occurred_at") val occurredAt: String? = null,
+        @SerialName("actor_user_id") val actorUserId: String? = null,
+        @SerialName("actor_name") val actorName: String? = null,
+        @SerialName("payload") val payload: kotlinx.serialization.json.JsonElement? = null,
+    )
+
+    suspend fun fetchEscrowEventTimeline(escrowId: String): Result<List<EscrowEventRow>> = runCatching {
+        client.postgrest.rpc(
+            function = "admin_escrow_event_timeline",
+            parameters = buildJsonObject {
+                put("p_escrow_id", JsonPrimitive(escrowId))
+            },
+        ).decodeList<EscrowEventRow>()
+    }
+
+    @Serializable
     data class CashFlagHistoryRow(
         @SerialName("response_id") val responseId: String,
         @SerialName("repair_job_id") val repairJobId: String,
