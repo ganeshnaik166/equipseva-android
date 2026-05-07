@@ -699,6 +699,7 @@ fun MainNavGraph(
                     onOpenCashSuspended = { navController.navigate(Routes.FOUNDER_CASH_SUSPENDED) },
                     onOpenPartsOutliers = { navController.navigate(Routes.FOUNDER_PARTS_OUTLIERS) },
                     onOpenResolvedDisputes = { navController.navigate(Routes.FOUNDER_RESOLVED_DISPUTES) },
+                    onOpenSpotAudits = { navController.navigate(Routes.FOUNDER_SPOT_AUDITS) },
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -716,6 +717,11 @@ fun MainNavGraph(
                     onOpenTimeline = { escrowId ->
                         navController.navigate(Routes.founderEscrowDisputeDetailRoute(escrowId))
                     },
+                )
+            }
+            composable(Routes.FOUNDER_SPOT_AUDITS) {
+                com.equipseva.app.features.founder.FounderSpotAuditsScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(

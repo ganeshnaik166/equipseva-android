@@ -430,6 +430,26 @@ class FounderRepository @Inject constructor(
             .decodeList<ResolvedDispute>()
     }
 
+    @Serializable
+    data class SpotAuditResponseRow(
+        @SerialName("response_id") val responseId: String,
+        @SerialName("invitation_id") val invitationId: String,
+        @SerialName("repair_job_id") val repairJobId: String,
+        @SerialName("job_number") val jobNumber: String? = null,
+        @SerialName("hospital_user_id") val hospitalUserId: String? = null,
+        @SerialName("hospital_name") val hospitalName: String? = null,
+        @SerialName("engineer_id") val engineerId: String? = null,
+        @SerialName("engineer_name") val engineerName: String? = null,
+        @SerialName("rating") val rating: Int,
+        @SerialName("feedback") val feedback: String? = null,
+        @SerialName("responded_at") val respondedAt: String? = null,
+    )
+
+    suspend fun fetchRecentSpotAudits(): Result<List<SpotAuditResponseRow>> = runCatching {
+        client.postgrest.rpc(function = "admin_list_recent_spot_audits")
+            .decodeList<SpotAuditResponseRow>()
+    }
+
     suspend fun resolveEscrowDispute(
         escrowId: String,
         outcome: String, // "release" or "refund"

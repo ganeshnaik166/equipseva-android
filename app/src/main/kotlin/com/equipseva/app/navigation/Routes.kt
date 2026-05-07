@@ -159,6 +159,9 @@ object Routes {
     // v2.1 PR-D40 — admin ledger of recently resolved escrow disputes.
     const val FOUNDER_RESOLVED_DISPUTES = "founder/resolved_disputes"
 
+    // v2.1 PR-D43 — admin view of recent spot-audit responses.
+    const val FOUNDER_SPOT_AUDITS = "founder/spot_audits"
+
     // v2.1 PR-D33 — engineer's AMC visit list.
     const val ENGINEER_AMC_VISITS = "engineer/amc_visits"
 
