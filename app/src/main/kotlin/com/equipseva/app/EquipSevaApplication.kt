@@ -41,13 +41,23 @@ class EquipSevaApplication : Application(), Configuration.Provider {
         // [OutboxScheduler.cancelAll].
         outboxScheduler.schedulePeriodic()
 
-        // Report-only anti-tamper: log signals on boot. Enforcement (wipe
-        // session + show "not authorized" screen) flips on once the release
-        // keystore lands and EXPECTED_CERT_SHA256 is filled in, and once the
-        // server-side Play Integrity verify endpoint ships.
+        // Anti-tamper signature check. Stays report-only until the user
+        // sets BuildConfig.TAMPER_ENFORCE=true (after both upload-key and
+        // Play App Signing SHAs are wired into EXPECTED_CERT_SHA256 per
+        // runbook §5c) — flipping enforce before Play SHA is added would
+        // hard-exit every Play-distributed install.
         val sigVerdict = SignatureVerifier.verify(this)
         val devVerdict = DeviceIntegrityCheck.run()
         Log.i(TAG, "Integrity boot: sig=$sigVerdict ${devVerdict.toTag()}")
+        if (BuildConfig.TAMPER_ENFORCE && sigVerdict == SignatureVerifier.Verdict.Tampered) {
+            Log.e(TAG, "Tampered signature — refusing to start")
+            // Hard-exit before any auth / network / repository code runs.
+            // The Supabase session is encrypted on disk; an attacker
+            // re-signing the APK would need to uninstall the genuine app
+            // first, wiping prefs — so no separate session-wipe needed.
+            android.os.Process.killProcess(android.os.Process.myPid())
+            kotlin.system.exitProcess(0)
+        }
     }
 
     override val workManagerConfiguration: Configuration

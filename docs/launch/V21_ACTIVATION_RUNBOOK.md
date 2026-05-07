@@ -99,26 +99,37 @@ One checkbox. Cannot be done via CLI.
 
 - Supabase Dashboard → **Authentication** → **Policies** → **Password Strength** → enable **Prevent use of leaked passwords**.
 
-### 5c. After first AAB upload, append Play App Signing SHA to assetlinks
+### 5c. After first AAB upload, append Play App Signing SHA to assetlinks **and** flip TAMPER_ENFORCE on
 
-Google re-signs distributed APKs with their own key. That key's SHA-256 must be added to `website/.well-known/assetlinks.json` for App Links to keep verifying.
+Google re-signs distributed APKs with their own key. That key's SHA-256 must be added to `website/.well-known/assetlinks.json` for App Links to keep verifying — and to `EXPECTED_CERT_SHA256` so the anti-repackaging guard (PR-D46) accepts Play-installed builds.
 
 1. Upload first AAB to Play Console (Internal testing track is fine).
 2. Play Console → **Release** → **Setup** → **App integrity** → **App signing** → copy the SHA-256 of the **App signing key certificate**.
-3. Edit `website/.well-known/assetlinks.json` — add the new SHA into the existing `sha256_cert_fingerprints` array on the `com.equipseva.app` target.
-4. Re-deploy the website. Verify with:
+3. **assetlinks**: edit `website/.well-known/assetlinks.json` — add the new SHA into the existing `sha256_cert_fingerprints` array on the `com.equipseva.app` target. Re-deploy the website. Verify with:
 
    ```bash
    curl -fsSL https://equipseva.com/.well-known/assetlinks.json | jq '.[].target.sha256_cert_fingerprints'
    ```
 
-5. On a Play-installed build, run:
+   On a Play-installed build, run:
 
    ```bash
    adb shell pm get-app-links com.equipseva.app
    ```
 
    Should print `equipseva.com: verified`.
+
+4. **EXPECTED_CERT_SHA256**: convert the Play SHA-256 colon-hex from step 2 to base-64 with the same one-liner from §5a, then APPEND it to the existing value in `local.properties` (comma-separated). Both upload-key SHA and Play SHA must be present.
+
+5. **Flip TAMPER_ENFORCE on**: in `local.properties` (and any CI build secret store), add:
+
+   ```properties
+   TAMPER_ENFORCE=true
+   ```
+
+   This makes `EquipSevaApplication.onCreate` hard-exit on `Verdict.Tampered`. Until both SHAs are wired in step 4, leaving this off prevents accidentally killing every Play install.
+
+6. Re-build + re-upload. Verify on a Play-installed device that the app boots normally. A repackaged / resigned APK should now exit on launch.
 
 ### 5d. Play Console assets
 
