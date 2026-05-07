@@ -74,6 +74,39 @@ object NotificationDeepLink {
             // "Set up monthly maintenance" CTA shipped in PR-C6.
             KIND_AMC_LOYAL_PAIR_NUDGE ->
                 data["engineer_id"]?.takeIfUuid()?.let(Routes::engineerPublicProfileRoute)
+            // PR-D11: cash-flag survey lands on the hospital home where
+            // the modal sheet auto-opens via HomeHubViewModel.
+            KIND_CASH_SURVEY -> Routes.HOME
+            // PR-D11: engineer-side auto-suspend explainer. No
+            // dedicated screen — Profile shows the suspended state via
+            // the live `engineers.cash_auto_suspended_at` column.
+            KIND_ENGINEER_AUTO_SUSPENDED -> Routes.PROFILE
+            // PR-D21: admin queue alerts.
+            KIND_ADMIN_ENGINEER_AUTO_SUSPENDED -> Routes.FOUNDER_CASH_SUSPENDED
+            KIND_ADMIN_ESCROW_DISPUTE_OPENED -> Routes.FOUNDER_ESCROW_DISPUTES
+            KIND_AMC_ADMIN_ESCALATION_RAISED -> Routes.FOUNDER_AMC_ESCALATIONS
+            // PR-D22: engineer-side dispute alert. Open the repair job
+            // detail where the EscrowStatusCard surfaces the dispute.
+            KIND_ESCROW_DISPUTE_OPENED ->
+                data["repair_job_id"]?.takeIfUuid()?.let(Routes::repairJobDetailRoute)
+            // PR-C4: AMC SLA breach. Server payload carries the AMC
+            // contract id; route to the contract detail where the SLA
+            // tab renders the breach inline.
+            KIND_AMC_SLA_BREACH ->
+                data["amc_contract_id"]?.takeIfUuid()?.let(Routes::amcContractDetailRoute)
+            // PR-C5: AMC visit assignment lifecycle. The visit IS a
+            // repair_jobs row, so the per-job detail screen is the
+            // right destination — engineer sees the new visit, hospital
+            // sees who got assigned.
+            KIND_AMC_VISIT_ASSIGNED,
+            KIND_AMC_VISIT_ENGINEER_ASSIGNED,
+            KIND_AMC_VISIT_ENGINEER_CHANGED ->
+                data["repair_job_id"]?.takeIfUuid()?.let(Routes::repairJobDetailRoute)
+            // PR-C5: rotation exhausted, awaiting admin re-assignment.
+            // Admins land on the escalations queue; non-admins see
+            // contract detail.
+            KIND_AMC_VISIT_PENDING_ASSIGNMENT ->
+                data["amc_contract_id"]?.takeIfUuid()?.let(Routes::amcContractDetailRoute)
             else -> null
         }
     }
@@ -106,4 +139,21 @@ object NotificationDeepLink {
     // PR-D12 — engineer learns the platform absorbed the commission
     // on a warranty re-visit (their payout = full contracted amount).
     const val KIND_WARRANTY_FEE_WAIVED = "warranty_fee_waived"
+    // PR-D1 — post-completion cash-payment survey on hospital home.
+    const val KIND_CASH_SURVEY = "cash_survey"
+    // PR-D11 — engineer auto-suspended after 3+ cash flags / 90 days.
+    const val KIND_ENGINEER_AUTO_SUSPENDED = "engineer_auto_suspended"
+    const val KIND_ADMIN_ENGINEER_AUTO_SUSPENDED = "admin_engineer_auto_suspended"
+    // PR-D22 — admin / engineer alert when hospital opens a dispute.
+    const val KIND_ESCROW_DISPUTE_OPENED = "escrow_dispute_opened"
+    const val KIND_ADMIN_ESCROW_DISPUTE_OPENED = "admin_escrow_dispute_opened"
+    // PR-D22 — admin alert when AMC rotation fully exhausted.
+    const val KIND_AMC_ADMIN_ESCALATION_RAISED = "amc_admin_escalation_raised"
+    // PR-C4 — AMC SLA breach on a maintenance visit.
+    const val KIND_AMC_SLA_BREACH = "amc_sla_breach"
+    // PR-C5 — AMC visit assignment lifecycle.
+    const val KIND_AMC_VISIT_ASSIGNED = "amc_visit_assigned"
+    const val KIND_AMC_VISIT_ENGINEER_ASSIGNED = "amc_visit_engineer_assigned"
+    const val KIND_AMC_VISIT_ENGINEER_CHANGED = "amc_visit_engineer_changed"
+    const val KIND_AMC_VISIT_PENDING_ASSIGNMENT = "amc_visit_pending_assignment"
 }
