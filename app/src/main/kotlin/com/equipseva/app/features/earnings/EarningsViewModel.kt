@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
 import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairBidRepository
 import com.equipseva.app.core.data.repair.RepairBidStatus
@@ -28,6 +29,7 @@ class EarningsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val bidRepository: RepairBidRepository,
     private val jobRepository: RepairJobRepository,
+    private val escrowRepository: RepairJobEscrowRepository,
 ) : ViewModel() {
 
     data class EarningRow(val bid: RepairBid, val job: RepairJob?)
@@ -38,6 +40,7 @@ class EarningsViewModel @Inject constructor(
         val paidTotal: Double = 0.0,
         val pendingTotal: Double = 0.0,
         val rows: List<EarningRow> = emptyList(),
+        val escrowSummary: RepairJobEscrowRepository.EngineerEscrowSummary? = null,
         val errorMessage: String? = null,
     )
 
@@ -88,8 +91,17 @@ class EarningsViewModel @Inject constructor(
                             paidTotal = paid,
                             pendingTotal = pending,
                             rows = rows,
+                            escrowSummary = it.escrowSummary,
                             errorMessage = null,
                         )
+                    }
+                    // Fire-and-forget escrow summary alongside the bid pull —
+                    // failures here don't fail the screen; the card just stays
+                    // hidden if the RPC errors.
+                    viewModelScope.launch {
+                        escrowRepository.fetchEngineerSummary().onSuccess { sum ->
+                            _state.update { it.copy(escrowSummary = sum) }
+                        }
                     }
                 }
                 .onFailure { ex ->

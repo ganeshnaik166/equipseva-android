@@ -71,6 +71,16 @@ class RepairJobEscrowRepository @Inject constructor(
         @SerialName("message") val message: String? = null,
     )
 
+    @Serializable
+    data class EngineerEscrowSummary(
+        @SerialName("total_held_rupees") val totalHeldRupees: Double = 0.0,
+        @SerialName("count_held") val countHeld: Int = 0,
+        @SerialName("next_release_at") val nextReleaseAt: String? = null,
+        @SerialName("total_released_rupees_30d") val totalReleased30d: Double = 0.0,
+        @SerialName("count_in_dispute") val countInDispute: Int = 0,
+        @SerialName("count_pending_payment") val countPendingPayment: Int = 0,
+    )
+
     // ---- RPC reads ---------------------------------------------------
 
     suspend fun fetchByJob(repairJobId: String): Result<EscrowRow?> = runCatching {
@@ -80,6 +90,12 @@ class RepairJobEscrowRepository @Inject constructor(
                 put("p_repair_job_id", JsonPrimitive(repairJobId))
             },
         ).decodeList<EscrowRow>().firstOrNull()
+    }
+
+    suspend fun fetchEngineerSummary(): Result<EngineerEscrowSummary> = runCatching {
+        supabase.postgrest.rpc(function = "engineer_escrow_summary")
+            .decodeList<EngineerEscrowSummary>()
+            .firstOrNull() ?: EngineerEscrowSummary()
     }
 
     // ---- Hospital actions -------------------------------------------

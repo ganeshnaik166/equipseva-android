@@ -100,6 +100,29 @@ fun EarningsScreen(
                                 )
                             }
                         }
+                        // PR-D23 — money-in-flight card. Lives between the hero
+                        // and the transactions list so the engineer sees what
+                        // is held in escrow + the next auto-release ETA before
+                        // scrolling. Only renders when there is real signal:
+                        // any held / disputed / pending row.
+                        state.escrowSummary?.takeIf {
+                            it.countHeld > 0 ||
+                                it.countInDispute > 0 ||
+                                it.countPendingPayment > 0 ||
+                                it.totalReleased30d > 0
+                        }?.let { sum ->
+                            item("escrow_summary") {
+                                Box(
+                                    modifier = Modifier.padding(
+                                        start = 16.dp,
+                                        end = 16.dp,
+                                        bottom = 12.dp,
+                                    ),
+                                ) {
+                                    EscrowSummaryCard(summary = sum)
+                                }
+                            }
+                        }
                         if (state.rows.isEmpty()) {
                             item("empty") {
                                 EmptyStateView(
@@ -170,6 +193,69 @@ private fun EarningsHero(paidTotal: Double, pendingTotal: Double) {
             HeroStat(label = "Paid", value = formatRupees(paidTotal), tint = Color.White)
             HeroStat(label = "Pending", value = formatRupees(pendingTotal), tint = SevaGlowRaw)
         }
+    }
+}
+
+@Composable
+private fun EscrowSummaryCard(
+    summary: com.equipseva.app.core.data.escrow.RepairJobEscrowRepository.EngineerEscrowSummary,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(14.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(
+                imageVector = Icons.Filled.CurrencyRupee,
+                contentDescription = null,
+                tint = SevaGreen700,
+                modifier = Modifier.size(20.dp),
+            )
+            Text(
+                text = "Money in flight",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = SevaInk900,
+            )
+        }
+        if (summary.countHeld > 0) {
+            Text(
+                text = formatRupees(summary.totalHeldRupees) + " held in escrow",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.44).sp,
+                color = SevaGreen700,
+            )
+            val nextLabel = summary.nextReleaseAt?.let { iso ->
+                "Next release: " + iso.take(16).replace('T', ' ')
+            } ?: "Next release: scheduled 48h after job completion"
+            Text(text = nextLabel, fontSize = 12.sp, color = SevaInk500)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            if (summary.countPendingPayment > 0) {
+                EscrowStat(label = "Awaiting payment", value = "${summary.countPendingPayment}", tint = SevaWarning500)
+            }
+            if (summary.countInDispute > 0) {
+                EscrowStat(label = "In dispute", value = "${summary.countInDispute}", tint = androidx.compose.ui.graphics.Color(0xFFCC2A2A))
+            }
+            if (summary.totalReleased30d > 0) {
+                EscrowStat(label = "Released (30d)", value = formatRupees(summary.totalReleased30d), tint = SevaInk900)
+            }
+        }
+    }
+}
+
+@Composable
+private fun EscrowStat(label: String, value: String, tint: Color) {
+    Column {
+        Text(label, fontSize = 11.sp, color = SevaInk500)
+        Spacer(Modifier.height(2.dp))
+        Text(value, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = tint)
     }
 }
 
