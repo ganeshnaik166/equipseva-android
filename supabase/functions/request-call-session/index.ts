@@ -240,7 +240,12 @@ serve(async (req) => {
   }
   if (!exotelResp.ok) {
     const txt = await exotelResp.text().catch(() => "");
-    console.error("request-call-session: exotel non-2xx", exotelResp.status, txt.slice(0, 400));
+    // Exotel error bodies can echo back the From=/To= MSISDNs we sent
+    // in the form body. Redact 10-digit blocks before logging so even
+    // server-side logs don't carry caller phone numbers (CodeRabbit
+    // PR #321 follow-up).
+    const redacted = txt.replace(/[6-9]\d{9}/g, "[REDACTED_MSISDN]").slice(0, 400);
+    console.error("request-call-session: exotel non-2xx", exotelResp.status, redacted);
     return bad("exotel_error", "call provider unavailable", 502);
   }
   let exotelJson: any = null;

@@ -203,7 +203,20 @@ Once that's in CI / 1Password, delete `keystore.properties` locally. Note: rotat
 5. **API restrictions** → restrict to: Maps SDK for Android (only).
 6. Save.
 
-After this, the key only works for APKs signed by your upload key + bundle id. Required: also add the **Play App Signing** SHA-1 entry once that lands (analogous to the assetlinks step in §5c).
+After this, the key only works for APKs signed by your upload key + bundle id.
+
+⚠️ **Until you also add the Play App Signing SHA-1, maps will be blank on Play-distributed builds** (Google re-signs distributed APKs with a different cert). Don't ship to internal testing without doing the §5c flow first AND adding a second Android-app entry to the API key:
+
+```bash
+# After §5c step 1 (first AAB upload), get the Play SHA-1 via gcloud:
+gcloud auth login
+gcloud play apps signing-config get \
+  --package-name=com.equipseva.app
+# OR copy directly from Play Console → Setup → App integrity →
+# App signing → "App signing key certificate" SHA-1 line.
+```
+
+Add that SHA-1 as a second package entry on the same Maps API key (Application restrictions → Android apps → Add). Save again.
 
 ---
 
