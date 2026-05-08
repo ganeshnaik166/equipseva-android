@@ -103,6 +103,11 @@ fun HomeHubScreen(
     val role = state.role
     val kyc = state.kycStatus
 
+    androidx.lifecycle.compose.LifecycleResumeEffect(viewModel) {
+        viewModel.refreshNow()
+        onPauseOrDispose { }
+    }
+
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(
             modifier = Modifier

@@ -92,14 +92,19 @@ class HomeHubViewModel @Inject constructor(
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     private var notifJob: Job? = null
+    private var currentUserId: String? = null
 
     init {
         viewModelScope.launch {
             authRepository.sessionState.collect { session ->
                 when (session) {
-                    is AuthSession.SignedIn -> refresh(session.userId)
+                    is AuthSession.SignedIn -> {
+                        currentUserId = session.userId
+                        refresh(session.userId)
+                    }
                     is AuthSession.SignedOut -> {
                         notifJob?.cancel()
+                        currentUserId = null
                         _state.update { UiState() }
                     }
                     AuthSession.Unknown -> Unit
@@ -218,6 +223,18 @@ class HomeHubViewModel @Inject constructor(
                     _state.update { it.copy(recent = list.take(3)) }
                 }
         }
+    }
+
+    /**
+     * Re-pull tiles + counts when the hospital returns to the hub
+     * (post-job, post-bid-accept, post-completion). Without this the
+     * "Open / Active / Engineers" hero strip and the loyalty/SLA
+     * cards stay frozen at whatever they were when the session first
+     * loaded.
+     */
+    fun refreshNow() {
+        val uid = currentUserId ?: return
+        viewModelScope.launch { refresh(uid) }
     }
 
     /**

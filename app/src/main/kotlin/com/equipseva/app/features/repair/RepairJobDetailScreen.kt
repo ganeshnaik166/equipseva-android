@@ -1038,7 +1038,7 @@ private fun StatusStepperRow(currentStatus: RepairJobStatus) {
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             StepStatuses.forEachIndexed { i, _ ->
-                val done = currentIdx in 0 until i
+                val done = currentIdx >= 0 && i < currentIdx
                 val active = i == currentIdx
                 Column(
                     modifier = Modifier.width(56.dp),

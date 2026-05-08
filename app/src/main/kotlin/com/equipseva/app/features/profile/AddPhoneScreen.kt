@@ -151,7 +151,7 @@ fun AddPhoneScreen(
                     color = SevaInk900,
                 )
                 Text(
-                    "Hospitals will Call and WhatsApp you on this number once you're listed in their directory.",
+                    "Verified by SMS OTP. Calls between you and the other party route through EquipSeva — your real number stays private.",
                     fontSize = 13.sp,
                     color = SevaInk500,
                 )
