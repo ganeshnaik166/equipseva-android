@@ -265,6 +265,21 @@ fun ProfileScreen(
         )
     }
 
+    // Role-editor bottom sheet — opens from the Account-type card.
+    // VM-backed since 2026-04 but the trigger went unrendered until
+    // 2026-05-08; multi-role users couldn't reach the engineer side
+    // of the app once they confirmed a hospital-first signup.
+    if (state.roleEditorOpen) {
+        RoleEditorSheet(
+            currentRole = state.profile?.role,
+            selected = state.roleEditorSelected,
+            updating = state.roleUpdating,
+            onSelect = viewModel::onRoleEditorSelect,
+            onConfirm = viewModel::onRoleEditorConfirm,
+            onDismiss = viewModel::onDismissRoleEditor,
+        )
+    }
+
     if (state.exportConfirmOpen) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = viewModel::onDismissExportConfirm,
@@ -423,7 +438,7 @@ private fun ProfileContent(
 
         sections.forEach { section ->
             if (section.title == "Danger zone") {
-                AccountTypeSection(role = profile.role)
+                AccountTypeSection(role = profile.role, onEditRole = onEditRole)
             }
             ProfileSectionView(section)
         }
@@ -482,7 +497,7 @@ private fun EngineerSuspensionBanner(
 }
 
 @Composable
-private fun AccountTypeSection(role: UserRole?) {
+private fun AccountTypeSection(role: UserRole?, onEditRole: () -> Unit) {
     // role can legitimately be null while the profile is mid-fetch — in
     // that case we want a neutral label, not a misleading "Hospital admin"
     // (which used to appear because the old `else` branch swallowed null
@@ -515,6 +530,7 @@ private fun AccountTypeSection(role: UserRole?) {
                 .clip(RoundedCornerShape(12.dp))
                 .background(androidx.compose.ui.graphics.Color.White)
                 .border(1.dp, com.equipseva.app.designsystem.theme.BorderDefault, RoundedCornerShape(12.dp))
+                .clickable(enabled = role != null, onClick = onEditRole)
                 .padding(horizontal = 14.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -537,6 +553,14 @@ private fun AccountTypeSection(role: UserRole?) {
                     text = subtitle,
                     fontSize = 12.sp,
                     color = com.equipseva.app.designsystem.theme.SevaInk500,
+                )
+            }
+            if (role != null) {
+                Icon(
+                    imageVector = Icons.Filled.ChevronRight,
+                    contentDescription = null,
+                    tint = com.equipseva.app.designsystem.theme.SevaInk500,
+                    modifier = Modifier.size(20.dp),
                 )
             }
         }
