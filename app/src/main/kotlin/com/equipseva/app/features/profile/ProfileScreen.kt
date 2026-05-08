@@ -74,6 +74,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -1090,10 +1091,18 @@ private fun RoleEditorSheet(
             )
             HorizontalDivider()
             UserRole.entries.forEach { role ->
+                // v1 only ships HOSPITAL + ENGINEER hubs. Marketplace roles
+                // (SUPPLIER / MANUFACTURER / LOGISTICS) need their own home
+                // hubs + dashboards which haven't shipped — switching to one
+                // would land the user on an empty / fallback screen. Mirror
+                // the gating from RoleSelectScreen: render but disabled with
+                // a "Soon" pill.
+                val v1Active = role == UserRole.HOSPITAL || role == UserRole.ENGINEER
                 RoleOption(
                     role = role,
                     selected = role == selected,
                     current = role == currentRole,
+                    enabled = v1Active,
                     onClick = { onSelect(role) },
                 )
             }
@@ -1123,6 +1132,7 @@ private fun RoleOption(
     role: UserRole,
     selected: Boolean,
     current: Boolean,
+    enabled: Boolean,
     onClick: () -> Unit,
 ) {
     val border = if (selected) {
@@ -1132,7 +1142,10 @@ private fun RoleOption(
     }
     OutlinedCard(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        enabled = enabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(if (enabled) 1f else 0.5f),
         shape = RoundedCornerShape(Spacing.md),
         border = border,
         colors = CardDefaults.outlinedCardColors(
@@ -1169,6 +1182,13 @@ private fun RoleOption(
                                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                                 labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             ),
+                            border = null,
+                        )
+                    } else if (!enabled) {
+                        AssistChip(
+                            onClick = {},
+                            enabled = false,
+                            label = { Text("Soon") },
                             border = null,
                         )
                     }
