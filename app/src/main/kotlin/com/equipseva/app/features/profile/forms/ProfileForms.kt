@@ -330,7 +330,7 @@ fun HospitalSettingsScreen(onBack: () -> Unit, onShowMessage: (String) -> Unit) 
             FieldSpec("auto_approve_under", "Auto-approve orders under (₹)", FieldKind.NUMBER, helper = "Larger orders need biomed sign-off"),
             FieldSpec("departments", "Departments served", FieldKind.MULTILINE, helper = "Comma-separated"),
             FieldSpec("billing_email", "Billing email", FieldKind.EMAIL),
-            FieldSpec("gstin", "GSTIN"),
+            FieldSpec("gstin", "GSTIN", placeholder = "22ABCDE1234F1Z5", helper = "15 characters · 2-digit state + 10-char PAN + entity + Z + check digit"),
             FieldSpec("biomed_contact", "Biomed contact phone", FieldKind.PHONE),
         ),
         onBack = onBack,
@@ -361,7 +361,7 @@ fun GstSettingsScreen(onBack: () -> Unit, onShowMessage: (String) -> Unit) =
         subtitle = "Tax registration + invoice template.",
         settingsKey = "supplier_gst",
         fields = listOf(
-            FieldSpec("gstin", "GSTIN"),
+            FieldSpec("gstin", "GSTIN", placeholder = "22ABCDE1234F1Z5", helper = "15 characters · 2-digit state + 10-char PAN + entity + Z + check digit"),
             FieldSpec("business_name", "Registered business name"),
             FieldSpec("pan", "PAN"),
             FieldSpec("invoice_prefix", "Invoice prefix", placeholder = "ESV-"),
@@ -393,7 +393,7 @@ fun TaxDetailsScreen(onBack: () -> Unit, onShowMessage: (String) -> Unit) =
         subtitle = "GST + import-export codes.",
         settingsKey = "manufacturer_tax",
         fields = listOf(
-            FieldSpec("gstin", "GSTIN"),
+            FieldSpec("gstin", "GSTIN", placeholder = "22ABCDE1234F1Z5", helper = "15 characters · 2-digit state + 10-char PAN + entity + Z + check digit"),
             FieldSpec("iec", "IEC (Importer Exporter Code)"),
             FieldSpec("default_tax_slab", "Default GST rate (%)", FieldKind.NUMBER),
             FieldSpec("pan", "PAN"),

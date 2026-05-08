@@ -70,10 +70,21 @@ class FounderReportsQueueViewModel @Inject constructor(
         viewModelScope.launch {
             repo.fetchPendingReports()
                 .onSuccess { rows ->
-                    _state.update { it.copy(loading = false, rows = if (rows.isEmpty()) DUMMY_PENDING_REPORTS else rows) }
+                    // Honest empty state — KYC + Buyer-KYC queues already
+                    // show "All clear" on empty; previously this surface
+                    // fell back to seed rows ("Dr. Anita Rao", "Sri Sai")
+                    // which made the founder dashboard look busier than
+                    // reality and disagreed with the dashboard KPI count.
+                    _state.update { it.copy(loading = false, rows = rows) }
                 }
-                .onFailure { _ ->
-                    _state.update { it.copy(loading = false, rows = DUMMY_PENDING_REPORTS, error = null) }
+                .onFailure { ex ->
+                    _state.update {
+                        it.copy(
+                            loading = false,
+                            rows = emptyList(),
+                            error = ex.toUserMessage(),
+                        )
+                    }
                 }
         }
     }

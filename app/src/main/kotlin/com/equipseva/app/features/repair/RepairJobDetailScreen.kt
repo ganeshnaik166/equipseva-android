@@ -517,17 +517,23 @@ private fun JobBody(
             }
         }
 
-        // Bids — hospital + status==requested + bids.size>0.
-        if (isHospital && job.status == RepairJobStatus.Requested && bids.isNotEmpty()) {
-            EsSection(title = "Bids (${bids.size})") {
-                BidsList(
-                    bids = bids,
-                    engineerNames = engineerNames,
-                    acceptingBidId = acceptingBidId,
-                    openingChat = openingChat,
-                    onAccept = onAcceptBid,
-                    onMessage = onMessageEngineer,
-                )
+        // Bids — hospital + status==requested.
+        if (isHospital && job.status == RepairJobStatus.Requested) {
+            if (bids.isNotEmpty()) {
+                EsSection(title = "Bids (${bids.size})") {
+                    BidsList(
+                        bids = bids,
+                        engineerNames = engineerNames,
+                        acceptingBidId = acceptingBidId,
+                        openingChat = openingChat,
+                        onAccept = onAcceptBid,
+                        onMessage = onMessageEngineer,
+                    )
+                }
+            } else {
+                EsSection(title = "Bids") {
+                    NoBidsYetCard()
+                }
             }
         }
 
@@ -1305,6 +1311,32 @@ private fun BidsList(
                 onMessage = onMessage,
             )
         }
+    }
+}
+
+@Composable
+private fun NoBidsYetCard() {
+    Column(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = "No bids yet",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = SevaInk900,
+        )
+        Text(
+            text = "Verified engineers in your area usually bid within 5–30 min. We'll send a push the moment one arrives.",
+            fontSize = 12.sp,
+            color = SevaInk500,
+        )
     }
 }
 
