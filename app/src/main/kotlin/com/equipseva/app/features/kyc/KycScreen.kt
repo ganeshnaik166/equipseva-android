@@ -167,9 +167,18 @@ fun KycScreen(
 
     Scaffold(
         topBar = {
+            // Verified engineers see a "Verified" subtitle instead of the
+            // wizard counter — the wizard isn't visible to them so showing
+            // "Step 1 of 2" alongside a fully-checked status stepper read
+            // as a contradiction.
+            val subtitle = if (state.verificationStatus == VerificationStatus.Verified) {
+                "Verified"
+            } else {
+                "Step ${state.currentStep.ordinal + 1} of ${com.equipseva.app.features.kyc.KycStep.entries.size}"
+            }
             com.equipseva.app.designsystem.components.EsTopBar(
                 title = "Verification (KYC)",
-                subtitle = "Step ${state.currentStep.ordinal + 1} of ${com.equipseva.app.features.kyc.KycStep.entries.size}",
+                subtitle = subtitle,
                 onBack = onBack,
             )
         },
