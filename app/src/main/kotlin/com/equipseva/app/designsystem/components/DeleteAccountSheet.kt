@@ -83,11 +83,16 @@ fun DeleteAccountSheet(
                     enabled = !deleting,
                     modifier = Modifier.weight(1f),
                 ) { Text("Cancel") }
-                PrimaryButton(
-                    label = if (deleting) "Deleting…" else "Delete account",
+                // Destructive action — must read as red, not brand-primary
+                // green. PrimaryButton previously made the confirm look
+                // identical to a "Save" CTA on every other sheet.
+                EsBtn(
+                    text = if (deleting) "Deleting…" else "Delete account",
                     onClick = onConfirm,
-                    enabled = !deleting,
-                    loading = deleting,
+                    kind = EsBtnKind.Danger,
+                    size = EsBtnSize.Md,
+                    full = true,
+                    disabled = deleting,
                     modifier = Modifier.weight(1f),
                 )
             }
