@@ -92,11 +92,16 @@ fun CancelOrderSheet(
                     enabled = !cancelling,
                     modifier = Modifier.weight(1f),
                 ) { Text("Keep order") }
-                PrimaryButton(
-                    label = if (cancelling) "Cancelling…" else "Confirm cancellation",
+                // Destructive — read as red, not brand green. Confirming
+                // cancellation releases the held escrow + emails both
+                // sides; should not look like a "Save" CTA.
+                EsBtn(
+                    text = if (cancelling) "Cancelling…" else "Confirm cancellation",
                     onClick = onConfirm,
-                    enabled = !cancelling,
-                    loading = cancelling,
+                    kind = EsBtnKind.Danger,
+                    size = EsBtnSize.Md,
+                    full = true,
+                    disabled = cancelling,
                     modifier = Modifier.weight(1f),
                 )
             }
