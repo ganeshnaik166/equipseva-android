@@ -39,7 +39,6 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.StarOutline
@@ -1254,6 +1253,11 @@ private fun AssignedEngineerCard(
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // Dropped the always-disabled "Call" button — its onClick was
+            // mis-wired to onMessage anyway, so if it ever flipped enabled
+            // it would have opened chat instead of dialing. Masked-call
+            // path lives on the engineer-profile MaskedContactPanel; the
+            // assigned-engineer card here is just a chat shortcut.
             EsBtn(
                 text = if (openingChat) "Opening…" else "Message",
                 onClick = onMessage,
@@ -1269,20 +1273,6 @@ private fun AssignedEngineerCard(
                     )
                 },
                 modifier = Modifier.weight(1f),
-            )
-            EsBtn(
-                text = "Call",
-                onClick = onMessage,
-                kind = EsBtnKind.Secondary,
-                disabled = true,
-                leading = {
-                    Icon(
-                        imageVector = Icons.Outlined.Phone,
-                        contentDescription = null,
-                        tint = SevaGreen700,
-                        modifier = Modifier.size(16.dp),
-                    )
-                },
             )
         }
     }
