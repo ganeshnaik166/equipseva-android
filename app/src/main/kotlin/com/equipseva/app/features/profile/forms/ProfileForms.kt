@@ -309,7 +309,10 @@ fun BankDetailsScreen(onBack: () -> Unit, onShowMessage: (String) -> Unit) =
 fun HospitalAddressesScreen(onBack: () -> Unit, onShowMessage: (String) -> Unit) =
     ProfileFormScaffold(
         title = "Addresses",
-        subtitle = "Default delivery + service-call address. Edit any time.",
+        // v1 has no parts marketplace, so "delivery" / "shipping" framing
+        // promised something we don't ship. The address is purely the
+        // service-call site for engineer visits.
+        subtitle = "Where engineers come on-site for repairs. Edit any time.",
         settingsKey = "hospital_address",
         fields = listOf(
             FieldSpec("label", "Label", placeholder = "Main building / ICU wing"),
@@ -318,7 +321,9 @@ fun HospitalAddressesScreen(onBack: () -> Unit, onShowMessage: (String) -> Unit)
             FieldSpec("state", "State"),
             FieldSpec("pincode", "PIN code", FieldKind.NUMBER),
             FieldSpec("contact_phone", "Reception phone", FieldKind.PHONE),
-            FieldSpec("default_shipping", "Default shipping address", kind = FieldKind.SWITCH),
+            // Storage key kept as "default_shipping" to preserve existing
+            // user data; only the user-visible label changes for v1.
+            FieldSpec("default_shipping", "Default service-call address", kind = FieldKind.SWITCH),
         ),
         onBack = onBack,
         onShowMessage = onShowMessage,

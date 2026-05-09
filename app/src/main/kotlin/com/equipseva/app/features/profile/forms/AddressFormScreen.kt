@@ -384,7 +384,7 @@ fun AddressFormScreen(
             }
 
             Text(
-                "Lat/lng captured here is used later for delivery-zone routing. You can edit any field after autofill.",
+                "Lat/lng captured here is used to match nearby engineers and show distances. You can edit any field after autofill.",
                 color = Ink500,
                 fontSize = 11.sp,
             )
