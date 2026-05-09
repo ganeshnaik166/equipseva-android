@@ -90,7 +90,13 @@ fun ConversationsScreen(
                 state.rows.isEmpty() -> EmptyStateView(
                     icon = Icons.Outlined.ChatBubbleOutline,
                     title = "No conversations yet",
-                    subtitle = "Open an engineer's profile and tap Message to start a chat, or reach out from a repair job thread.",
+                    // Was hospital-only ("Open an engineer's profile and
+                    // tap Message"), but engineers see this same screen
+                    // and can't open another engineer's profile to start
+                    // a chat — for them, threads land here when a
+                    // hospital messages them on a bid. Role-neutral copy
+                    // covers both directions.
+                    subtitle = "Threads land here when you message someone or they message you on a repair job.",
                 )
                 state.displayedRows.isEmpty() -> EmptyStateView(
                     icon = Icons.Outlined.ChatBubbleOutline,
