@@ -143,7 +143,7 @@ fun AddressBookScreen(
                 state.rows.isEmpty() -> EmptyStateView(
                     icon = Icons.Outlined.LocationOn,
                     title = "No saved addresses",
-                    subtitle = "Tap + to add your first delivery address.",
+                    subtitle = "Tap + to add your first service-call address.",
                 )
                 else -> LazyColumn(
                     modifier = Modifier.fillMaxSize(),
