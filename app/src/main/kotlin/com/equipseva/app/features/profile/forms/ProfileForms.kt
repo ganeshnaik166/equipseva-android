@@ -324,10 +324,16 @@ fun HospitalAddressesScreen(onBack: () -> Unit, onShowMessage: (String) -> Unit)
 fun HospitalSettingsScreen(onBack: () -> Unit, onShowMessage: (String) -> Unit) =
     ProfileFormScaffold(
         title = "Hospital settings",
-        subtitle = "Org-wide preferences for buyers, billing, and approvals.",
+        // v1 has no marketplace orders (parts/cart/checkout deferred to
+        // v2 per project_v1_monetization_free.md). Subtitle drops the
+        // "approvals" framing that the auto-approve threshold field
+        // implied; we'll re-add both when the buyer flow ships.
+        subtitle = "Org-wide preferences for departments, billing, and biomed contact.",
         settingsKey = "hospital_settings",
         fields = listOf(
-            FieldSpec("auto_approve_under", "Auto-approve orders under (₹)", FieldKind.NUMBER, helper = "Larger orders need biomed sign-off"),
+            // "Auto-approve orders under (₹)" intentionally hidden in v1 —
+            // there are no orders for it to gate. Stub field would let
+            // hospital admins set a value that never fires.
             FieldSpec("departments", "Departments served", FieldKind.MULTILINE, helper = "Comma-separated"),
             FieldSpec("billing_email", "Billing email", FieldKind.EMAIL),
             FieldSpec("gstin", "GSTIN", placeholder = "22ABCDE1234F1Z5", helper = "15 characters · 2-digit state + 10-char PAN + entity + Z + check digit"),

@@ -483,14 +483,20 @@ private fun MapPreviewBox(
                 ),
             ) {
                 if (baseLat != null && baseLng != null) {
-                    Circle(
-                        center = LatLng(baseLat, baseLng),
-                        radius = effectiveRadiusKm * 1000.0,
-                        strokeColor = SevaGreen700,
-                        strokeWidth = 4f,
-                        strokePattern = listOf(Dash(20f), Gap(12f)),
-                        fillColor = SevaGreen700.copy(alpha = 0.06f),
-                    )
+                    // Drop the radius circle when the user picked "All" —
+                    // drawing a 50km halo around the engineer would lie
+                    // about the active filter (the feed shows jobs from
+                    // anywhere). Keep the "You" marker either way.
+                    if (radiusKm != null) {
+                        Circle(
+                            center = LatLng(baseLat, baseLng),
+                            radius = effectiveRadiusKm * 1000.0,
+                            strokeColor = SevaGreen700,
+                            strokeWidth = 4f,
+                            strokePattern = listOf(Dash(20f), Gap(12f)),
+                            fillColor = SevaGreen700.copy(alpha = 0.06f),
+                        )
+                    }
                     Marker(
                         state = MarkerState(LatLng(baseLat, baseLng)),
                         title = "You",
@@ -524,7 +530,12 @@ private fun MapPreviewBox(
                     .padding(horizontal = 8.dp, vertical = 4.dp),
             ) {
                 Text(
-                    text = "${effectiveRadiusKm} km radius",
+                    // When the user picks "All" the upstream radiusKm is
+                    // null. effectiveRadiusKm falls back to 50 so the
+                    // map circle stays bounded, but the label must NOT
+                    // claim "50 km radius" — that lies about the active
+                    // filter. Show "All radii" instead.
+                    text = if (radiusKm == null) "All radii" else "${effectiveRadiusKm} km radius",
                     style = EsType.Caption.copy(fontSize = 11.sp, fontWeight = FontWeight.Medium),
                     color = SevaInk700,
                 )

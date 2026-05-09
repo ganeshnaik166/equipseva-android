@@ -251,6 +251,14 @@ class ProfileViewModel @Inject constructor(
                                 )
                             }
                             _effects.send(Effect.ShowMessage("Role updated to ${target.displayName}"))
+                            // Bounce back to Home so the new persona's tab
+                            // bar matches the visible content. Without this
+                            // the user can stay parked on a route that
+                            // belongs to the OLD persona (e.g. switching
+                            // Engineer→Hospital while on ENGINEER_JOBS_HUB
+                            // leaves the engineer tiles rendered under a
+                            // Hospital bottom-nav).
+                            _effects.send(Effect.NavigateHome)
                         }
                         .onFailure { error ->
                             _state.update { it.copy(roleUpdating = false) }
