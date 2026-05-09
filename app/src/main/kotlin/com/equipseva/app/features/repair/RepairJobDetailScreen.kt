@@ -1517,7 +1517,12 @@ private fun LocationCard(
     val placeholderCopy = when {
         canShowAddress -> "No map pin saved for this job"
         !hasAddressOnFile -> "No address on file yet"
-        else -> "Address hidden until you accept the job"
+        // Engineers don't "accept" jobs — they bid; hospitals accept the
+        // bid. Old copy framed the workflow from the wrong direction and
+        // confused engineers who saw "accept the job" without an
+        // accept button.
+        isEngineer -> "Address hidden until the hospital accepts your bid"
+        else -> "Address hidden until a bid is accepted"
     }
 
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
