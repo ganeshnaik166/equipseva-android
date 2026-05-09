@@ -155,7 +155,7 @@ fun EngineerJobsHubScreen(
                     )
                 EngineerJobsHubViewModel.Status.NotEngineer ->
                     OnboardingHero(
-                        title = "Become a repairman",
+                        title = "Become a verified engineer",
                         body = "Submit a quick KYC (Aadhaar, PAN, qualification) so hospitals know you're verified.",
                         ctaLabel = "Submit KYC",
                         onCta = onSubmitKyc,
