@@ -74,7 +74,11 @@ private fun UserRole.visual(): RoleVisual = when (this) {
     )
     UserRole.ENGINEER -> RoleVisual(
         Icons.Filled.Build,
-        "Engineer",
+        // Match UserRole.ENGINEER.displayName so signup-time role pick
+        // matches the AccountTypeSection title + role-editor sheet +
+        // Profile hero pill (Round 12 + Round 14). Was the last place
+        // saying "Engineer" instead of the canonical "Biomedical engineer".
+        "Biomedical engineer",
         "Independent biomedical technician",
         true,
     )
