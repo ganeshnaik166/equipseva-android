@@ -659,9 +659,11 @@ private fun GreetingCard(
             Spacer(Modifier.height(14.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                 if (role == UserRole.ENGINEER) {
-                    // "Nearby" is location-derived and not yet wired into this
-                    // hero — left as "—" until a radius RPC stream lands.
-                    Stat("Nearby", "—")
+                    // "Nearby" used to render here as a permanent "—" until
+                    // the radius RPC stream lands. Dropped — a stat that
+                    // never has a value just sits on the hero looking like
+                    // a load failure. Two real stats is honest; a third
+                    // joins when there's a real number to put in it.
                     Stat("Pending bids", pendingBidsCount?.toString() ?: "—")
                     Stat("Active", activeCount?.toString() ?: "—")
                 } else {
