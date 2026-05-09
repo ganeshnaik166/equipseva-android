@@ -104,6 +104,7 @@ class AmcDetailViewModel @Inject constructor(
         val rotation: List<AmcRepository.AmcRotationRow> = emptyList(),
         val breaches: List<AmcRepository.AmcSlaBreach> = emptyList(),
         val cancelling: Boolean = false,
+        val cancelConfirmOpen: Boolean = false,
         val topUpOpen: Boolean = false,
         val topUpMonths: Int = 1,
         val topUpBusy: Boolean = false,
@@ -163,9 +164,19 @@ class AmcDetailViewModel @Inject constructor(
         }
     }
 
+    fun openCancelConfirm() {
+        if (_state.value.cancelling) return
+        _state.update { it.copy(cancelConfirmOpen = true) }
+    }
+
+    fun dismissCancelConfirm() {
+        if (_state.value.cancelling) return
+        _state.update { it.copy(cancelConfirmOpen = false) }
+    }
+
     fun cancel() {
         if (_state.value.cancelling) return
-        _state.update { it.copy(cancelling = true) }
+        _state.update { it.copy(cancelling = true, cancelConfirmOpen = false) }
         viewModelScope.launch {
             repo.cancelContract(contractId, reason = null)
                 .onSuccess {
@@ -268,7 +279,13 @@ fun AmcDetailScreen(
                         ) {
                             EsBtn(
                                 text = if (state.cancelling) "Cancelling…" else "Cancel",
-                                onClick = { viewModel.cancel() },
+                                // Open confirmation dialog instead of
+                                // firing the RPC straight away. Cancelling
+                                // an AMC is irreversible — releases the
+                                // engineer rotation slot, refunds remaining
+                                // months — so a single mis-tap should not
+                                // be enough.
+                                onClick = { viewModel.openCancelConfirm() },
                                 kind = EsBtnKind.DangerOutline,
                                 size = EsBtnSize.Lg,
                                 disabled = state.cancelling ||
@@ -288,6 +305,38 @@ fun AmcDetailScreen(
                 }
             }
         }
+    }
+
+    if (state.cancelConfirmOpen) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { viewModel.dismissCancelConfirm() },
+            title = { Text("Cancel this contract?") },
+            text = {
+                Text(
+                    "Cancelling ends the maintenance contract. Remaining " +
+                        "balance is refunded to your wallet and the assigned " +
+                        "engineers stop receiving visit notifications. This " +
+                        "can't be undone.",
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = { viewModel.cancel() },
+                    enabled = !state.cancelling,
+                ) {
+                    Text(
+                        if (state.cancelling) "Cancelling…" else "Cancel contract",
+                        color = SevaDanger500,
+                    )
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = { viewModel.dismissCancelConfirm() },
+                    enabled = !state.cancelling,
+                ) { Text("Keep contract") }
+            },
+        )
     }
 
     if (state.topUpOpen && state.hospital != null) {
