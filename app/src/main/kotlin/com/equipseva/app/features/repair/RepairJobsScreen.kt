@@ -129,7 +129,15 @@ fun RepairJobsScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Repair",
-                subtitle = "${openJobs.size} jobs nearby",
+                // "jobs nearby" lied when the user picked the All radius —
+                // openJobs reflects whatever the upstream radius filter
+                // returned, which is country-wide for null. Show the count
+                // honestly; the active radius lives on the map chip below.
+                subtitle = if (state.radiusKm == null) {
+                    "${openJobs.size} open · all radii"
+                } else {
+                    "${openJobs.size} open within ${state.radiusKm} km"
+                },
                 right = {
                     Box(
                         modifier = Modifier
@@ -150,7 +158,8 @@ fun RepairJobsScreen(
 
             // ── Stat strip ───────────────────────────────────────────────
             StatStrip(
-                nearby = openJobs.size,
+                openCount = openJobs.size,
+                radiusKm = state.radiusKm,
                 pending = pendingBidCount,
             )
 
@@ -261,7 +270,8 @@ fun RepairJobsScreen(
 
 @Composable
 private fun StatStrip(
-    nearby: Int,
+    openCount: Int,
+    radiusKm: Int?,
     pending: Int,
 ) {
     Row(
@@ -271,8 +281,12 @@ private fun StatStrip(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         StatCard(
-            label = "Nearby",
-            value = nearby.toString(),
+            // "Nearby" lied when the user picked All radius — the count
+            // is whatever the radius filter returned, including country-
+            // wide. Switch label with the active radius so the number is
+            // never decoupled from the filter that produced it.
+            label = if (radiusKm == null) "Open" else "Within ${radiusKm} km",
+            value = openCount.toString(),
             modifier = Modifier.weight(1f),
         )
         StatCard(
@@ -281,15 +295,11 @@ private fun StatStrip(
             valueColor = SevaWarning500,
             modifier = Modifier.weight(1f),
         )
-        StatCard(
-            // Placeholder until a per-engineer monthly earnings stream is
-            // injected here — we deliberately don't fake a number. Earnings
-            // tab is the source of truth.
-            label = "This month",
-            value = "—",
-            forest = true,
-            modifier = Modifier.weight(1f),
-        )
+        // "This month" stat used to render here as a permanent "—"
+        // pending a per-engineer monthly earnings stream that hasn't
+        // shipped. Dropped — the Earnings tab already shows the real
+        // numbers, and a stat that never has a value just looks like
+        // a load failure on every cold launch.
     }
 }
 
