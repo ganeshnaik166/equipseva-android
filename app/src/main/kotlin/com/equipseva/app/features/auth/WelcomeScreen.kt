@@ -34,6 +34,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.text.ClickableText
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
+import androidx.core.net.toUri
 import com.equipseva.app.R
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
@@ -41,6 +49,7 @@ import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.theme.EsFontFamily
 import com.equipseva.app.designsystem.theme.SevaGreen900
 import com.equipseva.app.features.auth.state.AuthEffect
+import android.content.Intent
 
 // Round B redesign — full-bleed dark green hero with logo + tagline,
 // two CTAs at the bottom (lime "Sign in" + outlined "Create account"),
@@ -139,13 +148,49 @@ fun WelcomeScreen(
                 )
             }
             Spacer(Modifier.height(12.dp))
-            Text(
-                text = "By continuing you agree to our Terms and Privacy",
-                fontFamily = EsFontFamily,
-                fontSize = 11.sp,
-                color = Color.White.copy(alpha = 0.55f),
-                textAlign = TextAlign.Center,
+            // Terms + Privacy as tappable spans. Required for Play Store
+            // listing compliance + IT Act 2000 informed-consent — saying
+            // "you agree" without a way to read the agreement is hostile
+            // UX and a Play policy risk.
+            val termsTag = "TERMS"
+            val privacyTag = "PRIVACY"
+            val baseColor = Color.White.copy(alpha = 0.55f)
+            val linkColor = Color.White.copy(alpha = 0.85f)
+            val annotated = buildAnnotatedString {
+                withStyle(SpanStyle(color = baseColor)) {
+                    append("By continuing you agree to our ")
+                }
+                pushStringAnnotation(termsTag, "https://equipseva.com/terms")
+                withStyle(SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)) {
+                    append("Terms")
+                }
+                pop()
+                withStyle(SpanStyle(color = baseColor)) {
+                    append(" and ")
+                }
+                pushStringAnnotation(privacyTag, "https://equipseva.com/privacy")
+                withStyle(SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)) {
+                    append("Privacy")
+                }
+                pop()
+            }
+            ClickableText(
+                text = annotated,
+                style = TextStyle(
+                    fontFamily = EsFontFamily,
+                    fontSize = 11.sp,
+                    textAlign = TextAlign.Center,
+                ),
                 modifier = Modifier.fillMaxWidth(),
+                onClick = { offset ->
+                    val tag = annotated.getStringAnnotations(termsTag, offset, offset).firstOrNull()
+                        ?: annotated.getStringAnnotations(privacyTag, offset, offset).firstOrNull()
+                    tag?.item?.let { url ->
+                        runCatching {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                        }
+                    }
+                },
             )
         }
     }
