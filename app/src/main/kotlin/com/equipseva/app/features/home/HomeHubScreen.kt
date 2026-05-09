@@ -694,7 +694,7 @@ private fun KycBanner(status: VerificationStatus?, onClick: () -> Unit) {
     val title = when (status) {
         VerificationStatus.Pending -> "KYC under review"
         VerificationStatus.Rejected -> "KYC needs another try"
-        else -> "Become a verified repairman"
+        else -> "Become a verified engineer"
     }
     val sub = when (status) {
         VerificationStatus.Pending -> "Usually 24h. We'll notify you."
