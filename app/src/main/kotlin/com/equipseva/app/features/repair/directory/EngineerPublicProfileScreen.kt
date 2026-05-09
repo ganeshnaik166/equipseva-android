@@ -23,7 +23,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.outlined.Security
-import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -134,6 +133,13 @@ class EngineerPublicProfileViewModel @Inject constructor(
         // to a job. Null means viewer has no active job → tap Call routes
         // them to chat first.
         val activeRepairJobId: String? = null,
+        // True when the signed-in viewer is the engineer being viewed —
+        // engineer Profile → "Preview public profile" route. We hide the
+        // sticky Message/Post-job/Set-maintenance CTAs in that case so
+        // the screen reads as a read-only preview ("how hospitals see
+        // me"). Tapping Message would open chat with self; tapping
+        // "Post a repair job" would land on the hospital-only wizard.
+        val isSelfPreview: Boolean = false,
     )
 
     sealed interface Effect {
@@ -243,8 +249,15 @@ class EngineerPublicProfileViewModel @Inject constructor(
         val viewerUserId = authRepository.sessionState
             .filterIsInstance<com.equipseva.app.core.auth.AuthSession.SignedIn>()
             .firstOrNull()?.userId
+        // Engineer previewing own profile from Profile → "Preview public
+        // profile" — flag so the sticky CTA bar hides. Profile body still
+        // renders, just without the hospital-targeted actions.
+        val profileUserId = _state.value.profile?.userId
+        val isSelf = !viewerUserId.isNullOrBlank() &&
+            !profileUserId.isNullOrBlank() &&
+            viewerUserId == profileUserId
         if (!isHospital || viewerUserId.isNullOrBlank()) {
-            _state.update { it.copy(viewerIsHospital = isHospital) }
+            _state.update { it.copy(viewerIsHospital = isHospital, isSelfPreview = isSelf) }
             return
         }
         val activeId = runCatching {
@@ -256,7 +269,7 @@ class EngineerPublicProfileViewModel @Inject constructor(
                 .maxByOrNull { it.createdAtInstant ?: java.time.Instant.EPOCH }
                 ?.id
         }.getOrNull()
-        _state.update { it.copy(viewerIsHospital = true, activeRepairJobId = activeId) }
+        _state.update { it.copy(viewerIsHospital = true, activeRepairJobId = activeId, isSelfPreview = isSelf) }
     }
 
     private companion object {
@@ -538,22 +551,11 @@ fun EngineerPublicProfileScreen(
             EsTopBar(
                 title = "Engineer",
                 onBack = onBack,
-                right = {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .clickable { /* share */ },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            Icons.Outlined.Share,
-                            contentDescription = "Share",
-                            tint = SevaInk700,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
-                },
+                // Share icon was wired to a `/* share */` no-op comment.
+                // Same dead-control pattern as the chat header phone +
+                // the AssignedEngineerCard call button. Dropped until a
+                // real share intent (deep-link to engineer profile) is
+                // wired — there's no public web URL yet anyway.
             )
             Box(modifier = Modifier.weight(1f)) {
                 when {
@@ -590,8 +592,11 @@ fun EngineerPublicProfileScreen(
                     )
                 }
             }
-            // Sticky CTA bar
-            if (state.profile != null) {
+            // Sticky CTA bar — hidden during self-preview (engineer
+            // tapped "Preview public profile" from their own Profile).
+            // The hospital-targeted actions don't apply when viewing
+            // yourself, and the screen reads better as a clean preview.
+            if (state.profile != null && !state.isSelfPreview) {
                 Surface(color = Color.White) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Box(
