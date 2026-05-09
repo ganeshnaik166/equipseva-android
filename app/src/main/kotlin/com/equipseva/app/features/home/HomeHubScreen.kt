@@ -935,8 +935,14 @@ private fun RecommendedEngineerCard(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             InlineStars(rating = row.ratingAvg, count = row.totalJobs, small = true)
+            // Was "Book" — but the tap doesn't book anything, it opens
+            // the engineer's public profile (same destination as tapping
+            // the card itself). Tapping a "Book" pill and getting a
+            // profile screen is a small lie. Renamed to match what
+            // happens; the actual booking starts from the profile's
+            // sticky "Post a repair job" CTA.
             Text(
-                text = "Book",
+                text = "View",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = SevaGreen700,
