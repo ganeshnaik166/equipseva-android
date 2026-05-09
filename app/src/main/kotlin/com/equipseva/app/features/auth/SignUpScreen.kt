@@ -138,8 +138,14 @@ fun SignUpScreen(
                     color = SevaInk900,
                 )
                 Spacer(Modifier.height(10.dp))
+                // Title matches UserRole.HOSPITAL.displayName so the
+                // persona the user picks at signup matches the
+                // AccountTypeSection / role-editor / Profile-pill copy
+                // they'll see immediately after Continue (Round 12 +
+                // Round 14 + Round 28). The bare "Hospital" was the last
+                // surface saying it differently from the rest of the app.
                 RoleTile(
-                    title = "Hospital",
+                    title = "Hospital admin",
                     subtitle = "Book biomedical engineers for repairs",
                     selected = state.role == UserRole.HOSPITAL,
                     enabled = !state.form.submitting,
