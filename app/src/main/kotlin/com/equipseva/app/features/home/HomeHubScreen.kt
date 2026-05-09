@@ -218,6 +218,16 @@ fun HomeHubScreen(
                         desc = "Jobs in progress",
                         onClick = onOpenActiveWork,
                     )
+                    // Engineers can chat with hospitals on bid/assigned jobs;
+                    // hospitals had a Messages home tile but engineers had to
+                    // dig into a specific job → chat to see threads. Add the
+                    // same shortcut here.
+                    HomeTile(
+                        icon = Icons.AutoMirrored.Outlined.Chat,
+                        title = "Messages",
+                        desc = "Chat with hospitals",
+                        onClick = onOpenMessages,
+                    )
                     HomeTile(
                         icon = Icons.Filled.CurrencyRupee,
                         title = "Earnings",
