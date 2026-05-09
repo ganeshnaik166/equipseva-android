@@ -570,12 +570,16 @@ private fun JobBody(
             }
         }
 
-        // PR-D38: engineer-side commission preview. Only renders when
-        // the SECDEF gate (caller is assigned engineer) passes — VM
-        // sets state.hospitalTierPreview only on success.
-        if (!isHospital && hospitalTierPreview != null) {
+        // PR-D38: engineer-side commission preview. Hidden for v1 per
+        // project_v1_monetization_free.md — there's no platform
+        // commission yet, so a "0% commission" or "After commission
+        // you receive ₹X (full amount)" card just adds noise and
+        // implies commissions exist. Re-enable when v2 monetization
+        // ships and the rate becomes meaningful.
+        @Suppress("ConstantConditionIf", "KotlinConstantConditions")
+        if (false && !isHospital && hospitalTierPreview != null) {
             EsSection(title = "Your payout") {
-                EngineerCommissionPreviewCard(preview = hospitalTierPreview)
+                EngineerCommissionPreviewCard(preview = hospitalTierPreview!!)
             }
         }
 
