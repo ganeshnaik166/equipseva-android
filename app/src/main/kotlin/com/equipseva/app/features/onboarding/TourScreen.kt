@@ -67,8 +67,11 @@ private val pages = listOf(
     ),
     TourPage(
         icon = Icons.Filled.Bolt,
-        title = "Post a job, get bids in minutes",
-        body = "Describe the issue, attach photos, set urgency. Engineers in your radius bid. You pick.",
+        // The tour can fire before role is locked in — and even after,
+        // a multi-role user might switch later. Frame this page so it
+        // makes sense whether the reader is the buyer or the seller.
+        title = "Bids in minutes, not days",
+        body = "Hospitals describe a repair, engineers bid in their radius, both sides chat through the app to lock it in.",
     ),
     TourPage(
         icon = Icons.Filled.Shield,
