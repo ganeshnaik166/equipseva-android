@@ -7,11 +7,19 @@ package com.equipseva.app.features.auth
  */
 enum class UserRole(val storageKey: String, val displayName: String, val description: String) {
     // storageKey values mirror the server `user_role` enum verbatim.
-    // `hospital_admin` is the server name even though we surface it as "Hospital buyer".
+    // displayName matches the AccountTypeSection title on ProfileScreen
+    // ("Hospital admin") — the previous "Hospital buyer" only appeared
+    // on the role-editor sheet, leaving the snackbar saying "Role
+    // updated to Hospital buyer" while the Profile said "Hospital
+    // admin". Indian hospital users identify as admins, not buyers.
     // v1: parts marketplace deferred. Description trimmed so the
     // role-editor + signup tiles don't promise "Buy parts".
-    HOSPITAL("hospital_admin", "Hospital buyer", "Book engineers, manage repairs"),
-    ENGINEER("engineer", "Field engineer", "Pick up jobs, bid, complete repairs"),
+    HOSPITAL("hospital_admin", "Hospital admin", "Book engineers, manage repairs"),
+    // displayName matches the AccountTypeSection title — Profile said
+    // "Biomedical engineer" while the role-editor said "Field engineer".
+    // "Biomedical" is the domain (matches the directory headline
+    // "Browse verified biomedical engineers near you"), so unify on it.
+    ENGINEER("engineer", "Biomedical engineer", "Pick up jobs, bid, complete repairs"),
     SUPPLIER("supplier", "Parts supplier", "List parts and fulfil orders"),
     MANUFACTURER("manufacturer", "Manufacturer", "Receive RFQs and respond to leads"),
     LOGISTICS("logistics", "Logistics partner", "Pick up and deliver shipments");
