@@ -32,7 +32,6 @@ import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.CloudSync
-import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -356,21 +355,12 @@ private fun ChatTopBar(
                     maxLines = 1,
                 )
             }
-            // Phone CTA — wired when telephony lands.
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .clickable { /* call CTA — placeholder */ },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Phone,
-                    contentDescription = "Call",
-                    tint = SevaGreen700,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
+            // Phone CTA removed for v2.1 — the previous green icon
+            // looked tappable but was wired to a `/* placeholder */`
+            // no-op. The masked-call surface lives on the engineer
+            // profile + repair-job sheet (MaskedContactPanel), gated
+            // on an active job. Re-add here only when chat-header
+            // calling is actually wired.
             if (canBlock) {
                 Box {
                     IconButton(onClick = { menuOpen = true }) {
