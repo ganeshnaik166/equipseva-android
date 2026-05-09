@@ -231,7 +231,11 @@ fun HomeHubScreen(
                     HomeTile(
                         icon = Icons.Filled.CurrencyRupee,
                         title = "Earnings",
-                        desc = "This month, payouts, tax docs",
+                        // Earnings screen shows All-time totals + escrow
+                        // status + recent payouts. No "this month" rollup
+                        // and no tax docs surface in v2.1, so the previous
+                        // copy promised more than the screen delivers.
+                        desc = "Payouts, escrow status, recent jobs",
                         onClick = onOpenEarnings,
                     )
                 }
