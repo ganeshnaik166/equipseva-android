@@ -93,7 +93,14 @@ fun ChangeEmailScreen(
                     OutlinedTextField(
                         value = state.newEmail,
                         onValueChange = viewModel::onEmailChange,
-                        label = { Text("New email") },
+                        // The body above is explicit that this updates
+                        // the contact email and the sign-in email is
+                        // separate — but the field label still said the
+                        // bare "New email", which read as "the email I
+                        // sign in with". Naming the field for the
+                        // narrower thing keeps the two emails distinct
+                        // for users skimming.
+                        label = { Text("New contact email") },
                         singleLine = true,
                         enabled = !state.submitting,
                         isError = state.emailError != null,
