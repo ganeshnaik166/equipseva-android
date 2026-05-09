@@ -591,8 +591,13 @@ private fun VisitsTab(state: AmcDetailViewModel.UiState) {
     }
     EsSection(title = "Visit history") {
         if (state.visits.isEmpty()) {
+            // The previous "runs daily at 09:00 IST" leaked the cron
+            // implementation — hospitals don't need to know our scheduler
+            // cadence and the time leaks our timezone assumptions
+            // anyway. Honest user-facing copy: visits land here once the
+            // first scheduled date rolls around.
             Text(
-                "No visits scheduled yet. The first one shows up here once the AMC cron fires (runs daily at 09:00 IST).",
+                "No visits yet. Scheduled visits appear here as the engineer logs them.",
                 color = SevaInk500,
                 fontSize = 12.sp,
                 modifier = Modifier.padding(horizontal = 16.dp),
