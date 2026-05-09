@@ -552,7 +552,11 @@ private fun MapPreviewBox(
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                 ) {
                     Text(
-                        text = "Set base in KYC",
+                        // Verified engineers can update their base via
+                        // Jobs → Service location, not the KYC wizard.
+                        // The old "Set base in KYC" hint sent users back
+                        // through a flow they'd already finished.
+                        text = "Set service location",
                         style = EsType.Caption.copy(fontSize = 11.sp, fontWeight = FontWeight.Medium),
                         color = SevaWarning700,
                     )
