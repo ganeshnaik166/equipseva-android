@@ -77,6 +77,7 @@ class ProfileViewModel @Inject constructor(
         val roleEditorSelected: UserRole? = null,
         val roleUpdating: Boolean = false,
         val signingOut: Boolean = false,
+        val signOutConfirmOpen: Boolean = false,
         val editProfileOpen: Boolean = false,
         val editFullName: String = "",
         val editPhone: String = "",
@@ -524,9 +525,18 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    fun onOpenSignOutConfirm() {
+        if (_state.value.signingOut) return
+        _state.update { it.copy(signOutConfirmOpen = true) }
+    }
+
+    fun onDismissSignOutConfirm() {
+        _state.update { it.copy(signOutConfirmOpen = false) }
+    }
+
     fun onSignOut() {
         if (_state.value.signingOut) return
-        _state.update { it.copy(signingOut = true) }
+        _state.update { it.copy(signingOut = true, signOutConfirmOpen = false) }
         viewModelScope.launch {
             // Wipe device-resident user state BEFORE the auth call so the
             // network-side token revoke still has a valid session, and so
