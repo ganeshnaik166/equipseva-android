@@ -287,7 +287,7 @@ fun ProfileScreen(
             title = { androidx.compose.material3.Text("Export your data?") },
             text = {
                 androidx.compose.material3.Text(
-                    "We'll bundle your profile, addresses, messages and order history into a JSON file and open the share sheet so you can save or send it. Anyone you share it with will be able to read it.",
+                    "We'll bundle your profile, addresses, messages and repair-job history into a JSON file and open the share sheet so you can save or send it. Anyone you share it with will be able to read it.",
                 )
             },
             confirmButton = {
