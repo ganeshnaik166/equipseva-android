@@ -1967,7 +1967,11 @@ private fun BidComposerSheet(
                     modifier = Modifier.size(14.dp),
                 )
                 Text(
-                    text = "Your bid is locked once submitted. Hospital sees your verified profile.",
+                    // "Locked once submitted" wasn't true — the same sheet
+                    // re-opens as "Update your bid" when an existingBid is
+                    // present, and there's a withdrawBid flow on YourBidCard.
+                    // Tell engineers what they can actually do.
+                    text = "Hospital sees your verified profile. You can edit or withdraw your bid until they accept it.",
                     fontSize = 11.sp,
                     color = SevaInfo500,
                 )
