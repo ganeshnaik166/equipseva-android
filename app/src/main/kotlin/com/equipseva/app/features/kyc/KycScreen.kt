@@ -572,8 +572,10 @@ private fun PersonalStep(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        // Phone — direct save flow, no OTP. Add when blank, Verified pill
-        // when set. Hint copy below from screens-kyc.jsx.
+        // Phone — direct save flow, no OTP. Add when blank, "Saved" pill
+        // when set (was "Verified" but we don't actually run an OTP
+        // round-trip — calling it Verified would lie). Hint copy below
+        // from screens-kyc.jsx.
         FieldLabel("Phone (for hospital contact)")
         // readOnly (not enabled=false) so the trailing TextButton stays
         // clickable. Material 3 treats `enabled=false` as "everything inside
@@ -615,7 +617,11 @@ private fun PersonalStep(
                             .padding(horizontal = 10.dp, vertical = 4.dp),
                     ) {
                         Text(
-                            text = "Verified",
+                            // Phone is saved via direct write — no OTP
+                            // round-trip — so don't paint it "Verified".
+                            // Email above DOES go through Supabase email
+                            // OTP and keeps the Verified pill.
+                            text = "Saved",
                             color = SevaGreen700,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -626,7 +632,11 @@ private fun PersonalStep(
             modifier = Modifier.fillMaxWidth(),
         )
         Text(
-            text = "Used by hospitals to call/WhatsApp. Not for login.",
+            // "WhatsApp" was misleading — there's no in-app WhatsApp
+            // bridge, and calling out a third-party app implies hospitals
+            // will message you direct (anti-leak hole). Calls go through
+            // EquipSeva's masked-line bridge; chat lives in the app.
+            text = "Used to coordinate active jobs. Not for login.",
             fontSize = 11.sp,
             color = Ink500,
         )
