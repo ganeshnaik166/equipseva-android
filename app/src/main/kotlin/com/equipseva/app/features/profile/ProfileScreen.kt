@@ -228,7 +228,7 @@ fun ProfileScreen(
                         state = state,
                         themeMode = themeMode,
                         onEditRole = viewModel::onOpenRoleEditor,
-                        onSignOut = viewModel::onSignOut,
+                        onSignOut = viewModel::onOpenSignOutConfirm,
                         onEditProfile = viewModel::onOpenEditProfile,
                         onOpenSettings = viewModel::onOpenSettings,
                         onOpenMessages = onOpenMessages,
@@ -299,6 +299,35 @@ fun ProfileScreen(
                 androidx.compose.material3.TextButton(onClick = viewModel::onDismissExportConfirm) {
                     androidx.compose.material3.Text("Cancel")
                 }
+            },
+        )
+    }
+
+    if (state.signOutConfirmOpen) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = viewModel::onDismissSignOutConfirm,
+            title = { androidx.compose.material3.Text("Sign out?") },
+            text = {
+                androidx.compose.material3.Text(
+                    "You'll need your email and password to sign back in. Drafts and unsent messages on this device will be cleared.",
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = viewModel::onSignOut,
+                    enabled = !state.signingOut,
+                ) {
+                    androidx.compose.material3.Text(
+                        if (state.signingOut) "Signing out…" else "Sign out",
+                        color = ErrorRed,
+                    )
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = viewModel::onDismissSignOutConfirm,
+                    enabled = !state.signingOut,
+                ) { androidx.compose.material3.Text("Stay signed in") }
             },
         )
     }
@@ -771,11 +800,11 @@ private fun ProfileHero(
         .map { it.first().uppercaseChar() }
         .joinToString("")
         .ifBlank { "U" }
-    val roleLabel = when (role) {
-        UserRole.ENGINEER -> "Engineer"
-        UserRole.HOSPITAL -> "Hospital admin"
-        else -> role?.displayName
-    }
+    // Use UserRole.displayName so the Profile hero pill matches the
+    // AccountTypeSection title + role-editor sheet ("Hospital admin",
+    // "Biomedical engineer"). Round 12 unified the rest; the hero
+    // pill was the last surface still rendering "Engineer" instead.
+    val roleLabel = role?.displayName
     Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(
             modifier = Modifier
@@ -806,7 +835,10 @@ private fun ProfileHero(
                     com.equipseva.app.designsystem.components.Avatar(
                         initials = initials,
                         size = 56.dp,
-                        online = com.equipseva.app.designsystem.components.OnlineStatus.Available,
+                        // Round 14: drop fake green presence dot — we don't
+                        // wire any presence detection, so painting "Available"
+                        // on the user's own avatar was just decoration.
+                        online = null,
                     )
                 }
                 if (avatarUploading) {
@@ -998,7 +1030,7 @@ private fun SignedOutPrompt(onSignIn: () -> Unit) {
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "Sign in to buy, list items, contact engineers, and track orders. Browsing stays open without an account.",
+            "Sign in to post repair jobs, message engineers, and manage your contracts. Browsing stays open without an account.",
             fontSize = 13.sp,
             color = com.equipseva.app.designsystem.theme.Ink500,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
