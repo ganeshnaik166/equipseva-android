@@ -151,7 +151,12 @@ fun AddPhoneScreen(
                     color = SevaInk900,
                 )
                 Text(
-                    "Verified by SMS OTP. Calls between you and the other party route through EquipSeva — your real number stays private.",
+                    // Don't promise "Verified by SMS OTP" — v1 stores the
+                    // number directly on profiles.phone with no Twilio/
+                    // MSG91 round-trip yet. Saying it's verified would be
+                    // a lie. Keep the masked-call promise (that's real —
+                    // Exotel bridge handles it).
+                    "Used to coordinate active jobs. Calls between you and the other party route through EquipSeva — your real number stays private.",
                     fontSize = 13.sp,
                     color = SevaInk500,
                 )
