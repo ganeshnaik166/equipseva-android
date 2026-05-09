@@ -1233,7 +1233,10 @@ private fun EditProfileSheet(
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                "Phone is verified separately by SMS. Tap below to add or change it.",
+                // Same fix as AddPhoneScreen: don't claim SMS verification —
+                // we don't run the OTP round-trip in v1. Phone is saved
+                // directly to profiles.phone via updateBasicInfo.
+                "Phone is managed separately. Tap below to add or change it.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
