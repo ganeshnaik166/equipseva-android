@@ -43,6 +43,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.CurrencyRupee
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Lock
@@ -717,6 +718,17 @@ private fun buildProfileSections(
                 onClick = onOpenEarnings,
             ))
             add(SettingsRow(icon = Icons.Outlined.AccountBalance, label = "Bank details", onClick = onOpenBankDetails))
+            // Engineers want to see how hospitals see them — the public-
+            // preview lambda was already plumbed from MainNavGraph but
+            // never wired to a row. Only show when verified + we have
+            // their engineer id to feed into the public profile route.
+            if (engineerStatus == VerificationStatus.Verified && !ownEngineerId.isNullOrBlank()) {
+                add(SettingsRow(
+                    icon = Icons.Outlined.Visibility,
+                    label = "Preview public profile",
+                    onClick = { onOpenPublicPreview(ownEngineerId) },
+                ))
+            }
         }
         if (isHospital) {
             add(SettingsRow(
