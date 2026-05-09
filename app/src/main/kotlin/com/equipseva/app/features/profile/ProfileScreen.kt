@@ -502,13 +502,10 @@ private fun AccountTypeSection(role: UserRole?, onEditRole: () -> Unit) {
     // role can legitimately be null while the profile is mid-fetch — in
     // that case we want a neutral label, not a misleading "Hospital admin"
     // (which used to appear because the old `else` branch swallowed null
-    // and ENGINEER-not-equal cases together).
-    val title = when (role) {
-        UserRole.ENGINEER -> "Biomedical engineer"
-        UserRole.HOSPITAL -> "Hospital admin"
-        null -> "Loading…"
-        else -> role.displayName
-    }
+    // and ENGINEER-not-equal cases together). Per-role labels now come
+    // from UserRole.displayName so the role-editor sheet + snackbar +
+    // this title all stay in sync.
+    val title = role?.displayName ?: "Loading…"
     val subtitle = when (role) {
         UserRole.ENGINEER -> "You bid on and complete repair jobs"
         UserRole.HOSPITAL -> "You book engineers for repairs"
