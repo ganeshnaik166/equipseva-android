@@ -287,7 +287,11 @@ private fun SwitchRow(
 fun BankDetailsScreen(onBack: () -> Unit, onShowMessage: (String) -> Unit) =
     ProfileFormScaffold(
         title = "Bank details",
-        subtitle = "Where we send your payouts. We never display your full account number after saving.",
+        // Don't promise account-number masking — the generic
+        // ProfileFormScaffold re-renders saved values verbatim, so
+        // claiming we redact would lie. Re-enable the masking promise
+        // when we ship a per-field display formatter.
+        subtitle = "Where we send your payouts. Stored securely.",
         settingsKey = "bank_details",
         fields = listOf(
             FieldSpec("account_holder", "Account holder name"),
