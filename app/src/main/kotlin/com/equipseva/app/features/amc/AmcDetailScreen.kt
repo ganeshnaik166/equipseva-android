@@ -726,8 +726,15 @@ private fun RotationTab(
 ) {
     EsSection(title = "Engineer rotation") {
         if (state.rotation.isEmpty()) {
+            // The previous "Rotation will appear here." was placeholder
+            // copy that didn't tell hospitals what they were looking at
+            // or how to populate it. Concrete description of how rotation
+            // works + the canonical add-fallback path.
             Text(
-                "Rotation will appear here.",
+                if (state.viewerIsHospital)
+                    "The primary engineer takes visits first. If they're unavailable, the next priority engineer is dispatched. Add fallbacks from any engineer's profile."
+                else
+                    "The primary engineer takes visits first. Fallbacks step in when the primary is unavailable.",
                 color = SevaInk500,
                 fontSize = 13.sp,
                 modifier = Modifier.padding(horizontal = 16.dp),
