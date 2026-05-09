@@ -2396,7 +2396,6 @@ private fun CancelSheet(
     onConfirm: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var reason by rememberSaveable { mutableStateOf("") }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier
@@ -2415,13 +2414,11 @@ private fun CancelSheet(
                 fontSize = 13.sp,
                 color = SevaInk600,
             )
-            EsField(
-                value = reason,
-                onChange = { reason = it },
-                label = "Reason",
-                placeholder = "Why are you cancelling?",
-                type = EsFieldType.Multiline,
-            )
+            // Reason field used to live here, but onConfirm doesn't take
+            // one and the repository's updateStatus has no reason
+            // parameter — anything typed was discarded silently. Re-add
+            // when a real cancellation_reason column ships and is wired
+            // through the cancelJob → updateStatus path.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
