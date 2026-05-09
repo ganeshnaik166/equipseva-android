@@ -214,7 +214,7 @@ fun RepairJobsScreen(
                                 subtitle = "Try a different search or clear the filter.",
                             )
                         } else {
-                            EmptyFeedState()
+                            EmptyFeedState(radiusKm = state.radiusKm)
                         }
                     }
                     else -> LazyColumn(
@@ -584,7 +584,11 @@ private fun InitialShimmerList() {
 }
 
 @Composable
-private fun EmptyFeedState() {
+private fun EmptyFeedState(radiusKm: Int?) {
+    // "No jobs in this radius / Try widening" lied when the user
+    // already had All radii selected — there's no wider option, and
+    // the count reflects every open job in the country. Conditional
+    // copy so the empty state matches the active filter.
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -592,14 +596,18 @@ private fun EmptyFeedState() {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "No jobs in this radius",
+            text = if (radiusKm == null) "No open jobs right now" else "No jobs in this radius",
             style = EsType.Body.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
             color = SevaInk700,
             textAlign = TextAlign.Center,
         )
         Box(modifier = Modifier.height(4.dp))
         Text(
-            text = "Try widening the radius filter",
+            text = if (radiusKm == null) {
+                "Pull to refresh — new requests show up the moment hospitals post."
+            } else {
+                "Try widening the radius filter, or pick All to see every open job."
+            },
             style = EsType.Caption.copy(fontSize = 12.sp),
             color = SevaInk500,
             textAlign = TextAlign.Center,
