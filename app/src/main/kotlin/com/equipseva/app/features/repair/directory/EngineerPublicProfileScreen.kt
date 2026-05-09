@@ -624,7 +624,14 @@ fun EngineerPublicProfileScreen(
                             )
                             Box(modifier = Modifier.weight(1f)) {
                                 EsBtn(
-                                    text = "Request this engineer",
+                                    // "Request this engineer" overpromised —
+                                    // tapping it opens the generic 4-step
+                                    // post-job wizard which broadcasts to
+                                    // every eligible engineer in radius,
+                                    // not a private invitation to this one.
+                                    // Rename until backend supports
+                                    // engineer-targeted RFQs (anti-leak v2).
+                                    text = "Post a repair job",
                                     onClick = { onRequestService(state.profile!!.engineerId) },
                                     kind = EsBtnKind.Primary,
                                     size = EsBtnSize.Lg,
@@ -887,15 +894,20 @@ private fun ProfileBody(
                 MaskedContactPanel(
                     onCall = onCall,
                     onOpenChat = onOpenChat,
-                    callEnabled = true,
+                    // Calls bridge through Exotel only when a repair job
+                    // (or chat conversation) ties the two parties — server
+                    // rejects with NotParticipant otherwise. Mirror that
+                    // gate visually instead of letting the user tap a
+                    // primary-green button just to bounce off a snackbar.
+                    callEnabled = activeRepairJobId != null,
                     chatEnabled = true,
                     callBusy = callBusy,
                     chatBusy = chatBusy,
                 )
             }
-            // Soft nudge if hospital has no active job yet — Call still
-            // works (server returns NotParticipant → snackbar nudges them
-            // to chat first), but this sets expectations up front.
+            // Soft nudge if hospital has no active job yet — Call is
+            // visually disabled above (callEnabled = false). This text
+            // explains *why* before they wonder.
             if (activeRepairJobId == null) {
                 Box(
                     modifier = Modifier
