@@ -44,6 +44,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobStatus
+import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
@@ -51,6 +52,7 @@ import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.components.EsTopBar
+import com.equipseva.app.designsystem.components.UrgencyPill
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.Paper2
@@ -259,7 +261,17 @@ private fun HospitalBookingCard(
                     )
                 }
             }
-            StatusPill(status = job.status)
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                StatusPill(status = job.status)
+                if (job.urgency == RepairJobUrgency.Emergency ||
+                    job.urgency == RepairJobUrgency.SameDay
+                ) {
+                    UrgencyPill(urgency = job.urgency)
+                }
+            }
         }
 
         if (job.issueDescription.isNotBlank()) {

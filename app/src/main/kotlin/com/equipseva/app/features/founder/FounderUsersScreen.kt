@@ -117,10 +117,20 @@ class FounderUsersViewModel @Inject constructor(
         viewModelScope.launch {
             repo.searchUsers(query = s.query, role = s.selectedRole, limit = 50, offset = 0)
                 .onSuccess { rows ->
-                    _state.update { it.copy(loading = false, rows = if (rows.isEmpty()) DUMMY_USERS else rows) }
+                    // Honest empty state — DUMMY_USERS fallback removed
+                    // 2026-05-08 e2e QA so the founder users surface
+                    // doesn't lie when the platform genuinely has no
+                    // matches for the current filter.
+                    _state.update { it.copy(loading = false, rows = rows) }
                 }
-                .onFailure { _ ->
-                    _state.update { it.copy(loading = false, rows = DUMMY_USERS, error = null) }
+                .onFailure { ex ->
+                    _state.update {
+                        it.copy(
+                            loading = false,
+                            rows = emptyList(),
+                            error = ex.toUserMessage(),
+                        )
+                    }
                 }
         }
     }

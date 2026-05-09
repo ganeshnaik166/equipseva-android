@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -92,14 +93,19 @@ class HomeHubViewModel @Inject constructor(
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     private var notifJob: Job? = null
+    private var currentUserId: String? = null
 
     init {
         viewModelScope.launch {
             authRepository.sessionState.collect { session ->
                 when (session) {
-                    is AuthSession.SignedIn -> refresh(session.userId)
+                    is AuthSession.SignedIn -> {
+                        currentUserId = session.userId
+                        refresh(session.userId)
+                    }
                     is AuthSession.SignedOut -> {
                         notifJob?.cancel()
+                        currentUserId = null
                         _state.update { UiState() }
                     }
                     AuthSession.Unknown -> Unit
@@ -113,23 +119,45 @@ class HomeHubViewModel @Inject constructor(
         // so observe it as a fallback when the profile fetch hasn't yet
         // resolved a role — keeps the tiles + KYC banner aligned with the
         // bottom-nav (which already reads from this prefs key).
+        //
+        // Also rerun refresh when the cached role *changes* (multi-role
+        // users tapping the new Profile → Account-type role-switch sheet).
+        // The previous version only filled the role on null, so the home
+        // hub kept rendering hospital tiles even after the bottom nav
+        // flipped to engineer.
         viewModelScope.launch {
             userPrefs.activeRole.collect { key ->
                 val cached = key?.let { k -> UserRole.entries.firstOrNull { it.storageKey == k } }
-                if (cached != null && _state.value.role == null) {
+                if (cached != null && _state.value.role != cached) {
                     _state.update { it.copy(role = cached) }
+                    currentUserId?.let { uid -> refresh(uid) }
                 }
             }
         }
     }
 
     private suspend fun refresh(userId: String) {
+        // Snapshot userPrefs ONCE per refresh — it's the source of
+        // truth for "which role is the user currently rendering as".
+        // The bottom nav, the role-editor sheet, and the auth roles-
+        // confirm flow all write into it. The server profile.role can
+        // be stale for a few hundred ms after the role-switch RPC
+        // because Supabase returns the pre-update row in the cached
+        // postgrest client unless we explicitly re-select.
+        val prefsRoleKey = userPrefs.activeRole.firstOrNull()
+        val prefsRole = prefsRoleKey?.let { k ->
+            UserRole.entries.firstOrNull { it.storageKey == k }
+        }
         profileRepository.fetchById(userId).onSuccess { profile ->
-            // Don't clobber a role we already resolved (eg. via UserPrefs)
-            // when the profile fetch returns a row without a role yet — that
-            // happens during the trigger / updateRole race after fresh signup
-            // and would flip the tiles to engineer for a hospital user.
-            val fetchedRole = profile?.activeRole ?: profile?.role
+            // Prefer userPrefs over server fields. This keeps the home
+            // hub aligned with the bottom nav after a Profile →
+            // Account-type role switch (verified on Realme 2026-05-08:
+            // server profile.role lagged userPrefs by one cold launch,
+            // so the hospital tiles + greeting kept rendering even
+            // after the user picked Field engineer + Save).
+            val fetchedRole = prefsRole
+                ?: profile?.activeRole
+                ?: profile?.role
             _state.update {
                 it.copy(
                     displayName = profile?.fullName,
@@ -218,6 +246,18 @@ class HomeHubViewModel @Inject constructor(
                     _state.update { it.copy(recent = list.take(3)) }
                 }
         }
+    }
+
+    /**
+     * Re-pull tiles + counts when the hospital returns to the hub
+     * (post-job, post-bid-accept, post-completion). Without this the
+     * "Open / Active / Engineers" hero strip and the loyalty/SLA
+     * cards stay frozen at whatever they were when the session first
+     * loaded.
+     */
+    fun refreshNow() {
+        val uid = currentUserId ?: return
+        viewModelScope.launch { refresh(uid) }
     }
 
     /**

@@ -103,6 +103,11 @@ fun HomeHubScreen(
     val role = state.role
     val kyc = state.kycStatus
 
+    androidx.lifecycle.compose.LifecycleResumeEffect(viewModel) {
+        viewModel.refreshNow()
+        onPauseOrDispose { }
+    }
+
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(
             modifier = Modifier
@@ -135,10 +140,19 @@ fun HomeHubScreen(
             // PR-D15: hospital loyalty progress pill — surfaces the
             // commission tier (PR-D2) so hospitals can see what they
             // unlock at 10 / 50 completed jobs/yr.
-            val tier = state.commissionTier
-            if (role == UserRole.HOSPITAL && tier != null) {
-                CommissionTierPill(tier = tier)
-                Spacer(Modifier.height(8.dp))
+            //
+            // Hidden for v1: project_v1_monetization_free.md locks the
+            // launch on "no take rate, no subs, no fees." The tile copy
+            // ("10 more to 5% commission") implies commissions exist
+            // which is false until v2. Re-enable when monetization
+            // ships.
+            @Suppress("ConstantConditionIf", "KotlinConstantConditions")
+            if (false) {
+                val tier = state.commissionTier
+                if (role == UserRole.HOSPITAL && tier != null) {
+                    CommissionTierPill(tier = tier)
+                    Spacer(Modifier.height(8.dp))
+                }
             }
 
             // PR-D34: aggregated AMC SLA breach credits this hospital

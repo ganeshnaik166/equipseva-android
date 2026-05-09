@@ -261,11 +261,17 @@ class FounderRepository @Inject constructor(
         limit: Int = 50,
         offset: Int = 0,
     ): Result<List<UserRow>> = runCatching {
+        // admin_users_search short-circuits on `p_role IS NULL` (returns
+        // every role) — sending JsonPrimitive("") instead falsely
+        // narrowed the WHERE to `p.role::text = ''`, so the "All" filter
+        // returned zero rows on every install. Send JsonNull when no
+        // role is selected (verified on Realme 2026-05-08 e2e QA — Users
+        // queue surface showed "No matches" with 50+ real users in DB).
         client.postgrest.rpc(
             function = "admin_users_search",
             parameters = buildJsonObject {
                 put("p_query", JsonPrimitive(query))
-                put("p_role", role?.let { JsonPrimitive(it) } ?: JsonPrimitive(""))
+                put("p_role", role?.let { JsonPrimitive(it) } ?: kotlinx.serialization.json.JsonNull)
                 put("p_limit", JsonPrimitive(limit))
                 put("p_offset", JsonPrimitive(offset))
             },

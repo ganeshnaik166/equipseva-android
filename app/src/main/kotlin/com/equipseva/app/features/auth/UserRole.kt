@@ -8,7 +8,9 @@ package com.equipseva.app.features.auth
 enum class UserRole(val storageKey: String, val displayName: String, val description: String) {
     // storageKey values mirror the server `user_role` enum verbatim.
     // `hospital_admin` is the server name even though we surface it as "Hospital buyer".
-    HOSPITAL("hospital_admin", "Hospital buyer", "Buy parts, request repairs, manage equipment"),
+    // v1: parts marketplace deferred. Description trimmed so the
+    // role-editor + signup tiles don't promise "Buy parts".
+    HOSPITAL("hospital_admin", "Hospital buyer", "Book engineers, manage repairs"),
     ENGINEER("engineer", "Field engineer", "Pick up jobs, bid, complete repairs"),
     SUPPLIER("supplier", "Parts supplier", "List parts and fulfil orders"),
     MANUFACTURER("manufacturer", "Manufacturer", "Receive RFQs and respond to leads"),

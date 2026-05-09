@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -187,6 +188,8 @@ class EngineerDirectoryViewModel @Inject constructor(
             if (loc != null) refresh()
         }
     }
+
+    fun onRefresh() = refresh()
 
     private fun refresh() {
         _state.update { it.copy(loading = true, error = null) }
@@ -397,6 +400,15 @@ fun EngineerDirectoryScreen(
                         Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
                     ) { CircularProgressIndicator() }
+                    // Network error path: distinguish "RPC failed" from
+                    // "filter narrowed to zero." Without this the
+                    // hospital sees "No engineers match — try a wider
+                    // district" when actually wifi is off and supply
+                    // exists, falsely signalling no platform liquidity.
+                    state.error != null && state.rows.isEmpty() -> EmptyEngineersError(
+                        message = state.error!!,
+                        onRetry = { viewModel.onRefresh() },
+                    )
                     visibleRows.isEmpty() -> EmptyEngineers()
                     else -> LazyColumn(
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -420,6 +432,45 @@ fun EngineerDirectoryScreen(
                 onClose = { showFilters = false },
             )
         }
+    }
+}
+
+@Composable
+private fun EmptyEngineersError(message: String, onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(40.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            Icons.Outlined.WifiOff,
+            contentDescription = null,
+            tint = SevaInk500,
+            modifier = Modifier.size(32.dp),
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            "Couldn't load engineers",
+            color = SevaInk900,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = message,
+            color = SevaInk500,
+            fontSize = 12.sp,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
+        Spacer(Modifier.height(12.dp))
+        EsBtn(
+            text = "Try again",
+            onClick = onRetry,
+            kind = EsBtnKind.Secondary,
+            size = EsBtnSize.Md,
+        )
     }
 }
 

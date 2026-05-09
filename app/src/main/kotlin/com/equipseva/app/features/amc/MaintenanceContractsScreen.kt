@@ -200,7 +200,11 @@ fun MaintenanceContractsScreen(
                     state.items.isEmpty() -> EmptyStateView(
                         icon = Icons.Outlined.CalendarMonth,
                         title = "No maintenance contracts yet",
-                        subtitle = "Set up monthly maintenance with a verified engineer for predictable preventive care.",
+                        subtitle = if (state.role == UserRole.ENGINEER) {
+                            "Contracts where a hospital adds you as primary or fallback engineer will appear here."
+                        } else {
+                            "Set up monthly maintenance with a verified engineer for predictable preventive care."
+                        },
                         ctaLabel = if (state.role == UserRole.HOSPITAL) "Browse engineers" else null,
                         onCta = if (state.role == UserRole.HOSPITAL) onBrowseEngineers else null,
                     )

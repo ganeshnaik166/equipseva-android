@@ -214,18 +214,48 @@ class ProfileViewModel @Inject constructor(
         }
         _state.update { it.copy(roleUpdating = true) }
         viewModelScope.launch {
-            profileRepository.updateRole(userId, target)
+            // Mirror onToggleRoleAndGoHome — `updateRole` only writes the
+            // scalar `role` column on profiles. The bootstrap session +
+            // bottom-nav drive everything off `active_role`, so leaving
+            // the active_role column at its previous value broke the
+            // role flip after a cold launch (verified on Realme
+            // 2026-05-08 e2e QA: cached=hospital_admin active=hospital_admin
+            // raw=engineer in the SessionVM snackbar). Add the role to
+            // the multi-role array first if needed, then flip
+            // active_role via the dedicated RPC.
+            val profile = current.profile
+            val hasRole = profile?.roles?.contains(target) == true
+            val ensureRole = if (hasRole) {
+                Result.success(Unit)
+            } else {
+                profileRepository.addRole(target.storageKey)
+            }
+            ensureRole
                 .onSuccess {
-                    userPrefs.setActiveRole(target.storageKey)
-                    _state.update {
-                        it.copy(
-                            profile = it.profile?.copy(role = target, rawRoleKey = target.storageKey, roleConfirmed = true),
-                            roleEditorOpen = false,
-                            roleEditorSelected = null,
-                            roleUpdating = false,
-                        )
-                    }
-                    _effects.send(Effect.ShowMessage("Role updated to ${target.displayName}"))
+                    profileRepository.setActiveRole(target.storageKey)
+                        .onSuccess {
+                            userPrefs.setActiveRole(target.storageKey)
+                            _state.update {
+                                it.copy(
+                                    profile = it.profile?.copy(
+                                        role = target,
+                                        rawRoleKey = target.storageKey,
+                                        activeRole = target,
+                                        activeRoleKey = target.storageKey,
+                                        roleConfirmed = true,
+                                        roles = (it.profile.roles + target).distinct(),
+                                    ),
+                                    roleEditorOpen = false,
+                                    roleEditorSelected = null,
+                                    roleUpdating = false,
+                                )
+                            }
+                            _effects.send(Effect.ShowMessage("Role updated to ${target.displayName}"))
+                        }
+                        .onFailure { error ->
+                            _state.update { it.copy(roleUpdating = false) }
+                            _effects.send(Effect.ShowMessage(error.toUserMessage()))
+                        }
                 }
                 .onFailure { error ->
                     _state.update { it.copy(roleUpdating = false) }

@@ -229,11 +229,20 @@ fun FounderDashboardScreen(
                     }
                 }
 
-                // Coverage — district horizontal bars. Static slice for now —
-                // engineer-zone counts hydrate from FounderEngineerMap RPC.
-                EsSection(title = "Coverage") {
-                    Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        CoverageCard()
+                // Coverage — district horizontal bars. Hidden 2026-05-08
+                // because the per-district counts are hard-coded mock
+                // (Hyd 18 + Nalg 12 + Sury 9 + Wgl 5 + Khm 3 = 47) which
+                // contradicts the directory + home tile that say 12
+                // verified engineers exist platform-wide. Re-enable when
+                // CoverageCard reads a real engineer_zones / districts
+                // RPC. Engineer Zones tile in the Operations section
+                // already exposes the live data for ops needs.
+                @Suppress("ConstantConditionIf", "KotlinConstantConditions")
+                if (false) {
+                    EsSection(title = "Coverage") {
+                        Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                            CoverageCard()
+                        }
                     }
                 }
                 Spacer(Modifier.height(32.dp))
