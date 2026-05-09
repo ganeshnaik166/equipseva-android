@@ -2159,7 +2159,6 @@ private fun CompletionProofSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
     var picked by rememberSaveable(stateSaver = UriListSaver) { mutableStateOf(emptyList<Uri>()) }
-    var note by rememberSaveable { mutableStateOf("") }
     val maxPhotos = 4
 
     val launcher = rememberLauncherForActivityResult(
@@ -2260,13 +2259,11 @@ private fun CompletionProofSheet(
                     }
                 }
             }
-            EsField(
-                value = note,
-                onChange = { note = it },
-                label = "Work summary",
-                placeholder = "Replaced SpO2 module. Calibration verified.",
-                type = EsFieldType.Multiline,
-            )
+            // "Work summary" multiline field used to live here, but the
+            // sheet's onSubmit + submitCompletionProof both took only
+            // photos — the typed text was discarded. Removed until a
+            // real work_summary column ships and submitCompletionProof
+            // can carry it through.
             EsBtn(
                 text = if (submitting) "Saving…" else "Mark done",
                 onClick = {
