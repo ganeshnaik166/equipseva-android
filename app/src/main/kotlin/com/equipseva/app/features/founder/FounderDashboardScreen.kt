@@ -174,12 +174,12 @@ fun FounderDashboardScreen(
                     jobsToday = stats?.ordersToday,
                 )
 
-                // KPI strip — 3 cards weight 1f each.
+                // KPI strip — 2 cards. The earlier 3rd "Users" card always
+                // showed "—" because admin_dashboard_stats RPC has no
+                // users-count field; restore once the count ships.
                 KpiStrip(
                     pendingKyc = stats?.pendingKyc,
                     openReports = stats?.pendingReports,
-                    totalUsers = null,
-                    verifiedEngineers = null,
                 )
 
                 // Queues card — 6 stacked rows.
@@ -229,22 +229,11 @@ fun FounderDashboardScreen(
                     }
                 }
 
-                // Coverage — district horizontal bars. Hidden 2026-05-08
-                // because the per-district counts are hard-coded mock
-                // (Hyd 18 + Nalg 12 + Sury 9 + Wgl 5 + Khm 3 = 47) which
-                // contradicts the directory + home tile that say 12
-                // verified engineers exist platform-wide. Re-enable when
-                // CoverageCard reads a real engineer_zones / districts
-                // RPC. Engineer Zones tile in the Operations section
-                // already exposes the live data for ops needs.
-                @Suppress("ConstantConditionIf", "KotlinConstantConditions")
-                if (false) {
-                    EsSection(title = "Coverage") {
-                        Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                            CoverageCard()
-                        }
-                    }
-                }
+                // CoverageCard removed 2026-05-10: hard-coded
+                // Hyd/Nalg/Sury/Wgl/Khm rows contradicted live data and
+                // had been gated behind `if (false)` for two days.
+                // Engineer Zones tile in Operations exposes the live
+                // counts when the RPC ships.
                 Spacer(Modifier.height(32.dp))
             }
         }
@@ -303,8 +292,6 @@ private fun FounderHero(
 private fun KpiStrip(
     pendingKyc: Int?,
     openReports: Int?,
-    totalUsers: Int?,
-    verifiedEngineers: Int?,
 ) {
     Row(
         modifier = Modifier
@@ -324,13 +311,6 @@ private fun KpiStrip(
             value = openReports?.toString() ?: "—",
             valueColor = SevaDanger500,
             sub = "open",
-            modifier = Modifier.weight(1f),
-        )
-        KpiCell(
-            label = "Users",
-            value = totalUsers?.toString() ?: "—",
-            valueColor = SevaInk900,
-            sub = verifiedEngineers?.let { "+$it eng" },
             modifier = Modifier.weight(1f),
         )
     }
@@ -622,75 +602,6 @@ private fun QueueRow(
     }
 }
 
-@Composable
-private fun CoverageCard() {
-    // Static slice for now — engineer-zone counts already live in
-    // FounderEngineerMap. The dashboard preview shows the design's curated
-    // five-district mock until we wire fetchDashboardStats() to surface a
-    // top-N districts payload.
-    val rows = listOf(
-        "Hyderabad" to (18 to 38),
-        "Nalgonda" to (12 to 26),
-        "Suryapet" to (9 to 19),
-        "Warangal" to (5 to 11),
-        "Khammam" to (3 to 6),
-    )
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.White)
-            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
-            .padding(14.dp),
-    ) {
-        Text(
-            text = "Engineers per district",
-            fontSize = 12.sp,
-            color = SevaInk500,
-            modifier = Modifier.padding(bottom = 10.dp),
-        )
-        rows.forEach { (district, pair) ->
-            val (count, pct) = pair
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Text(
-                    text = district,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = SevaInk700,
-                    modifier = Modifier.width(80.dp),
-                )
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(Paper2),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(pct / 100f)
-                            .height(8.dp)
-                            .background(SevaGreen700),
-                    )
-                }
-                Text(
-                    text = count.toString(),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = SevaInk900,
-                    modifier = Modifier.width(30.dp),
-                )
-            }
-        }
-    }
-}
-
 private fun formatRupeesShort(amount: Double?): String {
     val v = amount ?: 0.0
     val whole = v.toLong()
@@ -709,64 +620,3 @@ private fun formatRupeesShort(amount: Double?): String {
     return "$groups,$tail"
 }
 
-/**
- * Generic placeholder rendered by founder sub-routes until the live
- * SECURITY DEFINER RPCs ship. Keeps the UI shell discoverable so we can
- * design + iterate on the layouts before backend work lands.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun FounderPlaceholderScreen(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    onBack: () -> Unit,
-) {
-    Scaffold(
-        topBar = {
-            com.equipseva.app.designsystem.components.ESBackTopBar(
-                title = title,
-                onBack = onBack,
-            )
-        },
-    ) { inner ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(inner)
-                .background(PaperDefault)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White)
-                    .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(SevaGreen700.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(imageVector = icon, contentDescription = null, tint = SevaGreen700)
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = SevaInk900)
-                    Text(text = subtitle, fontSize = 13.sp, color = SevaInk500)
-                }
-            }
-            Text(
-                text = "Live data wires in once the founder admin RPCs ship in the next pass.",
-                fontSize = 13.sp,
-                color = SevaInk500,
-            )
-        }
-    }
-}
