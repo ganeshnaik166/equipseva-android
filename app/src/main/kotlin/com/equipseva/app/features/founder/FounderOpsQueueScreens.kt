@@ -193,7 +193,10 @@ private fun EscrowDisputeRow(
             Pill(text = "Disputed", kind = PillKind.Danger)
         }
         Text(
-            "${row.hospitalName ?: "(unnamed)"} → ${row.engineerName ?: "(unnamed)"}",
+            // Mirror rounds 37 / 53 / 54 / 58: dev-placeholder "(unnamed)"
+            // reads as a data bug in the queue. Founder still has the
+            // jobNumber / repairJobId in the row above for triage.
+            "${row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"} → ${row.engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"}",
             color = SevaInk500,
             fontSize = 12.sp,
         )
@@ -322,7 +325,7 @@ private fun AmcEscalationRow(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    row.hospitalName ?: "(unnamed)",
+                    row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital",
                     color = SevaInk900,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
@@ -478,7 +481,7 @@ private fun CashSuspendedRow(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    row.fullName ?: "(unnamed)",
+                    row.fullName?.takeIf { it.isNotBlank() } ?: "Engineer",
                     color = SevaInk900,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
@@ -605,7 +608,7 @@ private fun PartsOutlierRow(row: FounderRepository.PartsCostOutlier) {
             fontSize = 13.sp,
         )
         Text(
-            "${row.engineerName ?: "(unnamed)"} → ${row.hospitalName ?: "(unnamed)"}",
+            "${row.engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"} → ${row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"}",
             color = SevaInk500,
             fontSize = 12.sp,
         )
