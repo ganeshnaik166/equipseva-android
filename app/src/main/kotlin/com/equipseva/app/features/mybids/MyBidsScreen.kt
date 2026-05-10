@@ -118,7 +118,7 @@ fun MyBidsScreen(
                         icon = Icons.Outlined.Gavel,
                         title = "No ${activeFilter.displayName.lowercase()} bids",
                         subtitle = if (activeFilter == RepairBidStatus.Pending)
-                            "Bids you place on repair jobs will appear here."
+                            "Place a bid on an open repair job and it shows up here. Hospitals usually pick within an hour."
                         else "Switch tabs to see other bid states.",
                         ctaLabel = if (activeFilter == RepairBidStatus.Pending) "Browse open jobs" else null,
                         onCta = if (activeFilter == RepairBidStatus.Pending) onBrowseJobs else null,
