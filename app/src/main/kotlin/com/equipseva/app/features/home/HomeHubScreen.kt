@@ -57,6 +57,7 @@ import coil3.compose.AsyncImage
 import com.equipseva.app.R
 import com.equipseva.app.core.data.cashsurvey.CashSurveyRepository
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
+import com.equipseva.app.core.util.initialsOf
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.designsystem.components.EsSection
 import com.equipseva.app.designsystem.components.InlineStars
@@ -899,7 +900,7 @@ private fun RecommendedEngineerCard(
                     )
                 } else {
                     Text(
-                        text = row.fullName.take(2).uppercase(),
+                        text = initialsOf(row.fullName),
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 14.sp,
