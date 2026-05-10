@@ -158,7 +158,13 @@ private fun DisputeRow(
                     fontSize = 14.sp,
                 )
                 Text(
-                    "₹${"%,.0f".format(row.amountRupees)} · ${row.engineerName ?: "(unnamed)"}",
+                    // The "(unnamed)" fallback read as a missing-data
+                    // bug to hospital users. If the join didn't surface
+                    // the engineer's display name (rare but happens
+                    // with new accounts), the row category — "Engineer"
+                    // — communicates the same thing without sounding
+                    // like a dev placeholder.
+                    "₹${"%,.0f".format(row.amountRupees)} · ${row.engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"}",
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
