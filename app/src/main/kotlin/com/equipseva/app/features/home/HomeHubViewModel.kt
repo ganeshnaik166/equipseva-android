@@ -57,7 +57,6 @@ class HomeHubViewModel @Inject constructor(
     private val app: Application,
 ) : ViewModel() {
     data class UiState(
-        val displayName: String? = null,
         val isFounder: Boolean = false,
         val role: UserRole? = null,
         val kycStatus: VerificationStatus? = null,
@@ -160,7 +159,6 @@ class HomeHubViewModel @Inject constructor(
                 ?: profile?.role
             _state.update {
                 it.copy(
-                    displayName = profile?.fullName,
                     isFounder = profile?.isFounder() == true,
                     role = fetchedRole ?: it.role,
                 )
