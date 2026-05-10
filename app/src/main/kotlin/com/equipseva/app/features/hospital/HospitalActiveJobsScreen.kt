@@ -52,23 +52,16 @@ import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.components.EsTopBar
+import com.equipseva.app.designsystem.components.StatusPill
 import com.equipseva.app.designsystem.components.UrgencyPill
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.Paper2
 import com.equipseva.app.designsystem.theme.PaperDefault
-import com.equipseva.app.designsystem.theme.SevaDanger50
-import com.equipseva.app.designsystem.theme.SevaDanger700
 import com.equipseva.app.designsystem.theme.SevaGreen700
-import com.equipseva.app.designsystem.theme.SevaInfo50
-import com.equipseva.app.designsystem.theme.SevaInfo700
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk700
 import com.equipseva.app.designsystem.theme.SevaInk900
-import com.equipseva.app.designsystem.theme.SevaSuccess50
-import com.equipseva.app.designsystem.theme.SevaSuccess700
-import com.equipseva.app.designsystem.theme.SevaWarning50
-import com.equipseva.app.designsystem.theme.SevaWarning700
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -348,28 +341,3 @@ private fun HospitalBookingCard(
     }
 }
 
-@Composable
-private fun StatusPill(status: RepairJobStatus) {
-    val (bg, fg, label) = when (status) {
-        RepairJobStatus.Requested -> Triple(SevaInfo50, SevaInfo700, "Requested")
-        RepairJobStatus.Assigned -> Triple(SevaInfo50, SevaInfo700, "Assigned")
-        RepairJobStatus.EnRoute -> Triple(SevaWarning50, SevaWarning700, "En route")
-        RepairJobStatus.InProgress -> Triple(SevaWarning50, SevaWarning700, "In progress")
-        RepairJobStatus.Completed -> Triple(SevaSuccess50, SevaSuccess700, "Completed")
-        RepairJobStatus.Cancelled -> Triple(SevaDanger50, SevaDanger700, "Cancelled")
-        RepairJobStatus.Disputed -> Triple(SevaDanger50, SevaDanger700, "Disputed")
-        RepairJobStatus.Unknown -> Triple(Paper2, SevaInk700, "—")
-    }
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(bg)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-    ) {
-        Text(
-            text = label,
-            style = EsType.Caption.copy(fontWeight = FontWeight.SemiBold),
-            color = fg,
-        )
-    }
-}
