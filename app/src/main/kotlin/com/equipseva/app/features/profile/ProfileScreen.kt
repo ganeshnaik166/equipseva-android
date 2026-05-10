@@ -1058,46 +1058,6 @@ private fun SignedOutPrompt(onSignIn: () -> Unit) {
     }
 }
 
-@Composable
-private fun ProfileErrorView(
-    message: String,
-    onRetry: () -> Unit,
-    onSignOut: () -> Unit,
-    signingOut: Boolean,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Person,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.size(64.dp),
-        )
-        Text(message, style = MaterialTheme.typography.bodyLarge)
-        Button(
-            onClick = onRetry,
-            colors = ButtonDefaults.buttonColors(),
-        ) {
-            Icon(Icons.Filled.Refresh, contentDescription = null)
-            Spacer(Modifier.size(Spacing.sm))
-            Text("Retry")
-        }
-        OutlinedButton(
-            onClick = onSignOut,
-            enabled = !signingOut,
-        ) {
-            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
-            Spacer(Modifier.size(Spacing.sm))
-            Text(if (signingOut) "Signing out…" else "Sign out")
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RoleEditorSheet(
