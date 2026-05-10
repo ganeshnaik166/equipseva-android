@@ -135,7 +135,12 @@ private fun DisputeRow(
 ) {
     val (pillText, pillKind) = when {
         row.status == "in_dispute" -> "Under review" to PillKind.Danger
-        row.outcome == "release" -> "Released to engineer" to PillKind.Warn
+        // "Released to engineer" was previously rendered with PillKind.Warn
+        // (yellow) which reads as "in progress" — but for the hospital this
+        // is a closed, unfavourable outcome (funds went to engineer). Render
+        // it neutral instead so it doesn't compete with the green "Refunded
+        // to you" success row in the same list.
+        row.outcome == "release" -> "Released to engineer" to PillKind.Default
         row.outcome == "refund" -> "Refunded to you" to PillKind.Success
         else -> row.status.replaceFirstChar { it.uppercase() } to PillKind.Default
     }
