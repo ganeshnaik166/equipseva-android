@@ -594,7 +594,7 @@ class RepairJobDetailViewModel @Inject constructor(
                     val toast = when {
                         result.geofenceSkipped -> "Checked in"
                         result.distanceMeters == null -> "Checked in"
-                        else -> "Checked in · ${result.distanceMeters.toInt()}m from site"
+                        else -> "Checked in · ${result.distanceMeters.toInt()} m from site"
                     }
                     _messages.send(toast)
                 }
