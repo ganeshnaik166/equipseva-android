@@ -125,7 +125,8 @@ fun ChangePasswordScreen(
                         enabled = !state.submitting,
                         isError = state.newPasswordError != null,
                         supportingText = {
-                            val msg = state.newPasswordError ?: "At least 8 characters"
+                            val msg = state.newPasswordError
+                                ?: "8+ chars, with at least one letter and one number"
                             Text(msg)
                         },
                         visualTransformation = if (showNew) VisualTransformation.None else PasswordVisualTransformation(),
