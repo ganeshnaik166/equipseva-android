@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.core.util.initialsOf
 import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.Avatar
 import com.equipseva.app.designsystem.components.EmptyStateView
@@ -206,14 +207,6 @@ private fun UnreadBadge(count: Int) {
         )
     }
 }
-
-private fun initialsOf(name: String): String =
-    name
-        .split(" ", limit = 2)
-        .mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
-        .joinToString("")
-        .take(2)
-        .ifBlank { "?" }
 
 @Composable
 private fun QueuedPill(count: Int) {

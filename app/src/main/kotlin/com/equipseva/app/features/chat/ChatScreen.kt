@@ -67,6 +67,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.chat.ChatMessage
+import com.equipseva.app.core.util.initialsOf
 import com.equipseva.app.designsystem.components.Avatar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
@@ -388,13 +389,6 @@ private fun ChatTopBar(
         )
     }
 }
-
-private fun initialsOf(name: String): String =
-    name.split(" ", limit = 2)
-        .mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
-        .joinToString("")
-        .take(2)
-        .ifBlank { "?" }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

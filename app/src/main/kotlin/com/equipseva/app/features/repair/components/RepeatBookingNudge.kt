@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
+import com.equipseva.app.core.util.initialsOf
 import com.equipseva.app.designsystem.components.InlineStars
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.SevaGreen500
@@ -149,7 +150,7 @@ private fun AlternativeCard(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             CarouselAvatar(
-                initials = row.fullName.take(2).uppercase(),
+                initials = initialsOf(row.fullName),
                 avatarUrl = row.avatarUrl,
                 size = 36,
             )
