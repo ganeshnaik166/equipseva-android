@@ -39,9 +39,8 @@ class ConversationsViewModel @Inject constructor(
     data class Row(
         val conversation: ChatConversation,
         val counterpart: Profile?,
-        val dummyTitle: String? = null,
     ) {
-        val title: String get() = counterpart?.displayName ?: dummyTitle ?: "Conversation"
+        val title: String get() = counterpart?.displayName ?: "Conversation"
         val preview: String get() = conversation.lastMessage?.takeIf { it.isNotBlank() } ?: "No messages yet"
     }
 

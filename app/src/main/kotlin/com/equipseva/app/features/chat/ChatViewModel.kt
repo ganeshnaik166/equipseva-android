@@ -66,14 +66,13 @@ class ChatViewModel @Inject constructor(
         val editing: Boolean = false,
         val errorMessage: String? = null,
         val typingUserIds: Set<String> = emptySet(),
-        val dummyTitle: String? = null,
         // Deep-link target shown in the job-context strip below the top
         // bar. Populated from `chat_conversations.related_entity_id` when
         // related_entity_type == "repair_job".
         val relatedJobId: String? = null,
     ) {
         val title: String
-            get() = counterpart?.displayName ?: dummyTitle ?: "Chat"
+            get() = counterpart?.displayName ?: "Chat"
         val canSend: Boolean
             get() = draft.trim().isNotEmpty() && !sending && selfUserId != null && !counterpartBlocked
         val canSubmitEdit: Boolean
