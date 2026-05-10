@@ -298,6 +298,14 @@ class ChatViewModel @Inject constructor(
                 if (otherId != null) {
                     profileRepository.fetchById(otherId)
                         .onSuccess { other -> _state.update { it.copy(counterpart = other) } }
+                        // Earlier code dropped failures silently; the user
+                        // saw a top-bar avatar fallback "?" + bare "Chat"
+                        // title forever and had no signal that anything
+                        // had gone wrong. Surface so they at least know
+                        // to retry / report.
+                        .onFailure { err ->
+                            _state.update { it.copy(errorMessage = err.toUserMessage()) }
+                        }
                 }
                 val jobId = convo
                     ?.takeIf { it.relatedEntityType == "repair_job" }
