@@ -76,7 +76,6 @@ fun HospitalActiveJobsScreen(
     onBack: () -> Unit,
     onJobClick: (String) -> Unit,
     onRequestRepair: () -> Unit = {},
-    onBrowseEngineers: () -> Unit = {},
     viewModel: HospitalActiveJobsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -88,7 +87,7 @@ fun HospitalActiveJobsScreen(
 
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
-            EsTopBar(title = "My repair jobs")
+            EsTopBar(title = "My repair jobs", onBack = onBack)
 
             FilterChipsRow(
                 selected = state.filter,

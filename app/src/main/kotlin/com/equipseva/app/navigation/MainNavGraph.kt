@@ -323,7 +323,6 @@ fun MainNavGraph(
                                 navController.navigate(Routes.repairJobDetailRoute(jobId))
                             },
                             onRequestRepair = { navController.navigate(Routes.REQUEST_SERVICE) },
-                            onBrowseEngineers = { navController.navigate(Routes.ENGINEER_DIRECTORY) },
                         )
                     else ->
                         RepairJobsScreen(
@@ -670,7 +669,6 @@ fun MainNavGraph(
                     onBack = { navController.popBackStack() },
                     onJobClick = { jobId -> navController.navigate(Routes.repairJobDetailRoute(jobId)) },
                     onRequestRepair = { navController.navigate(Routes.REQUEST_SERVICE) },
-                    onBrowseEngineers = { navController.navigate(Routes.ENGINEER_DIRECTORY) },
                 )
             }
             composable(Routes.ENGINEER_PROFILE) {
