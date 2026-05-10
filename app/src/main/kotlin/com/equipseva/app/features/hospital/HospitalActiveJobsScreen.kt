@@ -112,11 +112,30 @@ fun HospitalActiveJobsScreen(
                         contentAlignment = Alignment.Center,
                     ) { CircularProgressIndicator() }
 
-                    state.visibleJobs.isEmpty() -> EmptyStateView(
-                        icon = Icons.AutoMirrored.Outlined.Assignment,
-                        title = "No jobs in this filter",
-                        subtitle = "Tap Post new job below to add one.",
-                    )
+                    state.visibleJobs.isEmpty() -> {
+                        // Filter-aware empty copy. The default "Tap Post new
+                        // job below" advice is right when the hospital
+                        // genuinely has no jobs (All filter + zero total) —
+                        // but if they're filtering by Completed and just
+                        // haven't finished any yet, posting another job
+                        // doesn't help. Tell them what the empty state
+                        // actually means under the active filter.
+                        val (emptyTitle, emptySubtitle) = when (state.filter) {
+                            HospitalActiveJobsViewModel.Filter.All ->
+                                "No repair jobs yet" to "Tap Post new job below to create one."
+                            HospitalActiveJobsViewModel.Filter.Open ->
+                                "No open jobs" to "Jobs you post and haven't assigned yet appear here."
+                            HospitalActiveJobsViewModel.Filter.Active ->
+                                "No jobs in progress" to "Jobs an engineer has accepted appear here."
+                            HospitalActiveJobsViewModel.Filter.Completed ->
+                                "No completed jobs yet" to "Finished jobs land here once the engineer marks them done."
+                        }
+                        EmptyStateView(
+                            icon = Icons.AutoMirrored.Outlined.Assignment,
+                            title = emptyTitle,
+                            subtitle = emptySubtitle,
+                        )
+                    }
 
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
