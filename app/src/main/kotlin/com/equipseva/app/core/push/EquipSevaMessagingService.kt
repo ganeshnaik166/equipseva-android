@@ -64,8 +64,14 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
             }
         }
 
-        val title = message.notification?.title ?: data["title"] ?: getString(R.string.app_name)
-        val body = message.notification?.body ?: data["body"].orEmpty()
+        // When the server sent neither a notification body nor a data
+        // title/body the only thing left to render is the bare app name
+        // with an empty subtitle — useless to the user. Drop the push.
+        val rawTitle = message.notification?.title ?: data["title"]
+        val rawBody = message.notification?.body ?: data["body"]
+        if (rawTitle.isNullOrBlank() && rawBody.isNullOrBlank()) return
+        val title = rawTitle ?: getString(R.string.app_name)
+        val body = rawBody.orEmpty()
 
         // Resolve a deep-link route from the (kind, data) tuple the server
         // attached. Unknown / missing kinds fall through to MainActivity's
@@ -93,7 +99,17 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
             .setContentIntent(pendingIntent)
             .build()
 
-        getSystemService<NotificationManager>()?.notify(message.messageId.hashCode(), notification)
+        // Stable notify id per (kind, conversationId) for chat pushes so
+        // a second message in the same thread replaces the previous push
+        // instead of stacking. Falls back to messageId.hashCode for any
+        // non-chat kind so existing collapse behaviour is unchanged.
+        val convoId = data["conversationId"] ?: data["conversation_id"]
+        val notifyId = if (data["kind"] == "chat_message" && convoId != null) {
+            ("chat:$convoId").hashCode()
+        } else {
+            message.messageId.hashCode()
+        }
+        getSystemService<NotificationManager>()?.notify(notifyId, notification)
     }
 
     override fun onDestroy() {
