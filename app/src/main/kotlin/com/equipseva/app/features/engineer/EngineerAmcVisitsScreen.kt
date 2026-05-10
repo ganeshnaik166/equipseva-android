@@ -149,7 +149,12 @@ private fun VisitRow(
                     fontSize = 14.sp,
                 )
                 Text(
-                    row.hospitalName ?: "(unnamed hospital)",
+                    // The "(unnamed hospital)" fallback read as a
+                    // missing-data bug to engineers seeing the row.
+                    // Mirrors round 37: collapse blank/null names to
+                    // the row category — "Hospital" — instead of a
+                    // dev-placeholder string.
+                    row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital",
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
