@@ -175,7 +175,7 @@ private fun NextStepsCard() {
         Spacer(Modifier.height(8.dp))
         NextStepRow(
             icon = Icons.Filled.Notifications,
-            text = "You'll get a push when bids arrive (usually 5–30 min)",
+            text = "You'll get a push when bids arrive",
         )
         Spacer(Modifier.height(10.dp))
         NextStepRow(
