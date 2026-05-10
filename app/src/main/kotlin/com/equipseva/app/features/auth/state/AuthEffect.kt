@@ -7,7 +7,6 @@ package com.equipseva.app.features.auth.state
 sealed interface AuthEffect {
     data object NavigateToHome : AuthEffect
     data object NavigateToRoleSelect : AuthEffect
-    data class NavigateToOtpVerify(val email: String) : AuthEffect
     data object NavigateUp : AuthEffect
     data class ShowMessage(val text: String) : AuthEffect
 }
