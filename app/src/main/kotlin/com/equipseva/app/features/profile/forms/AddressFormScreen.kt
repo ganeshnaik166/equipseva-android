@@ -372,9 +372,13 @@ fun AddressFormScreen(
             // so the user sees the button as disabled instead of tapping
             // through to a generic "fields are required" toast.
             val f = state.form
+            // VM.save() rejects anything other than exactly 6 digits (India-only
+            // flow). The earlier 4..10 window let the button look enabled for
+            // a 4-digit pincode and only failed at submit-time toast.
             val canSave = f.fullName.isNotBlank() && f.phone.isNotBlank() &&
                 f.line1.isNotBlank() && f.city.isNotBlank() &&
-                f.state.isNotBlank() && f.pincode.length in 4..10
+                f.state.isNotBlank() &&
+                f.pincode.length == 6 && f.pincode.all { it.isDigit() }
             Button(
                 onClick = { viewModel.save() },
                 enabled = !state.saving && !state.locating && canSave,
