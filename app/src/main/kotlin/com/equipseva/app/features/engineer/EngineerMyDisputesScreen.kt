@@ -159,7 +159,11 @@ private fun DisputeRow(
                     fontSize = 14.sp,
                 )
                 Text(
-                    "₹${"%,.0f".format(row.amountRupees)} · ${row.hospitalName ?: "(unnamed hospital)"}",
+                    // Mirror rounds 37 + 53: "(unnamed hospital)" reads
+                    // as a missing-data bug to engineers, not as a
+                    // fallback. Collapse blank/null names to the row
+                    // category — "Hospital".
+                    "₹${"%,.0f".format(row.amountRupees)} · ${row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"}",
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
