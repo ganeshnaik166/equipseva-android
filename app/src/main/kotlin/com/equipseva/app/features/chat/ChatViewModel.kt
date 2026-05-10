@@ -137,9 +137,16 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             chatRepository.sendMessage(conversationId, self, text)
                 .onFailure { error ->
+                    // Earlier copy hardcoded "Offline — message will send
+                    // when back online" for every failure: RLS denied,
+                    // server 5xx, body-too-long, etc. all read as a
+                    // transient network blip. Surface the real reason
+                    // (toUserMessage already maps network-only errors to
+                    // an "offline" hint) and still enqueue for the
+                    // outbox to retry on connectivity.
                     queueForRetry(self, text)
                     _state.update { it.copy(sending = false) }
-                    _effects.send(Effect.ShowMessage("Offline — message will send when back online"))
+                    _effects.send(Effect.ShowMessage(error.toUserMessage()))
                 }
                 .onSuccess {
                     _state.update { it.copy(sending = false) }
