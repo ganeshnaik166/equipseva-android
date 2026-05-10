@@ -178,14 +178,19 @@ private fun EngineerProfileForm(
             enabled = !state.saving,
         )
 
-        // Service areas — Text (preserved from VM contract; spec uses "service radius",
-        // but VM persists a comma-separated list of areas. Keep the data shape stable.)
+        // Service areas — Text. Hospitals filter the directory by
+        // Telangana *district* (Hyderabad, Nalgonda, Suryapet,
+        // Warangal, Khammam), and the SQL matches each chip against
+        // this list. The previous placeholder ("Hyderabad,
+        // Secunderabad, Cyberabad") plus hint ("cities or pincodes")
+        // suggested localities or PINs would work — they don't, only
+        // the district names the directory chip row enumerates.
         EsField(
             value = state.serviceAreas,
             onChange = onServiceAreasChange,
             label = "Service areas",
-            placeholder = "Hyderabad, Secunderabad, Cyberabad",
-            hint = "Comma-separated list of cities or pincodes",
+            placeholder = "Hyderabad, Rangareddy, Medak",
+            hint = "Comma-separated Telangana districts. Hospitals filtering by district see you when one matches.",
             enabled = !state.saving,
         )
 
