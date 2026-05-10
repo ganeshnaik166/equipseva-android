@@ -56,6 +56,7 @@ import com.equipseva.app.core.data.engineers.DirectorySortMode
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.fetchCurrentLocation
+import com.equipseva.app.core.util.initialsOf
 import com.equipseva.app.designsystem.components.EsBottomSheet
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
@@ -533,7 +534,7 @@ private fun EngCard(
         verticalAlignment = Alignment.Top,
     ) {
         AvatarBlock(
-            initials = row.fullName.take(2).uppercase(),
+            initials = initialsOf(row.fullName),
             avatarUrl = row.avatarUrl,
             size = 48.dp,
             online = row.isAvailable,
