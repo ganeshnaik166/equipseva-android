@@ -319,7 +319,10 @@ private fun UserRow(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = row.fullName ?: "(no name)",
+                        text = row.fullName?.takeIf { it.isNotBlank() }
+                            ?: row.email
+                            ?: row.phone
+                            ?: "User · ${row.userId.take(8)}",
                         fontWeight = FontWeight.Bold,
                         color = SevaInk900,
                     )
