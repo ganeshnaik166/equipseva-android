@@ -93,7 +93,13 @@ class EarningsViewModel @Inject constructor(
                             refreshing = false,
                             paidTotal = paid,
                             pendingTotal = pending,
-                            rows = rows,
+                            // Feed `resolved` (not the full `rows` list) so
+                            // the row count + totals stay aligned. The full
+                            // list included null-job orphans rendered as a
+                            // generic "Repair job" placeholder, inflating
+                            // the row count without contributing to the
+                            // paid/pending hero numbers.
+                            rows = resolved,
                             escrowSummary = it.escrowSummary,
                             errorMessage = null,
                         )
