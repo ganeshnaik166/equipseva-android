@@ -477,7 +477,11 @@ private fun PersonalStep(
                             fontWeight = FontWeight.SemiBold,
                         )
                     }
-                } else if (!state.email.isNullOrBlank()) {
+                } else if (!state.email.isNullOrBlank() && state.emailVerified) {
+                    // Pill must mirror the actual emailVerified flag, not
+                    // just "email field has a value". Earlier code painted
+                    // every saved email as "Verified" before the user
+                    // tapped the OTP link.
                     Box(
                         modifier = Modifier
                             .padding(end = 8.dp)
@@ -489,6 +493,19 @@ private fun PersonalStep(
                             text = "Verified",
                             color = SevaGreen700,
                             fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                } else if (!state.email.isNullOrBlank()) {
+                    androidx.compose.material3.TextButton(
+                        onClick = onVerifyEmail,
+                        enabled = !state.sendingEmailOtp,
+                        modifier = Modifier.padding(end = 6.dp),
+                    ) {
+                        Text(
+                            text = if (state.sendingEmailOtp) "Sending…" else "Verify",
+                            color = SevaGreen700,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
                         )
                     }
