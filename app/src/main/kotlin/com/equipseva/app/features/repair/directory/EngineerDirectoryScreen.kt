@@ -339,7 +339,13 @@ fun EngineerDirectoryScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Find an engineer",
-                subtitle = "${visibleRows.size} verified · near ${state.district}",
+                // "Near All Telangana" reads awkwardly when the user
+                // hasn't picked a district — "near" implies proximity
+                // to a point, not a whole state. Phrase as scope instead.
+                subtitle = if (state.district == "All Telangana")
+                    "${visibleRows.size} verified · across Telangana"
+                else
+                    "${visibleRows.size} verified · near ${state.district}",
                 onBack = onBack,
             )
             // Sticky search + district chip strip — paper bg, padding 8/16/4
