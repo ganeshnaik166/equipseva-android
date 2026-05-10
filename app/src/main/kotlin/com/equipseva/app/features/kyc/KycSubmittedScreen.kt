@@ -86,7 +86,7 @@ fun KycSubmittedScreen(
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "We'll verify your documents in 24 hours and notify you. Until then you can browse jobs but not bid.",
+                    text = "We'll verify your documents within 4–24 hours and notify you. Until then you can browse jobs but not bid.",
                     fontSize = 13.sp,
                     lineHeight = 19.sp,
                     color = SevaInk600,
