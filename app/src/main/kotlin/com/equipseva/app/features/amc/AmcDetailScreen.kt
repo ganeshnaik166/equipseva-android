@@ -558,13 +558,13 @@ private fun PoolLedgerRow(row: AmcRepository.PoolLedgerRow) {
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                "$sign₹${"%.0f".format(row.amountRupees)}",
+                "$sign${formatRupees(row.amountRupees)}",
                 color = color,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                "Bal ₹${"%.0f".format(row.balanceAfter)}",
+                "Bal ${formatRupees(row.balanceAfter)}",
                 color = SevaInk500,
                 fontSize = 11.sp,
             )
@@ -708,7 +708,7 @@ private fun SlaBreachCard(b: AmcRepository.AmcSlaBreach) {
         )
         if (b.creditIssuedRupees > 0) {
             Pill(
-                text = "Credit ₹${b.creditIssuedRupees.toInt()}",
+                text = "Credit ${formatRupees(b.creditIssuedRupees)}",
                 kind = PillKind.Lime,
             )
         }

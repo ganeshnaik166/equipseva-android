@@ -47,6 +47,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.initialsOf
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
@@ -758,7 +759,7 @@ private fun ProfileBody(
                 Stat(
                     modifier = Modifier.weight(1f),
                     label = "Hourly",
-                    value = p.hourlyRate?.let { "₹${it.toInt()}" } ?: "—",
+                    value = p.hourlyRate?.let { formatRupees(it) } ?: "—",
                     color = SevaInk900,
                 )
                 Stat(

@@ -56,6 +56,7 @@ import com.equipseva.app.core.data.engineers.DirectorySortMode
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.fetchCurrentLocation
+import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.initialsOf
 import com.equipseva.app.designsystem.components.EsBottomSheet
 import com.equipseva.app.designsystem.components.EsBtn
@@ -556,7 +557,7 @@ private fun EngCard(
             val locParts = listOfNotNull(
                 row.city,
                 row.distanceKm?.let { "${"%.1f".format(it)} km" },
-                row.hourlyRate?.let { "₹${it.toInt()}/hr" },
+                row.hourlyRate?.let { "${formatRupees(it)}/hr" },
             )
             if (locParts.isNotEmpty()) {
                 Text(
