@@ -240,27 +240,3 @@ private fun ReportRow(
     }
 }
 
-private val DUMMY_PENDING_REPORTS: List<FounderRepository.PendingReport> = listOf(
-    FounderRepository.PendingReport(
-        reportId = "rep-1",
-        reporterUserId = "u1",
-        reporterName = "Dr. Anita Rao",
-        targetType = "engineer",
-        targetId = "dummy-eng-3",
-        reason = "no_show",
-        notes = "Engineer didn't show up at agreed time. No call back.",
-        status = "open",
-        createdAt = java.time.Instant.now().minusSeconds(3600 * 5).toString(),
-    ),
-    FounderRepository.PendingReport(
-        reportId = "rep-2",
-        reporterUserId = "u2",
-        reporterName = "Sri Sai Multi-Specialty",
-        targetType = "engineer",
-        targetId = "dummy-eng-1",
-        reason = "off_platform_payment",
-        notes = "Asked to pay in cash directly.",
-        status = "open",
-        createdAt = java.time.Instant.now().minusSeconds(3600 * 30).toString(),
-    ),
-)
