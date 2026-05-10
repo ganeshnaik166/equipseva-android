@@ -121,7 +121,6 @@ fun HomeHubScreen(
             Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                 GreetingCard(
                     role = role,
-                    displayName = state.displayName,
                     openCount = state.openCount,
                     activeCount = state.activeCount,
                     pendingBidsCount = state.pendingBidsCount,
@@ -627,7 +626,6 @@ private fun HomeTopBar(onNotifications: () -> Unit, hasUnread: Boolean) {
 @Composable
 private fun GreetingCard(
     role: UserRole?,
-    displayName: String?,
     openCount: Int?,
     activeCount: Int?,
     pendingBidsCount: Int?,
@@ -676,9 +674,6 @@ private fun GreetingCard(
                     Stat("Active", activeCount?.toString() ?: "—")
                     Stat("Engineers", nearbyEngineersCount?.toString() ?: "—")
                 }
-            }
-            if (!displayName.isNullOrBlank()) {
-                Spacer(Modifier.height(2.dp))
             }
         }
     }
