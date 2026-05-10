@@ -293,13 +293,16 @@ fun BankDetailsScreen(onBack: () -> Unit, onShowMessage: (String) -> Unit) =
         // when we ship a per-field display formatter.
         subtitle = "Where we send your payouts. Stored securely.",
         settingsKey = "bank_details",
+        // The "Default payout account" switch promised a multi-account
+        // picker that v1 doesn't ship — engineers can only have one
+        // bank record per user, so the toggle had nothing to choose
+        // between. Re-add when a per-engineer multi-account flow lands.
         fields = listOf(
             FieldSpec("account_holder", "Account holder name"),
             FieldSpec("account_number", "Account number", FieldKind.NUMBER),
             FieldSpec("ifsc", "IFSC code", placeholder = "e.g., SBIN0001234"),
             FieldSpec("bank_name", "Bank name"),
             FieldSpec("branch", "Branch"),
-            FieldSpec("default_payout", "Default payout account", kind = FieldKind.SWITCH, helper = "Used when you have multiple accounts"),
         ),
         onBack = onBack,
         onShowMessage = onShowMessage,
