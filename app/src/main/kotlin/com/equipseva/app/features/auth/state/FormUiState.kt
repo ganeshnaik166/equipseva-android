@@ -29,15 +29,3 @@ data class EmailOnlyFormState(
         get() = !form.submitting && email.isNotBlank()
 }
 
-data class OtpFormState(
-    val email: String,
-    val code: String = "",
-    val codeError: String? = null,
-    val resendSecondsRemaining: Int = 0,
-    val form: FormUiState = FormUiState(),
-) {
-    val canSubmit: Boolean
-        get() = !form.submitting && code.length in 6..10
-    val canResend: Boolean
-        get() = !form.submitting && resendSecondsRemaining == 0
-}
