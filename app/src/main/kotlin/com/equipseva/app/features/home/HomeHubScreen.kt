@@ -209,7 +209,11 @@ fun HomeHubScreen(
                     val engVerified = kyc == VerificationStatus.Verified
                     HomeTile(
                         icon = Icons.Filled.Build,
-                        title = "Today's jobs",
+                        // "Today's jobs" implied a same-day filter that never
+                        // existed — the destination is the engineer hub
+                        // which surfaces every open job in the configured
+                        // radius regardless of when it was posted.
+                        title = "Find work",
                         desc = if (engVerified) "New requests near you" else "Browse open repair jobs",
                         onClick = onOpenEngineerJobs,
                     )
