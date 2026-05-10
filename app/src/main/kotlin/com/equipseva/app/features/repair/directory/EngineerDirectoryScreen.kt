@@ -591,12 +591,18 @@ private fun EngCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 InlineStars(rating = row.ratingAvg, count = row.totalJobs, small = true)
-                val completionPct = row.completionPctOverride ?: computeCompletion(row.totalJobs)
-                Text(
-                    "$completionPct% complete",
-                    color = SevaInk400,
-                    fontSize = 11.sp,
-                )
+                // completionPctOverride is the only honest source — the
+                // earlier fallback used a 90-100% formula seeded off
+                // totalJobs, so a hospital scanning the directory saw
+                // every engineer at "100% complete" once they crossed
+                // 20 jobs. Hide the field when no real number exists.
+                row.completionPctOverride?.let { pct ->
+                    Text(
+                        "$pct% complete",
+                        color = SevaInk400,
+                        fontSize = 11.sp,
+                    )
+                }
             }
         }
     }
@@ -684,6 +690,3 @@ internal fun InlineVerifiedBadge(small: Boolean = false) {
 private fun prettyKey(k: String): String =
     k.split('_', '-').joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
 
-private fun computeCompletion(totalJobs: Int): Int {
-    return (90 + (totalJobs.coerceAtMost(20) / 2)).coerceAtMost(100)
-}
