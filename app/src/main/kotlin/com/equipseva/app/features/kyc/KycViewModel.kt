@@ -872,8 +872,16 @@ class KycViewModel @Inject constructor(
                 specializations = snap.selectedSpecializations.toList(),
                 experienceYears = snap.experienceYears.toIntOrNull() ?: 0,
                 serviceRadiusKm = snap.serviceRadiusKm.toIntOrNull() ?: 25,
-                city = snap.serviceAddress.takeIf { it.isNotBlank() },
-                state = null,
+                // Compose city from the State→District cascade when the user
+                // didn't type a free-form address. The earlier comment claimed
+                // serviceAddress was kept in sync on every change, but the
+                // change handlers only updated savedStateHandle + state — the
+                // composition never happened, so engineer rows shipped with
+                // blank `city` and null `state` and the directory district
+                // filter never matched anything.
+                city = snap.serviceAddress.takeIf { it.isNotBlank() }
+                    ?: snap.serviceDistrict?.takeIf { it.isNotBlank() },
+                state = snap.serviceState?.takeIf { it.isNotBlank() },
                 latitude = snap.serviceLatitude,
                 longitude = snap.serviceLongitude,
                 certificates = certificates,
