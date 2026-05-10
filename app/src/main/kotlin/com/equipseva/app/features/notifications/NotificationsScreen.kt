@@ -220,7 +220,10 @@ private fun NotificationRow(
                 notification.sentAt?.let {
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = relativeLabel(it) + " ago",
+                        // relativeLabel returns "now" / "5m" / "3h" / "2d" — appending
+                        // " ago" produces "now ago" (broken) while looking right for "5m".
+                        // Sibling chat row uses bare relativeLabel for the same data; match.
+                        text = relativeLabel(it),
                         fontSize = 11.sp,
                         color = SevaInk400,
                     )
