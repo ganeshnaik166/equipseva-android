@@ -726,8 +726,14 @@ private fun EscrowStatusCard(
             SevaDanger500,
         )
         escrow.isReleased -> Triple(
-            "Released to engineer",
-            "₹${"%,.0f".format(escrow.amountRupees)} released. Settlement to engineer's bank account.",
+            // Engineer reads the same card, so third-person "to engineer"
+            // is jarring on their view. Branch on viewer role.
+            if (isHospital) "Released to engineer" else "Released to you",
+            if (isHospital) {
+                "₹${"%,.0f".format(escrow.amountRupees)} released. Settlement to engineer's bank account."
+            } else {
+                "₹${"%,.0f".format(escrow.amountRupees)} released. Settlement to your bank account."
+            },
             SevaGreen700,
         )
         escrow.isRefunded -> Triple(
