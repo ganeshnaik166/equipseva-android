@@ -79,10 +79,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.engineers.VerificationStatus
-import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.designsystem.components.SecureScreen
-import com.equipseva.app.features.repair.components.LocationPickerMap
-import com.google.android.gms.maps.model.LatLng
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.ErrorBg
 import com.equipseva.app.designsystem.theme.ErrorRed
@@ -217,7 +214,6 @@ fun KycScreen(
                     onAadhaarNumberChange = viewModel::onAadhaarNumberChange,
                     onPanNumberChange = viewModel::onPanNumberChange,
                     onServiceAddressChange = viewModel::onServiceAddressChange,
-                    onServiceCoordsChange = viewModel::onServiceCoordsChange,
                     onServiceStateChange = viewModel::onServiceStateChange,
                     onServiceDistrictChange = viewModel::onServiceDistrictChange,
                     onAttestationChange = viewModel::onAttestationChange,
@@ -235,7 +231,6 @@ fun KycScreen(
                         certPicker.launch(arrayOf("application/pdf", "image/jpeg", "image/png", "image/webp"))
                     },
                     onStartReupload = viewModel::startReupload,
-                    onJumpToStep = viewModel::jumpToStep,
                     onEmailDraftChange = viewModel::onEmailDraftChange,
                     onSaveEmail = viewModel::saveEmailDraft,
                     onAddPhone = onAddPhone,
@@ -329,7 +324,6 @@ private fun KycStepperBody(
     onAadhaarNumberChange: (String) -> Unit,
     onPanNumberChange: (String) -> Unit,
     onServiceAddressChange: (String) -> Unit,
-    onServiceCoordsChange: (Double?, Double?) -> Unit,
     onServiceStateChange: (String) -> Unit,
     onServiceDistrictChange: (String) -> Unit,
     onAttestationChange: (Boolean) -> Unit,
@@ -337,7 +331,6 @@ private fun KycStepperBody(
     onPickPan: () -> Unit,
     onPickCertificate: () -> Unit,
     onStartReupload: () -> Unit,
-    onJumpToStep: (KycStep) -> Unit,
     onEmailDraftChange: (String) -> Unit,
     onSaveEmail: () -> Unit,
     onAddPhone: () -> Unit,
@@ -400,7 +393,6 @@ private fun KycStepperBody(
             KycStep.Personal -> PersonalStep(
                 state = state,
                 onServiceAddressChange = onServiceAddressChange,
-                onServiceCoordsChange = onServiceCoordsChange,
                 onServiceStateChange = onServiceStateChange,
                 onServiceDistrictChange = onServiceDistrictChange,
                 onEmailDraftChange = onEmailDraftChange,
@@ -430,76 +422,9 @@ private fun KycStepperBody(
 }
 
 @Composable
-private fun StepHeader(current: KycStep, onJump: (KycStep) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        KycStep.entries.forEach { step ->
-            val active = step == current
-            val done = step.ordinal < current.ordinal
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Start,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(
-                            when {
-                                done -> Success
-                                active -> BrandGreen
-                                else -> Surface200
-                            },
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (done) {
-                        Icon(Icons.Filled.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                    } else {
-                        Text(
-                            text = step.number.toString(),
-                            color = if (active) Color.White else Ink500,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp,
-                        )
-                    }
-                }
-                if (step != KycStep.entries.last()) {
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 6.dp)
-                            .height(2.dp)
-                            .weight(1f)
-                            .background(if (done) Success else Surface200),
-                    )
-                }
-            }
-        }
-    }
-    Spacer(Modifier.height(6.dp))
-    Text(
-        text = "Step ${current.number} of ${KycStep.total} · ${current.title}",
-        fontSize = 12.sp,
-        color = Ink500,
-        fontWeight = FontWeight.SemiBold,
-    )
-    Text(
-        text = current.subtitle,
-        fontSize = 18.sp,
-        color = Ink900,
-        fontWeight = FontWeight.Bold,
-    )
-}
-
-@Composable
 private fun PersonalStep(
     state: KycViewModel.UiState,
     onServiceAddressChange: (String) -> Unit,
-    onServiceCoordsChange: (Double?, Double?) -> Unit,
     onServiceStateChange: (String) -> Unit,
     onServiceDistrictChange: (String) -> Unit,
     onEmailDraftChange: (String) -> Unit,
