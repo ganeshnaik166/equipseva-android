@@ -32,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
+import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.amc.AmcRepository
 import com.equipseva.app.core.payments.RazorpayCheckoutLauncher
@@ -251,7 +252,7 @@ fun AmcPaymentSheet(
                     ) {
                         Text("Total", color = SevaInk900, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         Text(
-                            "₹${"%.2f".format(total)}",
+                            formatRupees(total),
                             color = SevaInk900,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
@@ -260,7 +261,7 @@ fun AmcPaymentSheet(
                 }
             }
             EsBtn(
-                text = if (state.busy) "Processing…" else "Pay ₹${"%.2f".format(total)}",
+                text = if (state.busy) "Processing…" else "Pay ${formatRupees(total)}",
                 onClick = {
                     if (activity == null) {
                         onShowMessage("Couldn't open Razorpay — please try again.")

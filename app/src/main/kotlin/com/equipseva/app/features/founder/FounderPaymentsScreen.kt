@@ -38,6 +38,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
@@ -160,7 +161,7 @@ private fun PaymentRow(
             fontSize = 13.sp,
         )
         Text(
-            text = "₹${"%.2f".format(row.totalAmount)}",
+            text = formatRupees(row.totalAmount),
             color = SevaInk900,
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,
