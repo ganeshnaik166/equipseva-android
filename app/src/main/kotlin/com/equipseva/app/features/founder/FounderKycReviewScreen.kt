@@ -362,7 +362,11 @@ private fun ReviewBody(
                 engineer.experienceYears?.let {
                     Row(modifier = Modifier.fillMaxWidth()) {
                         Text("Experience", color = SevaInk500, modifier = Modifier.width(120.dp))
-                        Text("$it years", color = SevaInk900, fontWeight = FontWeight.Medium)
+                        Text(
+                            text = if (it == 1) "1 year" else "$it years",
+                            color = SevaInk900,
+                            fontWeight = FontWeight.Medium,
+                        )
                     }
                 }
                 engineer.serviceRadiusKm?.let {
