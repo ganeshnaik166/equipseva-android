@@ -122,7 +122,6 @@ fun WelcomeScreen(
                 kind = EsBtnKind.Lime,
                 size = EsBtnSize.Lg,
                 full = true,
-                disabled = state.googleLoading,
             )
             Spacer(Modifier.height(10.dp))
             // "Create account" — outlined transparent on dark bg. EsBtn doesn't
