@@ -205,7 +205,11 @@ fun EngineerJobsHubScreen(
                     HubTile(
                         icon = Icons.Outlined.CurrencyRupee,
                         title = "Earnings",
-                        desc = "Payouts and history",
+                        // Match the home Earnings tile (Round 17) — the
+                        // screen surfaces the All-time hero, an in-flight
+                        // escrow card, and the recent-jobs payout list,
+                        // not just "payouts and history".
+                        desc = "Payouts, escrow status, recent jobs",
                         onClick = onEarnings,
                     )
                     HubTile(
