@@ -35,6 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
+import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.amc.AmcRepository
 import com.equipseva.app.core.data.prefs.UserPrefs
@@ -153,7 +154,7 @@ class MaintenanceContractsViewModel @Inject constructor(
     private fun toItemHospital(c: AmcRepository.HospitalContract) = AmcListItem(
         id = c.id,
         title = c.primaryEngineerName,
-        titleSubtitle = "₹${c.monthlyFeeRupees.toInt()} / month",
+        titleSubtitle = "${formatRupees(c.monthlyFeeRupees)} / month",
         status = c.status,
         visitFrequency = c.visitFrequency,
         monthlyFeeRupees = c.monthlyFeeRupees,

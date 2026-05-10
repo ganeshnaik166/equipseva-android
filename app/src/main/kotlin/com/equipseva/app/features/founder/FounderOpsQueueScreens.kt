@@ -38,6 +38,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBottomSheet
 import com.equipseva.app.designsystem.components.EsBtn
@@ -184,7 +185,7 @@ private fun EscrowDisputeRow(
                     fontSize = 14.sp,
                 )
                 Text(
-                    "₹${"%.0f".format(row.amountRupees)} held",
+                    "${formatRupees(row.amountRupees)} held",
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
@@ -603,7 +604,7 @@ private fun PartsOutlierRow(row: FounderRepository.PartsCostOutlier) {
             Pill(text = "${"%.1f".format(row.ratio)}×", kind = PillKind.Warn)
         }
         Text(
-            "Parts ₹${"%.0f".format(row.partsCost)} vs category avg ₹${"%.0f".format(row.categoryAvgParts)}",
+            "Parts ${formatRupees(row.partsCost)} vs category avg ${formatRupees(row.categoryAvgParts)}",
             color = SevaInk700,
             fontSize = 13.sp,
         )
@@ -687,7 +688,7 @@ private fun AdminResolveDisputeSheet(
         ) {
             target?.let {
                 Text(
-                    "${it.jobNumber ?: "RPR-${it.repairJobId.take(6)}"} · ₹${"%.0f".format(it.amountRupees)} held",
+                    "${it.jobNumber ?: "RPR-${it.repairJobId.take(6)}"} · ${formatRupees(it.amountRupees)} held",
                     color = SevaInk900,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 13.sp,

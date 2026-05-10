@@ -33,6 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
@@ -148,7 +149,7 @@ private fun ResolvedRow(
                     fontSize = 14.sp,
                 )
                 Text(
-                    "₹${"%.0f".format(row.amountRupees)}",
+                    formatRupees(row.amountRupees),
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
