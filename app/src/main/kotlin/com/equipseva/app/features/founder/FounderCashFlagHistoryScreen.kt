@@ -151,7 +151,7 @@ private fun CashFlagRow(row: FounderRepository.CashFlagHistoryRow) {
                     fontSize = 14.sp,
                 )
                 Text(
-                    text = row.hospitalName ?: "(unnamed hospital)",
+                    text = row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital",
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,

@@ -204,7 +204,7 @@ private fun EscalationDetailBody(
         item("contract") {
             DetailCard {
                 SectionLabel("Contract")
-                LabelRow("Hospital", detail.hospitalName ?: "(unnamed)")
+                LabelRow("Hospital", detail.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital")
                 detail.contractStatus?.let { LabelRow("Status", it.replaceFirstChar { c -> c.uppercase() }) }
                 detail.visitFrequency?.let { LabelRow("Cadence", it.replaceFirstChar { c -> c.uppercase() }) }
                 detail.monthlyFeeRupees?.let { LabelRow("Monthly fee", "₹${"%,.0f".format(it)}") }

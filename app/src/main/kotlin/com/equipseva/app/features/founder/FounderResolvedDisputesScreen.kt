@@ -160,7 +160,7 @@ private fun ResolvedRow(
             )
         }
         Text(
-            "${row.hospitalName ?: "(unnamed)"} → ${row.engineerName ?: "(unnamed)"}",
+            "${row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"} → ${row.engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"}",
             color = SevaInk500,
             fontSize = 12.sp,
         )
