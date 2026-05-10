@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.engineers.EngineerRepository
-import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -23,7 +22,6 @@ import javax.inject.Inject
 class EngineerProfileViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val engineerRepository: EngineerRepository,
-    private val profileRepository: ProfileRepository,
 ) : ViewModel() {
 
     data class UiState(
@@ -36,11 +34,6 @@ class EngineerProfileViewModel @Inject constructor(
         val specializations: String = "",
         val bio: String = "",
         val isAvailable: Boolean = true,
-        val ratingAvg: Double? = null,
-        val totalJobs: Int? = null,
-        val completionRate: Double? = null,
-        val email: String? = null,
-        val phone: String? = null,
     ) {
         val canSave: Boolean
             get() = !saving && !loading && validate() == null
@@ -51,7 +44,7 @@ class EngineerProfileViewModel @Inject constructor(
             val years = yearsExperience.trim().toIntOrNull()
             if (years == null || years !in 0..60) return "Years of experience must be between 0 and 60."
             if (parseList(serviceAreas).isEmpty()) return "Add at least one service area (comma-separated)."
-            if (parseList(specializations).isEmpty()) return "Add at least one specialization (comma-separated)."
+            if (parseList(specializations).isEmpty()) return "Pick at least one specialization."
             if (bio.trim().length < BIO_MIN_LEN) return "Bio must be at least $BIO_MIN_LEN characters."
             return null
         }
@@ -149,17 +142,10 @@ class EngineerProfileViewModel @Inject constructor(
 
     private suspend fun load(uid: String) {
         _state.update { it.copy(loading = true, errorMessage = null) }
-        val profile = profileRepository.fetchById(uid).getOrNull()
         engineerRepository.fetchByUserId(uid)
             .onSuccess { engineer ->
                 if (engineer == null) {
-                    _state.update {
-                        it.copy(
-                            loading = false,
-                            email = profile?.email,
-                            phone = profile?.phone,
-                        )
-                    }
+                    _state.update { it.copy(loading = false) }
                 } else {
                     _state.update {
                         it.copy(
@@ -172,11 +158,6 @@ class EngineerProfileViewModel @Inject constructor(
                             specializations = engineer.specializations.joinToString(", ") { spec -> spec.storageKey },
                             bio = engineer.bio.orEmpty(),
                             isAvailable = engineer.isAvailable,
-                            ratingAvg = engineer.ratingAvg,
-                            totalJobs = engineer.totalJobs,
-                            completionRate = engineer.completionRate,
-                            email = profile?.email,
-                            phone = profile?.phone,
                         )
                     }
                 }
