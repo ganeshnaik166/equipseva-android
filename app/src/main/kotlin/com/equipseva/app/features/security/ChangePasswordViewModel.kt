@@ -80,11 +80,14 @@ class ChangePasswordViewModel @Inject constructor(
         val confirmPwd = current.confirmPassword
 
         val currentError = if (currentPwd.isBlank()) "Enter your current password" else null
+        // Mirror the SignUp policy via shared Validators.passwordWeakness so
+        // a user can't set a password on this screen that signup would have
+        // rejected. Earlier code only checked length, letting through
+        // "aaaaaaaa" / "12345678".
         val newError = when {
             newPwd.isBlank() -> "Enter a new password"
-            newPwd.length < MIN_PASSWORD_LENGTH -> "Use at least $MIN_PASSWORD_LENGTH characters"
             newPwd == currentPwd -> "Choose a password different from your current one"
-            else -> null
+            else -> com.equipseva.app.core.util.Validators.passwordWeakness(newPwd)
         }
         val confirmError = when {
             confirmPwd.isBlank() -> "Re-enter your new password"

@@ -125,7 +125,7 @@ fun SignUpScreen(
                     onChange = viewModel::onPasswordChange,
                     label = "Password",
                     type = EsFieldType.Password,
-                    hint = "At least 8 characters",
+                    hint = "8+ chars, with at least one letter and one number",
                     error = state.passwordError,
                     enabled = !state.form.submitting,
                 )
