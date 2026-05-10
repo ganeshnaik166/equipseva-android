@@ -111,7 +111,7 @@ fun EngineerMyDisputesScreen(
                     state.rows.isEmpty() -> EmptyStateView(
                         icon = Icons.Outlined.Gavel,
                         title = "No disputes",
-                        subtitle = "Disputes a hospital opens against an escrow you're paid on appear here.",
+                        subtitle = "If a hospital opens a dispute on a job you completed, it'll appear here so you can respond.",
                     )
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
