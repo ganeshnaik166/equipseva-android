@@ -150,7 +150,7 @@ private fun AuditRow(row: FounderRepository.SpotAuditResponseRow) {
                     fontSize = 14.sp,
                 )
                 Text(
-                    "${row.hospitalName ?: "(unnamed)"} → ${row.engineerName ?: "(unnamed)"}",
+                    "${row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"} → ${row.engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"}",
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
