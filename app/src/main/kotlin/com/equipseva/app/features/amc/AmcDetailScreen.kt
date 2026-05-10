@@ -41,6 +41,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
+import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.amc.AmcRepository
 import com.equipseva.app.core.data.prefs.UserPrefs
@@ -491,7 +492,7 @@ private fun PoolTab(state: AmcDetailViewModel.UiState, onTopUp: () -> Unit) {
             val balance = state.poolBalance ?: 0.0
             val balanceColor = if (balance < 0) SevaDanger500 else SevaGreen700
             Text(
-                "₹${"%.2f".format(balance)}",
+                formatRupees(balance),
                 color = balanceColor,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
