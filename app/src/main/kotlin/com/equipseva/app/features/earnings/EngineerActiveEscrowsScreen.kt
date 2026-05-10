@@ -160,7 +160,10 @@ private fun ActiveEscrowRow(
             Pill(text = pillText, kind = pillKind)
         }
         Text(
-            text = row.hospitalName ?: "(unnamed hospital)",
+            // Mirror rounds 37 / 53 / 54: "(unnamed hospital)" reads as a
+            // missing-data bug to engineers, not as a fallback. Collapse
+            // blank/null names to the row category — "Hospital".
+            text = row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital",
             color = SevaInk500,
             fontSize = 12.sp,
         )
