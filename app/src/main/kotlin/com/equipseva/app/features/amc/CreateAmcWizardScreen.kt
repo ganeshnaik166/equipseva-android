@@ -255,7 +255,12 @@ class CreateAmcWizardViewModel @Inject constructor(
                 scopeText = s.scopeText.takeIf { it.isNotBlank() },
                 responseTimeEmergencyHours = emergency,
                 responseTimeStandardHours = standard,
-                autoRenew = true,
+                // Auto-renew is opt-in: the wizard never prompts the user
+                // for it, so default to false. Earlier hardcoded `true` made
+                // every contract render the "Auto-renew" pill on detail
+                // even though the hospital never agreed to it. When the
+                // wizard adds a renewal step, flip this back.
+                autoRenew = false,
                 renewalTermMonths = 12,
                 fallbackEngineerIds = s.fallbackEngineers.map { it.engineerId },
             ).fold(
@@ -536,7 +541,7 @@ private fun FrequencyFeeStep(state: CreateAmcWizardViewModel.UiState, vm: Create
                 onChange = vm::setMonthlyFeeRupees,
                 label = "Monthly fee (₹)",
                 type = EsFieldType.Number,
-                hint = "Charged each month via Razorpay; held in escrow until visits complete.",
+                hint = "Per-month rate. First month charged now; top up later from contract details.",
             )
         }
     }
