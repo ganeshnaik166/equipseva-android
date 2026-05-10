@@ -103,8 +103,8 @@ fun EngineerActiveEscrowsScreen(
                     )
                     state.rows.isEmpty() -> EmptyStateView(
                         icon = Icons.Outlined.Inbox,
-                        title = "Nothing in flight",
-                        subtitle = "No held / disputed / awaiting-payment escrows right now.",
+                        title = "No funds in flight",
+                        subtitle = "When a hospital pays into escrow on a job you accept, it lands here.",
                     )
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -188,7 +188,11 @@ private fun ActiveEscrowRow(
                 }
             }
             "pending" -> Text(
-                text = "Hospital must pay before you start work.",
+                // "Hospital must pay before you start work" implied the
+                // engineer's check-in was the gate. The actual gate is
+                // hospital payment → escrow funded → status flips. Use a
+                // passive phrase that doesn't imply engineer action.
+                text = "Awaiting hospital payment into escrow.",
                 color = SevaInk500,
                 fontSize = 11.sp,
             )
