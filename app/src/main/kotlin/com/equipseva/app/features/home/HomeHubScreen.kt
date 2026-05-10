@@ -845,7 +845,11 @@ private fun RecommendedEngineersCarousel(
     onSeeAll: () -> Unit,
 ) {
     EsSection(
-        title = "Verified engineers near you",
+        // "Verified engineers near you" lied when GPS was off (the
+        // recommended list still rendered from cached + rating-sorted
+        // rows with no proximity guarantee). The neutral "Recommended
+        // engineers" title is true regardless of location state.
+        title = "Recommended engineers",
         action = "See all",
         onAction = onSeeAll,
     ) {
