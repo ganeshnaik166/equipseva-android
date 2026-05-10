@@ -89,7 +89,7 @@ fun RepeatBookingNudge(
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "$engineerName is ${"%.0f".format(distanceKm)} km away",
+                    text = "$engineerName is ${"%.1f".format(distanceKm)} km away",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = SevaInk900,
