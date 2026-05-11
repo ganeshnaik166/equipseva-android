@@ -34,6 +34,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
@@ -170,7 +171,7 @@ private fun DisputeRow(
                     // with new accounts), the row category — "Engineer"
                     // — communicates the same thing without sounding
                     // like a dev placeholder.
-                    "₹${"%,.0f".format(row.amountRupees)} · ${row.engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"}",
+                    "${formatRupees(row.amountRupees)} · ${row.engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"}",
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
