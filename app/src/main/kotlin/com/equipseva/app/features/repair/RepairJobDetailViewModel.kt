@@ -66,7 +66,6 @@ class RepairJobDetailViewModel @Inject constructor(
     private val costRevisionRepository: com.equipseva.app.core.data.repair.CostRevisionRepository,
     private val serviceReportRepository: ServiceReportRepository,
     private val escrowRepository: RepairJobEscrowRepository,
-    private val commissionTierRepository: com.equipseva.app.core.data.commissiontier.CommissionTierRepository,
     private val json: Json,
 ) : ViewModel() {
 
@@ -140,7 +139,6 @@ class RepairJobDetailViewModel @Inject constructor(
         // PR-D38 — engineer's preview of hospital's commission tier on
         // this assigned job. Null when caller isn't the assigned
         // engineer or RPC errors. Card hidden gracefully.
-        val hospitalTierPreview: com.equipseva.app.core.data.commissiontier.CommissionTierRepository.HospitalTierPreview? = null,
         /** Open the completion-proof picker sheet (engineer-side, on Mark Done). */
         val proofSheetOpen: Boolean = false,
         /** True while we're enqueuing photos + flipping the status row. */
@@ -265,12 +263,6 @@ class RepairJobDetailViewModel @Inject constructor(
         viewModelScope.launch {
             escrowRepository.fetchByJob(jobId).onSuccess { row ->
                 _state.update { it.copy(escrow = row) }
-            }
-            // PR-D38: pull hospital tier preview alongside; only the
-            // assigned engineer's caller passes the SECDEF gate, so a
-            // hospital viewer / unassigned engineer just gets null.
-            commissionTierRepository.fetchHospitalTierPreview(jobId).onSuccess { preview ->
-                _state.update { it.copy(hospitalTierPreview = preview) }
             }
         }
     }

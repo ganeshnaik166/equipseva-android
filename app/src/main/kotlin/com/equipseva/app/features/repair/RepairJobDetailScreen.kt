@@ -266,7 +266,6 @@ fun RepairJobDetailScreen(
                     generatingServiceReport = state.generatingServiceReport,
                     escrow = state.escrow,
                     confirmingEscrowRelease = state.confirmingEscrowRelease,
-                    hospitalTierPreview = state.hospitalTierPreview,
                     onMessageEngineer = viewModel::openChatWithEngineer,
                     onMessageHospital = viewModel::openChatWithHospital,
                     onAcceptBid = viewModel::acceptBid,
@@ -452,7 +451,6 @@ private fun JobBody(
     generatingServiceReport: Boolean,
     escrow: com.equipseva.app.core.data.escrow.RepairJobEscrowRepository.EscrowRow?,
     confirmingEscrowRelease: Boolean,
-    hospitalTierPreview: com.equipseva.app.core.data.commissiontier.CommissionTierRepository.HospitalTierPreview?,
     onMessageEngineer: () -> Unit,
     onMessageHospital: () -> Unit,
     onAcceptBid: (String) -> Unit,
@@ -566,19 +564,6 @@ private fun JobBody(
                     onOpenDispute = onOpenEscrowDispute,
                     onOpenEngineerResponse = onOpenEngineerResponseSheet,
                 )
-            }
-        }
-
-        // PR-D38: engineer-side commission preview. Hidden for v1 per
-        // project_v1_monetization_free.md — there's no platform
-        // commission yet, so a "0% commission" or "After commission
-        // you receive ₹X (full amount)" card just adds noise and
-        // implies commissions exist. Re-enable when v2 monetization
-        // ships and the rate becomes meaningful.
-        @Suppress("ConstantConditionIf", "KotlinConstantConditions")
-        if (false && !isHospital && hospitalTierPreview != null) {
-            EsSection(title = "Your payout") {
-                EngineerCommissionPreviewCard(preview = hospitalTierPreview!!)
             }
         }
 
@@ -856,44 +841,6 @@ private fun EscrowStatusCard(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun EngineerCommissionPreviewCard(
-    preview: com.equipseva.app.core.data.commissiontier.CommissionTierRepository.HospitalTierPreview,
-) {
-    val payoutLabel = "₹${"%,.0f".format(preview.effectivePayoutRupees)}"
-    val contractedLabel = "₹${"%,.0f".format(preview.contractedAmountRupees)}"
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.White)
-            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Text(
-            text = "After commission you receive $payoutLabel",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = SevaInk900,
-        )
-        if (preview.isWarrantyCovered) {
-            Text(
-                text = "Warranty covered — EquipSeva is absorbing the platform commission on this job.",
-                fontSize = 12.sp,
-                color = com.equipseva.app.designsystem.theme.SevaGreen700,
-            )
-        } else {
-            Text(
-                text = "Hospital tier: ${preview.currentRateLabel} commission · contracted $contractedLabel.",
-                fontSize = 12.sp,
-                color = SevaInk500,
-            )
         }
     }
 }
