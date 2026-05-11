@@ -847,7 +847,7 @@ private fun VerifiedSummaryCard(state: KycViewModel.UiState) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Success, modifier = Modifier.size(20.dp))
             Text(
-                text = "Hospitals can now find you in the directory and request jobs.",
+                text = "Hospitals can now find you in the directory and send job requests.",
                 fontSize = 13.sp,
                 color = Ink700,
             )
