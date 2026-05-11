@@ -113,9 +113,21 @@ fun NotificationSettingsScreen(
     }
 }
 
-private fun formatMinutes(min: Int): String {
+private fun formatMinutes(min: Int, is24Hour: Boolean = true): String {
     val safe = ((min % (24 * 60)) + 24 * 60) % (24 * 60)
-    return "%02d:%02d".format(safe / 60, safe % 60)
+    val hour24 = safe / 60
+    val minute = safe % 60
+    if (is24Hour) return "%02d:%02d".format(hour24, minute)
+    // 12-hour rendering for locales that use AM/PM (most Indian users
+    // expect 10:00 PM, not 22:00, on the readout — matches the picker
+    // shown by android.text.format.DateFormat.is24HourFormat).
+    val period = if (hour24 < 12) "AM" else "PM"
+    val hour12 = when {
+        hour24 == 0 -> 12
+        hour24 > 12 -> hour24 - 12
+        else -> hour24
+    }
+    return "%d:%02d %s".format(hour12, minute, period)
 }
 
 @Composable
@@ -220,7 +232,7 @@ private fun QuietHoursCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 EsField(
-                    value = formatMinutes(prefs.startMinutes),
+                    value = formatMinutes(prefs.startMinutes, is24Hour = android.text.format.DateFormat.is24HourFormat(context)),
                     onChange = {},
                     label = "Start",
                     enabled = false,
@@ -232,12 +244,12 @@ private fun QuietHoursCard(
                                 { _, h, m -> onWindowChange(h * 60 + m, prefs.endMinutes) },
                                 prefs.startMinutes / 60,
                                 prefs.startMinutes % 60,
-                                true,
+                                android.text.format.DateFormat.is24HourFormat(context),
                             ).show()
                         },
                 )
                 EsField(
-                    value = formatMinutes(prefs.endMinutes),
+                    value = formatMinutes(prefs.endMinutes, is24Hour = android.text.format.DateFormat.is24HourFormat(context)),
                     onChange = {},
                     label = "End",
                     enabled = false,
