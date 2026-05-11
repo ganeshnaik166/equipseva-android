@@ -471,7 +471,7 @@ private fun OverviewTab(state: AmcDetailViewModel.UiState) {
                     )
                 }
                 LabelRow("Frequency", prettyFrequency(freq))
-                LabelRow("Monthly fee", "₹${fee.toInt()}")
+                LabelRow("Monthly fee", formatRupees(fee))
                 LabelRow("Visits", "$visitsDone / $visitsPerYr per year")
                 LabelRow("Term", "${prettyDate(toIso(start))} → ${prettyDate(toIso(end))}")
                 if (!nextVisit.isNullOrBlank()) {
