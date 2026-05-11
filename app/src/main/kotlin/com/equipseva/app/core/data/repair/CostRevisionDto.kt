@@ -17,8 +17,9 @@ data class CostRevisionDto(
     @SerialName("reason") val reason: String,
     @SerialName("status") val status: String,
     @SerialName("created_at") val createdAtIso: String? = null,
-    @SerialName("decided_at") val decidedAtIso: String? = null,
-    @SerialName("decision_by") val decisionBy: String? = null,
+    // decided_at / decision_by serialized fields are accepted on the wire
+    // (so the server can keep sending them) but ignored: the UI never
+    // surfaces who/when the revision was decided.
 ) {
     fun toDomain(): CostRevision = CostRevision(
         id = id,
@@ -29,7 +30,5 @@ data class CostRevisionDto(
         reason = reason,
         status = CostRevisionStatus.fromKey(status),
         createdAt = createdAtIso?.let { runCatching { java.time.Instant.parse(it) }.getOrNull() },
-        decidedAt = decidedAtIso?.let { runCatching { java.time.Instant.parse(it) }.getOrNull() },
-        decisionBy = decisionBy,
     )
 }

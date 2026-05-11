@@ -17,8 +17,6 @@ data class CostRevision(
     val reason: String,
     val status: CostRevisionStatus,
     val createdAt: Instant?,
-    val decidedAt: Instant?,
-    val decisionBy: String?,
 )
 
 enum class CostRevisionStatus(val key: String) {
