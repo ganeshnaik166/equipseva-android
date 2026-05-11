@@ -242,22 +242,6 @@ class AmcRepository @Inject constructor(
         ).decodeList<AmcRotationRow>()
     }
 
-    suspend fun addFallbackEngineer(
-        contractId: String,
-        engineerId: String,
-        priority: Int? = null,
-    ): Result<Unit> = runCatching {
-        supabase.postgrest.rpc(
-            function = "add_amc_fallback_engineer",
-            parameters = buildJsonObject {
-                put("p_contract_id", JsonPrimitive(contractId))
-                put("p_engineer_id", JsonPrimitive(engineerId))
-                put("p_priority", priority?.let { JsonPrimitive(it) } ?: JsonNull)
-            },
-        )
-        Unit
-    }
-
     suspend fun removeFallbackEngineer(
         contractId: String,
         engineerId: String,
