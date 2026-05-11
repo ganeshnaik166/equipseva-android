@@ -24,7 +24,6 @@ import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.SevaDanger500
 import com.equipseva.app.designsystem.theme.SevaGlow
 import com.equipseva.app.designsystem.theme.SevaGreen700
-import com.equipseva.app.designsystem.theme.SevaGreen800
 import com.equipseva.app.designsystem.theme.SevaGreen900
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk900
