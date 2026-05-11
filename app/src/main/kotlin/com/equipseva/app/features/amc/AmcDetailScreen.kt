@@ -237,7 +237,14 @@ fun AmcDetailScreen(
                             .fillMaxSize()
                             .verticalScroll(rememberScrollState()),
                     ) {
-                        if ((state.poolBalance ?: 0.0) < 0.0) {
+                        // Drive paused-banner from server-side status, not
+                        // local balance compare. Backend pauses when pool
+                        // hits 0 OR the contract is suspended; the earlier
+                        // `balance < 0` check missed both "depleted-not-
+                        // overdrawn" (exactly 0) and admin-paused contracts.
+                        val pausedByServer = state.hospital?.status == "paused" ||
+                            state.engineerView?.status == "paused"
+                        if (pausedByServer || (state.poolBalance ?: 0.0) <= 0.0) {
                             PausedBanner()
                         }
                         TabsRow(
