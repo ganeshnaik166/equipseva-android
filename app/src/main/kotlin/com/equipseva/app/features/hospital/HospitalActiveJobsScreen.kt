@@ -302,26 +302,31 @@ private fun HospitalBookingCard(
         ) {
             val schedule = listOfNotNull(job.scheduledDate, job.scheduledTimeSlot)
                 .joinToString(", ")
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.CalendarMonth,
-                    contentDescription = null,
-                    tint = SevaInk500,
-                    modifier = Modifier.size(14.dp),
-                )
-                val leftLabel = schedule.ifBlank {
-                    job.createdAtInstant?.let { "Posted ${relativeLabel(it)} ago" } ?: "—"
+            // Schedule first if hospital picked one; else fall back to a
+            // relative posted-at. If neither is available the whole left
+            // section is hidden — earlier "—" placeholder read as a broken
+            // metric, not as "data not applicable".
+            val leftLabel: String? = schedule.takeIf { it.isNotBlank() }
+                ?: job.createdAtInstant?.let { "Posted ${relativeLabel(it)} ago" }
+            if (leftLabel != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.CalendarMonth,
+                        contentDescription = null,
+                        tint = SevaInk500,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text(
+                        text = leftLabel,
+                        style = EsType.Caption,
+                        color = SevaInk500,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
-                Text(
-                    text = leftLabel,
-                    style = EsType.Caption,
-                    color = SevaInk500,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
             }
             Spacer(Modifier.weight(1f))
             // Only surface the relative posted-time on the right when the
