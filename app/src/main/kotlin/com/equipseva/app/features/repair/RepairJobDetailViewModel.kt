@@ -165,7 +165,6 @@ class RepairJobDetailViewModel @Inject constructor(
          * blank string.
          */
         val afterPhotoSignedUrls: List<String> = emptyList(),
-        val beforePhotoSignedUrls: List<String> = emptyList(),
         val issuePhotoSignedUrls: List<String> = emptyList(),
     ) {
         /** Hide the report CTA when the viewer posted the job. */
@@ -1019,12 +1018,10 @@ class RepairJobDetailViewModel @Inject constructor(
                 }.getOrNull()
             }
             val after = signAll(job.afterPhotos)
-            val before = signAll(job.beforePhotos)
             val issue = signAll(job.issuePhotos)
             _state.update {
                 it.copy(
                     afterPhotoSignedUrls = after,
-                    beforePhotoSignedUrls = before,
                     issuePhotoSignedUrls = issue,
                 )
             }
