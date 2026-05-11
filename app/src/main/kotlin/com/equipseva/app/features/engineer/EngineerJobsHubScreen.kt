@@ -79,7 +79,6 @@ class EngineerJobsHubViewModel @Inject constructor(
 
     data class UiState(
         val status: Status = Status.Loading,
-        val displayName: String? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
