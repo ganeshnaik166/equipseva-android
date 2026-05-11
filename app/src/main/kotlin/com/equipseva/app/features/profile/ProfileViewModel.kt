@@ -1,6 +1,11 @@
 package com.equipseva.app.features.profile
 
+import android.content.ContentResolver
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -33,6 +38,8 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 
 @HiltViewModel
@@ -391,26 +398,38 @@ class ProfileViewModel @Inject constructor(
         val profile = current.profile ?: return
         val resolver = appContext.contentResolver
         val mime = resolver.getType(uri) ?: "image/jpeg"
+        // Reject formats the avatar bucket / display pipeline can't render
+        // up-front rather than uploading something the server-side check
+        // will reject. JPEG/PNG/WebP cover phone camera + share-sheet
+        // sources; GIF/SVG/TIFF/HEIC get rejected client-side.
+        val isAllowed = mime.lowercase() in setOf("image/jpeg", "image/png", "image/webp")
+        if (!isAllowed) {
+            viewModelScope.launch {
+                _effects.send(Effect.ShowMessage("Please pick a JPG, PNG, or WebP photo."))
+            }
+            return
+        }
         _state.update { it.copy(avatarUploading = true, errorMessage = null) }
         viewModelScope.launch {
-            val bytes = runCatching { resolver.openInputStream(uri)?.use { it.readBytes() } }
-                .getOrNull()
+            // Downsample + re-encode to JPEG ~1024px / 85% before upload.
+            // The previous path called readBytes() on the raw stream and
+            // sent a 6-12 MB image to Supabase on every avatar change —
+            // OOM risk on low-end phones, slow upload on cellular, waste
+            // of storage quota.
+            val bytes = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching { encodeAvatarBytes(resolver, uri) }.getOrNull()
+            }
             if (bytes == null) {
                 _state.update { it.copy(avatarUploading = false) }
                 _effects.send(Effect.ShowMessage("Couldn't read image"))
                 return@launch
             }
-            val ext = when (mime.lowercase()) {
-                "image/png" -> "png"
-                "image/webp" -> "webp"
-                else -> "jpg"
-            }
-            val path = "${profile.id}/avatar.$ext"
+            val path = "${profile.id}/avatar.jpg"
             storageRepository.upload(
                 bucket = com.equipseva.app.core.storage.StorageRepository.Buckets.AVATARS,
                 path = path,
                 bytes = bytes,
-                contentType = mime,
+                contentType = "image/jpeg",
             )
                 .onSuccess {
                     val url = storageRepository.publicUrl(
@@ -605,4 +624,68 @@ class ProfileViewModel @Inject constructor(
             }
     }
 
+    /** Decode picked image with inSampleSize, apply EXIF rotation, scale to
+     *  AVATAR_MAX_DIM_PX longest edge, encode JPEG @ AVATAR_JPEG_QUALITY.
+     *  Keeps memory footprint sane on 12MP camera shots. */
+    private fun encodeAvatarBytes(resolver: ContentResolver, uri: Uri): ByteArray? {
+        val sourceBounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, sourceBounds) }
+        val srcW = sourceBounds.outWidth
+        val srcH = sourceBounds.outHeight
+        if (srcW <= 0 || srcH <= 0) return null
+
+        // Halve sample size until the larger dim is within 2× the target,
+        // so the in-memory Bitmap stays small but we keep enough detail to
+        // produce a sharp resize.
+        var sample = 1
+        while ((maxOf(srcW, srcH) / sample) > AVATAR_MAX_DIM_PX * 2) sample *= 2
+
+        val decoded = resolver.openInputStream(uri)?.use { stream ->
+            val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+            BitmapFactory.decodeStream(stream, null, opts)
+        } ?: return null
+
+        // EXIF rotation — camera shots from portrait orientation come back
+        // landscape-bytes + an EXIF tag the canvas doesn't honour. Rotate
+        // before resize so the result is upright.
+        val rotation = runCatching {
+            resolver.openInputStream(uri)?.use { stream ->
+                when (ExifInterface(stream).getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL,
+                )) {
+                    ExifInterface.ORIENTATION_ROTATE_90 -> 90
+                    ExifInterface.ORIENTATION_ROTATE_180 -> 180
+                    ExifInterface.ORIENTATION_ROTATE_270 -> 270
+                    else -> 0
+                }
+            }
+        }.getOrNull() ?: 0
+
+        val oriented = if (rotation != 0) {
+            val m = Matrix().apply { postRotate(rotation.toFloat()) }
+            Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, m, true)
+                .also { if (it !== decoded) decoded.recycle() }
+        } else decoded
+
+        // Scale longest edge to AVATAR_MAX_DIM_PX.
+        val maxEdge = maxOf(oriented.width, oriented.height)
+        val scaled = if (maxEdge > AVATAR_MAX_DIM_PX) {
+            val ratio = AVATAR_MAX_DIM_PX.toFloat() / maxEdge
+            val targetW = (oriented.width * ratio).toInt().coerceAtLeast(1)
+            val targetH = (oriented.height * ratio).toInt().coerceAtLeast(1)
+            Bitmap.createScaledBitmap(oriented, targetW, targetH, true)
+                .also { if (it !== oriented) oriented.recycle() }
+        } else oriented
+
+        val out = ByteArrayOutputStream()
+        scaled.compress(Bitmap.CompressFormat.JPEG, AVATAR_JPEG_QUALITY, out)
+        scaled.recycle()
+        return out.toByteArray()
+    }
+
+    private companion object {
+        const val AVATAR_MAX_DIM_PX = 1024
+        const val AVATAR_JPEG_QUALITY = 85
+    }
 }
