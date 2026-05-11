@@ -34,6 +34,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.amc.AmcRepository
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
@@ -209,7 +210,7 @@ private fun EscalationDetailBody(
                 detail.visitFrequency?.let { LabelRow("Cadence", it.replaceFirstChar { c -> c.uppercase() }) }
                 detail.monthlyFeeRupees?.let { LabelRow("Monthly fee", "₹${"%,.0f".format(it)}") }
                 detail.nextVisitAt?.let { LabelRow("Next visit", it.take(16).replace('T', ' ')) }
-                detail.contractEndDate?.let { LabelRow("End date", it.take(10)) }
+                detail.contractEndDate?.let { LabelRow("End date", prettyDate(it)) }
             }
         }
         if (detail.visitId != null) {
@@ -218,7 +219,7 @@ private fun EscalationDetailBody(
                     SectionLabel("Visit")
                     detail.visitNumber?.let { LabelRow("Visit number", "#$it") }
                     detail.visitStatus?.let { LabelRow("Status", it.replace('_', ' ').replaceFirstChar { c -> c.uppercase() }) }
-                    detail.visitScheduledDate?.let { LabelRow("Scheduled", it.take(10)) }
+                    detail.visitScheduledDate?.let { LabelRow("Scheduled", prettyDate(it)) }
                     detail.visitEquipmentType?.let { LabelRow("Equipment", it.replace('_', ' ').replaceFirstChar { c -> c.uppercase() }) }
                 }
             }
