@@ -314,10 +314,18 @@ fun AmcDetailScreen(
             title = { Text("Cancel this contract?") },
             text = {
                 Text(
-                    "Cancelling ends the maintenance contract. Remaining " +
-                        "balance is refunded to your wallet and the assigned " +
-                        "engineers stop receiving visit notifications. This " +
-                        "can't be undone.",
+                    // Earlier copy promised a "wallet refund" — there is no
+                    // in-app wallet feature; the backend cancel_amc_contract
+                    // RPC doesn't process refunds either. Describe what
+                    // cancel actually does: stops the contract, halts
+                    // engineer notifications. Refund-of-pool handling is
+                    // out-of-band per terms; surface that fact instead of
+                    // promising a flow we don't ship.
+                    "Cancelling ends the maintenance contract. Assigned " +
+                        "engineers stop receiving visit notifications. " +
+                        "Any unused pool balance is settled per the contract " +
+                        "terms — our team will reach out within 7 business " +
+                        "days. This can't be undone.",
                 )
             },
             confirmButton = {
