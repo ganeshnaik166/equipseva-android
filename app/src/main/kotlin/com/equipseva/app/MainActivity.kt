@@ -89,8 +89,13 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
             this,
             Manifest.permission.POST_NOTIFICATIONS,
         ) == PackageManager.PERMISSION_GRANTED
-        if (!granted) {
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        }
+        if (granted) return
+        // Don't re-prompt on every cold start once the user has already
+        // declined. `shouldShowRequestPermissionRationale` returns true
+        // only after the system has shown the dialog at least once and
+        // the user picked "Don't allow." Honour that — a third prompt
+        // is the kind of thing that gets uninstall-rated on Play.
+        if (shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) return
+        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 }
