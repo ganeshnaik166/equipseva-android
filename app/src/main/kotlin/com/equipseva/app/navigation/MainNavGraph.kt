@@ -397,7 +397,6 @@ fun MainNavGraph(
                     onOpenProfile = { id ->
                         navController.navigate(Routes.engineerPublicProfileRoute(id))
                     },
-                    onAnyEngineer = { navController.navigate(Routes.REQUEST_SERVICE) },
                 )
             }
             composable(

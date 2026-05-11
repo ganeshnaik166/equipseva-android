@@ -253,7 +253,6 @@ private val DEFAULT_SPECS = listOf(
 fun EngineerDirectoryScreen(
     onBack: () -> Unit,
     onOpenProfile: (engineerId: String) -> Unit,
-    @Suppress("UNUSED_PARAMETER") onAnyEngineer: () -> Unit,
     viewModel: EngineerDirectoryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
