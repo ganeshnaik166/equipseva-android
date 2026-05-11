@@ -25,7 +25,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -81,16 +80,14 @@ fun EsTopBar(
     subtitle: String? = null,
     onBack: (() -> Unit)? = null,
     right: (@Composable () -> Unit)? = null,
-    transparent: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val bg = if (transparent) Color.Transparent else PaperDefault
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(52.dp)
-            .background(bg)
-            .let { if (!transparent) it.border(width = 1.dp, color = BorderDefault, shape = RectangleShape) else it }
+            .background(PaperDefault)
+            .border(width = 1.dp, color = BorderDefault, shape = RectangleShape)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
