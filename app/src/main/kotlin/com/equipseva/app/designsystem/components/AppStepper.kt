@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,7 +15,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -37,94 +35,6 @@ data class StepperStep(
     val time: String? = null,
 )
 
-@Composable
-fun VerticalStepper(
-    steps: List<StepperStep>,
-    current: Int,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        steps.forEachIndexed { index, step ->
-            val isDone = index < current
-            val isCurrent = index == current
-            val markerFill: Color = when {
-                isDone -> BrandGreen
-                isCurrent -> BrandGreen
-                else -> Color.White
-            }
-            val markerBorder: Color = when {
-                isDone || isCurrent -> BrandGreen
-                else -> Surface200
-            }
-            val connectorColor: Color = if (isDone) BrandGreen else Surface200
-            val titleColor: Color = if (isDone || isCurrent) Ink900 else Ink500
-            val titleWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Medium
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.width(24.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .background(markerFill, CircleShape)
-                            .border(2.dp, markerBorder, CircleShape),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (isDone) {
-                            Icon(
-                                imageVector = Icons.Outlined.Check,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(12.dp),
-                            )
-                        } else if (isCurrent) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .background(Color.White, CircleShape),
-                            )
-                        }
-                    }
-                    if (index < steps.lastIndex) {
-                        Box(
-                            modifier = Modifier
-                                .width(2.dp)
-                                .height(34.dp)
-                                .background(connectorColor),
-                        )
-                    }
-                }
-                Spacer(Modifier.width(12.dp))
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(bottom = if (index < steps.lastIndex) 16.dp else 0.dp),
-                ) {
-                    Text(
-                        text = step.title,
-                        fontSize = 14.sp,
-                        lineHeight = 18.sp,
-                        fontWeight = titleWeight,
-                        color = titleColor,
-                    )
-                    if (!step.time.isNullOrBlank()) {
-                        Text(
-                            text = step.time,
-                            fontSize = 12.sp,
-                            lineHeight = 15.sp,
-                            color = Ink500,
-                            modifier = Modifier.padding(top = 2.dp),
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun HorizontalStepper(
