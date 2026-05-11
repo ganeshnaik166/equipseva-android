@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,12 +22,10 @@ import com.equipseva.app.designsystem.theme.SevaDanger50
 import com.equipseva.app.designsystem.theme.SevaGlow
 import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaGreen700
-import com.equipseva.app.designsystem.theme.SevaGreen800
 import com.equipseva.app.designsystem.theme.SevaGreen900
 import com.equipseva.app.designsystem.theme.SevaInfo500
 import com.equipseva.app.designsystem.theme.SevaInfo50
 import com.equipseva.app.designsystem.theme.SevaInk500
-import com.equipseva.app.designsystem.theme.SevaInk900
 import com.equipseva.app.designsystem.theme.SevaSuccess500
 import com.equipseva.app.designsystem.theme.SevaSuccess50
 import com.equipseva.app.designsystem.theme.SevaWarning500
