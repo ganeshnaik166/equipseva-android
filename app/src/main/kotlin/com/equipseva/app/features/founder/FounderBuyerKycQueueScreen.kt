@@ -39,6 +39,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
@@ -285,7 +286,7 @@ private fun BuyerKycRowCard(
         if (!row.gstNumber.isNullOrBlank()) {
             Text("GSTIN: ${row.gstNumber}", color = SevaInk700, fontSize = 12.sp, fontWeight = FontWeight.Medium)
         }
-        Text("Submitted: ${row.submittedAt.take(10)}", color = SevaInk500, fontSize = 11.sp)
+        Text("Submitted: ${prettyDate(row.submittedAt)}", color = SevaInk500, fontSize = 11.sp)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(modifier = Modifier.weight(1f)) {
                 EsBtn(

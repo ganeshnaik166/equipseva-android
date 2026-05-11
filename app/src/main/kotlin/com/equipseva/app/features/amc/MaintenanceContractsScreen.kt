@@ -307,11 +307,8 @@ internal fun prettyFrequency(f: String): String = when (f.lowercase()) {
     else -> f.replaceFirstChar { it.uppercase() }
 }
 
+// prettyDate lives in core.util now — re-export the same name from the
+// amc package so existing same-package callers don't need imports.
+// Both founder + amc surfaces share the single implementation.
 internal fun prettyDate(iso: String): String =
-    runCatching {
-        val instant = java.time.Instant.parse(iso)
-        java.time.format.DateTimeFormatter
-            .ofPattern("dd MMM yyyy")
-            .withZone(java.time.ZoneId.systemDefault())
-            .format(instant)
-    }.getOrElse { iso.take(10) }
+    com.equipseva.app.core.util.prettyDate(iso)
