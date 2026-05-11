@@ -3,7 +3,6 @@ package com.equipseva.app.core.data.servicereport
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.exceptions.RestException
 import io.github.jan.supabase.functions.functions
-import io.github.jan.supabase.postgrest.postgrest
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
 import javax.inject.Inject
@@ -13,7 +12,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.contentOrNull
 
 // v2.1 PR-D3 — wraps the compliance-report edge function +
 // get_service_report_url RPC for the audit-trail HTML render.
@@ -53,20 +51,6 @@ class ServiceReportRepository @Inject constructor(
         }
         val parsed = JSON.decodeFromString(GenerateResponse.serializer(), text)
         parsed.serviceReportUrl ?: error(parsed.message ?: "missing url")
-    }
-
-    /** Cached signed URL stored on repair_jobs.service_report_url, if any. */
-    suspend fun cachedUrl(jobId: String): Result<String?> = runCatching {
-        val raw = supabase.postgrest.rpc(
-            function = "get_service_report_url",
-            parameters = buildJsonObject {
-                put("p_job", JsonPrimitive(jobId))
-            },
-        ).data
-        // RPC returns a bare JSON string or null. Parse defensively.
-        if (raw.isBlank() || raw.equals("null", ignoreCase = true)) return@runCatching null
-        val parsed = runCatching { JSON.parseToJsonElement(raw) }.getOrNull()
-        (parsed as? JsonPrimitive)?.contentOrNull
     }
 
     private companion object {
