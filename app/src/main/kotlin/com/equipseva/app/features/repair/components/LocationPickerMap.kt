@@ -32,10 +32,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -67,27 +65,6 @@ private fun isSystemLocationEnabled(context: android.content.Context): Boolean {
             lm.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER)
     }
 }
-
-/**
- * Forces a child to span its parent's content area PLUS the parent's
- * horizontal padding — so the child reaches the actual screen edges even
- * when its parent column applies horizontal padding to all siblings. The
- * child still reports its size as the parent's content width so siblings
- * don't shift around it. Use for full-bleed maps, hero images, and other
- * media that should ignore the form-style horizontal gutter.
- */
-fun Modifier.fullBleedHorizontal(parentHorizontalPadding: Dp): Modifier =
-    this.layout { measurable, constraints ->
-        val pad = parentHorizontalPadding.roundToPx()
-        val widened = constraints.copy(
-            minWidth = constraints.maxWidth + 2 * pad,
-            maxWidth = constraints.maxWidth + 2 * pad,
-        )
-        val placeable = measurable.measure(widened)
-        layout(placeable.width - 2 * pad, placeable.height) {
-            placeable.place(-pad, 0)
-        }
-    }
 
 /**
  * Map picker shared by hospital RequestService Step 3 and engineer KYC
