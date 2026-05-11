@@ -827,10 +827,6 @@ private fun ProfileHero(
                     com.equipseva.app.designsystem.components.Avatar(
                         initials = initials,
                         size = 56.dp,
-                        // Round 14: drop fake green presence dot — we don't
-                        // wire any presence detection, so painting "Available"
-                        // on the user's own avatar was just decoration.
-                        online = null,
                     )
                 }
                 if (avatarUploading) {

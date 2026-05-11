@@ -341,11 +341,6 @@ private fun ChatTopBar(
                 Avatar(
                     initials = initialsOf(title),
                     size = 32.dp,
-                    // Online dot suppressed until Supabase realtime
-                    // presence is wired — the previous hard-coded
-                    // OnlineStatus.Available painted every counterparty
-                    // green even when they hadn't opened the app for days.
-                    online = null,
                 )
                 Text(
                     text = title,
