@@ -24,7 +24,7 @@ class HospitalActiveJobsViewModel @Inject constructor(
     private val jobRepository: RepairJobRepository,
 ) : ViewModel() {
 
-    enum class Filter { All, Open, Active, Completed }
+    enum class Filter { All, Open, Active, Closed }
 
     data class UiState(
         val loading: Boolean = true,
@@ -40,7 +40,7 @@ class HospitalActiveJobsViewModel @Inject constructor(
                 Filter.All -> openJobs + inProgressJobs + closedJobs
                 Filter.Open -> openJobs
                 Filter.Active -> inProgressJobs
-                Filter.Completed -> closedJobs.filter { it.status == RepairJobStatus.Completed }
+                Filter.Closed -> closedJobs
             }
     }
 

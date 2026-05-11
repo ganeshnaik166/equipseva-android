@@ -43,7 +43,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.repair.RepairJob
-import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.EmptyStateView
@@ -76,7 +75,7 @@ fun HospitalActiveJobsScreen(
     val totalCount = state.openJobs.size + state.inProgressJobs.size + state.closedJobs.size
     val openCount = state.openJobs.size
     val activeCount = state.inProgressJobs.size
-    val completedCount = state.closedJobs.count { it.status == RepairJobStatus.Completed }
+    val closedCount = state.closedJobs.size
 
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -87,7 +86,7 @@ fun HospitalActiveJobsScreen(
                 allCount = totalCount,
                 openCount = openCount,
                 activeCount = activeCount,
-                completedCount = completedCount,
+                closedCount = closedCount,
                 onSelect = viewModel::onFilterChange,
             )
 
@@ -108,7 +107,7 @@ fun HospitalActiveJobsScreen(
                         // Filter-aware empty copy. The default "Tap Post new
                         // job below" advice is right when the hospital
                         // genuinely has no jobs (All filter + zero total) —
-                        // but if they're filtering by Completed and just
+                        // but if they're filtering by Closed and just
                         // haven't finished any yet, posting another job
                         // doesn't help. Tell them what the empty state
                         // actually means under the active filter.
@@ -119,8 +118,8 @@ fun HospitalActiveJobsScreen(
                                 "No open jobs" to "Jobs you post and haven't assigned yet appear here."
                             HospitalActiveJobsViewModel.Filter.Active ->
                                 "No jobs in progress" to "Jobs an engineer has accepted appear here."
-                            HospitalActiveJobsViewModel.Filter.Completed ->
-                                "No completed jobs yet" to "Finished jobs land here once the engineer marks them done."
+                            HospitalActiveJobsViewModel.Filter.Closed ->
+                                "No closed jobs yet" to "Finished, cancelled, or disputed jobs land here."
                         }
                         EmptyStateView(
                             icon = Icons.AutoMirrored.Outlined.Assignment,
@@ -173,7 +172,7 @@ private fun FilterChipsRow(
     allCount: Int,
     openCount: Int,
     activeCount: Int,
-    completedCount: Int,
+    closedCount: Int,
     onSelect: (HospitalActiveJobsViewModel.Filter) -> Unit,
 ) {
     Row(
@@ -199,9 +198,9 @@ private fun FilterChipsRow(
             onClick = { onSelect(HospitalActiveJobsViewModel.Filter.Active) },
         )
         FilterChip(
-            label = "Completed ($completedCount)",
-            active = selected == HospitalActiveJobsViewModel.Filter.Completed,
-            onClick = { onSelect(HospitalActiveJobsViewModel.Filter.Completed) },
+            label = "Closed ($closedCount)",
+            active = selected == HospitalActiveJobsViewModel.Filter.Closed,
+            onClick = { onSelect(HospitalActiveJobsViewModel.Filter.Closed) },
         )
     }
 }
