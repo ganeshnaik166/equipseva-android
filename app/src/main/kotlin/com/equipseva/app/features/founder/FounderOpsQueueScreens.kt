@@ -39,6 +39,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.core.util.prettyDate
+import com.equipseva.app.core.util.prettyDateTime
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBottomSheet
 import com.equipseva.app.designsystem.components.EsBtn
@@ -205,7 +207,7 @@ private fun EscrowDisputeRow(
             Text(row.disputeReason, color = SevaInk700, fontSize = 13.sp)
         }
         if (!row.disputeOpenedAt.isNullOrBlank()) {
-            Text("Opened: ${row.disputeOpenedAt.take(19).replace('T', ' ')}", color = SevaInk500, fontSize = 11.sp)
+            Text("Opened: ${prettyDateTime(row.disputeOpenedAt)}", color = SevaInk500, fontSize = 11.sp)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             EsBtn(
@@ -360,7 +362,7 @@ private fun AmcEscalationRow(
             Text(row.notes, color = SevaInk700, fontSize = 13.sp)
         }
         if (!row.createdAt.isNullOrBlank()) {
-            Text("Raised: ${row.createdAt.take(19).replace('T', ' ')}", color = SevaInk500, fontSize = 11.sp)
+            Text("Raised: ${prettyDateTime(row.createdAt)}", color = SevaInk500, fontSize = 11.sp)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             EsBtn(
@@ -500,7 +502,7 @@ private fun CashSuspendedRow(
             Text(row.reason, color = SevaInk700, fontSize = 13.sp)
         }
         if (!row.suspendedAt.isNullOrBlank()) {
-            Text("Since: ${row.suspendedAt.take(19).replace('T', ' ')}", color = SevaInk500, fontSize = 11.sp)
+            Text("Since: ${prettyDateTime(row.suspendedAt)}", color = SevaInk500, fontSize = 11.sp)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             EsBtn(
@@ -614,7 +616,7 @@ private fun PartsOutlierRow(row: FounderRepository.PartsCostOutlier) {
             fontSize = 12.sp,
         )
         if (!row.completedAt.isNullOrBlank()) {
-            Text("Completed: ${row.completedAt.take(10)}", color = SevaInk500, fontSize = 11.sp)
+            Text("Completed: ${prettyDate(row.completedAt)}", color = SevaInk500, fontSize = 11.sp)
         }
     }
 }

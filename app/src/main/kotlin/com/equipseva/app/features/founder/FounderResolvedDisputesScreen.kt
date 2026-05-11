@@ -34,6 +34,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.core.util.prettyDateTime
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
@@ -176,7 +177,7 @@ private fun ResolvedRow(
         }
         row.resolvedAt?.let {
             Text(
-                "Resolved: ${it.take(19).replace('T', ' ')}" +
+                "Resolved: ${prettyDateTime(it)}" +
                     (row.resolvedByName?.let { n -> " · $n" } ?: ""),
                 color = SevaInk500,
                 fontSize = 11.sp,

@@ -32,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.prettyDateTime
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
@@ -162,7 +163,7 @@ private fun AuditRow(row: FounderRepository.SpotAuditResponseRow) {
             Text(row.feedback, color = SevaInk700, fontSize = 13.sp)
         }
         row.respondedAt?.let {
-            Text("Responded: ${it.take(19).replace('T', ' ')}", color = SevaInk500, fontSize = 11.sp)
+            Text("Responded: ${prettyDateTime(it)}", color = SevaInk500, fontSize = 11.sp)
         }
     }
 }

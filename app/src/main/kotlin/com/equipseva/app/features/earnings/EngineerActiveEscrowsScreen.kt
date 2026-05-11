@@ -35,6 +35,7 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.core.util.prettyDateTime
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
@@ -170,7 +171,7 @@ private fun ActiveEscrowRow(
         when (row.status) {
             "held" -> row.scheduledReleaseAt?.let {
                 Text(
-                    text = "Releases: " + it.take(16).replace('T', ' '),
+                    text = "Releases: " + prettyDateTime(it),
                     color = SevaInk500,
                     fontSize = 11.sp,
                 )
@@ -178,7 +179,7 @@ private fun ActiveEscrowRow(
             "in_dispute" -> {
                 row.disputeOpenedAt?.let {
                     Text(
-                        text = "Disputed: " + it.take(16).replace('T', ' '),
+                        text = "Disputed: " + prettyDateTime(it),
                         color = SevaInk500,
                         fontSize = 11.sp,
                     )
