@@ -28,12 +28,6 @@ import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Surface200
 
-data class StepperStep(
-    val title: String,
-    val time: String? = null,
-)
-
-
 @Composable
 fun HorizontalStepper(
     steps: List<String>,
