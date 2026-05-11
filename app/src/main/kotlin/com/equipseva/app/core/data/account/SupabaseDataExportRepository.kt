@@ -5,10 +5,10 @@ import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.Locale
-import java.util.TimeZone
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,9 +23,10 @@ class SupabaseDataExportRepository @Inject constructor(
         }
         withContext(Dispatchers.IO) {
             if (!targetDir.exists()) targetDir.mkdirs()
-            val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).apply {
-                timeZone = TimeZone.getTimeZone("UTC")
-            }.format(Date())
+            val stamp = DateTimeFormatter
+                .ofPattern("yyyyMMdd-HHmmss", Locale.US)
+                .withZone(ZoneOffset.UTC)
+                .format(Instant.now())
             val file = File(targetDir, "equipseva-export-$stamp.json")
             file.writeText(json)
             file
