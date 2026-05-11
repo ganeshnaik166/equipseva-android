@@ -30,9 +30,6 @@ sealed interface AuthError {
     data object Network : AuthError {
         override val userMessage = "Network problem. Check your connection and retry."
     }
-    data object Cancelled : AuthError {
-        override val userMessage = "Sign-in cancelled."
-    }
     data class Unknown(override val userMessage: String) : AuthError
 }
 
