@@ -40,25 +40,6 @@ import com.equipseva.app.designsystem.theme.SevaInk900
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ESTopBar(title: String) {
-    CenterAlignedTopAppBar(
-        title = {
-            Text(
-                text = title,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold,
-                color = Ink900,
-                modifier = Modifier.semantics { heading() },
-            )
-        },
-        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
 fun ESBackTopBar(
     title: String,
     onBack: () -> Unit,
