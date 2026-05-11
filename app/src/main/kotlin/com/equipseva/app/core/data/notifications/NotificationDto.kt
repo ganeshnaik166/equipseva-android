@@ -26,9 +26,9 @@ internal data class NotificationDto(
     @SerialName("read_at") val readAt: String? = null,
 ) {
     fun toDomain(): Notification {
-        val flatData = (data as? JsonObject).orEmpty().mapNotNull { (key, value) ->
+        val flatData = (data as? JsonObject)?.mapNotNull { (key, value) ->
             (value as? JsonPrimitive)?.contentOrNull?.let { key to it }
-        }.toMap()
+        }?.toMap().orEmpty()
         // `deep_link` from the JSONB blob wins; fall back to the legacy
         // `action_url` column so server code that hasn't migrated yet still
         // routes correctly.
@@ -46,4 +46,3 @@ internal data class NotificationDto(
     }
 }
 
-private fun JsonObject?.orEmpty(): Map<String, JsonElement> = this ?: emptyMap()
