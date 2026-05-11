@@ -220,10 +220,8 @@ dependencies {
     // WorkManager
     implementation(libs.work.runtime.ktx)
 
-    // Networking
-    implementation(libs.retrofit)
-    implementation(libs.retrofit.kotlinx.serialization)
-    implementation(libs.okhttp.logging)
+    // Networking — Supabase SDK (below) handles HTTP; Retrofit/OkHttp
+    // were dropped along with the orphan AuthInterceptor in round 158.
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
 
