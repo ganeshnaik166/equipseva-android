@@ -240,7 +240,7 @@ private fun EscrowSummaryCard(
         }
         if (summary.countHeld > 0) {
             Text(
-                text = formatRupees(summary.totalHeldRupees) + " held in escrow",
+                text = "${formatRupees(summary.totalHeldRupees)} held in escrow",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.44).sp,
@@ -254,7 +254,7 @@ private fun EscrowSummaryCard(
             // scheduled_release_at on those rows).
             summary.nextReleaseAt?.let { iso ->
                 Text(
-                    text = "Next release: " + prettyDateTime(iso),
+                    text = "Next release: ${prettyDateTime(iso)}",
                     fontSize = 12.sp,
                     color = SevaInk500,
                 )

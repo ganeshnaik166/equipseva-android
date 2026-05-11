@@ -193,7 +193,7 @@ private fun EscrowEventRow(row: FounderRepository.EscrowEventRow) {
                 color = SevaInk900,
             )
             row.occurredAt?.let {
-                Text("Occurred: " + prettyDateTime(it), color = SevaInk500, fontSize = 11.sp)
+                Text("Occurred: ${prettyDateTime(it)}", color = SevaInk500, fontSize = 11.sp)
             }
             if (!row.actorName.isNullOrBlank() && row.actorName != "(system)") {
                 Text("Actor: ${row.actorName}", color = SevaInk500, fontSize = 11.sp)

@@ -169,9 +169,11 @@ private fun VisitRow(
             )
         }
         if (row.visitNumber != null) {
+            val equipmentSuffix = row.equipmentType
+                ?.let { " · ${it.replace('_', ' ').replaceFirstChar { c -> c.uppercase() }}" }
+                ?: ""
             Text(
-                "Visit #${row.visitNumber}" +
-                    (row.equipmentType?.let { " · " + it.replace('_', ' ').replaceFirstChar { c -> c.uppercase() } } ?: ""),
+                "Visit #${row.visitNumber}$equipmentSuffix",
                 color = SevaInk500,
                 fontSize = 11.sp,
             )

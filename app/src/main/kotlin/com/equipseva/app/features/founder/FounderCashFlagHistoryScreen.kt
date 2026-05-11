@@ -161,10 +161,10 @@ private fun CashFlagRow(row: FounderRepository.CashFlagHistoryRow) {
             Pill(text = pillText, kind = pillKind)
         }
         row.respondedAt?.let {
-            Text("Responded: " + it.take(16).replace('T', ' '), color = SevaInk500, fontSize = 11.sp)
+            Text("Responded: ${it.take(16).replace('T', ' ')}", color = SevaInk500, fontSize = 11.sp)
         }
         row.completedAt?.let {
-            Text("Job completed: " + prettyDate(it), color = SevaInk500, fontSize = 11.sp)
+            Text("Job completed: ${prettyDate(it)}", color = SevaInk500, fontSize = 11.sp)
         }
     }
 }

@@ -171,7 +171,7 @@ private fun ActiveEscrowRow(
         when (row.status) {
             "held" -> row.scheduledReleaseAt?.let {
                 Text(
-                    text = "Releases: " + prettyDateTime(it),
+                    text = "Releases: ${prettyDateTime(it)}",
                     color = SevaInk500,
                     fontSize = 11.sp,
                 )
@@ -179,7 +179,7 @@ private fun ActiveEscrowRow(
             "in_dispute" -> {
                 row.disputeOpenedAt?.let {
                     Text(
-                        text = "Disputed: " + prettyDateTime(it),
+                        text = "Disputed: ${prettyDateTime(it)}",
                         color = SevaInk500,
                         fontSize = 11.sp,
                     )

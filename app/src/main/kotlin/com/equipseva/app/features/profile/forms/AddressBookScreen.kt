@@ -211,7 +211,7 @@ private fun AddressRowCard(
                 }
             }
         }
-        Text(row.fullName + " · " + row.phone, color = Ink700, fontSize = 13.sp)
+        Text("${row.fullName} · ${row.phone}", color = Ink700, fontSize = 13.sp)
         Text(
             listOfNotNull(row.line1, row.line2, row.landmark).joinToString(", "),
             color = Ink700,
