@@ -33,7 +33,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -256,7 +256,7 @@ fun EngineerDirectoryScreen(
     @Suppress("UNUSED_PARAMETER") onAnyEngineer: () -> Unit,
     viewModel: EngineerDirectoryViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val visibleRows = state.filteredRows
     var showFilters by remember { mutableStateOf(false) }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
