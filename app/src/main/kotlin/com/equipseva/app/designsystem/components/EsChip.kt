@@ -19,13 +19,9 @@ import com.equipseva.app.designsystem.theme.EsRadius
 import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaGreen700
-import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk700
-import com.equipseva.app.designsystem.theme.SevaInk900
-import com.equipseva.app.designsystem.theme.Paper3
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.BorderDefault
-import com.equipseva.app.designsystem.theme.BorderStrong
 
 // Toggle pill used for filters, specializations, brands, urgency picker.
 // Active = filled green-50 + green-700 text; inactive = paper bg + ink-700.
