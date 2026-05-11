@@ -26,4 +26,17 @@ object Validators {
         password.none { it.isDigit() } -> "Include at least one number"
         else -> null
     }
+
+    // GSTIN: 15 chars · 2-digit state · 10-char PAN · 1 entity digit · 'Z' · 1 alphanumeric check.
+    // Source: https://gst.gov.in/help (GSTIN format spec).
+    private val GSTIN_REGEX = Regex("^[0-3][0-9][A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]Z[0-9A-Z]$")
+
+    /** Empty = not required at this layer; non-empty must match the canonical GSTIN shape. */
+    fun gstinError(value: String): String? {
+        val v = value.trim().uppercase()
+        if (v.isEmpty()) return null
+        if (v.length != 15) return "GSTIN must be exactly 15 characters"
+        if (!GSTIN_REGEX.matches(v)) return "Invalid GSTIN format"
+        return null
+    }
 }
