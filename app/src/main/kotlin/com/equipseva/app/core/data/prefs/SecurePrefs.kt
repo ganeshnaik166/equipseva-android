@@ -25,7 +25,7 @@ import javax.inject.Singleton
  * If [EncryptedSharedPreferences] init throws (known OEM quirks on a few
  * Samsung + Xiaomi devices with reset/restored Keystores), we fall back to
  * plain SharedPreferences in the app-private sandbox. Prefs here are low-value
- * (role toggle, onboarding flag, favorites) — not payment or PII — so the
+ * (role toggle, onboarding flag) — not payment or PII — so the
  * fallback is a pragmatic trade.
  *
  * INVARIANT — DO NOT store any of the following in [SecurePrefs]:
@@ -65,26 +65,10 @@ class SecurePrefs @Inject constructor(@ApplicationContext context: Context) {
         }.apply()
     }
 
-    fun getStringSet(key: String): Set<String> =
-        prefs.getStringSet(key, emptySet()).orEmpty()
-
-    fun putStringSet(key: String, value: Set<String>) {
-        prefs.edit().putStringSet(key, value).apply()
-    }
-
     fun stringFlow(key: String): Flow<String?> = callbackFlow {
         trySend(getString(key))
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changed ->
             if (changed == key) trySend(getString(key))
-        }
-        prefs.registerOnSharedPreferenceChangeListener(listener)
-        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
-    }
-
-    fun stringSetFlow(key: String): Flow<Set<String>> = callbackFlow {
-        trySend(getStringSet(key))
-        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changed ->
-            if (changed == key) trySend(getStringSet(key))
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)
         awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
