@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
-import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -162,8 +161,12 @@ fun AboutScreen(
                                 )
                             },
                             trailing = {
+                                // Open-source licenses opens the web URL —
+                                // mirror the OpenInNew icon used by Privacy
+                                // and Terms above. ChevronRight implied an
+                                // in-app destination.
                                 Icon(
-                                    Icons.Outlined.ChevronRight,
+                                    Icons.AutoMirrored.Outlined.OpenInNew,
                                     contentDescription = null,
                                     tint = SevaInk400,
                                     modifier = Modifier.size(16.dp),
