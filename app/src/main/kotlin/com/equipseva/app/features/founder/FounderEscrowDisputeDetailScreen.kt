@@ -107,7 +107,7 @@ fun FounderEscrowDisputeDetailScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Escrow timeline",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let { "$it events" },
+                subtitle = state.rows.size.takeIf { it > 0 }?.let { if (it == 1) "1 event" else "$it events" },
                 onBack = onBack,
             )
             Box(modifier = Modifier.fillMaxSize()) {

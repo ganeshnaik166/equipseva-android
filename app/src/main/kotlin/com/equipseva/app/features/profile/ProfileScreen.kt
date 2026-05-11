@@ -485,7 +485,11 @@ private fun EngineerSuspensionBanner(
         }
         Text(
             text = suspension.reason
-                ?: "${suspension.flagCount90d} hospital cash-payment flags in the last 90 days. EquipSeva paused your availability while we review.",
+                ?: run {
+                    val n = suspension.flagCount90d
+                    val flagPhrase = if (n == 1) "1 hospital cash-payment flag" else "$n hospital cash-payment flags"
+                    "$flagPhrase in the last 90 days. EquipSeva paused your availability while we review."
+                },
             fontSize = 12.sp,
             color = com.equipseva.app.designsystem.theme.SevaInk700,
         )
