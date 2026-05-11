@@ -33,6 +33,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
@@ -163,7 +164,7 @@ private fun CashFlagRow(row: FounderRepository.CashFlagHistoryRow) {
             Text("Responded: " + it.take(16).replace('T', ' '), color = SevaInk500, fontSize = 11.sp)
         }
         row.completedAt?.let {
-            Text("Job completed: " + it.take(10), color = SevaInk500, fontSize = 11.sp)
+            Text("Job completed: " + prettyDate(it), color = SevaInk500, fontSize = 11.sp)
         }
     }
 }
