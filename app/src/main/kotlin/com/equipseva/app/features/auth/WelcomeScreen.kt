@@ -20,8 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,8 +30,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -48,7 +44,6 @@ import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.theme.EsFontFamily
 import com.equipseva.app.designsystem.theme.SevaGreen900
-import com.equipseva.app.features.auth.state.AuthEffect
 import android.content.Intent
 
 // Round B redesign — full-bleed dark green hero with logo + tagline,
@@ -58,21 +53,8 @@ import android.content.Intent
 fun WelcomeScreen(
     onSignIn: () -> Unit,
     onSignUp: () -> Unit,
-    onShowMessage: (String) -> Unit,
-    viewModel: WelcomeViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
-
-    LaunchedEffect(viewModel) {
-        viewModel.effects.collect { effect ->
-            when (effect) {
-                is AuthEffect.ShowMessage -> onShowMessage(effect.text)
-                AuthEffect.NavigateToHome -> Unit
-                else -> Unit
-            }
-        }
-    }
 
     Surface(modifier = Modifier.fillMaxSize(), color = SevaGreen900) {
         Column(
