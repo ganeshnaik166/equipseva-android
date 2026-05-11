@@ -87,7 +87,6 @@ interface RepairJobRepository {
 }
 
 data class CheckInResult(
-    val statusKey: String,
     val distanceMeters: Double?,
     val geofencePassed: Boolean,
     val geofenceSkipped: Boolean,

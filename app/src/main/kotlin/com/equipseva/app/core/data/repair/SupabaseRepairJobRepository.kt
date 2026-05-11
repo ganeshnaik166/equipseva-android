@@ -133,7 +133,6 @@ class SupabaseRepairJobRepository @Inject constructor(
         val row = response.decodeList<CheckInWithGeoRow>().firstOrNull()
             ?: error("check-in returned no row")
         CheckInResult(
-            statusKey = row.status,
             distanceMeters = row.distanceMeters,
             geofencePassed = row.geofencePassed,
             geofenceSkipped = row.geofenceSkipped,
