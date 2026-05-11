@@ -12,8 +12,8 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import kotlinx.coroutines.flow.firstOrNull
-import com.equipseva.app.core.data.account.AccountDeletionRepository
-import com.equipseva.app.core.data.account.DataExportRepository
+import com.equipseva.app.core.data.account.SupabaseAccountDeletionRepository
+import com.equipseva.app.core.data.account.SupabaseDataExportRepository
 import com.equipseva.app.core.data.dao.OutboxDao
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
@@ -45,8 +45,8 @@ class ProfileViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val engineerRepository: EngineerRepository,
     private val userPrefs: UserPrefs,
-    private val accountDeletionRepository: AccountDeletionRepository,
-    private val dataExportRepository: DataExportRepository,
+    private val accountDeletionRepository: SupabaseAccountDeletionRepository,
+    private val dataExportRepository: SupabaseDataExportRepository,
     private val deviceTokenRegistrar: DeviceTokenRegistrar,
     private val outboxDao: OutboxDao,
     private val outboxScheduler: OutboxScheduler,

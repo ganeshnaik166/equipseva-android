@@ -15,9 +15,9 @@ import javax.inject.Singleton
 @Singleton
 class SupabaseDataExportRepository @Inject constructor(
     private val client: SupabaseClient,
-) : DataExportRepository {
+) {
 
-    override suspend fun exportToFile(targetDir: File): Result<File> = runCatching {
+    suspend fun exportToFile(targetDir: File): Result<File> = runCatching {
         val json = withContext(Dispatchers.IO) {
             client.postgrest.rpc(function = "export_my_data").data
         }
