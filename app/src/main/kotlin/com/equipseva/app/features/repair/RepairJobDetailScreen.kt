@@ -1577,7 +1577,17 @@ private fun LocationCard(
                                 android.content.Intent.ACTION_VIEW,
                                 Uri.parse(fallbackUrl),
                             )
-                            try { context.startActivity(fallback) } catch (_: Throwable) {}
+                            try {
+                                context.startActivity(fallback)
+                            } catch (_: android.content.ActivityNotFoundException) {
+                                // No maps app AND no browser — extremely rare,
+                                // but silently dropping the tap was confusing.
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "No app available to open this location",
+                                    android.widget.Toast.LENGTH_SHORT,
+                                ).show()
+                            }
                         }
                     },
                     kind = EsBtnKind.Secondary,

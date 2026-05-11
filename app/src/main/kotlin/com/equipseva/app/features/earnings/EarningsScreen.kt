@@ -399,7 +399,7 @@ private fun TransactionRow(
                 color = SevaInk900,
             )
             Text(
-                text = if (paid) "paid" else "pending",
+                text = if (paid) "Paid" else "Pending",
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = if (paid) SevaGreen700 else SevaWarning500,
