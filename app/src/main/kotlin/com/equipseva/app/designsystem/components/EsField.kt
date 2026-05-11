@@ -42,10 +42,8 @@ fun EsField(
     trailing: (@Composable () -> Unit)? = null,
     enabled: Boolean = true,
     // Default Next so chained fields advance focus on Enter; pass Done on
-    // the last field of a form to trigger [onImeAction] (or just dismiss
-    // the keyboard if no callback is provided).
+    // the last field of a form to just dismiss the keyboard.
     imeAction: ImeAction = ImeAction.Next,
-    onImeAction: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -95,10 +93,7 @@ fun EsField(
                 imeAction = imeAction,
             ),
             keyboardActions = KeyboardActions(
-                onDone = {
-                    onImeAction?.invoke()
-                    keyboardController?.hide()
-                },
+                onDone = { keyboardController?.hide() },
             ),
             enabled = enabled,
             shape = RoundedCornerShape(EsRadius.Md),
