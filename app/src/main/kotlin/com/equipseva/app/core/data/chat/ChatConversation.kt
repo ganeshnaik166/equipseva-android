@@ -1,7 +1,7 @@
 package com.equipseva.app.core.data.chat
 
+import com.equipseva.app.core.util.parseInstantOrNull
 import java.time.Instant
-import java.time.format.DateTimeParseException
 
 data class ChatConversation(
     val id: String,
@@ -14,15 +14,7 @@ data class ChatConversation(
     val unreadCount: Int = 0,
 ) {
     val lastMessageInstant: Instant?
-        get() = lastMessageAtIso?.let {
-            try {
-                Instant.parse(it)
-            } catch (_: DateTimeParseException) {
-                null
-            } catch (_: IllegalArgumentException) {
-                null
-            }
-        }
+        get() = lastMessageAtIso.parseInstantOrNull()
 
     fun counterpartId(selfUserId: String): String? =
         participantUserIds.firstOrNull { it != selfUserId }

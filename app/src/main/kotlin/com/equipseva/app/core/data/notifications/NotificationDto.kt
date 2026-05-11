@@ -1,12 +1,12 @@
 package com.equipseva.app.core.data.notifications
 
+import com.equipseva.app.core.util.parseInstantOrNull
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
-import java.time.Instant
 
 @Serializable
 internal data class NotificationDto(
@@ -39,8 +39,8 @@ internal data class NotificationDto(
             body = body,
             kind = kind?.takeIf { it.isNotBlank() } ?: notificationType?.takeIf { it.isNotBlank() },
             data = flatData,
-            sentAt = sentAt?.let { runCatching { Instant.parse(it) }.getOrNull() },
-            readAt = readAt?.let { runCatching { Instant.parse(it) }.getOrNull() },
+            sentAt = sentAt.parseInstantOrNull(),
+            readAt = readAt.parseInstantOrNull(),
             deepLink = deepLink?.takeIf { it.isNotBlank() },
         )
     }

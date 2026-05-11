@@ -1,7 +1,7 @@
 package com.equipseva.app.core.data.chat
 
+import com.equipseva.app.core.util.parseInstantOrNull
 import java.time.Instant
-import java.time.format.DateTimeParseException
 
 data class ChatMessage(
     val id: String,
@@ -15,15 +15,7 @@ data class ChatMessage(
     val editedAtIso: String? = null,
 ) {
     val createdAtInstant: Instant?
-        get() = createdAtIso?.let {
-            try {
-                Instant.parse(it)
-            } catch (_: DateTimeParseException) {
-                null
-            } catch (_: IllegalArgumentException) {
-                null
-            }
-        }
+        get() = createdAtIso.parseInstantOrNull()
 
     /** True when the sender has soft-deleted this message. Body and attachments are hidden. */
     val isDeleted: Boolean

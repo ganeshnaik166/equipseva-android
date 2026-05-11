@@ -1,7 +1,7 @@
 package com.equipseva.app.core.data.repair
 
+import com.equipseva.app.core.util.parseInstantOrNull
 import java.time.Instant
-import java.time.format.DateTimeParseException
 
 /**
  * UI-facing repair job. Computed fields (title, createdAtInstant) live here so
@@ -89,14 +89,14 @@ internal fun RepairJobDto.toDomain(): RepairJob {
         isAssignedToEngineer = !engineerId.isNullOrBlank(),
         engineerId = engineerId?.takeIf { it.isNotBlank() },
         hospitalUserId = hospitalUserId?.takeIf { it.isNotBlank() },
-        startedAtInstant = startedAt?.toInstantOrNull(),
-        completedAtInstant = completedAt?.toInstantOrNull(),
+        startedAtInstant = startedAt?.parseInstantOrNull(),
+        completedAtInstant = completedAt?.parseInstantOrNull(),
         hospitalRating = hospitalRating?.takeIf { it in 1..5 },
         hospitalReview = hospitalReview?.takeIf { it.isNotBlank() },
         engineerRating = engineerRating?.takeIf { it in 1..5 },
         engineerReview = engineerReview?.takeIf { it.isNotBlank() },
-        createdAtInstant = createdAt?.toInstantOrNull(),
-        updatedAtInstant = updatedAt?.toInstantOrNull(),
+        createdAtInstant = createdAt?.parseInstantOrNull(),
+        updatedAtInstant = updatedAt?.parseInstantOrNull(),
         issuePhotos = issuePhotos.orEmpty().filter { it.isNotBlank() },
         beforePhotos = beforePhotos.orEmpty().filter { it.isNotBlank() },
         afterPhotos = afterPhotos.orEmpty().filter { it.isNotBlank() },
@@ -124,10 +124,3 @@ private fun buildTitle(
     }
 }
 
-private fun String.toInstantOrNull(): Instant? = try {
-    Instant.parse(this)
-} catch (_: DateTimeParseException) {
-    null
-} catch (_: IllegalArgumentException) {
-    null
-}

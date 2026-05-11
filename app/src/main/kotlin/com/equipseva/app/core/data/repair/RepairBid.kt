@@ -1,7 +1,7 @@
 package com.equipseva.app.core.data.repair
 
+import com.equipseva.app.core.util.parseInstantOrNull
 import java.time.Instant
-import java.time.format.DateTimeParseException
 
 data class RepairBid(
     val id: String,
@@ -32,8 +32,8 @@ internal fun RepairBidDto.toDomain(): RepairBid = RepairBid(
     etaHours = etaHours,
     note = note?.takeIf { it.isNotBlank() },
     status = RepairBidStatus.fromKey(status),
-    createdAtInstant = createdAt?.toInstantOrNull(),
-    updatedAtInstant = updatedAt?.toInstantOrNull(),
+    createdAtInstant = createdAt?.parseInstantOrNull(),
+    updatedAtInstant = updatedAt?.parseInstantOrNull(),
 )
 
 internal fun RepairBidWithDistanceDto.toDomain(): RepairBid = RepairBid(
@@ -44,8 +44,8 @@ internal fun RepairBidWithDistanceDto.toDomain(): RepairBid = RepairBid(
     etaHours = etaHours,
     note = note?.takeIf { it.isNotBlank() },
     status = RepairBidStatus.fromKey(status),
-    createdAtInstant = createdAt?.toInstantOrNull(),
-    updatedAtInstant = updatedAt?.toInstantOrNull(),
+    createdAtInstant = createdAt?.parseInstantOrNull(),
+    updatedAtInstant = updatedAt?.parseInstantOrNull(),
     engineerName = engineerFullName?.takeIf { it.isNotBlank() },
     engineerAvatarUrl = engineerAvatarUrl?.takeIf { it.isNotBlank() },
     engineerRatingAvg = engineerRatingAvg,
@@ -53,9 +53,3 @@ internal fun RepairBidWithDistanceDto.toDomain(): RepairBid = RepairBid(
     engineerCity = engineerCity?.takeIf { it.isNotBlank() },
     distanceKm = distanceKm,
 )
-
-private fun String.toInstantOrNull(): Instant? = try {
-    Instant.parse(this)
-} catch (_: DateTimeParseException) {
-    null
-}

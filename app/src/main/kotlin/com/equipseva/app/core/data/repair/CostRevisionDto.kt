@@ -1,5 +1,6 @@
 package com.equipseva.app.core.data.repair
 
+import com.equipseva.app.core.util.parseInstantOrNull
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -29,6 +30,6 @@ data class CostRevisionDto(
         revisedAmountRupees = revisedAmountRupees,
         reason = reason,
         status = CostRevisionStatus.fromKey(status),
-        createdAt = createdAtIso?.let { runCatching { java.time.Instant.parse(it) }.getOrNull() },
+        createdAt = createdAtIso.parseInstantOrNull(),
     )
 }
