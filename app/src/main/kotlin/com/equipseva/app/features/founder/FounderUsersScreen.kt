@@ -89,7 +89,6 @@ class FounderUsersViewModel @Inject constructor(
         val acting: Boolean = false,
         val sheetUserId: String? = null,
         val sheetUserName: String? = null,
-        val toast: String? = null,
     )
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
@@ -155,7 +154,6 @@ class FounderUsersViewModel @Inject constructor(
                             acting = false,
                             sheetUserId = null,
                             sheetUserName = null,
-                            toast = "Role updated to $newRole",
                         )
                     }
                     fetch()
@@ -163,8 +161,6 @@ class FounderUsersViewModel @Inject constructor(
                 .onFailure { e -> _state.update { it.copy(acting = false, error = e.toUserMessage()) } }
         }
     }
-
-    fun clearToast() = _state.update { it.copy(toast = null) }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
