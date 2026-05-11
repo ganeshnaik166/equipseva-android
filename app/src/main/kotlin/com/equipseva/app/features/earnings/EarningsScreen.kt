@@ -48,6 +48,7 @@ import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.SecureScreen
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaDanger500
 import com.equipseva.app.designsystem.theme.SevaGlowRaw
 import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaGreen700
@@ -264,7 +265,7 @@ private fun EscrowSummaryCard(
                 EscrowStat(label = "Awaiting payment", value = "${summary.countPendingPayment}", tint = SevaWarning500)
             }
             if (summary.countInDispute > 0) {
-                EscrowStat(label = "In dispute", value = "${summary.countInDispute}", tint = androidx.compose.ui.graphics.Color(0xFFCC2A2A))
+                EscrowStat(label = "In dispute", value = "${summary.countInDispute}", tint = SevaDanger500)
             }
             if (summary.totalReleased30d > 0) {
                 EscrowStat(label = "Released (30d)", value = formatRupees(summary.totalReleased30d), tint = SevaInk900)

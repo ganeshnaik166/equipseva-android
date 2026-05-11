@@ -25,6 +25,7 @@ import com.equipseva.app.designsystem.theme.SevaDanger500
 import com.equipseva.app.designsystem.theme.SevaGlow
 import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaGreen900
+import com.equipseva.app.designsystem.theme.SevaInk100
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk900
 import com.equipseva.app.designsystem.theme.BorderDefault
@@ -43,7 +44,7 @@ enum class EsBtnSize { Sm, Md, Lg }
 private data class BtnVisual(val bg: Color, val fg: Color, val border: Color?)
 
 private fun visual(kind: EsBtnKind, disabled: Boolean): BtnVisual {
-    if (disabled) return BtnVisual(Color(0xFFE2E7E2), SevaInk500, null)
+    if (disabled) return BtnVisual(SevaInk100, SevaInk500, null)
     return when (kind) {
         EsBtnKind.Primary       -> BtnVisual(SevaGreen700, Color.White, null)
         EsBtnKind.Lime          -> BtnVisual(SevaGlow, SevaGreen900, null)
