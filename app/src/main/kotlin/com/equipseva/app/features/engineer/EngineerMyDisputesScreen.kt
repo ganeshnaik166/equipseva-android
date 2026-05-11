@@ -34,6 +34,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
@@ -164,7 +165,7 @@ private fun DisputeRow(
                     // as a missing-data bug to engineers, not as a
                     // fallback. Collapse blank/null names to the row
                     // category — "Hospital".
-                    "₹${"%,.0f".format(row.amountRupees)} · ${row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"}",
+                    "${formatRupees(row.amountRupees)} · ${row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"}",
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
