@@ -9,8 +9,6 @@ object Spacing {
     val md = 12.dp
     val lg = 16.dp
     val xl = 24.dp
-    val xxl = 32.dp
-    val xxxl = 48.dp
 
     // 48dp minimum touch target (Android a11y baseline).
     val MinTouchTarget = 48.dp
