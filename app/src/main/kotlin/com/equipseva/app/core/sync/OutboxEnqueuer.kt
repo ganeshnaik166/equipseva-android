@@ -47,7 +47,7 @@ class OutboxEnqueuer @Inject constructor(
             )
             .setBackoffCriteria(
                 BackoffPolicy.EXPONENTIAL,
-                30,
+                BACKOFF_INITIAL_SECONDS,
                 TimeUnit.SECONDS,
             )
             .build()
@@ -56,5 +56,12 @@ class OutboxEnqueuer @Inject constructor(
             ExistingWorkPolicy.REPLACE,
             request,
         )
+    }
+
+    private companion object {
+        // Exponential-backoff floor for outbox retries. WorkManager doubles
+        // this each failure, capped by its own ceiling (~5h). Lower than
+        // this and a flaky 5xx burns the daily quota in minutes.
+        const val BACKOFF_INITIAL_SECONDS: Long = 30L
     }
 }
