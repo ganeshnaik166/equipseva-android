@@ -10,8 +10,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.equipseva.app.core.data.prefs.ThemeMode
@@ -47,7 +47,7 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         deepLinkRouter.dispatch(intent)
         maybeRequestNotificationPermission()
         setContent {
-            val themeMode by userPrefs.themeMode.collectAsState(initial = ThemeMode.Light)
+            val themeMode by userPrefs.themeMode.collectAsStateWithLifecycle(initialValue = ThemeMode.Light)
             val systemDark = isSystemInDarkTheme()
             val isDark = when (themeMode) {
                 ThemeMode.System -> systemDark
