@@ -71,7 +71,6 @@ import com.equipseva.app.core.util.initialsOf
 import com.equipseva.app.designsystem.components.Avatar
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
-import com.equipseva.app.designsystem.components.OnlineStatus
 import com.equipseva.app.designsystem.components.ReportContentSheet
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.Paper2
