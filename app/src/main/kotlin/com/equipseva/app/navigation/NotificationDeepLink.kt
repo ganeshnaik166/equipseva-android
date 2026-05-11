@@ -80,8 +80,10 @@ object NotificationDeepLink {
             // PR-D43: spot-audit invitation lands on the hospital home —
             // same modal-sheet pattern as cash survey, sister auto-opener.
             KIND_SPOT_AUDIT_INVITED -> Routes.HOME
-            // PR-D31: commission-tier upgrade celebration lands on Home
-            // where the CommissionTierPill renders the new tier inline.
+            // PR-D31: commission-tier upgrade celebration lands on Home.
+            // Inline tier pill was pulled in round 136 with v1=free
+            // monetization; route stays in place so the kind doesn't
+            // 404 when v2 monetization re-emits.
             KIND_COMMISSION_TIER_UPGRADED -> Routes.HOME
             // PR-D11: engineer-side auto-suspend explainer. No
             // dedicated screen — Profile shows the suspended state via
