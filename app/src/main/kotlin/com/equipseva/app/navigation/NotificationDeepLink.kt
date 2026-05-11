@@ -94,6 +94,10 @@ object NotificationDeepLink {
             // PR-D22: engineer-side dispute alert. Open the repair job
             // detail where the EscrowStatusCard surfaces the dispute.
             KIND_ESCROW_DISPUTE_OPENED,
+            // PR-D26: hospital is notified when the engineer posts a
+            // response to a dispute. Same destination — the engineer's
+            // response surfaces on the EscrowStatusCard.
+            KIND_ESCROW_ENGINEER_RESPONDED,
             // PR-D28: both parties notified when admin resolves the
             // dispute. Same destination — the EscrowStatusCard reflects
             // the resolved status (released | refunded) inline.
@@ -161,6 +165,7 @@ object NotificationDeepLink {
     const val KIND_ADMIN_ENGINEER_AUTO_SUSPENDED = "admin_engineer_auto_suspended"
     // PR-D22 — admin / engineer alert when hospital opens a dispute.
     const val KIND_ESCROW_DISPUTE_OPENED = "escrow_dispute_opened"
+    const val KIND_ESCROW_ENGINEER_RESPONDED = "escrow_engineer_responded"
     const val KIND_ADMIN_ESCROW_DISPUTE_OPENED = "admin_escrow_dispute_opened"
     // PR-D28 — both parties notified when admin resolves a dispute.
     const val KIND_ESCROW_DISPUTE_RESOLVED = "escrow_dispute_resolved"
