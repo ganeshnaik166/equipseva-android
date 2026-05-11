@@ -84,12 +84,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import com.equipseva.app.core.data.prefs.ThemeMode
 import com.equipseva.app.designsystem.components.BrandedPlaceholder
 import com.equipseva.app.designsystem.components.DeleteAccountSheet
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.SecureScreen
-import com.equipseva.app.designsystem.components.SettingsSheet
 import com.equipseva.app.designsystem.components.StatusChip
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.designsystem.components.StatusTone
@@ -133,8 +131,6 @@ fun ProfileScreen(
 ) {
     SecureScreen()
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
-    val settingsOpen by viewModel.settingsOpen.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
 
     LaunchedEffect(viewModel) {
@@ -227,11 +223,9 @@ fun ProfileScreen(
                 else -> {
                     ProfileContent(
                         state = state,
-                        themeMode = themeMode,
                         onEditRole = viewModel::onOpenRoleEditor,
                         onSignOut = viewModel::onOpenSignOutConfirm,
                         onEditProfile = viewModel::onOpenEditProfile,
-                        onOpenSettings = viewModel::onOpenSettings,
                         onOpenMessages = onOpenMessages,
                         onOpenVerification = onOpenVerification,
                         onOpenAbout = onOpenAbout,
@@ -257,14 +251,6 @@ fun ProfileScreen(
                 }
             }
         }
-    }
-
-    if (settingsOpen) {
-        SettingsSheet(
-            currentMode = themeMode,
-            onSelectMode = viewModel::onThemeModeChange,
-            onDismiss = viewModel::onDismissSettings,
-        )
     }
 
     // Role-editor bottom sheet — opens from the Account-type card.
@@ -363,11 +349,9 @@ fun ProfileScreen(
 @Composable
 private fun ProfileContent(
     state: ProfileViewModel.UiState,
-    themeMode: ThemeMode,
     onEditRole: () -> Unit,
     onSignOut: () -> Unit,
     onEditProfile: () -> Unit,
-    onOpenSettings: () -> Unit,
     onOpenMessages: () -> Unit,
     onOpenVerification: () -> Unit,
     onOpenAbout: () -> Unit,
@@ -434,9 +418,7 @@ private fun ProfileContent(
             isLogistics = isLogistics,
             isFounder = isFounder,
             phone = profile.phone,
-            themeMode = themeMode,
             activeRoleLabel = profile.role?.displayName ?: "Not set",
-            onOpenSettings = onOpenSettings,
             onOpenVerification = onOpenVerification,
             onOpenMessages = onOpenMessages,
             onOpenAbout = onOpenAbout,
@@ -637,9 +619,7 @@ private fun buildProfileSections(
     isLogistics: Boolean,
     isFounder: Boolean,
     phone: String?,
-    themeMode: ThemeMode,
     activeRoleLabel: String,
-    onOpenSettings: () -> Unit,
     onOpenVerification: () -> Unit,
     onOpenMessages: () -> Unit,
     onOpenAbout: () -> Unit,
@@ -1001,12 +981,6 @@ private fun SettingsRowItem(row: SettingsRow) {
             )
         }
     }
-}
-
-private fun ThemeMode.displayLabel(): String = when (this) {
-    ThemeMode.System -> "System"
-    ThemeMode.Light -> "Light"
-    ThemeMode.Dark -> "Dark"
 }
 
 @Composable
