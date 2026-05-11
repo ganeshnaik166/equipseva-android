@@ -495,7 +495,7 @@ private fun EngineerSuspensionBanner(
         )
         suspension.suspendedAt?.let {
             Text(
-                text = "Paused: " + it.take(19).replace('T', ' '),
+                text = "Paused: ${it.take(19).replace('T', ' ')}",
                 fontSize = 11.sp,
                 color = com.equipseva.app.designsystem.theme.SevaInk500,
             )

@@ -186,7 +186,7 @@ private fun EscalationDetailBody(
                         )
                         detail.createdAt?.let {
                             Text(
-                                "Raised: " + prettyDateTime(it),
+                                "Raised: ${prettyDateTime(it)}",
                                 color = SevaInk500,
                                 fontSize = 12.sp,
                             )
