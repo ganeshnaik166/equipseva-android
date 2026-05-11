@@ -261,9 +261,33 @@ private fun QuietHoursCard(
                                 { _, h, m -> onWindowChange(prefs.startMinutes, h * 60 + m) },
                                 prefs.endMinutes / 60,
                                 prefs.endMinutes % 60,
-                                true,
+                                android.text.format.DateFormat.is24HourFormat(context),
                             ).show()
                         },
+                )
+            }
+            // Helper text — clarifies cross-midnight behaviour. End < Start
+            // silently spans midnight (per QuietHours.isWithinWindow). Users
+            // commonly set 22:00 → 07:00 thinking it means "9 hours overnight";
+            // tell them that's how it reads.
+            if (prefs.endMinutes != prefs.startMinutes) {
+                val spansMidnight = prefs.endMinutes < prefs.startMinutes
+                Text(
+                    text = if (spansMidnight) {
+                        "Quiet hours span midnight (overnight)."
+                    } else {
+                        "Quiet hours stay within the same day."
+                    },
+                    fontSize = 11.sp,
+                    color = SevaInk500,
+                )
+            } else {
+                // Start == End is a backend-silent disable in QuietHours.kt.
+                // Surface it so the user doesn't think the toggle works.
+                Text(
+                    text = "Start and end can't match — quiet hours won't apply.",
+                    fontSize = 11.sp,
+                    color = SevaInk500,
                 )
             }
         }
