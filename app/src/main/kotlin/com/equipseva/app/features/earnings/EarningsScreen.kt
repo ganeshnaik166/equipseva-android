@@ -244,10 +244,19 @@ private fun EscrowSummaryCard(
                 letterSpacing = (-0.44).sp,
                 color = SevaGreen700,
             )
-            val nextLabel = summary.nextReleaseAt?.let { iso ->
-                "Next release: " + iso.take(16).replace('T', ' ')
-            } ?: "Next release: scheduled 48h after job completion"
-            Text(text = nextLabel, fontSize = 12.sp, color = SevaInk500)
+            // Only render the "Next release" line when the server has an
+            // actual scheduled_release_at. Earlier fallback asserted a
+            // "48h after completion" SLA the app doesn't enforce and the
+            // branch was effectively unreachable in practice (countHeld>0
+            // only when a held row exists, and trigger always populates
+            // scheduled_release_at on those rows).
+            summary.nextReleaseAt?.let { iso ->
+                Text(
+                    text = "Next release: " + iso.take(16).replace('T', ' '),
+                    fontSize = 12.sp,
+                    color = SevaInk500,
+                )
+            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             if (summary.countPendingPayment > 0) {
