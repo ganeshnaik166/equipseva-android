@@ -69,7 +69,6 @@ class HomeHubViewModel @Inject constructor(
         // Empty until GPS resolves AND the RPC returns ≥1 row — caller
         // hides the section gracefully so we never show an empty band.
         val recommended: List<EngineerDirectoryRepository.RecommendedRow> = emptyList(),
-        val recommendedLoading: Boolean = false,
         // PR-D1: post-completion cash-payment survey. Non-null when the
         // hospital has a completed job 24h..7d old without a survey row;
         // home renders a one-question bottom-sheet on the next foreground.
@@ -258,10 +257,9 @@ class HomeHubViewModel @Inject constructor(
      */
     private fun loadRecommendedCarousel() {
         viewModelScope.launch {
-            _state.update { it.copy(recommendedLoading = true) }
             val loc = fetchCurrentLocation(app)
             if (loc == null) {
-                _state.update { it.copy(recommendedLoading = false, recommended = emptyList()) }
+                _state.update { it.copy(recommended = emptyList()) }
                 return@launch
             }
             engineerDirectoryRepository
@@ -272,10 +270,10 @@ class HomeHubViewModel @Inject constructor(
                     limit = 5,
                 )
                 .onSuccess { rows ->
-                    _state.update { it.copy(recommendedLoading = false, recommended = rows) }
+                    _state.update { it.copy(recommended = rows) }
                 }
                 .onFailure {
-                    _state.update { it.copy(recommendedLoading = false, recommended = emptyList()) }
+                    _state.update { it.copy(recommended = emptyList()) }
                 }
         }
     }
