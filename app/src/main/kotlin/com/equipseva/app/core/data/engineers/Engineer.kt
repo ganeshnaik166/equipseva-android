@@ -39,9 +39,6 @@ data class Engineer(
     val certDocPaths: List<String> get() =
         certificates.filter { it.type == EngineerCertificate.TYPE_CERT }.map { it.path }
 
-    val selfieDocPath: String? get() =
-        certificates.lastOrNull { it.type == EngineerCertificate.TYPE_SELFIE }?.path
-
     val panDocPath: String? get() =
         certificates.lastOrNull { it.type == EngineerCertificate.TYPE_PAN }?.path
 }
