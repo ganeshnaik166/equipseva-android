@@ -31,6 +31,7 @@ import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
 import com.equipseva.app.core.payments.RazorpayCheckoutLauncher
+import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.EsBottomSheet
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
@@ -194,7 +195,7 @@ fun JobEscrowPaymentSheet(
                     Column(horizontalAlignment = Alignment.End) {
                         Text("Amount", color = SevaInk500, fontSize = 11.sp)
                         Text(
-                            "₹${"%,.0f".format(amountRupees)}",
+                            formatRupees(amountRupees),
                             color = SevaInk900,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
@@ -209,7 +210,7 @@ fun JobEscrowPaymentSheet(
             )
             Spacer(Modifier.height(4.dp))
             EsBtn(
-                text = if (state.busy) "Processing…" else "Pay ₹${"%,.0f".format(amountRupees)}",
+                text = if (state.busy) "Processing…" else "Pay ${formatRupees(amountRupees)}",
                 kind = EsBtnKind.Primary,
                 size = EsBtnSize.Lg,
                 full = true,

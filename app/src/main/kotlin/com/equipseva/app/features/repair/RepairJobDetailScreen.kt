@@ -697,12 +697,12 @@ private fun EscrowStatusCard(
     val (label, sub, accent) = when {
         escrow.isPending -> Triple(
             "Awaiting payment",
-            "Pay ₹${"%,.0f".format(escrow.amountRupees)} into escrow to release the engineer to start work.",
+            "Pay ${formatRupees(escrow.amountRupees)} into escrow to release the engineer to start work.",
             WarnGold,
         )
         escrow.isHeld -> Triple(
             "Funds in escrow",
-            "₹${"%,.0f".format(escrow.amountRupees)} is held by EquipSeva. Auto-released to engineer 48h after completion.",
+            "${formatRupees(escrow.amountRupees)} is held by EquipSeva. Auto-released to engineer 48h after completion.",
             SevaGreen700,
         )
         escrow.isInDispute -> Triple(
@@ -715,15 +715,15 @@ private fun EscrowStatusCard(
             // is jarring on their view. Branch on viewer role.
             if (isHospital) "Released to engineer" else "Released to you",
             if (isHospital) {
-                "₹${"%,.0f".format(escrow.amountRupees)} released. Settlement to engineer's bank account."
+                "${formatRupees(escrow.amountRupees)} released. Settlement to engineer's bank account."
             } else {
-                "₹${"%,.0f".format(escrow.amountRupees)} released. Settlement to your bank account."
+                "${formatRupees(escrow.amountRupees)} released. Settlement to your bank account."
             },
             SevaGreen700,
         )
         escrow.isRefunded -> Triple(
             "Refunded",
-            "₹${"%,.0f".format(escrow.amountRupees)} refunded.",
+            "${formatRupees(escrow.amountRupees)} refunded.",
             SevaInk700,
         )
         else -> Triple("Escrow ${escrow.status}", "", SevaInk500)
@@ -793,7 +793,7 @@ private fun EscrowStatusCard(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    "Pay ₹${"%,.0f".format(escrow.amountRupees)} to escrow",
+                    "Pay ${formatRupees(escrow.amountRupees)} to escrow",
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp,

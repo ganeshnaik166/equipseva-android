@@ -34,6 +34,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.amc.AmcRepository
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.core.util.prettyDateTime
 import com.equipseva.app.designsystem.components.EmptyStateView
@@ -209,7 +210,7 @@ private fun EscalationDetailBody(
                 LabelRow("Hospital", detail.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital")
                 detail.contractStatus?.let { LabelRow("Status", it.replaceFirstChar { c -> c.uppercase() }) }
                 detail.visitFrequency?.let { LabelRow("Cadence", it.replaceFirstChar { c -> c.uppercase() }) }
-                detail.monthlyFeeRupees?.let { LabelRow("Monthly fee", "₹${"%,.0f".format(it)}") }
+                detail.monthlyFeeRupees?.let { LabelRow("Monthly fee", formatRupees(it)) }
                 detail.nextVisitAt?.let { LabelRow("Next visit", it.take(16).replace('T', ' ')) }
                 detail.contractEndDate?.let { LabelRow("End date", prettyDate(it)) }
             }
