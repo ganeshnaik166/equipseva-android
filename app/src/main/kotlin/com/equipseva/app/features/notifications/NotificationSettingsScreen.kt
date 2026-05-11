@@ -45,6 +45,8 @@ import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.designsystem.theme.SevaWarning50
+import com.equipseva.app.designsystem.theme.SevaWarning500
 
 /**
  * Per-category push mute toggles. Backed by [NotificationSettingsViewModel],
@@ -65,6 +67,11 @@ fun NotificationSettingsScreen(
 ) {
     val categories by viewModel.categories.collectAsStateWithLifecycle()
     val quietHours by viewModel.quietHours.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    // Check on every recomposition so the banner clears the moment the
+    // user returns from Settings having granted POST_NOTIFICATIONS.
+    val systemNotificationsEnabled = androidx.core.app.NotificationManagerCompat
+        .from(context).areNotificationsEnabled()
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(title = "Notification settings", onBack = onBack)
@@ -72,6 +79,19 @@ fun NotificationSettingsScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 24.dp),
             ) {
+                if (!systemNotificationsEnabled) {
+                    item(key = "perm_denied_banner") {
+                        PermissionDeniedBanner(onOpenSystemSettings = {
+                            val intent = android.content.Intent(
+                                android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS,
+                            ).putExtra(
+                                android.provider.Settings.EXTRA_APP_PACKAGE,
+                                context.packageName,
+                            )
+                            runCatching { context.startActivity(intent) }
+                        })
+                    }
+                }
                 item(key = "categories") {
                     EsSection(title = "Categories") {
                         Column(
@@ -291,5 +311,39 @@ private fun QuietHoursCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun PermissionDeniedBanner(onOpenSystemSettings: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(SevaWarning50)
+            .border(1.dp, SevaWarning500.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = "Notifications are turned off",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = SevaInk900,
+        )
+        Text(
+            text = "EquipSeva can't post any notifications until you grant the permission in system Settings. " +
+                "The toggles below still save your preferences for when it's re-enabled.",
+            fontSize = 12.sp,
+            color = SevaInk500,
+        )
+        Text(
+            text = "Open system Settings",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = SevaGreen700,
+            modifier = Modifier.clickable(onClick = onOpenSystemSettings),
+        )
     }
 }
