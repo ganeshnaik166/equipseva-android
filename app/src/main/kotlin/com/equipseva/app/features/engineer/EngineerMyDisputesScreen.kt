@@ -34,6 +34,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
@@ -186,10 +187,10 @@ private fun DisputeRow(
             )
         }
         row.disputeOpenedAt?.let {
-            Text("Opened: ${it.take(10)}", color = SevaInk500, fontSize = 11.sp)
+            Text("Opened: ${prettyDate(it)}", color = SevaInk500, fontSize = 11.sp)
         }
         row.disputeResolvedAt?.let {
-            Text("Resolved: ${it.take(10)}", color = SevaInk500, fontSize = 11.sp)
+            Text("Resolved: ${prettyDate(it)}", color = SevaInk500, fontSize = 11.sp)
         }
     }
 }

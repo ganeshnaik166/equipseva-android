@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.amc.AmcRepository
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
@@ -174,10 +175,10 @@ private fun VisitRow(
             )
         }
         row.scheduledDate?.let {
-            Text("Scheduled: ${it.take(10)}", color = SevaInk500, fontSize = 11.sp)
+            Text("Scheduled: ${prettyDate(it)}", color = SevaInk500, fontSize = 11.sp)
         }
         row.completedAt?.let {
-            Text("Completed: ${it.take(10)}", color = SevaInk500, fontSize = 11.sp)
+            Text("Completed: ${prettyDate(it)}", color = SevaInk500, fontSize = 11.sp)
         }
         if (row.breachCount > 0) {
             Pill(
