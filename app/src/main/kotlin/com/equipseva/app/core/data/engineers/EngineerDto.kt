@@ -36,8 +36,10 @@ data class EngineerDto(
     @SerialName("rating_avg") val ratingAvg: Double? = null,
     @SerialName("total_jobs") val totalJobs: Int? = null,
     @SerialName("completion_rate") val completionRate: Double? = null,
-    @SerialName("created_at") val createdAt: String? = null,
-    @SerialName("updated_at") val updatedAt: String? = null,
+    // created_at / updated_at columns come back on every Postgrest select
+    // but the Engineer domain class doesn't carry them — leaving them off
+    // the DTO so kotlinx.serialization ignoreUnknownKeys silently drops
+    // them instead of allocating two unused String fields per row.
 )
 
 @Serializable
