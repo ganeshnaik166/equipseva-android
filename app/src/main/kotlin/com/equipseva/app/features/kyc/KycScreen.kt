@@ -944,7 +944,7 @@ private fun ReuploadCta(
         .joinToString { type ->
             when (type) {
                 "aadhaar" -> "Aadhaar"
-                "selfie" -> "selfie"
+                "pan" -> "PAN"
                 "cert" -> "certificate"
                 else -> type
             }
