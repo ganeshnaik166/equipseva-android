@@ -93,7 +93,9 @@ fun EngineerAmcVisitsScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "AMC visits",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let { "$it total" },
+                subtitle = state.rows.size.takeIf { it > 0 }?.let {
+                    "$it ${if (it == 1) "visit" else "visits"}"
+                },
                 onBack = onBack,
             )
             Box(modifier = Modifier.fillMaxSize()) {
