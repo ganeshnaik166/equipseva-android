@@ -22,14 +22,6 @@ data class RepairJobsUiState(
      */
     val ownBidsByJob: Map<String, RepairBid> = emptyMap(),
     /**
-     * Jobs assigned to the engineer across all statuses. Separate list because
-     * the open-feed query deliberately filters out jobs that have already
-     * moved past Requested, so the "My jobs" tab would otherwise be empty.
-     */
-    val mineItems: List<RepairJob> = emptyList(),
-    val mineLoading: Boolean = true,
-    val mineErrorMessage: String? = null,
-    /**
      * Distance filter for the open-feed (km). `null` disables the filter and
      * falls back to the unfiltered open-feed query. Default 50 km matches the
      * KYC default service radius engineers register with.

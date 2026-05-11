@@ -115,15 +115,12 @@ class RepairJobsViewModel @Inject constructor(
                 refreshing = viaPullToRefresh,
                 endReached = false,
                 errorMessage = null,
-                mineLoading = it.mineItems.isEmpty() && !viaPullToRefresh,
-                mineErrorMessage = null,
             )
         }
         pageJob = viewModelScope.launch {
             val current = _state.value
             val radius = current.radiusKm
             val bidsDeferred = async { bidRepository.fetchMyBids() }
-            val mineDeferred = async { repository.fetchAssignedToMe() }
             // When a radius is set, prefer the proximity RPC which filters
             // server-side and returns distance per row. The text query isn't
             // wired into the RPC yet — fall back to unfiltered list when the
@@ -205,18 +202,6 @@ class RepairJobsViewModel @Inject constructor(
                     },
                 )
             }
-            mineDeferred.await().fold(
-                onSuccess = { rows ->
-                    _state.update {
-                        it.copy(mineItems = rows, mineLoading = false, mineErrorMessage = null)
-                    }
-                },
-                onFailure = { ex ->
-                    _state.update {
-                        it.copy(mineItems = emptyList(), mineLoading = false, mineErrorMessage = ex.toUserMessage())
-                    }
-                },
-            )
         }
     }
 
