@@ -170,7 +170,11 @@ fun ChatScreen(
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
             state.relatedJobId?.let { jobId ->
-                JobContextStrip(jobId = jobId, onClick = { onOpenJob(jobId) })
+                JobContextStrip(
+                    jobId = jobId,
+                    jobNumber = state.relatedJobNumber,
+                    onClick = { onOpenJob(jobId) },
+                )
             }
             QueuedPill(count = state.queuedCount)
             when {
@@ -704,7 +708,7 @@ private fun String.isImageUrl(): Boolean {
 }
 
 @Composable
-private fun JobContextStrip(jobId: String, onClick: () -> Unit) {
+private fun JobContextStrip(jobId: String, jobNumber: String?, onClick: () -> Unit) {
     Column {
         Row(
             modifier = Modifier
@@ -724,13 +728,15 @@ private fun JobContextStrip(jobId: String, onClick: () -> Unit) {
             // Job code rendered bold + " · " separator + equipment / fallback.
             // When ChatViewModel.UiState exposes related equipment flip the
             // suffix to that label.
-            val short = jobId.take(8)
+            // Real job_number when resolved; truncated UUID otherwise so the
+            // strip is never blank during the fetch window.
+            val label = jobNumber?.takeIf { it.isNotBlank() } ?: "RJ-${jobId.take(8)}"
             Row(
                 modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "RJ-$short",
+                    text = label,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = SevaGreen900,

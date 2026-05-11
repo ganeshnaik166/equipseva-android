@@ -15,6 +15,7 @@ import com.equipseva.app.core.data.moderation.ContentReportTarget
 import com.equipseva.app.core.data.moderation.UserBlockRepository
 import com.equipseva.app.core.data.profile.Profile
 import com.equipseva.app.core.data.profile.ProfileRepository
+import com.equipseva.app.core.data.repair.RepairJobRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.sync.OutboxEnqueuer
 import com.equipseva.app.core.sync.OutboxKinds
@@ -42,6 +43,7 @@ class ChatViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val chatRepository: ChatRepository,
     private val profileRepository: ProfileRepository,
+    private val repairJobRepository: RepairJobRepository,
     private val outboxEnqueuer: OutboxEnqueuer,
     private val outboxDao: OutboxDao,
     private val reportRepository: ContentReportRepository,
@@ -70,6 +72,10 @@ class ChatViewModel @Inject constructor(
         // bar. Populated from `chat_conversations.related_entity_id` when
         // related_entity_type == "repair_job".
         val relatedJobId: String? = null,
+        // Human-readable booking number (e.g. "RPR-00042") fetched lazily
+        // after relatedJobId is resolved. Falls back to a truncated id
+        // when null (e.g. during the first paint or if the lookup fails).
+        val relatedJobNumber: String? = null,
     ) {
         val title: String
             get() = counterpart?.displayName ?: "Chat"
@@ -319,6 +325,18 @@ class ChatViewModel @Inject constructor(
                     ?.relatedEntityId
                 if (jobId != null) {
                     _state.update { it.copy(relatedJobId = jobId) }
+                    // Lazy lookup of the user-facing job number. Strip falls
+                    // back to a truncated UUID while this is in flight or
+                    // if the fetch fails (RLS / offline / 5xx).
+                    viewModelScope.launch {
+                        repairJobRepository.fetchById(jobId)
+                            .onSuccess { job ->
+                                val num = job?.jobNumber
+                                if (!num.isNullOrBlank()) {
+                                    _state.update { it.copy(relatedJobNumber = num) }
+                                }
+                            }
+                    }
                 }
                 // Fire-and-forget read receipt.
                 viewModelScope.launch { chatRepository.markConversationRead(conversationId, selfUserId) }
