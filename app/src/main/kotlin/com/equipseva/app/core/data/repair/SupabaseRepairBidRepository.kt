@@ -52,11 +52,11 @@ class SupabaseRepairBidRepository @Inject constructor(
         etaHours: Int?,
         note: String?,
     ): Result<RepairBid> = runCatching {
-        require(amountRupees.isFinite() && amountRupees in 1.0..10_000_000.0) {
+        require(amountRupees.isFinite() && amountRupees in 1.0..MAX_BID_RUPEES) {
             "Bid amount must be between ₹1 and ₹1 crore"
         }
-        require(etaHours == null || etaHours in 1..720) {
-            "ETA must be between 1 and 720 hours"
+        require(etaHours == null || etaHours in 1..MAX_ETA_HOURS) {
+            "ETA must be between 1 and $MAX_ETA_HOURS hours"
         }
         val userId = requireNotNull(client.auth.currentUserOrNull()?.id) {
             "No authenticated user"
@@ -105,5 +105,10 @@ class SupabaseRepairBidRepository @Inject constructor(
 
     private companion object {
         const val TABLE = "repair_job_bids"
+        // ₹1 crore — server enforces the same upper bound; client guards
+        // so a slip-up doesn't round-trip an obviously wrong payload.
+        const val MAX_BID_RUPEES: Double = 10_000_000.0
+        // 30 days × 24h. Anything longer should be an AMC, not a one-shot bid.
+        const val MAX_ETA_HOURS: Int = 720
     }
 }

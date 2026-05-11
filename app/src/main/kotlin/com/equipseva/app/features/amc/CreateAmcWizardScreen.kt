@@ -109,7 +109,7 @@ class CreateAmcWizardViewModel @Inject constructor(
         // Step 2
         val visitFrequency: String = "monthly",
         val visitsPerYear: Int = 12,
-        val monthlyFeeRupees: String = "5000",
+        val monthlyFeeRupees: String = DEFAULT_MONTHLY_FEE_RUPEES,
         // Step 3
         val responseTimeStandardHours: String = "24",
         val responseTimeEmergencyHours: String = "4",
@@ -240,7 +240,7 @@ class CreateAmcWizardViewModel @Inject constructor(
         // Default term = 1 year. start = today (UTC ISO date), end = +365d.
         val today = java.time.LocalDate.now()
         val start = today.toString()
-        val end = today.plusDays(365).toString()
+        val end = today.plusDays(DEFAULT_CONTRACT_DAYS).toString()
 
         _state.update { it.copy(submitting = true, error = null) }
         viewModelScope.launch {
@@ -345,6 +345,14 @@ class CreateAmcWizardViewModel @Inject constructor(
                 ).isSuccess
             }
         }
+    }
+
+    private companion object {
+        // Pre-fills Step 2 fee field; engineer can edit before submit.
+        const val DEFAULT_MONTHLY_FEE_RUPEES: String = "5000"
+        // AMC default term is 1 year (365 days). Server is the authority on
+        // the actual end date — this is only the wizard pre-fill.
+        const val DEFAULT_CONTRACT_DAYS: Long = 365L
     }
 }
 
