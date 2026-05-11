@@ -32,7 +32,6 @@ import com.equipseva.app.designsystem.theme.BorderDefault
 
 enum class EsBtnKind {
     Primary,         // green-700 fill, white text
-    Forest,          // green-900 dark, white text
     Lime,            // glow green, near-black text
     Secondary,       // white fill, ink-900 text, ink-100 border
     Ghost,           // transparent, ink-700 text
@@ -48,7 +47,6 @@ private fun visual(kind: EsBtnKind, disabled: Boolean): BtnVisual {
     if (disabled) return BtnVisual(Color(0xFFE2E7E2), SevaInk500, null)
     return when (kind) {
         EsBtnKind.Primary       -> BtnVisual(SevaGreen700, Color.White, null)
-        EsBtnKind.Forest        -> BtnVisual(SevaGreen900, Color.White, null)
         EsBtnKind.Lime          -> BtnVisual(SevaGlow, SevaGreen900, null)
         EsBtnKind.Secondary     -> BtnVisual(Color.White, SevaInk900, BorderDefault)
         EsBtnKind.Ghost         -> BtnVisual(Color.Transparent, SevaInk900, null)
