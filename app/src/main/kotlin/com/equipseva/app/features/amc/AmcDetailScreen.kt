@@ -192,7 +192,10 @@ class AmcDetailViewModel @Inject constructor(
 
     fun openTopUp() = _state.update { it.copy(topUpOpen = true, topUpMonths = 1) }
     fun dismissTopUp() = _state.update { it.copy(topUpOpen = false) }
-    fun setTopUpMonths(m: Int) = _state.update { it.copy(topUpMonths = m.coerceIn(1, 12)) }
+    // Server accepts top-ups in 1..36 months (per AmcRepository). The
+    // earlier client clamp at 12 silently capped hospitals trying to
+    // pre-fund a 2- or 3-year contract.
+    fun setTopUpMonths(m: Int) = _state.update { it.copy(topUpMonths = m.coerceIn(1, 36)) }
     fun markTopUpBusy(busy: Boolean) = _state.update { it.copy(topUpBusy = busy) }
 
     fun removeFallback(engineerId: String) {
