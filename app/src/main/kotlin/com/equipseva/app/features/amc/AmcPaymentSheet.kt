@@ -227,7 +227,11 @@ fun AmcPaymentSheet(
                     ) {
                         Text("Monthly fee", color = SevaInk700, fontSize = 13.sp)
                         Text(
-                            "₹${monthlyFeeRupees.toInt()}",
+                            // Earlier .toInt() truncated fractional rupees —
+                            // ₹2999.50 rendered as ₹2999 while the total
+                            // line below used formatRupees and rendered the
+                            // full amount. User saw mismatched math.
+                            formatRupees(monthlyFeeRupees),
                             color = SevaInk900,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
