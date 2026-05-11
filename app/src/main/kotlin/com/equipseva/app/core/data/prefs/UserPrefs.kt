@@ -14,7 +14,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,11 +21,11 @@ import javax.inject.Singleton
 private val Context.prefsStore by preferencesDataStore(name = "equipseva_prefs")
 
 /**
- * `activeRole`, `onboardingDone`, and `favorites` are read from [SecurePrefs]
- * first; any value still in the legacy DataStore is surfaced as a fallback.
- * Writes land in [SecurePrefs] and clear the legacy DataStore key in the same
- * operation, so installs migrate silently on the first set/toggle. `theme`
- * stays in DataStore — not sensitive, keeping the theme toggle cheap.
+ * `activeRole` and `onboardingDone` are read from [SecurePrefs] first; any
+ * value still in the legacy DataStore is surfaced as a fallback. Writes land
+ * in [SecurePrefs] and clear the legacy DataStore key in the same operation,
+ * so installs migrate silently on the first set/toggle. `theme` stays in
+ * DataStore — not sensitive, keeping the theme toggle cheap.
  */
 @Singleton
 class UserPrefs @Inject constructor(
@@ -37,9 +36,7 @@ class UserPrefs @Inject constructor(
         val ACTIVE_ROLE = stringPreferencesKey("active_role")
         val THEME = stringPreferencesKey("theme")
         val ONBOARDING_DONE = stringPreferencesKey("onboarding_done")
-        val FAVORITES = stringSetPreferencesKey("favorites")
         val MUTED_PUSH_CATEGORIES = stringSetPreferencesKey("muted_push_categories")
-        val RECENTLY_VIEWED = stringPreferencesKey("recently_viewed_parts")
         val TOUR_SEEN = booleanPreferencesKey("tour_seen")
         val QUIET_HOURS_ENABLED = booleanPreferencesKey("quiet_hours_enabled")
         val QUIET_HOURS_START_MINUTES = intPreferencesKey("quiet_hours_start_minutes")
@@ -60,7 +57,6 @@ class UserPrefs @Inject constructor(
     private object SecureKeys {
         const val ACTIVE_ROLE = "active_role"
         const val ONBOARDING_DONE = "onboarding_done"
-        const val FAVORITES = "favorites"
     }
 
     val activeRole: Flow<String?> = combine(
@@ -76,11 +72,6 @@ class UserPrefs @Inject constructor(
         securePrefs.stringFlow(SecureKeys.ONBOARDING_DONE),
         context.prefsStore.data.map { it[Keys.ONBOARDING_DONE] == "1" },
     ) { secure, legacy -> secure == "1" || legacy }
-
-    val favorites: Flow<Set<String>> = combine(
-        securePrefs.stringSetFlow(SecureKeys.FAVORITES),
-        context.prefsStore.data.map { it[Keys.FAVORITES].orEmpty() },
-    ) { secure, legacy -> if (secure.isNotEmpty()) secure else legacy }
 
     suspend fun setActiveRole(role: String) {
         securePrefs.putString(SecureKeys.ACTIVE_ROLE, role)
@@ -114,44 +105,6 @@ class UserPrefs @Inject constructor(
     suspend fun markOnboardingDone() {
         securePrefs.putString(SecureKeys.ONBOARDING_DONE, "1")
         context.prefsStore.edit { it.remove(Keys.ONBOARDING_DONE) }
-    }
-
-
-    suspend fun toggleFavorite(partId: String) {
-        val cur = favorites.first()
-        val next = if (partId in cur) cur - partId else cur + partId
-        securePrefs.putStringSet(SecureKeys.FAVORITES, next)
-        context.prefsStore.edit { it.remove(Keys.FAVORITES) }
-    }
-
-    suspend fun setFavorites(ids: Set<String>) {
-        securePrefs.putStringSet(SecureKeys.FAVORITES, ids)
-        context.prefsStore.edit { it.remove(Keys.FAVORITES) }
-    }
-
-    /**
-     * Recently-viewed part IDs (most-recent first, capped at 8). Backed by a
-     * comma-separated string in DataStore — small enough that a CSV is cheaper
-     * than maintaining a stringSet's order.
-     */
-    val recentlyViewedParts: Flow<List<String>> =
-        context.prefsStore.data.map {
-            it[Keys.RECENTLY_VIEWED]
-                ?.split(',')
-                ?.filter { id -> id.isNotBlank() }
-                .orEmpty()
-        }
-
-    suspend fun addRecentlyViewedPart(partId: String) {
-        if (partId.isBlank()) return
-        context.prefsStore.edit { prefs ->
-            val current = prefs[Keys.RECENTLY_VIEWED]
-                ?.split(',')
-                ?.filter { it.isNotBlank() && it != partId }
-                .orEmpty()
-            val next = (listOf(partId) + current).take(8)
-            prefs[Keys.RECENTLY_VIEWED] = next.joinToString(",")
-        }
     }
 
     /**
