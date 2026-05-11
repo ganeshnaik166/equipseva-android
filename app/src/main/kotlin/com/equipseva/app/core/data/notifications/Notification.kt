@@ -12,7 +12,6 @@ import java.time.Instant
  */
 data class Notification(
     val id: String,
-    val userId: String,
     val title: String,
     val body: String,
     val kind: String?,

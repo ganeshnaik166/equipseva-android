@@ -35,7 +35,6 @@ internal data class NotificationDto(
         val deepLink = flatData["deep_link"] ?: actionUrl
         return Notification(
             id = id,
-            userId = userId,
             title = title,
             body = body,
             kind = kind?.takeIf { it.isNotBlank() } ?: notificationType?.takeIf { it.isNotBlank() },

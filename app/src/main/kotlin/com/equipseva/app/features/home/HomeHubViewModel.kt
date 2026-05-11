@@ -20,8 +20,6 @@ import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.util.fetchCurrentLocation
 import com.equipseva.app.features.auth.UserRole
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.time.Instant
-import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -315,80 +313,4 @@ class HomeHubViewModel @Inject constructor(
         _state.update { it.copy(pendingSpotAudit = null) }
     }
 
-    private fun sampleRecent(userId: String, role: UserRole?): List<Notification> {
-        val now = Instant.now()
-        return if (role == UserRole.HOSPITAL) {
-            listOf(
-                Notification(
-                    id = "sample-bid",
-                    userId = userId,
-                    title = "New bid on RJ-2026-0419 — ₹2,200 from Satish Naidu",
-                    body = "Tap to review",
-                    kind = "bid",
-                    data = emptyMap(),
-                    sentAt = now.minus(8, ChronoUnit.MINUTES),
-                    readAt = null,
-                    deepLink = null,
-                ),
-                Notification(
-                    id = "sample-msg",
-                    userId = userId,
-                    title = "Satish Naidu: On my way, eta 15 min.",
-                    body = "Tap to open chat",
-                    kind = "msg",
-                    data = emptyMap(),
-                    sentAt = now.minus(12, ChronoUnit.MINUTES),
-                    readAt = null,
-                    deepLink = null,
-                ),
-                Notification(
-                    id = "sample-status",
-                    userId = userId,
-                    title = "Job RJ-2026-0416 marked In Progress",
-                    body = "Tap to track",
-                    kind = "status",
-                    data = emptyMap(),
-                    sentAt = now.minus(1, ChronoUnit.HOURS),
-                    readAt = now,
-                    deepLink = null,
-                ),
-            )
-        } else {
-            listOf(
-                Notification(
-                    id = "sample-job",
-                    userId = userId,
-                    title = "New job nearby — BPL Cleo 70 PM at Sri Sai Hospital",
-                    body = "Tap to bid",
-                    kind = "bolt",
-                    data = emptyMap(),
-                    sentAt = now.minus(6, ChronoUnit.MINUTES),
-                    readAt = null,
-                    deepLink = null,
-                ),
-                Notification(
-                    id = "sample-accepted",
-                    userId = userId,
-                    title = "Your bid on RJ-2026-0418 was accepted",
-                    body = "₹2,500 · Tap to view",
-                    kind = "bid",
-                    data = emptyMap(),
-                    sentAt = now.minus(40, ChronoUnit.MINUTES),
-                    readAt = null,
-                    deepLink = null,
-                ),
-                Notification(
-                    id = "sample-payout",
-                    userId = userId,
-                    title = "Payout ₹3,400 settled to your bank",
-                    body = "Tap to download invoice",
-                    kind = "bid",
-                    data = emptyMap(),
-                    sentAt = now.minus(2, ChronoUnit.HOURS),
-                    readAt = now,
-                    deepLink = null,
-                ),
-            )
-        }
-    }
 }
