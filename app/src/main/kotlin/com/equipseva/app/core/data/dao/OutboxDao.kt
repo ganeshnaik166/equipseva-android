@@ -20,9 +20,6 @@ interface OutboxDao {
     @Query("UPDATE outbox SET attempts = attempts + 1, lastError = :error WHERE id = :id")
     suspend fun markFailed(id: Long, error: String)
 
-    @Query("SELECT COUNT(*) FROM outbox")
-    suspend fun pendingCount(): Int
-
     @Query("SELECT COUNT(*) FROM outbox WHERE kind = :kind")
     fun observePendingCountByKind(kind: String): Flow<Int>
 
