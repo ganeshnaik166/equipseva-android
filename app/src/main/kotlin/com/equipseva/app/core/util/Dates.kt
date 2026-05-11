@@ -36,3 +36,12 @@ fun prettyDateTime(iso: String): String =
             .withZone(ZoneId.systemDefault())
             .format(instant)
     }.getOrElse { iso.take(16).replace('T', ' ') }
+
+/**
+ * Parse an ISO-8601 instant string into `Instant`, returning null on any
+ * failure (null input, malformed payload, missing time-zone designator).
+ * Use at DTO -> domain mapping boundaries where a missing/bad timestamp
+ * should degrade gracefully rather than crash decoding.
+ */
+fun String?.parseInstantOrNull(): Instant? =
+    this?.let { runCatching { Instant.parse(it) }.getOrNull() }
