@@ -39,6 +39,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.core.util.prettyDateTime
 import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
@@ -252,7 +253,7 @@ private fun EscrowSummaryCard(
             // scheduled_release_at on those rows).
             summary.nextReleaseAt?.let { iso ->
                 Text(
-                    text = "Next release: " + iso.take(16).replace('T', ' '),
+                    text = "Next release: " + prettyDateTime(iso),
                     fontSize = 12.sp,
                     color = SevaInk500,
                 )

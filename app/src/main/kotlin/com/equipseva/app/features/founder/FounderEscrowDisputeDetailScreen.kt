@@ -37,6 +37,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.prettyDateTime
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.theme.BorderDefault
@@ -192,7 +193,7 @@ private fun EscrowEventRow(row: FounderRepository.EscrowEventRow) {
                 color = SevaInk900,
             )
             row.occurredAt?.let {
-                Text("Occurred: " + it.take(19).replace('T', ' '), color = SevaInk500, fontSize = 11.sp)
+                Text("Occurred: " + prettyDateTime(it), color = SevaInk500, fontSize = 11.sp)
             }
             if (!row.actorName.isNullOrBlank() && row.actorName != "(system)") {
                 Text("Actor: ${row.actorName}", color = SevaInk500, fontSize = 11.sp)

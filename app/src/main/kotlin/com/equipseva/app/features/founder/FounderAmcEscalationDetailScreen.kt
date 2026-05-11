@@ -35,6 +35,7 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.amc.AmcRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.prettyDate
+import com.equipseva.app.core.util.prettyDateTime
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
@@ -186,7 +187,7 @@ private fun EscalationDetailBody(
                         )
                         detail.createdAt?.let {
                             Text(
-                                "Raised: " + it.take(19).replace('T', ' '),
+                                "Raised: " + prettyDateTime(it),
                                 color = SevaInk500,
                                 fontSize = 12.sp,
                             )

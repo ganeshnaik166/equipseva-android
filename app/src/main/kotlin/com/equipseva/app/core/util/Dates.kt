@@ -21,3 +21,18 @@ fun prettyDate(iso: String): String =
             .withZone(ZoneId.systemDefault())
             .format(instant)
     }.getOrElse { iso.take(10) }
+
+/**
+ * Render an ISO timestamp as `dd MMM yyyy, HH:mm` in the device's
+ * default zone (e.g. "11 May 2026, 14:30"). Use when the time portion
+ * matters — escrow release schedules, dispute opened-at, founder ops
+ * queue audit trails. Falls back to a `yyyy-MM-dd HH:MM` slice on
+ * parse failure so we never crash on a malformed payload.
+ */
+fun prettyDateTime(iso: String): String =
+    runCatching {
+        val instant = Instant.parse(iso)
+        DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm")
+            .withZone(ZoneId.systemDefault())
+            .format(instant)
+    }.getOrElse { iso.take(16).replace('T', ' ') }
