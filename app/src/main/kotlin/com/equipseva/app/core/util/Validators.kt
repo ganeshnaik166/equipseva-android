@@ -26,7 +26,4 @@ object Validators {
         password.none { it.isDigit() } -> "Include at least one number"
         else -> null
     }
-
-    fun otpIsValid(code: String): Boolean =
-        code.length in 6..10 && code.all { it.isDigit() }
 }
