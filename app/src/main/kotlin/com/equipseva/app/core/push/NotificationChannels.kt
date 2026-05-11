@@ -8,7 +8,6 @@ import androidx.core.content.getSystemService
 
 object NotificationChannels {
     // Channel ids must match the cross-surface push payload contract.
-    const val ORDERS = "orders"
     const val JOBS = "jobs"
     const val CHAT = "chat"
     const val ACCOUNT = "account"
@@ -16,11 +15,12 @@ object NotificationChannels {
     fun register(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val nm = context.getSystemService<NotificationManager>() ?: return
+        // "orders" was a marketplace-era channel; the marketplace shipped
+        // off in v1. Delete the legacy channel so it stops appearing in
+        // the system Notifications settings panel on upgrade installs.
+        runCatching { nm.deleteNotificationChannel("orders") }
         nm.createNotificationChannels(
             listOf(
-                NotificationChannel(ORDERS, "Order updates", NotificationManager.IMPORTANCE_HIGH).apply {
-                    description = "Order status, delivery, returns"
-                },
                 NotificationChannel(JOBS, "Available jobs", NotificationManager.IMPORTANCE_HIGH).apply {
                     description = "New repair jobs and bid responses"
                 },
