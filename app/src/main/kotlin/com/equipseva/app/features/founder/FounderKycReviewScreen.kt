@@ -49,6 +49,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.storage.StorageRepository
+import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
@@ -327,7 +328,7 @@ private fun ReviewBody(
                     Text(engineer.fullName, style = EsType.H4, color = SevaInk900)
                     val sub = listOfNotNull(
                         engineer.city,
-                        engineer.createdAt?.let { "submitted ${it.take(10)}" },
+                        engineer.createdAt?.let { "submitted ${prettyDate(it)}" },
                     ).joinToString(" · ")
                     if (sub.isNotBlank()) {
                         Text(sub, style = EsType.Caption, color = SevaInk500)
