@@ -139,6 +139,10 @@ fun AddressBookScreen(
                     icon = Icons.Outlined.LocationOn,
                     title = "Couldn't load",
                     subtitle = state.error,
+                    // Earlier path had no retry affordance — user had to
+                    // back out and re-enter the screen to refetch.
+                    ctaLabel = "Retry",
+                    onCta = { viewModel.reload() },
                 )
                 state.rows.isEmpty() -> EmptyStateView(
                     icon = Icons.Outlined.LocationOn,
