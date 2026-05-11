@@ -69,10 +69,10 @@ class SignInViewModel @Inject constructor(
     }
 
     /**
-     * Continue-with-Google handler. Mirrors WelcomeViewModel.onGoogleClicked
-     * — the SignIn screen previously routed the Google button to onSubmit,
-     * which tried to sign in with whatever was typed in email/password
-     * (i.e. usually nothing) so the button was effectively a dead UI element.
+     * Continue-with-Google handler. The SignIn screen previously routed the
+     * Google button to onSubmit, which tried to sign in with whatever was
+     * typed in email/password (i.e. usually nothing) so the button was
+     * effectively a dead UI element.
      */
     fun onGoogleClicked(activityContext: Context) {
         if (_state.value.form.submitting) return

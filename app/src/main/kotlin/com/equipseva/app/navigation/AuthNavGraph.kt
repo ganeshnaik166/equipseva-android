@@ -28,7 +28,6 @@ fun NavGraphBuilder.authNavGraph(
             WelcomeScreen(
                 onSignIn = { navController.navigate(Routes.AUTH_SIGN_IN) },
                 onSignUp = { navController.navigate(Routes.AUTH_SIGN_UP) },
-                onShowMessage = showSnackbar,
             )
         }
         composable(Routes.AUTH_SIGN_IN) {
