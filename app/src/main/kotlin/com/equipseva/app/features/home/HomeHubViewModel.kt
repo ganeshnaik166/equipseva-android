@@ -8,7 +8,6 @@ import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.cashsurvey.CashSurveyRepository
-import com.equipseva.app.core.data.commissiontier.CommissionTierRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.notifications.Notification
 import com.equipseva.app.core.data.notifications.NotificationRepository
@@ -51,7 +50,6 @@ class HomeHubViewModel @Inject constructor(
     private val engineerDirectoryRepository: EngineerDirectoryRepository,
     private val cashSurveyRepository: CashSurveyRepository,
     private val spotAuditRepository: com.equipseva.app.core.data.spotaudit.SpotAuditRepository,
-    private val commissionTierRepository: CommissionTierRepository,
     private val amcRepository: com.equipseva.app.core.data.amc.AmcRepository,
     private val userPrefs: UserPrefs,
     private val app: Application,
@@ -80,9 +78,6 @@ class HomeHubViewModel @Inject constructor(
         // returns at most one open invitation per hospital.
         val pendingSpotAudit: com.equipseva.app.core.data.spotaudit.SpotAuditRepository.PendingInvitation? = null,
         val submittingSpotAudit: Boolean = false,
-        // PR-D15: hospital loyalty progress pill — non-null when the
-        // get_my_commission_tier RPC returns a row.
-        val commissionTier: CommissionTierRepository.TierInfo? = null,
         // PR-D34: aggregated AMC SLA credits issued to hospital in the
         // trailing 30-day window. Card renders only when total > 0.
         val recentSlaCredits: com.equipseva.app.core.data.amc.AmcRepository.HospitalSlaCreditSummary? = null,
@@ -222,11 +217,6 @@ class HomeHubViewModel @Inject constructor(
             // jobs). Quiet on errors; sheet just won't render.
             spotAuditRepository.fetchPending().onSuccess { pending ->
                 _state.update { it.copy(pendingSpotAudit = pending) }
-            }
-            // PR-D15: pull the hospital's commission-tier progress
-            // (PR-D2 RPC). Quiet on errors — pill just won't render.
-            commissionTierRepository.fetchMyTier().onSuccess { tier ->
-                _state.update { it.copy(commissionTier = tier) }
             }
             // PR-D34: pull hospital's recent AMC SLA credits summary.
             // Quiet on errors — card just won't render.
