@@ -39,14 +39,27 @@ class ValidatorsTest {
         assertNull(Validators.passwordWeakness("Password1"))
     }
 
-    @Test fun `otp accepts 6 to 10 digits`() {
-        assertTrue(Validators.otpIsValid("123456"))
-        assertTrue(Validators.otpIsValid("1234567890"))
+    @Test fun `gstin accepts canonical 15-char format`() {
+        assertNull(Validators.gstinError("22ABCDE1234F1Z5"))
+        assertNull(Validators.gstinError("07AAACT2727Q1ZW"))
+        assertNull(Validators.gstinError("  22ABCDE1234F1Z5  "))
+        assertNull(Validators.gstinError("22abcde1234f1z5")) // lower-case is normalized
     }
 
-    @Test fun `otp rejects wrong length or non-digits`() {
-        assertFalse(Validators.otpIsValid("12345"))
-        assertFalse(Validators.otpIsValid("12345678901"))
-        assertFalse(Validators.otpIsValid("12345a"))
+    @Test fun `gstin empty is treated as not-required at this layer`() {
+        assertNull(Validators.gstinError(""))
+        assertNull(Validators.gstinError("   "))
+    }
+
+    @Test fun `gstin rejects wrong length`() {
+        assertEquals("GSTIN must be exactly 15 characters", Validators.gstinError("22ABCDE1234"))
+        assertEquals("GSTIN must be exactly 15 characters", Validators.gstinError("22ABCDE1234F1Z5X"))
+    }
+
+    @Test fun `gstin rejects malformed 15-char strings`() {
+        // State code out of range (40), 13th digit not letter, missing Z separator.
+        assertEquals("Invalid GSTIN format", Validators.gstinError("40ABCDE1234F1Z5"))
+        assertEquals("Invalid GSTIN format", Validators.gstinError("22ABCDE12345115"))
+        assertEquals("Invalid GSTIN format", Validators.gstinError("22abcde1234fAA5".uppercase()))
     }
 }

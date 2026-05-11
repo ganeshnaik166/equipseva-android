@@ -33,6 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.userprefs.UserSettingsRepository
+import com.equipseva.app.core.util.Validators
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Ink900
@@ -64,6 +65,10 @@ internal data class FieldSpec(
     val kind: FieldKind = FieldKind.TEXT,
     val placeholder: String? = null,
     val helper: String? = null,
+    // Returns an error message when the current value is invalid, or null when
+    // the field is OK to submit. Defaults to "always valid". Save button is
+    // blocked while any field returns non-null.
+    val validator: ((String) -> String?)? = null,
 )
 
 @HiltViewModel(assistedFactory = ProfileFormViewModel.Factory::class)
@@ -203,28 +208,33 @@ internal fun ProfileFormScaffold(
                                 checked = state.switches[field.key] ?: false,
                                 onCheckedChange = { viewModel.onSwitchChange(field.key, it) },
                             )
-                            else -> OutlinedTextField(
-                                value = state.values[field.key].orEmpty(),
-                                onValueChange = { viewModel.onTextChange(field.key, it) },
-                                label = { Text(field.label) },
-                                placeholder = field.placeholder?.let { { Text(it) } },
-                                supportingText = field.helper?.let { { Text(it) } },
-                                singleLine = field.kind != FieldKind.MULTILINE,
-                                minLines = if (field.kind == FieldKind.MULTILINE) 3 else 1,
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = when (field.kind) {
-                                        FieldKind.NUMBER -> KeyboardType.Number
-                                        FieldKind.EMAIL -> KeyboardType.Email
-                                        FieldKind.PHONE -> KeyboardType.Phone
-                                        else -> KeyboardType.Text
-                                    },
-                                    capitalization = if (field.kind == FieldKind.TEXT)
-                                        KeyboardCapitalization.Sentences
-                                    else KeyboardCapitalization.None,
-                                ),
-                                enabled = !state.saving,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
+                            else -> {
+                                val value = state.values[field.key].orEmpty()
+                                val fieldError = field.validator?.invoke(value)
+                                OutlinedTextField(
+                                    value = value,
+                                    onValueChange = { viewModel.onTextChange(field.key, it) },
+                                    label = { Text(field.label) },
+                                    placeholder = field.placeholder?.let { { Text(it) } },
+                                    isError = fieldError != null,
+                                    supportingText = (fieldError ?: field.helper)?.let { { Text(it) } },
+                                    singleLine = field.kind != FieldKind.MULTILINE,
+                                    minLines = if (field.kind == FieldKind.MULTILINE) 3 else 1,
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = when (field.kind) {
+                                            FieldKind.NUMBER -> KeyboardType.Number
+                                            FieldKind.EMAIL -> KeyboardType.Email
+                                            FieldKind.PHONE -> KeyboardType.Phone
+                                            else -> KeyboardType.Text
+                                        },
+                                        capitalization = if (field.kind == FieldKind.TEXT)
+                                            KeyboardCapitalization.Sentences
+                                        else KeyboardCapitalization.None,
+                                    ),
+                                    enabled = !state.saving,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
                         }
                     }
                     if (state.errorMessage != null) {
@@ -242,9 +252,15 @@ internal fun ProfileFormScaffold(
                     // overwrite previous data with empty strings.
                     val anyContent = state.values.values.any { it.isNotBlank() } ||
                         state.switches.isNotEmpty()
+                    // Block submit while any field's validator returns non-null —
+                    // server validation is still authoritative, but this catches
+                    // typos (e.g. malformed GSTIN) before the round-trip.
+                    val hasFieldError = fields.any { f ->
+                        f.validator?.invoke(state.values[f.key].orEmpty()) != null
+                    }
                     Button(
                         onClick = { viewModel.onSave(onDone = onBack) },
-                        enabled = !state.saving && anyContent,
+                        enabled = !state.saving && anyContent && !hasFieldError,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(if (state.saving) "Saving…" else "Save")
@@ -344,7 +360,7 @@ fun HospitalSettingsScreen(onBack: () -> Unit, onShowMessage: (String) -> Unit) 
             // hospital admins set a value that never fires.
             FieldSpec("departments", "Departments served", FieldKind.MULTILINE, helper = "Comma-separated"),
             FieldSpec("billing_email", "Billing email", FieldKind.EMAIL),
-            FieldSpec("gstin", "GSTIN", placeholder = "22ABCDE1234F1Z5", helper = "15 characters · 2-digit state + 10-char PAN + entity + Z + check digit"),
+            FieldSpec("gstin", "GSTIN", placeholder = "22ABCDE1234F1Z5", helper = "15 characters · 2-digit state + 10-char PAN + entity + Z + check digit", validator = Validators::gstinError),
             FieldSpec("biomed_contact", "Biomed contact phone", FieldKind.PHONE),
         ),
         onBack = onBack,
@@ -375,7 +391,7 @@ fun GstSettingsScreen(onBack: () -> Unit, onShowMessage: (String) -> Unit) =
         subtitle = "Tax registration + invoice template.",
         settingsKey = "supplier_gst",
         fields = listOf(
-            FieldSpec("gstin", "GSTIN", placeholder = "22ABCDE1234F1Z5", helper = "15 characters · 2-digit state + 10-char PAN + entity + Z + check digit"),
+            FieldSpec("gstin", "GSTIN", placeholder = "22ABCDE1234F1Z5", helper = "15 characters · 2-digit state + 10-char PAN + entity + Z + check digit", validator = Validators::gstinError),
             FieldSpec("business_name", "Registered business name"),
             FieldSpec("pan", "PAN"),
             FieldSpec("invoice_prefix", "Invoice prefix", placeholder = "ESV-"),
@@ -407,7 +423,7 @@ fun TaxDetailsScreen(onBack: () -> Unit, onShowMessage: (String) -> Unit) =
         subtitle = "GST + import-export codes.",
         settingsKey = "manufacturer_tax",
         fields = listOf(
-            FieldSpec("gstin", "GSTIN", placeholder = "22ABCDE1234F1Z5", helper = "15 characters · 2-digit state + 10-char PAN + entity + Z + check digit"),
+            FieldSpec("gstin", "GSTIN", placeholder = "22ABCDE1234F1Z5", helper = "15 characters · 2-digit state + 10-char PAN + entity + Z + check digit", validator = Validators::gstinError),
             FieldSpec("iec", "IEC (Importer Exporter Code)"),
             FieldSpec("default_tax_slab", "Default GST rate (%)", FieldKind.NUMBER),
             FieldSpec("pan", "PAN"),
