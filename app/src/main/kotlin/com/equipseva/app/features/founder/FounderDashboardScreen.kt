@@ -166,13 +166,11 @@ fun FounderDashboardScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState()),
             ) {
-                // Hero — today payments with shield decoration top-right.
-                // `todayPayments` isn't in DashboardStats yet; render — until
-                // the RPC adds the field. Jobs count maps to ordersToday.
-                FounderHero(
-                    todayPayments = null,
-                    jobsToday = stats?.ordersToday,
-                )
+                // Hero — jobs posted today. The earlier copy led with a
+                // "₹—" payments figure (admin_dashboard_stats RPC has no
+                // payments-today field) which read as a missing value, not
+                // a placeholder; reframe around the field we actually have.
+                FounderHero(jobsToday = stats?.ordersToday)
 
                 // KPI strip — 2 cards. The earlier 3rd "Users" card always
                 // showed "—" because admin_dashboard_stats RPC has no
@@ -241,10 +239,7 @@ fun FounderDashboardScreen(
 }
 
 @Composable
-private fun FounderHero(
-    todayPayments: Double?,
-    jobsToday: Int?,
-) {
+private fun FounderHero(jobsToday: Int?) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -254,7 +249,6 @@ private fun FounderHero(
                 Brush.linearGradient(listOf(SevaGreen900, Color(0xFF042619))),
             ),
     ) {
-        // Decorative shield top-right, opacity 0.15, 120dp.
         Icon(
             imageVector = Icons.Outlined.Shield,
             contentDescription = null,
@@ -266,23 +260,17 @@ private fun FounderHero(
         )
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Today",
+                text = "Jobs posted today",
                 fontSize = 12.sp,
                 color = Color.White.copy(alpha = 0.65f),
             )
             Text(
-                text = todayPayments?.let { "₹${formatRupeesShort(it)}" } ?: "—",
+                text = (jobsToday ?: 0).toString(),
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.56).sp,
                 color = Color.White,
                 modifier = Modifier.padding(top = 4.dp),
-            )
-            Text(
-                text = "processed across ${jobsToday ?: 0} jobs",
-                fontSize = 12.sp,
-                color = Color.White.copy(alpha = 0.7f),
-                modifier = Modifier.padding(top = 2.dp),
             )
         }
     }
@@ -600,23 +588,5 @@ private fun QueueRow(
                 .background(BorderDefault),
         )
     }
-}
-
-private fun formatRupeesShort(amount: Double?): String {
-    val v = amount ?: 0.0
-    val whole = v.toLong()
-    // Indian-style grouping: 1,23,456
-    val s = whole.toString()
-    if (s.length <= 3) return s
-    val tail = s.takeLast(3)
-    val head = s.dropLast(3)
-    val groups = StringBuilder()
-    var rem = head
-    while (rem.length > 2) {
-        groups.insert(0, "," + rem.takeLast(2))
-        rem = rem.dropLast(2)
-    }
-    groups.insert(0, rem)
-    return "$groups,$tail"
 }
 
