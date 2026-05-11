@@ -138,7 +138,13 @@ fun FounderEngineerMapScreen(
                 else -> Column(modifier = Modifier.fillMaxSize()) {
                     ZoneMap(rows = state.rows, selected = selected)
                     Text(
-                        text = "${state.rows.size} zones · ${state.rows.sumOf { it.engineerCount }} verified engineers",
+                        text = run {
+                            val zones = state.rows.size
+                            val engineers = state.rows.sumOf { it.engineerCount }
+                            val zoneLabel = if (zones == 1) "1 zone" else "$zones zones"
+                            val engLabel = if (engineers == 1) "1 verified engineer" else "$engineers verified engineers"
+                            "$zoneLabel · $engLabel"
+                        },
                         fontSize = 12.sp,
                         color = SevaInk500,
                         fontWeight = FontWeight.SemiBold,

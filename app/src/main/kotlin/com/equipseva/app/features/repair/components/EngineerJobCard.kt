@@ -169,7 +169,7 @@ fun EngineerJobCard(
             ) {
                 if (bidsCount > 0) {
                     Text(
-                        text = "$bidsCount bids · ",
+                        text = if (bidsCount == 1) "1 bid · " else "$bidsCount bids · ",
                         style = EsType.Caption.copy(fontSize = 11.sp),
                         color = SevaInk500,
                     )
