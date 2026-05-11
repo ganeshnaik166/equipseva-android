@@ -17,7 +17,6 @@ import com.equipseva.app.core.data.account.DataExportRepository
 import com.equipseva.app.core.data.dao.OutboxDao
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
-import com.equipseva.app.core.data.prefs.ThemeMode
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.Profile
 import com.equipseva.app.core.data.profile.ProfileRepository
@@ -31,11 +30,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -117,29 +114,6 @@ class ProfileViewModel @Inject constructor(
 
     private val _effects = Channel<Effect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
-
-    val themeMode: StateFlow<ThemeMode> = userPrefs.themeMode.stateIn(
-        viewModelScope,
-        SharingStarted.Eagerly,
-        ThemeMode.Light,
-    )
-
-    private val _settingsOpen = MutableStateFlow(false)
-    val settingsOpen: StateFlow<Boolean> = _settingsOpen.asStateFlow()
-
-    fun onOpenSettings() {
-        _settingsOpen.value = true
-    }
-
-    fun onDismissSettings() {
-        _settingsOpen.value = false
-    }
-
-    fun onThemeModeChange(mode: ThemeMode) {
-        viewModelScope.launch {
-            userPrefs.setThemeMode(mode)
-        }
-    }
 
     init {
         viewModelScope.launch {
