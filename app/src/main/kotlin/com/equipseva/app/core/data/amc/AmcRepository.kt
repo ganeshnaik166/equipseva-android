@@ -194,7 +194,11 @@ class AmcRepository @Inject constructor(
         ).data
         // Body is a bare JSON number (e.g. "1234.50"). Trim quotes if any
         // (defensive — supabase-kt sometimes wraps numerics) then parse.
-        raw.trim().trim('"').toDoubleOrNull() ?: 0.0
+        // Throw on parse failure so the VM surfaces an error banner —
+        // silently coercing to ₹0.0 hid backend errors as a fake "empty
+        // pool", indistinguishable from a real zero balance.
+        raw.trim().trim('"').toDoubleOrNull()
+            ?: error("Couldn't read pool balance (server returned: ${raw.take(40)})")
     }
 
     suspend fun listSlaBreaches(contractId: String): Result<List<AmcSlaBreach>> = runCatching {
