@@ -40,9 +40,11 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.addresses.AddressRepository
+import com.equipseva.app.core.data.location.IndiaLocations
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.location.LocationFetcher
 import com.equipseva.app.designsystem.components.ESBackTopBar
+import com.equipseva.app.designsystem.components.EsDropdown
 import com.equipseva.app.designsystem.theme.AccentLime
 import com.equipseva.app.designsystem.theme.BrandGreenDeep
 import com.equipseva.app.designsystem.theme.Ink500
@@ -334,17 +336,31 @@ fun AddressFormScreen(
             FormField(state.form.landmark, "Landmark (optional)") { v ->
                 viewModel.update { it.copy(landmark = v) }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Box(modifier = Modifier.weight(1f)) {
-                    FormField(state.form.city, "City") { v ->
-                        viewModel.update { it.copy(city = v) }
+            // State must be from the curated IndiaLocations.STATES list —
+            // free-text here was the source of "Telangana, 508207" style
+            // garbage values surfacing later in engineer directory cards.
+            EsDropdown(
+                value = state.form.state.takeIf { it.isNotBlank() },
+                onValueChange = { picked ->
+                    viewModel.update {
+                        // Clear city when state changes so a previously-picked
+                        // district from another state doesn't leak through.
+                        if (it.state == picked) it else it.copy(state = picked, city = "")
                     }
+                },
+                options = IndiaLocations.STATES,
+                label = "State",
+                placeholder = "Select state",
+            )
+            // City stays free-text — district list is too coarse for
+            // hospital addresses — but strip commas + digits so users
+            // can't paste "Telangana, 508207" wholesale into the city
+            // slot.
+            FormField(state.form.city, "City") { v ->
+                val cleaned = v.filter { ch ->
+                    ch.isLetter() || ch.isWhitespace() || ch == '-' || ch == '\''
                 }
-                Box(modifier = Modifier.weight(1f)) {
-                    FormField(state.form.state, "State") { v ->
-                        viewModel.update { it.copy(state = v) }
-                    }
-                }
+                viewModel.update { it.copy(city = cleaned) }
             }
             FormField(state.form.pincode, "Pincode", keyboardType = KeyboardType.Number) { v ->
                 // ASCII-only digits — Char.isDigit() accepts Arabic /
