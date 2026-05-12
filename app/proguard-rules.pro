@@ -10,12 +10,7 @@
     kotlinx.serialization.KSerializer serializer(...);
 }
 
-# Retrofit
--keepattributes Signature, Exceptions
--keep,allowshrinking interface * extends retrofit2.Call
--keep class retrofit2.** { *; }
-
-# OkHttp
+# OkHttp / Okio (used transitively via Ktor's OkHttp engine).
 -dontwarn okhttp3.**
 -dontwarn okio.**
 
