@@ -64,7 +64,6 @@ fun SignInScreen(
             when (effect) {
                 is AuthEffect.ShowMessage -> onShowMessage(effect.text)
                 AuthEffect.NavigateToHome -> Unit
-                else -> Unit
             }
         }
     }
