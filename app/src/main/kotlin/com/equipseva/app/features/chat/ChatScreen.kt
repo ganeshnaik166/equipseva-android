@@ -194,6 +194,13 @@ fun ChatScreen(
                     val grouped = remember(state.messages) {
                         state.messages.groupBy { dayKey(it.createdAtIso) }
                     }
+                    // Cache the human-readable label per day-key too —
+                    // dayLabel() parses an ISO date each call, and the
+                    // forEach below otherwise re-runs the parse on
+                    // every parent recomposition (typing, scroll).
+                    val dayLabels = remember(grouped) {
+                        grouped.keys.associateWith { dayLabel(it) }
+                    }
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
@@ -202,7 +209,7 @@ fun ChatScreen(
                     ) {
                         grouped.forEach { (key, msgs) ->
                             item(key = "sep-$key") {
-                                DaySeparator(label = dayLabel(key))
+                                DaySeparator(label = dayLabels[key] ?: key)
                             }
                             items(items = msgs, key = { it.id }) { msg ->
                                 MessageRow(
@@ -482,7 +489,11 @@ private fun MessageRow(
                             )
                         }
                     }
-                    val timeLabel = formatTime(message.createdAtIso)
+                    // formatTime parses an ISO instant + applies a
+                    // DateTimeFormatter; memoize on the source so a
+                    // recomposition (selection toggle, blocked-flag
+                    // tick, scroll measure) doesn't re-parse.
+                    val timeLabel = remember(message.createdAtIso) { formatTime(message.createdAtIso) }
                     if (!timeLabel.isNullOrBlank()) {
                         // 0.7 alpha on me-bubble per JSX; muted ink on them-bubble.
                         val metaColor = when {
