@@ -103,20 +103,31 @@ class SupabaseAuthRepository @Inject constructor(
         // unlocked-device attacker could swap the password and lock the
         // legitimate owner out — Supabase's updateUser doesn't gate on
         // proof of current credentials.
+        verifyCurrentPassword(currentPassword).getOrThrow()
+        client.auth.updateUser {
+            password = newPassword
+        }
+        Unit
+    }
+
+    override suspend fun verifyCurrentPassword(password: String): Result<Unit> = runCatching {
+        // Shared re-auth helper — used by updatePassword (don't lock the
+        // owner out) + delete_my_account (don't let an attacker nuke the
+        // account on an unlocked device). The attempt itself fires a
+        // fresh sign-in against the same identity; on success Supabase
+        // rotates the session token but the active user id stays the
+        // same. On wrong password we surface the typed InvalidCurrent
+        // exception so callers can pin the error on the password field.
         val email = client.auth.currentUserOrNull()?.email
             ?: throw IllegalStateException("Not signed in")
         try {
             client.auth.signInWith(Email) {
                 this.email = email
-                this.password = currentPassword
+                this.password = password
             }
         } catch (ex: Throwable) {
             throw InvalidCurrentPasswordException().also { it.initCause(ex) }
         }
-        client.auth.updateUser {
-            password = newPassword
-        }
-        Unit
     }
 
     override suspend fun sendEmailOtp(email: String): Result<Unit> = runCatching {

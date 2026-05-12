@@ -16,6 +16,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import com.equipseva.app.designsystem.theme.Ink700
@@ -27,8 +28,11 @@ import kotlinx.coroutines.launch
 @Composable
 fun DeleteAccountSheet(
     reason: String,
+    password: String,
+    passwordError: String?,
     deleting: Boolean,
     onReasonChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -74,6 +78,23 @@ fun DeleteAccountSheet(
                 minLines = 2,
                 maxLines = 4,
             )
+            // Re-auth gate. Without proof of the current password an
+            // attacker with momentary access to an unlocked device could
+            // hard-delete the legitimate owner's account (RPC runs purely
+            // on auth.uid; no other gate at the server). Surface
+            // passwordError on wrong-password attempts so the user sees
+            // "incorrect password" instead of a generic toast.
+            OutlinedTextField(
+                value = password,
+                onValueChange = onPasswordChange,
+                label = { Text("Confirm with your password") },
+                isError = passwordError != null,
+                supportingText = passwordError?.let { { Text(it) } },
+                visualTransformation = PasswordVisualTransformation(),
+                enabled = !deleting,
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -97,7 +118,10 @@ fun DeleteAccountSheet(
                     kind = EsBtnKind.Danger,
                     size = EsBtnSize.Md,
                     full = true,
-                    disabled = deleting,
+                    // Require a non-blank password before the Confirm
+                    // is tappable. The VM still validates server-side
+                    // so an empty value can't slip through stale state.
+                    disabled = deleting || password.isBlank(),
                     modifier = Modifier.weight(1f),
                 )
             }

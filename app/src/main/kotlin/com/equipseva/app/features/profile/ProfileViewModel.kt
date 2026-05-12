@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.auth.InvalidCurrentPasswordException
 import kotlinx.coroutines.flow.firstOrNull
 import com.equipseva.app.core.data.account.SupabaseAccountDeletionRepository
 import com.equipseva.app.core.data.account.SupabaseDataExportRepository
@@ -91,6 +92,8 @@ class ProfileViewModel @Inject constructor(
         val editError: String? = null,
         val deleteAccountOpen: Boolean = false,
         val deleteReason: String = "",
+        val deletePassword: String = "",
+        val deletePasswordError: String? = null,
         val deletingAccount: Boolean = false,
         /** True while an avatar image is being uploaded + the profile row updated. */
         val avatarUploading: Boolean = false,
@@ -466,23 +469,64 @@ class ProfileViewModel @Inject constructor(
 
     fun onOpenDeleteAccount() {
         if (_state.value.deletingAccount) return
-        _state.update { it.copy(deleteAccountOpen = true, deleteReason = "") }
+        _state.update {
+            it.copy(
+                deleteAccountOpen = true,
+                deleteReason = "",
+                deletePassword = "",
+                deletePasswordError = null,
+            )
+        }
     }
 
     fun onDismissDeleteAccount() {
         if (_state.value.deletingAccount) return
-        _state.update { it.copy(deleteAccountOpen = false, deleteReason = "") }
+        _state.update {
+            it.copy(
+                deleteAccountOpen = false,
+                deleteReason = "",
+                deletePassword = "",
+                deletePasswordError = null,
+            )
+        }
     }
 
     fun onDeleteReasonChange(value: String) {
         _state.update { it.copy(deleteReason = value.take(500)) }
     }
 
+    fun onDeletePasswordChange(value: String) {
+        _state.update { it.copy(deletePassword = value, deletePasswordError = null) }
+    }
+
     fun onConfirmDeleteAccount() {
         if (_state.value.deletingAccount) return
         val reason = _state.value.deleteReason
-        _state.update { it.copy(deletingAccount = true) }
+        val password = _state.value.deletePassword
+        if (password.isBlank()) {
+            _state.update { it.copy(deletePasswordError = "Enter your password to confirm.") }
+            return
+        }
+        _state.update { it.copy(deletingAccount = true, deletePasswordError = null) }
         viewModelScope.launch {
+            // Re-auth gate — must succeed before we call the
+            // delete-my-account RPC. Without this an attacker with
+            // momentary access to an unlocked device can nuke the
+            // account; the RPC runs purely on auth.uid and has no
+            // server-side credential proof.
+            val reauth = authRepository.verifyCurrentPassword(password)
+            if (reauth.isFailure) {
+                val cause = reauth.exceptionOrNull()
+                val msg = if (cause is InvalidCurrentPasswordException) {
+                    "Incorrect password."
+                } else {
+                    cause?.toUserMessage() ?: "Couldn't verify password."
+                }
+                _state.update {
+                    it.copy(deletingAccount = false, deletePasswordError = msg)
+                }
+                return@launch
+            }
             val outcome = accountDeletionRepository.deleteMyAccount(reason)
             outcome.fold(
                 onSuccess = {
@@ -493,6 +537,7 @@ class ProfileViewModel @Inject constructor(
                             deletingAccount = false,
                             deleteAccountOpen = false,
                             deleteReason = "",
+                            deletePassword = "",
                         )
                     }
                     _effects.send(Effect.ShowMessage("Account deleted. Signing you out…"))
