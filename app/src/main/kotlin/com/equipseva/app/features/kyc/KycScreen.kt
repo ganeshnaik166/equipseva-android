@@ -1139,8 +1139,6 @@ private fun StepperBottomBar(
                     .weight(1f)
                     .height(Spacing.MinTouchTarget),
             ) { Text("Back") }
-        } else {
-            Spacer(Modifier.width(0.dp))
         }
         Button(
             onClick = if (isLast) onSubmit else onNext,

@@ -55,8 +55,7 @@ fun HorizontalStepper(
                             .height(2.dp)
                             .background(
                                 if (isDone || (isCurrent && index > 0)) BrandGreen else Surface200,
-                            )
-                            .padding(horizontal = 0.dp),
+                            ),
                     )
                     Box(
                         modifier = Modifier
