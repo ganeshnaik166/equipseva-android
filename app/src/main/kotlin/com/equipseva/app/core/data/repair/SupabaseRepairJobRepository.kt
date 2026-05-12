@@ -67,9 +67,13 @@ class SupabaseRepairJobRepository @Inject constructor(
     }
 
     override suspend fun fetchById(jobId: String): Result<RepairJob?> = runCatching {
+        // Deep links share the human-readable job code (RPR-NNNNN), so callers
+        // that hand off straight from a path segment may pass either a UUID
+        // (in-app navigation) or the RPR code (App Link / push payload).
+        val isJobCode = JOB_CODE_PATTERN.matches(jobId)
         client.from(TABLE).select {
             filter {
-                eq("id", jobId)
+                if (isJobCode) eq("job_number", jobId) else eq("id", jobId)
             }
             limit(count = 1)
         }.decodeList<RepairJobDto>().firstOrNull()?.toDomain()
@@ -226,5 +230,6 @@ class SupabaseRepairJobRepository @Inject constructor(
 
     private companion object {
         const val TABLE = "repair_jobs"
+        val JOB_CODE_PATTERN = Regex("^RPR-\\d+$")
     }
 }

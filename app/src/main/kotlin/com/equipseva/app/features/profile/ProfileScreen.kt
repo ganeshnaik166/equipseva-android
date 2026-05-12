@@ -370,11 +370,20 @@ private fun ProfileContent(
     onPickAvatar: (Uri) -> Unit,
 ) {
     val profile = state.profile!!
-    val isEngineer = profile.role == UserRole.ENGINEER
-    val isHospital = profile.role == UserRole.HOSPITAL
-    val isSupplier = profile.role == UserRole.SUPPLIER
-    val isManufacturer = profile.role == UserRole.MANUFACTURER
-    val isLogistics = profile.role == UserRole.LOGISTICS
+    // Multi-service accounts hold every role they've ever opted into in
+    // `profile.role` (the scalar) while `profile.activeRole` is the role
+    // surfaced by the bottom-tab Hub. Reading `role` here let a Hospital
+    // admin who'd been auto-seeded as ENGINEER (default on signup before
+    // the role tile flips it) see engineer-only sections — KYC, Earnings,
+    // Bank details — on their Profile while the rest of the app correctly
+    // rendered the hospital home. Mirror the home/hub by preferring
+    // `activeRole` and only falling back to the scalar.
+    val displayedRole = profile.activeRole ?: profile.role
+    val isEngineer = displayedRole == UserRole.ENGINEER
+    val isHospital = displayedRole == UserRole.HOSPITAL
+    val isSupplier = displayedRole == UserRole.SUPPLIER
+    val isManufacturer = displayedRole == UserRole.MANUFACTURER
+    val isLogistics = displayedRole == UserRole.LOGISTICS
     val isFounder = profile.isFounder()
     val avatarPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
@@ -390,7 +399,7 @@ private fun ProfileContent(
             displayName = profile.displayName,
             email = profile.email,
             avatarUrl = profile.avatarUrl,
-            role = profile.role,
+            role = displayedRole,
             engineerStatus = state.engineerStatus,
             engineerKycSubmitted = state.engineerKycSubmitted,
             avatarUploading = state.avatarUploading,
@@ -413,7 +422,7 @@ private fun ProfileContent(
             isLogistics = isLogistics,
             isFounder = isFounder,
             phone = profile.phone,
-            activeRoleLabel = profile.role?.displayName ?: "Not set",
+            activeRoleLabel = displayedRole?.displayName ?: "Not set",
             onOpenVerification = onOpenVerification,
             onOpenMessages = onOpenMessages,
             onOpenAbout = onOpenAbout,
@@ -446,7 +455,7 @@ private fun ProfileContent(
 
         sections.forEach { section ->
             if (section.title == "Danger zone") {
-                AccountTypeSection(role = profile.role, onEditRole = onEditRole)
+                AccountTypeSection(role = displayedRole, onEditRole = onEditRole)
             }
             ProfileSectionView(section)
         }

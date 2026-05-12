@@ -82,7 +82,14 @@ class AddPhoneViewModel @Inject constructor(
 
     fun onPhoneChange(value: String) {
         // Allow leading + then digits, max 16 chars (E.164 + a little buffer).
-        val cleaned = value.filterIndexed { i, c -> (i == 0 && c == '+') || c.isDigit() }.take(16)
+        var cleaned = value.filterIndexed { i, c -> (i == 0 && c == '+') || c.isDigit() }.take(16)
+        // Guard against double-prefix: the field defaults to "+91", so a user
+        // who types or pastes "+919812345699" ends up with "+91919812345699".
+        // 13 chars is the cap for "+91" + 10-digit India number, so anything
+        // longer that starts with "+9191" has the country code in twice.
+        if (cleaned.startsWith("+9191") && cleaned.length > 13) {
+            cleaned = "+91" + cleaned.substring(5)
+        }
         _state.update { it.copy(phone = cleaned, error = null) }
     }
 
