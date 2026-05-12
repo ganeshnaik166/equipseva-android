@@ -136,19 +136,37 @@ fun KycScreen(
     val aadhaarPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri: Uri? ->
-        uri?.let { readAndUpload(context, it) { name, bytes, mime -> viewModel.uploadAadhaarDoc(name, bytes, mime) } }
+        uri?.let {
+            readAndUpload(
+                context, it,
+                send = { name, bytes, mime -> viewModel.uploadAadhaarDoc(name, bytes, mime) },
+                onError = viewModel::reportUploadError,
+            )
+        }
     }
 
     val certPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri: Uri? ->
-        uri?.let { readAndUpload(context, it) { name, bytes, mime -> viewModel.uploadCertificate(name, bytes, mime) } }
+        uri?.let {
+            readAndUpload(
+                context, it,
+                send = { name, bytes, mime -> viewModel.uploadCertificate(name, bytes, mime) },
+                onError = viewModel::reportUploadError,
+            )
+        }
     }
 
     val panPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri: Uri? ->
-        uri?.let { readAndUpload(context, it) { name, bytes, mime -> viewModel.uploadPan(name, bytes, mime) } }
+        uri?.let {
+            readAndUpload(
+                context, it,
+                send = { name, bytes, mime -> viewModel.uploadPan(name, bytes, mime) },
+                onError = viewModel::reportUploadError,
+            )
+        }
     }
 
     Scaffold(
@@ -1166,11 +1184,25 @@ private inline fun readAndUpload(
     context: android.content.Context,
     uri: Uri,
     send: (fileName: String, bytes: ByteArray, mime: String?) -> Unit,
+    onError: (message: String) -> Unit,
 ) {
     val resolver = context.contentResolver
     val mime = resolver.getType(uri)
     val name = queryDisplayName(context, uri) ?: uri.lastPathSegment ?: "upload"
-    val bytes = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return
+    val bytes = try {
+        resolver.openInputStream(uri)?.use { it.readBytes() }
+    } catch (t: Throwable) {
+        onError("Couldn't read the selected file. Pick again.")
+        return
+    }
+    if (bytes == null) {
+        // openInputStream returns null when the provider has been revoked,
+        // the URI was permission-pruned by SAF, or the file was deleted
+        // between pick and use. Without surfacing, the upload callback
+        // never fires and the engineer sees an indefinite spinner.
+        onError("Couldn't read the selected file. Pick again.")
+        return
+    }
     send(name, bytes, mime)
 }
 
