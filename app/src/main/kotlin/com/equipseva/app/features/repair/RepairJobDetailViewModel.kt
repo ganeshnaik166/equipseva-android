@@ -388,10 +388,20 @@ class RepairJobDetailViewModel @Inject constructor(
         etaHours: Int?,
         note: String?,
     ) {
+        // Capture the engineer's user-id at enqueue time so the
+        // drain-side handler can verify the same session is still
+        // active. Per the outbox owner-gate convention (see
+        // feedback_outbox_handler_owner_gate.md): without this, a
+        // sign-out / sign-in to a different account on a shared device
+        // would let user B's session push user A's queued bid.
+        val engineerUserId =
+            (authRepository.sessionState.firstOrNull() as? AuthSession.SignedIn)?.userId
+                ?: return
         val payload = json.encodeToString(
             RepairBidPayload.serializer(),
             RepairBidPayload(
                 jobId = jobId,
+                engineerUserId = engineerUserId,
                 amountRupees = amountRupees,
                 etaHours = etaHours,
                 note = note,
@@ -865,6 +875,13 @@ class RepairJobDetailViewModel @Inject constructor(
         startedAtEpochMs: Long?,
         completedAtEpochMs: Long?,
     ) {
+        // Capture actor user-id so the drain handler can short-circuit
+        // rows queued by a previous session (per the outbox owner-gate
+        // convention). RLS still guards server-side; the gate just
+        // saves retry cycles.
+        val actorUserId =
+            (authRepository.sessionState.firstOrNull() as? AuthSession.SignedIn)?.userId
+                ?: return
         val payload = json.encodeToString(
             JobStatusPayload.serializer(),
             JobStatusPayload(
@@ -872,6 +889,7 @@ class RepairJobDetailViewModel @Inject constructor(
                 newStatus = target.name,
                 startedAtEpochMs = startedAtEpochMs,
                 completedAtEpochMs = completedAtEpochMs,
+                actorUserId = actorUserId,
             ),
         )
         outboxEnqueuer.enqueue(OutboxKinds.JOB_STATUS, payload)
