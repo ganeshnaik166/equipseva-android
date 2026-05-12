@@ -99,7 +99,7 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.AMC_CONTRACTS_LIST,
     Routes.AMC_CONTRACT_DETAIL,
     Routes.CREATE_AMC,
-    // ENGINEER_JOBS_HUB removed — it's now the engineer Jobs tab.
+    // ENGINEER_JOBS_HUB intentionally excluded — it's a bottom-nav tab, not a full-screen destination.
     Routes.CONVERSATIONS,
     Routes.CHAT_DETAIL,
     Routes.KYC,
