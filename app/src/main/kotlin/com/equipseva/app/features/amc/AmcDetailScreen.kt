@@ -864,9 +864,7 @@ private fun CategoryFlow(items: List<String>) {
                     .padding(horizontal = 12.dp, vertical = 6.dp),
             ) {
                 Text(
-                    text = it.split('_', '-').joinToString(" ") { p ->
-                        p.replaceFirstChar { c -> c.uppercase() }
-                    },
+                    text = amcCategoryLabel(it),
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,

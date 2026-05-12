@@ -369,6 +369,7 @@ private val DEFAULT_CATEGORIES = listOf(
     "life_support",
 )
 
+
 @Composable
 fun CreateAmcWizardScreen(
     onBack: () -> Unit,
@@ -747,9 +748,7 @@ private fun CategoryFlow(
     ) {
         items.forEach { c ->
             EsChip(
-                text = c.split('_').joinToString(" ") {
-                    it.replaceFirstChar { ch -> ch.uppercase() }
-                },
+                text = amcCategoryLabel(c),
                 active = selected.contains(c),
                 onClick = { onToggle(c) },
             )
