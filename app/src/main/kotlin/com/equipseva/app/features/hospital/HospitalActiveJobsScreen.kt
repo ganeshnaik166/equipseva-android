@@ -41,6 +41,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobUrgency
@@ -71,6 +73,13 @@ fun HospitalActiveJobsScreen(
     viewModel: HospitalActiveJobsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    // Refresh when returning from a detail screen — without this, a job
+    // cancelled or moved out of Requested keeps showing in the Open tab
+    // with stale tab counts until the user pull-to-refreshes.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.onRefresh()
+    }
 
     val totalCount = state.openJobs.size + state.inProgressJobs.size + state.closedJobs.size
     val openCount = state.openJobs.size

@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Apartment
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -105,7 +106,9 @@ import com.equipseva.app.designsystem.theme.Paper2
 import com.equipseva.app.designsystem.theme.Paper3
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.components.EsBottomSheet
+import com.equipseva.app.designsystem.theme.SevaDanger50
 import com.equipseva.app.designsystem.theme.SevaDanger500
+import com.equipseva.app.designsystem.theme.SevaDanger700
 import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaGreen900
@@ -473,8 +476,22 @@ private fun JobBody(
             urgency = job.urgency,
         )
 
-        // Status stepper — 5 step linear timeline.
-        StatusStepperRow(currentStatus = job.status)
+        // Status stepper — 5 step linear timeline. Replaced by a
+        // terminal-state banner when the job is no longer progressing
+        // through the normal flow (Cancelled / Disputed). Without this,
+        // the stepper sits at "Requested" forever on cancelled jobs
+        // and gives no visual signal that the job is closed.
+        when (job.status) {
+            RepairJobStatus.Cancelled -> TerminalStatusBanner(
+                title = "Job cancelled",
+                subtitle = "No further action needed.",
+            )
+            RepairJobStatus.Disputed -> TerminalStatusBanner(
+                title = "Job in dispute",
+                subtitle = "Our team will reach out once a decision is made.",
+            )
+            else -> StatusStepperRow(currentStatus = job.status)
+        }
 
         // PR-D9 + PR-D12 — 30-day warranty banner. Server stamped this
         // on insert (find_warranty_source_job matched a recent
@@ -884,6 +901,39 @@ private fun ServiceReportCard(
                 color = Color.White,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
+            )
+        }
+    }
+}
+
+@Composable
+private fun TerminalStatusBanner(title: String, subtitle: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(SevaDanger50)
+            .border(1.dp, SevaDanger500, RectangleShape)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Block,
+            contentDescription = null,
+            tint = SevaDanger500,
+            modifier = Modifier.size(20.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = SevaDanger700,
+            )
+            Text(
+                text = subtitle,
+                fontSize = 11.sp,
+                color = SevaInk500,
             )
         }
     }
