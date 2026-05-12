@@ -98,7 +98,10 @@ fun ForgotPasswordScreen(
                         kind = EsBtnKind.Primary,
                         size = EsBtnSize.Lg,
                         full = true,
-                        disabled = state.email.isBlank() || state.submitting,
+                        // Stay enabled when blank so the tap surfaces
+                        // "Enter a valid email" inline rather than an
+                        // unresponsive button with no feedback.
+                        disabled = state.submitting,
                     )
                 }
                 Spacer(Modifier.height(24.dp))
