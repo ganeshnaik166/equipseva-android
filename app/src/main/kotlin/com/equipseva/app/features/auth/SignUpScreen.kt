@@ -65,7 +65,7 @@ fun SignUpScreen(
         viewModel.effects.collect { effect ->
             when (effect) {
                 is AuthEffect.ShowMessage -> onShowMessage(effect.text)
-                else -> Unit
+                AuthEffect.NavigateToHome -> Unit
             }
         }
     }
