@@ -52,6 +52,7 @@ class RequestServiceViewModel @Inject constructor(
         val submitting: Boolean = false,
         val errorMessage: String? = null,
         val issueError: String? = null,
+        val siteAddressError: String? = null,
     )
 
     sealed interface Effect {
@@ -85,7 +86,9 @@ class RequestServiceViewModel @Inject constructor(
     fun onBrandChange(value: String) = _state.update { it.copy(brand = value) }
     fun onModelChange(value: String) = _state.update { it.copy(model = value) }
     fun onSerialChange(value: String) = _state.update { it.copy(serial = value) }
-    fun onSiteAddressChange(value: String) = _state.update { it.copy(siteAddress = value) }
+    fun onSiteAddressChange(value: String) = _state.update {
+        it.copy(siteAddress = value, siteAddressError = null, errorMessage = null)
+    }
     fun onSiteLocationChange(value: String) = _state.update { it.copy(siteLocation = value) }
     fun onPickedDateChange(value: Long?) = _state.update { it.copy(pickedDateMillis = value) }
 
@@ -167,6 +170,24 @@ class RequestServiceViewModel @Inject constructor(
             _state.update {
                 it.copy(
                     issueError = "Please describe the issue (10 characters or more).",
+                    errorMessage = msg,
+                )
+            }
+            effectChannel.trySend(Effect.ShowMessage(msg))
+            return
+        }
+        // Require a non-trivial site address OR map coordinates. Without
+        // one, the engineer has no way to reach the hospital and the
+        // job lands in their feed as an unactionable row. Map pin alone
+        // isn't a substitute — engineers need a typed address for the
+        // navigation app handoff. 5-char floor blocks accidental "a"
+        // submits without enforcing a specific format.
+        val address = current.siteAddress.trim()
+        if (address.length < 5) {
+            val msg = "Add the service address (5 characters or more) on the Where step."
+            _state.update {
+                it.copy(
+                    siteAddressError = "Address is required so engineers can reach you.",
                     errorMessage = msg,
                 )
             }

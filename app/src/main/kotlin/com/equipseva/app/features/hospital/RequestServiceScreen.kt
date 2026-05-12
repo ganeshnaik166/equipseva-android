@@ -246,6 +246,7 @@ fun RequestServiceScreen(
                     )
                     3 -> StepWhere(
                         siteAddress = state.siteAddress,
+                        siteAddressError = state.siteAddressError,
                         onSiteAddress = viewModel::onSiteAddressChange,
                         siteLocation = state.siteLocation,
                         onSiteLocation = viewModel::onSiteLocationChange,
@@ -630,6 +631,7 @@ private fun StepWhen(
 @Composable
 private fun StepWhere(
     siteAddress: String,
+    siteAddressError: String?,
     onSiteAddress: (String) -> Unit,
     siteLocation: String,
     onSiteLocation: (String) -> Unit,
@@ -646,6 +648,12 @@ private fun StepWhere(
         onValueChange = onSiteAddress,
         label = { Text("Address") },
         placeholder = { Text("Hospital name, street, city — type if you can't pin on the map") },
+        // Surface the VM's address requirement inline. The submit
+        // handler also stamps this when the field is too short, so
+        // the user sees both the banner at top and the field-level
+        // error.
+        isError = siteAddressError != null,
+        supportingText = siteAddressError?.let { { Text(it) } },
         singleLine = false,
         minLines = 2,
         modifier = Modifier.fillMaxWidth(),
