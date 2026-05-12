@@ -57,6 +57,7 @@ import coil3.compose.AsyncImage
 import com.equipseva.app.R
 import com.equipseva.app.core.data.cashsurvey.CashSurveyRepository
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
+import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.initialsOf
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.designsystem.components.EsSection
@@ -461,7 +462,10 @@ private fun SlaCreditsCard(
     summary: com.equipseva.app.core.data.amc.AmcRepository.HospitalSlaCreditSummary,
     onClick: () -> Unit,
 ) {
-    val rupeesLabel = "%,.0f".format(summary.totalCreditRupees)
+    // formatRupees applies Indian grouping (₹1,23,456) + the rupee sign;
+    // the prior "%,.0f" format used the default Locale which falls back
+    // to US grouping (₹123,456) and lost the leading ₹ glyph too.
+    val rupeesLabel = formatRupees(summary.totalCreditRupees)
     val sub = if (summary.breachCount == 1) {
         "1 SLA breach in the last 30 days. Tap to review."
     } else {
@@ -496,7 +500,8 @@ private fun SlaCreditsCard(
         }
         Column(modifier = androidx.compose.ui.Modifier.weight(1f)) {
             Text(
-                text = "₹$rupeesLabel credited for SLA misses",
+                // formatRupees already includes the ₹ prefix.
+                text = "$rupeesLabel credited for SLA misses",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = SevaInk900,
