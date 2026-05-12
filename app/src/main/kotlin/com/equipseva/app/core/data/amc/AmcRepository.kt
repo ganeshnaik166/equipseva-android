@@ -45,10 +45,10 @@ class AmcRepository @Inject constructor(
     /** Row returned by `list_amc_contracts_for_hospital`. */
     @Serializable
     data class HospitalContract(
-        @SerialName("id") val id: String,
+        val id: String,
         @SerialName("primary_engineer_id") val primaryEngineerId: String,
         @SerialName("primary_engineer_name") val primaryEngineerName: String,
-        @SerialName("status") val status: String,
+        val status: String,
         @SerialName("visit_frequency") val visitFrequency: String,
         @SerialName("visits_per_year") val visitsPerYear: Int,
         @SerialName("monthly_fee_rupees") val monthlyFeeRupees: Double,

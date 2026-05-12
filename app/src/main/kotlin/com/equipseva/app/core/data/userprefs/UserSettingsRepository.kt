@@ -24,8 +24,8 @@ class UserSettingsRepository @Inject constructor(
     @Serializable
     private data class Row(
         @SerialName("user_id") val userId: String,
-        @SerialName("key") val key: String,
-        @SerialName("value") val value: JsonObject,
+        val key: String,
+        val value: JsonObject,
     )
 
     private val json = Json { ignoreUnknownKeys = true }
