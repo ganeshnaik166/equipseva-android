@@ -240,7 +240,10 @@ class ChatRepository @Inject constructor(
                 eq("is_read", false)
             }
         }
-        readEvents.tryEmit(readerUserId)
+        // emit (suspending) rather than tryEmit so a slow collector
+        // can't silently drop the signal when extraBufferCapacity is
+        // already at its single-slot limit.
+        readEvents.emit(readerUserId)
         Unit
     }
 

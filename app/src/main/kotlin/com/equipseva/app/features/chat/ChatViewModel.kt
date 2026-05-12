@@ -392,7 +392,17 @@ class ChatViewModel @Inject constructor(
         }
             .onEach { list ->
                 _state.update { it.copy(loading = false, messages = list, errorMessage = null) }
-                viewModelScope.launch { chatRepository.markConversationRead(conversationId, selfUserId) }
+                // Only hit the read endpoint when there's something to
+                // mark. Without this gate, every realtime tick (own
+                // sends, edits, deletes, typing-induced refreshes)
+                // round-trips the server AND nudges the conversations
+                // list to re-fetch, even when no unread changed.
+                val hasUnreadInbound = list.any { msg ->
+                    !msg.isRead && msg.senderUserId != selfUserId
+                }
+                if (hasUnreadInbound) {
+                    viewModelScope.launch { chatRepository.markConversationRead(conversationId, selfUserId) }
+                }
             }
             .catch { error ->
                 _state.update { it.copy(loading = false, errorMessage = error.toUserMessage()) }
