@@ -11,7 +11,6 @@ import kotlinx.serialization.json.contentOrNull
 @Serializable
 internal data class NotificationDto(
     val id: String,
-    @SerialName("user_id") val userId: String,
     val title: String,
     val body: String,
     val kind: String? = null,

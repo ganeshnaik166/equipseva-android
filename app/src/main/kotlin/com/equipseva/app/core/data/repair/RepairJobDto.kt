@@ -18,7 +18,6 @@ import kotlinx.serialization.Serializable
 data class RepairJobDto(
     val id: String,
     @SerialName("job_number") val jobNumber: String? = null,
-    @SerialName("hospital_org_id") val hospitalOrgId: String? = null,
     @SerialName("hospital_user_id") val hospitalUserId: String? = null,
     @SerialName("engineer_id") val engineerId: String? = null,
     // Photo arrays. Filled in by the engineer at "Mark done" (after_photos),
@@ -31,7 +30,6 @@ data class RepairJobDto(
     @SerialName("equipment_type") val equipmentType: String? = null,
     @SerialName("equipment_brand") val equipmentBrand: String? = null,
     @SerialName("equipment_model") val equipmentModel: String? = null,
-    @SerialName("job_type") val jobType: String? = null,
     val urgency: String? = null,
     val status: String? = null,
     @SerialName("issue_description") val issueDescription: String = "",
