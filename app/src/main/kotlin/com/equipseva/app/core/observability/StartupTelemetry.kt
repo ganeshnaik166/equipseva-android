@@ -52,7 +52,8 @@ object StartupTelemetry {
         // the span chain.
         val txn = runCatching {
             Sentry.startTransaction(TRANSACTION_NAME, OP)
-        }.getOrNull()
+        }.onFailure { Log.w(TAG, "Sentry.startTransaction threw; cold-start span will be skipped", it) }
+            .getOrNull()
         transactionRef.set(txn)
     }
 
@@ -73,7 +74,7 @@ object StartupTelemetry {
                 txn.setMeasurement("cold_start_ms", durationMs)
                 txn.setTag("phase", "first_frame")
                 txn.finish(SpanStatus.OK)
-            }
+            }.onFailure { Log.w(TAG, "Failed to finish cold-start Sentry transaction", it) }
         }
     }
 }
