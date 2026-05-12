@@ -1072,11 +1072,7 @@ private fun ReviewsSection(
 @Composable
 private fun ReviewItem(r: EngineerDirectoryRepository.EngineerReview) {
     val whenLabel: String = remember(r.completedAtIso) {
-        runCatching {
-            r.completedAtIso?.let { iso ->
-                com.equipseva.app.core.util.relativeLabel(java.time.Instant.parse(iso))
-            }
-        }.getOrNull().orEmpty()
+        com.equipseva.app.core.util.relativeLabel(r.completedAtIso).orEmpty()
     }
     val cityLabel = r.hospitalCity?.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty()
     Column(
