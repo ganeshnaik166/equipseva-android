@@ -1,12 +1,13 @@
 package com.equipseva.app.core.data.moderation
 
-/** What the user is reporting. Matches the CHECK constraint on `content_reports.target_type`. */
+/**
+ * What the user is reporting. The DB CHECK constraint on
+ * `content_reports.target_type` accepts more values; we only list the ones
+ * the client can actually produce so dead targets don't ship as buttons.
+ */
 enum class ContentReportTarget(val key: String) {
     ChatMessage("chat_message"),
-    PartListing("part_listing"),
     RepairJob("repair_job"),
-    Rfq("rfq"),
-    Profile("profile"),
 }
 
 /** Why the user is reporting it. Matches the CHECK constraint on `content_reports.reason`. */
