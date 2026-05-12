@@ -317,8 +317,11 @@ fun ProfileScreen(
     if (state.deleteAccountOpen) {
         DeleteAccountSheet(
             reason = state.deleteReason,
+            password = state.deletePassword,
+            passwordError = state.deletePasswordError,
             deleting = state.deletingAccount,
             onReasonChange = viewModel::onDeleteReasonChange,
+            onPasswordChange = viewModel::onDeletePasswordChange,
             onConfirm = viewModel::onConfirmDeleteAccount,
             onDismiss = viewModel::onDismissDeleteAccount,
         )

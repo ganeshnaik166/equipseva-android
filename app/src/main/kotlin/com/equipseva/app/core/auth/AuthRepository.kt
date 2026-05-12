@@ -38,6 +38,16 @@ interface AuthRepository {
     suspend fun updatePassword(currentPassword: String, newPassword: String): Result<Unit>
 
     /**
+     * Verify the supplied password matches the active session's identity.
+     * Result.failure carries [InvalidCurrentPasswordException] when the
+     * password is wrong; any other Throwable indicates a network / Supabase
+     * error. Used before privileged irreversible operations (delete
+     * account) so an unlocked-device attacker can't act on the session
+     * without proof of credentials.
+     */
+    suspend fun verifyCurrentPassword(password: String): Result<Unit>
+
+    /**
      * Email OTP — KEPT for KYC Step 1's "verify your email" sheet only. Not a
      * sign-in path.
      */
