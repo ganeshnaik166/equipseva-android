@@ -1,6 +1,5 @@
 package com.equipseva.app.features.founder
 
-import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,11 +33,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.openExternalUrl
 import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
@@ -194,9 +193,14 @@ fun FounderBuyerKycQueueScreen(
                                 onView = {
                                     viewModel.viewModelScope.launch {
                                         val url = viewModel.signedDocUrl(row) ?: return@launch
-                                        runCatching {
-                                            context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
-                                        }
+                                        // Use the shared helper so the URL routes
+                                        // to the default browser. Doc URLs sit
+                                        // under equipseva.com storage; the raw
+                                        // Intent.ACTION_VIEW path silently no-ops
+                                        // because the App Link filter on this
+                                        // host captures the intent and NavGraph
+                                        // has no /storage/... route.
+                                        openExternalUrl(context, url)
                                     }
                                 },
                                 onApprove = { viewModel.openApprove(row.requestId, row.fullName) },
