@@ -17,6 +17,7 @@ import com.equipseva.app.core.security.PlayIntegrityClient
 import com.equipseva.app.core.storage.StorageRepository
 import com.equipseva.app.core.sync.handlers.PhotoUploadPayload
 import com.equipseva.app.core.sync.handlers.PhotoUploadStash
+import com.equipseva.app.core.util.timestampedName
 import kotlinx.datetime.Clock
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -902,13 +903,6 @@ class KycViewModel @Inject constructor(
                 },
             )
         }
-    }
-
-    private fun timestampedName(original: String): String {
-        val sanitized = original.substringAfterLast('/').ifBlank { "file" }
-            .replace(Regex("[^A-Za-z0-9._-]"), "_")
-        val stamp = System.currentTimeMillis()
-        return "$stamp-$sanitized"
     }
 
 }

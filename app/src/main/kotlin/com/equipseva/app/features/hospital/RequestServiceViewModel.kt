@@ -11,6 +11,7 @@ import com.equipseva.app.core.data.repair.RepairJobRepository
 import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.storage.StorageRepository
+import com.equipseva.app.core.util.timestampedName
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -119,7 +120,7 @@ class RequestServiceViewModel @Inject constructor(
         }
         if (_state.value.uploadingPhoto) return
         _state.update { it.copy(uploadingPhoto = true) }
-        val stored = "issue-${timestampedName(fileName)}"
+        val stored = "issue-${timestampedName(fileName, fallback = "photo.jpg")}"
         val path = "$uid/$stored"
         viewModelScope.launch {
             storageRepository.upload(
@@ -240,10 +241,4 @@ class RequestServiceViewModel @Inject constructor(
         }
     }
 
-    private fun timestampedName(original: String): String {
-        val sanitized = original.substringAfterLast('/').ifBlank { "photo.jpg" }
-            .replace(Regex("[^A-Za-z0-9._-]"), "_")
-        val stamp = System.currentTimeMillis()
-        return "$stamp-$sanitized"
-    }
 }
