@@ -12,20 +12,15 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * v1 smoke test for the auth -> home -> cart -> checkout golden path
- * (PENDING.md #45). Audit flagged zero instrumented coverage — this is the
- * minimum stable baseline so the activity launching without crashing is
- * caught in CI before deeper UI assertions are layered on.
+ * Smoke test for MainActivity boot. Audit flagged zero instrumented
+ * coverage — this is the minimum stable baseline so the activity
+ * launching without crashing is caught in CI before deeper UI
+ * assertions are layered on.
  *
  * Scope is intentionally narrow:
  *   - Boot MainActivity through the real Hilt graph (the prod
  *     EquipSevaApplication is used; no HiltTestApplication wiring yet).
- *   - Confirm the Compose host attaches and the activity reaches RESUMED.
- *
- * Deeper assertions (auth headline rendering, role-select gating, full
- * auth -> home -> cart -> checkout traversal) need Hilt test infra + a
- * fake Supabase session, both of which require new dependencies and
- * fixture wiring. Tracked as follow-ups; see TODOs below.
+ *   - Confirm the Compose host attaches and the activity reaches STARTED.
  */
 @RunWith(AndroidJUnit4::class)
 class SmokeFlowTest {
@@ -53,12 +48,5 @@ class SmokeFlowTest {
         // ExampleInstrumentedTest's contract.
         val ctx = InstrumentationRegistry.getInstrumentation().targetContext
         assertEquals("com.equipseva.app.debug", ctx.packageName)
-
-        // TODO(#45 follow-up): once Hilt test infra (hilt-android-testing
-        //  + custom AndroidJUnitRunner with HiltTestApplication) lands,
-        //  swap to a fake SessionViewModel that emits SignedOut and
-        //  assert the "Sign in" / "Create account" buttons on
-        //  WelcomeScreen render. Then extend through home -> cart ->
-        //  checkout with a fake Supabase client.
     }
 }
