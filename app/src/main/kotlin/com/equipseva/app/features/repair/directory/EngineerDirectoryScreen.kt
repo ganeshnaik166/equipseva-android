@@ -57,6 +57,7 @@ import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.fetchCurrentLocation
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.initialsOf
+import com.equipseva.app.core.util.prettyKey
 import com.equipseva.app.designsystem.components.EsBottomSheet
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
@@ -683,7 +684,3 @@ internal fun InlineVerifiedBadge(small: Boolean = false) {
 // InlineStars promoted to a shared component so the new
 // EngineerRatingCard + ReviewItem render the same glyph without a fork.
 // See app/src/main/kotlin/com/equipseva/app/designsystem/components/InlineStars.kt
-
-private fun prettyKey(k: String): String =
-    k.split('_', '-').joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
-
