@@ -57,10 +57,16 @@
 
             <!-- App Links for equipseva.com. autoVerify=true makes
                  Android fetch /.well-known/assetlinks.json on install
-                 and bind https://equipseva.com/* (+ www) directly to
-                 this activity. Future deep-link paths ride this same
-                 filter without re-verification. Hosting the
-                 assetlinks.json lives in website/.well-known/. -->
+                 and bind matching paths directly to this activity.
+                 Hosting of assetlinks.json lives in website/.well-known/.
+
+                 Path filters restrict the binding to ONLY routes that
+                 DeepLinkRouter actually handles. Unlisted paths
+                 (e.g. /privacy, /terms, /licenses, /auth/reset) fall
+                 through to the browser. Without these filters the
+                 password-reset email and legal pages were silently
+                 captured by the app and never rendered. Keep this list
+                 in sync with DeepLinkRouter.routeForParts. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -68,6 +74,11 @@
                 <data android:scheme="https" />
                 <data android:host="equipseva.com" />
                 <data android:host="www.equipseva.com" />
+                <data android:pathPrefix="/job/" />
+                <data android:pathPrefix="/chat/" />
+                <data android:pathPrefix="/engineer/" />
+                <data android:path="/engineers" />
+                <data android:path="/notifications" />
             </intent-filter>
         </activity>
 
