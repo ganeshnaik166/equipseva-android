@@ -52,10 +52,15 @@ fun DeleteAccountSheet(
                 color = Ink900,
             )
             Text(
-                text = "This removes your profile, messages and push tokens. " +
-                    "Your account enters a 30-day grace period before full deletion, during " +
-                    "which you can email support to restore it. After that, your data " +
-                    "cannot be recovered.",
+                // Copy reviewed 2026-05-12: the RPC hard-deletes
+                // auth.users + storage objects on the same call; there is
+                // no 30-day grace period and support cannot restore the
+                // account once this runs. List the real scope so the user
+                // sees what's about to disappear.
+                text = "Deletes your profile, repair jobs, bids, AMC contracts, " +
+                    "messages, payments, saved addresses, and uploaded files. All " +
+                    "device sessions are signed out immediately. This is permanent — " +
+                    "support cannot restore the account after this runs.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Ink700,
             )
