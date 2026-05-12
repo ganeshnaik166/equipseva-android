@@ -1,0 +1,44 @@
+package com.equipseva.app.core.sync
+
+import com.equipseva.app.core.storage.UploadError
+import io.github.jan.supabase.exceptions.HttpRequestException
+import io.github.jan.supabase.exceptions.RestException
+import kotlinx.serialization.SerializationException
+import java.io.IOException
+
+/**
+ * Sorts an exception into `Retry` vs `GiveUp`. Every outbox handler
+ * funnels its `Result.onFailure` through here so a permanent error
+ * (RLS 403, 4xx validation, malformed payload) is dropped immediately
+ * instead of consuming the worker's MAX_ATTEMPTS budget — that budget
+ * exists to ride out transient outages, not to repeatedly attempt
+ * writes the server will never accept.
+ *
+ * Heuristics, conservative-by-default:
+ *  - IOException / HttpRequestException → Retry (network outage).
+ *  - RestException 4xx → GiveUp (auth, RLS, missing record, validator
+ *    failure — none of these clear themselves over time).
+ *  - RestException 5xx → Retry (server temporarily off).
+ *  - SerializationException → GiveUp (malformed payload — re-encoding
+ *    would change the row, which the worker isn't allowed to do).
+ *  - Default → Retry. The MAX_ATTEMPTS cap will eventually drop a
+ *    truly stuck row to the poison-drop notification path.
+ */
+fun classifyOutboxError(error: Throwable): OutboxKindHandler.Outcome = when (error) {
+    is IOException -> OutboxKindHandler.Outcome.Retry(error)
+    is HttpRequestException -> OutboxKindHandler.Outcome.Retry(error)
+    is RestException -> if (error.statusCode in 400..499) {
+        OutboxKindHandler.Outcome.GiveUp("Permanent ${error.statusCode}: ${error.message ?: error::class.simpleName}")
+    } else {
+        OutboxKindHandler.Outcome.Retry(error)
+    }
+    is SerializationException -> OutboxKindHandler.Outcome.GiveUp(
+        "Malformed payload: ${error.message ?: "decode failed"}",
+    )
+    // Validator failures from the storage layer (mime/size/path) are
+    // permanent — re-trying won't change the file we're handing in.
+    is UploadError -> OutboxKindHandler.Outcome.GiveUp(
+        "Upload rejected: ${error.message ?: error::class.simpleName}",
+    )
+    else -> OutboxKindHandler.Outcome.Retry(error)
+}

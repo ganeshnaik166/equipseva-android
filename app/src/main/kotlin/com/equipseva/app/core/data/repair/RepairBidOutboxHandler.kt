@@ -2,6 +2,7 @@ package com.equipseva.app.core.data.repair
 
 import com.equipseva.app.core.data.entities.OutboxEntryEntity
 import com.equipseva.app.core.sync.OutboxKindHandler
+import com.equipseva.app.core.sync.classifyOutboxError
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import kotlinx.serialization.Serializable
@@ -49,7 +50,7 @@ class RepairBidOutboxHandler @Inject constructor(
             note = payload.note,
         ).fold(
             onSuccess = { OutboxKindHandler.Outcome.Success },
-            onFailure = { OutboxKindHandler.Outcome.Retry(it) },
+            onFailure = ::classifyOutboxError,
         )
     }
 }

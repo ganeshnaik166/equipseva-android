@@ -4,6 +4,7 @@ import android.util.Log
 import com.equipseva.app.core.data.entities.OutboxEntryEntity
 import com.equipseva.app.core.storage.StorageRepository
 import com.equipseva.app.core.sync.OutboxKindHandler
+import com.equipseva.app.core.sync.classifyOutboxError
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
@@ -92,12 +93,10 @@ class PhotoUploadOutboxHandler @Inject constructor(
         )
         val uploadError = uploadResult.exceptionOrNull()
         if (uploadError != null) {
-            return if (isTransient(uploadError)) {
-                OutboxKindHandler.Outcome.Retry(uploadError)
-            } else {
-                // Validator (mime/size/path) → permanent; don't clog the queue.
-                OutboxKindHandler.Outcome.GiveUp("Upload rejected: ${uploadError.message}")
-            }
+            // Funnels UploadError → GiveUp, 4xx Supabase errors → GiveUp,
+            // everything network-shaped → Retry. Keeps the validator
+            // skip behaviour identical to the prior local isTransient().
+            return classifyOutboxError(uploadError)
         }
 
         // Best-effort: patch the owning row with a URL reference. A signed URL
@@ -175,14 +174,6 @@ class PhotoUploadOutboxHandler @Inject constructor(
             // load-bearing half of this operation; the URL append is nice-to-have.
             Log.w(TAG, "Append-URL failed for $contextType/$contextId", it)
         }
-    }
-
-    private fun isTransient(error: Throwable): Boolean {
-        // Validator errors (com.equipseva.app.core.storage.UploadError) are
-        // permanent — bad mime/size/path won't fix itself. Everything else
-        // (IOException, Ktor HTTP exceptions, RLS 500s from transient DB hic-
-        // cups) gets one more flush attempt before the worker poisons it.
-        return error !is com.equipseva.app.core.storage.UploadError
     }
 
     @Serializable
