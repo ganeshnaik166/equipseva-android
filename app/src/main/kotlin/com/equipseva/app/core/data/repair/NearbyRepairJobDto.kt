@@ -38,7 +38,6 @@ internal fun NearbyRepairJobDto.toDomainWithDistance(): RepairJobWithDistance {
     val baseDto = RepairJobDto(
         id = id,
         jobNumber = jobNumber,
-        hospitalOrgId = hospitalOrgId,
         hospitalUserId = hospitalUserId,
         equipmentType = equipmentType,
         equipmentBrand = equipmentBrand,
