@@ -75,7 +75,7 @@ class SupabaseCostRevisionRepository @Inject constructor(
      * job. Re-fetches the pending row on every change event so the UI
      * always reflects the latest status (including transitions to
      * approved/rejected/expired which collapse the banner). Matches the
-     * pattern used by [SupabaseNotificationRepository.observeNotifications].
+     * pattern used by [NotificationRepository.observeNotifications].
      */
     override fun observePending(repairJobId: String): Flow<CostRevision?> = callbackFlow {
         suspend fun refresh() {
