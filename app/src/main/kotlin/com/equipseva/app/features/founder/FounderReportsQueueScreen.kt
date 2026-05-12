@@ -14,10 +14,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -208,11 +213,17 @@ private fun ReportRow(
         if (!row.notes.isNullOrBlank()) {
             Text(row.notes, color = SevaInk700, fontSize = 13.sp)
         }
+        // Confirmation gate for the destructive "actioned" status —
+        // the original UI was a single tap on a vague "Action" button.
+        // Dismissed + Reviewed are lower-stakes (queue housekeeping)
+        // and don't need a confirm. acting flag protects against
+        // double-tap during the in-flight RPC.
+        var confirmStatus by remember { mutableStateOf<String?>(null) }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(modifier = Modifier.weight(1f)) {
                 EsBtn(
-                    text = if (acting) "…" else "Action",
-                    onClick = { onAction("actioned") },
+                    text = if (acting) "…" else "Take action",
+                    onClick = { confirmStatus = "actioned" },
                     kind = EsBtnKind.Primary,
                     full = true,
                     disabled = acting,
@@ -236,6 +247,28 @@ private fun ReportRow(
                     disabled = acting,
                 )
             }
+        }
+        if (confirmStatus != null) {
+            AlertDialog(
+                onDismissRequest = { confirmStatus = null },
+                title = { Text("Take action on this report?") },
+                text = {
+                    Text(
+                        "This marks the report as actioned and removes it from the queue. " +
+                            "Apply any user-level enforcement (ban, suspend) separately.",
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        val s = confirmStatus
+                        confirmStatus = null
+                        if (s != null) onAction(s)
+                    }) { Text("Confirm") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { confirmStatus = null }) { Text("Cancel") }
+                },
+            )
         }
     }
 }
