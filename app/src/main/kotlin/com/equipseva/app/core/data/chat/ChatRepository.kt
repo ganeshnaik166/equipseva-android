@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
@@ -30,6 +31,13 @@ class ChatRepository @Inject constructor(
     private val client: SupabaseClient,
 ) {
 
+    // Fires after markConversationRead succeeds so observeConversations
+    // can re-fetch and produce a fresh unreadCount=0. Without this, the
+    // inbox badge would only clear on the next inbound-message refresh.
+    // Replay 0 + extraBuffer 1 keeps it cheap; collectors that started
+    // after the emit re-check via refresh() on next subscription.
+    private val readEvents = MutableSharedFlow<String>(replay = 0, extraBufferCapacity = 1)
+
     /** Emits the latest list of conversations the user participates in, ordered newest-first. */
     fun observeConversations(userId: String): Flow<List<ChatConversation>> = callbackFlow {
         suspend fun refresh() {
@@ -44,10 +52,14 @@ class ChatRepository @Inject constructor(
         val job = launch {
             changes.collect { _ -> refresh() }
         }
+        val readJob = launch {
+            readEvents.collect { reader -> if (reader == userId) refresh() }
+        }
         channel.subscribe()
 
         awaitClose {
             job.cancel()
+            readJob.cancel()
             launch { client.realtime.removeChannel(channel) }
         }
     }.flowOn(Dispatchers.IO)
@@ -207,7 +219,14 @@ class ChatRepository @Inject constructor(
         dto.toDomain()
     }
 
-    /** Mark inbound messages (not authored by the reader) as read. */
+    /** Mark inbound messages (not authored by the reader) as read.
+     *
+     *  Also nudges the read-events SharedFlow so the conversations list
+     *  re-fetches its unread counts. Without that nudge the realtime
+     *  channel only refires on CONVERSATIONS_TABLE inserts/updates and
+     *  a message-table read-receipt would leave the inbox badge stuck
+     *  at the pre-open value until the next push arrived.
+     */
     suspend fun markConversationRead(
         conversationId: String,
         readerUserId: String,
@@ -221,6 +240,7 @@ class ChatRepository @Inject constructor(
                 eq("is_read", false)
             }
         }
+        readEvents.tryEmit(readerUserId)
         Unit
     }
 
