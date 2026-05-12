@@ -33,9 +33,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.net.toUri
 import com.equipseva.app.BuildConfig
 import com.equipseva.app.R
+import com.equipseva.app.core.util.openExternalUrl
 import com.equipseva.app.designsystem.components.EsListRow
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.theme.BorderDefault
@@ -44,7 +44,6 @@ import com.equipseva.app.designsystem.theme.SevaInk400
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk600
 import com.equipseva.app.designsystem.theme.SevaInk900
-import android.content.Intent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,11 +51,7 @@ fun AboutScreen(
     onBack: () -> Unit,
 ) {
     val ctx = LocalContext.current
-    val open: (String) -> Unit = { url ->
-        runCatching {
-            ctx.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
-        }
-    }
+    val open: (String) -> Unit = { url -> openExternalUrl(ctx, url) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {

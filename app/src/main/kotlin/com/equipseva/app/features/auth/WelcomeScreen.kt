@@ -37,14 +37,13 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
-import androidx.core.net.toUri
+import com.equipseva.app.core.util.openExternalUrl
 import com.equipseva.app.R
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.theme.EsFontFamily
 import com.equipseva.app.designsystem.theme.SevaGreen900
-import android.content.Intent
 
 // Round B redesign — full-bleed dark green hero with logo + tagline,
 // two CTAs at the bottom (lime "Sign in" + outlined "Create account"),
@@ -166,11 +165,7 @@ fun WelcomeScreen(
                 onClick = { offset ->
                     val tag = annotated.getStringAnnotations(termsTag, offset, offset).firstOrNull()
                         ?: annotated.getStringAnnotations(privacyTag, offset, offset).firstOrNull()
-                    tag?.item?.let { url ->
-                        runCatching {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
-                        }
-                    }
+                    tag?.item?.let { url -> openExternalUrl(context, url) }
                 },
             )
         }
