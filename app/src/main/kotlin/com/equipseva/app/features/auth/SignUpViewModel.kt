@@ -24,6 +24,7 @@ class SignUpViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
     private val userPrefs: UserPrefs,
+    private val crashReporter: com.equipseva.app.core.observability.CrashReporter,
 ) : ViewModel() {
 
     data class UiState(
@@ -109,8 +110,15 @@ class SignUpViewModel @Inject constructor(
                             // the role until the next refresh corrects it.
                             profileRepository.addRole(role.storageKey)
                                 .onSuccess {
+                                    // Mirror to local prefs. If the prefs
+                                    // write throws (corrupt SharedPreferences,
+                                    // disk full) Crashlytics gets the breadcrumb
+                                    // — bottom nav will land on the server's
+                                    // active_role on next refresh either way.
                                     runCatching { userPrefs.setActiveRole(role.storageKey) }
+                                        .onFailure { crashReporter.report(it, "signup setActiveRole") }
                                 }
+                                .onFailure { crashReporter.report(it, "signup addRole") }
                             _state.update { it.copy(form = FormUiState()) }
                             // Session will transition; AuthHostInline routes to Home.
                             _effects.send(AuthEffect.NavigateToHome)
