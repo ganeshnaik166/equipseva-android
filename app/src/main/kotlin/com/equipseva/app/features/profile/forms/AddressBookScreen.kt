@@ -22,10 +22,14 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -101,7 +105,13 @@ class AddressBookViewModel @Inject constructor(
         viewModelScope.launch {
             repo.delete(id)
                 .onSuccess {
-                    _state.update { it.copy(acting = null, rows = it.rows.filterNot { row -> row.id == id }) }
+                    // Re-fetch instead of local-filter so default-flip
+                    // logic (if the deleted row was the default and the
+                    // server auto-promoted another) is reflected in
+                    // the list. Local filter would leave UI thinking
+                    // there's still no default until next reload.
+                    _state.update { it.copy(acting = null) }
+                    reload()
                 }
                 .onFailure { e ->
                     _state.update { it.copy(acting = null, error = e.toUserMessage()) }
@@ -148,18 +158,51 @@ fun AddressBookScreen(
                     title = "No saved addresses",
                     subtitle = "Tap + to add your first service-call address.",
                 )
-                else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(Spacing.md),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    items(state.rows, key = { it.id ?: it.line1 }) { row ->
-                        AddressRowCard(
-                            row = row,
-                            actingThis = state.acting == row.id,
-                            onEdit = { row.id?.let(onEdit) },
-                            onDelete = { row.id?.let(viewModel::delete) },
-                            onSetDefault = { row.id?.let(viewModel::setDefault) },
+                else -> {
+                    // Per-screen pending-delete state so the AlertDialog
+                    // renders outside the LazyColumn DSL scope. null = no
+                    // pending confirm; non-null = id awaiting OK/Cancel.
+                    var pendingDeleteId by remember { mutableStateOf<String?>(null) }
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(Spacing.md),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        items(state.rows, key = { it.id ?: it.line1 }) { row ->
+                            AddressRowCard(
+                                row = row,
+                                actingThis = state.acting == row.id,
+                                onEdit = { row.id?.let(onEdit) },
+                                onDelete = { row.id?.let { pendingDeleteId = it } },
+                                onSetDefault = { row.id?.let(viewModel::setDefault) },
+                            )
+                        }
+                    }
+                    val target = pendingDeleteId
+                    if (target != null) {
+                        val row = state.rows.firstOrNull { it.id == target }
+                        val isDefault = row?.isDefault == true
+                        AlertDialog(
+                            onDismissRequest = { pendingDeleteId = null },
+                            title = { Text("Delete this address?") },
+                            text = {
+                                Text(
+                                    if (isDefault) {
+                                        "This is your default address. Another address will be promoted automatically after delete. This action can't be undone."
+                                    } else {
+                                        "This address will be removed. You can add it again later. This action can't be undone."
+                                    },
+                                )
+                            },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    pendingDeleteId = null
+                                    viewModel.delete(target)
+                                }) { Text("Delete") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { pendingDeleteId = null }) { Text("Cancel") }
+                            },
                         )
                     }
                 }
