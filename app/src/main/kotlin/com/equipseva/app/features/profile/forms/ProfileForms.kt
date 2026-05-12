@@ -57,9 +57,9 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 
 /** Field type drives the OutlinedTextField keyboard + validation hints. */
-internal enum class FieldKind { TEXT, NUMBER, EMAIL, PHONE, MULTILINE, SWITCH }
+private enum class FieldKind { TEXT, NUMBER, EMAIL, PHONE, MULTILINE, SWITCH }
 
-internal data class FieldSpec(
+private data class FieldSpec(
     val key: String,
     val label: String,
     val kind: FieldKind = FieldKind.TEXT,
@@ -156,7 +156,7 @@ class ProfileFormViewModel @AssistedInject constructor(
 }
 
 @Composable
-internal fun ProfileFormScaffold(
+private fun ProfileFormScaffold(
     title: String,
     subtitle: String?,
     settingsKey: String,
