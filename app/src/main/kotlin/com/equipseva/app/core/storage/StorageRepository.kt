@@ -56,9 +56,9 @@ class StorageRepository @Inject constructor(
         return supabase.storage.from(bucket).createSignedUrl(path, expiresInMinutes.minutes)
     }
 
-    // Defense-in-depth path guard. Callers (e.g. KycViewModel.timestampedName) already
-    // sanitize the file-name segment, but we re-check at the repository so a future
-    // caller can't accidentally route user input straight into an object key. Supabase
+    // Defense-in-depth path guard. Callers (e.g. core/util/Files.kt:timestampedName)
+    // already sanitize the file-name segment, but we re-check at the repository so a
+    // future caller can't accidentally route user input straight into an object key. Supabase
     // Storage object keys are S3-style, but `storage.foldername()`-based RLS policies
     // typically key on the first segment — a leading slash or `..` could collapse the
     // owner prefix and route writes to another user's folder.
