@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -105,6 +106,14 @@ class ChatViewModel @Inject constructor(
     // plenty for rendering a "typing…" chip.
     private var lastTypingBroadcastAtMs: Long = 0L
 
+    // Observer jobs tied to the active session. When the session changes
+    // (sign-out → sign-in to a different account in the same VM lifetime)
+    // the old jobs must be cancelled before the new ones launch — otherwise
+    // both observers race on the same StateFlow and the previous account's
+    // realtime channel keeps emitting into a stale ViewModel.
+    private var messagesJob: Job? = null
+    private var typingJob: Job? = null
+
     init {
         viewModelScope.launch {
             // Keep listening to the auth state instead of taking only the
@@ -121,6 +130,8 @@ class ChatViewModel @Inject constructor(
                 .filterIsInstance<AuthSession.SignedIn>()
                 .distinctUntilChangedBy { it.userId }
                 .collect { session ->
+                    messagesJob?.cancel()
+                    typingJob?.cancel()
                     _state.update { it.copy(selfUserId = session.userId) }
                     loadConversationMeta(session.userId)
                     observeMessages(session.userId)
@@ -359,14 +370,14 @@ class ChatViewModel @Inject constructor(
     }
 
     private fun observeTyping(selfUserId: String) {
-        chatRepository.observeTyping(conversationId, selfUserId)
+        typingJob = chatRepository.observeTyping(conversationId, selfUserId)
             .onEach { ids -> _state.update { it.copy(typingUserIds = ids) } }
             .catch { /* typing is non-critical; swallow to keep the chat screen alive */ }
             .launchIn(viewModelScope)
     }
 
     private fun observeMessages(selfUserId: String) {
-        combine(
+        messagesJob = combine(
             chatRepository.observeMessages(conversationId),
             userBlockRepository.observeBlockedUserIds(),
         ) { list, blocked ->
