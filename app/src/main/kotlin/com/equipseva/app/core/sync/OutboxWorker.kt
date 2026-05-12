@@ -108,6 +108,7 @@ class OutboxWorker @AssistedInject constructor(
             .setAutoCancel(true)
             .build()
         runCatching { nm.notify(POISON_NOTIF_BASE_ID + kind.hashCode(), notif) }
+            .onFailure { Log.w(TAG, "Failed to display poison-drop notification for kind=$kind", it) }
     }
 
     companion object {
