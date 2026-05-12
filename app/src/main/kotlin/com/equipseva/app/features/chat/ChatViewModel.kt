@@ -28,8 +28,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -108,28 +107,25 @@ class ChatViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            // Bound the wait on the auth session — if the SignedIn state
-            // never emits (cold start with a broken token refresh, an
-            // unexpected SignedOut, etc.) the chat would otherwise sit on
-            // its initial loading=true forever with no way to recover.
-            val session = withTimeoutOrNull(SESSION_WAIT_MS) {
-                authRepository.sessionState
-                    .filterIsInstance<AuthSession.SignedIn>()
-                    .first()
-            }
-            if (session == null) {
-                _state.update {
-                    it.copy(
-                        loading = false,
-                        errorMessage = "Sign in to view this conversation.",
-                    )
+            // Keep listening to the auth state instead of taking only the
+            // first emission. With the one-shot variant a slow / failing
+            // token refresh on cold start left the chat permanently stuck
+            // on loading=true; with continuous collection, a late
+            // SignedIn (e.g. token restores 6s after the screen opens)
+            // still wires up the conversation. Mirrors HomeHub/Profile.
+            //
+            // distinctUntilChangedBy keeps us from re-running setup on
+            // every transient session-token rotation; we only react when
+            // the user identity itself changes.
+            authRepository.sessionState
+                .filterIsInstance<AuthSession.SignedIn>()
+                .distinctUntilChangedBy { it.userId }
+                .collect { session ->
+                    _state.update { it.copy(selfUserId = session.userId) }
+                    loadConversationMeta(session.userId)
+                    observeMessages(session.userId)
+                    observeTyping(session.userId)
                 }
-                return@launch
-            }
-            _state.update { it.copy(selfUserId = session.userId) }
-            loadConversationMeta(session.userId)
-            observeMessages(session.userId)
-            observeTyping(session.userId)
         }
         outboxDao.observePendingCountByKind(OutboxKinds.CHAT_MESSAGE)
             .onEach { count -> _state.update { it.copy(queuedCount = count) } }
@@ -397,11 +393,6 @@ class ChatViewModel @Inject constructor(
         // Min interval between typing broadcasts per client. Repo-side TTL is ~3s, so
         // pinging every 2s keeps the "typing…" pill stable without flooding realtime.
         const val TYPING_BROADCAST_MIN_INTERVAL_MS = 2_000L
-        // Upper bound on how long init() waits for an authenticated session
-        // before falling back to a "sign in" error state. 5s is long enough
-        // to absorb a cold-start token refresh on slow networks but short
-        // enough that a broken session doesn't leave the screen stuck.
-        const val SESSION_WAIT_MS = 5_000L
     }
 }
 
