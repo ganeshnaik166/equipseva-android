@@ -63,6 +63,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.data.repair.RepairJobUrgency
+import com.equipseva.app.core.util.MIME_JPEG
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.HorizontalStepper
@@ -109,7 +110,7 @@ fun RequestServiceScreen(
             viewModel.onPhotoPicked(
                 fileName = "camera-${System.currentTimeMillis()}.jpg",
                 bytes = bytes,
-                contentType = "image/jpeg",
+                contentType = MIME_JPEG,
             )
         }
     }
@@ -140,7 +141,7 @@ fun RequestServiceScreen(
     ) { uri: android.net.Uri? ->
         if (uri != null) {
             val cr = context.contentResolver
-            val mime = cr.getType(uri) ?: "image/jpeg"
+            val mime = cr.getType(uri) ?: MIME_JPEG
             val bytes = cr.openInputStream(uri)?.use { it.readBytes() }
             val fileName = uri.lastPathSegment ?: "gallery-${System.currentTimeMillis()}"
             if (bytes != null) {

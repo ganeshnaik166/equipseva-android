@@ -64,6 +64,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.engineers.VerificationStatus
+import com.equipseva.app.core.util.MIME_JPEG
+import com.equipseva.app.core.util.MIME_PDF
+import com.equipseva.app.core.util.MIME_PNG
+import com.equipseva.app.core.util.MIME_WEBP
 import com.equipseva.app.designsystem.components.SecureScreen
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.ErrorBg
@@ -204,16 +208,16 @@ fun KycScreen(
                     onAttestationChange = viewModel::onAttestationChange,
                     onPickAadhaar = {
                         aadhaarPicker.launch(
-                            arrayOf("application/pdf", "image/jpeg", "image/png", "image/webp"),
+                            arrayOf(MIME_PDF, MIME_JPEG, MIME_PNG, MIME_WEBP),
                         )
                     },
                     onPickPan = {
                         panPicker.launch(
-                            arrayOf("application/pdf", "image/jpeg", "image/png", "image/webp"),
+                            arrayOf(MIME_PDF, MIME_JPEG, MIME_PNG, MIME_WEBP),
                         )
                     },
                     onPickCertificate = {
-                        certPicker.launch(arrayOf("application/pdf", "image/jpeg", "image/png", "image/webp"))
+                        certPicker.launch(arrayOf(MIME_PDF, MIME_JPEG, MIME_PNG, MIME_WEBP))
                     },
                     onStartReupload = viewModel::startReupload,
                     onEmailDraftChange = viewModel::onEmailDraftChange,

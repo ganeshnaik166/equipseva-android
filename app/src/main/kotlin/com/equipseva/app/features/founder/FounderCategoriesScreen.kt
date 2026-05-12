@@ -50,6 +50,9 @@ import androidx.lifecycle.viewModelScope
 import coil3.compose.AsyncImage
 import com.equipseva.app.core.storage.StorageRepository
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.MIME_JPEG
+import com.equipseva.app.core.util.MIME_PNG
+import com.equipseva.app.core.util.MIME_WEBP
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.Paper2
@@ -137,15 +140,15 @@ class FounderCategoriesViewModel @Inject constructor(
         _state.update { it.copy(editDraft = draft.copy(uploadingImage = true), error = null) }
         viewModelScope.launch {
             val resolver = context.contentResolver
-            val mime = resolver.getType(uri) ?: "image/jpeg"
+            val mime = resolver.getType(uri) ?: MIME_JPEG
             val bytes = resolver.openInputStream(uri)?.use { it.readBytes() }
             if (bytes == null) {
                 _state.update { it.copy(editDraft = it.editDraft?.copy(uploadingImage = false), error = "Couldn't read image") }
                 return@launch
             }
             val ext = when (mime.lowercase()) {
-                "image/png" -> "png"
-                "image/webp" -> "webp"
+                MIME_PNG -> "png"
+                MIME_WEBP -> "webp"
                 else -> "jpg"
             }
             val path = "$key.$ext"

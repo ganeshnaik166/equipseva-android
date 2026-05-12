@@ -24,6 +24,8 @@ import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.push.DeviceTokenRegistrar
 import com.equipseva.app.core.sync.OutboxScheduler
 import com.equipseva.app.core.sync.handlers.PhotoUploadStash
+import com.equipseva.app.core.util.IMAGE_MIME_TYPES
+import com.equipseva.app.core.util.MIME_JPEG
 import com.equipseva.app.features.auth.UserRole
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -371,12 +373,12 @@ class ProfileViewModel @Inject constructor(
         if (current.avatarUploading) return
         val profile = current.profile ?: return
         val resolver = appContext.contentResolver
-        val mime = resolver.getType(uri) ?: "image/jpeg"
+        val mime = resolver.getType(uri) ?: MIME_JPEG
         // Reject formats the avatar bucket / display pipeline can't render
         // up-front rather than uploading something the server-side check
         // will reject. JPEG/PNG/WebP cover phone camera + share-sheet
         // sources; GIF/SVG/TIFF/HEIC get rejected client-side.
-        val isAllowed = mime.lowercase() in setOf("image/jpeg", "image/png", "image/webp")
+        val isAllowed = mime.lowercase() in IMAGE_MIME_TYPES
         if (!isAllowed) {
             viewModelScope.launch {
                 _effects.send(Effect.ShowMessage("Please pick a JPG, PNG, or WebP photo."))
@@ -403,7 +405,7 @@ class ProfileViewModel @Inject constructor(
                 bucket = com.equipseva.app.core.storage.StorageRepository.Buckets.AVATARS,
                 path = path,
                 bytes = bytes,
-                contentType = "image/jpeg",
+                contentType = MIME_JPEG,
             )
                 .onSuccess {
                     val url = storageRepository.publicUrl(

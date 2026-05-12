@@ -85,6 +85,7 @@ import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobStatus
+import com.equipseva.app.core.util.MIME_JPEG
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.Avatar
@@ -2086,7 +2087,7 @@ private fun CheckinSheet(
                 onClick = {
                     val resolver = context.contentResolver
                     val photos = picked.mapNotNull { uri ->
-                        val mime = resolver.getType(uri) ?: "image/jpeg"
+                        val mime = resolver.getType(uri) ?: MIME_JPEG
                         val name = uri.lastPathSegment ?: "before-${System.currentTimeMillis()}.jpg"
                         val bytes = runCatching {
                             resolver.openInputStream(uri)?.use { it.readBytes() }
@@ -2235,7 +2236,7 @@ private fun CompletionProofSheet(
                 onClick = {
                     val resolver = context.contentResolver
                     val photos = picked.mapNotNull { uri ->
-                        val mime = resolver.getType(uri) ?: "image/jpeg"
+                        val mime = resolver.getType(uri) ?: MIME_JPEG
                         val name = uri.lastPathSegment ?: "after-${System.currentTimeMillis()}.jpg"
                         val bytes = runCatching {
                             resolver.openInputStream(uri)?.use { it.readBytes() }

@@ -1,5 +1,8 @@
 package com.equipseva.app.core.storage
 
+import com.equipseva.app.core.util.IMAGE_MIME_TYPES
+import com.equipseva.app.core.util.MIME_PDF
+
 /**
  * Pure policy object for which MIME types / byte-lengths each Supabase Storage bucket will
  * accept from the Android client. The Supabase bucket itself should also enforce the same
@@ -8,8 +11,8 @@ package com.equipseva.app.core.storage
  */
 object UploadValidator {
 
-    private val imageMimeTypes = setOf("image/jpeg", "image/png", "image/webp")
-    private val pdfMimeTypes = setOf("application/pdf")
+    private val imageMimeTypes = IMAGE_MIME_TYPES
+    private val pdfMimeTypes = setOf(MIME_PDF)
 
     data class Policy(
         val allowedMimeTypes: Set<String>,

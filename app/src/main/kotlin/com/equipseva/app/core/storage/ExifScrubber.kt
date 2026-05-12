@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import androidx.exifinterface.media.ExifInterface
+import com.equipseva.app.core.util.MIME_JPEG
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 
@@ -28,7 +29,7 @@ object ExifScrubber {
         // Only re-encode JPEG. PNG has no EXIF container in the strict sense; WebP's EXIF
         // handling is stream-fragile — for those we keep the bytes and let the bucket-side
         // scan handle residuals.
-        if (mime != "image/jpeg") return bytes
+        if (mime != MIME_JPEG) return bytes
 
         return runCatching {
             val orientation = ByteArrayInputStream(bytes).use { stream ->
