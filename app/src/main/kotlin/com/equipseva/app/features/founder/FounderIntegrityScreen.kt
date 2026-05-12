@@ -142,7 +142,7 @@ private fun IntegrityRow(row: FounderRepository.IntegrityFlag) {
             )
             row.createdAt?.let { ts ->
                 Text(
-                    text = relativeTime(ts),
+                    text = com.equipseva.app.core.util.relativeLabel(ts) ?: ts.take(10),
                     color = SevaInk500,
                     fontSize = 11.sp,
                 )
@@ -186,15 +186,3 @@ private fun VerdictChip(label: String, value: String?) {
     }
 }
 
-// Coarse relative-time formatter; ISO-8601 timestamps from Postgres.
-private fun relativeTime(iso: String): String = runCatching {
-    val ts = java.time.OffsetDateTime.parse(iso).toInstant().toEpochMilli()
-    val diff = System.currentTimeMillis() - ts
-    val mins = diff / 60_000L
-    when {
-        mins < 1 -> "now"
-        mins < 60 -> "${mins}m"
-        mins < 60 * 24 -> "${mins / 60}h"
-        else -> "${mins / (60 * 24)}d"
-    }
-}.getOrDefault(iso.take(10))

@@ -2,6 +2,7 @@ package com.equipseva.app.core.util
 
 import java.time.Duration
 import java.time.Instant
+import java.time.OffsetDateTime
 
 /** Short relative label like "now", "5m", "3h", "2d", "4w". */
 fun relativeLabel(instant: Instant, now: Instant = Instant.now()): String {
@@ -15,3 +16,12 @@ fun relativeLabel(instant: Instant, now: Instant = Instant.now()): String {
     }
 }
 
+/**
+ * Tolerant ISO-8601 overload for raw timestamp strings — `OffsetDateTime.parse`
+ * accepts both `Z` (UTC) and offset (`+05:30`) forms that Postgres timestamptz
+ * can emit. Returns null on null input or unparseable text so callers can fall
+ * back gracefully instead of crashing.
+ */
+fun relativeLabel(iso: String?, now: Instant = Instant.now()): String? = iso?.let {
+    runCatching { relativeLabel(OffsetDateTime.parse(it).toInstant(), now) }.getOrNull()
+}
