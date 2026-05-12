@@ -718,7 +718,7 @@ private fun SlaBreachCard(b: AmcRepository.AmcSlaBreach) {
         }
         Text(
             "Expected within ${b.expectedWithinHours}h" +
-                (b.actualHours?.let { " · actual ${"%.1f".format(it)}h" } ?: ""),
+                (b.actualHours?.let { " · actual ${"%.1f".format(java.util.Locale.US, it)}h" } ?: ""),
             color = SevaInk700,
             fontSize = 12.sp,
         )
