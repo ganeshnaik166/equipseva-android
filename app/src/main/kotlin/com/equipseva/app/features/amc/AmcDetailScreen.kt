@@ -471,7 +471,7 @@ private fun OverviewTab(state: AmcDetailViewModel.UiState) {
                 LabelRow("Frequency", prettyFrequency(freq))
                 LabelRow("Monthly fee", formatRupees(fee))
                 LabelRow("Visits", "$visitsDone / $visitsPerYr per year")
-                LabelRow("Term", "${prettyDate(toIso(start))} → ${prettyDate(toIso(end))}")
+                LabelRow("Term", "${prettyDate(start)} → ${prettyDate(end)}")
                 if (!nextVisit.isNullOrBlank()) {
                     LabelRow("Next visit", prettyDate(nextVisit))
                 }
@@ -876,5 +876,3 @@ private fun CategoryFlow(items: List<String>) {
     }
 }
 
-private fun toIso(date: String): String =
-    if (date.length == 10) date + "T00:00:00Z" else date
