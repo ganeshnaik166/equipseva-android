@@ -339,8 +339,10 @@ fun AddressFormScreen(
             // State must be from the curated IndiaLocations.STATES list —
             // free-text here was the source of "Telangana, 508207" style
             // garbage values surfacing later in engineer directory cards.
+            // Treat legacy non-canonical values as unset so the dropdown
+            // shows the placeholder instead of an unselectable string.
             EsDropdown(
-                value = state.form.state.takeIf { it.isNotBlank() },
+                value = state.form.state.takeIf { it in IndiaLocations.STATES },
                 onValueChange = { picked ->
                     viewModel.update {
                         // Clear city when state changes so a previously-picked
@@ -353,12 +355,15 @@ fun AddressFormScreen(
                 placeholder = "Select state",
             )
             // City stays free-text — district list is too coarse for
-            // hospital addresses — but strip commas + digits so users
-            // can't paste "Telangana, 508207" wholesale into the city
-            // slot.
+            // hospital addresses — but accept only ASCII letters /
+            // whitespace / hyphen / apostrophe / period. Char.isLetter()
+            // would let Devanagari, Tamil, Arabic codepoints through,
+            // which the backend's case-insensitive ASCII matching can't
+            // round-trip. Same Unicode-leak class that bit pincode/phone.
             FormField(state.form.city, "City") { v ->
                 val cleaned = v.filter { ch ->
-                    ch.isLetter() || ch.isWhitespace() || ch == '-' || ch == '\''
+                    ch in 'a'..'z' || ch in 'A'..'Z' || ch.isWhitespace() ||
+                        ch == '-' || ch == '\'' || ch == '.'
                 }
                 viewModel.update { it.copy(city = cleaned) }
             }
