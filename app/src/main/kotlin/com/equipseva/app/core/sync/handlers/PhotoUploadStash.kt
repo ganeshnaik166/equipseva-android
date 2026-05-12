@@ -1,6 +1,7 @@
 package com.equipseva.app.core.sync.handlers
 
 import android.content.Context
+import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -109,6 +110,10 @@ class DefaultPhotoUploadStash @Inject constructor(
     override suspend fun clearAll() {
         runCatching {
             stashDir.listFiles()?.forEach { file -> file.delete() }
-        }
+        }.onFailure { Log.w(TAG, "Failed to clear photo stash dir on sign-out", it) }
+    }
+
+    private companion object {
+        const val TAG = "PhotoUploadStash"
     }
 }
