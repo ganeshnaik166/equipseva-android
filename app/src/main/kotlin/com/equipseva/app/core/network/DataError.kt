@@ -44,6 +44,18 @@ private fun friendlyRestMessage(ex: RestException): String? {
             "We couldn't find that record."
         raw.contains("23505") -> "That looks like a duplicate. Please try a different value."
         raw.contains("23503") -> "Linked record is missing — refresh and try again."
+        // admin_set_engineer_verification raises 'kyc_incomplete' (22023)
+        // when an engineer is missing Aadhaar or has no certificates. The
+        // raw exception text otherwise falls through to the generic
+        // fallback and the admin sees "Something went wrong" instead of
+        // an actionable hint.
+        raw.contains("kyc_incomplete", ignoreCase = true) ->
+            "This engineer is missing Aadhaar verification or has no certificates uploaded. Reject with notes instead, or wait for the engineer to complete KYC."
+        // engineer_verify_idempotent_restamp + a few other RPCs return
+        // engineer_not_found (02000) when the row was deleted between
+        // queue load and resolve action.
+        raw.contains("engineer_not_found", ignoreCase = true) ->
+            "This engineer's row is no longer in the queue — pull to refresh."
         raw.isNotBlank() && !looksLikeRawDbError(raw) -> raw
         else -> null
     }
