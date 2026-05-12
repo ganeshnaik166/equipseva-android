@@ -24,7 +24,14 @@ fun Throwable.toUserMessage(fallback: String = "Something went wrong. Please try
 }
 
 private fun friendlyRestMessage(ex: RestException): String? {
-    val raw = ex.message.orEmpty()
+    // supabase-kt v3 puts the PostgREST response body in `ex.description`
+    // and the status text in `ex.error`. The Throwable `message` is
+    // usually the description, but can be a different formatted string
+    // depending on which exception subclass is thrown. Concatenate all
+    // three so RAISE EXCEPTION literals (e.g. 'kyc_incomplete') match
+    // regardless of which field the SDK populated this time.
+    val raw = listOfNotNull(ex.message, ex.description, ex.error)
+        .joinToString(separator = " | ")
     return when {
         // PostgREST stamps PGRST301 on expired JWTs and PGRST302 on missing /
         // malformed ones. The Supabase SDK auto-refreshes on the next request,
