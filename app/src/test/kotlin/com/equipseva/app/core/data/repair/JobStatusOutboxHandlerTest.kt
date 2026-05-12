@@ -104,6 +104,12 @@ class JobStatusOutboxHandlerTest {
             review: String?,
         ): Result<RepairJob> = Result.failure(UnsupportedOperationException())
 
+        override suspend fun engineerCheckInWithGeo(
+            jobId: String,
+            latitude: Double,
+            longitude: Double,
+        ): Result<CheckInResult> = Result.failure(UnsupportedOperationException())
+
         private fun stubJob(jobId: String, status: RepairJobStatus) = RepairJob(
             id = jobId,
             jobNumber = null,
