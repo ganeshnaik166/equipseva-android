@@ -22,10 +22,6 @@ abstract class RepairModule {
     abstract fun bindRepairBidRepository(impl: SupabaseRepairBidRepository): RepairBidRepository
 
     @Binds
-    @Singleton
-    abstract fun bindCostRevisionRepository(impl: SupabaseCostRevisionRepository): CostRevisionRepository
-
-    @Binds
     @IntoMap
     @StringKey(OutboxKinds.REPAIR_BID)
     abstract fun bindRepairBidOutboxHandler(impl: RepairBidOutboxHandler): OutboxKindHandler
