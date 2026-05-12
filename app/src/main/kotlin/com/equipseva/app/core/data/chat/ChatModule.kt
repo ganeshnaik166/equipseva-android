@@ -8,15 +8,10 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoMap
 import dagger.multibindings.StringKey
-import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class ChatModule {
-    @Binds
-    @Singleton
-    abstract fun bindChatRepository(impl: SupabaseChatRepository): ChatRepository
-
     @Binds
     @IntoMap
     @StringKey(OutboxKinds.CHAT_MESSAGE)
