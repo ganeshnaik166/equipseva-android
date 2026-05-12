@@ -391,7 +391,7 @@ class ChatRepository @Inject constructor(
     }
 
     @Serializable
-    internal data class TypingPayload(
+    private data class TypingPayload(
         @kotlinx.serialization.SerialName("user_id") val userId: String,
         val t: Long,
     )
