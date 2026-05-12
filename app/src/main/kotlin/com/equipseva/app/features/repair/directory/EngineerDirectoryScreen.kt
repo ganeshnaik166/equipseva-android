@@ -119,11 +119,19 @@ class EngineerDirectoryViewModel @Inject constructor(
     ) {
         val filteredRows: List<EngineerDirectoryRepository.DirectoryRow>
             get() = rows.filter { row ->
+                // Skip incomplete profiles — without an hourly rate or
+                // specializations the row can't be acted on (no
+                // bookable price, no category match) and showing it
+                // alongside complete profiles makes the Verified badge
+                // meaningless. Verification gate on the server side
+                // still allows them through; we just hide here until
+                // they fill profile basics.
+                val isBookable = row.hourlyRate != null && !row.specializations.isNullOrEmpty()
                 val matchesDistrict = district == "All Telangana" ||
                     row.city?.equals(district, ignoreCase = true) == true
                 val matchesSpec = specialization == null ||
                     row.specializations.orEmpty().any { it.equals(specialization, ignoreCase = true) }
-                matchesDistrict && matchesSpec
+                isBookable && matchesDistrict && matchesSpec
             }
 
         /** True iff the server can return real distance values + a
