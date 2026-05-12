@@ -123,6 +123,10 @@ import com.equipseva.app.designsystem.theme.SevaInk900
 
 private val WarnGold = Color(0xFFF5A623)
 
+// Upper bound on the engineer's bid note. 500 chars keeps the payload
+// small and the hospital-side card readable without an "expand" gesture.
+private const val NOTE_MAX_LEN = 500
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RepairJobDetailScreen(
@@ -1864,7 +1868,12 @@ private fun BidComposerSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var amount by rememberSaveable(existingBid?.id) {
-        mutableStateOf(existingBid?.amountRupees?.let { "%.0f".format(it) } ?: "")
+        // Pre-fill with Locale.US so the dot-decimal form round-trips
+        // through toDoubleOrNull() regardless of device locale. On a
+        // device set to a comma-decimal locale (e.g. de_DE), the bare
+        // "%.0f".format would render "1.001" for 1000.5 and re-parse
+        // as 1001.0, silently corrupting the bid.
+        mutableStateOf(existingBid?.amountRupees?.let { String.format(java.util.Locale.US, "%.0f", it) } ?: "")
     }
     var eta by rememberSaveable(existingBid?.id) {
         mutableStateOf(existingBid?.etaHours?.toString() ?: "")
@@ -1914,7 +1923,11 @@ private fun BidComposerSheet(
                 )
                 OutlinedTextField(
                     value = amount,
-                    onValueChange = { amount = it.filter { ch -> ch.isDigit() || ch == '.' } },
+                    // ASCII-only digits — Char.isDigit() also accepts
+                    // Devanagari / Arabic codepoints which break
+                    // toDoubleOrNull() downstream and leave amountValid
+                    // false with no user-visible hint.
+                    onValueChange = { amount = it.filter { ch -> ch in '0'..'9' || ch == '.' } },
                     placeholder = { Text("0") },
                     leadingIcon = { Text("₹", color = SevaInk500, fontSize = 16.sp) },
                     singleLine = true,
@@ -1943,7 +1956,8 @@ private fun BidComposerSheet(
             // ETA field
             EsField(
                 value = eta,
-                onChange = { eta = it.filter(Char::isDigit) },
+                // ASCII-only digits — same trap as the amount field.
+                onChange = { eta = it.filter { ch -> ch in '0'..'9' } },
                 label = "When can you arrive? (hours)",
                 placeholder = "e.g. 4",
                 type = EsFieldType.Number,
@@ -1953,10 +1967,13 @@ private fun BidComposerSheet(
                     etaFocused = focusState.isFocused
                 },
             )
-            // Note field
+            // Note field — cap at 500 chars to keep payload small and
+            // the on-screen surface readable. The server side has no
+            // hard limit today; without this the user can paste a wall
+            // of text and the hospital UI clips it without warning.
             EsField(
                 value = note,
-                onChange = { note = it },
+                onChange = { note = it.take(NOTE_MAX_LEN) },
                 label = "Note to hospital",
                 placeholder = "Mention spare parts, prior work…",
                 type = EsFieldType.Multiline,
