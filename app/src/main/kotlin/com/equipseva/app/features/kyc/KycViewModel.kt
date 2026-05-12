@@ -160,7 +160,7 @@ class KycViewModel @Inject constructor(
                     when {
                         fullName.isNullOrBlank() -> "Add your name from Profile settings before continuing."
                         email.isNullOrBlank() -> "Email missing — add it before continuing."
-                        !EMAIL_REGEX.matches(email) -> "That email doesn't look right."
+                        !com.equipseva.app.core.util.Validators.emailIsValid(email) -> "That email doesn't look right."
                         !emailVerified -> "Verify your email — tap the Verify button."
                         // Phone is collected as a contact channel (hospital
                         // calls / WhatsApps the engineer), but it's no longer
@@ -339,7 +339,7 @@ class KycViewModel @Inject constructor(
     fun startEmailVerification() {
         val snap = _state.value
         val email = snap.email
-        if (email.isNullOrBlank() || !EMAIL_REGEX.matches(email)) {
+        if (email.isNullOrBlank() || !com.equipseva.app.core.util.Validators.emailIsValid(email)) {
             viewModelScope.launch {
                 _effects.send(Effect.ShowMessage("Add a valid email first."))
             }
@@ -419,7 +419,7 @@ class KycViewModel @Inject constructor(
         val snap = _state.value
         if (snap.savingEmail) return
         val newEmail = snap.emailDraft.trim()
-        if (newEmail.isEmpty() || !EMAIL_REGEX.matches(newEmail)) {
+        if (newEmail.isEmpty() || !com.equipseva.app.core.util.Validators.emailIsValid(newEmail)) {
             viewModelScope.launch { _effects.send(Effect.ShowMessage("That doesn't look like a valid email")) }
             return
         }
@@ -907,8 +907,3 @@ class KycViewModel @Inject constructor(
 
 }
 
-// Anchored — covers the 99% case for engineer signups without trying to be
-// RFC 5322. Hospitals only need a working address.
-private val EMAIL_REGEX = Regex(
-    "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\$",
-)
