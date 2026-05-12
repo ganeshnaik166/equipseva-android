@@ -26,7 +26,7 @@ import kotlinx.serialization.json.buildJsonObject
  *
  * Edge-function calls are wrapped in try/catch on RestException because
  * supabase-kt 3.x's Functions plugin auto-throws on any non-2xx response
- * (see SupabaseVirtualCallRepository for the full reasoning) — we want
+ * (see VirtualCallRepository for the full reasoning) — we want
  * the typed body parsing path to run, not bubble a generic toast.
  */
 @Singleton
@@ -387,7 +387,7 @@ class AmcRepository @Inject constructor(
             )
         } catch (rest: RestException) {
             // Mirror the typed-error mapping pattern from
-            // SupabaseVirtualCallRepository so non-2xx responses surface
+            // VirtualCallRepository so non-2xx responses surface
             // a useful message instead of a generic toast.
             val parsed = parseRestExceptionBody(rest)
             error(parsed?.message ?: rest.description ?: "Couldn't create payment order")
