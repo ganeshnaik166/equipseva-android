@@ -125,17 +125,17 @@ class VirtualCallRepository @Inject constructor(
 
     @Serializable
     private data class SuccessBody(
-        @SerialName("ok") val ok: Boolean = true,
-        @SerialName("mode") val mode: String? = null,
-        @SerialName("message") val message: String? = null,
+        val ok: Boolean = true,
+        val mode: String? = null,
+        val message: String? = null,
         @SerialName("call_sid") val callSid: String? = null,
     )
 
     @Serializable
     private data class ErrorBody(
-        @SerialName("ok") val ok: Boolean = false,
-        @SerialName("code") val code: String? = null,
-        @SerialName("message") val message: String? = null,
+        val ok: Boolean = false,
+        val code: String? = null,
+        val message: String? = null,
     )
 
     private companion object {

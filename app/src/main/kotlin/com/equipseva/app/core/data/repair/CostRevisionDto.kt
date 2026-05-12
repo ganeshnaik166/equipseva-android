@@ -10,7 +10,7 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class CostRevisionDto(
-    @SerialName("id") val id: String,
+    val id: String,
     @SerialName("repair_job_id") val repairJobId: String,
     @SerialName("engineer_user_id") val engineerUserId: String,
     @SerialName("original_amount_rupees") val originalAmountRupees: Double,
