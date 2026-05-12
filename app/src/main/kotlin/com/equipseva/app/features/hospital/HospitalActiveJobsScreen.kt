@@ -32,6 +32,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,9 +79,17 @@ fun HospitalActiveJobsScreen(
 
     // Refresh when returning from a detail screen — without this, a job
     // cancelled or moved out of Requested keeps showing in the Open tab
-    // with stale tab counts until the user pull-to-refreshes.
+    // with stale tab counts until the user pull-to-refreshes. Skip the
+    // FIRST ON_RESUME because the VM's init {} already calls
+    // load(initial=true) on the auth-session flow; firing onRefresh
+    // here too would round-trip Supabase twice on cold start.
+    var isFirstResume by remember { mutableStateOf(true) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        viewModel.onRefresh()
+        if (isFirstResume) {
+            isFirstResume = false
+        } else {
+            viewModel.onRefresh()
+        }
     }
 
     val totalCount = state.openJobs.size + state.inProgressJobs.size + state.closedJobs.size
