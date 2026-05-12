@@ -263,7 +263,14 @@ fun EngineerDirectoryScreen(
     viewModel: EngineerDirectoryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val visibleRows = state.filteredRows
+    // filteredRows is a computed getter that walks the rows list each
+    // time it's read. Reading it once per composition is OK; reading it
+    // bare on a 100-row list also runs the filter on every recomposition
+    // the parent triggers. Cache on the inputs that actually affect the
+    // filter so scroll / typing don't re-filter the whole catalog.
+    val visibleRows = remember(state.rows, state.district, state.specialization) {
+        state.filteredRows
+    }
     var showFilters by remember { mutableStateOf(false) }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
