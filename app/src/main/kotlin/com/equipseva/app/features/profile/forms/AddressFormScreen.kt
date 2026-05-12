@@ -316,7 +316,14 @@ fun AddressFormScreen(
                 viewModel.update { it.copy(fullName = v) }
             }
             FormField(state.form.phone, "Phone", keyboardType = KeyboardType.Phone) { v ->
-                viewModel.update { it.copy(phone = v.filter { ch -> ch.isDigit() || ch == '+' }) }
+                // ASCII-digit filter (Kotlin's Char.isDigit() also accepts
+                // Devanagari/Arabic digits and the DB ends up storing
+                // non-ASCII strings). At most one leading '+' so callers
+                // can't smuggle "++91…" into the row.
+                val ascii = v.filter { ch -> ch in '0'..'9' || ch == '+' }
+                val hasPlus = ascii.startsWith('+')
+                val digits = ascii.filter { ch -> ch in '0'..'9' }
+                viewModel.update { it.copy(phone = if (hasPlus) "+$digits" else digits) }
             }
             FormField(state.form.line1, "Address line 1") { v ->
                 viewModel.update { it.copy(line1 = v) }
@@ -340,7 +347,10 @@ fun AddressFormScreen(
                 }
             }
             FormField(state.form.pincode, "Pincode", keyboardType = KeyboardType.Number) { v ->
-                viewModel.update { it.copy(pincode = v.filter { ch -> ch.isDigit() }) }
+                // ASCII-only digits — Char.isDigit() accepts Arabic /
+                // Devanagari digits which would round-trip through Postgres
+                // and break the length-6 validator downstream.
+                viewModel.update { it.copy(pincode = v.filter { ch -> ch in '0'..'9' }) }
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
