@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -107,9 +108,24 @@ class ChatViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            val session = authRepository.sessionState
-                .filterIsInstance<AuthSession.SignedIn>()
-                .first()
+            // Bound the wait on the auth session — if the SignedIn state
+            // never emits (cold start with a broken token refresh, an
+            // unexpected SignedOut, etc.) the chat would otherwise sit on
+            // its initial loading=true forever with no way to recover.
+            val session = withTimeoutOrNull(SESSION_WAIT_MS) {
+                authRepository.sessionState
+                    .filterIsInstance<AuthSession.SignedIn>()
+                    .first()
+            }
+            if (session == null) {
+                _state.update {
+                    it.copy(
+                        loading = false,
+                        errorMessage = "Sign in to view this conversation.",
+                    )
+                }
+                return@launch
+            }
             _state.update { it.copy(selfUserId = session.userId) }
             loadConversationMeta(session.userId)
             observeMessages(session.userId)
@@ -381,6 +397,11 @@ class ChatViewModel @Inject constructor(
         // Min interval between typing broadcasts per client. Repo-side TTL is ~3s, so
         // pinging every 2s keeps the "typing…" pill stable without flooding realtime.
         const val TYPING_BROADCAST_MIN_INTERVAL_MS = 2_000L
+        // Upper bound on how long init() waits for an authenticated session
+        // before falling back to a "sign in" error state. 5s is long enough
+        // to absorb a cold-start token refresh on slow networks but short
+        // enough that a broken session doesn't leave the screen stuck.
+        const val SESSION_WAIT_MS = 5_000L
     }
 }
 
