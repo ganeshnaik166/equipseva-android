@@ -2,8 +2,10 @@ package com.equipseva.app.core.util
 
 object Validators {
 
+    // Anchored — covers the 99% case without trying to be RFC 5322.
+    // `%` is allowed in the local part per RFC for forwarding/plus-tag use.
     private val EMAIL_REGEX = Regex(
-        "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$",
+        "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$",
     )
 
     fun emailIsValid(email: String): Boolean =
