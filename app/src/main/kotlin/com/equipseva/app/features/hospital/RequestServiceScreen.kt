@@ -176,6 +176,12 @@ fun RequestServiceScreen(
             WizardBottomBar(
                 step = step,
                 submitting = state.submitting,
+                // Block Next/Submit while a photo upload is mid-flight —
+                // otherwise the user can navigate past Step 1 before the
+                // upload completes and the resulting URL never lands in
+                // state.photos. The submitted job loses that photo with
+                // no error surfaced.
+                uploadingPhoto = state.uploadingPhoto,
                 onBack = { if (step > 0) step -= 1 },
                 onNext = { if (step < stepLabels.lastIndex) step += 1 },
                 onSubmit = { viewModel.onSubmit(selectedSlot) },
@@ -704,6 +710,7 @@ private fun SlotTile(
 private fun WizardBottomBar(
     step: Int,
     submitting: Boolean,
+    uploadingPhoto: Boolean,
     onBack: () -> Unit,
     onNext: () -> Unit,
     onSubmit: () -> Unit,
@@ -728,7 +735,7 @@ private fun WizardBottomBar(
         val isLast = step == 3
         Button(
             onClick = if (isLast) onSubmit else onNext,
-            enabled = !submitting,
+            enabled = !submitting && !uploadingPhoto,
             modifier = Modifier
                 .weight(1f)
                 .height(Spacing.MinTouchTarget),
