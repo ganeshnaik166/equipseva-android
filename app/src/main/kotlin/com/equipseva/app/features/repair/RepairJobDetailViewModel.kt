@@ -716,15 +716,22 @@ class RepairJobDetailViewModel @Inject constructor(
     /**
      * Persist each captured photo (offline-safe via PhotoUploadStash with
      * CONTEXT_REPAIR_JOB_AFTER → drains into repair_jobs.after_photos) and
-     * then transition the row to Completed. Photos may be empty — we still
-     * complete the job (engineer might be offline / forgot a camera) but
-     * the UX nudges them to attach proof first.
+     * then transition the row to Completed. Refuse the call with no
+     * photos — escrow release runs 48h after completion regardless of
+     * whether after_photos lands, so allowing a zero-photo completion
+     * leaves the hospital with no proof to dispute against. The sheet
+     * gates the Submit button on photo count but a stale state could
+     * still slip through, hence the defense-in-depth check here.
      */
     fun submitCompletionProof(photos: List<CompletionProofPhoto>) {
         val snap = _state.value
         val job = snap.job ?: return
         if (snap.submittingProof) return
         if (snap.viewerRole != ViewerRole.Engineer) return
+        if (photos.isEmpty()) {
+            viewModelScope.launch { _messages.send("Add at least one completion photo before marking done.") }
+            return
+        }
         _state.update { it.copy(submittingProof = true) }
         viewModelScope.launch {
             val session = authRepository.sessionState.firstOrNull() as? AuthSession.SignedIn
