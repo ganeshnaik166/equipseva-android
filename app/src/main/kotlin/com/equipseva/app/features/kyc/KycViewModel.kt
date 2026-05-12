@@ -251,6 +251,17 @@ class KycViewModel @Inject constructor(
     }
 
     /**
+     * Surfaces a one-off message to the user. Used by the screen-level
+     * doc pickers when they can't read the selected URI (provider
+     * permission revoked, file deleted between pick and use) — without
+     * this signal the upload callback never fires and the engineer
+     * stares at a stuck spinner.
+     */
+    fun reportUploadError(message: String) {
+        viewModelScope.launch { _effects.send(Effect.ShowMessage(message)) }
+    }
+
+    /**
      * Pulls just the profile fields (email, phone, fullName, verified
      * flags) from Supabase without re-running the full engineer fetch.
      * Called by the screen on lifecycle ON_RESUME so changes made on
@@ -725,7 +736,11 @@ class KycViewModel @Inject constructor(
                     _state.update {
                         it.copy(
                             uploadingCert = false,
-                            certDocPaths = it.certDocPaths + path,
+                            // De-dupe — re-picking the same path (Storage's
+                            // upsert keeps the bucket key stable on re-upload)
+                            // would otherwise inflate the list with identical
+                            // entries the admin would see as multiple rows.
+                            certDocPaths = (it.certDocPaths + path).distinct(),
                             certFailed = false,
                         )
                     }
@@ -742,7 +757,7 @@ class KycViewModel @Inject constructor(
                         _state.update {
                             it.copy(
                                 uploadingCert = false,
-                                certDocPaths = it.certDocPaths + queued,
+                                certDocPaths = (it.certDocPaths + queued).distinct(),
                                 certFailed = false,
                             )
                         }
