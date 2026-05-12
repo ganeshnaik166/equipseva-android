@@ -47,6 +47,7 @@ import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.initialsOf
+import com.equipseva.app.core.util.prettyKey
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
@@ -1187,6 +1188,3 @@ private fun ChipFlowNeutral(items: List<String>) {
         }
     }
 }
-
-private fun prettyKey(k: String): String =
-    k.split('_', '-').joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
