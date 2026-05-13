@@ -76,7 +76,7 @@ fun ReviseQuoteSheet(
             )
             EsField(
                 value = amountText,
-                onChange = { amountText = it.filter { c -> c.isDigit() || c == '.' }.take(10) },
+                onChange = { amountText = it.filter { c -> c in '0'..'9' || c == '.' }.take(10) },
                 label = "Revised amount (₹)",
                 placeholder = "e.g. 3500",
                 type = EsFieldType.Number,

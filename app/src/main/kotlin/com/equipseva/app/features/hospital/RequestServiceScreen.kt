@@ -676,7 +676,7 @@ private fun StepWhere(
     )
     OutlinedTextField(
         value = budget,
-        onValueChange = { onBudget(it.filter { c -> c.isDigit() || c == '.' }) },
+        onValueChange = { onBudget(it.filter { c -> c in '0'..'9' || c == '.' }) },
         label = { Text("Budget (₹, optional)") },
         placeholder = { Text("e.g. 5000") },
         isError = budgetError != null,
