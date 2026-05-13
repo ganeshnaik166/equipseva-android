@@ -125,7 +125,14 @@ class ProfileFormViewModel @AssistedInject constructor(
     }
 
     fun onTextChange(key: String, value: String) {
-        _state.update { it.copy(values = it.values + (key to value)) }
+        // Generic safety cap — single-line fields land in settings JSON
+        // and were previously unbounded, so paste-bombing a value into
+        // any field grew the JSONB row without limit. 2000 leaves room
+        // for legitimate multiline content (departments, about, brands)
+        // while keeping a hard ceiling. Fields that need tighter caps
+        // can still constrain client-side before calling this.
+        val capped = if (value.length > 2000) value.take(2000) else value
+        _state.update { it.copy(values = it.values + (key to capped)) }
     }
 
     fun onSwitchChange(key: String, value: Boolean) {

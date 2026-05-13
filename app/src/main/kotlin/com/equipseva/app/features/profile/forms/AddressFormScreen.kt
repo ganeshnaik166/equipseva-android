@@ -327,14 +327,18 @@ fun AddressFormScreen(
                 val digits = ascii.filter { ch -> ch in '0'..'9' }
                 viewModel.update { it.copy(phone = if (hasPlus) "+$digits" else digits) }
             }
+            // 200/100/100 caps mirror the bounds used in the engineer
+            // KYC address fields (PR #609 family) — keeps a single full
+            // address line from being paste-bombed with a multi-screen
+            // novel and silently growing user_addresses.line1 unbounded.
             FormField(state.form.line1, "Address line 1") { v ->
-                viewModel.update { it.copy(line1 = v) }
+                viewModel.update { it.copy(line1 = v.take(200)) }
             }
             FormField(state.form.line2, "Line 2 (optional)") { v ->
-                viewModel.update { it.copy(line2 = v) }
+                viewModel.update { it.copy(line2 = v.take(100)) }
             }
             FormField(state.form.landmark, "Landmark (optional)") { v ->
-                viewModel.update { it.copy(landmark = v) }
+                viewModel.update { it.copy(landmark = v.take(100)) }
             }
             // State must be from the curated IndiaLocations.STATES list —
             // free-text here was the source of "Telangana, 508207" style

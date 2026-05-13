@@ -2404,7 +2404,10 @@ private fun RateSheet(
             )
             EsField(
                 value = note,
-                onChange = { note = it },
+                // 500 char cap mirrors the cancellation-reason field
+                // bound (round 234) — keeps a paste-bomb from writing
+                // an unbounded essay to job_ratings.notes.
+                onChange = { v -> note = if (v.length > 500) v.take(500) else v },
                 label = "Notes (optional)",
                 placeholder = "What stood out?",
                 type = EsFieldType.Multiline,
