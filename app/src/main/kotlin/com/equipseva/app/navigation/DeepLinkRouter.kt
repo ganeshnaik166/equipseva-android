@@ -59,6 +59,18 @@ class DeepLinkRouter @Inject constructor() {
             return routeForParts(uri.scheme, uri.host, uri.pathSegments.orEmpty())
         }
 
+        // Job ids in deep-links are the human-readable job_number
+        // (e.g. RPR-00027), not the underlying UUID. Validate strictly
+        // so /job/<garbage> doesn't navigate into a detail screen that
+        // will then 404 against Supabase + leave the user stuck on a
+        // blank "Couldn't load" state.
+        private val JOB_ID_REGEX = Regex("^RPR-\\d{1,8}$", RegexOption.IGNORE_CASE)
+        // Conversations + engineer ids are server-generated UUIDs.
+        private val UUID_REGEX = Regex(
+            "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            RegexOption.IGNORE_CASE,
+        )
+
         /** Pure helper for [routeFor]. Visible for testing. */
         internal fun routeForParts(
             scheme: String?,
@@ -68,11 +80,11 @@ class DeepLinkRouter @Inject constructor() {
             if (scheme != "https") return null
             if (host !in APP_LINK_HOSTS) return null
             return when {
-                segments.size == 2 && segments[0] == "job" && segments[1].isNotBlank() ->
+                segments.size == 2 && segments[0] == "job" && JOB_ID_REGEX.matches(segments[1]) ->
                     Routes.repairJobDetailRoute(segments[1])
-                segments.size == 2 && segments[0] == "chat" && segments[1].isNotBlank() ->
+                segments.size == 2 && segments[0] == "chat" && UUID_REGEX.matches(segments[1]) ->
                     Routes.chatRoute(segments[1])
-                segments.size == 2 && segments[0] == "engineer" && segments[1].isNotBlank() ->
+                segments.size == 2 && segments[0] == "engineer" && UUID_REGEX.matches(segments[1]) ->
                     Routes.engineerPublicProfileRoute(segments[1])
                 segments.size == 1 && segments[0] == "engineers" -> Routes.ENGINEER_DIRECTORY
                 segments.size == 1 && segments[0] == "notifications" -> Routes.NOTIFICATIONS
