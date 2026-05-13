@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -79,6 +80,24 @@ fun ChangeEmailScreen(
                     )
 
                     OutlinedTextField(
+                        value = state.currentPassword,
+                        onValueChange = viewModel::onPasswordChange,
+                        label = { Text("Current password") },
+                        singleLine = true,
+                        enabled = !state.submitting,
+                        isError = state.passwordError != null,
+                        supportingText = {
+                            state.passwordError?.let { Text(it) }
+                        },
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Next,
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+
+                    OutlinedTextField(
                         value = state.newEmail,
                         onValueChange = viewModel::onEmailChange,
                         // The body above is explicit that this updates
@@ -129,7 +148,7 @@ fun ChangeEmailScreen(
                         kind = EsBtnKind.Primary,
                         size = EsBtnSize.Lg,
                         full = true,
-                        disabled = state.submitting || state.newEmail.isBlank(),
+                        disabled = state.submitting || state.newEmail.isBlank() || state.currentPassword.isBlank(),
                     )
                 }
             }

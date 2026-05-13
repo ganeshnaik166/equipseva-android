@@ -14,6 +14,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.equipseva.app.designsystem.theme.EsRadius
 import com.equipseva.app.designsystem.theme.EsType
@@ -25,6 +28,10 @@ import com.equipseva.app.designsystem.theme.BorderDefault
 
 // Toggle pill used for filters, specializations, brands, urgency picker.
 // Active = filled green-50 + green-700 text; inactive = paper bg + ink-700.
+//
+// Accessibility: every chip carries a contentDescription so TalkBack
+// reads "<label>, selected" or "<label>" instead of just the label
+// — without this every filter pill was an unlabeled tap target.
 @Composable
 fun EsChip(
     text: String,
@@ -32,16 +39,22 @@ fun EsChip(
     onClick: (() -> Unit)? = null,
     leading: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier,
+    contentDescription: String? = null,
 ) {
     val bg = if (active) SevaGreen50 else PaperDefault
     val border = if (active) SevaGreen700 else BorderDefault
     val fg = if (active) SevaGreen700 else SevaInk700
+    val a11yLabel = contentDescription ?: text
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(EsRadius.Pill))
             .background(bg)
             .border(1.dp, border, RoundedCornerShape(EsRadius.Pill))
             .let { if (onClick != null) it.clickable(onClick = onClick) else it }
+            .semantics {
+                this.contentDescription = a11yLabel
+                this.selected = active
+            }
             .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
