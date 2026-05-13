@@ -85,6 +85,13 @@ fun EngineerActiveEscrowsScreen(
     viewModel: EngineerActiveEscrowsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    // Re-fetch the active-escrow list after returning from a job detail.
+    // The detail screen can flip an escrow from held → released (engineer
+    // marked-done + hospital approved) or capture-pending → captured;
+    // without this, the list keeps showing the old status until restart.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
+
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
