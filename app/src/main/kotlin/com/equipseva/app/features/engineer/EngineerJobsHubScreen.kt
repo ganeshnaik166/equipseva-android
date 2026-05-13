@@ -67,6 +67,8 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -109,6 +111,19 @@ class EngineerJobsHubViewModel @Inject constructor(
             }
             .onFailure { _state.update { it.copy(status = Status.NotEngineer) } }
     }
+
+    /**
+     * Re-fetch verification status from screen lifecycle (RefreshOnReturn).
+     * Pulls the current auth.uid out of sessionState; no-op if signed out.
+     */
+    fun reload() {
+        viewModelScope.launch {
+            val signedIn = authRepository.sessionState
+                .filterIsInstance<AuthSession.SignedIn>()
+                .firstOrNull() ?: return@launch
+            refresh(signedIn.userId)
+        }
+    }
 }
 
 @Composable
@@ -127,6 +142,13 @@ fun EngineerJobsHubScreen(
     viewModel: EngineerJobsHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    // Re-fetch verification status on return from KYC submission, profile
+    // edit, or service-location editor — otherwise a freshly-approved KYC
+    // or a status flip stays invisible (and the matching hub tiles stay
+    // locked) until process restart.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
+
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(
             modifier = Modifier

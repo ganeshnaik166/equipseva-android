@@ -89,6 +89,13 @@ fun HospitalMyDisputesScreen(
     viewModel: HospitalMyDisputesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    // Re-fetch on return from a job detail: a dispute can flip from
+    // in_dispute → resolved (refund/release) while the hospital was in
+    // the detail screen. The split openCount/resolvedCount header below
+    // would otherwise show stale counts until restart.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
+
     val openCount = state.rows.count { it.status == "in_dispute" }
     val resolvedCount = state.rows.size - openCount
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
