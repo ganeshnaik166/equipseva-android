@@ -1,6 +1,7 @@
 package com.equipseva.app.core.data.notifications
 
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
@@ -86,6 +87,16 @@ class NotificationRepository @Inject constructor(
 
     /** Mark every unread notification owned by the user as read. */
     suspend fun markAllRead(userId: String): Result<Unit> = runCatching {
+        // Defense-in-depth: refuse a caller that passes someone else's
+        // user id. RLS already enforces "you can only update rows where
+        // user_id = auth.uid()", but a fail-fast guard here means a logic
+        // bug (e.g. caching a previous session's userId across sign-out)
+        // surfaces as an exception locally instead of a no-op against
+        // an empty filtered set.
+        val authUid = client.auth.currentUserOrNull()?.id
+        require(authUid != null && authUid == userId) {
+            "markAllRead refused: signed-in user does not match target id"
+        }
         val nowIso = Instant.now().toString()
         client.from(TABLE).update({
             set("read_at", nowIso)
