@@ -91,8 +91,16 @@ fun EngineerMyDisputesScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     // Picks up admin resolutions on return.
     com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
-    val openCount = state.rows.count { it.status == "in_dispute" }
-    val wonCount = state.rows.count { it.outcome == "release" }
+    // Memoize the count walks — they ran on every recomposition (lazy
+    // list scroll, retry button click, status flow tick) over the same
+    // rows list. Keyed on state.rows so the cached value invalidates
+    // when the underlying data actually changes.
+    val openCount = androidx.compose.runtime.remember(state.rows) {
+        state.rows.count { it.status == "in_dispute" }
+    }
+    val wonCount = androidx.compose.runtime.remember(state.rows) {
+        state.rows.count { it.outcome == "release" }
+    }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
