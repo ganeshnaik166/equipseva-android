@@ -38,8 +38,17 @@ class KycViewModel @Inject constructor(
     private val playIntegrityClient: IntegrityVerifier,
     private val locationFetcher: com.equipseva.app.core.location.LocationFetcher,
     private val userPrefs: com.equipseva.app.core.data.prefs.UserPrefs,
+    private val storageRepository: StorageRepository,
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+
+    // Snapshot of doc paths that were already persisted server-side at
+    // last hydrate. onCleared compares against the live state and
+    // deletes any "uploaded but never submitted" path from storage so
+    // an abandoned form doesn't leave orphans behind. Empty on first
+    // entry (no engineer row yet); refilled whenever upsertProfile
+    // succeeds via [snapshotPersistedDocs].
+    private var persistedDocPaths: Set<String> = emptySet()
 
     private object SavedKeys {
         const val STEP = "kyc.currentStep"
@@ -81,7 +90,43 @@ class KycViewModel @Inject constructor(
         // Best-effort, fire-and-forget: scope is shutting down so we cant
         // suspend on the prefs flush.
         kotlinx.coroutines.GlobalScope.launch { userPrefs.setLastScreen(null) }
+
+        // Orphan cleanup: any doc path the user uploaded in this session
+        // that didn't make it into the persisted engineer row is dead
+        // weight in storage. Delete each so the kyc-docs bucket doesn't
+        // accumulate every "I changed my mind on aadhaar photo" attempt.
+        // RLS gates each delete; failures are swallowed (best-effort).
+        val snap = _state.value
+        val live = buildSet {
+            snap.aadhaarDocPath?.let { add(it) }
+            snap.panDocPath?.let { add(it) }
+            addAll(snap.certDocPaths)
+        }
+        val orphans = live - persistedDocPaths
+        if (orphans.isNotEmpty()) {
+            kotlinx.coroutines.GlobalScope.launch {
+                orphans.forEach { path ->
+                    runCatching {
+                        storageRepository.delete(
+                            bucket = StorageRepository.Buckets.KYC_DOCS,
+                            path = path,
+                        )
+                    }
+                }
+            }
+        }
         super.onCleared()
+    }
+
+    /** Refreshes [persistedDocPaths] from a server snapshot. Called from
+     *  hydrate() + after a successful submit so onCleared knows which
+     *  paths are "safe to keep" vs "orphan to delete". */
+    private fun snapshotPersistedDocs(engineer: Engineer?) {
+        persistedDocPaths = buildSet {
+            engineer?.aadhaarDocPath?.let { add(it) }
+            engineer?.panDocPath?.let { add(it) }
+            addAll(engineer?.certDocPaths ?: emptyList())
+        }
     }
 
     data class UiState(
@@ -474,6 +519,7 @@ class KycViewModel @Inject constructor(
     }
 
     private fun hydrate(engineer: Engineer?) {
+        snapshotPersistedDocs(engineer)
         // Restored handle values take priority over server values for any
         // field the user might have typed mid-flow — process death must not
         // wipe in-progress edits when load() comes back with the older

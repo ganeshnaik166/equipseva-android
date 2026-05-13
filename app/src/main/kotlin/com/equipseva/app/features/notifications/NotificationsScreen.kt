@@ -301,7 +301,11 @@ private fun iconForKind(kind: String?): Pair<ImageVector, Color> = when (kind) {
 }
 
 private fun groupByDay(rows: List<Notification>): List<Pair<String, List<Notification>>> {
-    val zone = ZoneId.systemDefault()
+    // Pin to IST: EquipSeva is India-only and hospitals expect
+    // Today / Yesterday headers to match wall-clock IST, not whatever
+    // ZoneId the device happens to be on (some carrier-flashed Realme
+    // units default to UTC, which would shift grouping by 5.5 hours).
+    val zone = ZoneId.of("Asia/Kolkata")
     val today = LocalDate.now(zone)
     val groups = linkedMapOf<String, MutableList<Notification>>()
     rows.forEach { n ->

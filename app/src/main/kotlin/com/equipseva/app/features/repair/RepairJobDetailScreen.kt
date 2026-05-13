@@ -488,7 +488,9 @@ private fun JobBody(
         when (job.status) {
             RepairJobStatus.Cancelled -> TerminalStatusBanner(
                 title = "Job cancelled",
-                subtitle = "No further action needed.",
+                subtitle = job.cancellationReason?.takeIf { it.isNotBlank() }
+                    ?.let { "Reason: $it" }
+                    ?: "No further action needed.",
             )
             RepairJobStatus.Disputed -> TerminalStatusBanner(
                 title = "Job in dispute",

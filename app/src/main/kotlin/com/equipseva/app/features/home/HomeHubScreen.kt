@@ -149,6 +149,18 @@ fun HomeHubScreen(
                 }
             }
 
+            // Razorpay process-death marker: any AMC payment whose
+            // checkout activity didn't return cleanly AND whose
+            // server-side status is still 'pending' surfaces here so
+            // the hospital can reach out if their bank shows a charge
+            // but the contract pool hasn't credited. The reconciler in
+            // Application.onCreate already removes terminal entries.
+            if (role == UserRole.HOSPITAL && state.pendingAmcPaymentsCount > 0) {
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    PendingAmcPaymentBanner(count = state.pendingAmcPaymentsCount)
+                }
+            }
+
             Spacer(Modifier.height(8.dp))
 
             // PR-D34: aggregated AMC SLA breach credits this hospital
@@ -719,6 +731,42 @@ private fun PhoneMissingBanner(onClick: () -> Unit) {
             tint = SevaInk400,
             modifier = Modifier.size(16.dp),
         )
+    }
+}
+
+@Composable
+private fun PendingAmcPaymentBanner(count: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(SevaWarning50)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(
+            Icons.Outlined.Phone,
+            contentDescription = null,
+            tint = SevaWarning500,
+            modifier = Modifier.size(20.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                if (count == 1) "Payment may still be in progress"
+                else "$count payments may still be in progress",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = SevaInk900,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                "If your bank shows the charge but your AMC pool hasn't credited yet, " +
+                    "contact support and we'll reconcile.",
+                fontSize = 11.sp,
+                color = SevaInk600,
+            )
+        }
     }
 }
 
