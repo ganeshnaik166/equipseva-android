@@ -23,7 +23,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -186,23 +185,8 @@ fun MaintenanceContractsScreen(
     viewModel: MaintenanceContractsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    // Refresh on every foreground except the first one. The VM's
-    // init { refresh() } already covers cold start; firing again
-    // immediately would double-load. Subsequent resumes catch newly
-    // created / cancelled contracts on the same screen instance.
-    // Same pattern PR #556 used for HospitalActiveJobsScreen.
-    var isFirstResume by androidx.compose.runtime.remember {
-        androidx.compose.runtime.mutableStateOf(true)
-    }
-    androidx.lifecycle.compose.LifecycleEventEffect(
-        androidx.lifecycle.Lifecycle.Event.ON_RESUME,
-    ) {
-        if (isFirstResume) {
-            isFirstResume = false
-        } else {
-            viewModel.refresh()
-        }
-    }
+    // Picks up newly created / cancelled contracts on return.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.refresh() }
 
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {

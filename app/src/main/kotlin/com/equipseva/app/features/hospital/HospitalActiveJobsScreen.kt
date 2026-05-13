@@ -32,9 +32,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,8 +41,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobUrgency
@@ -77,20 +72,10 @@ fun HospitalActiveJobsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    // Refresh when returning from a detail screen — without this, a job
-    // cancelled or moved out of Requested keeps showing in the Open tab
-    // with stale tab counts until the user pull-to-refreshes. Skip the
-    // FIRST ON_RESUME because the VM's init {} already calls
-    // load(initial=true) on the auth-session flow; firing onRefresh
-    // here too would round-trip Supabase twice on cold start.
-    var isFirstResume by remember { mutableStateOf(true) }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        if (isFirstResume) {
-            isFirstResume = false
-        } else {
-            viewModel.onRefresh()
-        }
-    }
+    // Picks up cancelled / state-changed jobs the moment the user
+    // returns from the detail screen. First ON_RESUME skipped because
+    // the VM's init {} already loaded.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.onRefresh() }
 
     val totalCount = state.openJobs.size + state.inProgressJobs.size + state.closedJobs.size
     val openCount = state.openJobs.size
