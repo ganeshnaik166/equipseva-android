@@ -259,9 +259,9 @@ class RepairJobDetailViewModel @Inject constructor(
     /** PR-D5: refresh per-job escrow state (no-op on no row). */
     fun refreshEscrow() {
         viewModelScope.launch {
-            escrowRepository.fetchByJob(jobId).onSuccess { row ->
-                _state.update { it.copy(escrow = row) }
-            }
+            escrowRepository.fetchByJob(jobId)
+                .onSuccess { row -> _state.update { it.copy(escrow = row) } }
+                .onFailure { err -> _messages.emit(err.toUserMessage()) }
         }
     }
 
