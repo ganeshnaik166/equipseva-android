@@ -6,11 +6,9 @@ import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.InvalidCurrentPasswordException
 import com.equipseva.app.core.network.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -38,8 +36,14 @@ class ChangePasswordViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    private val _effects = Channel<Effect>(Channel.BUFFERED)
-    val effects = _effects.receiveAsFlow()
+    // SharedFlow(replay = 0) drops events with no active collector
+    // — matches PR #584's SignUp + Session pattern, prevents a
+    // Success effect from phantom-firing on the next ChangePassword
+    // visit if the screen was popped mid-RPC.
+    private val _effects = kotlinx.coroutines.flow.MutableSharedFlow<Effect>(
+        extraBufferCapacity = 4,
+    )
+    val effects: kotlinx.coroutines.flow.Flow<Effect> = _effects
 
     fun onCurrentPasswordChange(value: String) {
         _state.update {
@@ -111,7 +115,7 @@ class ChangePasswordViewModel @Inject constructor(
             authRepository.updatePassword(currentPwd, newPwd).fold(
                 onSuccess = {
                     _state.update { UiState() }
-                    _effects.send(Effect.Success("Password updated"))
+                    _effects.emit(Effect.Success("Password updated"))
                 },
                 onFailure = { ex ->
                     if (ex is InvalidCurrentPasswordException) {
