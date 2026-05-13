@@ -56,6 +56,17 @@ class StorageRepository @Inject constructor(
         return supabase.storage.from(bucket).createSignedUrl(path, expiresInMinutes.minutes)
     }
 
+    /**
+     * Best-effort delete. RLS still gates: a caller can only remove
+     * objects under their own folder prefix. Failures (object missing,
+     * RLS denial) bubble up as Result.failure — callers typically wrap
+     * with runCatching for fire-and-forget cleanup.
+     */
+    suspend fun delete(bucket: String, path: String): Result<Unit> = runCatching {
+        validatePath(path).getOrThrow()
+        supabase.storage.from(bucket).delete(path)
+    }
+
     // Defense-in-depth path guard. Callers (e.g. core/util/Files.kt:timestampedName)
     // already sanitize the file-name segment, but we re-check at the repository so a
     // future caller can't accidentally route user input straight into an object key. Supabase

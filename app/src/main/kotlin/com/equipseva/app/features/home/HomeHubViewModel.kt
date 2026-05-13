@@ -50,6 +50,7 @@ class HomeHubViewModel @Inject constructor(
     private val spotAuditRepository: com.equipseva.app.core.data.spotaudit.SpotAuditRepository,
     private val amcRepository: com.equipseva.app.core.data.amc.AmcRepository,
     private val userPrefs: UserPrefs,
+    private val pendingAmcPaymentsStore: com.equipseva.app.core.payments.PendingAmcPaymentsStore,
     private val app: Application,
 ) : ViewModel() {
     data class UiState(
@@ -84,6 +85,12 @@ class HomeHubViewModel @Inject constructor(
         // tucked away in Profile is invisible to a user who never
         // visits Profile.
         val phoneMissing: Boolean = false,
+        // Non-zero when a Razorpay AMC checkout was interrupted by
+        // process death (entries the reconciler couldn't resolve on
+        // cold-start because the server-side status was still
+        // 'pending'). UI surfaces a banner inviting the user to
+        // contact support if their bank shows a charge.
+        val pendingAmcPaymentsCount: Int = 0,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -129,6 +136,16 @@ class HomeHubViewModel @Inject constructor(
                     _state.update { it.copy(role = cached) }
                     currentUserId?.let { uid -> refresh(uid) }
                 }
+            }
+        }
+        // Razorpay process-death markers: any entry that survives the
+        // app-start reconciler is a payment still 'pending' server-side
+        // — surface a banner inviting the user to contact support if
+        // their bank shows a charge. The Flow is auto-refreshed by the
+        // DataStore writes in AmcPaymentViewModel.runCheckout.
+        viewModelScope.launch {
+            pendingAmcPaymentsStore.observe().collect { ids ->
+                _state.update { it.copy(pendingAmcPaymentsCount = ids.size) }
             }
         }
     }
