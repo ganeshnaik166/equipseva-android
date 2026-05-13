@@ -8,13 +8,11 @@ import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.network.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -47,8 +45,8 @@ class EngineerLocationViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    private val _effects = Channel<Effect>(Channel.BUFFERED)
-    val effects = _effects.receiveAsFlow()
+    private val _effects = kotlinx.coroutines.flow.MutableSharedFlow<Effect>(extraBufferCapacity = 4)
+    val effects: kotlinx.coroutines.flow.Flow<Effect> = _effects
 
     private var userId: String? = null
 
@@ -107,8 +105,8 @@ class EngineerLocationViewModel @Inject constructor(
                             savedLongitude = lng,
                         )
                     }
-                    _effects.send(Effect.ShowMessage("Service location updated"))
-                    _effects.send(Effect.NavigateBack)
+                    _effects.emit(Effect.ShowMessage("Service location updated"))
+                    _effects.emit(Effect.NavigateBack)
                 }
                 .onFailure { ex ->
                     _state.update { it.copy(saving = false, errorMessage = ex.toUserMessage()) }

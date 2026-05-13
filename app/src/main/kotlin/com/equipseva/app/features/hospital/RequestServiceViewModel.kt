@@ -13,13 +13,11 @@ import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.storage.StorageRepository
 import com.equipseva.app.core.util.timestampedName
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -63,8 +61,8 @@ class RequestServiceViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    private val effectChannel = Channel<Effect>(Channel.BUFFERED)
-    val effects = effectChannel.receiveAsFlow()
+    private val effectChannel = kotlinx.coroutines.flow.MutableSharedFlow<Effect>(extraBufferCapacity = 4)
+    val effects: kotlinx.coroutines.flow.Flow<Effect> = effectChannel
 
     private var userId: String? = null
     private var orgId: String? = null
@@ -117,7 +115,7 @@ class RequestServiceViewModel @Inject constructor(
         val uid = userId
         if (uid == null) {
             viewModelScope.launch {
-                effectChannel.send(Effect.ShowMessage("Sign in again and retry"))
+                effectChannel.emit(Effect.ShowMessage("Sign in again and retry"))
             }
             return
         }
@@ -142,7 +140,7 @@ class RequestServiceViewModel @Inject constructor(
                 },
                 onFailure = { ex ->
                     _state.update { it.copy(uploadingPhoto = false) }
-                    effectChannel.send(Effect.ShowMessage(ex.toUserMessage()))
+                    effectChannel.emit(Effect.ShowMessage(ex.toUserMessage()))
                 },
             )
         }
@@ -173,7 +171,7 @@ class RequestServiceViewModel @Inject constructor(
                     errorMessage = msg,
                 )
             }
-            effectChannel.trySend(Effect.ShowMessage(msg))
+            effectChannel.tryEmit(Effect.ShowMessage(msg))
             return
         }
         // Require a non-trivial site address OR map coordinates. Without
@@ -191,7 +189,7 @@ class RequestServiceViewModel @Inject constructor(
                     errorMessage = msg,
                 )
             }
-            effectChannel.trySend(Effect.ShowMessage(msg))
+            effectChannel.tryEmit(Effect.ShowMessage(msg))
             return
         }
         val budgetText = current.budget.trim()
@@ -254,7 +252,7 @@ class RequestServiceViewModel @Inject constructor(
             jobRepository.create(draft)
                 .onSuccess { job ->
                     _state.update { UiState() }
-                    effectChannel.trySend(Effect.Submitted(jobId = job.id, jobNumber = job.jobNumber))
+                    effectChannel.tryEmit(Effect.Submitted(jobId = job.id, jobNumber = job.jobNumber))
                 }
                 .onFailure { error ->
                     _state.update { it.copy(submitting = false, errorMessage = error.toUserMessage()) }

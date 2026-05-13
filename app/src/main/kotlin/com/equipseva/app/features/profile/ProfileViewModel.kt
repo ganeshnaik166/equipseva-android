@@ -31,11 +31,9 @@ import com.equipseva.app.features.auth.UserRole
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -117,8 +115,8 @@ class ProfileViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    private val _effects = Channel<Effect>(Channel.BUFFERED)
-    val effects = _effects.receiveAsFlow()
+    private val _effects = kotlinx.coroutines.flow.MutableSharedFlow<Effect>(extraBufferCapacity = 4)
+    val effects: kotlinx.coroutines.flow.Flow<Effect> = _effects
 
     init {
         viewModelScope.launch {
@@ -237,7 +235,7 @@ class ProfileViewModel @Inject constructor(
                                     roleUpdating = false,
                                 )
                             }
-                            _effects.send(Effect.ShowMessage("Role updated to ${target.displayName}"))
+                            _effects.emit(Effect.ShowMessage("Role updated to ${target.displayName}"))
                             // Bounce back to Home so the new persona's tab
                             // bar matches the visible content. Without this
                             // the user can stay parked on a route that
@@ -245,16 +243,16 @@ class ProfileViewModel @Inject constructor(
                             // Engineer→Hospital while on ENGINEER_JOBS_HUB
                             // leaves the engineer tiles rendered under a
                             // Hospital bottom-nav).
-                            _effects.send(Effect.NavigateHome)
+                            _effects.emit(Effect.NavigateHome)
                         }
                         .onFailure { error ->
                             _state.update { it.copy(roleUpdating = false) }
-                            _effects.send(Effect.ShowMessage(error.toUserMessage()))
+                            _effects.emit(Effect.ShowMessage(error.toUserMessage()))
                         }
                 }
                 .onFailure { error ->
                     _state.update { it.copy(roleUpdating = false) }
-                    _effects.send(Effect.ShowMessage(error.toUserMessage()))
+                    _effects.emit(Effect.ShowMessage(error.toUserMessage()))
                 }
         }
     }
@@ -308,17 +306,17 @@ class ProfileViewModel @Inject constructor(
                                     ),
                                 )
                             }
-                            _effects.send(Effect.ShowMessage("Switched to ${target.displayName}"))
-                            _effects.send(Effect.NavigateHome)
+                            _effects.emit(Effect.ShowMessage("Switched to ${target.displayName}"))
+                            _effects.emit(Effect.NavigateHome)
                         }
                         .onFailure { ex ->
                             _state.update { it.copy(roleUpdating = false) }
-                            _effects.send(Effect.ShowMessage(ex.toUserMessage()))
+                            _effects.emit(Effect.ShowMessage(ex.toUserMessage()))
                         }
                 }
                 .onFailure { ex ->
                     _state.update { it.copy(roleUpdating = false) }
-                    _effects.send(Effect.ShowMessage(ex.toUserMessage()))
+                    _effects.emit(Effect.ShowMessage(ex.toUserMessage()))
                 }
         }
     }
@@ -357,7 +355,7 @@ class ProfileViewModel @Inject constructor(
                             profile = it.profile?.copy(fullName = nextName),
                         )
                     }
-                    _effects.send(Effect.ShowMessage("Profile updated"))
+                    _effects.emit(Effect.ShowMessage("Profile updated"))
                 }
                 .onFailure { error ->
                     _state.update { it.copy(editSaving = false, editError = error.toUserMessage()) }
@@ -384,7 +382,7 @@ class ProfileViewModel @Inject constructor(
         val isAllowed = mime.lowercase() in IMAGE_MIME_TYPES
         if (!isAllowed) {
             viewModelScope.launch {
-                _effects.send(Effect.ShowMessage("Please pick a JPG, PNG, or WebP photo."))
+                _effects.emit(Effect.ShowMessage("Please pick a JPG, PNG, or WebP photo."))
             }
             return
         }
@@ -400,7 +398,7 @@ class ProfileViewModel @Inject constructor(
             }
             if (bytes == null) {
                 _state.update { it.copy(avatarUploading = false) }
-                _effects.send(Effect.ShowMessage("Couldn't read image"))
+                _effects.emit(Effect.ShowMessage("Couldn't read image"))
                 return@launch
             }
             val path = "${profile.id}/avatar.jpg"
@@ -423,16 +421,16 @@ class ProfileViewModel @Inject constructor(
                                     profile = it.profile?.copy(avatarUrl = url),
                                 )
                             }
-                            _effects.send(Effect.ShowMessage("Photo updated"))
+                            _effects.emit(Effect.ShowMessage("Photo updated"))
                         }
                         .onFailure { ex ->
                             _state.update { it.copy(avatarUploading = false) }
-                            _effects.send(Effect.ShowMessage(ex.toUserMessage()))
+                            _effects.emit(Effect.ShowMessage(ex.toUserMessage()))
                         }
                 }
                 .onFailure { ex ->
                     _state.update { it.copy(avatarUploading = false) }
-                    _effects.send(Effect.ShowMessage(ex.toUserMessage()))
+                    _effects.emit(Effect.ShowMessage(ex.toUserMessage()))
                 }
         }
     }
@@ -458,11 +456,11 @@ class ProfileViewModel @Inject constructor(
             dataExportRepository.exportToFile(targetDir)
                 .onSuccess { file ->
                     _state.update { it.copy(exportingData = false) }
-                    _effects.send(Effect.ShareExport(file.absolutePath))
+                    _effects.emit(Effect.ShareExport(file.absolutePath))
                 }
                 .onFailure { error ->
                     _state.update { it.copy(exportingData = false) }
-                    _effects.send(Effect.ShowMessage(error.toUserMessage()))
+                    _effects.emit(Effect.ShowMessage(error.toUserMessage()))
                 }
         }
     }
@@ -540,7 +538,7 @@ class ProfileViewModel @Inject constructor(
                             deletePassword = "",
                         )
                     }
-                    _effects.send(Effect.ShowMessage("Account deleted. Signing you out…"))
+                    _effects.emit(Effect.ShowMessage("Account deleted. Signing you out…"))
 
                     // Best-effort device cleanup. Each step is wrapped so a
                     // single failure (e.g. token revoke after auth.users was
@@ -559,7 +557,7 @@ class ProfileViewModel @Inject constructor(
                     _state.update {
                         it.copy(deletingAccount = false, deleteAccountOpen = false)
                     }
-                    _effects.send(Effect.ShowMessage("Couldn't delete account: ${error.toUserMessage()}"))
+                    _effects.emit(Effect.ShowMessage("Couldn't delete account: ${error.toUserMessage()}"))
                 },
             )
         }
@@ -597,7 +595,7 @@ class ProfileViewModel @Inject constructor(
             authRepository.signOut()
                 .onFailure { error ->
                     _state.update { it.copy(signingOut = false) }
-                    _effects.send(Effect.ShowMessage(error.toUserMessage()))
+                    _effects.emit(Effect.ShowMessage(error.toUserMessage()))
                 }
             // On success, SessionViewModel transitions to SignedOut and root nav unmounts this screen.
         }
