@@ -108,6 +108,39 @@ serve(async (req) => {
     return bad("amount_mismatch", "computed amount invalid");
   }
 
+  // Dedup: if a recent pending+bound order already exists for the same
+  // (contract, months) at the same amount, reuse it. Prevents the
+  // double-tap pile-up where every fast retry leaves another stale
+  // 'pending' row in the table. We don't touch unbound rows (where
+  // razorpay_order_id is still null) — those represent an in-flight
+  // create call from another concurrent attempt that may yet finish.
+  const dedupCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  const { data: existingOrder } = await admin
+    .from("amc_payment_orders")
+    .select("id, razorpay_order_id, amount_rupees")
+    .eq("amc_contract_id", contractId)
+    .eq("months_paid", months)
+    .eq("status", "pending")
+    .not("razorpay_order_id", "is", null)
+    .gte("created_at", dedupCutoff)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (existingOrder?.razorpay_order_id) {
+    const existingPaise = Math.round(Number(existingOrder.amount_rupees) * 100);
+    if (existingPaise === amountPaise) {
+      return json(200, {
+        ok: true,
+        payment_order_id: existingOrder.id,
+        razorpay_order_id: existingOrder.razorpay_order_id,
+        amount_paise: amountPaise,
+        currency: "INR",
+        key_id: rzpKeyId,
+        deduped: true,
+      });
+    }
+  }
+
   // Persist the order row first so we have an id for receipt + notes.
   const { data: insertedOrder, error: insertErr } = await admin
     .from("amc_payment_orders")
