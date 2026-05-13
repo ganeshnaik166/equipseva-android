@@ -163,14 +163,7 @@ fun FounderKycQueueScreen(
         scope.launch {
             viewModel.signedUrlFor(doc.path)
                 .onSuccess { url ->
-                    runCatching {
-                        context.startActivity(
-                            android.content.Intent(
-                                android.content.Intent.ACTION_VIEW,
-                                android.net.Uri.parse(url),
-                            ),
-                        )
-                    }
+                    com.equipseva.app.core.util.openExternalUrl(context, url)
                 }
         }
     }
