@@ -53,6 +53,7 @@ class ProfileViewModel @Inject constructor(
     private val outboxScheduler: OutboxScheduler,
     private val photoUploadStash: PhotoUploadStash,
     private val storageRepository: com.equipseva.app.core.storage.StorageRepository,
+    private val userBlockRepository: com.equipseva.app.core.data.moderation.UserBlockRepository,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -548,6 +549,10 @@ class ProfileViewModel @Inject constructor(
                     runCatching { outboxScheduler.cancelAll() }
                     runCatching { photoUploadStash.clearAll() }
                     runCatching { userPrefs.setLastScreen(null) }
+                    runCatching { userPrefs.clearActiveRole() }
+                    runCatching { userPrefs.setMutedPushCategories(emptySet()) }
+                    runCatching { userPrefs.setQuietHoursEnabled(false) }
+                    runCatching { userBlockRepository.clearCache() }
 
                     // Sign out wipes the local session even if the network
                     // call fails — the SDK clears the cached token unconditionally.
@@ -592,6 +597,16 @@ class ProfileViewModel @Inject constructor(
             // first launch; activeRole gets re-set on Hub pick / first
             // dispatch by SessionViewModel.
             runCatching { userPrefs.clearActiveRole() }
+            // Notification prefs are device-resident user state. Without
+            // a reset the next account inherits the previous user's mute
+            // categories + quiet-hours window, silently swallowing pushes
+            // the new user explicitly enabled.
+            runCatching { userPrefs.setMutedPushCategories(emptySet()) }
+            runCatching { userPrefs.setQuietHoursEnabled(false) }
+            // @Singleton UserBlockRepository holds the previous user's
+            // blocked-id set in memory; clear so the next sign-in
+            // doesn't see stale blocks until the first refresh().
+            runCatching { userBlockRepository.clearCache() }
             authRepository.signOut()
                 .onFailure { error ->
                     _state.update { it.copy(signingOut = false) }

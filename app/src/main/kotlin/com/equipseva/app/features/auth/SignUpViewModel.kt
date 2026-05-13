@@ -56,7 +56,12 @@ class SignUpViewModel @Inject constructor(
     val effects: kotlinx.coroutines.flow.Flow<AuthEffect> = _effects
 
     fun onFullNameChange(value: String) {
-        _state.update { it.copy(fullName = value, fullNameError = null, form = it.form.copy(errorMessage = null)) }
+        // Cap at 100 chars — without this the field happily accepts a
+        // pasted 10 KB blob, which then either truncates server-side
+        // (silent data corruption) or wedges the form submit. 100 is a
+        // generous upper bound for an Indian legal name.
+        val capped = value.take(100)
+        _state.update { it.copy(fullName = capped, fullNameError = null, form = it.form.copy(errorMessage = null)) }
     }
 
     fun onEmailChange(value: String) {

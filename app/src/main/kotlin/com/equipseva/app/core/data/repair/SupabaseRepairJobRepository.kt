@@ -181,7 +181,11 @@ class SupabaseRepairJobRepository @Inject constructor(
         review: String?,
     ): Result<RepairJob> = runCatching {
         require(stars in 1..5) { "Rating must be 1..5" }
-        val trimmedReview = review?.trim()?.takeIf { it.isNotBlank() }
+        // Cap review text at 1000 chars before sending. Unbounded text
+        // let a pasted blob bloat the engineers directory card's review
+        // preview and wedge the layout; 1000 is generous for a real
+        // free-form review.
+        val trimmedReview = review?.trim()?.take(1000)?.takeIf { it.isNotBlank() }
         val patch = when (role) {
             RatingRole.HospitalRatesEngineer -> RepairJobRatingPatchDto(
                 hospitalRating = stars,
