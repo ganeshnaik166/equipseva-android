@@ -631,12 +631,16 @@ class KycViewModel @Inject constructor(
     }
 
     fun onExperienceYearsChange(value: String) {
-        val digits = value.filter { it.isDigit() }.take(2)
+        // ASCII digits only — `Char.isDigit()` is Unicode-aware so it
+        // would accept Devanagari / Arabic numerals; the server's
+        // `text-to-int` parse rejects those and the form looks filled
+        // while submit silently fails with "invalid number".
+        val digits = value.filter { it in '0'..'9' }.take(2)
         _state.update { it.copy(experienceYears = digits) }
     }
 
     fun onServiceRadiusChange(value: String) {
-        val digits = value.filter { it.isDigit() }.take(4)
+        val digits = value.filter { it in '0'..'9' }.take(4)
         _state.update { it.copy(serviceRadiusKm = digits) }
     }
 

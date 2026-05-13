@@ -39,7 +39,11 @@ internal object AadhaarValidator {
      * decides what to surface).
      */
     fun isValid(number: String): Boolean {
-        if (number.length != 12 || number.any { !it.isDigit() }) return false
+        // ASCII-digit check — `Char.isDigit()` is Unicode-aware and accepts
+        // Devanagari / Arabic numerals which would then trip the `n = d - '0'`
+        // arithmetic below into out-of-range indices. Defense-in-depth even
+        // though upstream KycViewModel already filters to ASCII.
+        if (number.length != 12 || number.any { it !in '0'..'9' }) return false
         // Aadhaar can't start with 0 or 1 by spec.
         if (number[0] == '0' || number[0] == '1') return false
         var c = 0

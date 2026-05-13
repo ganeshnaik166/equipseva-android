@@ -202,7 +202,7 @@ class AddressFormViewModel @Inject constructor(
         // states), so the pincode is exactly 6 digits. The earlier 4..10
         // window let through international formats that the rest of the
         // form can't actually deliver to.
-        if (f.pincode.length != 6 || !f.pincode.all { it.isDigit() }) {
+        if (f.pincode.length != 6 || !f.pincode.all { it in '0'..'9' }) {
             _state.update { it.copy(error = "Pincode must be 6 digits.") }
             return
         }
@@ -409,7 +409,7 @@ fun AddressFormScreen(
             val canSave = f.fullName.isNotBlank() && f.phone.isNotBlank() &&
                 f.line1.isNotBlank() && f.city.isNotBlank() &&
                 f.state.isNotBlank() &&
-                f.pincode.length == 6 && f.pincode.all { it.isDigit() }
+                f.pincode.length == 6 && f.pincode.all { it in '0'..'9' }
             Button(
                 onClick = { viewModel.save() },
                 enabled = !state.saving && !state.locating && canSave,
