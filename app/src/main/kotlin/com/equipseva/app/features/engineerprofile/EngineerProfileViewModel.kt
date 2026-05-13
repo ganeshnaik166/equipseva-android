@@ -61,6 +61,19 @@ class EngineerProfileViewModel @Inject constructor(
 
     private var userId: String? = null
 
+    // Snapshot of the loaded profile, used by onSave to detect a no-op
+    // submit so we don't burn an audit-log row + server round-trip when
+    // the user just taps Save without editing anything.
+    private data class LoadedSnapshot(
+        val hourlyRate: String,
+        val yearsExperience: String,
+        val serviceAreas: String,
+        val specializations: String,
+        val bio: String,
+        val isAvailable: Boolean,
+    )
+    private var loadedSnapshot: LoadedSnapshot? = null
+
     init {
         viewModelScope.launch {
             authRepository.sessionState
@@ -121,6 +134,27 @@ class EngineerProfileViewModel @Inject constructor(
         val specs = parseList(current.specializations)
         val bio = current.bio.trim()
 
+        // No-op submit short-circuit. The save button isn't gated on
+        // dirty-state (text inputs need to validate first), so a user
+        // can land on this screen and tap Save with zero edits — that
+        // used to round-trip the server + write an audit log row for
+        // no change. Compare against the snapshot captured at load and
+        // navigate back silently.
+        loadedSnapshot?.let { snap ->
+            if (snap.hourlyRate == current.hourlyRate.trim() &&
+                snap.yearsExperience == current.yearsExperience.trim() &&
+                snap.serviceAreas == current.serviceAreas.trim() &&
+                snap.specializations == current.specializations.trim() &&
+                snap.bio == bio &&
+                snap.isAvailable == current.isAvailable
+            ) {
+                viewModelScope.launch {
+                    _effects.emit(Effect.NavigateBack)
+                }
+                return
+            }
+        }
+
         _state.update { it.copy(saving = true, errorMessage = null) }
         viewModelScope.launch {
             engineerRepository.upsertProfile(
@@ -146,18 +180,32 @@ class EngineerProfileViewModel @Inject constructor(
         engineerRepository.fetchByUserId(uid)
             .onSuccess { engineer ->
                 if (engineer == null) {
+                    loadedSnapshot = null
                     _state.update { it.copy(loading = false) }
                 } else {
+                    val rate = engineer.hourlyRate?.let(::formatRate) ?: ""
+                    val years = engineer.yearsExperience?.toString() ?: ""
+                    val areas = engineer.serviceAreas.joinToString(", ")
+                    // Specializations on the existing row are typed enums (from KYC). Render them as
+                    // their storage keys so the engineer can edit-as-text without losing prior choices.
+                    val specs = engineer.specializations.joinToString(", ") { spec -> spec.storageKey }
+                    val bio = engineer.bio.orEmpty()
+                    loadedSnapshot = LoadedSnapshot(
+                        hourlyRate = rate,
+                        yearsExperience = years,
+                        serviceAreas = areas,
+                        specializations = specs,
+                        bio = bio,
+                        isAvailable = engineer.isAvailable,
+                    )
                     _state.update {
                         it.copy(
                             loading = false,
-                            hourlyRate = engineer.hourlyRate?.let(::formatRate) ?: "",
-                            yearsExperience = engineer.yearsExperience?.toString() ?: "",
-                            serviceAreas = engineer.serviceAreas.joinToString(", "),
-                            // Specializations on the existing row are typed enums (from KYC). Render them as
-                            // their storage keys so the engineer can edit-as-text without losing prior choices.
-                            specializations = engineer.specializations.joinToString(", ") { spec -> spec.storageKey },
-                            bio = engineer.bio.orEmpty(),
+                            hourlyRate = rate,
+                            yearsExperience = years,
+                            serviceAreas = areas,
+                            specializations = specs,
+                            bio = bio,
                             isAvailable = engineer.isAvailable,
                         )
                     }
