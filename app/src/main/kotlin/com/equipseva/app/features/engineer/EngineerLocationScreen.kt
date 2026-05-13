@@ -103,6 +103,7 @@ fun EngineerLocationScreen(
                 if (state.savedLatitude != null && state.savedLongitude != null) {
                     Text(
                         text = "Currently saved: %.5f, %.5f".format(
+                            java.util.Locale.US,
                             state.savedLatitude,
                             state.savedLongitude,
                         ),

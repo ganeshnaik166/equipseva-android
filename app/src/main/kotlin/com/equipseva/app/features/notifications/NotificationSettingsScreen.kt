@@ -137,7 +137,10 @@ private fun formatMinutes(min: Int, is24Hour: Boolean = true): String {
     val safe = ((min % (24 * 60)) + 24 * 60) % (24 * 60)
     val hour24 = safe / 60
     val minute = safe % 60
-    if (is24Hour) return "%02d:%02d".format(hour24, minute)
+    // Locale.US so "00..23" + "00..59" formats with ASCII digits even
+    // on Hindi-default devices (Char.format would otherwise produce
+    // Devanagari numerals on Hindi locale).
+    if (is24Hour) return "%02d:%02d".format(java.util.Locale.US, hour24, minute)
     // 12-hour rendering for locales that use AM/PM (most Indian users
     // expect 10:00 PM, not 22:00, on the readout — matches the picker
     // shown by android.text.format.DateFormat.is24HourFormat).
@@ -147,7 +150,7 @@ private fun formatMinutes(min: Int, is24Hour: Boolean = true): String {
         hour24 > 12 -> hour24 - 12
         else -> hour24
     }
-    return "%d:%02d %s".format(hour12, minute, period)
+    return "%d:%02d %s".format(java.util.Locale.US, hour12, minute, period)
 }
 
 @Composable
