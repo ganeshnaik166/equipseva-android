@@ -7,12 +7,17 @@ import androidx.work.Configuration
 import com.equipseva.app.core.observability.SentryInitializer
 import com.equipseva.app.core.observability.SentryUserBridge
 import com.equipseva.app.core.observability.StartupTelemetry
+import com.equipseva.app.core.payments.PendingAmcPaymentsReconciler
 import com.equipseva.app.core.push.NotificationChannels
 import com.equipseva.app.core.security.DeviceIntegrityCheck
 import com.equipseva.app.core.security.SignatureVerifier
 import com.equipseva.app.core.sync.OutboxScheduler
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 @HiltAndroidApp
 class EquipSevaApplication : Application(), Configuration.Provider {
@@ -21,6 +26,9 @@ class EquipSevaApplication : Application(), Configuration.Provider {
     @Inject lateinit var sentryInitializer: SentryInitializer
     @Inject lateinit var sentryUserBridge: SentryUserBridge
     @Inject lateinit var outboxScheduler: OutboxScheduler
+    @Inject lateinit var pendingPaymentsReconciler: PendingAmcPaymentsReconciler
+
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
@@ -40,6 +48,13 @@ class EquipSevaApplication : Application(), Configuration.Provider {
         // until they triggered another write. Cancelled on sign-out by
         // [OutboxScheduler.cancelAll].
         outboxScheduler.schedulePeriodic()
+
+        // Round 234 — Razorpay process-death recovery. Reconciles any
+        // AMC payment order ids we wrote to local storage before the
+        // SDK's checkout activity but never cleared because the OS
+        // killed our process mid-flow. Fire-and-forget; the reconciler
+        // swallows network errors and retries on next cold-start.
+        appScope.launch { pendingPaymentsReconciler.reconcile() }
 
         // Anti-tamper signature check. Stays report-only until the user
         // sets BuildConfig.TAMPER_ENFORCE=true (after both upload-key and

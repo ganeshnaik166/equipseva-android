@@ -238,6 +238,26 @@ class AmcRepository @Inject constructor(
     }
 
     @Serializable
+    private data class AmcPaymentOrderStatusRow(@SerialName("status") val status: String? = null)
+
+    /**
+     * Round 234 — direct status read for the process-death reconciler.
+     * RLS gates: only the hospital that owns the contract can see the
+     * order. Returns null when the row is invisible / deleted (which
+     * the reconciler treats as a terminal "drop the marker").
+     */
+    suspend fun fetchAmcPaymentOrderStatus(paymentOrderId: String): Result<String?> = runCatching {
+        supabase.postgrest.from("amc_payment_orders")
+            .select(columns = io.github.jan.supabase.postgrest.query.Columns.list("status")) {
+                filter { eq("id", paymentOrderId) }
+                limit(1)
+            }
+            .decodeList<AmcPaymentOrderStatusRow>()
+            .firstOrNull()
+            ?.status
+    }
+
+    @Serializable
     data class HospitalSlaCreditSummary(
         @SerialName("total_credit_rupees") val totalCreditRupees: Double = 0.0,
         @SerialName("breach_count") val breachCount: Int = 0,

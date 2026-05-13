@@ -60,6 +60,7 @@ class AmcPaymentViewModel @Inject constructor(
     private val repo: AmcRepository,
     private val auth: AuthRepository,
     private val launcher: RazorpayCheckoutLauncher,
+    private val pendingPaymentsStore: com.equipseva.app.core.payments.PendingAmcPaymentsStore,
 ) : ViewModel() {
 
     data class UiState(val busy: Boolean = false, val error: String? = null)
@@ -96,22 +97,36 @@ class AmcPaymentViewModel @Inject constructor(
             .firstOrNull()
         val email = session?.email
 
+        // Process-death recovery: persist the payment_order id so the
+        // reconciler can notice if our process gets killed while the
+        // user is mid-payment in the UPI app. Clears in the `finally`
+        // regardless of outcome — Razorpay's three result branches
+        // each fall through this block.
+        runCatching { pendingPaymentsStore.add(order.paymentOrderId) }
+
         // 3. Launch Razorpay Standard Checkout.
-        val result = runCatching {
-            launcher.startPayment(
-                activity = activity,
-                amountPaise = order.amountPaise,
-                currency = order.currency,
-                name = "EquipSeva AMC",
-                description = "$months month${if (months == 1) "" else "s"} for $engineerName",
-                prefillEmail = email,
-                prefillContact = null,
-                razorpayOrderId = order.razorpayOrderId,
-                keyId = order.keyId,
-            )
-        }.getOrElse {
-            _state.update { s -> s.copy(busy = false, error = it.message) }
-            return false
+        val result = try {
+            runCatching {
+                launcher.startPayment(
+                    activity = activity,
+                    amountPaise = order.amountPaise,
+                    currency = order.currency,
+                    name = "EquipSeva AMC",
+                    description = "$months month${if (months == 1) "" else "s"} for $engineerName",
+                    prefillEmail = email,
+                    prefillContact = null,
+                    razorpayOrderId = order.razorpayOrderId,
+                    keyId = order.keyId,
+                )
+            }.getOrElse {
+                _state.update { s -> s.copy(busy = false, error = it.message) }
+                return false
+            }
+        } finally {
+            // SDK returned cleanly — clear the recovery marker before
+            // verify so we don't surface a stale "in-flight" pill on
+            // the home screen.
+            runCatching { pendingPaymentsStore.remove(order.paymentOrderId) }
         }
 
         when (result) {
