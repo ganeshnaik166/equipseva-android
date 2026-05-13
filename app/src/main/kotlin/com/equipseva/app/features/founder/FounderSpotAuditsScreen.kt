@@ -86,8 +86,11 @@ fun FounderSpotAuditsScreen(
     viewModel: FounderSpotAuditsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val avgRating = state.rows.takeIf { it.isNotEmpty() }
-        ?.let { rows -> rows.sumOf { it.rating }.toDouble() / rows.size }
+    // Memoize the avg walk so it doesn't re-sum every recomposition.
+    val avgRating = androidx.compose.runtime.remember(state.rows) {
+        state.rows.takeIf { it.isNotEmpty() }
+            ?.let { rows -> rows.sumOf { it.rating }.toDouble() / rows.size }
+    }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
