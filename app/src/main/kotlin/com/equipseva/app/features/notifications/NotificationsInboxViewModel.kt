@@ -148,7 +148,10 @@ class NotificationsInboxViewModel @Inject constructor(
                     // unread on the next realtime sync.
                     val payload = json.encodeToString(
                         com.equipseva.app.core.data.notifications.NotificationReadPayload.serializer(),
-                        com.equipseva.app.core.data.notifications.NotificationReadPayload(notificationId = id),
+                        com.equipseva.app.core.data.notifications.NotificationReadPayload(
+                            notificationId = id,
+                            userId = currentUserId,
+                        ),
                     )
                     outboxEnqueuer.enqueue(
                         com.equipseva.app.core.sync.OutboxKinds.NOTIFICATION_READ,

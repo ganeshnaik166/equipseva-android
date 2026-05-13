@@ -115,7 +115,12 @@ class ChatRepository @Inject constructor(
         runCatching {
             client.from(CONVERSATIONS_TABLE).update({
                 set("last_message", message)
-                set("last_message_at", dto.createdAt ?: java.time.Instant.now().toString())
+                // Trust the server's `created_at`. Falling back to
+                // client wall-clock (Instant.now()) bumped conversations
+                // to wrong sort positions whenever device clock skewed —
+                // skip the column if the server didn't echo a timestamp
+                // and let the trigger/default handle ordering.
+                dto.createdAt?.let { set("last_message_at", it) }
             }) {
                 filter { eq("id", conversationId) }
             }

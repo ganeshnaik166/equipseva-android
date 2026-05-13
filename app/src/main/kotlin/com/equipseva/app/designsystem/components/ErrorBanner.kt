@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,7 +24,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.equipseva.app.designsystem.theme.Spacing
 
 @Composable
-fun ErrorBanner(message: String?, modifier: Modifier = Modifier) {
+fun ErrorBanner(
+    message: String?,
+    modifier: Modifier = Modifier,
+    onDismiss: (() -> Unit)? = null,
+) {
     if (message.isNullOrBlank()) return
     Row(
         modifier = modifier
@@ -47,6 +53,16 @@ fun ErrorBanner(message: String?, modifier: Modifier = Modifier) {
             // banner doesn't dominate the screen on small phones.
             maxLines = 4,
             overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
         )
+        if (onDismiss != null) {
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    imageVector = Icons.Outlined.Close,
+                    contentDescription = "Dismiss error",
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                )
+            }
+        }
     }
 }
