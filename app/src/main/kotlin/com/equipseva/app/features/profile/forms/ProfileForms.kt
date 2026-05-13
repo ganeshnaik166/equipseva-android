@@ -33,6 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.userprefs.UserSettingsRepository
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.Validators
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.theme.Ink500
@@ -118,7 +119,7 @@ class ProfileFormViewModel @AssistedInject constructor(
                     }
                 }
                 .onFailure { e ->
-                    _state.update { it.copy(loading = false, errorMessage = e.message) }
+                    _state.update { it.copy(loading = false, errorMessage = e.toUserMessage()) }
                 }
         }
     }
@@ -146,8 +147,9 @@ class ProfileFormViewModel @AssistedInject constructor(
                     onDone()
                 }
                 .onFailure { e ->
-                    _state.update { it.copy(saving = false, errorMessage = e.message) }
-                    _effects.emit(Effect.ShowMessage("Save failed: ${e.message}"))
+                    val msg = e.toUserMessage()
+                    _state.update { it.copy(saving = false, errorMessage = msg) }
+                    _effects.emit(Effect.ShowMessage("Save failed: $msg"))
                 }
         }
     }

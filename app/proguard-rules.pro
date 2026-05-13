@@ -51,6 +51,18 @@
 # Firebase
 -keep class com.google.firebase.** { *; }
 
+# Razorpay SDK — reflection-based init in checkout.open() and a JS bridge
+# inside the payment activity. R8 full-mode otherwise strips classes that
+# the .aar loads by name, crashing the AMC payment flow on release builds.
+-keep class com.razorpay.** { *; }
+-keep interface com.razorpay.** { *; }
+-keepclassmembers class com.razorpay.** { *; }
+-dontwarn com.razorpay.**
+-keepattributes JavascriptInterface
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
+
 # Strip non-error log statements in release. Log.e is preserved so genuine errors still
 # surface. println / System.out paths are removed as well. R8 treats these as side-effect
 # free so the calls (and their argument expressions) drop out entirely.

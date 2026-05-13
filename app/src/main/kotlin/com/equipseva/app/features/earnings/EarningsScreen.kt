@@ -71,6 +71,11 @@ fun EarningsScreen(
     SecureScreen()
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    // Engineer returns from Active Work / job detail after job completion or
+    // payout release; without this the hero (paid / pending / escrow) stays
+    // frozen at whatever it was on first entry.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.onRefresh() }
+
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(title = "Earnings", onBack = onBack)
