@@ -24,8 +24,10 @@ class ChangeEmailViewModel @Inject constructor(
 ) : ViewModel() {
 
     data class UiState(
+        val currentPassword: String = "",
         val newEmail: String = "",
         val submitting: Boolean = false,
+        val passwordError: String? = null,
         val emailError: String? = null,
         val errorMessage: String? = null,
     )
@@ -43,6 +45,16 @@ class ChangeEmailViewModel @Inject constructor(
     )
     val effects: kotlinx.coroutines.flow.Flow<Effect> = _effects
 
+    fun onPasswordChange(value: String) {
+        _state.update {
+            it.copy(
+                currentPassword = value,
+                passwordError = null,
+                errorMessage = null,
+            )
+        }
+    }
+
     fun onEmailChange(value: String) {
         _state.update {
             it.copy(
@@ -54,23 +66,28 @@ class ChangeEmailViewModel @Inject constructor(
     }
 
     /**
-     * Direct update to `profiles.email` only — no Supabase auth confirmation
-     * link, no current-password re-auth. The auth.users.email (sign-in
-     * identity) stays as-is; this changes only the contact email shown to
-     * hospitals on the engineer's public profile and used for KYC contact.
+     * Updates `profiles.email` (the contact email shown to hospitals on
+     * the engineer's public profile and used for KYC contact). The
+     * auth.users.email — i.e. the sign-in identity — stays as-is.
+     *
+     * Re-auth gate: requires the current password before the update
+     * lands. Without it, a thief with an unlocked phone could quietly
+     * redirect KYC + payment-notification email to themselves.
      */
     fun onSubmit() {
         val current = _state.value
         if (current.submitting) return
 
+        val password = current.currentPassword
         val trimmed = current.newEmail.trim()
+        val passwordError = if (password.isBlank()) "Enter your current password" else null
         val emailError = when {
             trimmed.isBlank() -> "Enter your new email"
             !Validators.emailIsValid(trimmed) -> "Enter a valid email address"
             else -> null
         }
-        if (emailError != null) {
-            _state.update { it.copy(emailError = emailError) }
+        if (passwordError != null || emailError != null) {
+            _state.update { it.copy(passwordError = passwordError, emailError = emailError) }
             return
         }
 
@@ -83,6 +100,16 @@ class ChangeEmailViewModel @Inject constructor(
             if (userId.isNullOrBlank()) {
                 _state.update {
                     it.copy(submitting = false, errorMessage = "Sign in again to change your email.")
+                }
+                return@launch
+            }
+            val reauth = authRepository.verifyCurrentPassword(password)
+            if (reauth.isFailure) {
+                _state.update {
+                    it.copy(
+                        submitting = false,
+                        passwordError = "Current password is incorrect.",
+                    )
                 }
                 return@launch
             }
