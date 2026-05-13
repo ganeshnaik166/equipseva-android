@@ -117,6 +117,10 @@ class CreateAmcWizardViewModel @Inject constructor(
         val pickerQuery: String = "",
         val pickerLoading: Boolean = false,
         val pickerResults: List<FallbackOption> = emptyList(),
+        // Auto-renewal opt-in (defaults off so we never auto-charge a
+        // hospital that didn't tick the box; the row's schema default
+        // is true, but the wizard explicitly overrides to honor consent).
+        val autoRenew: Boolean = false,
         // Submit
         val submitting: Boolean = false,
         val createdContractId: String? = null,
@@ -172,6 +176,7 @@ class CreateAmcWizardViewModel @Inject constructor(
     fun setMonthlyFeeRupees(v: String) = _state.update { it.copy(monthlyFeeRupees = v) }
     fun setStandardHours(v: String) = _state.update { it.copy(responseTimeStandardHours = v) }
     fun setEmergencyHours(v: String) = _state.update { it.copy(responseTimeEmergencyHours = v) }
+    fun setAutoRenew(v: Boolean) = _state.update { it.copy(autoRenew = v) }
 
     fun openPicker() = _state.update { it.copy(pickerOpen = true, pickerQuery = "") }
     fun closePicker() = _state.update { it.copy(pickerOpen = false) }
@@ -253,12 +258,11 @@ class CreateAmcWizardViewModel @Inject constructor(
                 scopeText = s.scopeText.takeIf { it.isNotBlank() },
                 responseTimeEmergencyHours = emergency,
                 responseTimeStandardHours = standard,
-                // Auto-renew is opt-in: the wizard never prompts the user
-                // for it, so default to false. Earlier hardcoded `true` made
-                // every contract render the "Auto-renew" pill on detail
-                // even though the hospital never agreed to it. When the
-                // wizard adds a renewal step, flip this back.
-                autoRenew = false,
+                // Auto-renew is opt-in via the Step 4 toggle. We pass the
+                // hospital's explicit choice through to the schema rather
+                // than letting the column default (true) silently auto-
+                // charge on the renewal cron.
+                autoRenew = s.autoRenew,
                 renewalTermMonths = 12,
                 fallbackEngineerIds = s.fallbackEngineers.map { it.engineerId },
             ).fold(
@@ -403,6 +407,7 @@ fun CreateAmcWizardScreen(
                             state = state,
                             onAddFallback = { viewModel.openPicker() },
                             onRemoveFallback = viewModel::removeFallback,
+                            onToggleAutoRenew = viewModel::setAutoRenew,
                         )
                     }
                     Spacer(Modifier.height(80.dp))
@@ -584,6 +589,7 @@ private fun EngineerStep(
     state: CreateAmcWizardViewModel.UiState,
     onAddFallback: () -> Unit,
     onRemoveFallback: (engineerId: String) -> Unit,
+    onToggleAutoRenew: (Boolean) -> Unit,
 ) {
     EsSection(title = "Primary engineer") {
         Box(
@@ -658,6 +664,38 @@ private fun EngineerStep(
                     }
                 }
             }
+        }
+    }
+    EsSection(title = "Auto-renew") {
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(Paper2)
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Auto-renew this contract",
+                    color = SevaInk900,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "We'll charge the next month's fee 7 days before expiry. " +
+                        "You can disable this any time from the contract page.",
+                    color = SevaInk500,
+                    fontSize = 12.sp,
+                )
+            }
+            androidx.compose.material3.Switch(
+                checked = state.autoRenew,
+                onCheckedChange = onToggleAutoRenew,
+            )
         }
     }
 }
