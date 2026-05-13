@@ -167,6 +167,7 @@ fun FounderKycReviewScreen(
     viewModel: FounderKycReviewViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
     val context = LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 

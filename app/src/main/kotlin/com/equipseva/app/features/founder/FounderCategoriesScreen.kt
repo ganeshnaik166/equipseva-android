@@ -219,6 +219,7 @@ fun FounderCategoriesScreen(
     viewModel: FounderCategoriesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
     Scaffold(
         topBar = { EsTopBar(title = "Equipment categories", onBack = onBack) },
         containerColor = PaperDefault,

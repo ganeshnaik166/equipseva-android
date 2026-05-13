@@ -80,6 +80,7 @@ fun FounderIntegrityScreen(
     viewModel: FounderIntegrityViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
