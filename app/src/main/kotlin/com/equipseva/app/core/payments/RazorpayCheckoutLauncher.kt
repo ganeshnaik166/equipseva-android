@@ -168,7 +168,28 @@ object PaymentBridge {
             response?.contains("cancel", ignoreCase = true) == true
         pending.complete(
             if (isCancel) RazorpayCheckoutLauncher.RazorpayPaymentResult.Cancelled
-            else RazorpayCheckoutLauncher.RazorpayPaymentResult.Failed(code, response),
+            else RazorpayCheckoutLauncher.RazorpayPaymentResult.Failed(code, friendlyFailureMessage(code, response)),
         )
+    }
+
+    /**
+     * Map Razorpay's failure codes + raw response to actionable copy. The
+     * SDK frequently passes a raw JSON blob or a vague "Payment failed"
+     * string that reads as a wall of text — surface a short hint instead.
+     * Order matters: cancel-like codes are intercepted before this fn.
+     */
+    private fun friendlyFailureMessage(code: Int, response: String?): String {
+        val raw = response?.takeIf { it.isNotBlank() && !it.startsWith("{") }
+        return when (code) {
+            Checkout.NETWORK_ERROR ->
+                "Network error during payment. Check your connection and retry."
+            Checkout.INVALID_OPTIONS ->
+                raw ?: "Couldn't start payment. Please try again."
+            Checkout.PAYMENT_CANCELED ->
+                "Payment cancelled."
+            Checkout.TLS_ERROR ->
+                "Your device's secure-network setup blocked the payment. Update Android System WebView and retry."
+            else -> raw ?: "Payment failed. Please try a different method or contact your bank."
+        }
     }
 }
