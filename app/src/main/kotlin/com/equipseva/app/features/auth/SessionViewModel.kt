@@ -8,7 +8,6 @@ import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.push.DeviceTokenRegistrar
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +15,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -40,9 +38,16 @@ class SessionViewModel @Inject constructor(
 
     private val bootstrapping = MutableStateFlow(false)
 
-    /** One-shot toasts surfaced by the sign-in gate (e.g. "Account deleted"). */
-    private val _messages = Channel<String>(Channel.BUFFERED)
-    val messages = _messages.receiveAsFlow()
+    /** One-shot toasts surfaced by the sign-in gate (e.g. "Account deleted").
+     *  SharedFlow(replay = 0) so a toast emitted while AppNavGraph is not
+     *  collecting (process death, screen torn down) drops on the floor
+     *  instead of firing the next time the collector mounts — otherwise
+     *  "Your account is no longer active" could phantom-toast on a fresh
+     *  cold start unrelated to the original deletion. */
+    private val _messages = kotlinx.coroutines.flow.MutableSharedFlow<String>(
+        extraBufferCapacity = 4,
+    )
+    val messages: kotlinx.coroutines.flow.Flow<String> = _messages
 
     init {
         viewModelScope.launch {
@@ -137,7 +142,7 @@ class SessionViewModel @Inject constructor(
             // user. Distinct from network failure (Result.failure) where we
             // keep the cached session.
             if (result.isSuccess && fetched == null) {
-                _messages.trySend("Your account is no longer active. Sign in again.")
+                _messages.tryEmit("Your account is no longer active. Sign in again.")
                 runCatching { userPrefs.clearActiveRole() }
                 runCatching { authRepository.signOut() }
                 return
@@ -146,7 +151,7 @@ class SessionViewModel @Inject constructor(
             // ships us a row but flags it inactive. Hard delete normally
             // removes the row entirely (handled above).
             if (fetched != null && !fetched.isActive) {
-                _messages.trySend("This account was deleted. Contact support to restore it.")
+                _messages.tryEmit("This account was deleted. Contact support to restore it.")
                 runCatching { userPrefs.clearActiveRole() }
                 runCatching { authRepository.signOut() }
                 return
