@@ -107,10 +107,9 @@ fun HomeHubScreen(
     val role = state.role
     val kyc = state.kycStatus
 
-    androidx.lifecycle.compose.LifecycleResumeEffect(viewModel) {
-        viewModel.refreshNow()
-        onPauseOrDispose { }
-    }
+    // Skip the first ON_RESUME so the VM init refresh isn't doubled —
+    // the hub is the cold-start landing screen for hospital users.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.refreshNow() }
 
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(

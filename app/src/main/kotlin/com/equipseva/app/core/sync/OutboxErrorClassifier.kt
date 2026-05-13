@@ -21,6 +21,11 @@ import java.io.IOException
  *  - RestException 5xx → Retry (server temporarily off).
  *  - SerializationException → GiveUp (malformed payload — re-encoding
  *    would change the row, which the worker isn't allowed to do).
+ *  - IllegalArgumentException / IllegalStateException → GiveUp. These
+ *    fire when a handler discovers its payload doesn't make sense
+ *    (e.g. PhotoUploadOutboxHandler hitting a vanished local file, a
+ *    null required field, a payload whose `engineerUserId` no longer
+ *    matches the signed-in user). Retrying that won't recover.
  *  - Default → Retry. The MAX_ATTEMPTS cap will eventually drop a
  *    truly stuck row to the poison-drop notification path.
  */
@@ -39,6 +44,9 @@ fun classifyOutboxError(error: Throwable): OutboxKindHandler.Outcome = when (err
     // permanent — re-trying won't change the file we're handing in.
     is UploadError -> OutboxKindHandler.Outcome.GiveUp(
         "Upload rejected: ${error.message ?: error::class.simpleName}",
+    )
+    is IllegalArgumentException, is IllegalStateException -> OutboxKindHandler.Outcome.GiveUp(
+        "Bad outbox payload: ${error.message ?: error::class.simpleName}",
     )
     else -> OutboxKindHandler.Outcome.Retry(error)
 }

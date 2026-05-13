@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import com.equipseva.app.designsystem.theme.Spacing
 
 @Composable
@@ -42,6 +43,10 @@ fun ErrorBanner(message: String?, modifier: Modifier = Modifier) {
             text = message,
             color = MaterialTheme.colorScheme.onErrorContainer,
             style = MaterialTheme.typography.bodyMedium,
+            // Server-derived errors can be long; cap to four lines so the
+            // banner doesn't dominate the screen on small phones.
+            maxLines = 4,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
