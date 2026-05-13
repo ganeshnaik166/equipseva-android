@@ -385,7 +385,7 @@ fun AddressFormScreen(
 
             if (state.form.latitude != null && state.form.longitude != null) {
                 Text(
-                    "Coords captured: ${"%.5f".format(state.form.latitude)}, ${"%.5f".format(state.form.longitude)}",
+                    "Coords captured: ${"%.5f".format(java.util.Locale.US, state.form.latitude)}, ${"%.5f".format(java.util.Locale.US, state.form.longitude)}",
                     color = AccentLime.let { _ -> BrandGreenDeep },
                     fontSize = 11.sp,
                 )

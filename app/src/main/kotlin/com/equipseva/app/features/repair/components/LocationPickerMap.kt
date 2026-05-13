@@ -272,7 +272,7 @@ fun LocationPickerMap(
                     .background(BrandGreen),
             )
             Text(
-                text = "  ${"%.5f".format(selected.latitude)}, ${"%.5f".format(selected.longitude)}",
+                text = "  ${"%.5f".format(java.util.Locale.US, selected.latitude)}, ${"%.5f".format(java.util.Locale.US, selected.longitude)}",
                 fontSize = 11.sp,
                 color = Ink500,
                 fontWeight = FontWeight.SemiBold,

@@ -93,7 +93,7 @@ fun FounderSpotAuditsScreen(
             EsTopBar(
                 title = "Spot-audit responses",
                 subtitle = state.rows.size.takeIf { it > 0 }?.let { count ->
-                    val avg = avgRating?.let { "%.1f".format(it) } ?: "—"
+                    val avg = avgRating?.let { "%.1f".format(java.util.Locale.US, it) } ?: "—"
                     "$count in last 30 days · avg $avg/5"
                 },
                 onBack = onBack,

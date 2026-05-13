@@ -569,7 +569,7 @@ private fun EngCard(
             Spacer(Modifier.height(2.dp))
             val locParts = listOfNotNull(
                 row.city,
-                row.distanceKm?.let { "${"%.1f".format(it)} km" },
+                row.distanceKm?.let { "${"%.1f".format(java.util.Locale.US, it)} km" },
                 row.hourlyRate?.let { "${formatRupees(it)}/hr" },
             )
             if (locParts.isNotEmpty()) {

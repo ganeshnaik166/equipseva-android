@@ -1417,7 +1417,7 @@ private fun BidCard(
             )
             bid.distanceKm?.let { km ->
                 Text(
-                    text = "· ${"%.1f".format(km)} km away",
+                    text = "· ${"%.1f".format(java.util.Locale.US, km)} km away",
                     fontSize = 12.sp,
                     color = SevaInk500,
                 )
