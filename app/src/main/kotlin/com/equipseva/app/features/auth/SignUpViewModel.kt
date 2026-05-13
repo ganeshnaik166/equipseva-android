@@ -10,11 +10,9 @@ import com.equipseva.app.core.util.Validators
 import com.equipseva.app.features.auth.state.AuthEffect
 import com.equipseva.app.features.auth.state.FormUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -47,8 +45,15 @@ class SignUpViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    private val _effects = Channel<AuthEffect>(Channel.BUFFERED)
-    val effects = _effects.receiveAsFlow()
+    // SharedFlow(replay = 0) for one-shot effects — Channel(BUFFERED)
+    // retained NavigateToHome / ShowMessage events across composition
+    // teardowns. A user who signed up, signed out, then re-opened the
+    // SignUp screen would see the buffered NavigateToHome refire on
+    // mount, routing them to Home while signed out.
+    private val _effects = kotlinx.coroutines.flow.MutableSharedFlow<AuthEffect>(
+        extraBufferCapacity = 4,
+    )
+    val effects: kotlinx.coroutines.flow.Flow<AuthEffect> = _effects
 
     fun onFullNameChange(value: String) {
         _state.update { it.copy(fullName = value, fullNameError = null, form = it.form.copy(errorMessage = null)) }
@@ -121,7 +126,7 @@ class SignUpViewModel @Inject constructor(
                                 .onFailure { crashReporter.report(it, "signup addRole") }
                             _state.update { it.copy(form = FormUiState()) }
                             // Session will transition; AuthHostInline routes to Home.
-                            _effects.send(AuthEffect.NavigateToHome)
+                            _effects.emit(AuthEffect.NavigateToHome)
                         }
                         com.equipseva.app.core.auth.SignUpOutcome.NeedsEmailConfirmation -> {
                             // Supabase "Confirm email" is ON — no session yet.
@@ -129,7 +134,7 @@ class SignUpViewModel @Inject constructor(
                             // on the form so they can read the toast and back
                             // out to Sign in once the link is clicked.
                             _state.update { it.copy(form = FormUiState()) }
-                            _effects.send(
+                            _effects.emit(
                                 AuthEffect.ShowMessage(
                                     "Verification link sent to $targetEmail. Open it, then sign in.",
                                 ),
