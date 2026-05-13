@@ -79,8 +79,11 @@ class AddPhoneViewModel @Inject constructor(
     val effects: kotlinx.coroutines.flow.Flow<Effect> = _effects
 
     fun onPhoneChange(value: String) {
-        // Allow leading + then digits, max 16 chars (E.164 + a little buffer).
-        val cleaned = value.filterIndexed { i, c -> (i == 0 && c == '+') || c.isDigit() }.take(16)
+        // Allow leading + then ASCII digits, max 16 chars (E.164 + a little
+        // buffer). `Char.isDigit()` is Unicode-aware so it would accept
+        // Devanagari / Arabic numerals; Supabase auth's E.164 parser
+        // rejects those and submit silently fails.
+        val cleaned = value.filterIndexed { i, c -> (i == 0 && c == '+') || c in '0'..'9' }.take(16)
         _state.update { it.copy(phone = cleaned, error = null) }
     }
 
