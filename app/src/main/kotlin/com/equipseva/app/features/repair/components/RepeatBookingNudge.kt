@@ -89,7 +89,7 @@ fun RepeatBookingNudge(
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "$engineerName is ${"%.1f".format(distanceKm)} km away",
+                    text = "$engineerName is ${"%.1f".format(java.util.Locale.US, distanceKm)} km away",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = SevaInk900,
@@ -164,7 +164,7 @@ private fun AlternativeCard(
                 )
                 val locParts = listOfNotNull(
                     row.city,
-                    row.distanceKm?.let { "${"%.1f".format(it)}km" },
+                    row.distanceKm?.let { "${"%.1f".format(java.util.Locale.US, it)}km" },
                 )
                 if (locParts.isNotEmpty()) {
                     Text(

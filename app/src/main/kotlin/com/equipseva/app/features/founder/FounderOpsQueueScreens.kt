@@ -603,7 +603,7 @@ private fun PartsOutlierRow(row: FounderRepository.PartsCostOutlier) {
                     fontWeight = FontWeight.Medium,
                 )
             }
-            Pill(text = "${"%.1f".format(row.ratio)}×", kind = PillKind.Warn)
+            Pill(text = "${"%.1f".format(java.util.Locale.US, row.ratio)}×", kind = PillKind.Warn)
         }
         Text(
             "Parts ${formatRupees(row.partsCost)} vs category avg ${formatRupees(row.categoryAvgParts)}",

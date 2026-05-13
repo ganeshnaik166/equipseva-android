@@ -915,7 +915,7 @@ private fun RecommendedEngineerCard(
                 )
                 val parts = listOfNotNull(
                     row.city,
-                    row.distanceKm?.let { "${"%.1f".format(it)} km" },
+                    row.distanceKm?.let { "${"%.1f".format(java.util.Locale.US, it)} km" },
                 )
                 if (parts.isNotEmpty()) {
                     Text(

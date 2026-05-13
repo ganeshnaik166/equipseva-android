@@ -1039,7 +1039,7 @@ private fun ReviewsSection(
             ) {
                 categorySummary.forEach { sum ->
                     EsChip(
-                        text = "${prettyKey(sum.equipmentCategory)} · ${sum.reviewCount} · ${"%.1f".format(sum.ratingAvg)}★",
+                        text = "${prettyKey(sum.equipmentCategory)} · ${sum.reviewCount} · ${"%.1f".format(java.util.Locale.US, sum.ratingAvg)}★",
                         active = false,
                     )
                 }
