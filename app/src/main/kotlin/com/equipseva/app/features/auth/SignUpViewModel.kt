@@ -130,10 +130,13 @@ class SignUpViewModel @Inject constructor(
                         }
                         com.equipseva.app.core.auth.SignUpOutcome.NeedsEmailConfirmation -> {
                             // Supabase "Confirm email" is ON — no session yet.
-                            // Tell the user to check their inbox + leave them
-                            // on the form so they can read the toast and back
-                            // out to Sign in once the link is clicked.
-                            _state.update { it.copy(form = FormUiState()) }
+                            // Tell the user to check their inbox. Reset the
+                            // whole UiState (fullName, email, password, role)
+                            // so a follow-up tap on Create account doesn't
+                            // re-submit the same email and hit
+                            // "Email already registered" before they've had
+                            // a chance to click the verification link.
+                            _state.value = UiState()
                             _effects.emit(
                                 AuthEffect.ShowMessage(
                                     "Verification link sent to $targetEmail. Open it, then sign in.",
