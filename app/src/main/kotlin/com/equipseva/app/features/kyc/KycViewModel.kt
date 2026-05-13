@@ -539,8 +539,11 @@ class KycViewModel @Inject constructor(
     }
 
     fun onPanNumberChange(value: String) {
-        // PAN is 10 chars, A-Z + 0-9. Force uppercase + drop everything else.
-        val cleaned = value.uppercase().filter { it.isLetterOrDigit() }.take(10)
+        // PAN is exactly 10 ASCII chars: A-Z + 0-9. `isLetterOrDigit()` is
+        // Unicode-aware (would accept Devanagari "५" / Arabic "٥"), which
+        // passed the take(10) cap but failed server validation as silent
+        // "invalid PAN" later. Force ASCII A-Z / 0-9 only.
+        val cleaned = value.uppercase().filter { it in 'A'..'Z' || it in '0'..'9' }.take(10)
         savedStateHandle[SavedKeys.PAN] = cleaned
         _state.update { it.copy(panNumber = cleaned) }
     }

@@ -73,6 +73,16 @@ class UserBlockRepository @Inject constructor(
         blockedUserId in (cache.value ?: emptySet())
     }
 
+    /**
+     * Reset the in-memory blocked-id cache. Singleton lifetime means
+     * the cache survives sign-out unless explicitly cleared; without
+     * this hook the next user on the same device would see the
+     * previous user's blocked-id list until the first refresh().
+     */
+    suspend fun clearCache() {
+        mutex.withLock { cache.value = null }
+    }
+
     private suspend fun refresh() = withContext(Dispatchers.IO) {
         val userId = client.auth.currentUserOrNull()?.id ?: run {
             cache.value = emptySet()

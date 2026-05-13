@@ -309,9 +309,20 @@ class HomeHubViewModel @Inject constructor(
         _state.update { it.copy(submittingSpotAudit = true) }
         viewModelScope.launch {
             spotAuditRepository.submit(pending.invitationId, rating, feedback)
-            _state.update {
-                it.copy(submittingSpotAudit = false, pendingSpotAudit = null)
-            }
+                .onSuccess {
+                    _state.update {
+                        it.copy(submittingSpotAudit = false, pendingSpotAudit = null)
+                    }
+                }
+                .onFailure { error ->
+                    // Without onFailure we cleared submittingSpotAudit + the
+                    // pending invitation, so a transient network blip showed
+                    // a silent "success" while the row never persisted, then
+                    // the next foreground re-prompted with the same survey.
+                    // Keep the invitation pending and surface the error so
+                    // the user can retry.
+                    _state.update { it.copy(submittingSpotAudit = false) }
+                }
         }
     }
 
