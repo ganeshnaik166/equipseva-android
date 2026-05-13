@@ -69,6 +69,23 @@ class SessionViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Re-fetch the profile for the current session. Called from
+     * AppNavGraph on subsequent ON_RESUME events so a server-side role
+     * change, hard-delete, or soft-delete that happened while the app
+     * was backgrounded is reflected on the next foreground without
+     * waiting for a sign-out/sign-in. No-op when there's no active
+     * session — the sessionState collector handles wiring on next
+     * sign-in.
+     */
+    fun refreshNow() {
+        viewModelScope.launch {
+            val session = authRepository.sessionState.first() as? AuthSession.SignedIn
+                ?: return@launch
+            bootstrapProfile(session.userId)
+        }
+    }
+
     val tourSeen: StateFlow<Boolean> = userPrefs.observeTourSeen().stateIn(
         scope = viewModelScope,
         // Eagerly so the upstream stays alive across app background → foreground.

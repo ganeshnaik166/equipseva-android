@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -45,6 +46,24 @@ fun AppNavGraph(sessionViewModel: SessionViewModel = hiltViewModel()) {
 
     LaunchedEffect(sessionViewModel) {
         sessionViewModel.messages.collect { msg -> showSnackbar(msg) }
+    }
+
+    // Re-fetch the profile on each foreground except the very first.
+    // SessionViewModel.init already calls bootstrapProfile on the
+    // sessionState collector; firing again on first ON_RESUME would
+    // double-load on cold start (same pattern PR #556 closed for
+    // HospitalActiveJobsScreen). Subsequent resumes catch server-side
+    // changes (role demotion, hard-delete, ban) that happened while
+    // the app was backgrounded.
+    var sessionFirstResume by remember { mutableStateOf(true) }
+    androidx.lifecycle.compose.LifecycleEventEffect(
+        androidx.lifecycle.Lifecycle.Event.ON_RESUME,
+    ) {
+        if (sessionFirstResume) {
+            sessionFirstResume = false
+        } else {
+            sessionViewModel.refreshNow()
+        }
     }
 
     // RootHost stays mounted across Loading↔SignedIn transitions. Earlier
