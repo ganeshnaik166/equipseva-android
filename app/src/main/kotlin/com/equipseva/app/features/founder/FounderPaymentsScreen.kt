@@ -1,7 +1,5 @@
 package com.equipseva.app.features.founder
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -113,12 +111,14 @@ fun FounderPaymentsScreen(
                             PaymentRow(
                                 row = row,
                                 onOpenInvoice = { url ->
-                                    runCatching {
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                        }
-                                        context.startActivity(intent)
-                                    }
+                                    // Razorpay invoice URLs live on
+                                    // *.razorpay.com (no App Link conflict)
+                                    // but route through the shared helper
+                                    // so the Toast-when-no-browser path
+                                    // and default-browser targeting stays
+                                    // consistent with every other outbound
+                                    // link in the app.
+                                    com.equipseva.app.core.util.openExternalUrl(context, url)
                                 },
                             )
                         }

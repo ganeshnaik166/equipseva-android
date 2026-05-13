@@ -1,7 +1,5 @@
 package com.equipseva.app.features.founder
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -180,9 +178,13 @@ fun FounderKycReviewScreen(
         scope.launch {
             viewModel.signedUrlFor(doc.path)
                 .onSuccess { url ->
-                    runCatching {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                    }
+                    // Use the shared helper for default-browser targeting +
+                    // Toast fallback when no browser is installed. Storage
+                    // signed URLs live on `<project>.supabase.co` so the
+                    // App Link filter doesn't catch them today — using the
+                    // helper just keeps every outbound link routed the
+                    // same way.
+                    com.equipseva.app.core.util.openExternalUrl(context, url)
                 }
         }
     }
