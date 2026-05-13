@@ -7,13 +7,11 @@ import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.network.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -58,8 +56,8 @@ class EngineerProfileViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    private val _effects = Channel<Effect>(Channel.BUFFERED)
-    val effects = _effects.receiveAsFlow()
+    private val _effects = kotlinx.coroutines.flow.MutableSharedFlow<Effect>(extraBufferCapacity = 4)
+    val effects: kotlinx.coroutines.flow.Flow<Effect> = _effects
 
     private var userId: String? = null
 
@@ -135,8 +133,8 @@ class EngineerProfileViewModel @Inject constructor(
                 isAvailable = current.isAvailable,
             ).onSuccess {
                 _state.update { it.copy(saving = false) }
-                _effects.send(Effect.ShowMessage("Profile saved"))
-                _effects.send(Effect.NavigateBack)
+                _effects.emit(Effect.ShowMessage("Profile saved"))
+                _effects.emit(Effect.NavigateBack)
             }.onFailure { error ->
                 _state.update { it.copy(saving = false, errorMessage = error.toUserMessage()) }
             }

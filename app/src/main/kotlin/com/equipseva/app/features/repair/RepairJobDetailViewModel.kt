@@ -32,7 +32,6 @@ import com.equipseva.app.core.sync.handlers.PhotoUploadStash
 import com.equipseva.app.navigation.Routes
 import java.time.Instant
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,7 +40,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -178,11 +176,11 @@ class RepairJobDetailViewModel @Inject constructor(
     private val _state = MutableStateFlow(RepairJobDetailUiState())
     val state: StateFlow<RepairJobDetailUiState> = _state.asStateFlow()
 
-    private val _messages = Channel<String>(Channel.BUFFERED)
-    val messages = _messages.receiveAsFlow()
+    private val _messages = kotlinx.coroutines.flow.MutableSharedFlow<String>(extraBufferCapacity = 4)
+    val messages: kotlinx.coroutines.flow.Flow<String> = _messages
 
-    private val _effects = Channel<Effect>(Channel.BUFFERED)
-    val effects = _effects.receiveAsFlow()
+    private val _effects = kotlinx.coroutines.flow.MutableSharedFlow<Effect>(extraBufferCapacity = 4)
+    val effects: kotlinx.coroutines.flow.Flow<Effect> = _effects
 
     init {
         load()
@@ -226,10 +224,10 @@ class RepairJobDetailViewModel @Inject constructor(
                 notes = notes,
             ).onSuccess {
                 _state.update { it.copy(submittingReport = false, reportingTargetId = null) }
-                _messages.send("Thanks — our team will review this.")
+                _messages.emit("Thanks — our team will review this.")
             }.onFailure { err ->
                 _state.update { it.copy(submittingReport = false) }
-                _messages.send(err.toUserMessage())
+                _messages.emit(err.toUserMessage())
             }
         }
     }
@@ -249,11 +247,11 @@ class RepairJobDetailViewModel @Inject constructor(
             serviceReportRepository.generate(job.id)
                 .onSuccess { url ->
                     _state.update { it.copy(generatingServiceReport = false) }
-                    _effects.send(Effect.OpenServiceReport(url))
+                    _effects.emit(Effect.OpenServiceReport(url))
                 }
                 .onFailure { err ->
                     _state.update { it.copy(generatingServiceReport = false) }
-                    _messages.send(err.toUserMessage())
+                    _messages.emit(err.toUserMessage())
                 }
         }
     }
@@ -280,12 +278,12 @@ class RepairJobDetailViewModel @Inject constructor(
             escrowRepository.confirmRelease(jobId)
                 .onSuccess {
                     _state.update { it.copy(confirmingEscrowRelease = false) }
-                    _messages.send("Released to engineer.")
+                    _messages.emit("Released to engineer.")
                     refreshEscrow()
                 }
                 .onFailure { err ->
                     _state.update { it.copy(confirmingEscrowRelease = false) }
-                    _messages.send(err.toUserMessage())
+                    _messages.emit(err.toUserMessage())
                 }
         }
     }
@@ -306,12 +304,12 @@ class RepairJobDetailViewModel @Inject constructor(
                             engineerResponseSheetOpen = false,
                         )
                     }
-                    _messages.send("Response submitted — admin will see it on review.")
+                    _messages.emit("Response submitted — admin will see it on review.")
                     refreshEscrow()
                 }
                 .onFailure { err ->
                     _state.update { it.copy(submittingEngineerResponse = false) }
-                    _messages.send(err.toUserMessage())
+                    _messages.emit(err.toUserMessage())
                 }
         }
     }
@@ -326,12 +324,12 @@ class RepairJobDetailViewModel @Inject constructor(
                     _state.update {
                         it.copy(openingEscrowDispute = false, escrowDisputeSheetOpen = false)
                     }
-                    _messages.send("Dispute opened — our team will review.")
+                    _messages.emit("Dispute opened — our team will review.")
                     refreshEscrow()
                 }
                 .onFailure { err ->
                     _state.update { it.copy(openingEscrowDispute = false) }
-                    _messages.send(err.toUserMessage())
+                    _messages.emit(err.toUserMessage())
                 }
         }
     }
@@ -348,11 +346,11 @@ class RepairJobDetailViewModel @Inject constructor(
     fun submitBid(amountRupees: Double, etaHours: Int?, note: String?) {
         if (_state.value.placingBid) return
         if (!amountRupees.isFinite() || amountRupees !in 1.0..10_000_000.0) {
-            viewModelScope.launch { _messages.send("Enter a bid between ₹1 and ₹1 crore") }
+            viewModelScope.launch { _messages.emit("Enter a bid between ₹1 and ₹1 crore") }
             return
         }
         if (etaHours != null && etaHours !in 1..720) {
-            viewModelScope.launch { _messages.send("ETA must be 1\u2013720 hours") }
+            viewModelScope.launch { _messages.emit("ETA must be 1\u2013720 hours") }
             return
         }
         val hadPending = _state.value.ownBid?.status == RepairBidStatus.Pending
@@ -372,12 +370,12 @@ class RepairJobDetailViewModel @Inject constructor(
                             placingBid = false,
                         )
                     }
-                    _messages.send(if (hadPending) "Bid updated" else "Bid submitted")
+                    _messages.emit(if (hadPending) "Bid updated" else "Bid submitted")
                 },
                 onFailure = { ex ->
                     queueBidForRetry(amountRupees, etaHours, note)
                     _state.update { it.copy(placingBid = false, bidComposerOpen = false) }
-                    _messages.send("Offline — bid will submit when back online")
+                    _messages.emit("Offline — bid will submit when back online")
                 },
             )
         }
@@ -423,12 +421,12 @@ class RepairJobDetailViewModel @Inject constructor(
             val selfId = session?.userId
             if (selfId == null) {
                 _state.update { it.copy(openingChat = false) }
-                _messages.send("Please sign in to start a chat")
+                _messages.emit("Please sign in to start a chat")
                 return@launch
             }
             if (selfId == hospitalUserId) {
                 _state.update { it.copy(openingChat = false) }
-                _messages.send("You're the requester on this job")
+                _messages.emit("You're the requester on this job")
                 return@launch
             }
             chatRepository.getOrCreateForRepairJob(
@@ -437,11 +435,11 @@ class RepairJobDetailViewModel @Inject constructor(
             ).fold(
                 onSuccess = { convo ->
                     _state.update { it.copy(openingChat = false) }
-                    _effects.send(Effect.NavigateToChat(convo.id))
+                    _effects.emit(Effect.NavigateToChat(convo.id))
                 },
                 onFailure = { ex ->
                     _state.update { it.copy(openingChat = false) }
-                    _messages.send(ex.toUserMessage())
+                    _messages.emit(ex.toUserMessage())
                 },
             )
         }
@@ -457,7 +455,7 @@ class RepairJobDetailViewModel @Inject constructor(
             .firstOrNull { it.status == RepairBidStatus.Accepted }
             ?.engineerUserId
         if (engineerUserId.isNullOrBlank()) {
-            _messages.trySend("No engineer assigned yet")
+            _messages.tryEmit("No engineer assigned yet")
             return
         }
         _state.update { it.copy(openingChat = true) }
@@ -468,12 +466,12 @@ class RepairJobDetailViewModel @Inject constructor(
             val selfId = session?.userId
             if (selfId == null) {
                 _state.update { it.copy(openingChat = false) }
-                _messages.send("Please sign in to start a chat")
+                _messages.emit("Please sign in to start a chat")
                 return@launch
             }
             if (selfId == engineerUserId) {
                 _state.update { it.copy(openingChat = false) }
-                _messages.send("You're the engineer on this job")
+                _messages.emit("You're the engineer on this job")
                 return@launch
             }
             chatRepository.getOrCreateForRepairJob(
@@ -482,11 +480,11 @@ class RepairJobDetailViewModel @Inject constructor(
             ).fold(
                 onSuccess = { convo ->
                     _state.update { it.copy(openingChat = false) }
-                    _effects.send(Effect.NavigateToChat(convo.id))
+                    _effects.emit(Effect.NavigateToChat(convo.id))
                 },
                 onFailure = { ex ->
                     _state.update { it.copy(openingChat = false) }
-                    _messages.send(ex.toUserMessage())
+                    _messages.emit(ex.toUserMessage())
                 },
             )
         }
@@ -503,17 +501,17 @@ class RepairJobDetailViewModel @Inject constructor(
                     bidRepository.fetchOwnBidForJob(jobId).fold(
                         onSuccess = { refreshed ->
                             _state.update { it.copy(ownBid = refreshed, withdrawingBid = false) }
-                            _messages.send("Bid withdrawn")
+                            _messages.emit("Bid withdrawn")
                         },
                         onFailure = { ex ->
                             _state.update { it.copy(withdrawingBid = false) }
-                            _messages.send(ex.toUserMessage())
+                            _messages.emit(ex.toUserMessage())
                         },
                     )
                 },
                 onFailure = { ex ->
                     _state.update { it.copy(withdrawingBid = false) }
-                    _messages.send(ex.toUserMessage())
+                    _messages.emit(ex.toUserMessage())
                 },
             )
         }
@@ -538,7 +536,7 @@ class RepairJobDetailViewModel @Inject constructor(
             val session = authRepository.sessionState.firstOrNull() as? AuthSession.SignedIn
             val uid = session?.userId
             if (uid.isNullOrBlank()) {
-                _messages.send("Sign in to check in.")
+                _messages.emit("Sign in to check in.")
                 return@launch
             }
             photos.forEachIndexed { index, photo ->
@@ -577,7 +575,7 @@ class RepairJobDetailViewModel @Inject constructor(
             val fix = com.equipseva.app.core.util.fetchCurrentLocation(app)
             if (fix == null) {
                 _state.update { it.copy(updatingStatus = false) }
-                _messages.send("Turn on location to check in. Geofence is part of the audit trail.")
+                _messages.emit("Turn on location to check in. Geofence is part of the audit trail.")
                 return@launch
             }
             jobRepository.engineerCheckInWithGeo(jobId, fix.latitude, fix.longitude)
@@ -597,11 +595,11 @@ class RepairJobDetailViewModel @Inject constructor(
                         result.distanceMeters == null -> "Checked in"
                         else -> "Checked in · ${result.distanceMeters.toInt()} m from site"
                     }
-                    _messages.send(toast)
+                    _messages.emit(toast)
                 }
                 .onFailure { err ->
                     _state.update { it.copy(updatingStatus = false) }
-                    _messages.send(err.toUserMessage())
+                    _messages.emit(err.toUserMessage())
                 }
         }
     }
@@ -739,7 +737,7 @@ class RepairJobDetailViewModel @Inject constructor(
         if (snap.submittingProof) return
         if (snap.viewerRole != ViewerRole.Engineer) return
         if (photos.isEmpty()) {
-            viewModelScope.launch { _messages.send("Add at least one completion photo before marking done.") }
+            viewModelScope.launch { _messages.emit("Add at least one completion photo before marking done.") }
             return
         }
         _state.update { it.copy(submittingProof = true) }
@@ -748,7 +746,7 @@ class RepairJobDetailViewModel @Inject constructor(
             val uid = session?.userId
             if (uid.isNullOrBlank()) {
                 _state.update { it.copy(submittingProof = false) }
-                _messages.send("Sign in to mark this job done")
+                _messages.emit("Sign in to mark this job done")
                 return@launch
             }
             // Enqueue each photo. Failures here are non-fatal — we still flip
@@ -812,11 +810,11 @@ class RepairJobDetailViewModel @Inject constructor(
             ).fold(
                 onSuccess = { updated ->
                     _state.update { it.copy(submittingRating = false, job = updated) }
-                    _messages.send("Thanks — rating submitted")
+                    _messages.emit("Thanks — rating submitted")
                 },
                 onFailure = { ex ->
                     _state.update { it.copy(submittingRating = false) }
-                    _messages.send(ex.toUserMessage())
+                    _messages.emit(ex.toUserMessage())
                 },
             )
         }
@@ -848,7 +846,7 @@ class RepairJobDetailViewModel @Inject constructor(
             ).fold(
                 onSuccess = { updated ->
                     _state.update { it.copy(updatingStatus = false, job = updated) }
-                    _messages.send(successMessage)
+                    _messages.emit(successMessage)
                 },
                 onFailure = { ex ->
                     queueStatusForRetry(
@@ -863,7 +861,7 @@ class RepairJobDetailViewModel @Inject constructor(
                             job = it.job?.copy(status = target),
                         )
                     }
-                    _messages.send("Offline — status change will apply when back online")
+                    _messages.emit("Offline — status change will apply when back online")
                 },
             )
         }
@@ -929,11 +927,11 @@ class RepairJobDetailViewModel @Inject constructor(
                     // pull it so the "Pay to escrow" CTA appears without
                     // requiring a back-and-reopen.
                     refreshEscrow()
-                    _messages.send("Bid accepted — engineer notified")
+                    _messages.emit("Bid accepted — engineer notified")
                 },
                 onFailure = { ex ->
                     _state.update { it.copy(acceptingBidId = null) }
-                    _messages.send(ex.toUserMessage())
+                    _messages.emit(ex.toUserMessage())
                 },
             )
         }

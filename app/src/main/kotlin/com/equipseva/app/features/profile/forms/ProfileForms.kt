@@ -43,11 +43,9 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
@@ -95,8 +93,8 @@ class ProfileFormViewModel @AssistedInject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    private val _effects = Channel<Effect>(Channel.BUFFERED)
-    val effects = _effects.receiveAsFlow()
+    private val _effects = kotlinx.coroutines.flow.MutableSharedFlow<Effect>(extraBufferCapacity = 4)
+    val effects: kotlinx.coroutines.flow.Flow<Effect> = _effects
 
     init {
         load()
@@ -144,12 +142,12 @@ class ProfileFormViewModel @AssistedInject constructor(
             repo.put(settingsKey, JsonObject(payload))
                 .onSuccess {
                     _state.update { it.copy(saving = false) }
-                    _effects.send(Effect.ShowMessage("Saved"))
+                    _effects.emit(Effect.ShowMessage("Saved"))
                     onDone()
                 }
                 .onFailure { e ->
                     _state.update { it.copy(saving = false, errorMessage = e.message) }
-                    _effects.send(Effect.ShowMessage("Save failed: ${e.message}"))
+                    _effects.emit(Effect.ShowMessage("Save failed: ${e.message}"))
                 }
         }
     }

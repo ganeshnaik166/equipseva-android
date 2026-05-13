@@ -36,12 +36,10 @@ import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk900
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -77,8 +75,8 @@ class AddPhoneViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    private val _effects = Channel<Effect>(Channel.BUFFERED)
-    val effects = _effects.receiveAsFlow()
+    private val _effects = kotlinx.coroutines.flow.MutableSharedFlow<Effect>(extraBufferCapacity = 4)
+    val effects: kotlinx.coroutines.flow.Flow<Effect> = _effects
 
     fun onPhoneChange(value: String) {
         // Allow leading + then digits, max 16 chars (E.164 + a little buffer).
@@ -108,8 +106,8 @@ class AddPhoneViewModel @Inject constructor(
             profileRepository.updateBasicInfo(userId = userId, fullName = null, phone = phone)
                 .onSuccess {
                     _state.update { it.copy(saving = false) }
-                    _effects.send(Effect.ShowMessage("Phone saved"))
-                    _effects.send(Effect.Done)
+                    _effects.emit(Effect.ShowMessage("Phone saved"))
+                    _effects.emit(Effect.Done)
                 }
                 .onFailure { e ->
                     _state.update { it.copy(saving = false, error = e.toUserMessage()) }

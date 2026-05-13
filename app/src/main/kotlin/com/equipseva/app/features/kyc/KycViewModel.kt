@@ -20,13 +20,11 @@ import com.equipseva.app.core.sync.handlers.PhotoUploadStash
 import com.equipseva.app.core.util.timestampedName
 import kotlinx.datetime.Clock
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -218,8 +216,8 @@ class KycViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    private val _effects = Channel<Effect>(Channel.BUFFERED)
-    val effects = _effects.receiveAsFlow()
+    private val _effects = kotlinx.coroutines.flow.MutableSharedFlow<Effect>(extraBufferCapacity = 4)
+    val effects: kotlinx.coroutines.flow.Flow<Effect> = _effects
 
     private var userId: String? = null
 
@@ -258,7 +256,7 @@ class KycViewModel @Inject constructor(
      * stares at a stuck spinner.
      */
     fun reportUploadError(message: String) {
-        viewModelScope.launch { _effects.send(Effect.ShowMessage(message)) }
+        viewModelScope.launch { _effects.emit(Effect.ShowMessage(message)) }
     }
 
     /**
@@ -372,7 +370,7 @@ class KycViewModel @Inject constructor(
         val email = snap.email
         if (email.isNullOrBlank() || !com.equipseva.app.core.util.Validators.emailIsValid(email)) {
             viewModelScope.launch {
-                _effects.send(Effect.ShowMessage("Add a valid email first."))
+                _effects.emit(Effect.ShowMessage("Add a valid email first."))
             }
             return
         }
@@ -384,11 +382,11 @@ class KycViewModel @Inject constructor(
             authRepository.sendEmailOtp(email)
                 .onSuccess {
                     _state.update { it.copy(sendingEmailOtp = false) }
-                    _effects.send(Effect.ShowMessage("Code sent to $email"))
+                    _effects.emit(Effect.ShowMessage("Code sent to $email"))
                 }
                 .onFailure { err ->
                     _state.update { it.copy(sendingEmailOtp = false, emailVerifySheetOpen = false) }
-                    _effects.send(Effect.ShowMessage(err.toUserMessage()))
+                    _effects.emit(Effect.ShowMessage(err.toUserMessage()))
                 }
         }
     }
@@ -411,7 +409,7 @@ class KycViewModel @Inject constructor(
         val email = snap.email ?: return
         if (snap.emailOtpCode.length != 6) {
             viewModelScope.launch {
-                _effects.send(Effect.ShowMessage("Enter the 6-digit code."))
+                _effects.emit(Effect.ShowMessage("Enter the 6-digit code."))
             }
             return
         }
@@ -431,11 +429,11 @@ class KycViewModel @Inject constructor(
                             emailVerified = refreshed?.emailVerified == true,
                         )
                     }
-                    _effects.send(Effect.ShowMessage("Email verified"))
+                    _effects.emit(Effect.ShowMessage("Email verified"))
                 }
                 .onFailure { err ->
                     _state.update { it.copy(verifyingEmailOtp = false) }
-                    _effects.send(Effect.ShowMessage(err.toUserMessage()))
+                    _effects.emit(Effect.ShowMessage(err.toUserMessage()))
                 }
         }
     }
@@ -454,11 +452,11 @@ class KycViewModel @Inject constructor(
         if (snap.savingEmail) return
         val newEmail = snap.emailDraft.trim()
         if (newEmail.isEmpty() || !com.equipseva.app.core.util.Validators.emailIsValid(newEmail)) {
-            viewModelScope.launch { _effects.send(Effect.ShowMessage("That doesn't look like a valid email")) }
+            viewModelScope.launch { _effects.emit(Effect.ShowMessage("That doesn't look like a valid email")) }
             return
         }
         if (newEmail.equals(snap.email, ignoreCase = true)) {
-            viewModelScope.launch { _effects.send(Effect.ShowMessage("That's already your email")) }
+            viewModelScope.launch { _effects.emit(Effect.ShowMessage("That's already your email")) }
             return
         }
         _state.update { it.copy(savingEmail = true) }
@@ -466,11 +464,11 @@ class KycViewModel @Inject constructor(
             authRepository.updateEmailDuringKyc(newEmail)
                 .onSuccess {
                     _state.update { it.copy(savingEmail = false) }
-                    _effects.send(Effect.ShowMessage("Confirmation link sent to $newEmail"))
+                    _effects.emit(Effect.ShowMessage("Confirmation link sent to $newEmail"))
                 }
                 .onFailure { err ->
                     _state.update { it.copy(savingEmail = false) }
-                    _effects.send(Effect.ShowMessage(err.toUserMessage()))
+                    _effects.emit(Effect.ShowMessage(err.toUserMessage()))
                 }
         }
     }
@@ -697,7 +695,7 @@ class KycViewModel @Inject constructor(
             } else {
                 "Please re-upload: ${flagged.joinToString { docTypeLabel(it) }}"
             }
-            _effects.send(Effect.ShowMessage(message))
+            _effects.emit(Effect.ShowMessage(message))
         }
     }
 
@@ -722,7 +720,7 @@ class KycViewModel @Inject constructor(
             ).fold(
                 onSuccess = { path ->
                     _state.update { it.copy(uploadingAadhaar = false, aadhaarDocPath = path, aadhaarFailed = false) }
-                    _effects.send(Effect.ShowMessage("Aadhaar document uploaded"))
+                    _effects.emit(Effect.ShowMessage("Aadhaar document uploaded"))
                 },
                 onFailure = { ex ->
                     // Weak-network fallback: stash bytes + enqueue so the worker re-uploads
@@ -736,10 +734,10 @@ class KycViewModel @Inject constructor(
                     )
                     if (queued != null) {
                         _state.update { it.copy(uploadingAadhaar = false, aadhaarDocPath = queued, aadhaarFailed = false) }
-                        _effects.send(Effect.ShowMessage("Aadhaar will upload when back online"))
+                        _effects.emit(Effect.ShowMessage("Aadhaar will upload when back online"))
                     } else {
                         _state.update { it.copy(uploadingAadhaar = false, aadhaarFailed = true) }
-                        _effects.send(Effect.ShowMessage(ex.toUserMessage()))
+                        _effects.emit(Effect.ShowMessage(ex.toUserMessage()))
                     }
                 },
             )
@@ -770,7 +768,7 @@ class KycViewModel @Inject constructor(
                             certFailed = false,
                         )
                     }
-                    _effects.send(Effect.ShowMessage("Certificate uploaded"))
+                    _effects.emit(Effect.ShowMessage("Certificate uploaded"))
                 },
                 onFailure = { ex ->
                     val queued = tryQueuePhotoUpload(
@@ -787,10 +785,10 @@ class KycViewModel @Inject constructor(
                                 certFailed = false,
                             )
                         }
-                        _effects.send(Effect.ShowMessage("Certificate will upload when back online"))
+                        _effects.emit(Effect.ShowMessage("Certificate will upload when back online"))
                     } else {
                         _state.update { it.copy(uploadingCert = false, certFailed = true) }
-                        _effects.send(Effect.ShowMessage(ex.toUserMessage()))
+                        _effects.emit(Effect.ShowMessage(ex.toUserMessage()))
                     }
                 },
             )
@@ -813,7 +811,7 @@ class KycViewModel @Inject constructor(
                     _state.update {
                         it.copy(uploadingPan = false, panDocPath = path, panFailed = false)
                     }
-                    _effects.send(Effect.ShowMessage("PAN uploaded"))
+                    _effects.emit(Effect.ShowMessage("PAN uploaded"))
                 },
                 onFailure = { ex ->
                     val queued = tryQueuePhotoUpload(
@@ -826,10 +824,10 @@ class KycViewModel @Inject constructor(
                         _state.update {
                             it.copy(uploadingPan = false, panDocPath = queued, panFailed = false)
                         }
-                        _effects.send(Effect.ShowMessage("PAN will upload when back online"))
+                        _effects.emit(Effect.ShowMessage("PAN will upload when back online"))
                     } else {
                         _state.update { it.copy(uploadingPan = false, panFailed = true) }
-                        _effects.send(Effect.ShowMessage(ex.toUserMessage()))
+                        _effects.emit(Effect.ShowMessage(ex.toUserMessage()))
                     }
                 },
             )
@@ -872,7 +870,7 @@ class KycViewModel @Inject constructor(
         val aadhaarDigits = snap.aadhaarNumber
         if (aadhaarDigits.isNotEmpty() && aadhaarDigits.length != 12) {
             viewModelScope.launch {
-                _effects.send(Effect.ShowMessage("Aadhaar must be 12 digits"))
+                _effects.emit(Effect.ShowMessage("Aadhaar must be 12 digits"))
             }
             return
         }
@@ -891,7 +889,7 @@ class KycViewModel @Inject constructor(
             val pass = integrity.getOrDefault(false) || com.equipseva.app.BuildConfig.DEBUG
             if (!pass) {
                 _state.update { it.copy(saving = false) }
-                _effects.send(Effect.ShowMessage(PlayIntegrityClient.FAILURE_MESSAGE))
+                _effects.emit(Effect.ShowMessage(PlayIntegrityClient.FAILURE_MESSAGE))
                 return@launch
             }
             val now = Clock.System.now().toString()
@@ -936,11 +934,11 @@ class KycViewModel @Inject constructor(
                 onSuccess = { engineer ->
                     hydrate(engineer)
                     _state.update { it.copy(saving = false) }
-                    _effects.send(Effect.Submitted)
+                    _effects.emit(Effect.Submitted)
                 },
                 onFailure = { ex ->
                     _state.update { it.copy(saving = false) }
-                    _effects.send(Effect.ShowMessage(ex.toUserMessage()))
+                    _effects.emit(Effect.ShowMessage(ex.toUserMessage()))
                 },
             )
         }

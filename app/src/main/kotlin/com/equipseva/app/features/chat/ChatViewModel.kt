@@ -21,7 +21,6 @@ import com.equipseva.app.core.sync.OutboxEnqueuer
 import com.equipseva.app.core.sync.OutboxKinds
 import com.equipseva.app.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,7 +31,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -98,8 +96,8 @@ class ChatViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    private val _effects = Channel<Effect>(Channel.BUFFERED)
-    val effects = _effects.receiveAsFlow()
+    private val _effects = kotlinx.coroutines.flow.MutableSharedFlow<Effect>(extraBufferCapacity = 4)
+    val effects: kotlinx.coroutines.flow.Flow<Effect> = _effects
 
     // Client-side throttle on typing broadcasts so a fast typist doesn't flood the
     // realtime channel. Paired with repo-side TTL, this gives ~2s granularity which is
@@ -175,7 +173,7 @@ class ChatViewModel @Inject constructor(
                     // outbox to retry on connectivity.
                     queueForRetry(self, text)
                     _state.update { it.copy(sending = false) }
-                    _effects.send(Effect.ShowMessage(error.toUserMessage()))
+                    _effects.emit(Effect.ShowMessage(error.toUserMessage()))
                 }
                 .onSuccess {
                     _state.update { it.copy(sending = false) }
@@ -196,14 +194,14 @@ class ChatViewModel @Inject constructor(
             }
             result.onSuccess {
                 _state.update { it.copy(togglingBlock = false) }
-                _effects.send(
+                _effects.emit(
                     Effect.ShowMessage(
                         if (snap.counterpartBlocked) "User unblocked" else "User blocked",
                     ),
                 )
             }.onFailure { err ->
                 _state.update { it.copy(togglingBlock = false) }
-                _effects.send(Effect.ShowMessage(err.toUserMessage()))
+                _effects.emit(Effect.ShowMessage(err.toUserMessage()))
             }
         }
     }
@@ -235,7 +233,7 @@ class ChatViewModel @Inject constructor(
                     }
                 }
                 .onFailure { err ->
-                    _effects.send(Effect.ShowMessage(err.toUserMessage()))
+                    _effects.emit(Effect.ShowMessage(err.toUserMessage()))
                 }
             // On success the realtime subscription refreshes the row with
             // deleted_at populated, so no local state mutation is needed.
@@ -285,7 +283,7 @@ class ChatViewModel @Inject constructor(
                 }
                 .onFailure { err ->
                     _state.update { it.copy(editing = false) }
-                    _effects.send(Effect.ShowMessage(err.toUserMessage()))
+                    _effects.emit(Effect.ShowMessage(err.toUserMessage()))
                 }
         }
     }
@@ -307,10 +305,10 @@ class ChatViewModel @Inject constructor(
                 notes = notes,
             ).onSuccess {
                 _state.update { it.copy(submittingReport = false, reportingMessageId = null) }
-                _effects.send(Effect.ShowMessage("Thanks — our team will review this."))
+                _effects.emit(Effect.ShowMessage("Thanks — our team will review this."))
             }.onFailure { err ->
                 _state.update { it.copy(submittingReport = false) }
-                _effects.send(Effect.ShowMessage(err.toUserMessage()))
+                _effects.emit(Effect.ShowMessage(err.toUserMessage()))
             }
         }
     }
