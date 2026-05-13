@@ -78,6 +78,12 @@ class HomeHubViewModel @Inject constructor(
         // PR-D34: aggregated AMC SLA credits issued to hospital in the
         // trailing 30-day window. Card renders only when total > 0.
         val recentSlaCredits: com.equipseva.app.core.data.amc.AmcRepository.HospitalSlaCreditSummary? = null,
+        // True when the signed-in profile has no phone number recorded.
+        // Drives the hospital-side AddPhone banner — engineers can't
+        // call the hospital during a job without it, and the badge
+        // tucked away in Profile is invisible to a user who never
+        // visits Profile.
+        val phoneMissing: Boolean = false,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -153,6 +159,7 @@ class HomeHubViewModel @Inject constructor(
                 it.copy(
                     isFounder = profile?.isFounder() == true,
                     role = fetchedRole ?: it.role,
+                    phoneMissing = profile?.phone.isNullOrBlank(),
                 )
             }
         }

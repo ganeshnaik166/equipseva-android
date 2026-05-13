@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.CurrencyRupee
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.WorkOutline
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -93,6 +94,7 @@ fun HomeHubScreen(
     onOpenFounder: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     onOpenKyc: () -> Unit = {},
+    onOpenAddPhone: () -> Unit = {},
     onOpenMyBookings: () -> Unit = {},
     onOpenMessages: () -> Unit = {},
     onOpenActiveWork: () -> Unit = {},
@@ -133,6 +135,18 @@ fun HomeHubScreen(
             if (role == UserRole.ENGINEER && kyc != VerificationStatus.Verified) {
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                     KycBanner(status = kyc, onClick = onOpenKyc)
+                }
+            }
+
+            // Phone-missing banner — hospitals without a phone number
+            // can't be called by an engineer during a job. The
+            // "Required" badge in Profile is invisible to a user who
+            // never visits Profile, so surface it on Home too. Only
+            // for hospitals; engineers see the KYC banner instead
+            // which already covers phone-as-part-of-KYC.
+            if (role == UserRole.HOSPITAL && state.phoneMissing) {
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    PhoneMissingBanner(onClick = onOpenAddPhone)
                 }
             }
 
@@ -658,6 +672,47 @@ private fun KycBanner(status: VerificationStatus?, onClick: () -> Unit) {
             Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = SevaInk900)
             Spacer(Modifier.height(2.dp))
             Text(sub, fontSize = 11.sp, color = SevaInk600)
+        }
+        Icon(
+            Icons.Outlined.ChevronRight,
+            contentDescription = null,
+            tint = SevaInk400,
+            modifier = Modifier.size(16.dp),
+        )
+    }
+}
+
+@Composable
+private fun PhoneMissingBanner(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(SevaWarning50)
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(
+            Icons.Outlined.Phone,
+            contentDescription = null,
+            tint = SevaWarning500,
+            modifier = Modifier.size(20.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                "Add your phone number",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = SevaInk900,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                "Engineers call this number during a job. Without it they can't reach you.",
+                fontSize = 11.sp,
+                color = SevaInk600,
+            )
         }
         Icon(
             Icons.Outlined.ChevronRight,

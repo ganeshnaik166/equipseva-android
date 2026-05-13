@@ -298,6 +298,7 @@ fun MainNavGraph(
                     onOpenFounder = { navController.navigate(Routes.FOUNDER_DASHBOARD) },
                     onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                     onOpenKyc = { navController.navigate(Routes.KYC) },
+                    onOpenAddPhone = { navController.navigate(Routes.ADD_PHONE) },
                     onOpenMyBookings = { navController.navigate(Routes.HOSPITAL_ACTIVE_JOBS) },
                     onOpenMessages = { navController.navigate(Routes.CONVERSATIONS) },
                     onOpenActiveWork = { navController.navigate(Routes.ACTIVE_WORK) },
