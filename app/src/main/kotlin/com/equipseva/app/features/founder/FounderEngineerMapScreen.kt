@@ -288,7 +288,7 @@ private fun ZoneRow(
             )
             Text(
                 text = if (row.sampleLat != null && row.sampleLng != null) {
-                    "Avg pin: ${"%.4f".format(row.sampleLat)}, ${"%.4f".format(row.sampleLng)}"
+                    "Avg pin: ${"%.4f".format(java.util.Locale.US, row.sampleLat)}, ${"%.4f".format(java.util.Locale.US, row.sampleLng)}"
                 } else {
                     "No coordinates pinned"
                 },
