@@ -12,11 +12,9 @@ import com.equipseva.app.features.auth.state.AuthEffect
 import com.equipseva.app.features.auth.state.EmailPasswordFormState
 import com.equipseva.app.features.auth.state.FormUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -30,8 +28,13 @@ class SignInViewModel @Inject constructor(
     private val _state = MutableStateFlow(EmailPasswordFormState())
     val state: StateFlow<EmailPasswordFormState> = _state.asStateFlow()
 
-    private val _effects = Channel<AuthEffect>(Channel.BUFFERED)
-    val effects = _effects.receiveAsFlow()
+    // SharedFlow(replay = 0) per PR #584 — buffered Channel would
+    // refire NavigateToHome if the screen was popped after the emit
+    // but before the collector consumed it.
+    private val _effects = kotlinx.coroutines.flow.MutableSharedFlow<AuthEffect>(
+        extraBufferCapacity = 4,
+    )
+    val effects: kotlinx.coroutines.flow.Flow<AuthEffect> = _effects
 
     fun onEmailChange(value: String) {
         _state.update { it.copy(email = value, emailError = null, form = it.form.copy(errorMessage = null)) }
@@ -57,7 +60,7 @@ class SignInViewModel @Inject constructor(
             authRepository.signInWithEmailPassword(current.email.trim(), current.password).fold(
                 onSuccess = {
                     _state.update { it.copy(form = FormUiState()) }
-                    _effects.send(AuthEffect.NavigateToHome)
+                    _effects.emit(AuthEffect.NavigateToHome)
                 },
                 onFailure = { ex ->
                     _state.update {
@@ -83,7 +86,7 @@ class SignInViewModel @Inject constructor(
                     authRepository.signInWithGoogleIdToken(result.idToken, result.rawNonce).fold(
                         onSuccess = {
                             _state.update { it.copy(form = FormUiState()) }
-                            _effects.send(AuthEffect.NavigateToHome)
+                            _effects.emit(AuthEffect.NavigateToHome)
                         },
                         onFailure = { ex ->
                             _state.update {
