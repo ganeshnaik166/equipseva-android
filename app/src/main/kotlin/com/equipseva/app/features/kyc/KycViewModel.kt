@@ -503,6 +503,18 @@ class KycViewModel @Inject constructor(
                     }
                     maybeState to maybeDistrict
                 }
+                // Resolve final state first, then re-validate any
+                // candidate district against it. Otherwise a user who
+                // changed state mid-flow (savedState=Karnataka, raw still
+                // "Tamil Nadu, Chennai") would restore with state=Karnataka
+                // + district=Chennai — a TN district stuck on a Karnataka
+                // pick. onServiceStateChange clears savedDistrict, but
+                // parsedDistrict can still resurrect a stale value here.
+                val chosenState = savedState ?: parsedState
+                val districtFinal = (savedDistrict ?: parsedDistrict)?.takeIf { d ->
+                    chosenState != null &&
+                        d in com.equipseva.app.core.data.location.IndiaLocations.districtsFor(chosenState)
+                }
                 it.copy(
                     loading = false,
                     verificationStatus = engineer.verificationStatus,
@@ -511,8 +523,8 @@ class KycViewModel @Inject constructor(
                     aadhaarVerified = engineer.aadhaarVerified,
                     aadhaarNumber = savedAadhaar ?: engineer.aadhaarNumber.orEmpty(),
                     serviceAddress = savedAddress ?: raw,
-                    serviceState = savedState ?: parsedState,
-                    serviceDistrict = savedDistrict ?: parsedDistrict,
+                    serviceState = chosenState,
+                    serviceDistrict = districtFinal,
                     serviceLatitude = savedLat ?: engineer.latitude,
                     serviceLongitude = savedLng ?: engineer.longitude,
                     experienceYears = engineer.experienceYears.toString(),

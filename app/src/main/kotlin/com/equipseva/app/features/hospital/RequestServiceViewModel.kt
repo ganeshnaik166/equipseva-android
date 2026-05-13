@@ -81,13 +81,13 @@ class RequestServiceViewModel @Inject constructor(
 
     fun onCategoryChange(value: RepairEquipmentCategory) = _state.update { it.copy(category = value) }
     fun onUrgencyChange(value: RepairJobUrgency) = _state.update { it.copy(urgency = value) }
-    fun onBrandChange(value: String) = _state.update { it.copy(brand = value) }
-    fun onModelChange(value: String) = _state.update { it.copy(model = value) }
-    fun onSerialChange(value: String) = _state.update { it.copy(serial = value) }
+    fun onBrandChange(value: String) = _state.update { it.copy(brand = value.take(100)) }
+    fun onModelChange(value: String) = _state.update { it.copy(model = value.take(100)) }
+    fun onSerialChange(value: String) = _state.update { it.copy(serial = value.take(100)) }
     fun onSiteAddressChange(value: String) = _state.update {
-        it.copy(siteAddress = value, siteAddressError = null, errorMessage = null)
+        it.copy(siteAddress = value.take(500), siteAddressError = null, errorMessage = null)
     }
-    fun onSiteLocationChange(value: String) = _state.update { it.copy(siteLocation = value) }
+    fun onSiteLocationChange(value: String) = _state.update { it.copy(siteLocation = value.take(500)) }
     fun onPickedDateChange(value: Long?) = _state.update { it.copy(pickedDateMillis = value) }
 
     /**
@@ -99,10 +99,16 @@ class RequestServiceViewModel @Inject constructor(
         _state.update { it.copy(siteLatitude = latitude, siteLongitude = longitude) }
     }
     fun onIssueChange(value: String) = _state.update {
-        it.copy(issue = value, issueError = null, errorMessage = null)
+        // Issue is the long-form bug description; 2000 char cap covers
+        // the longest realistic case while preventing a 10 KB paste
+        // from wedging the form submit.
+        it.copy(issue = value.take(2000), issueError = null, errorMessage = null)
     }
     fun onBudgetChange(value: String) = _state.update {
-        it.copy(budget = value, budgetError = null, errorMessage = null)
+        // Budget is a numeric amount typed as text (parsed later via
+        // toDoubleOrNull). Cap at 12 chars — enough for "9999999999.99"
+        // (10-digit rupees + 2 decimals); blocks abuse paste.
+        it.copy(budget = value.take(12), budgetError = null, errorMessage = null)
     }
 
     /**

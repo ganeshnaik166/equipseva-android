@@ -328,7 +328,11 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun onEditFullNameChange(value: String) {
-        _state.update { it.copy(editFullName = value, editError = null) }
+        // Same 100-char cap as the SignUp form — paste of a large blob
+        // would otherwise either truncate server-side (silent corruption)
+        // or wedge submit on profiles.full_name's effective limit.
+        val capped = value.take(100)
+        _state.update { it.copy(editFullName = capped, editError = null) }
     }
 
     fun onSaveEditProfile() {

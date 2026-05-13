@@ -104,15 +104,19 @@ class EngineerProfileViewModel @Inject constructor(
     }
 
     fun onServiceAreasChange(value: String) {
-        _state.update { it.copy(serviceAreas = value, errorMessage = null) }
+        _state.update { it.copy(serviceAreas = value.take(500), errorMessage = null) }
     }
 
     fun onSpecializationsChange(value: String) {
-        _state.update { it.copy(specializations = value, errorMessage = null) }
+        _state.update { it.copy(specializations = value.take(500), errorMessage = null) }
     }
 
     fun onBioChange(value: String) {
-        _state.update { it.copy(bio = value, errorMessage = null) }
+        // 1500 chars matches the rest of the long-form text caps in this
+        // module — paste of a 10 KB blob otherwise either truncates
+        // server-side (silent corruption) or wedges save on the row's
+        // effective varchar limit.
+        _state.update { it.copy(bio = value.take(1500), errorMessage = null) }
     }
 
     fun onAvailableChange(value: Boolean) {
