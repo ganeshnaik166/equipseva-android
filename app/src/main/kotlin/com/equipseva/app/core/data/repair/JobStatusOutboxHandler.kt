@@ -51,6 +51,7 @@ class JobStatusOutboxHandler @Inject constructor(
             newStatus = target,
             startedAt = payload.startedAtEpochMs?.let(Instant::ofEpochMilli),
             completedAt = payload.completedAtEpochMs?.let(Instant::ofEpochMilli),
+            cancellationReason = payload.cancellationReason,
         ).fold(
             onSuccess = { OutboxKindHandler.Outcome.Success },
             onFailure = ::classifyOutboxError,
@@ -67,4 +68,7 @@ data class JobStatusPayload(
     // Nullable for backward compat with rows queued before the
     // owner-gate plumbing landed; new enqueues fill this in.
     val actorUserId: String? = null,
+    // Only set on cancellation transitions; repository drops the
+    // value for any other target status.
+    val cancellationReason: String? = null,
 )

@@ -56,6 +56,7 @@ data class RepairJobDto(
     // on status -> completed). Null for non-completed rows.
     @SerialName("platform_commission") val platformCommissionRupees: Double? = null,
     @SerialName("engineer_payout") val engineerPayoutRupees: Double? = null,
+    @SerialName("cancellation_reason") val cancellationReason: String? = null,
 )
 
 /**
@@ -68,6 +69,7 @@ internal data class RepairJobStatusPatchDto(
     val status: String,
     @SerialName("started_at") val startedAt: String? = null,
     @SerialName("completed_at") val completedAt: String? = null,
+    @SerialName("cancellation_reason") val cancellationReason: String? = null,
 )
 
 /**

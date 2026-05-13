@@ -58,6 +58,7 @@ interface RepairJobRepository {
         newStatus: RepairJobStatus,
         startedAt: Instant? = null,
         completedAt: Instant? = null,
+        cancellationReason: String? = null,
     ): Result<RepairJob>
 
     /**

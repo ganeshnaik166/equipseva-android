@@ -318,9 +318,9 @@ fun RepairJobDetailScreen(
         CancelSheet(
             updating = state.updatingStatus,
             onDismiss = { if (!state.updatingStatus) cancelSheetOpen = false },
-            onConfirm = {
+            onConfirm = { reason ->
                 cancelSheetOpen = false
-                viewModel.cancelJob()
+                viewModel.cancelJob(reason = reason)
             },
         )
     }
@@ -2424,9 +2424,14 @@ private fun RateSheet(
 private fun CancelSheet(
     updating: Boolean,
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
+    onConfirm: (String?) -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // Reason is now plumbed through cancelJob → updateStatus → the new
+    // repair_jobs.cancellation_reason column (PR #614 migration). Empty
+    // reason is allowed; UI shows it as "optional" so hospitals aren't
+    // gated on typing one for fast-cancels.
+    var reason by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier
@@ -2445,11 +2450,16 @@ private fun CancelSheet(
                 fontSize = 13.sp,
                 color = SevaInk600,
             )
-            // Reason field used to live here, but onConfirm doesn't take
-            // one and the repository's updateStatus has no reason
-            // parameter — anything typed was discarded silently. Re-add
-            // when a real cancellation_reason column ships and is wired
-            // through the cancelJob → updateStatus path.
+            androidx.compose.material3.OutlinedTextField(
+                value = reason,
+                onValueChange = { reason = it.take(500) },
+                label = { Text("Reason (optional)") },
+                placeholder = { Text("e.g. equipment self-repaired, schedule conflict…") },
+                minLines = 2,
+                maxLines = 5,
+                enabled = !updating,
+                modifier = Modifier.fillMaxWidth(),
+            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -2464,7 +2474,7 @@ private fun CancelSheet(
                 )
                 EsBtn(
                     text = if (updating) "Cancelling…" else "Cancel job",
-                    onClick = onConfirm,
+                    onClick = { onConfirm(reason.trim().ifBlank { null }) },
                     kind = EsBtnKind.Danger,
                     full = true,
                     disabled = updating,
