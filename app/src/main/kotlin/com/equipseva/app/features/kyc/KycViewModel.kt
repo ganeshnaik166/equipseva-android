@@ -271,16 +271,36 @@ class KycViewModel @Inject constructor(
     fun refreshProfileFields() {
         val uid = userId ?: return
         viewModelScope.launch {
-            val profile = profileRepository.fetchById(uid).getOrNull() ?: return@launch
-            _state.update {
-                it.copy(
-                    email = profile.email,
-                    phone = profile.phone,
-                    fullName = profile.fullName,
-                    emailVerified = profile.emailVerified,
-                    phoneVerified = profile.phoneVerified,
-                    emailDraft = if (it.emailDraft.isBlank()) profile.email.orEmpty() else it.emailDraft,
-                )
+            val profile = profileRepository.fetchById(uid).getOrNull()
+            if (profile != null) {
+                _state.update {
+                    it.copy(
+                        email = profile.email,
+                        phone = profile.phone,
+                        fullName = profile.fullName,
+                        emailVerified = profile.emailVerified,
+                        phoneVerified = profile.phoneVerified,
+                        emailDraft = if (it.emailDraft.isBlank()) profile.email.orEmpty() else it.emailDraft,
+                    )
+                }
+            }
+            // Also pick up admin-driven verification state changes that
+            // happened off-device (status flipped to verified / rejected,
+            // per-doc rejection flags written, notes updated). The
+            // notification-deeplink-into-KYC path needs this — without
+            // it, tapping a "kyc_status_changed" push lands the engineer
+            // on the same stale "Submitted for review" screen they saw
+            // pre-decision.
+            engineerRepository.fetchByUserId(uid).onSuccess { engineer ->
+                if (engineer != null) {
+                    _state.update {
+                        it.copy(
+                            verificationStatus = engineer.verificationStatus,
+                            verificationNotes = engineer.verificationNotes,
+                            rejectedDocTypes = engineer.rejectedDocTypes,
+                        )
+                    }
+                }
             }
         }
     }
@@ -374,7 +394,10 @@ class KycViewModel @Inject constructor(
     }
 
     fun onEmailOtpChange(code: String) {
-        val cleaned = code.filter { it.isDigit() }.take(6)
+        // ASCII-only digits — Char.isDigit() also accepts Devanagari /
+        // Arabic codepoints, which break toIntOrNull on the server-side
+        // OTP comparison and leave the user stuck on "Verify failed".
+        val cleaned = code.filter { it in '0'..'9' }.take(6)
         _state.update { it.copy(emailOtpCode = cleaned) }
     }
 
@@ -509,7 +532,10 @@ class KycViewModel @Inject constructor(
     }
 
     fun onAadhaarNumberChange(value: String) {
-        val digits = value.filter { it.isDigit() }.take(12)
+        // ASCII-only digits — AadhaarValidator's Verhoeff checksum
+        // assumes ASCII codepoints. Devanagari "१२३" passes
+        // Char.isDigit() but fails the digit-table lookup.
+        val digits = value.filter { it in '0'..'9' }.take(12)
         savedStateHandle[SavedKeys.AADHAAR] = digits
         _state.update { it.copy(aadhaarNumber = digits) }
     }
