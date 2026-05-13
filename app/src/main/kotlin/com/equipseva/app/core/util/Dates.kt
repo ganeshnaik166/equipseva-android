@@ -4,6 +4,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /**
  * Render an ISO timestamp (e.g. `2026-05-11T07:42:00Z`) or bare date
@@ -17,7 +18,12 @@ fun prettyDate(iso: String): String =
         // bare-date payloads (the founder KYC RPCs emit "yyyy-MM-dd").
         val instant = runCatching { Instant.parse(iso) }.getOrNull()
             ?: LocalDate.parse(iso).atStartOfDay(ZoneId.systemDefault()).toInstant()
-        DateTimeFormatter.ofPattern("dd MMM yyyy")
+        // Pin Locale.ENGLISH so month abbreviations stay "May / Jun"
+        // regardless of the device locale. Without it, a Hindi-default
+        // device renders "11 मई 2026" which clashes with the rest of
+        // the English UI strings and breaks copy-paste of dates into
+        // support tickets.
+        DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH)
             .withZone(ZoneId.systemDefault())
             .format(instant)
     }.getOrElse { iso.take(10) }
@@ -32,7 +38,7 @@ fun prettyDate(iso: String): String =
 fun prettyDateTime(iso: String): String =
     runCatching {
         val instant = Instant.parse(iso)
-        DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm")
+        DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm", Locale.ENGLISH)
             .withZone(ZoneId.systemDefault())
             .format(instant)
     }.getOrElse { iso.take(16).replace('T', ' ') }

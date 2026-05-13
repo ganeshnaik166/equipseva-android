@@ -686,8 +686,12 @@ private fun EditMessageBar(
     }
 }
 
-private val timeFormatter = DateTimeFormatter.ofPattern("h:mm a").withZone(ZoneId.systemDefault())
-private val dayHeaderFormatter = DateTimeFormatter.ofPattern("dd MMM").withZone(ZoneId.systemDefault())
+// Pin Locale.ENGLISH so "h:mm a" stays "2:30 PM" (not Devanagari AM/PM)
+// and "dd MMM" stays "11 May" regardless of the device locale.
+private val timeFormatter = DateTimeFormatter.ofPattern("h:mm a", java.util.Locale.ENGLISH)
+    .withZone(ZoneId.systemDefault())
+private val dayHeaderFormatter = DateTimeFormatter.ofPattern("dd MMM", java.util.Locale.ENGLISH)
+    .withZone(ZoneId.systemDefault())
 
 private fun formatTime(iso: String?): String? =
     iso?.let { runCatching { timeFormatter.format(Instant.parse(it)) }.getOrNull() }
