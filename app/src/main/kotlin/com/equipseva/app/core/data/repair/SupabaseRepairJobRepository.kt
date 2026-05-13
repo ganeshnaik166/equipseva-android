@@ -144,6 +144,7 @@ class SupabaseRepairJobRepository @Inject constructor(
         newStatus: RepairJobStatus,
         startedAt: Instant?,
         completedAt: Instant?,
+        cancellationReason: String?,
     ): Result<RepairJob> = runCatching {
         // PR-D45: the in_progress/en_route → completed transitions were
         // removed from the non-admin status-transition allow-list in
@@ -166,6 +167,14 @@ class SupabaseRepairJobRepository @Inject constructor(
                 status = newStatus.storageKey,
                 startedAt = startedAt?.toString(),
                 completedAt = completedAt?.toString(),
+                // Only cancellation transitions carry a reason; trim +
+                // cap to match the DB's 500-char CHECK constraint added
+                // in 20260626170000.
+                cancellationReason = if (newStatus == RepairJobStatus.Cancelled) {
+                    cancellationReason?.trim()?.take(500)?.takeIf { it.isNotBlank() }
+                } else {
+                    null
+                },
             )
             client.from(TABLE).update(patch) {
                 filter { eq("id", jobId) }

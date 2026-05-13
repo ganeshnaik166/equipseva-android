@@ -50,6 +50,9 @@ data class RepairJob(
     // to the bid amount as an estimate.
     val platformCommissionRupees: Double? = null,
     val engineerPayoutRupees: Double? = null,
+    // Round 234 — set by transitionStatus when status flips to Cancelled.
+    // Surfaced on the detail screen + on dispute / support context.
+    val cancellationReason: String? = null,
 ) {
     /** Short label for the equipment line, e.g. "GE Logiq P5" or "Imaging & radiology". */
     val equipmentLabel: String
@@ -104,6 +107,7 @@ internal fun RepairJobDto.toDomain(): RepairJob {
         warrantySourceJobId = warrantySourceJobId?.takeIf { it.isNotBlank() },
         platformCommissionRupees = platformCommissionRupees?.takeIf { it >= 0.0 },
         engineerPayoutRupees = engineerPayoutRupees?.takeIf { it >= 0.0 },
+        cancellationReason = cancellationReason?.takeIf { it.isNotBlank() },
     )
 }
 

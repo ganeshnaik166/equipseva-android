@@ -782,11 +782,12 @@ class RepairJobDetailViewModel @Inject constructor(
         val bytes: ByteArray,
     )
 
-    fun cancelJob() = transitionStatus(
+    fun cancelJob(reason: String? = null) = transitionStatus(
         target = RepairJobStatus.Cancelled,
         allowedFrom = setOf(RepairJobStatus.Requested, RepairJobStatus.Assigned),
         requireHospital = true,
         successMessage = "Job cancelled",
+        cancellationReason = reason,
     )
 
     fun submitRating(stars: Int, review: String?) {
@@ -828,6 +829,7 @@ class RepairJobDetailViewModel @Inject constructor(
         requireHospital: Boolean = false,
         setStartedAt: Boolean = false,
         setCompletedAt: Boolean = false,
+        cancellationReason: String? = null,
     ) {
         val snap = _state.value
         val job = snap.job ?: return
@@ -843,6 +845,7 @@ class RepairJobDetailViewModel @Inject constructor(
                 newStatus = target,
                 startedAt = if (setStartedAt) now else null,
                 completedAt = if (setCompletedAt) now else null,
+                cancellationReason = cancellationReason,
             ).fold(
                 onSuccess = { updated ->
                     _state.update { it.copy(updatingStatus = false, job = updated) }
@@ -854,6 +857,7 @@ class RepairJobDetailViewModel @Inject constructor(
                         target = target,
                         startedAtEpochMs = if (setStartedAt) now.toEpochMilli() else null,
                         completedAtEpochMs = if (setCompletedAt) now.toEpochMilli() else null,
+                        cancellationReason = cancellationReason,
                     )
                     _state.update {
                         it.copy(
@@ -872,6 +876,7 @@ class RepairJobDetailViewModel @Inject constructor(
         target: RepairJobStatus,
         startedAtEpochMs: Long?,
         completedAtEpochMs: Long?,
+        cancellationReason: String? = null,
     ) {
         // Capture actor user-id so the drain handler can short-circuit
         // rows queued by a previous session (per the outbox owner-gate
@@ -888,6 +893,7 @@ class RepairJobDetailViewModel @Inject constructor(
                 startedAtEpochMs = startedAtEpochMs,
                 completedAtEpochMs = completedAtEpochMs,
                 actorUserId = actorUserId,
+                cancellationReason = cancellationReason,
             ),
         )
         outboxEnqueuer.enqueue(OutboxKinds.JOB_STATUS, payload)
