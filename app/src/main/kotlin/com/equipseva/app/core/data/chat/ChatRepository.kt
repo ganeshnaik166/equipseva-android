@@ -154,35 +154,6 @@ class ChatRepository @Inject constructor(
     }
 
     /**
-     * Returns an existing conversation linked to this RFQ bid between the given participants,
-     * or inserts a new one. Participants must contain exactly two user ids (hospital + supplier).
-     */
-    suspend fun getOrCreateForRfqBid(
-        bidId: String,
-        participantUserIds: List<String>,
-    ): Result<ChatConversation> = runCatching {
-        require(participantUserIds.size == 2) { "RFQ bid chat needs exactly two participants" }
-
-        val existing = client.from(CONVERSATIONS_TABLE).select {
-            filter {
-                eq("related_entity_type", "rfq_bid")
-                eq("related_entity_id", bidId)
-            }
-            limit(count = 1)
-        }.decodeList<ConversationDto>().firstOrNull()
-
-        val dto = existing ?: client.from(CONVERSATIONS_TABLE).insert(
-            ConversationInsertDto(
-                participantUserIds = participantUserIds,
-                relatedEntityType = "rfq_bid",
-                relatedEntityId = bidId,
-            ),
-        ) { select() }.decodeSingle<ConversationDto>()
-
-        dto.toDomain()
-    }
-
-    /**
      * Returns an existing direct (peer-to-peer) conversation between the two
      * participants, or inserts a new one with `related_entity_type='direct'`.
      * Used from the engineer public profile so a hospital can message an
