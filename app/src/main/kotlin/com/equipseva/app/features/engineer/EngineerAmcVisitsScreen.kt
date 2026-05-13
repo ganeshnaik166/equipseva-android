@@ -21,6 +21,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -89,6 +90,22 @@ fun EngineerAmcVisitsScreen(
     viewModel: EngineerAmcVisitsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Refresh on subsequent foregrounds — the VM's init { reload() }
+    // covers cold start. Without this, a completed visit doesn't drop
+    // off the list (and a new visit added by the AMC rotation doesn't
+    // appear) until process restart. Same pattern PR #556 + #596.
+    var isFirstResume by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf(true)
+    }
+    androidx.lifecycle.compose.LifecycleEventEffect(
+        androidx.lifecycle.Lifecycle.Event.ON_RESUME,
+    ) {
+        if (isFirstResume) {
+            isFirstResume = false
+        } else {
+            viewModel.reload()
+        }
+    }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
