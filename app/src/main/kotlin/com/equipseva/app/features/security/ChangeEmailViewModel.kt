@@ -8,13 +8,11 @@ import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.Validators
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -39,8 +37,11 @@ class ChangeEmailViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    private val _effects = Channel<Effect>(Channel.BUFFERED)
-    val effects = _effects.receiveAsFlow()
+    // SharedFlow(replay = 0) — see ChangePasswordViewModel + PR #584.
+    private val _effects = kotlinx.coroutines.flow.MutableSharedFlow<Effect>(
+        extraBufferCapacity = 4,
+    )
+    val effects: kotlinx.coroutines.flow.Flow<Effect> = _effects
 
     fun onEmailChange(value: String) {
         _state.update {
@@ -88,7 +89,7 @@ class ChangeEmailViewModel @Inject constructor(
             profileRepository.updateBasicInfo(userId = userId, email = trimmed).fold(
                 onSuccess = {
                     _state.update { UiState() }
-                    _effects.send(Effect.Success("Email updated"))
+                    _effects.emit(Effect.Success("Email updated"))
                 },
                 onFailure = { ex ->
                     _state.update {
