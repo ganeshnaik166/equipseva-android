@@ -138,6 +138,12 @@ fun ProfileScreen(
         }
     }
 
+    // Re-fetch profile every time we return to this tab (e.g. after
+    // AddPhoneScreen pops back) so the "Required" chip on the Phone row
+    // and the trailing snapshot text reflect the just-saved value. Skips
+    // the very first resume — the init block already loaded the profile.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.onRefresh() }
+
     Scaffold(
         topBar = {
             EsTopBar(
