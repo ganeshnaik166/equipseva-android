@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import io.github.jan.supabase.realtime.realtime
 import com.equipseva.app.core.auth.InvalidCurrentPasswordException
 import kotlinx.coroutines.flow.firstOrNull
 import com.equipseva.app.core.data.account.SupabaseAccountDeletionRepository
@@ -54,6 +55,7 @@ class ProfileViewModel @Inject constructor(
     private val photoUploadStash: PhotoUploadStash,
     private val storageRepository: com.equipseva.app.core.storage.StorageRepository,
     private val userBlockRepository: com.equipseva.app.core.data.moderation.UserBlockRepository,
+    private val supabaseClient: io.github.jan.supabase.SupabaseClient,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -557,6 +559,12 @@ class ProfileViewModel @Inject constructor(
                     runCatching { userPrefs.setMutedPushCategories(emptySet()) }
                     runCatching { userPrefs.setQuietHoursEnabled(false) }
                     runCatching { userBlockRepository.clearCache() }
+                    runCatching {
+                        val rt = supabaseClient.realtime
+                        rt.subscriptions.values.toList().forEach { ch ->
+                            rt.removeChannel(ch)
+                        }
+                    }
 
                     // Sign out wipes the local session even if the network
                     // call fails — the SDK clears the cached token unconditionally.
@@ -611,6 +619,19 @@ class ProfileViewModel @Inject constructor(
             // blocked-id set in memory; clear so the next sign-in
             // doesn't see stale blocks until the first refresh().
             runCatching { userBlockRepository.clearCache() }
+            // Realtime channels live on the singleton supabase client.
+            // Disconnect drops the websocket so any chat / notification /
+            // cost-revision subscription tied to the previous user is
+            // torn down — without this the next user's first subscribe
+            // could collide with the previous one's awaitClose cleanup
+            // mid-flight (RLS still gates emissions, but processing
+            // phantom events wastes battery + can briefly leak counts).
+            runCatching {
+                val rt = supabaseClient.realtime
+                rt.subscriptions.values.toList().forEach { ch ->
+                    rt.removeChannel(ch)
+                }
+            }
             authRepository.signOut()
                 .onFailure { error ->
                     _state.update { it.copy(signingOut = false) }
