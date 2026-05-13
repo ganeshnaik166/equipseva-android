@@ -76,8 +76,11 @@ class EngineerProfileViewModel @Inject constructor(
     }
 
     fun onHourlyRateChange(value: String) {
-        // Allow only digits + a single decimal point.
-        val sanitized = value.filter { it.isDigit() || it == '.' }
+        // ASCII digits + a single decimal point. Char.isDigit() would
+        // also accept Devanagari / Arabic codepoints, which the server
+        // toDoubleOrNull can't parse — the field would look filled
+        // while save fails with "amount required".
+        val sanitized = value.filter { it in '0'..'9' || it == '.' }
             .let { v ->
                 val first = v.indexOf('.')
                 if (first == -1) v else v.substring(0, first + 1) + v.substring(first + 1).replace(".", "")
@@ -86,7 +89,7 @@ class EngineerProfileViewModel @Inject constructor(
     }
 
     fun onYearsChange(value: String) {
-        _state.update { it.copy(yearsExperience = value.filter { c -> c.isDigit() }, errorMessage = null) }
+        _state.update { it.copy(yearsExperience = value.filter { c -> c in '0'..'9' }, errorMessage = null) }
     }
 
     fun onServiceAreasChange(value: String) {

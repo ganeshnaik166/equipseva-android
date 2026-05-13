@@ -369,7 +369,7 @@ fun FounderCategoriesScreen(
                 }
                 OutlinedTextField(
                     value = draft.sortOrder,
-                    onValueChange = { v -> viewModel.onDraftChange { it.copy(sortOrder = v.filter { ch -> ch.isDigit() }) } },
+                    onValueChange = { v -> viewModel.onDraftChange { it.copy(sortOrder = v.filter { ch -> ch in '0'..'9' }) } },
                     label = { Text("Sort order") },
                     enabled = !state.saving,
                     modifier = Modifier.fillMaxWidth(),
