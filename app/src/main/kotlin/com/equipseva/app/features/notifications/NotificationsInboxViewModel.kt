@@ -32,6 +32,8 @@ import javax.inject.Inject
 class NotificationsInboxViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val notificationRepository: NotificationRepository,
+    private val outboxEnqueuer: com.equipseva.app.core.sync.OutboxEnqueuer,
+    private val json: kotlinx.serialization.json.Json,
 ) : ViewModel() {
 
     data class UiState(
@@ -127,19 +129,31 @@ class NotificationsInboxViewModel @Inject constructor(
     fun markRead(id: String) {
         val target = _state.value.rows.firstOrNull { it.id == id } ?: return
         if (!target.isUnread) return
+        // Optimistically flip the row locally first so the inbox feels
+        // snappy regardless of network state. Realtime / next refresh
+        // reconciles the canonical read_at.
+        _state.update { current ->
+            current.copy(
+                rows = current.rows.map { row ->
+                    if (row.id == id) row.copy(readAt = java.time.Instant.now()) else row
+                },
+            )
+        }
         viewModelScope.launch {
             notificationRepository.markRead(id)
-                .onSuccess {
-                    _state.update { current ->
-                        current.copy(
-                            rows = current.rows.map { row ->
-                                if (row.id == id) row.copy(readAt = java.time.Instant.now()) else row
-                            },
-                        )
-                    }
-                }
-                .onFailure { error ->
-                    _state.update { it.copy(errorMessage = error.toUserMessage()) }
+                .onFailure {
+                    // Network down or transient 5xx — queue so the
+                    // server-side flip lands eventually. Without this,
+                    // a successful optimistic flip would bounce back to
+                    // unread on the next realtime sync.
+                    val payload = json.encodeToString(
+                        com.equipseva.app.core.data.notifications.NotificationReadPayload.serializer(),
+                        com.equipseva.app.core.data.notifications.NotificationReadPayload(notificationId = id),
+                    )
+                    outboxEnqueuer.enqueue(
+                        com.equipseva.app.core.sync.OutboxKinds.NOTIFICATION_READ,
+                        payload,
+                    )
                 }
         }
     }
