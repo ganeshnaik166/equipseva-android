@@ -36,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -271,7 +272,9 @@ fun EngineerDirectoryScreen(
     val visibleRows = remember(state.rows, state.district, state.specialization) {
         state.filteredRows
     }
-    var showFilters by remember { mutableStateOf(false) }
+    // rememberSaveable so the filter sheet survives rotation; bare
+    // remember would dismiss it silently mid-edit on a config change.
+    var showFilters by rememberSaveable { mutableStateOf(false) }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
