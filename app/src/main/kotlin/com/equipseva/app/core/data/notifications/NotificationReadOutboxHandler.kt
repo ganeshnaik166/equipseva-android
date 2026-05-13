@@ -1,8 +1,11 @@
 package com.equipseva.app.core.data.notifications
 
+import com.equipseva.app.core.auth.AuthRepository
+import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.entities.OutboxEntryEntity
 import com.equipseva.app.core.sync.OutboxKindHandler
 import com.equipseva.app.core.sync.classifyOutboxError
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -13,13 +16,17 @@ import javax.inject.Inject
  * `read_at` column to flip server-side once the network is back so the
  * row doesn't bounce back to unread on the next realtime sync.
  *
- * No owner gate beyond what RLS enforces — `notifications.UPDATE`
- * policy is `auth.uid() = user_id`, so a cross-user drain is rejected
- * at the server and recorded as a 403 (the classifier maps it to
- * GiveUp on the first attempt).
+ * Owner gate: when the queued payload carries a `userId`, the handler
+ * compares it to the currently-signed-in user before draining. If a
+ * different account is signed in (shared device case), the row is
+ * dropped with GiveUp so the next user doesn't waste a retry-budget
+ * attempt round-tripping a row that RLS will reject anyway. Rows
+ * enqueued before this field existed have `userId = null` and fall
+ * through to RLS-only protection — same behavior as before.
  */
 class NotificationReadOutboxHandler @Inject constructor(
     private val notificationRepository: NotificationRepository,
+    private val authRepository: AuthRepository,
     private val json: Json,
 ) : OutboxKindHandler {
 
@@ -28,6 +35,16 @@ class NotificationReadOutboxHandler @Inject constructor(
             json.decodeFromString<NotificationReadPayload>(entry.payload)
         }.getOrElse {
             return OutboxKindHandler.Outcome.GiveUp("Malformed payload: ${it.message}")
+        }
+        val owner = payload.userId
+        if (owner != null) {
+            val current = authRepository.sessionState.first()
+            val uid = (current as? AuthSession.SignedIn)?.userId
+            if (uid != owner) {
+                return OutboxKindHandler.Outcome.GiveUp(
+                    "Cross-user notif read drop (queued=$owner, current=$uid)",
+                )
+            }
         }
         return notificationRepository.markRead(payload.notificationId).fold(
             onSuccess = { OutboxKindHandler.Outcome.Success },
@@ -39,4 +56,7 @@ class NotificationReadOutboxHandler @Inject constructor(
 @Serializable
 data class NotificationReadPayload(
     val notificationId: String,
+    // Optional + defaulted so rows queued before this field existed still
+    // decode. New writes always set it; absence triggers RLS-only fallback.
+    val userId: String? = null,
 )
