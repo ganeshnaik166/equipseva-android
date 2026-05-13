@@ -2,6 +2,7 @@ package com.equipseva.app.core.data.profile
 
 import com.equipseva.app.features.auth.UserRole
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
@@ -106,6 +107,16 @@ class SupabaseProfileRepository @Inject constructor(
         email: String?,
         avatarUrl: String?,
     ): Result<Unit> = runCatching {
+        // Defense-in-depth: reject calls that try to mutate someone else's
+        // profile before the network round-trip. RLS would also block the
+        // row update server-side, but a fail-fast here means callers can't
+        // accidentally race a stale userId past a token refresh, and a
+        // logic bug that mis-routes a user-id stays local + visible
+        // instead of silently no-op'ing against Postgres.
+        val authUid = client.auth.currentUserOrNull()?.id
+        require(authUid != null && authUid == userId) {
+            "updateBasicInfo refused: signed-in user does not match target id"
+        }
         // Omit null fields entirely so Postgrest leaves the column unchanged.
         // Setting a key to JsonNull writes NULL to the row, which violates
         // profiles.full_name NOT NULL when callers update only one field
