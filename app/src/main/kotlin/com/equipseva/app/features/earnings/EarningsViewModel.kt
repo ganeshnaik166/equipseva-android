@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.data.amc.AmcRepository
 import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
 import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairBidRepository
@@ -28,6 +29,7 @@ class EarningsViewModel @Inject constructor(
     private val bidRepository: RepairBidRepository,
     private val jobRepository: RepairJobRepository,
     private val escrowRepository: RepairJobEscrowRepository,
+    private val amcRepository: AmcRepository,
 ) : ViewModel() {
 
     data class EarningRow(val bid: RepairBid, val job: RepairJob?)
@@ -39,6 +41,12 @@ class EarningsViewModel @Inject constructor(
         val pendingTotal: Double = 0.0,
         val rows: List<EarningRow> = emptyList(),
         val escrowSummary: RepairJobEscrowRepository.EngineerEscrowSummary? = null,
+        // Round 234 — AMC visit payouts surfaced alongside repair-bid
+        // earnings. Total is the sum of engineer_payout_rupees (85% of
+        // the per-visit cost). Empty list / 0 total when the engineer
+        // hasn't completed any AMC visits.
+        val amcEarnings: List<AmcRepository.EngineerAmcEarning> = emptyList(),
+        val amcPaidTotal: Double = 0.0,
         val errorMessage: String? = null,
     )
 
@@ -110,6 +118,18 @@ class EarningsViewModel @Inject constructor(
                     viewModelScope.launch {
                         escrowRepository.fetchEngineerSummary().onSuccess { sum ->
                             _state.update { it.copy(escrowSummary = sum) }
+                        }
+                    }
+                    // Same fire-and-forget pattern for AMC visit payouts.
+                    // Quiet on errors: the section just stays hidden.
+                    viewModelScope.launch {
+                        amcRepository.listMyAmcEarnings().onSuccess { amc ->
+                            _state.update {
+                                it.copy(
+                                    amcEarnings = amc,
+                                    amcPaidTotal = amc.sumOf { row -> row.engineerPayoutRupees },
+                                )
+                            }
                         }
                     }
                 }

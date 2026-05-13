@@ -141,7 +141,7 @@ fun EarningsScreen(
                                 }
                             }
                         }
-                        if (state.rows.isEmpty()) {
+                        if (state.rows.isEmpty() && state.amcEarnings.isEmpty()) {
                             item("empty") {
                                 EmptyStateView(
                                     icon = Icons.Outlined.Payments,
@@ -152,16 +152,30 @@ fun EarningsScreen(
                                 )
                             }
                         } else {
-                            item("history") {
-                                EsSection(
-                                    title = "Recent payouts",
-                                    action = "Bank details",
-                                    onAction = onBankDetails,
-                                ) {
-                                    TransactionsList(
-                                        rows = state.rows,
-                                        onJobClick = onJobClick,
-                                    )
+                            if (state.rows.isNotEmpty()) {
+                                item("history") {
+                                    EsSection(
+                                        title = "Recent payouts",
+                                        action = "Bank details",
+                                        onAction = onBankDetails,
+                                    ) {
+                                        TransactionsList(
+                                            rows = state.rows,
+                                            onJobClick = onJobClick,
+                                        )
+                                    }
+                                }
+                            }
+                            if (state.amcEarnings.isNotEmpty()) {
+                                item("amc_history") {
+                                    EsSection(
+                                        title = "AMC visit payouts (₹${formatRupees(state.amcPaidTotal)})",
+                                    ) {
+                                        com.equipseva.app.features.earnings.AmcEarningsList(
+                                            rows = state.amcEarnings,
+                                            onVisitClick = onJobClick,
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -409,6 +423,57 @@ private fun TransactionRow(
                 fontWeight = FontWeight.SemiBold,
                 color = if (paid) SevaGreen700 else SevaWarning500,
             )
+        }
+    }
+}
+
+@Composable
+internal fun AmcEarningsList(
+    rows: List<com.equipseva.app.core.data.amc.AmcRepository.EngineerAmcEarning>,
+    onVisitClick: (String) -> Unit,
+) {
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        rows.forEach { row ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onVisitClick(row.visitId) }
+                    .padding(vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "AMC visit",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = SevaInk900,
+                    )
+                    Text(
+                        text = "Visit cost ${formatRupees(row.perVisitCostRupees)} · " +
+                            "Platform ${formatRupees(row.platformTakeRupees)}",
+                        fontSize = 11.sp,
+                        color = SevaInk500,
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = formatRupees(row.engineerPayoutRupees),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = SevaInk900,
+                    )
+                    Text(
+                        text = "Paid",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = SevaGreen700,
+                    )
+                }
+            }
         }
     }
 }

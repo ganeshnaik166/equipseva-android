@@ -215,6 +215,28 @@ class AmcRepository @Inject constructor(
             .decodeList<EngineerAmcVisit>()
     }
 
+    /** Row returned by `engineer_my_amc_earnings` (Round 234 PR-#619). */
+    @Serializable
+    data class EngineerAmcEarning(
+        @SerialName("visit_id") val visitId: String,
+        @SerialName("visit_completed_at") val visitCompletedAt: String? = null,
+        @SerialName("amc_contract_id") val amcContractId: String? = null,
+        @SerialName("per_visit_cost_rupees") val perVisitCostRupees: Double = 0.0,
+        @SerialName("engineer_payout_rupees") val engineerPayoutRupees: Double = 0.0,
+        @SerialName("platform_take_rupees") val platformTakeRupees: Double = 0.0,
+    )
+
+    /**
+     * v2.1 Round-234 — engineer self-view of AMC visit payouts. 85%
+     * of the per-visit cost goes to the engineer; remaining 15% is
+     * the platform take. RLS is enforced inside the RPC via
+     * `engineers.user_id = auth.uid()`.
+     */
+    suspend fun listMyAmcEarnings(): Result<List<EngineerAmcEarning>> = runCatching {
+        supabase.postgrest.rpc(function = "engineer_my_amc_earnings")
+            .decodeList<EngineerAmcEarning>()
+    }
+
     @Serializable
     data class HospitalSlaCreditSummary(
         @SerialName("total_credit_rupees") val totalCreditRupees: Double = 0.0,
