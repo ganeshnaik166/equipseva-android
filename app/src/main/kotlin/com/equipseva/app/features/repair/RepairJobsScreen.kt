@@ -523,7 +523,7 @@ private fun MapPreviewBox(
                     Marker(
                         state = MarkerState(LatLng(coord.first, coord.second)),
                         title = job.title,
-                        snippet = distanceByJobId[job.id]?.let { "%.1f km away".format(it) },
+                        snippet = distanceByJobId[job.id]?.let { "%.1f km away".format(java.util.Locale.US, it) },
                         icon = BitmapDescriptorFactory.defaultMarker(pinHues[idx % pinHues.size]),
                     )
                 }
