@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -89,6 +90,22 @@ fun EngineerMyDisputesScreen(
     viewModel: EngineerMyDisputesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Refresh on subsequent foregrounds so an admin resolution (refund
+    // / release) shows up the moment the engineer returns to this
+    // screen, instead of waiting for process restart. Same pattern as
+    // PR #556 / #596.
+    var isFirstResume by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf(true)
+    }
+    androidx.lifecycle.compose.LifecycleEventEffect(
+        androidx.lifecycle.Lifecycle.Event.ON_RESUME,
+    ) {
+        if (isFirstResume) {
+            isFirstResume = false
+        } else {
+            viewModel.reload()
+        }
+    }
     val openCount = state.rows.count { it.status == "in_dispute" }
     val wonCount = state.rows.count { it.outcome == "release" }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
