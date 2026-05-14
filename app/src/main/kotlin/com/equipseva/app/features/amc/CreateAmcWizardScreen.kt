@@ -125,7 +125,27 @@ class CreateAmcWizardViewModel @Inject constructor(
         val submitting: Boolean = false,
         val createdContractId: String? = null,
         val error: String? = null,
-    )
+    ) {
+        // Gate the Next/Submit button per step so the user can't reach
+        // Razorpay with a zero / negative / blank monthly fee — the edge
+        // function rejects it as `amount_mismatch`, but the wizard
+        // shouldn't pretend a "Pay first month" tap is valid in the
+        // first place. Same for SLA hours (must be positive, finite).
+        val canProceed: Boolean
+            get() = when (step) {
+                Step.Scope -> equipmentCategories.isNotEmpty()
+                Step.FrequencyFee -> {
+                    val fee = monthlyFeeRupees.trim().toDoubleOrNull()
+                    fee != null && fee > 0.0 && visitsPerYear > 0
+                }
+                Step.Sla -> {
+                    val std = responseTimeStandardHours.trim().toDoubleOrNull()
+                    val emerg = responseTimeEmergencyHours.trim().toDoubleOrNull()
+                    std != null && std > 0.0 && emerg != null && emerg > 0.0
+                }
+                Step.Engineer -> primaryEngineerId.isNotBlank()
+            }
+    }
 
     private val _state = MutableStateFlow(UiState(primaryEngineerId = primaryEngineerId))
     val state: StateFlow<UiState> = _state.asStateFlow()
@@ -465,7 +485,7 @@ fun CreateAmcWizardScreen(
                                 kind = EsBtnKind.Primary,
                                 size = EsBtnSize.Lg,
                                 full = true,
-                                disabled = state.submitting,
+                                disabled = state.submitting || !state.canProceed,
                             )
                         }
                     }
