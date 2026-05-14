@@ -353,7 +353,14 @@ class ProfileViewModel @Inject constructor(
         }
         _state.update { it.copy(editSaving = true, editError = null) }
         viewModelScope.launch {
-            profileRepository.updateBasicInfo(profile.id, nextName, profile.phone)
+            // Pass phone = null so the repo's `buildJsonObject` omits the
+            // `phone` key entirely and Postgrest leaves the column
+            // untouched. Previously we sent `profile.phone` (the cached
+            // value), which would clobber a fresh phone written by
+            // AddPhoneScreen back to the snapshot value if the dialog
+            // had stale `_state.value.profile`. The dialog only edits
+            // full_name, so name is the only field that should ride.
+            profileRepository.updateBasicInfo(profile.id, nextName, phone = null)
                 .onSuccess {
                     _state.update {
                         it.copy(
