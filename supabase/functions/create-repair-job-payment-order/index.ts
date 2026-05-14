@@ -86,6 +86,14 @@ serve(async (req) => {
     return bad("amount_mismatch", "escrow amount invalid");
   }
   const amountPaise = Math.round(amountRupees * 100);
+  // Re-validate after the multiply — `Number.isFinite(amountRupees)` is
+  // true at this point but `amountRupees * 100` could still produce a
+  // non-finite paise value on absurd inputs (or a Math.round() corner
+  // case for very large doubles). Razorpay rejects non-integer or
+  // non-positive amounts with a generic error; surfacing here is clearer.
+  if (!Number.isFinite(amountPaise) || amountPaise <= 0) {
+    return bad("amount_mismatch", "computed paise invalid");
+  }
 
   const auth = "Basic " + btoa(`${rzpKeyId}:${rzpSecret}`);
   // Cap Razorpay wait at 15s — see comment in create-amc-payment-order.
@@ -110,7 +118,11 @@ serve(async (req) => {
   });
   const rzpBody = await rzpRes.text();
   if (!rzpRes.ok) {
-    return bad("razorpay_error", rzpBody, 502);
+    // Don't echo Razorpay's raw response to the client — it can leak
+    // merchant ids / internal error codes. Mirror the sanitized error
+    // path used by create-amc-payment-order + create-razorpay-order.
+    console.error("create-repair-job-payment-order: razorpay non-2xx", rzpRes.status, rzpBody.slice(0, 400));
+    return bad("razorpay_error", "payment provider unavailable", 502);
   }
   const rzpOrder = JSON.parse(rzpBody) as {
     id: string;
