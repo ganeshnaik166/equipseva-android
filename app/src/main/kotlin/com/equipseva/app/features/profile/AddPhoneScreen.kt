@@ -83,7 +83,16 @@ class AddPhoneViewModel @Inject constructor(
         // buffer). `Char.isDigit()` is Unicode-aware so it would accept
         // Devanagari / Arabic numerals; Supabase auth's E.164 parser
         // rejects those and submit silently fails.
-        val cleaned = value.filterIndexed { i, c -> (i == 0 && c == '+') || c in '0'..'9' }.take(16)
+        var cleaned = value.filterIndexed { i, c -> (i == 0 && c == '+') || c in '0'..'9' }.take(16)
+        // Guard against double-prefix: the field defaults to "+91", so a
+        // user who types or pastes "+919812345699" ends up with the
+        // textual concatenation "+91919812345699". 13 chars is the cap
+        // for "+91" + 10-digit India mobile, so anything longer that
+        // begins with "+9191" has the country code in twice. Strip the
+        // duplicate so a paste of the full E.164 number works.
+        if (cleaned.startsWith("+9191") && cleaned.length > 13) {
+            cleaned = "+91" + cleaned.substring(5)
+        }
         _state.update { it.copy(phone = cleaned, error = null) }
     }
 
