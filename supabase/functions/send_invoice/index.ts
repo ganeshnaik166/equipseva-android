@@ -227,11 +227,20 @@ serve(async (req) => {
     return bad("server_error", `upload_failed: ${upload.error.message}`, 500);
   }
 
-  const { data: signed } = await admin.storage
+  const { data: signed, error: signErr } = await admin.storage
     .from("invoices")
     .createSignedUrl(path, 60 * 60 * 24 * 30);
 
-  const invoiceUrl = signed?.signedUrl ?? null;
+  if (signErr || !signed?.signedUrl) {
+    // The upload succeeded but the signed URL didn't materialise — without
+    // a URL the row has no way to surface the invoice to the buyer.
+    // Returning 200 with `invoice_url: null` here used to silently lie to
+    // the trigger that everything went fine. Surface as 500 so retry +
+    // ops alerting kick in instead.
+    console.error("send_invoice: createSignedUrl failed", signErr?.message ?? "no signed url");
+    return bad("server_error", "couldn't sign invoice url", 500);
+  }
+  const invoiceUrl = signed.signedUrl
 
   await admin
     .from("spare_part_orders")
