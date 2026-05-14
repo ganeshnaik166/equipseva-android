@@ -101,7 +101,13 @@ fun ChatScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    val listState = rememberLazyListState()
+    // rememberSaveable so the scroll position survives the keyboard
+    // popping up / config changes — plain rememberLazyListState reset
+    // to index 0 on every IME open, scrolling the user back to the top
+    // of the conversation every time they typed.
+    val listState = androidx.compose.runtime.saveable.rememberSaveable(
+        saver = androidx.compose.foundation.lazy.LazyListState.Saver,
+    ) { androidx.compose.foundation.lazy.LazyListState() }
 
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->

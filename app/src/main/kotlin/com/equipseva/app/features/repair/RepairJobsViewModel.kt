@@ -95,7 +95,10 @@ class RepairJobsViewModel @Inject constructor(
      */
     fun onRadiusChange(radiusKm: Int?) {
         if (_state.value.radiusKm == radiusKm) return
-        _state.update { it.copy(radiusKm = radiusKm) }
+        // Mirror onQueryChange: clear any stale errorMessage so the
+        // user doesn't see "Couldn't load" sticking around while the
+        // new radius query is in flight.
+        _state.update { it.copy(radiusKm = radiusKm, errorMessage = null) }
         refresh()
     }
 
