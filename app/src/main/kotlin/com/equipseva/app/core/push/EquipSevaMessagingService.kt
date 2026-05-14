@@ -38,8 +38,19 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         val data = message.data
-        val channel = data["channel"] ?: NotificationChannels.ACCOUNT
-        val category = data["category"] ?: channel
+        // Empty-string payloads (`data["channel"] = ""`) used to slip past
+        // the Elvis fallback and reach NotificationCompat.Builder, where
+        // Android silently drops the notification on API 26+. Treat empty
+        // OR unknown channel ids as ACCOUNT so a malformed server send
+        // still surfaces to the user instead of vanishing.
+        val rawChannel = data["channel"]?.takeIf { it.isNotBlank() }
+        val channel = when (rawChannel) {
+            NotificationChannels.JOBS,
+            NotificationChannels.CHAT,
+            NotificationChannels.ACCOUNT -> rawChannel
+            else -> NotificationChannels.ACCOUNT
+        }
+        val category = data["category"]?.takeIf { it.isNotBlank() } ?: channel
 
         // Client-side per-category mute. Server-side send rules are a separate
         // pending item; for now we honour the user's Settings choice by dropping
