@@ -141,7 +141,7 @@ class SignUpViewModel @Inject constructor(
                             // re-submit the same email and hit
                             // "Email already registered" before they've had
                             // a chance to click the verification link.
-                            _state.value = UiState()
+                            _state.update { UiState() }
                             _effects.emit(
                                 AuthEffect.ShowMessage(
                                     "Verification link sent to $targetEmail. Open it, then sign in.",
