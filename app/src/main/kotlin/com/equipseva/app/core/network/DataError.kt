@@ -49,7 +49,18 @@ private fun friendlyRestMessage(ex: RestException): String? {
             "You don't have access to this yet. Try again after KYC is verified."
         raw.contains("PGRST116", ignoreCase = true) || raw.contains("not found", ignoreCase = true) ->
             "We couldn't find that record."
-        raw.contains("23505") -> "That looks like a duplicate. Please try a different value."
+        // Phone-uniqueness has its own constraint name; surface specific
+        // copy so users know to enter a different number rather than
+        // reading "duplicate value" cold. supabase-kt's RestException.message
+        // wraps the Postgrest JSON body — the 23505 SQLSTATE is rarely
+        // included verbatim, so match the human-readable phrases too.
+        raw.contains("profiles_phone_unique", ignoreCase = true) ->
+            "That phone number is already on another EquipSeva account."
+        raw.contains("23505") ||
+            raw.contains("duplicate key", ignoreCase = true) ||
+            raw.contains("already exists", ignoreCase = true) ||
+            raw.contains("unique constraint", ignoreCase = true) ->
+            "That looks like a duplicate. Please try a different value."
         raw.contains("23503") -> "Linked record is missing — refresh and try again."
         // admin_set_engineer_verification raises 'kyc_incomplete' (22023)
         // when an engineer is missing Aadhaar or has no certificates. The
