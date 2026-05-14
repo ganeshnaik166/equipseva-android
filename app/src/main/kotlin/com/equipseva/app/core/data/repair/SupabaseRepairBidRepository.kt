@@ -75,11 +75,16 @@ class SupabaseRepairBidRepository @Inject constructor(
     }
 
     override suspend fun withdrawBid(bidId: String): Result<Unit> = runCatching {
+        val userId = requireNotNull(client.auth.currentUserOrNull()?.id) {
+            "No authenticated user"
+        }
         client.from(TABLE).update({
             set("status", RepairBidStatus.Withdrawn.storageKey)
         }) {
             filter {
                 eq("id", bidId)
+                // Defense-in-depth: RLS enforces this server-side; the client-side filter makes a logic bug throw locally instead of silently no-op.
+                eq("engineer_user_id", userId)
             }
         }
         Unit
