@@ -87,6 +87,9 @@ serve(async (req) => {
   }
 
   const auth = "Basic " + btoa(`${rzpKeyId}:${rzpSecret}`);
+  // Cap Razorpay wait at 15s — see create-amc-payment-order. PR #633
+  // added timeouts to the two sibling payment-order functions but
+  // missed this third one (spare-parts checkout); aligning here.
   const rzpRes = await fetch("https://api.razorpay.com/v1/orders", {
     method: "POST",
     headers: { "content-type": "application/json", authorization: auth },
@@ -96,6 +99,7 @@ serve(async (req) => {
       receipt: order.order_number ?? order.id,
       notes: { supabase_order_id: order.id, buyer_user_id: userId },
     }),
+    signal: AbortSignal.timeout(15_000),
   });
   const rzpBody = await rzpRes.text();
   if (!rzpRes.ok) {

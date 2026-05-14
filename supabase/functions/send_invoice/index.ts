@@ -251,6 +251,9 @@ serve(async (req) => {
   let emailError: string | null = null;
   if (resendApiKey && buyer?.email) {
     try {
+      // Cap Resend wait at 12s — usually responds in ~500ms. Without a
+      // timeout a hung Resend would block the webhook for the full
+      // function execution budget while the order trigger waits.
       const r = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -263,6 +266,7 @@ serve(async (req) => {
           subject: `EquipSeva Invoice ${order.order_number ?? order.id}`,
           html,
         }),
+        signal: AbortSignal.timeout(12_000),
       });
       emailSent = r.ok;
       if (!r.ok) emailError = await r.text();

@@ -134,6 +134,8 @@ async function getAccessToken(sa: ServiceAccount): Promise<string> {
     return cachedToken.token;
   }
   const jwt = await signJwtRs256(sa);
+  // Cap Google OAuth wait at 10s — a hung token endpoint would
+  // otherwise tie up the push pipeline for the full execution budget.
   const res = await fetch(sa.token_uri ?? GOOGLE_TOKEN_URL, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -141,6 +143,7 @@ async function getAccessToken(sa: ServiceAccount): Promise<string> {
       grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
       assertion: jwt,
     }),
+    signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) {
     const txt = await res.text();
@@ -189,6 +192,7 @@ async function sendOne(
     };
   }
 
+  // Cap FCM send wait at 8s — usually responds in ~200ms.
   const res = await fetch(
     `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
     {
@@ -198,6 +202,7 @@ async function sendOne(
         authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify({ message }),
+      signal: AbortSignal.timeout(8_000),
     },
   );
 

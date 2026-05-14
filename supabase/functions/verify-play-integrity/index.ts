@@ -149,6 +149,10 @@ async function getGoogleAccessToken(serviceAccountJson: string): Promise<string>
   );
   const jwt = `${signingInput}.${b64urlEncode(new Uint8Array(sigBuf))}`;
 
+  // Cap Google OAuth wait at 10s. Integrity verdict is a sign-in
+  // gate; without the timeout a hung token endpoint could leave the
+  // user stuck on the splash screen until the function execution
+  // budget expires.
   const tokenRes = await fetch(tokenUri, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -156,6 +160,7 @@ async function getGoogleAccessToken(serviceAccountJson: string): Promise<string>
       grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
       assertion: jwt,
     }),
+    signal: AbortSignal.timeout(10_000),
   });
   const tokenBody = await tokenRes.text();
   if (!tokenRes.ok) {
@@ -262,6 +267,9 @@ serve(async (req) => {
     const accessToken = await getGoogleAccessToken(saJson);
     const decodeUrl =
       `https://playintegrity.googleapis.com/v1/${encodeURIComponent(packageName)}:decodeIntegrityToken`;
+    // Cap Play Integrity wait at 8s — the verdict is a sign-in gate,
+    // and the function falls back to a permissive verdict when this
+    // endpoint errors, so capping early is safer than blocking.
     const decodeRes = await fetch(decodeUrl, {
       method: "POST",
       headers: {
@@ -269,6 +277,7 @@ serve(async (req) => {
         "content-type": "application/json",
       },
       body: JSON.stringify({ integrityToken: token }),
+      signal: AbortSignal.timeout(8_000),
     });
     const decodeBody = await decodeRes.text();
     if (!decodeRes.ok) {
