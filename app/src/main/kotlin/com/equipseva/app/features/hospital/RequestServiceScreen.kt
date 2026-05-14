@@ -553,9 +553,12 @@ private fun StepWhen(
     // Block past dates: a job scheduled for yesterday is nonsense and the
     // server-side scheduled_date check would later reject it with a vague
     // error. Allow today + future days only.
+    // Pin to IST. The VM submit-time scheduling also uses IST so the
+    // picker's "today" floor stays consistent with what the engineer
+    // sees on the job feed.
     val todayMillis = remember {
-        java.time.LocalDate.now()
-            .atStartOfDay(java.time.ZoneId.systemDefault())
+        java.time.LocalDate.now(IST_ZONE)
+            .atStartOfDay(IST_ZONE)
             .toInstant().toEpochMilli()
     }
     val datePickerState = androidx.compose.material3.rememberDatePickerState(
@@ -566,7 +569,7 @@ private fun StepWhen(
         },
     )
     val customLabel = pickedDateMillis?.let {
-        val d = java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+        val d = java.time.Instant.ofEpochMilli(it).atZone(IST_ZONE).toLocalDate()
         "Custom · ${d.dayOfMonth} ${d.month.name.lowercase().replaceFirstChar { c -> c.uppercase() }} ${d.year}"
     } ?: "Pick a date"
 
@@ -762,3 +765,7 @@ private fun WizardBottomBar(
         }
     }
 }
+
+// Pin to IST — EquipSeva is India-only (PRD locked); engineer reads the
+// scheduled date in IST regardless of the hospital admin's device zone.
+private val IST_ZONE: java.time.ZoneId = java.time.ZoneId.of("Asia/Kolkata")

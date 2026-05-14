@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.ZoneId
 import javax.inject.Inject
 
 @HiltViewModel
@@ -209,7 +210,13 @@ class RequestServiceViewModel @Inject constructor(
             }
             parsed
         }
-        val today = LocalDate.now()
+        // Pin to IST. EquipSeva is India-only (PRD locked), and the
+        // engineer on the other side reads the booking date in IST. If
+        // we use device-local time, a hospital user travelling abroad
+        // (or on a device with the wrong timezone) at the day boundary
+        // submits the wrong calendar date — engineer sees "tomorrow"
+        // as today on the job feed. Mirrors the ChatScreen IST helper.
+        val today = LocalDate.now(IST_ZONE)
         val (scheduledDate, scheduledTimeSlot) = when (selectedSlot) {
             0 -> today.toString() to "evening"
             1 -> today.plusDays(1).toString() to "morning"
@@ -225,7 +232,7 @@ class RequestServiceViewModel @Inject constructor(
                 val millis = current.pickedDateMillis
                 if (millis != null) {
                     val picked = java.time.Instant.ofEpochMilli(millis)
-                        .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                        .atZone(IST_ZONE).toLocalDate()
                     picked.toString() to "any"
                 } else {
                     null to null
@@ -266,4 +273,8 @@ class RequestServiceViewModel @Inject constructor(
         }
     }
 
+
+    private companion object {
+        val IST_ZONE: ZoneId = ZoneId.of("Asia/Kolkata")
+    }
 }
