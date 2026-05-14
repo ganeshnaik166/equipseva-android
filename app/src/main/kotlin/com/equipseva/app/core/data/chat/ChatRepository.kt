@@ -185,10 +185,16 @@ class ChatRepository @Inject constructor(
         // ids in its participant_user_ids array, regardless of insertion order.
         // Filter client-side after fetching the caller's direct conversations,
         // since Postgrest doesn't expose a clean array-contains-all match.
+        // Filter server-side to rows that already include the caller so
+        // RLS doesn't return tables of unrelated rows, and add a hard
+        // upper bound so a power user with thousands of direct chats
+        // doesn't pull the whole table into memory on each open-chat tap.
         val mine = client.from(CONVERSATIONS_TABLE).select {
             filter {
                 eq("related_entity_type", "direct")
+                contains("participant_user_ids", listOf(selfUserId))
             }
+            limit(count = 500)
         }.decodeList<ConversationDto>()
 
         val match = mine.firstOrNull { dto ->
