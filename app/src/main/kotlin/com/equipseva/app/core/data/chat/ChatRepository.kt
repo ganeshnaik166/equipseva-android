@@ -11,7 +11,9 @@ import io.github.jan.supabase.realtime.broadcastFlow
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -38,6 +40,17 @@ class ChatRepository @Inject constructor(
     // after the emit re-check via refresh() on next subscription.
     private val readEvents = MutableSharedFlow<String>(replay = 0, extraBufferCapacity = 1)
 
+    // Singleton-lived scope for fire-and-forget realtime channel teardown.
+    // Each observeXxx Flow registers a channel with the Supabase realtime
+    // client; when the collector is cancelled, we need removeChannel() to
+    // run even though the producing callbackFlow scope is itself winding
+    // down. Launching the cleanup on a child of the callbackFlow scope
+    // races against its cancellation and the channel can persist until
+    // the next websocket reconnect. This scope outlives any individual
+    // collector — its job survives the Singleton — so the cleanup
+    // suspend always gets to start.
+    private val cleanupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     /** Emits the latest list of conversations the user participates in, ordered newest-first. */
     fun observeConversations(userId: String): Flow<List<ChatConversation>> = callbackFlow {
         suspend fun refresh() {
@@ -60,7 +73,7 @@ class ChatRepository @Inject constructor(
         awaitClose {
             job.cancel()
             readJob.cancel()
-            launch { client.realtime.removeChannel(channel) }
+            cleanupScope.launch { client.realtime.removeChannel(channel) }
         }
     }.flowOn(Dispatchers.IO)
 
@@ -92,7 +105,7 @@ class ChatRepository @Inject constructor(
 
         awaitClose {
             job.cancel()
-            launch { client.realtime.removeChannel(channel) }
+            cleanupScope.launch { client.realtime.removeChannel(channel) }
         }
     }.flowOn(Dispatchers.IO)
 
@@ -378,7 +391,7 @@ class ChatRepository @Inject constructor(
         awaitClose {
             recvJob.cancel()
             tickJob.cancel()
-            launch { client.realtime.removeChannel(channel) }
+            cleanupScope.launch { client.realtime.removeChannel(channel) }
         }
     }.flowOn(Dispatchers.IO)
 
