@@ -49,15 +49,30 @@ class ChatMessageOutboxHandler @Inject constructor(
             )
         }
 
-        return chatRepository.sendMessage(
-            conversationId = payload.conversationId,
-            senderUserId = payload.senderUserId,
-            message = payload.body,
-            attachments = payload.attachments,
-        ).fold(
+        // Bound the send to 15s. A flaky link can hang the supabase-kt
+        // client indefinitely; without a cap this worker would block
+        // until poison-drop after 5 attempts. 15s is plenty for a text
+        // payload + optional attachment-URL row insert.
+        val result = try {
+            kotlinx.coroutines.withTimeout(SEND_TIMEOUT_MS) {
+                chatRepository.sendMessage(
+                    conversationId = payload.conversationId,
+                    senderUserId = payload.senderUserId,
+                    message = payload.body,
+                    attachments = payload.attachments,
+                )
+            }
+        } catch (timeout: kotlinx.coroutines.TimeoutCancellationException) {
+            return OutboxKindHandler.Outcome.Retry(timeout)
+        }
+        return result.fold(
             onSuccess = { OutboxKindHandler.Outcome.Success },
             onFailure = ::classifyOutboxError,
         )
+    }
+
+    private companion object {
+        const val SEND_TIMEOUT_MS = 15_000L
     }
 }
 

@@ -57,16 +57,32 @@ class JobStatusOutboxHandler @Inject constructor(
                 "Actor mismatch: queued as $queuedUid, current auth is $currentUid",
             )
         }
-        return jobRepository.updateStatus(
-            jobId = payload.jobId,
-            newStatus = target,
-            startedAt = payload.startedAtEpochMs?.let(Instant::ofEpochMilli),
-            completedAt = payload.completedAtEpochMs?.let(Instant::ofEpochMilli),
-            cancellationReason = payload.cancellationReason,
-        ).fold(
+        // Bound the status update to 20s. The complete_repair_job RPC
+        // does post-completion bookkeeping (escrow + AMC ledger + reviews
+        // hook) so the worst-case server time can spike. 20s is plenty of
+        // margin on a slow 2G link; without a cap a hung TLS connection
+        // would block the worker until poison-drop after 5 attempts.
+        val result = try {
+            kotlinx.coroutines.withTimeout(UPDATE_STATUS_TIMEOUT_MS) {
+                jobRepository.updateStatus(
+                    jobId = payload.jobId,
+                    newStatus = target,
+                    startedAt = payload.startedAtEpochMs?.let(Instant::ofEpochMilli),
+                    completedAt = payload.completedAtEpochMs?.let(Instant::ofEpochMilli),
+                    cancellationReason = payload.cancellationReason,
+                )
+            }
+        } catch (timeout: kotlinx.coroutines.TimeoutCancellationException) {
+            return OutboxKindHandler.Outcome.Retry(timeout)
+        }
+        return result.fold(
             onSuccess = { OutboxKindHandler.Outcome.Success },
             onFailure = ::classifyOutboxError,
         )
+    }
+
+    private companion object {
+        const val UPDATE_STATUS_TIMEOUT_MS = 20_000L
     }
 }
 
