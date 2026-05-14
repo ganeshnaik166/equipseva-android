@@ -67,7 +67,7 @@ class ConversationsViewModel @Inject constructor(
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     fun onQueryChange(value: String) {
-        _state.update { it.copy(query = value) }
+        _state.update { it.copy(query = value.take(200)) }
     }
 
     // Cache counterpart profiles so we don't re-fetch on every realtime tick.

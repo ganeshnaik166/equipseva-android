@@ -259,7 +259,10 @@ class ChatViewModel @Inject constructor(
     }
 
     fun onEditDraftChange(value: String) {
-        _state.update { it.copy(editDraft = value) }
+        // Cap matches the canSubmitEdit gate (4000). Without it a paste
+        // can drop a 100KB string into state, wedge Compose recomposition,
+        // and then the submit-side check just silently rejects.
+        _state.update { it.copy(editDraft = value.take(4000)) }
     }
 
     fun onCancelEdit() {

@@ -607,8 +607,9 @@ class KycViewModel @Inject constructor(
     }
 
     fun onServiceAddressChange(value: String) {
-        savedStateHandle[SavedKeys.ADDRESS] = value
-        _state.update { it.copy(serviceAddress = value) }
+        val capped = value.take(500)
+        savedStateHandle[SavedKeys.ADDRESS] = capped
+        _state.update { it.copy(serviceAddress = capped) }
     }
 
     /** State picked from cascade. Resets the dependent district. */
@@ -703,7 +704,7 @@ class KycViewModel @Inject constructor(
     }
 
     fun onQualificationDraftChange(value: String) =
-        _state.update { it.copy(qualificationDraft = value) }
+        _state.update { it.copy(qualificationDraft = value.take(500)) }
 
     fun addQualification() {
         val draft = _state.value.qualificationDraft.trim()
