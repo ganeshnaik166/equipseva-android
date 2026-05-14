@@ -76,11 +76,20 @@ class NotificationRepository @Inject constructor(
         // UPDATE trigger added in 20260425001745_notifications_baseline keeps
         // the column-set guard server-side. We send a wall-clock timestamp
         // because Postgrest doesn't support `now()` literally on update().
+        //
+        // Defense-in-depth filter on user_id too: a future RLS regression
+        // or a misconfigured policy would otherwise silently widen the
+        // mutation. Mirrors markAllRead's same-author guard.
+        val uid = client.auth.currentUserOrNull()?.id
+            ?: error("markRead refused: no signed-in user")
         client.from(TABLE).update({
             set("read_at", Instant.now().toString())
             set("is_read", true)
         }) {
-            filter { eq("id", id) }
+            filter {
+                eq("id", id)
+                eq("user_id", uid)
+            }
         }
         Unit
     }

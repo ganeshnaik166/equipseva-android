@@ -1,6 +1,7 @@
 package com.equipseva.app.core.data.chat
 
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
@@ -300,11 +301,23 @@ class ChatRepository @Inject constructor(
             limit(count = 1)
         }.decodeList<MessageDto>().firstOrNull()
 
+        // Defense-in-depth: filter on participant_user_ids contains self
+        // alongside the id match. RLS already enforces participant-only
+        // UPDATE, but a future policy regression or a stale schema cache
+        // could otherwise silently let this helper widen a stray convo
+        // row touched by an internal caller. Mirrors getOrCreateDirect's
+        // participant-contains filter shape.
+        val selfUid = client.auth.currentUserOrNull()?.id
         client.from(CONVERSATIONS_TABLE).update({
             set("last_message", latest?.message)
             set("last_message_at", latest?.createdAt)
         }) {
-            filter { eq("id", conversationId) }
+            filter {
+                eq("id", conversationId)
+                if (selfUid != null) {
+                    contains("participant_user_ids", listOf(selfUid))
+                }
+            }
         }
         Unit
     }
