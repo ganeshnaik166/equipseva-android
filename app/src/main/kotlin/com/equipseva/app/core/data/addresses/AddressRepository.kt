@@ -67,8 +67,21 @@ class AddressRepository @Inject constructor(
     }
 
     suspend fun delete(id: String): Result<Unit> = runCatching {
+        // Defense-in-depth: pair the row id with the caller's auth.uid so a
+        // forged delete can't take out someone else's address row. RLS
+        // already enforces this server-side, but the client-side filter
+        // makes a stale-id logic bug throw locally instead of silently
+        // no-op'ing against an empty filter set. Same pattern as
+        // `update()` above.
+        val uid = client.auth.currentUserOrNull()?.id
+            ?: error("Sign in to delete addresses.")
         client.postgrest.from("user_addresses")
-            .delete { filter { eq("id", id) } }
+            .delete {
+                filter {
+                    eq("id", id)
+                    eq("user_id", uid)
+                }
+            }
         Unit
     }
 
