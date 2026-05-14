@@ -379,11 +379,21 @@ private fun ProfileContent(
     onPickAvatar: (Uri) -> Unit,
 ) {
     val profile = state.profile!!
-    val isEngineer = profile.role == UserRole.ENGINEER
-    val isHospital = profile.role == UserRole.HOSPITAL
-    val isSupplier = profile.role == UserRole.SUPPLIER
-    val isManufacturer = profile.role == UserRole.MANUFACTURER
-    val isLogistics = profile.role == UserRole.LOGISTICS
+    // Multi-role accounts hold every role they've ever opted into in
+    // `profile.role` (the scalar), while `profile.activeRole` is the
+    // role surfaced by the bottom-tab Hub. Reading `role` here let a
+    // hospital admin who'd been auto-seeded as ENGINEER (default on
+    // signup before the role-tile flip) see engineer-only sections —
+    // KYC, Earnings, Bank details — on their Profile while the rest of
+    // the app correctly rendered the hospital home. Prefer activeRole
+    // and fall back to the scalar so single-role accounts behave the
+    // same as before.
+    val displayedRole = profile.activeRole ?: profile.role
+    val isEngineer = displayedRole == UserRole.ENGINEER
+    val isHospital = displayedRole == UserRole.HOSPITAL
+    val isSupplier = displayedRole == UserRole.SUPPLIER
+    val isManufacturer = displayedRole == UserRole.MANUFACTURER
+    val isLogistics = displayedRole == UserRole.LOGISTICS
     val isFounder = profile.isFounder()
     val avatarPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
