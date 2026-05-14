@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -189,7 +190,11 @@ fun AmcPaymentSheet(
     val context = LocalContext.current
     val activity = context as? Activity
     val scope = rememberCoroutineScope()
-    var months by remember { mutableStateOf(initialMonths) }
+    // rememberSaveable so the months chip selection survives rotation /
+    // process death — `remember` reset to `initialMonths` on every config
+    // change, forcing a user to re-pick e.g. 6 if they had just selected
+    // it before the orientation flip.
+    var months by rememberSaveable { mutableStateOf(initialMonths) }
     val total = monthlyFeeRupees * months
 
     LaunchedEffect(state.error) {
