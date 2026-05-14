@@ -190,6 +190,7 @@ class SupabaseRepairJobRepository @Inject constructor(
         review: String?,
     ): Result<RepairJob> = runCatching {
         require(stars in 1..5) { "Rating must be 1..5" }
+        val uid = requireNotNull(client.auth.currentUserOrNull()?.id) { "not signed in" }
         // Cap review text at 1000 chars before sending. Unbounded text
         // let a pasted blob bloat the engineers directory card's review
         // preview and wedge the layout; 1000 is generous for a real
@@ -205,8 +206,26 @@ class SupabaseRepairJobRepository @Inject constructor(
                 engineerReview = trimmedReview,
             )
         }
+        // repair_jobs.engineer_id FKs to engineers.id (not auth.uid). Resolve the
+        // engineer row for this user when the caller claims to be the engineer.
+        val engineerRowId = if (role == RatingRole.EngineerRatesHospital) {
+            client.from("engineers")
+                .select(columns = Columns.raw("id")) {
+                    filter { eq("user_id", uid) }
+                    limit(count = 1)
+                }
+                .decodeList<EngineerIdRow>().firstOrNull()?.id
+                ?: error("No engineer profile for caller")
+        } else null
         client.from(TABLE).update(patch) {
-            filter { eq("id", jobId) }
+            filter {
+                eq("id", jobId)
+                // Defense-in-depth: ensure caller is the actual rater for this job. RLS would also reject, but failing here makes a mis-role'd call throw locally.
+                when (role) {
+                    RatingRole.HospitalRatesEngineer -> eq("hospital_user_id", uid)
+                    RatingRole.EngineerRatesHospital -> eq("engineer_id", engineerRowId!!)
+                }
+            }
             select()
         }.decodeSingle<RepairJobDto>().toDomain()
     }
