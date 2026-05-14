@@ -156,6 +156,16 @@ class EngineerPublicProfileViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            // Fail fast on malformed deep-links (`/engineer/<garbage>`
+            // landed here with engineerId = "" before) — without this the
+            // RPC fetches a blank profile, which renders as "Couldn't
+            // load" with no signal that the deep link itself was bad.
+            if (engineerId.isBlank()) {
+                _state.update {
+                    it.copy(loading = false, error = "Couldn't open that engineer — the link looks invalid.")
+                }
+                return@launch
+            }
             // Dummy profiles are seed data for the directory's design
             // mocks. In release builds we never want a hardcoded entry to
             // mask a real backend failure during QA, so gate the lookup

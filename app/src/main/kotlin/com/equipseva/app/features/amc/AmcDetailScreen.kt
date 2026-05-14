@@ -119,6 +119,16 @@ class AmcDetailViewModel @Inject constructor(
     fun refresh() {
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
+            // Fail fast on malformed deep-links (`/amc/contract/<garbage>`
+            // landed here with contractId = "" before) — otherwise the
+            // screen renders a blank "no contract" view with no signal
+            // to the user that the route was bad.
+            if (contractId.isBlank()) {
+                _state.update {
+                    it.copy(loading = false, error = "Couldn't open that contract — the link looks invalid.")
+                }
+                return@launch
+            }
             val session = auth.sessionState
                 .filterIsInstance<AuthSession.SignedIn>()
                 .firstOrNull()
