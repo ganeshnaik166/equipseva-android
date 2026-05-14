@@ -223,6 +223,10 @@ serve(async (req) => {
   const auth = "Basic " + btoa(`${exotelKey}:${exotelToken}`);
   let exotelResp: Response;
   try {
+    // Cap Exotel wait at 10s — bridge connect typically lands in
+    // ~500ms but a hung upstream would otherwise tie up the function
+    // for the full 300s execution budget while the hospital stares
+    // at the connecting dialog.
     exotelResp = await fetch(exotelUrl, {
       method: "POST",
       headers: {
@@ -230,6 +234,7 @@ serve(async (req) => {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: form.toString(),
+      signal: AbortSignal.timeout(10_000),
     });
   } catch (e) {
     // Don't surface raw network/Exotel error text to the client — it can echo
