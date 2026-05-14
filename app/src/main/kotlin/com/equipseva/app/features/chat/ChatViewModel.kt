@@ -113,28 +113,43 @@ class ChatViewModel @Inject constructor(
     private var typingJob: Job? = null
 
     init {
-        viewModelScope.launch {
-            // Keep listening to the auth state instead of taking only the
-            // first emission. With the one-shot variant a slow / failing
-            // token refresh on cold start left the chat permanently stuck
-            // on loading=true; with continuous collection, a late
-            // SignedIn (e.g. token restores 6s after the screen opens)
-            // still wires up the conversation. Mirrors HomeHub/Profile.
-            //
-            // distinctUntilChangedBy keeps us from re-running setup on
-            // every transient session-token rotation; we only react when
-            // the user identity itself changes.
-            authRepository.sessionState
-                .filterIsInstance<AuthSession.SignedIn>()
-                .distinctUntilChangedBy { it.userId }
-                .collect { session ->
-                    messagesJob?.cancel()
-                    typingJob?.cancel()
-                    _state.update { it.copy(selfUserId = session.userId) }
-                    loadConversationMeta(session.userId)
-                    observeMessages(session.userId)
-                    observeTyping(session.userId)
-                }
+        // Mirrors PR #632 — a malformed deep-link like `/chat/` (path
+        // without a trailing conversation id) used to land here with a
+        // blank conversationId, fetch against `""`, and render a top-bar
+        // avatar fallback "?" + bare "Chat" title with no signal to the
+        // user that the link was bad. Skip the per-session observer
+        // setup entirely; surface a clear error state instead.
+        if (conversationId.isBlank()) {
+            _state.update {
+                it.copy(
+                    loading = false,
+                    errorMessage = "Couldn't open that conversation — the link looks invalid.",
+                )
+            }
+        } else {
+            viewModelScope.launch {
+                // Keep listening to the auth state instead of taking only the
+                // first emission. With the one-shot variant a slow / failing
+                // token refresh on cold start left the chat permanently stuck
+                // on loading=true; with continuous collection, a late
+                // SignedIn (e.g. token restores 6s after the screen opens)
+                // still wires up the conversation. Mirrors HomeHub/Profile.
+                //
+                // distinctUntilChangedBy keeps us from re-running setup on
+                // every transient session-token rotation; we only react when
+                // the user identity itself changes.
+                authRepository.sessionState
+                    .filterIsInstance<AuthSession.SignedIn>()
+                    .distinctUntilChangedBy { it.userId }
+                    .collect { session ->
+                        messagesJob?.cancel()
+                        typingJob?.cancel()
+                        _state.update { it.copy(selfUserId = session.userId) }
+                        loadConversationMeta(session.userId)
+                        observeMessages(session.userId)
+                        observeTyping(session.userId)
+                    }
+            }
         }
         outboxDao.observePendingCountByKind(OutboxKinds.CHAT_MESSAGE)
             .onEach { count -> _state.update { it.copy(queuedCount = count) } }

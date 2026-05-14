@@ -946,6 +946,21 @@ class RepairJobDetailViewModel @Inject constructor(
     private fun load() {
         _state.update { it.copy(loading = true, errorMessage = null, notFound = false) }
         viewModelScope.launch {
+            // Mirrors PR #632 — a malformed deep-link like
+            // `https://equipseva.com/job/` (with the trailing slash but no
+            // code) used to fetch against a blank id, hit fetchById's
+            // UUID-or-RPR-NNNNN branch with neither shape matching, and
+            // render a generic "couldn't load" screen. Surface a clear
+            // message so the user knows the link itself is bad.
+            if (jobId.isBlank()) {
+                _state.update {
+                    it.copy(
+                        loading = false,
+                        errorMessage = "Couldn't open that job — the link looks invalid.",
+                    )
+                }
+                return@launch
+            }
             val selfId = (authRepository.sessionState.firstOrNull() as? AuthSession.SignedIn)?.userId
             val selfEngineerRowId = selfId
                 ?.let { engineerRepository.fetchByUserId(it).getOrNull()?.id }
