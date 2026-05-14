@@ -4,8 +4,16 @@ object Validators {
 
     // Anchored — covers the 99% case without trying to be RFC 5322.
     // `%` is allowed in the local part per RFC for forwarding/plus-tag use.
+    // Domain side requires each label to start AND end with an alphanumeric
+    // (so `test@.com`, `test@-foo.com`, and `test@foo-.com` are rejected),
+    // plus a final TLD of at least two ASCII letters. The older regex
+    // (`[A-Za-z0-9.-]+\\.[A-Za-z]{2,}`) accepted leading-dot / leading-hyphen
+    // garbage that PostgreSQL then stored verbatim.
     private val EMAIL_REGEX = Regex(
-        "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$",
+        "^[A-Za-z0-9._%+-]+@" +
+            "[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?" +
+            "(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*" +
+            "\\.[A-Za-z]{2,}$",
     )
 
     fun emailIsValid(email: String): Boolean =
