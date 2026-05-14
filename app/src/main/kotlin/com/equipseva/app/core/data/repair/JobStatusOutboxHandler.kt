@@ -41,7 +41,18 @@ class JobStatusOutboxHandler @Inject constructor(
                 IllegalStateException("No auth session — deferring status update"),
             )
         val queuedUid = payload.actorUserId
-        if (queuedUid != null && queuedUid != currentUid) {
+        // Tighten the back-compat allowance: weeks after the owner gate
+        // landed, any null actor still in the queue is stale. Dropping
+        // (GiveUp) is safer than draining under whichever user happens
+        // to be signed in at the time — a sign-out → sign-in-as-someone-
+        // else cycle would otherwise let the new user complete the old
+        // user's job status flip.
+        if (queuedUid == null) {
+            return OutboxKindHandler.Outcome.GiveUp(
+                "Missing actorUserId on legacy payload — refusing to drain",
+            )
+        }
+        if (queuedUid != currentUid) {
             return OutboxKindHandler.Outcome.GiveUp(
                 "Actor mismatch: queued as $queuedUid, current auth is $currentUid",
             )
