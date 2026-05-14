@@ -1,9 +1,13 @@
 package com.equipseva.app.core.sync
 
+import android.Manifest
 import android.app.NotificationManager
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
@@ -86,6 +90,18 @@ class OutboxWorker @AssistedInject constructor(
     }
 
     private fun notifyPoisonDrop(kind: String) {
+        // POST_NOTIFICATIONS is a runtime permission on Android 13+
+        // (TIRAMISU). Without the grant, the post is silently dropped
+        // (best case) or throws SecurityException on some OEMs. The
+        // poison-drop alert is purely informational — if the user
+        // denied the perm, the queue's GiveUp already handled the
+        // failure; we just can't tell them about it.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(appContext, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
         val nm = appContext.getSystemService<NotificationManager>() ?: return
         val (title, body) = when (kind) {
             OutboxKinds.CHAT_MESSAGE -> "Couldn't send a chat message" to

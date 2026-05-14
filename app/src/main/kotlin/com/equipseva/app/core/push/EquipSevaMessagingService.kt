@@ -1,9 +1,13 @@
 package com.equipseva.app.core.push
 
+import android.Manifest
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import com.equipseva.app.MainActivity
 import com.equipseva.app.R
@@ -119,6 +123,18 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
             ("chat:$convoId").hashCode()
         } else {
             message.messageId.hashCode()
+        }
+        // POST_NOTIFICATIONS is a runtime permission on Android 13+
+        // (TIRAMISU). When the user denies it, NotificationManager.notify
+        // silently drops the post — but a SecurityException has been
+        // observed on some OEMs in field crash reports when the check
+        // is missing. Guard explicitly so the intent is recorded and
+        // we no-op gracefully instead of risking the surprise throw.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return
         }
         getSystemService<NotificationManager>()?.notify(notifyId, notification)
     }
