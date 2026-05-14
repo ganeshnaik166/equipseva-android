@@ -685,7 +685,11 @@ private fun KycBanner(status: VerificationStatus?, onClick: () -> Unit) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(bg)
-            .clickable(onClick = onClick)
+            .clickable(
+                onClickLabel = "Open KYC",
+                role = androidx.compose.ui.semantics.Role.Button,
+                onClick = onClick,
+            )
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -974,7 +978,7 @@ private fun RecommendedEngineerCard(
                 )
                 val parts = listOfNotNull(
                     row.city,
-                    row.distanceKm?.let { "${"%.1f".format(java.util.Locale.US, it)} km" },
+                    row.distanceKm?.let { "${"%.1f".format(java.util.Locale.ENGLISH, it)} km" },
                 )
                 if (parts.isNotEmpty()) {
                     Text(
