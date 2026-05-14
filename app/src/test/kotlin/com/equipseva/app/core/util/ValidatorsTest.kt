@@ -21,6 +21,16 @@ class ValidatorsTest {
         assertFalse(Validators.emailIsValid("user@x.c"))
     }
 
+    @Test fun `email rejects malformed domain label boundaries`() {
+        // Round 236 tightening: the old domain regex `[A-Za-z0-9.-]+\.[A-Za-z]{2,}`
+        // accepted leading-dot / leading-hyphen garbage that Postgres stored
+        // verbatim. The per-label shape now rejects each of these explicitly.
+        assertFalse(Validators.emailIsValid("user@.com"))
+        assertFalse(Validators.emailIsValid("user@-foo.com"))
+        assertFalse(Validators.emailIsValid("user@foo-.com"))
+        assertFalse(Validators.emailIsValid("user@foo..com"))
+    }
+
     @Test fun `password needs 8+ chars with letter and digit`() {
         assertTrue(Validators.passwordIsStrong("Password1"))
         assertTrue(Validators.passwordIsStrong("abcd1234"))
