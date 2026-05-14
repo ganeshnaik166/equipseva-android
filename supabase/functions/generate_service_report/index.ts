@@ -239,7 +239,7 @@ serve(async (req) => {
     .maybeSingle();
 
   if (jobErr || !job) {
-    if (jobErr) console.error("generate_service_report: job fetch failed", jobErr);
+    if (jobErr) console.error("generate_service_report: job fetch failed", jobErr.message);
     return bad("job_not_found", "missing or no access", 404);
   }
   if (job.status !== "completed") {
