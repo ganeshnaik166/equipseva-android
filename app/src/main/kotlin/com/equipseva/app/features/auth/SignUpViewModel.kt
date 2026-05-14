@@ -37,6 +37,7 @@ class SignUpViewModel @Inject constructor(
     ) {
         val canSubmit: Boolean get() = !form.submitting &&
             fullName.trim().length >= 2 &&
+            fullName.any { it.isLetter() } &&
             Validators.emailIsValid(email) &&
             Validators.passwordIsStrong(password) &&
             role != null
@@ -80,7 +81,14 @@ class SignUpViewModel @Inject constructor(
         val current = _state.value
         if (current.form.submitting) return
 
-        val fullNameError = if (current.fullName.trim().length >= 2) null else "Enter your full name"
+        val fullNameError = when {
+            current.fullName.trim().length < 2 -> "Enter your full name"
+            // Reject names with no actual letters (e.g. "@#$%" or pure
+            // emoji). Postgres stores them as-is on `full_name NOT NULL`
+            // and they surface as garbage in engineer-directory cards.
+            !current.fullName.any { it.isLetter() } -> "Enter a valid name (letters required)"
+            else -> null
+        }
         val emailError = if (Validators.emailIsValid(current.email)) null else "Enter a valid email"
         val passwordError = Validators.passwordWeakness(current.password)
         val role = current.role
