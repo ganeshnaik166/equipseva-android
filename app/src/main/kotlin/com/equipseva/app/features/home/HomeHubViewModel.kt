@@ -17,11 +17,14 @@ import com.equipseva.app.core.data.repair.RepairBidRepository
 import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.data.repair.RepairJobRepository
 import com.equipseva.app.core.data.repair.RepairJobStatus
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.fetchCurrentLocation
 import com.equipseva.app.features.auth.UserRole
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -95,6 +98,14 @@ class HomeHubViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
+
+    // One-shot toast/snackbar messages surfaced to the screen — failures
+    // on the two write paths (cash survey + spot audit) were swallowed
+    // silently before, leading the user to think the dialog had recorded
+    // their response when the RPC actually errored. Mirrors the pattern
+    // used in RepairJobDetailViewModel.
+    private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 4)
+    val messages: Flow<String> = _messages
 
     private var notifJob: Job? = null
     private var currentUserId: String? = null
@@ -310,7 +321,16 @@ class HomeHubViewModel @Inject constructor(
         val pending = _state.value.pendingCashSurvey ?: return
         viewModelScope.launch {
             cashSurveyRepository.submit(pending.repairJobId, response)
-            _state.update { it.copy(pendingCashSurvey = null) }
+                .onSuccess {
+                    _state.update { it.copy(pendingCashSurvey = null) }
+                }
+                .onFailure { error ->
+                    // RPC is idempotent on repair_job_id, so clear the
+                    // pending row regardless — the next foreground will
+                    // re-prompt if the server actually didn't persist.
+                    _state.update { it.copy(pendingCashSurvey = null) }
+                    _messages.emit(error.toUserMessage())
+                }
         }
     }
 
@@ -339,6 +359,7 @@ class HomeHubViewModel @Inject constructor(
                     // Keep the invitation pending and surface the error so
                     // the user can retry.
                     _state.update { it.copy(submittingSpotAudit = false) }
+                    _messages.emit(error.toUserMessage())
                 }
         }
     }

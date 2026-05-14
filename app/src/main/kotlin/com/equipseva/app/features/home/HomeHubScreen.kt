@@ -36,6 +36,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -101,6 +102,7 @@ fun HomeHubScreen(
     onOpenEarnings: () -> Unit = {},
     onOpenEngineerProfile: (engineerId: String) -> Unit = {},
     onOpenAmcContracts: () -> Unit = {},
+    onShowMessage: (String) -> Unit = {},
     viewModel: HomeHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -110,6 +112,13 @@ fun HomeHubScreen(
     // Skip the first ON_RESUME so the VM init refresh isn't doubled —
     // the hub is the cold-start landing screen for hospital users.
     com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.refreshNow() }
+
+    // Surface one-shot VM errors (cash survey + spot-audit submit
+    // failures) via the host snackbar. Without this, transient network
+    // failures clear the dialog with no signal to the user.
+    LaunchedEffect(viewModel) {
+        viewModel.messages.collect { onShowMessage(it) }
+    }
 
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(
