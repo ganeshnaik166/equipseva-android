@@ -108,6 +108,8 @@ fun EngineerActiveEscrowsScreen(
                         icon = Icons.Outlined.Inbox,
                         title = "Couldn't load",
                         subtitle = state.error,
+                        ctaLabel = "Try again",
+                        onCta = { viewModel.reload() },
                     )
                     state.rows.isEmpty() -> EmptyStateView(
                         icon = Icons.Outlined.Inbox,
