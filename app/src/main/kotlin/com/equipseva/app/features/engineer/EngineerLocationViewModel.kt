@@ -79,6 +79,18 @@ class EngineerLocationViewModel @Inject constructor(
     }
 
     fun onPick(latitude: Double, longitude: Double) {
+        // Reject obviously bad coordinates. A garbled GPS callback or
+        // a future hostile callsite could pass (1000, 1000) — server
+        // accepts it and the engineer ends up filtered to a phantom
+        // location. WGS84 ranges are tight; the EquipSeva PRD is
+        // India-only but we don't narrow to that — just block clearly
+        // invalid values.
+        if (latitude !in -90.0..90.0 || longitude !in -180.0..180.0 ||
+            latitude.isNaN() || longitude.isNaN()
+        ) {
+            _state.update { it.copy(errorMessage = "Couldn't read that location. Try again.") }
+            return
+        }
         _state.update {
             it.copy(
                 pickedLatitude = latitude,

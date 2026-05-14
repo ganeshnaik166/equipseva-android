@@ -1035,7 +1035,16 @@ class RepairJobDetailViewModel @Inject constructor(
         viewModelScope.launch {
             suspend fun signAll(paths: List<String>): List<String> = paths.mapNotNull { path ->
                 runCatching {
-                    storageRepository.signedUrl(StorageRepository.Buckets.REPAIR_PHOTOS, path)
+                    // 60-minute TTL. The default of 15 minutes expired
+                    // mid-session when a user scrolled away from the job
+                    // detail and came back later — Coil cache may have
+                    // evicted, requiring a refetch against an already-
+                    // expired URL. 60 min covers realistic dwell time.
+                    storageRepository.signedUrl(
+                        StorageRepository.Buckets.REPAIR_PHOTOS,
+                        path,
+                        expiresInMinutes = 60,
+                    )
                 }.getOrNull()
             }
             val after = signAll(job.afterPhotos)

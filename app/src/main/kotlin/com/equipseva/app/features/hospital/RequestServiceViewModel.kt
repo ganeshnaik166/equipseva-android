@@ -96,6 +96,18 @@ class RequestServiceViewModel @Inject constructor(
      * picker only emits non-null pairs.
      */
     fun onSiteCoordsChange(latitude: Double?, longitude: Double?) {
+        // Reject obviously bad coordinates. A garbled callback or a future
+        // hostile callsite could pass (1000, 1000) and the engineer-side
+        // distance filter would silently treat the job as unreachable.
+        // WGS84 ranges; NaN guard for the IEEE-754 edge.
+        val latOk = latitude == null ||
+            (latitude in -90.0..90.0 && !latitude.isNaN())
+        val lngOk = longitude == null ||
+            (longitude in -180.0..180.0 && !longitude.isNaN())
+        if (!latOk || !lngOk) {
+            _state.update { it.copy(siteLatitude = null, siteLongitude = null) }
+            return
+        }
         _state.update { it.copy(siteLatitude = latitude, siteLongitude = longitude) }
     }
     fun onIssueChange(value: String) = _state.update {
