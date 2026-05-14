@@ -213,6 +213,7 @@ fun RepairJobDetailScreen(
                     ownBid = state.ownBid,
                     viewerRole = state.viewerRole,
                     updatingStatus = state.updatingStatus,
+                    queuedStatusCount = state.queuedStatusCount,
                     pendingCostRevision = state.pendingCostRevision,
                     onPlaceBid = viewModel::openBidComposer,
                     onCheckIn = { checkinSheetOpen = true },
@@ -1716,6 +1717,7 @@ private fun StickyBottomBar(
     ownBid: RepairBid?,
     viewerRole: RepairJobDetailViewModel.ViewerRole,
     updatingStatus: Boolean,
+    queuedStatusCount: Int,
     pendingCostRevision: com.equipseva.app.core.data.repair.CostRevision?,
     onPlaceBid: () -> Unit,
     onCheckIn: () -> Unit,
@@ -1781,25 +1783,42 @@ private fun StickyBottomBar(
                 modifier = Modifier.weight(1f),
             )
             PrimaryCta.CheckIn -> EsBtn(
-                text = if (updatingStatus) "Working…" else "Check in on-site",
+                text = when {
+                    updatingStatus -> "Working…"
+                    queuedStatusCount > 0 -> "Queued — back online"
+                    else -> "Check in on-site"
+                },
                 onClick = onCheckIn,
                 kind = EsBtnKind.Primary,
                 full = true,
                 size = EsBtnSize.Lg,
-                disabled = updatingStatus,
+                // Also disable while a status flip is queued offline. The
+                // local job.status was optimistically updated when the
+                // queue happened, so the gate at transitionStatus would
+                // bounce a second tap, but the button itself shouldn't
+                // tempt the user. The label change tells them why.
+                disabled = updatingStatus || queuedStatusCount > 0,
                 modifier = Modifier.weight(1f),
             )
             PrimaryCta.MarkDone -> EsBtn(
-                text = if (updatingStatus) "Marking…" else "Mark done",
+                text = when {
+                    updatingStatus -> "Marking…"
+                    queuedStatusCount > 0 -> "Queued — back online"
+                    else -> "Mark done"
+                },
                 onClick = onMarkDone,
                 kind = EsBtnKind.Primary,
                 full = true,
                 size = EsBtnSize.Lg,
-                // Mirror CheckIn: a stray double-tap while the in-flight
-                // status flip is still resolving used to fire two
-                // 'Completed' RPC calls — server-side trigger rejects the
+                // Mirror CheckIn. Double-tap mid-flight used to fire two
+                // 'Completed' RPCs — server-side trigger rejected the
                 // second one but the user saw a spurious error toast.
-                disabled = updatingStatus,
+                // Also gate on queuedStatusCount: an offline tap
+                // optimistically flips local status, but the row is still
+                // pending drain; a second tap before drain would queue
+                // another row that the server-side state-machine guard
+                // would later reject.
+                disabled = updatingStatus || queuedStatusCount > 0,
                 modifier = Modifier.weight(1f),
             )
             PrimaryCta.Rate -> EsBtn(
