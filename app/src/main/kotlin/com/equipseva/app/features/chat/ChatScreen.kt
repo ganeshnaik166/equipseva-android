@@ -688,10 +688,15 @@ private fun EditMessageBar(
 
 // Pin Locale.ENGLISH so "h:mm a" stays "2:30 PM" (not Devanagari AM/PM)
 // and "dd MMM" stays "11 May" regardless of the device locale.
+// Pin Asia/Kolkata zone too — EquipSeva is India-only (PRD locked), and
+// systemDefault() reads from the device, so an Indian user travelling
+// abroad would see times in the destination timezone. Mirrors the
+// NotificationsScreen IST override added in round 234.
+private val IST_ZONE: ZoneId = ZoneId.of("Asia/Kolkata")
 private val timeFormatter = DateTimeFormatter.ofPattern("h:mm a", java.util.Locale.ENGLISH)
-    .withZone(ZoneId.systemDefault())
+    .withZone(IST_ZONE)
 private val dayHeaderFormatter = DateTimeFormatter.ofPattern("dd MMM", java.util.Locale.ENGLISH)
-    .withZone(ZoneId.systemDefault())
+    .withZone(IST_ZONE)
 
 private fun formatTime(iso: String?): String? =
     iso?.let { runCatching { timeFormatter.format(Instant.parse(it)) }.getOrNull() }
@@ -701,18 +706,18 @@ private fun formatTime(iso: String?): String? =
 // short-circuits on a blank label so unparseable buckets render no header.
 private fun dayKey(iso: String?): String =
     iso?.let {
-        runCatching { Instant.parse(it).atZone(ZoneId.systemDefault()).toLocalDate().toString() }
+        runCatching { Instant.parse(it).atZone(IST_ZONE).toLocalDate().toString() }
             .getOrNull()
     } ?: "unknown"
 
 private fun dayLabel(key: String): String {
     if (key == "unknown") return ""
     val date = runCatching { LocalDate.parse(key) }.getOrNull() ?: return ""
-    val today = LocalDate.now()
+    val today = LocalDate.now(IST_ZONE)
     return when (date) {
         today -> "Today"
         today.minusDays(1) -> "Yesterday"
-        else -> dayHeaderFormatter.format(date.atStartOfDay(ZoneId.systemDefault()).toInstant())
+        else -> dayHeaderFormatter.format(date.atStartOfDay(IST_ZONE).toInstant())
     }
 }
 

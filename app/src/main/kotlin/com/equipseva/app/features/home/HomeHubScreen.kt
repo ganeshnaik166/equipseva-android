@@ -388,7 +388,10 @@ private fun SpotAuditSheetBody(
                             com.equipseva.app.designsystem.theme.SevaWarning500,
                             androidx.compose.foundation.shape.CircleShape,
                         )
-                        .clickable { rating = star }
+                        .clickable(
+                            onClickLabel = "Rate $star out of 5",
+                            role = androidx.compose.ui.semantics.Role.Button,
+                        ) { rating = star }
                         .padding(8.dp),
                     contentAlignment = Alignment.Center,
                 ) {
