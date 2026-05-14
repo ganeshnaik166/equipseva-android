@@ -88,6 +88,7 @@ serve(async (req) => {
   const amountPaise = Math.round(amountRupees * 100);
 
   const auth = "Basic " + btoa(`${rzpKeyId}:${rzpSecret}`);
+  // Cap Razorpay wait at 15s — see comment in create-amc-payment-order.
   const rzpRes = await fetch("https://api.razorpay.com/v1/orders", {
     method: "POST",
     headers: { "content-type": "application/json", authorization: auth },
@@ -105,6 +106,7 @@ serve(async (req) => {
         hospital_user_id: userId,
       },
     }),
+    signal: AbortSignal.timeout(15_000),
   });
   const rzpBody = await rzpRes.text();
   if (!rzpRes.ok) {

@@ -162,6 +162,10 @@ serve(async (req) => {
   // context that ops can trace any disputed payment back to a
   // contract + hospital without joining tables.
   const auth = "Basic " + btoa(`${rzpKeyId}:${rzpSecret}`);
+  // Razorpay's /orders endpoint usually responds in ~200ms but has
+  // tail latency spikes; cap the wait at 15s so a hung upstream
+  // doesn't starve the function's 300s execution budget (and the
+  // client's already-displayed spinner).
   const rzpRes = await fetch("https://api.razorpay.com/v1/orders", {
     method: "POST",
     headers: { "content-type": "application/json", authorization: auth },
@@ -177,6 +181,7 @@ serve(async (req) => {
         months: String(months),
       },
     }),
+    signal: AbortSignal.timeout(15_000),
   });
   const rzpBody = await rzpRes.text();
   if (!rzpRes.ok) {
