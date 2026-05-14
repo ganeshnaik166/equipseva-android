@@ -827,6 +827,12 @@ private fun ProfileHero(
                     AsyncImage(
                         model = avatarUrl,
                         contentDescription = null,
+                        // Non-square sources (e.g. a tall portrait the
+                        // user uploaded) would otherwise letterbox inside
+                        // the 56dp circle, wasting decoded-Bitmap memory
+                        // and showing a thin ring of background. Crop
+                        // fills the circle while Coil scales down to fit.
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                         modifier = Modifier
                             .size(56.dp)
                             .clip(CircleShape),
