@@ -56,7 +56,10 @@ class AddressRepository @Inject constructor(
         } else {
             client.postgrest.from("user_addresses")
                 .update(withOwner) {
-                    filter { eq("id", address.id) }
+                    filter {
+                        eq("id", address.id)
+                        eq("user_id", uid)
+                    }
                     select()
                 }
                 .decodeSingle<UserAddress>()

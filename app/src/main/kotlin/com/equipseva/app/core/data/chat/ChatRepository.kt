@@ -122,7 +122,18 @@ class ChatRepository @Inject constructor(
                 // and let the trigger/default handle ordering.
                 dto.createdAt?.let { set("last_message_at", it) }
             }) {
-                filter { eq("id", conversationId) }
+                // Defense-in-depth: pair the conversation-id filter with a
+                // participant check so a stolen/forged client write can't
+                // touch the last_message preview on a conversation the
+                // caller isn't actually in. RLS already gates this at the
+                // server, but layering the participant_user_ids contains()
+                // check means a column-grants regression wouldn't expose
+                // arbitrary previews. Mirrors the read-side filter used in
+                // fetchConversationsFor().
+                filter {
+                    eq("id", conversationId)
+                    contains("participant_user_ids", listOf(senderUserId))
+                }
             }
         }
 

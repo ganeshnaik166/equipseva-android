@@ -307,6 +307,7 @@ fun MainNavGraph(
                         navController.navigate(Routes.engineerPublicProfileRoute(id))
                     },
                     onOpenAmcContracts = { navController.navigate(Routes.AMC_CONTRACTS_LIST) },
+                    onShowMessage = showSnackbar,
                 )
             }
             composable(Routes.REPAIR) {
