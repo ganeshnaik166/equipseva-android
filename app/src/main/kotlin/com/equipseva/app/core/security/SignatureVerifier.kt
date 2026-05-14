@@ -71,7 +71,14 @@ object SignatureVerifier {
             } else {
                 signingInfo.signingCertificateHistory
             }
-            signers.first().toByteArray()
+            // OEM-stripped ROMs have shipped signingInfo with an empty
+            // signers array on edge-case devices; throwing here keeps the
+            // caller's runCatching wrapper to drop into Verdict.Unknown
+            // instead of an uncaught NoSuchElementException at startup.
+            // Mirrors the same `firstOrNull() ?: error(...)` shape used
+            // by the legacy (DEPRECATED) branch below.
+            (signers.firstOrNull()
+                ?: error("apkContentsSigners is empty")).toByteArray()
         } else {
             @Suppress("DEPRECATION")
             val info = pm.getPackageInfo(
