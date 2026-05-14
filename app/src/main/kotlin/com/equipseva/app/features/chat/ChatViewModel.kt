@@ -336,9 +336,13 @@ class ChatViewModel @Inject constructor(
                         // saw a top-bar avatar fallback "?" + bare "Chat"
                         // title forever and had no signal that anything
                         // had gone wrong. Surface so they at least know
-                        // to retry / report.
+                        // to retry / report. Clear loading too so the
+                        // screen exits the spinner state once we've
+                        // committed to showing an error.
                         .onFailure { err ->
-                            _state.update { it.copy(errorMessage = err.toUserMessage()) }
+                            _state.update {
+                                it.copy(loading = false, errorMessage = err.toUserMessage())
+                            }
                         }
                 }
                 val jobId = convo
@@ -363,7 +367,11 @@ class ChatViewModel @Inject constructor(
                 viewModelScope.launch { chatRepository.markConversationRead(conversationId, selfUserId) }
             }
             .onFailure { error ->
-                _state.update { it.copy(errorMessage = error.toUserMessage()) }
+                // Clear loading along with the error — otherwise the
+                // top-bar avatar spinner stays spinning even after the
+                // user sees the error banner. Same fix as the inner
+                // counterpart-fetch failure path above.
+                _state.update { it.copy(loading = false, errorMessage = error.toUserMessage()) }
             }
     }
 
