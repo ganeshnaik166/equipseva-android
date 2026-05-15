@@ -34,6 +34,13 @@ object NotificationDeepLink {
     private val UUID_REGEX =
         Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
+    // Human-readable repair-job code (RPR-NNNNN). Server may emit either
+    // the UUID `id` or the public `job_number` for `repair_job_id`
+    // payloads (PR #651 made the repository accept both for fetchById).
+    // Match DeepLinkRouter.JOB_ID_REGEX so push + https deep links treat
+    // the same id formats consistently.
+    private val JOB_CODE_REGEX = Regex("^RPR-\\d{1,8}$", RegexOption.IGNORE_CASE)
+
     /**
      * Resolve a route for the given push payload.
      *
@@ -66,7 +73,7 @@ object NotificationDeepLink {
             // destination (job detail surfaces the warranty banner).
             KIND_WARRANTY_COVERED,
             KIND_WARRANTY_FEE_WAIVED ->
-                data["repair_job_id"]?.takeIfUuid()?.let(Routes::repairJobDetailRoute)
+                data["repair_job_id"]?.takeIfJobIdRoutable()?.let(Routes::repairJobDetailRoute)
             // KYC is a single-user screen — no id needed in payload, just open it.
             KIND_KYC_STATUS_CHANGED -> Routes.KYC
             // PR-D8: loyal hospital→engineer pair AMC upsell. Deep-links
@@ -104,7 +111,7 @@ object NotificationDeepLink {
             // dispute. Same destination — the EscrowStatusCard reflects
             // the resolved status (released | refunded) inline.
             KIND_ESCROW_DISPUTE_RESOLVED ->
-                data["repair_job_id"]?.takeIfUuid()?.let(Routes::repairJobDetailRoute)
+                data["repair_job_id"]?.takeIfJobIdRoutable()?.let(Routes::repairJobDetailRoute)
             // PR-C4: AMC SLA breach. Server payload carries the AMC
             // contract id; route to the contract detail where the SLA
             // tab renders the breach inline.
@@ -117,7 +124,7 @@ object NotificationDeepLink {
             KIND_AMC_VISIT_ASSIGNED,
             KIND_AMC_VISIT_ENGINEER_ASSIGNED,
             KIND_AMC_VISIT_ENGINEER_CHANGED ->
-                data["repair_job_id"]?.takeIfUuid()?.let(Routes::repairJobDetailRoute)
+                data["repair_job_id"]?.takeIfJobIdRoutable()?.let(Routes::repairJobDetailRoute)
             // PR-C5: rotation exhausted, awaiting admin re-assignment.
             // Admins land on the escalations queue; non-admins see
             // contract detail.
@@ -129,6 +136,10 @@ object NotificationDeepLink {
 
     private fun String.takeIfUuid(): String? =
         takeIf { UUID_REGEX.matches(it) }
+
+    /** Accept either UUID `id` or RPR-NNNNN `job_number` per PR #651. */
+    private fun String.takeIfJobIdRoutable(): String? =
+        takeIf { UUID_REGEX.matches(it) || JOB_CODE_REGEX.matches(it) }
 
     // Kind constants — exposed so the messaging service / inbox tests can
     // reference them by name rather than by string literal.
