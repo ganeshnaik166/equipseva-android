@@ -6,24 +6,27 @@ import org.junit.Test
 
 class DeepLinkRouterTest {
 
+    private val sampleUuid = "11111111-2222-3333-4444-555555555555"
+    private val otherUuid = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+
     @Test fun `null scheme or wrong scheme returns null`() {
-        assertNull(DeepLinkRouter.routeForParts(null, "equipseva.com", listOf("job", "abc")))
-        assertNull(DeepLinkRouter.routeForParts("http", "equipseva.com", listOf("job", "abc")))
+        assertNull(DeepLinkRouter.routeForParts(null, "equipseva.com", listOf("job", "RPR-1")))
+        assertNull(DeepLinkRouter.routeForParts("http", "equipseva.com", listOf("job", "RPR-1")))
     }
 
     @Test fun `unknown host returns null`() {
-        assertNull(DeepLinkRouter.routeForParts("https", "evil.com", listOf("job", "abc")))
-        assertNull(DeepLinkRouter.routeForParts("https", null, listOf("job", "abc")))
+        assertNull(DeepLinkRouter.routeForParts("https", "evil.com", listOf("job", "RPR-1")))
+        assertNull(DeepLinkRouter.routeForParts("https", null, listOf("job", "RPR-1")))
     }
 
     @Test fun `both equipseva hosts are accepted`() {
         assertEquals(
-            Routes.repairJobDetailRoute("abc"),
-            DeepLinkRouter.routeForParts("https", "equipseva.com", listOf("job", "abc")),
+            Routes.repairJobDetailRoute("RPR-1"),
+            DeepLinkRouter.routeForParts("https", "equipseva.com", listOf("job", "RPR-1")),
         )
         assertEquals(
-            Routes.repairJobDetailRoute("abc"),
-            DeepLinkRouter.routeForParts("https", "www.equipseva.com", listOf("job", "abc")),
+            Routes.repairJobDetailRoute("RPR-1"),
+            DeepLinkRouter.routeForParts("https", "www.equipseva.com", listOf("job", "RPR-1")),
         )
     }
 
@@ -33,12 +36,12 @@ class DeepLinkRouterTest {
             DeepLinkRouter.routeForParts("https", "equipseva.com", listOf("job", "RPR-1")),
         )
         assertEquals(
-            Routes.chatRoute("conv-1"),
-            DeepLinkRouter.routeForParts("https", "equipseva.com", listOf("chat", "conv-1")),
+            Routes.chatRoute(sampleUuid),
+            DeepLinkRouter.routeForParts("https", "equipseva.com", listOf("chat", sampleUuid)),
         )
         assertEquals(
-            Routes.engineerPublicProfileRoute("eng-1"),
-            DeepLinkRouter.routeForParts("https", "equipseva.com", listOf("engineer", "eng-1")),
+            Routes.engineerPublicProfileRoute(otherUuid),
+            DeepLinkRouter.routeForParts("https", "equipseva.com", listOf("engineer", otherUuid)),
         )
     }
 
