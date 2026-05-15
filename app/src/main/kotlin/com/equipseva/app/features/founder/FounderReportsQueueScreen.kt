@@ -22,6 +22,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
@@ -219,7 +220,10 @@ private fun ReportRow(
         // Dismissed + Reviewed are lower-stakes (queue housekeeping)
         // and don't need a confirm. acting flag protects against
         // double-tap during the in-flight RPC.
-        var confirmStatus by remember { mutableStateOf<String?>(null) }
+        // rememberSaveable so a rotation / font-scale change with the
+        // confirm dialog open doesn't silently dismiss it and lose the
+        // founder's "are you sure" state.
+        var confirmStatus by rememberSaveable { mutableStateOf<String?>(null) }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(modifier = Modifier.weight(1f)) {
                 EsBtn(

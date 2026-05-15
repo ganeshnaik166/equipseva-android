@@ -25,6 +25,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,9 +69,14 @@ fun ChangePasswordScreen(
         }
     }
 
-    var showCurrent by remember { mutableStateOf(false) }
-    var showNew by remember { mutableStateOf(false) }
-    var showConfirm by remember { mutableStateOf(false) }
+    // rememberSaveable so the show/hide toggle survives rotation /
+    // font-scale change / process death. Otherwise typing a password,
+    // toggling visibility, then rotating the device snaps the field
+    // back to dots — surprising and easy to misread as a password
+    // truncation.
+    var showCurrent by rememberSaveable { mutableStateOf(false) }
+    var showNew by rememberSaveable { mutableStateOf(false) }
+    var showConfirm by rememberSaveable { mutableStateOf(false) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Box(modifier = Modifier.fillMaxSize()) {
