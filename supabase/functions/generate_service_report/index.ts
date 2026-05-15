@@ -298,7 +298,7 @@ serve(async (req) => {
       contentType: "text/html",
     });
   if (upload.error) {
-    console.error("generate_service_report: upload failed", upload.error);
+    console.error("generate_service_report: upload failed", upload.error?.message ?? "unknown");
     return bad("server_error", "report upload failed", 500);
   }
 
@@ -307,7 +307,7 @@ serve(async (req) => {
     .createSignedUrl(path, 60 * 60 * 24 * 30);
 
   if (signErr || !signed?.signedUrl) {
-    console.error("generate_service_report: sign failed", signErr);
+    console.error("generate_service_report: sign failed", signErr?.message ?? "unknown");
     return bad("server_error", "report sign failed", 500);
   }
 

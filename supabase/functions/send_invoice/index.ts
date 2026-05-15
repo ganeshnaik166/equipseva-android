@@ -269,9 +269,18 @@ serve(async (req) => {
         signal: AbortSignal.timeout(12_000),
       });
       emailSent = r.ok;
-      if (!r.ok) emailError = await r.text();
+      if (!r.ok) {
+        // Log the raw provider response for ops debugging, but
+        // don't echo it to the client — Resend returns request-ids
+        // and account-level error codes we don't want exposed.
+        const body = await r.text();
+        console.error("send_invoice: resend non-2xx", r.status, body.slice(0, 400));
+        emailError = "email_delivery_failed";
+      }
     } catch (e) {
-      emailError = String(e);
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("send_invoice: resend threw", msg);
+      emailError = "email_delivery_failed";
     }
   }
 

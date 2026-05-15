@@ -323,7 +323,8 @@ serve(async (req) => {
     });
   if (auditErr) {
     // Log but don't fail the call — the verdict itself is still useful.
-    console.error("device_integrity_checks insert failed", auditErr);
+    // Strip the full PostgrestError so PG error detail/hint don't leak schema.
+    console.error("device_integrity_checks insert failed", auditErr?.message ?? "unknown");
   }
 
   if (googleErr) {
