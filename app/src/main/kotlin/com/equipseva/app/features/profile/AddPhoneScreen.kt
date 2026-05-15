@@ -170,6 +170,12 @@ fun AddPhoneScreen(
                     fontSize = 13.sp,
                     color = SevaInk500,
                 )
+                // Surface a hint while the user is mid-typing so the
+                // greyed-out Save button isn't a mystery. supportingText
+                // priorities: server / save error > length-hint > silent.
+                val lengthHint = if (state.error == null && state.phone.length in 4..10) {
+                    "Enter 10 digits after +91"
+                } else null
                 OutlinedTextField(
                     value = state.phone,
                     onValueChange = viewModel::onPhoneChange,
@@ -177,7 +183,7 @@ fun AddPhoneScreen(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     isError = state.error != null,
-                    supportingText = state.error?.let { { Text(it) } },
+                    supportingText = (state.error ?: lengthHint)?.let { { Text(it) } },
                     enabled = !state.saving,
                     modifier = Modifier.fillMaxWidth(),
                 )

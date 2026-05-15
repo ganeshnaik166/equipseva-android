@@ -123,7 +123,14 @@ class ConversationsViewModel @Inject constructor(
                 chatRepository.refreshConversations(userId)
             }
             _state.update { current ->
-                val err = outcome?.exceptionOrNull()?.toUserMessage()
+                // outcome == null means the 3s timeout fired before the
+                // network call returned. Without this branch the spinner
+                // silently vanished and the user saw no feedback — was
+                // the refresh successful, or did it stall?
+                val err = when {
+                    outcome == null -> "Refresh timed out. Pull down again to retry."
+                    else -> outcome.exceptionOrNull()?.toUserMessage()
+                }
                 current.copy(
                     refreshing = false,
                     errorMessage = err ?: current.errorMessage,
