@@ -409,7 +409,12 @@ private fun ProfileContent(
             displayName = profile.displayName,
             email = profile.email,
             avatarUrl = profile.avatarUrl,
-            role = profile.role,
+            // Mirror PR #650 — the hero pill + KYC chip key off the
+            // role passed in, so use displayedRole instead of the
+            // scalar so a hospital admin auto-seeded as ENGINEER
+            // doesn't see an engineer pill + "Start" KYC chip on the
+            // hero while the rest of Profile renders hospital.
+            role = displayedRole,
             engineerStatus = state.engineerStatus,
             engineerKycSubmitted = state.engineerKycSubmitted,
             avatarUploading = state.avatarUploading,
