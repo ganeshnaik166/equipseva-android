@@ -54,7 +54,13 @@ class EquipSevaApplication : Application(), Configuration.Provider {
         // SDK's checkout activity but never cleared because the OS
         // killed our process mid-flow. Fire-and-forget; the reconciler
         // swallows network errors and retries on next cold-start.
-        appScope.launch { pendingPaymentsReconciler.reconcile() }
+        // Round 237 — wrap in runCatching so an unexpected throw from
+        // the reconciler can't kill the appScope's SupervisorJob root
+        // and block downstream coroutines launched on the same scope.
+        appScope.launch {
+            runCatching { pendingPaymentsReconciler.reconcile() }
+                .onFailure { Log.e(TAG, "pending payments reconcile failed", it) }
+        }
 
         // Anti-tamper signature check. Stays report-only until the user
         // sets BuildConfig.TAMPER_ENFORCE=true (after both upload-key and
