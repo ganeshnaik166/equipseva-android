@@ -1,6 +1,7 @@
 package com.equipseva.app.core.data.chat
 
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
@@ -300,11 +301,21 @@ class ChatRepository @Inject constructor(
             limit(count = 1)
         }.decodeList<MessageDto>().firstOrNull()
 
+        // Defense-in-depth: pair the conversation-id filter with the
+        // current user's participant check (mirrors sendMessage above).
+        // If the caller isn't signed in, skip the write — recompute is
+        // a best-effort preview cleanup and the next message will
+        // refresh it. Without this, a column-grants regression would
+        // let any signed-in caller clobber any conversation's preview.
+        val callerUid = client.auth.currentUserOrNull()?.id ?: return@runCatching
         client.from(CONVERSATIONS_TABLE).update({
             set("last_message", latest?.message)
             set("last_message_at", latest?.createdAt)
         }) {
-            filter { eq("id", conversationId) }
+            filter {
+                eq("id", conversationId)
+                contains("participant_user_ids", listOf(callerUid))
+            }
         }
         Unit
     }
