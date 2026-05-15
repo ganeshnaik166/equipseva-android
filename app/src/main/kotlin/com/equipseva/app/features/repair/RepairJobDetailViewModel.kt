@@ -539,9 +539,14 @@ class RepairJobDetailViewModel @Inject constructor(
                 _messages.emit("Sign in to check in.")
                 return@launch
             }
-            photos.forEachIndexed { index, photo ->
+            photos.forEach { photo ->
                 runCatching {
-                    val storedName = "before-${System.currentTimeMillis()}-$index-${photo.fileName.take(40).replace(Regex("[^A-Za-z0-9._-]"), "_")}"
+                    // UUID instead of array index — two photos picked in
+                    // the same millisecond on a fast queue would have
+                    // collided on `before-<ts>-0-...` and silently
+                    // overwritten in the bucket. UUID makes the path
+                    // unique even on storms.
+                    val storedName = "before-${System.currentTimeMillis()}-${java.util.UUID.randomUUID()}-${photo.fileName.take(40).replace(Regex("[^A-Za-z0-9._-]"), "_")}"
                     val objectPath = "$uid/${job.id}/$storedName"
                     photoUploadStash.enqueue(
                         bucket = StorageRepository.Buckets.REPAIR_PHOTOS,
@@ -751,9 +756,11 @@ class RepairJobDetailViewModel @Inject constructor(
             }
             // Enqueue each photo. Failures here are non-fatal — we still flip
             // the status; user can re-add photos on the Completed view later.
-            photos.forEachIndexed { index, photo ->
+            photos.forEach { photo ->
                 runCatching {
-                    val storedName = "after-${System.currentTimeMillis()}-$index-${photo.fileName.take(40).replace(Regex("[^A-Za-z0-9._-]"), "_")}"
+                    // UUID rather than array index for path uniqueness on
+                    // same-millisecond bursts (see before-photos block).
+                    val storedName = "after-${System.currentTimeMillis()}-${java.util.UUID.randomUUID()}-${photo.fileName.take(40).replace(Regex("[^A-Za-z0-9._-]"), "_")}"
                     val objectPath = "$uid/${job.id}/$storedName"
                     photoUploadStash.enqueue(
                         bucket = StorageRepository.Buckets.REPAIR_PHOTOS,
