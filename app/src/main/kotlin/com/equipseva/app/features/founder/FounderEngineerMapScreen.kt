@@ -22,6 +22,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.Spacer
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.PaperDefault
@@ -117,6 +119,10 @@ fun FounderEngineerMapScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(state.error!!, color = MaterialTheme.colorScheme.error)
+                    Spacer(modifier = Modifier.size(12.dp))
+                    TextButton(onClick = { viewModel.refresh() }) {
+                        Text("Retry")
+                    }
                 }
                 state.rows.isEmpty() -> Column(
                     modifier = Modifier.fillMaxSize().padding(16.dp),
