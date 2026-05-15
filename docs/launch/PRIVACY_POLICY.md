@@ -10,7 +10,7 @@ redirect_from:
 # Privacy Policy — EquipSeva
 
 **Effective:** 2026-04-25
-**Last updated:** 2026-04-25
+**Last updated:** 2026-05-15
 
 EquipSeva ("we", "us", "our") operates the EquipSeva mobile application ("App"), a marketplace connecting hospitals, biomedical engineers, suppliers, manufacturers, and logistics partners for hospital equipment, spare parts, and repair services in India. This policy explains what we collect, why, with whom we share it, and the rights you have under the Digital Personal Data Protection Act, 2023 ("DPDP Act").
 
@@ -102,6 +102,8 @@ We use these processors. Each is bound by a data-processing agreement:
 |---|---|---|
 | **Supabase** (Postgres DB, Auth, Storage, Realtime, Edge Functions) | All app data + KYC document blobs | AWS Mumbai region (ap-south-1) |
 | **Razorpay** | Payment transactions only | India |
+| **Exotel** | Phone numbers (yours + counterparty's) when you place a masked in-app call; call duration metadata. Used so neither party sees the other's real number. | India |
+| **Resend** | Email address + invoice PDF link, when an invoice is emailed to you | EU / US region |
 | **Firebase Cloud Messaging** | FCM token + push payload | Google global infrastructure |
 | **Firebase Crashlytics** | Crash stack traces (no PII) | Google global infrastructure |
 | **Firebase Analytics** | Anonymised events | Google global infrastructure |
