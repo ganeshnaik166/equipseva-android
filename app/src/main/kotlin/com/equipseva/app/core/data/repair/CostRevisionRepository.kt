@@ -11,7 +11,9 @@ import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -31,6 +33,13 @@ import kotlinx.serialization.json.buildJsonObject
 class CostRevisionRepository @Inject constructor(
     private val client: SupabaseClient,
 ) {
+
+    // Singleton-lifetime scope so the realtime removeChannel call
+    // survives the callbackFlow cancellation that triggers awaitClose.
+    // Without this, the channel persists on the singleton supabase
+    // client until websocket reconnect / process death. Mirrors
+    // ChatRepository.cleanupScope from PR #637.
+    private val cleanupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /** Engineer-only. Server enforces side-identity + status gates. */
     suspend fun propose(
@@ -109,7 +118,7 @@ class CostRevisionRepository @Inject constructor(
         ch.subscribe()
         awaitClose {
             job.cancel()
-            launch { client.realtime.removeChannel(ch) }
+            cleanupScope.launch { client.realtime.removeChannel(ch) }
         }
     }.flowOn(Dispatchers.IO)
 
