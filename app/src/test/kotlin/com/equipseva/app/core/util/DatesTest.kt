@@ -37,4 +37,19 @@ class DatesTest {
         // First 16 chars with T -> space.
         assertEquals("malformed-input-", prettyDateTime("malformed-input-"))
     }
+
+    // Regression guard for PR #672 — formatters must be pinned to
+    // Asia/Kolkata regardless of where the test (or production device)
+    // runs. The previous `ZoneId.systemDefault()` made these strings
+    // wander by 5h30 on UTC servers / hosts, so we pick a UTC
+    // timestamp that crosses the IST midnight boundary.
+    @Test fun `prettyDate renders Asia Kolkata day for late-UTC instant`() {
+        // 2026-05-10T22:30:00Z = 2026-05-11T04:00:00 in IST.
+        assertEquals("11 May 2026", prettyDate("2026-05-10T22:30:00Z"))
+    }
+
+    @Test fun `prettyDateTime renders Asia Kolkata clock for late-UTC instant`() {
+        // Same instant — IST clock reads 04:00 not 22:30.
+        assertEquals("11 May 2026, 04:00", prettyDateTime("2026-05-10T22:30:00Z"))
+    }
 }
