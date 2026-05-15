@@ -104,4 +104,69 @@ class NotificationDeepLinkTest {
         )
         assertEquals(Routes.KYC, route)
     }
+
+    @Test
+    fun `repair_job_id accepts RPR-NNNNN job_number per PR 651`() {
+        // Server triggers may emit the public job_number rather than the
+        // UUID id. PR #651 made fetchById accept both; the deep-link
+        // resolver should too so the push doesn't fall through to inbox.
+        val route = NotificationDeepLink.routeFor(
+            kind = NotificationDeepLink.KIND_REPAIR_BID_NEW,
+            data = mapOf("repair_job_id" to "RPR-00027"),
+        )
+        assertEquals(Routes.repairJobDetailRoute("RPR-00027"), route)
+    }
+
+    @Test
+    fun `repair_job_id RPR code is case-insensitive`() {
+        val route = NotificationDeepLink.routeFor(
+            kind = NotificationDeepLink.KIND_ESCROW_DISPUTE_OPENED,
+            data = mapOf("repair_job_id" to "rpr-00001"),
+        )
+        assertEquals(Routes.repairJobDetailRoute("rpr-00001"), route)
+    }
+
+    @Test
+    fun `malformed repair_job_id still falls through to inbox`() {
+        // Anything that isn't UUID OR RPR-NNNNN should reject so a
+        // junk payload from a future migration can't push the user to
+        // a 404 route.
+        assertNull(
+            NotificationDeepLink.routeFor(
+                kind = NotificationDeepLink.KIND_REPAIR_BID_NEW,
+                data = mapOf("repair_job_id" to "not-a-job-id"),
+            ),
+        )
+        assertNull(
+            NotificationDeepLink.routeFor(
+                kind = NotificationDeepLink.KIND_REPAIR_BID_NEW,
+                data = mapOf("repair_job_id" to "RPR-"),
+            ),
+        )
+        assertNull(
+            NotificationDeepLink.routeFor(
+                kind = NotificationDeepLink.KIND_REPAIR_BID_NEW,
+                data = mapOf("repair_job_id" to "RPR-123456789"),
+            ),
+        )
+    }
+
+    @Test
+    fun `engineer_id and amc_contract_id remain UUID-only`() {
+        // Only repair_jobs has a public RPR-NNNNN code; the engineer
+        // and AMC contract tables don't, so those id slots stay
+        // UUID-only.
+        assertNull(
+            NotificationDeepLink.routeFor(
+                kind = NotificationDeepLink.KIND_AMC_LOYAL_PAIR_NUDGE,
+                data = mapOf("engineer_id" to "RPR-00027"),
+            ),
+        )
+        assertNull(
+            NotificationDeepLink.routeFor(
+                kind = NotificationDeepLink.KIND_AMC_SLA_BREACH,
+                data = mapOf("amc_contract_id" to "RPR-00027"),
+            ),
+        )
+    }
 }
