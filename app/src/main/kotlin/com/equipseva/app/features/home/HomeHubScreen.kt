@@ -515,7 +515,11 @@ private fun SlaCreditsCard(
             .clip(RoundedCornerShape(12.dp))
             .background(com.equipseva.app.designsystem.theme.SevaGreen50)
             .border(1.dp, com.equipseva.app.designsystem.theme.SevaGreen700, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .clickable(
+                onClickLabel = "View SLA breaches",
+                role = androidx.compose.ui.semantics.Role.Button,
+                onClick = onClick,
+            )
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -577,7 +581,11 @@ private fun HomeTopBar(onNotifications: () -> Unit, hasUnread: Boolean) {
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
-                .clickable(onClick = onNotifications),
+                .clickable(
+                    onClickLabel = "Open notifications",
+                    role = androidx.compose.ui.semantics.Role.Button,
+                    onClick = onNotifications,
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -716,7 +724,11 @@ private fun PhoneMissingBanner(onClick: () -> Unit) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(SevaWarning50)
-            .clickable(onClick = onClick)
+            .clickable(
+                onClickLabel = "Add your phone number",
+                role = androidx.compose.ui.semantics.Role.Button,
+                onClick = onClick,
+            )
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
