@@ -63,15 +63,19 @@
     @android.webkit.JavascriptInterface <methods>;
 }
 
-# Strip non-error log statements in release. Log.e is preserved so genuine errors still
-# surface. println / System.out paths are removed as well. R8 treats these as side-effect
-# free so the calls (and their argument expressions) drop out entirely.
+# Strip verbose / debug / info log statements in release. Log.e is
+# preserved because genuine errors must keep surfacing; Log.w and
+# Log.wtf are now ALSO preserved because PlayIntegrityClient,
+# SignatureVerifier, DeviceIntegrityCheck, and outbox handlers use
+# Log.w as the only telemetry for production failures (integrity
+# verdicts, signing mismatch, stash-cleanup errors). Stripping w/wtf
+# silently dropped those signals in release builds, leaving field
+# investigations with no breadcrumbs. println / System.out paths are
+# removed since those aren't on any production breadcrumb pipeline.
 -assumenosideeffects class android.util.Log {
     public static *** v(...);
     public static *** d(...);
     public static *** i(...);
-    public static *** w(...);
-    public static *** wtf(...);
 }
 -assumenosideeffects class java.io.PrintStream {
     public void print(...);
