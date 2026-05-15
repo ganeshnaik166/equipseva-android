@@ -152,15 +152,30 @@ serve(async (req) => {
     return bad("escrow_not_pending", `escrow status is ${escrow.status}`);
   }
 
-  const { error: updErr } = await admin
+  // TOCTOU guard: read-check-write at lines 142-153 leaves a window
+  // where a concurrent admin transition (dispute / cancel) can move
+  // status off `pending` before this update lands. Chain the status
+  // filter onto the update so the write only succeeds when the row
+  // is still `pending`; if zero rows match, surface as a race rather
+  // than silently corrupting state.
+  const { data: updated, error: updErr } = await admin
     .from("repair_job_escrow")
     .update({
       status: "held",
       razorpay_payment_id,
       paid_at: new Date().toISOString(),
     })
-    .eq("id", escrow_id);
+    .eq("id", escrow_id)
+    .eq("status", "pending")
+    .select("id");
   if (updErr) return bad("server_error", updErr.message, 500);
+  if (!updated || updated.length === 0) {
+    return bad(
+      "escrow_status_race",
+      "escrow transitioned off pending before payment could be marked held; retry or check status",
+      409,
+    );
+  }
 
   await admin.from("repair_job_escrow_events").insert({
     escrow_id,
