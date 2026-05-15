@@ -9,7 +9,9 @@ import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -28,6 +30,13 @@ import javax.inject.Singleton
 class NotificationRepository @Inject constructor(
     private val client: SupabaseClient,
 ) {
+
+    // Singleton-lifetime scope so the realtime removeChannel call
+    // survives the callbackFlow cancellation that triggers awaitClose.
+    // Without this, the channel persists on the singleton supabase
+    // client until websocket reconnect / process death. Mirrors
+    // ChatRepository.cleanupScope from PR #637.
+    private val cleanupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /**
      * Emits the latest list of notifications for the user, newest first.
@@ -58,7 +67,7 @@ class NotificationRepository @Inject constructor(
 
         awaitClose {
             job.cancel()
-            launch { client.realtime.removeChannel(channel) }
+            cleanupScope.launch { client.realtime.removeChannel(channel) }
         }
     }.flowOn(Dispatchers.IO)
 
