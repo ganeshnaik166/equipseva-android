@@ -191,8 +191,16 @@ serve(async (req) => {
       .from("amc_payment_orders")
       .update({ status: "failed", updated_at: new Date().toISOString() })
       .eq("id", paymentOrderId);
-    // Don't echo Razorpay error body to the client.
-    console.error("create-amc-payment-order: razorpay non-2xx", rzpRes.status, rzpBody);
+    // Don't echo Razorpay error body to the client OR the full
+    // payload to logs — Razorpay returns merchant-account codes /
+    // internal retry hints we don't want shipped to semi-public
+    // Edge Function logs. Truncate to keep just the leading error
+    // class (matches create-razorpay-order:108 sanitization).
+    console.error(
+      "create-amc-payment-order: razorpay non-2xx",
+      rzpRes.status,
+      rzpBody.slice(0, 400),
+    );
     return bad("razorpay_error", "payment provider unavailable", 502);
   }
   const rzpOrder = JSON.parse(rzpBody) as {
