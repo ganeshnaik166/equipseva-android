@@ -138,7 +138,11 @@ private fun ConversationRow(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.Transparent)
-            .clickable(onClick = onClick)
+            .clickable(
+                onClickLabel = "Open chat with ${row.title}",
+                role = androidx.compose.ui.semantics.Role.Button,
+                onClick = onClick,
+            )
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
