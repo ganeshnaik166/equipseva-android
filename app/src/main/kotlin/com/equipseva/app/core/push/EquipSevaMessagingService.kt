@@ -106,11 +106,22 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
+        // Category hint for DND / priority filtering — without it,
+        // Do-Not-Disturb rules can silently suppress posts that the
+        // user has explicitly allowed by category (e.g. CATEGORY_MESSAGE
+        // is in most DND allow-lists by default).
+        val notifCategory = when (channel) {
+            NotificationChannels.CHAT -> NotificationCompat.CATEGORY_MESSAGE
+            NotificationChannels.JOBS -> NotificationCompat.CATEGORY_SOCIAL
+            NotificationChannels.ACCOUNT -> NotificationCompat.CATEGORY_STATUS
+            else -> NotificationCompat.CATEGORY_RECOMMENDATION
+        }
         val notification = NotificationCompat.Builder(this, channel)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)
+            .setCategory(notifCategory)
             .setContentIntent(pendingIntent)
             .build()
 

@@ -27,7 +27,16 @@ object NotificationChannels {
                 NotificationChannel(CHAT, "Chat messages", NotificationManager.IMPORTANCE_HIGH).apply {
                     description = "Direct messages with hospitals and engineers"
                 },
-                NotificationChannel(ACCOUNT, "Account & security", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                // IMPORTANCE_HIGH so KYC status changes, suspension
+                // alerts, and other security-sensitive pushes heads-up
+                // rather than landing silently in the tray. Existing
+                // installs keep whatever the user has configured —
+                // channel importance only ratchets DOWN via app
+                // update; raising it post-install requires user opt-in
+                // via system settings, which is acceptable for an
+                // app-wide bump from DEFAULT → HIGH on a single
+                // channel.
+                NotificationChannel(ACCOUNT, "Account & security", NotificationManager.IMPORTANCE_HIGH).apply {
                     description = "Verification, KYC, security alerts"
                 },
             ),
