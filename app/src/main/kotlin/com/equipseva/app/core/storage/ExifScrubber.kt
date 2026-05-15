@@ -5,6 +5,8 @@ import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import androidx.exifinterface.media.ExifInterface
 import com.equipseva.app.core.util.MIME_JPEG
+import com.equipseva.app.core.util.MIME_PNG
+import com.equipseva.app.core.util.MIME_WEBP
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 
@@ -13,8 +15,9 @@ import java.io.ByteArrayOutputStream
  * re-encoding the bitmap. The re-encoded stream has no EXIF container. Orientation from the
  * original EXIF is baked into the pixel data so images still display the right way up.
  *
- * PNG and WebP are returned as-is when the caller wants to preserve lossless-ness; for JPEG
- * (by far the common case from the system camera / gallery) we always re-encode.
+ * Round 237: PNG and WebP also carry EXIF (eXIf chunk + EXIF chunk respectively) plus XMP
+ * tEXt chunks that can hold GPS / device id. Re-encode each format to itself — PNG and
+ * WebP lossless via Bitmap.CompressFormat so we don't degrade KYC document scans.
  *
  * If decoding fails (corrupt input, unsupported format), the original bytes are returned —
  * the server-side bucket scan remains the authoritative check.
@@ -22,27 +25,53 @@ import java.io.ByteArrayOutputStream
 object ExifScrubber {
 
     private const val JPEG_QUALITY = 90
+    // WebP quality is ignored when LOSSLESS is the format on API 30+, but
+    // we set it for the deprecated lossy fallback used on older devices.
+    private const val WEBP_QUALITY = 90
 
     fun strip(bytes: ByteArray, contentType: String?): ByteArray {
         if (!UploadValidator.isImage(contentType)) return bytes
         val mime = contentType?.substringBefore(';')?.trim()?.lowercase()
-        // Only re-encode JPEG. PNG has no EXIF container in the strict sense; WebP's EXIF
-        // handling is stream-fragile — for those we keep the bytes and let the bucket-side
-        // scan handle residuals.
-        if (mime != MIME_JPEG) return bytes
+
+        // Pick the re-encode format. Unrecognised image mimes fall through
+        // to bytes-as-is rather than misidentifying the format.
+        val format = when (mime) {
+            MIME_JPEG -> Bitmap.CompressFormat.JPEG
+            MIME_PNG -> Bitmap.CompressFormat.PNG
+            MIME_WEBP -> if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                Bitmap.CompressFormat.WEBP_LOSSLESS
+            } else {
+                @Suppress("DEPRECATION")
+                Bitmap.CompressFormat.WEBP
+            }
+            else -> return bytes
+        }
+        val quality = when (mime) {
+            MIME_JPEG -> JPEG_QUALITY
+            MIME_PNG -> 100 // ignored for PNG, but pass valid value
+            MIME_WEBP -> WEBP_QUALITY
+            else -> 100
+        }
 
         return runCatching {
-            val orientation = ByteArrayInputStream(bytes).use { stream ->
-                ExifInterface(stream).getAttributeInt(
-                    ExifInterface.TAG_ORIENTATION,
-                    ExifInterface.ORIENTATION_NORMAL,
-                )
+            // Orientation tag is JPEG/EXIF only — PNG and WebP don't carry
+            // it in a place ExifInterface can read, so the bitmap decoder
+            // already returns pixels in display order for those formats.
+            val orientation = if (mime == MIME_JPEG) {
+                ByteArrayInputStream(bytes).use { stream ->
+                    ExifInterface(stream).getAttributeInt(
+                        ExifInterface.TAG_ORIENTATION,
+                        ExifInterface.ORIENTATION_NORMAL,
+                    )
+                }
+            } else {
+                ExifInterface.ORIENTATION_NORMAL
             }
             val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                 ?: return@runCatching bytes
             val oriented = applyOrientation(bitmap, orientation)
             val out = ByteArrayOutputStream(bytes.size)
-            oriented.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
+            oriented.compress(format, quality, out)
             if (oriented !== bitmap) bitmap.recycle()
             oriented.recycle()
             out.toByteArray()
