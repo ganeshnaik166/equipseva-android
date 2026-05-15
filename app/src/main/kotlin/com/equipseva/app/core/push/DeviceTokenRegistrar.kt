@@ -65,6 +65,13 @@ class DeviceTokenRegistrar @Inject constructor(
             supabase.from("device_tokens").delete {
                 filter { eq("token", token) }
             }
+            // Defense-in-depth: re-verify auth.uid hasn't shifted between
+            // the delete and the upsert. RLS would already block a mismatched
+            // INSERT, but failing fast here avoids surfacing a Postgrest
+            // 42501 to the caller when the real cause is a mid-flight account
+            // switch.
+            val current = supabase.auth.currentUserOrNull()?.id
+            if (current != userId) return@runCatching
             supabase.from("device_tokens").upsert(
                 DeviceTokenRow(user_id = userId, platform = "android", token = token),
             )
