@@ -224,8 +224,11 @@ class RequestServiceViewModel @Inject constructor(
                 // morning / afternoon / evening window.
                 val millis = current.pickedDateMillis
                 if (millis != null) {
+                    // Pin to IST so the date the hospital sees in the
+                    // picker matches the date persisted server-side,
+                    // independent of device time zone (round 237).
                     val picked = java.time.Instant.ofEpochMilli(millis)
-                        .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                        .atZone(java.time.ZoneId.of("Asia/Kolkata")).toLocalDate()
                     picked.toString() to "any"
                 } else {
                     null to null

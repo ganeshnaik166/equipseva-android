@@ -555,7 +555,7 @@ private fun StepWhen(
     // error. Allow today + future days only.
     val todayMillis = remember {
         java.time.LocalDate.now()
-            .atStartOfDay(java.time.ZoneId.systemDefault())
+            .atStartOfDay(java.time.ZoneId.of("Asia/Kolkata"))
             .toInstant().toEpochMilli()
     }
     val datePickerState = androidx.compose.material3.rememberDatePickerState(
@@ -566,7 +566,7 @@ private fun StepWhen(
         },
     )
     val customLabel = pickedDateMillis?.let {
-        val d = java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+        val d = java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.of("Asia/Kolkata")).toLocalDate()
         "Custom · ${d.dayOfMonth} ${d.month.name.lowercase().replaceFirstChar { c -> c.uppercase() }} ${d.year}"
     } ?: "Pick a date"
 
