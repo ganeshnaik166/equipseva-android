@@ -35,13 +35,27 @@ class PendingAmcPaymentsReconciler @Inject constructor(
         val pending = runCatching { store.list() }.getOrNull().orEmpty()
         if (pending.isEmpty()) return
         for (id in pending) {
-            val status = amcRepository.fetchAmcPaymentOrderStatus(id).getOrNull()
-            when (status) {
-                "paid", "refunded", "failed", null -> {
-                    runCatching { store.remove(id) }
-                }
-                else -> Unit
-            }
+            // `Result<String?>`: outer success/failure separates network
+            // outcome from row presence. Previous code collapsed both
+            // via `getOrNull()` and treated network failures as
+            // "row missing → drop marker", which silently lost legitimate
+            // pending markers on every offline cold start. Now only
+            // terminal statuses + explicit row-missing remove; network
+            // failures keep the marker for the next cold-start retry.
+            amcRepository.fetchAmcPaymentOrderStatus(id).fold(
+                onSuccess = { status ->
+                    when (status) {
+                        "paid", "refunded", "failed", null -> {
+                            runCatching { store.remove(id) }
+                        }
+                        else -> Unit // 'pending' or other non-terminal — keep marker
+                    }
+                },
+                onFailure = {
+                    // Network / RLS error — preserve the marker so the
+                    // next reconcile attempt can act on canonical state.
+                },
+            )
         }
     }
 }
