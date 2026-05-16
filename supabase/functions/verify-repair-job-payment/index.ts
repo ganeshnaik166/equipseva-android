@@ -121,7 +121,14 @@ serve(async (req) => {
     )
     .eq("id", escrow_id)
     .maybeSingle();
-  if (fetchErr) return bad("server_error", fetchErr.message, 500);
+  if (fetchErr) {
+    // Don't surface raw Supabase/Postgres error text to the client — it can
+    // echo column names, the eq() filter value (= escrow_id), or RLS
+    // verdicts that map back to table internals. Same hardening pattern as
+    // rounds 269-273 across the create-amc-payment / send_invoice / etc.
+    console.error("verify-repair-job-payment: escrow fetch failed", fetchErr.message);
+    return bad("server_error", "could not fetch escrow", 500);
+  }
   if (!escrow) return bad("escrow_not_found", "escrow row missing", 404);
   if (escrow.hospital_user_id !== userId) {
     return bad("not_owner", "not the hospital on this escrow", 403);
@@ -168,7 +175,10 @@ serve(async (req) => {
     .eq("id", escrow_id)
     .eq("status", "pending")
     .select("id");
-  if (updErr) return bad("server_error", updErr.message, 500);
+  if (updErr) {
+    console.error("verify-repair-job-payment: escrow update failed", updErr.message);
+    return bad("server_error", "could not update escrow", 500);
+  }
   if (!updated || updated.length === 0) {
     return bad(
       "escrow_status_race",
