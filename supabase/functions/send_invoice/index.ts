@@ -192,7 +192,8 @@ serve(async (req) => {
     .eq("id", orderId)
     .maybeSingle();
   if (orderErr || !order) {
-    return bad("order_not_found", orderErr?.message ?? "missing", 404);
+    if (orderErr) console.error("send_invoice order_fetch_failed", orderErr);
+    return bad("order_not_found", "missing", 404);
   }
 
   const { data: buyer } = await admin
