@@ -43,6 +43,7 @@ import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.amc.AmcRepository
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
@@ -193,7 +194,7 @@ class AmcDetailViewModel @Inject constructor(
                     refresh()
                 }
                 .onFailure { e ->
-                    _state.update { it.copy(cancelling = false, error = e.message) }
+                    _state.update { it.copy(cancelling = false, error = e.toUserMessage()) }
                 }
         }
     }
@@ -210,7 +211,7 @@ class AmcDetailViewModel @Inject constructor(
         viewModelScope.launch {
             repo.removeFallbackEngineer(contractId, engineerId)
                 .onSuccess { refresh() }
-                .onFailure { e -> _state.update { it.copy(error = e.message) } }
+                .onFailure { e -> _state.update { it.copy(error = e.toUserMessage()) } }
         }
     }
 
