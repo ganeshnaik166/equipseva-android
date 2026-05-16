@@ -21,10 +21,10 @@ Deletion: users can request deletion in-App (Profile → Privacy → Delete my a
 | Type | Collected | Shared | Required | Purposes |
 |---|---|---|---|---|
 | **Name** | Yes | No | Required | Account management; communications between users |
-| **Email address** | Yes | No | Required | Account management; sign-in |
+| **Email address** | Yes | Shared with Resend (invoice-email service provider) only to deliver invoice emails you opted into. | Required | Account management; sign-in; invoice delivery |
 | **User IDs** (Supabase user UUID, FCM token) | Yes | No | Required | Account management; analytics; fraud prevention |
 | **Address** (shipping) | Yes | Shared with seller for fulfilment | Optional (only when ordering) | Order fulfilment |
-| **Phone number** | Yes | No | Required | Account management; customer support |
+| **Phone number** | Yes | Shared with Exotel (call-masking service provider) only while a masked in-app call is active; no other recipient. | Required | Account management; customer support; in-app voice calls |
 | **Race and ethnicity** | No | — | — | — |
 | **Political or religious beliefs** | No | — | — | — |
 | **Sexual orientation** | No | — | — | — |
