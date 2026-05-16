@@ -3,6 +3,7 @@ package com.equipseva.app.core.data.engineers
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.storage.StorageRepository
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import javax.inject.Inject
@@ -119,6 +120,24 @@ class SupabaseEngineerRepository @Inject constructor(
         latitude: Double,
         longitude: Double,
     ): Result<Engineer> = runCatching {
+        // Mirror the same auth-id guard used by SupabaseProfileRepository
+        // mutations: refuse a caller that hands in someone else's user id.
+        // RLS catches the row-write server-side; the local guard fails
+        // fast on a logic bug (stale uid across token rotation, etc.).
+        val authUid = client.auth.currentUserOrNull()?.id
+        require(authUid != null && authUid == userId) {
+            "updateBaseLocation refused: signed-in user does not match target id"
+        }
+        // Also clamp WGS84 ranges + reject NaN. The on-device guard in
+        // EngineerLocationViewModel (PR #662) already filters at the UI
+        // layer, but this is the last line in front of the network so
+        // a future non-UI caller can't bypass the bounds.
+        require(latitude in -90.0..90.0 && !latitude.isNaN()) {
+            "updateBaseLocation refused: invalid latitude $latitude"
+        }
+        require(longitude in -180.0..180.0 && !longitude.isNaN()) {
+            "updateBaseLocation refused: invalid longitude $longitude"
+        }
         client.from(TABLE).update(
             {
                 set("latitude", latitude)

@@ -89,6 +89,15 @@ class SupabaseProfileRepository @Inject constructor(
     )
 
     override suspend fun updateRole(userId: String, role: UserRole): Result<Unit> = runCatching {
+        // Mirror updateBasicInfo: reject a caller that hands in someone
+        // else's user id. RLS catches the row-write server-side; the
+        // local guard means a logic bug (stale uid past a token rotation,
+        // mis-routed caller) surfaces as an exception instead of a
+        // silent no-op against an empty filtered set.
+        val authUid = client.auth.currentUserOrNull()?.id
+        require(authUid != null && authUid == userId) {
+            "updateRole refused: signed-in user does not match target id"
+        }
         client.from(TABLE).update(
             buildJsonObject {
                 put("role", JsonPrimitive(role.storageKey))
