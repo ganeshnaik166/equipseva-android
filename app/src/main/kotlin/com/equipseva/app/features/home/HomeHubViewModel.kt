@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -112,7 +113,20 @@ class HomeHubViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            authRepository.sessionState.collect { session ->
+            // distinctUntilChangedBy on a discriminator that captures
+            // (variant, userId) — without this, every Supabase token
+            // rotation re-emits AuthSession.SignedIn(sameUserId) and
+            // re-fires refresh(), kicking off ~5 network round-trips
+            // for the home strip on every silent token refresh.
+            authRepository.sessionState
+                .distinctUntilChangedBy { sess ->
+                    when (sess) {
+                        is AuthSession.SignedIn -> "in:${sess.userId}"
+                        AuthSession.SignedOut -> "out"
+                        AuthSession.Unknown -> "unknown"
+                    }
+                }
+                .collect { session ->
                 when (session) {
                     is AuthSession.SignedIn -> {
                         currentUserId = session.userId
