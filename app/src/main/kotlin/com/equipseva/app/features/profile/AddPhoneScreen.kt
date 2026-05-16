@@ -86,12 +86,23 @@ class AddPhoneViewModel @Inject constructor(
         var cleaned = value.filterIndexed { i, c -> (i == 0 && c == '+') || c in '0'..'9' }.take(16)
         // Guard against double-prefix: the field defaults to "+91", so a
         // user who types or pastes "+919812345699" ends up with the
-        // textual concatenation "+91919812345699". 13 chars is the cap
-        // for "+91" + 10-digit India mobile, so anything longer that
-        // begins with "+9191" has the country code in twice. Strip the
-        // duplicate so a paste of the full E.164 number works.
+        // textual concatenation "+91919812345699". The intended dedup
+        // is to strip the duplicate "+91" prefix when the user pastes a
+        // full E.164 number on top of the autoprefix. But the original
+        // `length > 13` guard fires on any "+9191"-prefixed input,
+        // including a typo where the user has pasted 11 digits past
+        // "+91" (cleaned = "+9191234567890", 14 chars). substring(5)
+        // then strips one MORE character than intended and silently
+        // drops a digit ("+91234567890", 12 chars, only 9 mobile
+        // digits). Only commit the dedup when the result is a valid
+        // India mobile shape (+91 + 10 digits = 13 chars). Otherwise
+        // leave the malformed input visible so the user notices and
+        // corrects it.
         if (cleaned.startsWith("+9191") && cleaned.length > 13) {
-            cleaned = "+91" + cleaned.substring(5)
+            val candidate = "+91" + cleaned.substring(5)
+            if (candidate.length == 13) {
+                cleaned = candidate
+            }
         }
         _state.update { it.copy(phone = cleaned, error = null) }
     }
