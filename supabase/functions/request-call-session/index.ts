@@ -246,10 +246,13 @@ serve(async (req) => {
   if (!exotelResp.ok) {
     const txt = await exotelResp.text().catch(() => "");
     // Exotel error bodies can echo back the From=/To= MSISDNs we sent
-    // in the form body. Redact 10-digit blocks before logging so even
-    // server-side logs don't carry caller phone numbers (CodeRabbit
-    // PR #321 follow-up).
-    const redacted = txt.replace(/[6-9]\d{9}/g, "[REDACTED_MSISDN]").slice(0, 400);
+    // in the form body. Mirror the separator-aware regex from PR #688's
+    // chat-PII mask so Exotel responses that come back URL-encoded
+    // (%20 spaces) or with internal separators still get redacted —
+    // the prior `[6-9]\d{9}` only caught the consecutive 10-digit form.
+    const redacted = txt
+      .replace(/(?:\+?\s?91[\s.\-]?|0)?[6-9](?:[\s.\-]?\d){9}/g, "[REDACTED_MSISDN]")
+      .slice(0, 400);
     console.error("request-call-session: exotel non-2xx", exotelResp.status, redacted);
     return bad("exotel_error", "call provider unavailable", 502);
   }
