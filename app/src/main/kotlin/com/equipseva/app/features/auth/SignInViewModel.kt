@@ -37,11 +37,21 @@ class SignInViewModel @Inject constructor(
     val effects: kotlinx.coroutines.flow.Flow<AuthEffect> = _effects
 
     fun onEmailChange(value: String) {
-        _state.update { it.copy(email = value, emailError = null, form = it.form.copy(errorMessage = null)) }
+        // RFC 5321 caps the local-part at 64 and the domain at 255; the
+        // total practical max is around 254. Cap at 255 to swallow paste
+        // abuse while still admitting every real address.
+        _state.update {
+            it.copy(email = value.take(255), emailError = null, form = it.form.copy(errorMessage = null))
+        }
     }
 
     fun onPasswordChange(value: String) {
-        _state.update { it.copy(password = value, passwordError = null, form = it.form.copy(errorMessage = null)) }
+        // Reasonable upper bound — Supabase auth itself caps password
+        // length, but capping client-side keeps a giant paste from
+        // wedging Compose recomposition before the submit-time check.
+        _state.update {
+            it.copy(password = value.take(128), passwordError = null, form = it.form.copy(errorMessage = null))
+        }
     }
 
     fun onSubmit() {
