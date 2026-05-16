@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
+import com.equipseva.app.core.network.toUserMessage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -87,7 +88,9 @@ class AmcPaymentViewModel @Inject constructor(
         // 1. Server creates the Razorpay order + binds it.
         val orderRes = repo.createPaymentOrder(amcContractId, months)
         if (orderRes.isFailure) {
-            _state.update { it.copy(busy = false, error = orderRes.exceptionOrNull()?.message) }
+            _state.update {
+                it.copy(busy = false, error = orderRes.exceptionOrNull()?.toUserMessage())
+            }
             return false
         }
         val order = orderRes.getOrThrow()
@@ -120,7 +123,7 @@ class AmcPaymentViewModel @Inject constructor(
                     keyId = order.keyId,
                 )
             }.getOrElse {
-                _state.update { s -> s.copy(busy = false, error = it.message) }
+                _state.update { s -> s.copy(busy = false, error = it.toUserMessage()) }
                 return false
             }
         } finally {
@@ -158,7 +161,7 @@ class AmcPaymentViewModel @Inject constructor(
                         true
                     },
                     onFailure = { e ->
-                        _state.update { it.copy(busy = false, error = e.message) }
+                        _state.update { it.copy(busy = false, error = e.toUserMessage()) }
                         false
                     },
                 )
