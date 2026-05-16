@@ -48,7 +48,22 @@ class AddressRepository @Inject constructor(
     suspend fun upsert(address: UserAddress): Result<UserAddress> = runCatching {
         val uid = client.auth.currentUserOrNull()?.id
             ?: error("not_authenticated")
-        val withOwner = address.copy(userId = uid)
+        // Round 281 added server CHECKs (label ≤ 80, full_name/line1/line2/
+        // landmark ≤ 200, city ≤ 120, state ≤ 80) and matching UI caps in
+        // AddressFormScreen. Defense-in-depth at the repo boundary so a
+        // non-UI caller (deeplink-from-share-sheet, future bulk import,
+        // tests) can't smuggle past-cap strings to a 23514 toast.
+        val capped = address.copy(
+            userId = uid,
+            label = address.label?.take(80),
+            fullName = address.fullName.take(200),
+            line1 = address.line1.take(200),
+            line2 = address.line2?.take(200),
+            landmark = address.landmark?.take(200),
+            city = address.city.take(120),
+            state = address.state.take(80),
+        )
+        val withOwner = capped
         if (address.id == null) {
             client.postgrest.from("user_addresses")
                 .insert(withOwner) { select() }
