@@ -30,6 +30,7 @@ import androidx.lifecycle.ViewModel
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
+import com.equipseva.app.core.payments.PendingEscrowPaymentsStore
 import com.equipseva.app.core.payments.RazorpayCheckoutLauncher
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.EsBottomSheet
@@ -60,6 +61,7 @@ class JobEscrowPaymentViewModel @Inject constructor(
     private val repo: RepairJobEscrowRepository,
     private val auth: AuthRepository,
     private val launcher: RazorpayCheckoutLauncher,
+    private val pendingEscrowPaymentsStore: PendingEscrowPaymentsStore,
 ) : ViewModel() {
 
     data class UiState(val busy: Boolean = false, val error: String? = null)
@@ -87,21 +89,37 @@ class JobEscrowPaymentViewModel @Inject constructor(
             .firstOrNull()
         val email = session?.email
 
-        val result = runCatching {
-            launcher.startPayment(
-                activity = activity,
-                amountPaise = order.amountPaise,
-                currency = order.currency,
-                name = "EquipSeva Escrow",
-                description = "Hold ${engineerName}'s payment until job is complete",
-                prefillEmail = email,
-                prefillContact = null,
-                razorpayOrderId = order.razorpayOrderId,
-                keyId = order.keyId,
-            )
-        }.getOrElse {
-            _state.update { s -> s.copy(busy = false, error = it.message) }
-            return false
+        // Round 280 — process-death recovery: persist the repair_job_id
+        // so [PendingEscrowPaymentsReconciler] can clear the marker on
+        // next cold-start (or surface it as in-flight to the user) if
+        // Android kills our process while Razorpay's checkout activity
+        // is foregrounded. Cleared in the `finally` regardless of
+        // outcome — Razorpay's three result branches each fall through.
+        runCatching { pendingEscrowPaymentsStore.add(repairJobId) }
+
+        val result = try {
+            runCatching {
+                launcher.startPayment(
+                    activity = activity,
+                    amountPaise = order.amountPaise,
+                    currency = order.currency,
+                    name = "EquipSeva Escrow",
+                    description = "Hold ${engineerName}'s payment until job is complete",
+                    prefillEmail = email,
+                    prefillContact = null,
+                    razorpayOrderId = order.razorpayOrderId,
+                    keyId = order.keyId,
+                )
+            }.getOrElse {
+                _state.update { s -> s.copy(busy = false, error = it.message) }
+                return false
+            }
+        } finally {
+            // SDK returned cleanly — clear the recovery marker before
+            // verify so the home banner doesn't surface a stale
+            // "in-flight" pill. If verify itself crashes we re-add via
+            // reconciler on next cold-start.
+            runCatching { pendingEscrowPaymentsStore.remove(repairJobId) }
         }
 
         when (result) {
