@@ -188,7 +188,11 @@ class CreateAmcWizardViewModel @Inject constructor(
         st.copy(equipmentCategories = s)
     }
 
-    fun setScopeText(v: String) = _state.update { it.copy(scopeText = v) }
+    // Server CHECK (round283) caps amc_contracts.scope_text at 4000
+    // chars. Cap here so a paste-bomb hits the UI clamp first instead
+    // of failing save with a confusing 23514 constraint-violation
+    // toast.
+    fun setScopeText(v: String) = _state.update { it.copy(scopeText = v.take(4000)) }
     fun setFrequency(v: String) = _state.update { it.copy(visitFrequency = v, visitsPerYear = derive(v)) }
     fun setVisitsPerYear(v: String) = _state.update {
         it.copy(visitsPerYear = v.toIntOrNull()?.coerceIn(1, 52) ?: it.visitsPerYear)
