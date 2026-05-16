@@ -139,10 +139,16 @@ serve(async (req) => {
       const r = await slots[t]();
       results.push({ slot: t, ok: true, rows: r.rows, duration_ms: Date.now() - start });
     } catch (e) {
+      // Don't echo raw e.message — it can carry PostgREST hints,
+      // table names, SQLSTATE codes. The response body lands in
+      // GitHub Actions / cron-job.org logs (external surfaces).
+      // Log full detail server-side; surface only the slot name +
+      // a stable error code so the cron runbook still has signal.
+      console.error(`cron-tick slot=${t} failed`, e);
       results.push({
         slot: t,
         ok: false,
-        error: e instanceof Error ? e.message : String(e),
+        error: "slot_failed",
         duration_ms: Date.now() - start,
       });
     }
