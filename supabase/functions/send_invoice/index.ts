@@ -224,7 +224,11 @@ serve(async (req) => {
       contentType: "text/html",
     });
   if (upload.error) {
-    return bad("server_error", `upload_failed: ${upload.error.message}`, 500);
+    // Don't echo Supabase Storage error text in the response — same
+    // log-leak pattern as PR #686 / PR #704 / PR #705. Detail goes
+    // to console.error; stable code goes to the caller.
+    console.error("send_invoice upload_failed", upload.error);
+    return bad("server_error", "upload_failed", 500);
   }
 
   const { data: signed, error: signErr } = await admin.storage
