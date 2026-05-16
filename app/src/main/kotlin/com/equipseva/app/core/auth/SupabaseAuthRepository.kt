@@ -2,6 +2,7 @@ package com.equipseva.app.core.auth
 
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.SignOutScope
 import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.providers.builtin.IDToken
@@ -223,7 +224,27 @@ class SupabaseAuthRepository @Inject constructor(
     }
 
     override suspend fun signOut(): Result<Unit> = runCatching {
-        client.auth.signOut()
+        // Default scope is GLOBAL which makes a network call to revoke
+        // the server-side session. A network failure used to leave the
+        // user in a half-signed-out state: device-resident user data
+        // was wiped (outbox / FCM token / prefs in ProfileViewModel)
+        // but the local session token persisted, so on next app launch
+        // Supabase auth-kt restored the previous session and the user
+        // was magically "signed back in" against an empty outbox. The
+        // sequence here: try the GLOBAL revoke first; if it fails (which
+        // it will on offline / 5xx) fall back to LOCAL so the session
+        // is at least cleared on this device. Re-raise the original
+        // failure so the caller still surfaces an error toast — the
+        // local clear is silent defense-in-depth, not a swallow.
+        try {
+            client.auth.signOut(SignOutScope.GLOBAL)
+        } catch (globalErr: Throwable) {
+            // Don't run the LOCAL fallback on coroutine cancellation —
+            // the caller is going away, not asking us to recover.
+            if (globalErr is kotlinx.coroutines.CancellationException) throw globalErr
+            runCatching { client.auth.signOut(SignOutScope.LOCAL) }
+            throw globalErr
+        }
     }
 
     override suspend fun refreshSession(): Result<Unit> = runCatching {
