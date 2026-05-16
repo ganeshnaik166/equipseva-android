@@ -109,7 +109,7 @@ fun ChangePasswordScreen(
                         visualTransformation = if (showCurrent) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(
                             capitalization = KeyboardCapitalization.None,
-                            autoCorrect = false,
+                            autoCorrectEnabled = false,
                             imeAction = ImeAction.Next,
                         ),
                         trailingIcon = {
@@ -138,7 +138,7 @@ fun ChangePasswordScreen(
                         visualTransformation = if (showNew) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(
                             capitalization = KeyboardCapitalization.None,
-                            autoCorrect = false,
+                            autoCorrectEnabled = false,
                             imeAction = ImeAction.Next,
                         ),
                         trailingIcon = {
@@ -165,7 +165,7 @@ fun ChangePasswordScreen(
                         visualTransformation = if (showConfirm) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(
                             capitalization = KeyboardCapitalization.None,
-                            autoCorrect = false,
+                            autoCorrectEnabled = false,
                             imeAction = ImeAction.Done,
                         ),
                         trailingIcon = {
