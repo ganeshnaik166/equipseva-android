@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.ZoneId
 import javax.inject.Inject
 
 @HiltViewModel
@@ -209,7 +210,10 @@ class RequestServiceViewModel @Inject constructor(
             }
             parsed
         }
-        val today = LocalDate.now()
+        // Booking scheduled_date is anchored to the hospital's local
+        // time (IST); a device on UTC would otherwise compute "today"
+        // 5.5h behind and submit a date the hospital wouldn't recognise.
+        val today = LocalDate.now(ZoneId.of("Asia/Kolkata"))
         val (scheduledDate, scheduledTimeSlot) = when (selectedSlot) {
             0 -> today.toString() to "evening"
             1 -> today.plusDays(1).toString() to "morning"

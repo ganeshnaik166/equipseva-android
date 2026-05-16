@@ -260,8 +260,11 @@ class CreateAmcWizardViewModel @Inject constructor(
         val emergency = s.responseTimeEmergencyHours.toIntOrNull()?.coerceAtLeast(1) ?: 4
         val standard = s.responseTimeStandardHours.toIntOrNull()?.coerceAtLeast(1) ?: 24
 
-        // Default term = 1 year. start = today (UTC ISO date), end = +365d.
-        val today = java.time.LocalDate.now()
+        // Default term = 1 year. start = today (IST), end = +365d.
+        // Anchored to Asia/Kolkata so a device on UTC doesn't shift the
+        // contract by half a day relative to the hospital's expected
+        // start date.
+        val today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"))
         val start = today.toString()
         val end = today.plusDays(DEFAULT_CONTRACT_DAYS).toString()
 

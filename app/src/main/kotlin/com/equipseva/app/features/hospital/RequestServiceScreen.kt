@@ -554,7 +554,7 @@ private fun StepWhen(
     // server-side scheduled_date check would later reject it with a vague
     // error. Allow today + future days only.
     val todayMillis = remember {
-        java.time.LocalDate.now()
+        java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"))
             .atStartOfDay(java.time.ZoneId.of("Asia/Kolkata"))
             .toInstant().toEpochMilli()
     }
