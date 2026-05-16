@@ -129,7 +129,7 @@ class AddressFormViewModel @Inject constructor(
                         _state.update { it.copy(loading = false, error = "Address not found") }
                     }
                 }.onFailure { e ->
-                    _state.update { it.copy(loading = false, error = e.message) }
+                    _state.update { it.copy(loading = false, error = e.toUserMessage()) }
                 }
             }
         }

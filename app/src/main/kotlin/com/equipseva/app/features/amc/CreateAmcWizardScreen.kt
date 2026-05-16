@@ -47,6 +47,7 @@ import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.amc.AmcRepository
 import com.equipseva.app.core.data.engineers.DirectorySortMode
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.payments.RazorpayCheckoutLauncher
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.firstOrNull
@@ -307,8 +308,9 @@ class CreateAmcWizardViewModel @Inject constructor(
                     onSuccess(newId)
                 },
                 onFailure = { e ->
-                    _state.update { it.copy(submitting = false, error = e.message) }
-                    onShowMessage(e.message ?: "Couldn't create contract")
+                    val msg = e.toUserMessage()
+                    _state.update { it.copy(submitting = false, error = msg) }
+                    onShowMessage(msg)
                 },
             )
         }

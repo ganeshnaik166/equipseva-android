@@ -38,6 +38,7 @@ import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.amc.AmcRepository
 import com.equipseva.app.core.data.prefs.UserPrefs
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
@@ -129,7 +130,7 @@ class MaintenanceContractsViewModel @Inject constructor(
                         }
                     },
                     onFailure = { e ->
-                        _state.update { it.copy(loading = false, role = role, error = e.message) }
+                        _state.update { it.copy(loading = false, role = role, error = e.toUserMessage()) }
                     },
                 )
                 else -> repo.listForEngineer().fold(
@@ -143,7 +144,7 @@ class MaintenanceContractsViewModel @Inject constructor(
                         }
                     },
                     onFailure = { e ->
-                        _state.update { it.copy(loading = false, role = role, error = e.message) }
+                        _state.update { it.copy(loading = false, role = role, error = e.toUserMessage()) }
                     },
                 )
             }
