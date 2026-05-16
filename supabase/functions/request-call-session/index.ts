@@ -158,10 +158,20 @@ serve(async (req) => {
   }
 
   // 5. Reuse an in-flight session (5-min window) for rapid retries.
+  // Select call_count too; without it the reuse branch's `as any`
+  // cast at the increment site read `undefined` and silently reset
+  // the counter to 1 on every reuse, masking the rate-limit signal.
+  type ReuseRow = {
+    id: string;
+    exotel_call_sid: string | null;
+    status: string;
+    last_called_at: string;
+    call_count: number | null;
+  };
   const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
   const { data: existing } = await admin
     .from("virtual_call_sessions")
-    .select("id, exotel_call_sid, status, last_called_at")
+    .select("id, exotel_call_sid, status, last_called_at, call_count")
     .eq("repair_job_id", repairJobId)
     .eq("hospital_user_id", row.hospital_user_id)
     .eq("engineer_user_id", row.engineer_user_id)
@@ -169,7 +179,7 @@ serve(async (req) => {
     .in("status", ["pending", "ringing", "answered"])
     .order("last_called_at", { ascending: false })
     .limit(1);
-  const reuse = existing?.[0];
+  const reuse = existing?.[0] as ReuseRow | undefined;
 
   // 6. Provider config check. If env not set (Exotel onboarding still
   // pending), return 503 with a clear code; client shows "Calls
@@ -191,20 +201,19 @@ serve(async (req) => {
   if (reuse) {
     // Reuse — bump call_count + last_called_at without redialing
     // Exotel (the previous bridge is still ringing or just hung up).
+    const prevCount = reuse.call_count ?? 0;
     await admin
       .from("virtual_call_sessions")
       .update({
-        call_count: (reuse as any).call_count
-          ? (reuse as any).call_count + 1
-          : 1,
+        call_count: prevCount + 1,
         last_called_at: new Date().toISOString(),
       })
-      .eq("id", (reuse as any).id);
+      .eq("id", reuse.id);
     return json(200, {
       ok: true,
       mode: "click_to_call",
       message: "Reconnecting your call…",
-      call_sid: (reuse as any).exotel_call_sid ?? null,
+      call_sid: reuse.exotel_call_sid ?? null,
     });
   }
 

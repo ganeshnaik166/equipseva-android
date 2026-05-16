@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -214,7 +215,7 @@ fun FounderUsersScreen(
                         contentAlignment = Alignment.Center,
                     ) { CircularProgressIndicator() }
                     state.error != null && state.rows.isEmpty() -> EmptyStateView(
-                        icon = Icons.Outlined.Group,
+                        icon = Icons.Outlined.ErrorOutline,
                         title = "Couldn't load",
                         subtitle = state.error,
                     )
