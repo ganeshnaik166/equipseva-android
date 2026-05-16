@@ -1886,8 +1886,12 @@ private fun BidComposerSheet(
 
     var amountTouched by rememberSaveable { mutableStateOf(false) }
     var etaTouched by rememberSaveable { mutableStateOf(false) }
-    var amountFocused by remember { mutableStateOf(false) }
-    var etaFocused by remember { mutableStateOf(false) }
+    // Persist focus across config-change. The two touched flags above
+    // already use rememberSaveable; if focus drops to its default after
+    // rotation while the touched flag remains true, the error / helper
+    // text logic for these fields renders an inconsistent state.
+    var amountFocused by rememberSaveable { mutableStateOf(false) }
+    var etaFocused by rememberSaveable { mutableStateOf(false) }
 
     val parsedAmount = amount.toDoubleOrNull()
     val amountValid = parsedAmount != null && parsedAmount > 0.0

@@ -657,10 +657,17 @@ class ProfileViewModel @Inject constructor(
                 // offer the public-profile preview link. engineer_public_profile
                 // RPC gates to verified, so the preview link still requires
                 // VerificationStatus.Verified.
-                val engineer = if (profile?.role == UserRole.ENGINEER) {
+                //
+                // Key off `displayedRole = activeRole ?: role` so a hospital
+                // admin auto-seeded as ENGINEER (default scalar before the
+                // role-tile flip) doesn't trigger an unnecessary engineer +
+                // suspension fetch on every Profile open. Mirrors PR #650 /
+                // #655 — the rendered UI keys off displayedRole already.
+                val displayedRole = profile?.activeRole ?: profile?.role
+                val engineer = if (displayedRole == UserRole.ENGINEER) {
                     engineerRepository.fetchByUserId(userId).getOrNull()
                 } else null
-                val mySuspension = if (profile?.role == UserRole.ENGINEER) {
+                val mySuspension = if (displayedRole == UserRole.ENGINEER) {
                     engineerRepository.fetchMySuspension().getOrNull()
                 } else null
                 _state.update {
