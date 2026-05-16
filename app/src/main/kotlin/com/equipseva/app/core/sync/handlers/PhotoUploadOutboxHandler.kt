@@ -8,6 +8,8 @@ import com.equipseva.app.core.sync.classifyOutboxError
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -85,12 +87,24 @@ class PhotoUploadOutboxHandler @Inject constructor(
                 }
             }
 
-        val uploadResult = storage.upload(
-            bucket = payload.bucket,
-            path = payload.objectPath,
-            bytes = bytes,
-            contentType = payload.mimeType,
-        )
+        // Bound the upload to 60s. The supabase-kt client has no explicit
+        // timeout on storage.upload; a hung TLS connection on a flaky
+        // network would otherwise block this worker indefinitely (until
+        // poison-drop after the 5th attempt). 60s covers a 3 MB upload
+        // on a 2G-grade link with margin; faster networks finish in
+        // a second.
+        val uploadResult = try {
+            withTimeout(UPLOAD_TIMEOUT_MS) {
+                storage.upload(
+                    bucket = payload.bucket,
+                    path = payload.objectPath,
+                    bytes = bytes,
+                    contentType = payload.mimeType,
+                )
+            }
+        } catch (timeout: TimeoutCancellationException) {
+            return OutboxKindHandler.Outcome.Retry(timeout)
+        }
         val uploadError = uploadResult.exceptionOrNull()
         if (uploadError != null) {
             // Funnels UploadError → GiveUp, 4xx Supabase errors → GiveUp,
@@ -194,5 +208,6 @@ class PhotoUploadOutboxHandler @Inject constructor(
 
     private companion object {
         const val TAG = "PhotoUploadOutbox"
+        const val UPLOAD_TIMEOUT_MS = 60_000L
     }
 }

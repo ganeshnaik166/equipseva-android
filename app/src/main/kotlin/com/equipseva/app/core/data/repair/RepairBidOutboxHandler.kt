@@ -43,15 +43,29 @@ class RepairBidOutboxHandler @Inject constructor(
                 "Engineer mismatch: queued as $queuedUid, current auth is $currentUid",
             )
         }
-        return bidRepository.placeBid(
-            jobId = payload.jobId,
-            amountRupees = payload.amountRupees,
-            etaHours = payload.etaHours,
-            note = payload.note,
-        ).fold(
+        // Bound the bid placement to 15s. A flaky link can hang the
+        // supabase-kt client indefinitely; without a cap the worker
+        // would block until poison-drop after 5 attempts.
+        val result = try {
+            kotlinx.coroutines.withTimeout(PLACE_BID_TIMEOUT_MS) {
+                bidRepository.placeBid(
+                    jobId = payload.jobId,
+                    amountRupees = payload.amountRupees,
+                    etaHours = payload.etaHours,
+                    note = payload.note,
+                )
+            }
+        } catch (timeout: kotlinx.coroutines.TimeoutCancellationException) {
+            return OutboxKindHandler.Outcome.Retry(timeout)
+        }
+        return result.fold(
             onSuccess = { OutboxKindHandler.Outcome.Success },
             onFailure = ::classifyOutboxError,
         )
+    }
+
+    private companion object {
+        const val PLACE_BID_TIMEOUT_MS = 15_000L
     }
 }
 
