@@ -35,8 +35,15 @@ class PendingAmcPaymentsReconciler @Inject constructor(
         val pending = runCatching { store.list() }.getOrNull().orEmpty()
         if (pending.isEmpty()) return
         for (id in pending) {
-            val status = amcRepository.fetchAmcPaymentOrderStatus(id).getOrNull()
-            when (status) {
+            // Round 294 — distinguish "row is gone" (Result.success(null))
+            // from "fetch failed" (Result.failure). The original
+            // `.getOrNull()` collapsed both to null and removed the
+            // marker, which silently dropped an in-flight payment record
+            // on a transient network blip during the cold-start sweep.
+            // Network failure → leave the marker for next cold-start.
+            val result = amcRepository.fetchAmcPaymentOrderStatus(id)
+            if (result.isFailure) continue
+            when (result.getOrNull()) {
                 "paid", "refunded", "failed", null -> {
                     runCatching { store.remove(id) }
                 }

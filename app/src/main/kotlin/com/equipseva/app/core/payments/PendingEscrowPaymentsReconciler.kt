@@ -36,11 +36,16 @@ class PendingEscrowPaymentsReconciler @Inject constructor(
         val pending = runCatching { store.list() }.getOrNull().orEmpty()
         if (pending.isEmpty()) return
         for (repairJobId in pending) {
-            val row = runCatching { escrowRepository.fetchByJob(repairJobId).getOrNull() }
-                .getOrNull()
-            when (row?.status) {
+            // Round 294 — distinguish "row is gone" (Result.success(null))
+            // from "fetch failed" (Result.failure). The original
+            // double-getOrNull collapsed both to null and removed the
+            // marker, silently dropping an in-flight payment on a
+            // transient network blip. Network failure → leave the marker.
+            val result = escrowRepository.fetchByJob(repairJobId)
+            if (result.isFailure) continue
+            when (result.getOrNull()?.status) {
                 "held", "released", "refunded", "in_dispute", null -> {
-                    // Terminal / post-pending / unknown — clear the marker.
+                    // Terminal / post-pending / row-gone — clear the marker.
                     runCatching { store.remove(repairJobId) }
                 }
                 else -> Unit // still 'pending' — keep for the UI banner.
