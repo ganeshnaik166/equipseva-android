@@ -220,11 +220,8 @@ serve(async (req) => {
     })
     .eq("id", paymentOrderId);
   if (bindErr) {
-    return bad(
-      "server_error",
-      `failed to persist razorpay_order_id: ${bindErr.message}`,
-      500,
-    );
+    console.error("create-amc-payment-order bind_failed", bindErr);
+    return bad("server_error", "bind_failed", 500);
   }
 
   return json(200, {

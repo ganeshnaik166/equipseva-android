@@ -127,7 +127,8 @@ serve(async (req) => {
     .update({ razorpay_order_id: rzpOrder.id })
     .eq("id", orderId);
   if (persistErr) {
-    return bad("server_error", `failed to persist razorpay_order_id: ${persistErr.message}`, 500);
+    console.error("create-razorpay-order persist_failed", persistErr);
+    return bad("server_error", "persist_failed", 500);
   }
 
   return json(200, {
