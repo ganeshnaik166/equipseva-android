@@ -94,13 +94,18 @@ class SupabaseEngineerRepository @Inject constructor(
         bio: String,
         isAvailable: Boolean,
     ): Result<Engineer> = runCatching {
+        // Server CHECK (round284) caps engineers.bio at 1500 chars.
+        // EngineerProfileViewModel already clamps the TextField but the
+        // repository is the right place to enforce the boundary for
+        // non-UI callers (scripts, tests) so a bypass can't write past
+        // the cap and trigger a 23514 toast.
         val payload = EngineerProfileUpsertDto(
             userId = userId,
             hourlyRate = hourlyRate,
             yearsExperience = yearsExperience,
             serviceAreas = serviceAreas,
             specializations = specializations,
-            bio = bio,
+            bio = bio.take(1500),
             isAvailable = isAvailable,
         )
         client.from(TABLE).upsert(payload) {
