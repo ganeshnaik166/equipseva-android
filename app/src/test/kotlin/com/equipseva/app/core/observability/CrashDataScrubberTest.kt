@@ -59,4 +59,44 @@ class CrashDataScrubberTest {
         val out = CrashDataScrubber.scrub("network timeout after 30s")
         assertEquals("network timeout after 30s", out)
     }
+
+    // Indian phone numbers in exception messages — chat mask (PR #688)
+    // already strips them on the wire, but exception text from
+    // validation / SMS dispatch / Exotel error paths can still carry
+    // raw numbers into Crashlytics / Sentry. Mirror the chat-mask
+    // regex behaviour: catches consecutive, separator-style, and
+    // +91-prefixed forms.
+    @Test fun `consecutive 10-digit phone is redacted`() {
+        val out = CrashDataScrubber.scrub("validation failed for phone='9876543210'")
+        assertTrue(out!!.contains("[redacted]"))
+        assertTrue(!out.contains("9876543210"))
+    }
+
+    @Test fun `space-separated phone is redacted`() {
+        val out = CrashDataScrubber.scrub("dispatch fail to 9876 543 210")
+        assertTrue(out!!.contains("[redacted]"))
+        assertTrue(!out.contains("9876"))
+    }
+
+    @Test fun `dash-separated phone is redacted`() {
+        val out = CrashDataScrubber.scrub("Exotel rejected 98-7654-3210")
+        assertTrue(out!!.contains("[redacted]"))
+        assertTrue(!out.contains("3210"))
+    }
+
+    @Test fun `plus 91 prefixed phone is redacted`() {
+        val out = CrashDataScrubber.scrub("SMS to +919812345699 failed")
+        assertTrue(out!!.contains("[redacted]"))
+        assertTrue(!out.contains("9812345699"))
+    }
+
+    @Test fun `phone with email and razorpay id all redacted in one message`() {
+        val out = CrashDataScrubber.scrub(
+            "user ravi@x.com phone +919876543210 order_abc123 failed",
+        )
+        assertTrue(out!!.contains("[redacted]"))
+        assertTrue(!out.contains("ravi@"))
+        assertTrue(!out.contains("9876"))
+        assertTrue(!out.contains("order_abc"))
+    }
 }
