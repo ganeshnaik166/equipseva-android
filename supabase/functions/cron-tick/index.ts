@@ -112,15 +112,40 @@ serve(async (req) => {
       if (error) throw error;
       return { rows: typeof data === "number" ? data : undefined };
     },
+    // Round 296 — wire v2.1 AMC cron helpers that have been defined
+    // since 20260511100000 but were never invoked. Without these,
+    // AMC contracts don't auto-create maintenance visits at their
+    // next_visit_at, and don't auto-renew at end_date. Feature was
+    // shipped server-side but degraded in prod for the absence of
+    // an invocation.
+    "amc-create-visits": async () => {
+      const { data, error } = await admin.rpc("auto_create_due_amc_visits");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
+    "amc-auto-renew": async () => {
+      const { data, error } = await admin.rpc("auto_renew_expiring_amc_contracts");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
   };
 
   // Slot groups for typical schedules.
   const groups: Record<string, string[]> = {
     "all": Object.keys(slots),
-    // hourly: just the time-sensitive ones.
-    "hourly": ["escrow-release", "expire-cost-revisions"],
-    // daily: TTL purges off-peak.
-    "daily": ["purge-notifications", "purge-content-reports", "purge-device-integrity", "purge-virtual-calls"],
+    // hourly: time-sensitive ones — escrow auto-release, cost-revision
+    // TTL expiry, AMC visit creation (so the visit lands within the
+    // hour of next_visit_at, not next-day).
+    "hourly": ["escrow-release", "expire-cost-revisions", "amc-create-visits"],
+    // daily: TTL purges off-peak + AMC auto-renewal sweep (end_date
+    // is day-granular so one daily pass is plenty).
+    "daily": [
+      "purge-notifications",
+      "purge-content-reports",
+      "purge-device-integrity",
+      "purge-virtual-calls",
+      "amc-auto-renew",
+    ],
   };
 
   const targets: string[] = groups[slot] ?? (slot in slots ? [slot] : []);
