@@ -53,7 +53,12 @@ class StorageRepository @Inject constructor(
 
     suspend fun signedUrl(bucket: String, path: String, expiresInMinutes: Int = 15): String {
         validatePath(path).getOrThrow()
-        return supabase.storage.from(bucket).createSignedUrl(path, expiresInMinutes.minutes)
+        // Clamp to [1, 60] minutes: KYC docs / repair photos shouldn't
+        // be reachable via a forever-URL. All current callers ask for
+        // 15 min or less, but a buggy future caller passing
+        // Int.MAX_VALUE shouldn't be able to mint a perpetual link.
+        val ttl = expiresInMinutes.coerceIn(1, 60)
+        return supabase.storage.from(bucket).createSignedUrl(path, ttl.minutes)
     }
 
     /**
@@ -83,6 +88,13 @@ class StorageRepository @Inject constructor(
         val segments = path.split('/')
         if (segments.any { it == ".." || it == "." }) {
             return Result.failure(UploadError.InvalidPath(path, "traversal segment"))
+        }
+        // Empty segments (e.g. "userA//file.jpg" or trailing "userA/")
+        // collapse the owner prefix on some storage backends and may
+        // route writes outside the caller's namespace. Reject so
+        // `storage.foldername()`-keyed RLS policies stay sound.
+        if (segments.any { it.isEmpty() }) {
+            return Result.failure(UploadError.InvalidPath(path, "empty segment"))
         }
         return Result.success(Unit)
     }
