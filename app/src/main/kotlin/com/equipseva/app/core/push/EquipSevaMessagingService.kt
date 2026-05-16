@@ -85,8 +85,14 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
         val rawTitle = message.notification?.title ?: data["title"]
         val rawBody = message.notification?.body ?: data["body"]
         if (rawTitle.isNullOrBlank() && rawBody.isNullOrBlank()) return
-        val title = rawTitle ?: getString(R.string.app_name)
-        val body = rawBody.orEmpty()
+        // Defense against malformed / oversized server payloads. Android
+        // truncates notification text on display, but the full string
+        // still rides in the Bundle attached to the PendingIntent — a
+        // 100KB title can push the bundle past the 1MB IPC ceiling and
+        // crash on notify(). Cap conservatively; real titles fit in 80
+        // chars and real bodies in 240.
+        val title = (rawTitle ?: getString(R.string.app_name)).take(MAX_TITLE_CHARS)
+        val body = rawBody.orEmpty().take(MAX_BODY_CHARS)
 
         // Resolve a deep-link route from the (kind, data) tuple the server
         // attached. Unknown / missing kinds fall through to MainActivity's
@@ -153,5 +159,12 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
     override fun onDestroy() {
         scope.cancel()
         super.onDestroy()
+    }
+
+    private companion object {
+        // Cap title/body lengths so a malformed server payload can't
+        // push the notification Bundle past the 1MB IPC ceiling.
+        const val MAX_TITLE_CHARS = 200
+        const val MAX_BODY_CHARS = 1000
     }
 }
