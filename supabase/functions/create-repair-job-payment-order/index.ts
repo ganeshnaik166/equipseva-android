@@ -72,7 +72,13 @@ serve(async (req) => {
     .select("id, repair_job_id, hospital_user_id, amount_rupees, status, razorpay_order_id")
     .eq("repair_job_id", jobId)
     .maybeSingle();
-  if (escrowErr) return bad("server_error", escrowErr.message, 500);
+  if (escrowErr) {
+    // Don't echo Supabase/Postgres error text — it can leak column names,
+    // filter values (= jobId), and RLS verdicts. Same hardening as rounds
+    // 269-273 across the sibling create-* / verify-* functions.
+    console.error("create-repair-job-payment-order: escrow fetch failed", escrowErr.message);
+    return bad("server_error", "could not fetch escrow", 500);
+  }
   if (!escrow) return bad("escrow_not_found", "no escrow on this job — accept a bid first", 404);
   if (escrow.hospital_user_id !== userId) {
     return bad("unauthenticated", "not the hospital on this job", 403);
@@ -140,9 +146,10 @@ serve(async (req) => {
     })
     .eq("id", escrow.id);
   if (bindErr) {
+    console.error("create-repair-job-payment-order: razorpay_order_id bind failed", bindErr.message);
     return bad(
       "server_error",
-      `failed to persist razorpay_order_id: ${bindErr.message}`,
+      "could not bind razorpay_order_id to escrow",
       500,
     );
   }
