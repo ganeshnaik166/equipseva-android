@@ -117,18 +117,22 @@ class ChatRepository @Inject constructor(
         message: String,
         attachments: List<String> = emptyList(),
     ): Result<ChatMessage> = runCatching {
+        // Server CHECK (round286) caps chat_messages.message at 4000.
+        // ChatViewModel already clamps the draft; mirror at the repo
+        // boundary so outbox replays / scripts hit the same gate.
+        val cappedMessage = message.take(4000)
         val dto = client.from(MESSAGES_TABLE).insert(
             MessageInsertDto(
                 conversationId = conversationId,
                 senderUserId = senderUserId,
-                message = message,
+                message = cappedMessage,
                 attachments = attachments.ifEmpty { null },
             ),
         ) { select() }.decodeSingle<MessageDto>()
 
         runCatching {
             client.from(CONVERSATIONS_TABLE).update({
-                set("last_message", message)
+                set("last_message", cappedMessage)
                 // Trust the server's `created_at`. Falling back to
                 // client wall-clock (Instant.now()) bumped conversations
                 // to wrong sort positions whenever device clock skewed —
