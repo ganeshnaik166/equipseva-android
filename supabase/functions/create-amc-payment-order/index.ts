@@ -84,7 +84,10 @@ serve(async (req) => {
     .select("id, hospital_user_id, status, monthly_fee_rupees")
     .eq("id", contractId)
     .maybeSingle();
-  if (fetchErr) return bad("server_error", fetchErr.message, 500);
+  if (fetchErr) {
+    console.error("create-amc-payment-order contract_fetch_failed", fetchErr);
+    return bad("server_error", "contract_fetch_failed", 500);
+  }
   if (!contract) return bad("contract_not_found", "amc contract missing", 404);
   if (contract.hospital_user_id !== userId) {
     return bad("unauthenticated", "not owner", 403);
