@@ -102,7 +102,11 @@ serve(async (req) => {
   const { data: participantsData, error: pErr } = await admin
     .rpc("participants_for_repair_job", { p_job_id: repairJobId });
   if (pErr) {
-    return bad("server_error", `participants lookup failed: ${pErr.message}`, 500);
+    // Don't echo raw PostgREST error — same log-leak pattern PR #686 /
+    // #704 / #705 / #706 / #707 closed elsewhere. Log full detail
+    // server-side; surface a stable code.
+    console.error("request-call-session participants_lookup_failed", pErr);
+    return bad("server_error", "participants_lookup_failed", 500);
   }
   const row = Array.isArray(participantsData) ? participantsData[0] : participantsData;
   if (!row) return bad("job_not_found", "no such repair job", 404);
