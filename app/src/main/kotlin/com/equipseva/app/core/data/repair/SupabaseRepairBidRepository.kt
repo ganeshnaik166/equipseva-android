@@ -61,12 +61,15 @@ class SupabaseRepairBidRepository @Inject constructor(
         val userId = requireNotNull(client.auth.currentUserOrNull()?.id) {
             "No authenticated user"
         }
+        // Server CHECK (round297) caps repair_job_bids.note at 1000.
+        // UI clamps at 500 (NOTE_MAX_LEN); repo cap catches non-UI callers
+        // before the round-trip hits 23514.
         val payload = RepairBidInsertDto(
             repairJobId = jobId,
             engineerUserId = userId,
             amountRupees = amountRupees,
             etaHours = etaHours,
-            note = note?.takeIf { it.isNotBlank() },
+            note = note?.take(1000)?.takeIf { it.isNotBlank() },
         )
         client.from(TABLE).upsert(payload) {
             onConflict = "repair_job_id,engineer_user_id"
