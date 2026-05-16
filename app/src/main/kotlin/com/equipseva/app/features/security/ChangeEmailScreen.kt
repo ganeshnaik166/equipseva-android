@@ -116,7 +116,7 @@ fun ChangeEmailScreen(
                         },
                         keyboardOptions = KeyboardOptions(
                             capitalization = KeyboardCapitalization.None,
-                            autoCorrect = false,
+                            autoCorrectEnabled = false,
                             keyboardType = KeyboardType.Email,
                             imeAction = ImeAction.Done,
                         ),
