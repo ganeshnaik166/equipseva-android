@@ -269,7 +269,13 @@ class ChatViewModel @Inject constructor(
     }
 
     fun onEditDraftChange(value: String) {
-        _state.update { it.copy(editDraft = value) }
+        // Same body-length CHECK as the new-message path (round 262).
+        val clipped = if (value.length > MAX_MESSAGE_CHARS) {
+            value.take(MAX_MESSAGE_CHARS)
+        } else {
+            value
+        }
+        _state.update { it.copy(editDraft = clipped) }
     }
 
     fun onCancelEdit() {
