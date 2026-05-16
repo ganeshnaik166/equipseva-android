@@ -13,7 +13,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 /**
@@ -71,22 +70,32 @@ class LocationFetcher @Inject constructor(
     suspend fun reverseGeocode(coords: Coords): Resolved? {
         if (!Geocoder.isPresent()) return null
         val geocoder = Geocoder(context)
-        val addr = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            suspendCoroutine<List<android.location.Address>?> { cont ->
-                try {
-                    geocoder.getFromLocation(coords.lat, coords.lng, 1) { results ->
-                        cont.resume(results)
+        // Cap geocoder wait at 10s. The async callback (Android 13+) can
+        // hang indefinitely on slow networks; without the timeout the
+        // caller's coroutine would never resume + the user's
+        // "Use my current location" tap would spin forever. The legacy
+        // (pre-13) call path is synchronous, so the timeout there just
+        // bounds a long network-blocking trip. Cancellable continuation
+        // also lets a cancelled coroutine (user navigated away) bail
+        // cleanly instead of leaking the callback.
+        val addr = kotlinx.coroutines.withTimeoutOrNull(10_000L) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                suspendCancellableCoroutine<List<android.location.Address>?> { cont ->
+                    try {
+                        geocoder.getFromLocation(coords.lat, coords.lng, 1) { results ->
+                            if (cont.isActive) cont.resume(results)
+                        }
+                    } catch (t: Throwable) {
+                        if (cont.isActive) cont.resumeWithException(t)
                     }
-                } catch (t: Throwable) {
-                    cont.resumeWithException(t)
+                }?.firstOrNull()
+            } else {
+                @Suppress("DEPRECATION")
+                try {
+                    geocoder.getFromLocation(coords.lat, coords.lng, 1)?.firstOrNull()
+                } catch (_: Throwable) {
+                    null
                 }
-            }?.firstOrNull()
-        } else {
-            @Suppress("DEPRECATION")
-            try {
-                geocoder.getFromLocation(coords.lat, coords.lng, 1)?.firstOrNull()
-            } catch (_: Throwable) {
-                null
             }
         } ?: return Resolved(coords = coords)
 
