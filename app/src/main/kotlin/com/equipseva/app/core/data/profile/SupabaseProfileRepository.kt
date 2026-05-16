@@ -122,10 +122,16 @@ class SupabaseProfileRepository @Inject constructor(
         // profiles.full_name NOT NULL when callers update only one field
         // (e.g. AddPhoneScreen). Letting null sail through historically
         // wiped full_name on every phone save.
+        //
+        // Round 289 — repo-boundary `.take(N)` to match the server CHECK
+        // added in 20260704700000 (full_name <= 200, phone <= 20). The
+        // UI already validates phone shape and clamps full_name on edit
+        // screens, but a stale ViewModel state or a future bulk path
+        // would otherwise hit the server CHECK with a confusing 23514.
         client.from(TABLE).update(
             buildJsonObject {
-                if (fullName != null) put("full_name", JsonPrimitive(fullName))
-                if (phone != null) put("phone", JsonPrimitive(phone))
+                if (fullName != null) put("full_name", JsonPrimitive(fullName.take(200)))
+                if (phone != null) put("phone", JsonPrimitive(phone.take(20)))
                 if (email != null) put("email", JsonPrimitive(email))
                 if (avatarUrl != null) put("avatar_url", JsonPrimitive(avatarUrl))
             },
