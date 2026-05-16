@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.auth.SignOutCleanup
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.push.DeviceTokenRegistrar
@@ -34,6 +35,7 @@ class SessionViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val userPrefs: UserPrefs,
     private val deviceTokenRegistrar: DeviceTokenRegistrar,
+    private val signOutCleanup: SignOutCleanup,
 ) : ViewModel() {
 
     private val bootstrapping = MutableStateFlow(false)
@@ -143,7 +145,14 @@ class SessionViewModel @Inject constructor(
             // keep the cached session.
             if (result.isSuccess && fetched == null) {
                 _messages.tryEmit("Your account is no longer active. Sign in again.")
-                runCatching { userPrefs.clearActiveRole() }
+                // Run the full local-state wipe (outbox, FCM token,
+                // DataStore prefs, realtime channels, …) before
+                // dropping the auth session. Previously only
+                // clearActiveRole() was called, so the zombie path
+                // left the previous user's outbox + FCM token + chat
+                // mutes hanging around for whoever signed in next on
+                // the same device.
+                signOutCleanup.wipeLocalUserState()
                 runCatching { authRepository.signOut() }
                 return
             }
@@ -152,7 +161,7 @@ class SessionViewModel @Inject constructor(
             // removes the row entirely (handled above).
             if (fetched != null && !fetched.isActive) {
                 _messages.tryEmit("This account was deleted. Contact support to restore it.")
-                runCatching { userPrefs.clearActiveRole() }
+                signOutCleanup.wipeLocalUserState()
                 runCatching { authRepository.signOut() }
                 return
             }
