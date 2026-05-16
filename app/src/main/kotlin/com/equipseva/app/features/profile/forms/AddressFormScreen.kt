@@ -311,11 +311,15 @@ fun AddressFormScreen(
                 )
             }
 
+            // Server CHECKs (20260704200000_round281) bound label at 80,
+            // full_name at 200. Cap here so a paste of a multi-MB blob
+            // doesn't either silently truncate (without these caps) or
+            // fail save with a confusing 23514 constraint-violation toast.
             FormField(state.form.label, "Label (Home, HQ — optional)") { v ->
-                viewModel.update { it.copy(label = v) }
+                viewModel.update { it.copy(label = v.take(80)) }
             }
             FormField(state.form.fullName, "Full name") { v ->
-                viewModel.update { it.copy(fullName = v) }
+                viewModel.update { it.copy(fullName = v.take(200)) }
             }
             FormField(state.form.phone, "Phone", keyboardType = KeyboardType.Phone) { v ->
                 // ASCII-digit filter (Kotlin's Char.isDigit() also accepts
@@ -369,7 +373,8 @@ fun AddressFormScreen(
                     ch in 'a'..'z' || ch in 'A'..'Z' || ch.isWhitespace() ||
                         ch == '-' || ch == '\'' || ch == '.'
                 }
-                viewModel.update { it.copy(city = cleaned) }
+                // Server CHECK (round281) caps at 120 chars.
+                viewModel.update { it.copy(city = cleaned.take(120)) }
             }
             FormField(state.form.pincode, "Pincode", keyboardType = KeyboardType.Number) { v ->
                 // ASCII-only digits — Char.isDigit() accepts Arabic /
