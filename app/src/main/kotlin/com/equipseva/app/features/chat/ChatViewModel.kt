@@ -142,7 +142,17 @@ class ChatViewModel @Inject constructor(
     }
 
     fun onDraftChange(value: String) {
-        _state.update { it.copy(draft = value) }
+        // Cap at the server's body-length CHECK (chat_messages 1..4000)
+        // so a paste of an arbitrarily long blob doesn't round-trip a
+        // 5MB string to the server only to get rejected with a 23514.
+        // Trim mirrors the .trim() in onSend so the visible counter
+        // matches what'll actually be sent.
+        val clipped = if (value.length > MAX_MESSAGE_CHARS) {
+            value.take(MAX_MESSAGE_CHARS)
+        } else {
+            value
+        }
+        _state.update { it.copy(draft = clipped) }
         val self = _state.value.selfUserId ?: return
         // Only announce typing while there's actual content — clearing the field shouldn't
         // read as "still typing" to the other side.
@@ -420,6 +430,10 @@ class ChatViewModel @Inject constructor(
         // Min interval between typing broadcasts per client. Repo-side TTL is ~3s, so
         // pinging every 2s keeps the "typing…" pill stable without flooding realtime.
         const val TYPING_BROADCAST_MIN_INTERVAL_MS = 2_000L
+        // Mirrors the chat_messages body-length CHECK (1..4000) so paste
+        // of a multi-page blob doesn't waste bandwidth round-tripping
+        // before the server rejects with 23514.
+        const val MAX_MESSAGE_CHARS = 4000
     }
 }
 
