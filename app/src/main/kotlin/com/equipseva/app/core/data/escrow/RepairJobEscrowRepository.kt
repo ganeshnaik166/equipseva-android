@@ -183,11 +183,15 @@ class RepairJobEscrowRepository @Inject constructor(
     }
 
     suspend fun openDispute(repairJobId: String, reason: String): Result<Unit> = runCatching {
+        // Round 295 — repo-boundary `.take(2000)` mirrors the server-side
+        // CHECK enforced by round 268 (PR #716). UI already clamps at 500
+        // chars (EscrowDisputeSheet); the repo cap catches non-UI callers
+        // before the round-trip rejects with 22023.
         supabase.postgrest.rpc(
             function = "dispute_repair_job_escrow",
             parameters = buildJsonObject {
                 put("p_repair_job_id", JsonPrimitive(repairJobId))
-                put("p_reason", JsonPrimitive(reason))
+                put("p_reason", JsonPrimitive(reason.take(2000)))
             },
         )
         Unit
@@ -200,11 +204,12 @@ class RepairJobEscrowRepository @Inject constructor(
         repairJobId: String,
         response: String,
     ): Result<Unit> = runCatching {
+        // Round 295 — same `.take(2000)` pattern as openDispute.
         supabase.postgrest.rpc(
             function = "engineer_respond_to_escrow_dispute",
             parameters = buildJsonObject {
                 put("p_repair_job_id", JsonPrimitive(repairJobId))
-                put("p_response", JsonPrimitive(response))
+                put("p_response", JsonPrimitive(response.take(2000)))
             },
         )
         Unit
