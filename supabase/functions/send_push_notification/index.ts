@@ -291,7 +291,13 @@ serve(async (req) => {
     .select("id, user_id, title, body, data, kind")
     .eq("id", rec.id)
     .maybeSingle();
-  if (notifErr) return json(500, { ok: false, code: "server_error", message: notifErr.message });
+  if (notifErr) {
+    // Don't echo PostgREST raw error in the response — webhook
+    // response is captured to function logs which carry the SQL
+    // hints / table names. Same pattern as PR #686 / PR #704.
+    console.error("send_push_notification notif_fetch_failed", notifErr);
+    return json(500, { ok: false, code: "server_error", message: "notif_fetch_failed" });
+  }
   if (!notif) return json(200, { ok: true, skipped: true, reason: "row_gone" });
 
   const { data: tokens, error: tokensErr } = await admin
@@ -301,7 +307,8 @@ serve(async (req) => {
     .order("updated_at", { ascending: false })
     .limit(MAX_TOKENS_PER_USER);
   if (tokensErr) {
-    return json(500, { ok: false, code: "server_error", message: tokensErr.message });
+    console.error("send_push_notification tokens_fetch_failed", tokensErr);
+    return json(500, { ok: false, code: "server_error", message: "tokens_fetch_failed" });
   }
   if (!tokens || tokens.length === 0) {
     return json(200, { ok: true, sent: 0, reason: "no_devices" });
