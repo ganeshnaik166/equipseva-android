@@ -25,7 +25,7 @@ import androidx.compose.material.icons.filled.CurrencyRupee
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Gavel
-import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Verified
@@ -287,7 +287,7 @@ private fun iconForKind(kind: String?): Pair<ImageVector, Color> = when (kind) {
     "amc_sla_breach",
     "amc_admin_escalation_raised" -> Icons.Filled.Build to SevaDanger500
     // Cash survey + auto-suspend (PR-D1 / PR-D11).
-    "cash_survey" -> Icons.Filled.HelpOutline to SevaWarning500
+    "cash_survey" -> Icons.AutoMirrored.Filled.HelpOutline to SevaWarning500
     // Spot-audit invitation (PR-D43).
     "spot_audit_invited" -> Icons.Filled.Star to SevaInfo500
     "engineer_auto_suspended",
