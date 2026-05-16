@@ -484,7 +484,10 @@ class KycViewModel @Inject constructor(
     }
 
     fun onEmailDraftChange(value: String) {
-        _state.update { it.copy(emailDraft = value.trim(), errorMessage = null) }
+        // RFC 5321 caps an email address at 254 chars. A paste of a
+        // multi-KB string slips into savedStateHandle without this and
+        // wastes memory until submit hits the server-side validator.
+        _state.update { it.copy(emailDraft = value.trim().take(254), errorMessage = null) }
     }
 
     /**
@@ -607,8 +610,14 @@ class KycViewModel @Inject constructor(
     }
 
     fun onServiceAddressChange(value: String) {
-        savedStateHandle[SavedKeys.ADDRESS] = value
-        _state.update { it.copy(serviceAddress = value) }
+        // Cap at 500 chars. The engineers.service_address column is
+        // `text` (unbounded) server-side, so a paste of a 50KB blob
+        // would otherwise bloat the row and slow every directory fetch
+        // that returns this engineer. 500 is generous for a real
+        // hospital address + landmark line.
+        val clipped = if (value.length > 500) value.take(500) else value
+        savedStateHandle[SavedKeys.ADDRESS] = clipped
+        _state.update { it.copy(serviceAddress = clipped) }
     }
 
     /** State picked from cascade. Resets the dependent district. */
@@ -703,7 +712,14 @@ class KycViewModel @Inject constructor(
     }
 
     fun onQualificationDraftChange(value: String) =
-        _state.update { it.copy(qualificationDraft = value) }
+        _state.update {
+            // Cap each draft qualification at 200 chars before it gets
+            // committed to the qualifications jsonb array. Without the
+            // cap, a paste of an arbitrarily long string would land in
+            // the directory card and blow out the layout — qualifications
+            // render inline as compact chips.
+            it.copy(qualificationDraft = value.take(200))
+        }
 
     fun addQualification() {
         val draft = _state.value.qualificationDraft.trim()
