@@ -22,6 +22,13 @@ object CrashDataScrubber {
         Regex("""[?&]token=[A-Za-z0-9._\-]+"""),
         // Authorization headers leaked via HTTP exceptions.
         Regex("""(?i)authorization:\s*bearer\s+[A-Za-z0-9._\-]+"""),
+        // Indian mobile numbers — mirrors the separator-aware regex
+        // from PR #688's chat mask so exception messages like
+        // "validation failed for phone='9876 543 210'" or
+        // "SMS dispatch failed to +919812345699" don't ship raw
+        // numbers to Crashlytics / Sentry. Accepts zero-or-one
+        // whitespace / dot / dash between each digit pair.
+        Regex("""(?:\+?\s?91[\s.\-]?|0)?[6-9](?:[\s.\-]?\d){9}"""),
     )
 
     fun scrub(input: String?): String? {
