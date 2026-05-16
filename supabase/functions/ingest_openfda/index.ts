@@ -202,7 +202,14 @@ Deno.serve(async (req: Request) => {
         .from('catalog_devices')
         .upsert(deviceBatch, { onConflict: 'openfda_id', ignoreDuplicates: false });
       if (error) {
-        return new Response(JSON.stringify({ error: 'upsert_devices_failed', message: error.message }), {
+        // Don't echo PostgREST error.message — it carries SQL hints,
+        // table names, and constraint identifiers (e.g.
+        // "permission denied for table catalog_devices / URL: ..."). The
+        // caller is an admin/cron, but the response can still land in
+        // log aggregators we'd rather not leak schema to. Log the raw
+        // detail server-side; surface only a stable error code.
+        console.error('ingest_openfda upsert_devices_failed', error);
+        return new Response(JSON.stringify({ error: 'upsert_devices_failed' }), {
           status: 500,
           headers: { 'content-type': 'application/json' },
         });
@@ -232,8 +239,9 @@ Deno.serve(async (req: Request) => {
       .from('catalog_brands')
       .upsert(brandUpserts, { onConflict: 'slug', ignoreDuplicates: false });
     if (error) {
+      console.error('ingest_openfda upsert_brands_failed', error);
       return new Response(
-        JSON.stringify({ error: 'upsert_brands_failed', message: error.message, devices_upserted: upserted }),
+        JSON.stringify({ error: 'upsert_brands_failed', devices_upserted: upserted }),
         { status: 500, headers: { 'content-type': 'application/json' } },
       );
     }
@@ -244,8 +252,9 @@ Deno.serve(async (req: Request) => {
   let linked = 0;
   const { data: linkData, error: linkErr } = await supabase.rpc('_link_catalog_devices_to_brands');
   if (linkErr) {
+    console.error('ingest_openfda brand_link_failed', linkErr);
     return new Response(
-      JSON.stringify({ error: 'brand_link_failed', message: linkErr.message, devices_upserted: upserted }),
+      JSON.stringify({ error: 'brand_link_failed', devices_upserted: upserted }),
       { status: 500, headers: { 'content-type': 'application/json' } },
     );
   }
