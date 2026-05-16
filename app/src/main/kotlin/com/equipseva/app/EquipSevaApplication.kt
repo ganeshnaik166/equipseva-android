@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.equipseva.app.core.observability.CrashlyticsUserBridge
 import com.equipseva.app.core.observability.SentryInitializer
 import com.equipseva.app.core.observability.SentryUserBridge
 import com.equipseva.app.core.observability.StartupTelemetry
@@ -25,6 +26,7 @@ class EquipSevaApplication : Application(), Configuration.Provider {
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var sentryInitializer: SentryInitializer
     @Inject lateinit var sentryUserBridge: SentryUserBridge
+    @Inject lateinit var crashlyticsUserBridge: CrashlyticsUserBridge
     @Inject lateinit var outboxScheduler: OutboxScheduler
     @Inject lateinit var pendingPaymentsReconciler: PendingAmcPaymentsReconciler
 
@@ -39,6 +41,10 @@ class EquipSevaApplication : Application(), Configuration.Provider {
         // Mirror auth state into Sentry user scope (user_id only). Safe before
         // or after init() — bridge no-ops when DSN is blank.
         sentryUserBridge.attach()
+        // Mirror the same into Crashlytics. Without this, every crash
+        // report carried an empty user id — Crashlytics's "Affected
+        // users" stayed at zero and per-user filtering was impossible.
+        crashlyticsUserBridge.attach()
         StartupTelemetry.markStart()
         NotificationChannels.register(this)
         // Periodic 15-minute drain of the offline outbox. Without this,
