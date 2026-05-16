@@ -62,6 +62,23 @@ class SentryInitializer @Inject constructor() {
         // carry JWTs. Keep non-auth http breadcrumbs (with scrubbed message).
         val url = crumb.getData("url")?.toString().orEmpty()
         if (crumb.category == "http" && url.contains("/auth/v1/")) return null
+        // Scrub the URL itself + any string `data` payload. Postgrest
+        // queries land here as `?phone=eq.9876543210&select=*` or
+        // similar — `scrub()` would only see `crumb.message` otherwise
+        // and the raw filter value would ship to Sentry untouched.
+        // Mutating via setData on the same key replaces the prior value.
+        if (url.isNotEmpty()) {
+            CrashDataScrubber.scrub(url)?.let { crumb.setData("url", it) }
+        }
+        // Snapshot the entries so setData() can't trigger
+        // ConcurrentModificationException if Sentry backs `data`
+        // with a fail-fast HashMap.
+        val dataSnapshot = crumb.data?.entries?.toList().orEmpty()
+        for ((k, v) in dataSnapshot) {
+            if (k != "url" && v is String) {
+                CrashDataScrubber.scrub(v)?.let { crumb.setData(k, it) }
+            }
+        }
         return crumb
     }
 }
