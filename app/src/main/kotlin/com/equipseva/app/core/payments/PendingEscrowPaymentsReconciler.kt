@@ -1,0 +1,50 @@
+package com.equipseva.app.core.payments
+
+import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * Round 280 — sweep stale entries from [PendingEscrowPaymentsStore] after
+ * a process-death + cold-start cycle.
+ *
+ * Each entry is a repair_job_id whose Razorpay escrow checkout activity
+ * didn't return cleanly. We query the canonical server-side status via
+ * the existing get_repair_job_escrow RPC and bucket the response:
+ *
+ *   - status='held' / 'released' / 'refunded' / 'in_dispute' → terminal
+ *     or post-pending, the verify-payment edge function did fire (or
+ *     the escrow has progressed past the in-flight state). Remove the
+ *     marker — no client action needed.
+ *   - status='pending'         → keep the marker. The hospital paid via
+ *     Razorpay but the verify call never completed (process death). They
+ *     need to retry from the job detail screen; we leave the marker so
+ *     the home UI can surface the in-flight pill.
+ *   - row missing (RLS denied, escrow row never created, etc.) → remove
+ *     the marker; we can't act on what we can't see.
+ *
+ * Failures are silently ignored — the marker lingers until the next
+ * cold-start retries the reconciliation.
+ */
+@Singleton
+class PendingEscrowPaymentsReconciler @Inject constructor(
+    private val store: PendingEscrowPaymentsStore,
+    private val escrowRepository: RepairJobEscrowRepository,
+) {
+
+    suspend fun reconcile() {
+        val pending = runCatching { store.list() }.getOrNull().orEmpty()
+        if (pending.isEmpty()) return
+        for (repairJobId in pending) {
+            val row = runCatching { escrowRepository.fetchByJob(repairJobId).getOrNull() }
+                .getOrNull()
+            when (row?.status) {
+                "held", "released", "refunded", "in_dispute", null -> {
+                    // Terminal / post-pending / unknown — clear the marker.
+                    runCatching { store.remove(repairJobId) }
+                }
+                else -> Unit // still 'pending' — keep for the UI banner.
+            }
+        }
+    }
+}

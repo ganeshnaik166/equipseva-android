@@ -8,6 +8,7 @@ import com.equipseva.app.core.observability.SentryInitializer
 import com.equipseva.app.core.observability.SentryUserBridge
 import com.equipseva.app.core.observability.StartupTelemetry
 import com.equipseva.app.core.payments.PendingAmcPaymentsReconciler
+import com.equipseva.app.core.payments.PendingEscrowPaymentsReconciler
 import com.equipseva.app.core.push.NotificationChannels
 import com.equipseva.app.core.security.DeviceIntegrityCheck
 import com.equipseva.app.core.security.SignatureVerifier
@@ -27,6 +28,7 @@ class EquipSevaApplication : Application(), Configuration.Provider {
     @Inject lateinit var sentryUserBridge: SentryUserBridge
     @Inject lateinit var outboxScheduler: OutboxScheduler
     @Inject lateinit var pendingPaymentsReconciler: PendingAmcPaymentsReconciler
+    @Inject lateinit var pendingEscrowPaymentsReconciler: PendingEscrowPaymentsReconciler
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -60,6 +62,17 @@ class EquipSevaApplication : Application(), Configuration.Provider {
         appScope.launch {
             runCatching { pendingPaymentsReconciler.reconcile() }
                 .onFailure { Log.e(TAG, "pending payments reconcile failed", it) }
+        }
+
+        // Round 280 — sibling reconcile for repair-job escrow payments.
+        // Same process-death scenario: user paid via Razorpay but the
+        // OS killed the app before verify-repair-job-payment fired. The
+        // escrow row stays 'pending' on the server; without this sweep
+        // the home banner's marker would linger forever even after the
+        // hospital recovered by re-paying or contacting support.
+        appScope.launch {
+            runCatching { pendingEscrowPaymentsReconciler.reconcile() }
+                .onFailure { Log.e(TAG, "pending escrow payments reconcile failed", it) }
         }
 
         // Anti-tamper signature check. Stays report-only until the user
