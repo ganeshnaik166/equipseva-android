@@ -46,12 +46,21 @@ class UserBlockRepository @Inject constructor(
     suspend fun block(blockedUserId: String): Result<Unit> = runCatching {
         val userId = requireNotNull(client.auth.currentUserOrNull()?.id) { "Not signed in" }
         require(userId != blockedUserId) { "Cannot block self" }
-        client.from(TABLE).insert(
+        // Use upsert with ignoreDuplicates so a second "Block" tap on a
+        // user already blocked succeeds idempotently. With plain INSERT
+        // the user_blocks_unique constraint raised 23505, which
+        // toUserMessage rendered as "That looks like a duplicate." —
+        // confusing for a block action where the desired state is
+        // already true.
+        client.from(TABLE).upsert(
             buildJsonObject {
                 put("blocker_user_id", JsonPrimitive(userId))
                 put("blocked_user_id", JsonPrimitive(blockedUserId))
             },
-        )
+        ) {
+            onConflict = "blocker_user_id,blocked_user_id"
+            ignoreDuplicates = true
+        }
         mutex.withLock { cache.value = (cache.value ?: emptySet()) + blockedUserId }
     }
 
