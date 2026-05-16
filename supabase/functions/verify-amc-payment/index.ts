@@ -130,7 +130,10 @@ serve(async (req) => {
     )
     .eq("id", payment_order_id)
     .maybeSingle();
-  if (fetchErr) return bad("server_error", fetchErr.message, 500);
+  if (fetchErr) {
+    console.error("verify-amc-payment order_fetch_failed", fetchErr);
+    return bad("server_error", "order_fetch_failed", 500);
+  }
   if (!order) return bad("order_not_found", "payment order missing", 404);
 
   // Supabase-js inlines the joined row as either an object or an
@@ -190,7 +193,10 @@ serve(async (req) => {
       updated_at: new Date().toISOString(),
     })
     .eq("id", payment_order_id);
-  if (updErr) return bad("server_error", updErr.message, 500);
+  if (updErr) {
+    console.error("verify-amc-payment order_update_failed", updErr);
+    return bad("server_error", "order_update_failed", 500);
+  }
 
   const { data: ledgerId, error: rpcErr } = await admin.rpc(
     "apply_amc_pool_credit",

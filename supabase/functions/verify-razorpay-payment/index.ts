@@ -119,7 +119,10 @@ serve(async (req) => {
     .select("id, buyer_user_id, payment_status, order_status, total_amount, razorpay_order_id")
     .eq("id", order_id)
     .maybeSingle();
-  if (fetchErr) return bad("server_error", fetchErr.message, 500);
+  if (fetchErr) {
+    console.error("verify-razorpay-payment fetch_failed", fetchErr);
+    return bad("server_error", "fetch_failed", 500);
+  }
   if (!order) return bad("order_not_found", "order missing", 404);
   if (order.buyer_user_id !== userId) return bad("unauthenticated", "not owner", 403);
 
@@ -157,7 +160,10 @@ serve(async (req) => {
       payment_id: razorpay_payment_id,
     })
     .eq("id", order_id);
-  if (updErr) return bad("server_error", updErr.message, 500);
+  if (updErr) {
+    console.error("verify-razorpay-payment update_failed", updErr);
+    return bad("server_error", "update_failed", 500);
+  }
 
   return json(200, {
     ok: true,

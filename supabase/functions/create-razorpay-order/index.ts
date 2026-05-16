@@ -74,7 +74,10 @@ serve(async (req) => {
     .select("id, buyer_user_id, total_amount, order_number, payment_status")
     .eq("id", orderId)
     .maybeSingle();
-  if (fetchErr) return bad("server_error", fetchErr.message, 500);
+  if (fetchErr) {
+    console.error("create-razorpay-order fetch_failed", fetchErr);
+    return bad("server_error", "fetch_failed", 500);
+  }
   if (!order) return bad("order_not_found", "order missing", 404);
   if (order.buyer_user_id !== userId) return bad("unauthenticated", "not owner", 403);
   if (order.payment_status === "completed") {
