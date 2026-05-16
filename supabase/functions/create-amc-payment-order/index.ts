@@ -153,7 +153,8 @@ serve(async (req) => {
     .select("id")
     .single();
   if (insertErr || !insertedOrder) {
-    return bad("server_error", insertErr?.message ?? "insert failed", 500);
+    if (insertErr) console.error("create-amc-payment-order insert_failed", insertErr);
+    return bad("server_error", "insert_failed", 500);
   }
   const paymentOrderId = insertedOrder.id;
 
