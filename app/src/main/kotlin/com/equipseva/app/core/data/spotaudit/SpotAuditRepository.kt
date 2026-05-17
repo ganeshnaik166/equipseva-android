@@ -42,12 +42,15 @@ class SpotAuditRepository @Inject constructor(
         rating: Int,
         feedback: String?,
     ): Result<Unit> = runCatching {
+        // Round 307 — defensive .take(500) matches server CHECK + UI clamp;
+        // protects against future UI paths that forget to gate.
+        val safeFeedback = feedback?.take(500)
         supabase.postgrest.rpc(
             function = "submit_spot_audit",
             parameters = buildJsonObject {
                 put("p_invitation_id", JsonPrimitive(invitationId))
                 put("p_rating", JsonPrimitive(rating))
-                put("p_feedback", feedback?.let { JsonPrimitive(it) } ?: JsonNull)
+                put("p_feedback", safeFeedback?.let { JsonPrimitive(it) } ?: JsonNull)
             },
         )
         Unit
