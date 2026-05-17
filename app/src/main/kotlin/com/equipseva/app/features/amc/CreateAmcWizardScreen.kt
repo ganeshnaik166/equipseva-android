@@ -90,6 +90,13 @@ class CreateAmcWizardViewModel @Inject constructor(
     private val primaryEngineerId: String =
         savedStateHandle[Routes.CREATE_AMC_ARG_ENGINEER_ID] ?: ""
 
+    // Round 315 — when the user lands on the wizard from the AMC detail
+    // Renew CTA, this query arg carries the prior contract id so we can
+    // pre-populate scope / frequency / fee / categories. Null on the
+    // standard "set up new AMC" entry from the engineer profile.
+    private val sourceContractId: String? =
+        savedStateHandle.get<String>(Routes.CREATE_AMC_ARG_SOURCE_ID)?.takeIf { it.isNotBlank() }
+
     enum class Step { Scope, FrequencyFee, Sla, Engineer }
 
     data class FallbackOption(
@@ -153,6 +160,7 @@ class CreateAmcWizardViewModel @Inject constructor(
 
     init {
         loadPrimaryName()
+        prefillFromSourceContract()
     }
 
     private fun loadPrimaryName() {
@@ -162,6 +170,32 @@ class CreateAmcWizardViewModel @Inject constructor(
                 .onSuccess { p ->
                     _state.update { it.copy(primaryEngineerName = p?.fullName ?: "Engineer") }
                 }
+        }
+    }
+
+    // Round 315 — pre-populate scope / frequency / fee / categories
+    // from the prior contract when launched from the Renew CTA. Best-
+    // effort: if the fetch fails or the contract is missing we silently
+    // leave the wizard on its blank defaults, so the user can still
+    // recover by typing manually.
+    private fun prefillFromSourceContract() {
+        val src = sourceContractId ?: return
+        viewModelScope.launch {
+            runCatching {
+                repo.listForHospital().getOrNull()
+                    ?.firstOrNull { it.id == src }
+            }.getOrNull()?.let { prior ->
+                _state.update { st ->
+                    st.copy(
+                        equipmentCategories = prior.equipmentCategories,
+                        scopeText = prior.scopeText.orEmpty().take(4000),
+                        visitFrequency = prior.visitFrequency,
+                        visitsPerYear = prior.visitsPerYear,
+                        monthlyFeeRupees = prior.monthlyFeeRupees.toLong().toString(),
+                        autoRenew = prior.autoRenew,
+                    )
+                }
+            }
         }
     }
 
