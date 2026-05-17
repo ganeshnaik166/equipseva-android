@@ -38,6 +38,6 @@ CREATE INDEX IF NOT EXISTS idx_repair_job_cost_revisions_decision_by
   ON public.repair_job_cost_revisions (decision_by)
   WHERE decision_by IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS idx_buyer_kyc_reviewed_by
-  ON public.buyer_kyc (reviewed_by)
+CREATE INDEX IF NOT EXISTS idx_buyer_kyc_verifications_reviewed_by
+  ON public.buyer_kyc_verifications (reviewed_by)
   WHERE reviewed_by IS NOT NULL;
