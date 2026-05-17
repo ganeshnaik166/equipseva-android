@@ -41,6 +41,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.core.util.isWithinDays
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.amc.AmcRepository
 import com.equipseva.app.core.network.toUserMessage
@@ -222,6 +223,7 @@ class AmcDetailViewModel @Inject constructor(
 fun AmcDetailScreen(
     onBack: () -> Unit,
     onShowMessage: (String) -> Unit,
+    onRenew: (engineerId: String) -> Unit = {},
     viewModel: AmcDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -264,7 +266,7 @@ fun AmcDetailScreen(
                             onSelect = viewModel::selectTab,
                         )
                         when (state.tab) {
-                            AmcDetailViewModel.Tab.Overview -> OverviewTab(state)
+                            AmcDetailViewModel.Tab.Overview -> OverviewTab(state, onRenew)
                             AmcDetailViewModel.Tab.Pool -> PoolTab(
                                 state = state,
                                 onTopUp = { viewModel.openTopUp() },
@@ -446,7 +448,10 @@ private fun TabsRow(
 }
 
 @Composable
-private fun OverviewTab(state: AmcDetailViewModel.UiState) {
+private fun OverviewTab(
+    state: AmcDetailViewModel.UiState,
+    onRenew: (engineerId: String) -> Unit = {},
+) {
     val title = state.hospital?.primaryEngineerName ?: state.engineerView?.hospitalName ?: "—"
     val status = state.hospital?.status ?: state.engineerView?.status ?: "active"
     val freq = state.hospital?.visitFrequency ?: state.engineerView?.visitFrequency ?: ""
@@ -488,6 +493,28 @@ private fun OverviewTab(state: AmcDetailViewModel.UiState) {
                 }
                 if (autoRenew) {
                     Pill(text = "Auto-renew", kind = PillKind.Default)
+                }
+
+                // Round 314 — surface the Renew CTA when end_date is within
+                // 14 days and the contract is still active. The server-side
+                // notify_expiring_amc_contracts (round 313) pages the
+                // hospital at 7 days; this CTA gives them a button when
+                // they actually land on the detail screen so they don't
+                // have to bounce back to the engineer profile.
+                val engineerIdForRenew = state.hospital?.primaryEngineerId
+                if (state.viewerIsHospital
+                    && status == "active"
+                    && !engineerIdForRenew.isNullOrBlank()
+                    && isWithinDays(end, 14)
+                ) {
+                    Spacer(Modifier.height(4.dp))
+                    EsBtn(
+                        text = "Renew contract",
+                        kind = EsBtnKind.Primary,
+                        size = EsBtnSize.Md,
+                        full = true,
+                        onClick = { onRenew(engineerIdForRenew) },
+                    )
                 }
             }
         }

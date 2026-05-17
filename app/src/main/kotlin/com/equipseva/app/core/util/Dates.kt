@@ -58,3 +58,20 @@ fun prettyDateTime(iso: String): String =
  */
 fun String?.parseInstantOrNull(): Instant? =
     this?.let { runCatching { Instant.parse(it) }.getOrNull() }
+
+/**
+ * True when [iso] (`yyyy-MM-dd` or full ISO instant) falls within
+ * the next [days] calendar days in Asia/Kolkata. Used by Renew-CTA
+ * gating (round 314) and any "expires soon" countdown.
+ *
+ * Returns false on parse failure rather than throwing — bad payload
+ * shouldn't render an alarming "expires today" banner.
+ */
+fun isWithinDays(iso: String, days: Long): Boolean =
+    runCatching {
+        val target = runCatching { Instant.parse(iso).atZone(IST_ZONE).toLocalDate() }
+            .getOrNull()
+            ?: LocalDate.parse(iso)
+        val today = LocalDate.now(IST_ZONE)
+        !target.isBefore(today) && !target.isAfter(today.plusDays(days))
+    }.getOrDefault(false)

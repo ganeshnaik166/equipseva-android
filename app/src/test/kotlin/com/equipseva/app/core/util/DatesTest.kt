@@ -52,4 +52,34 @@ class DatesTest {
         // Same instant — IST clock reads 04:00 not 22:30.
         assertEquals("11 May 2026, 04:00", prettyDateTime("2026-05-10T22:30:00Z"))
     }
+
+    // isWithinDays — round 314 Renew-CTA gating. Anchor cases off
+    // LocalDate.now(IST) so the test is stable regardless of run time.
+    @Test fun `isWithinDays returns false for malformed input`() {
+        org.junit.Assert.assertFalse(isWithinDays("not-a-date", 14))
+        org.junit.Assert.assertFalse(isWithinDays("", 7))
+    }
+
+    @Test fun `isWithinDays returns true for today`() {
+        val today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")).toString()
+        org.junit.Assert.assertTrue(isWithinDays(today, 14))
+    }
+
+    @Test fun `isWithinDays returns true for date inside window`() {
+        val plusTen = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"))
+            .plusDays(10).toString()
+        org.junit.Assert.assertTrue(isWithinDays(plusTen, 14))
+    }
+
+    @Test fun `isWithinDays returns false for date outside window`() {
+        val plusThirty = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"))
+            .plusDays(30).toString()
+        org.junit.Assert.assertFalse(isWithinDays(plusThirty, 14))
+    }
+
+    @Test fun `isWithinDays returns false for past date`() {
+        val yesterday = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"))
+            .minusDays(1).toString()
+        org.junit.Assert.assertFalse(isWithinDays(yesterday, 14))
+    }
 }
