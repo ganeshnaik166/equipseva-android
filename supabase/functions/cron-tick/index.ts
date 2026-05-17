@@ -128,6 +128,15 @@ serve(async (req) => {
       if (error) throw error;
       return { rows: typeof data === "number" ? data : undefined };
     },
+    // Round 304 — TTL purge for phone_otp_requests; the table is
+    // append-only via phone_otp_can_request and would grow unbounded
+    // without this. 7-day retention is plenty for fraud forensics
+    // (the rate-limit window itself is 1 hour).
+    "purge-phone-otp-requests": async () => {
+      const { data, error } = await admin.rpc("purge_old_phone_otp_requests");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
   };
 
   // Slot groups for typical schedules.
@@ -144,6 +153,7 @@ serve(async (req) => {
       "purge-content-reports",
       "purge-device-integrity",
       "purge-virtual-calls",
+      "purge-phone-otp-requests",
       "amc-auto-renew",
     ],
   };
