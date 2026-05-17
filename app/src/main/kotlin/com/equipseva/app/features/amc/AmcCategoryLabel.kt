@@ -5,6 +5,7 @@ private val AMC_CATEGORY_OVERRIDES = mapOf(
     "mri" to "MRI",
     "icu" to "ICU",
     "x_ray" to "X-ray",
+    "ent" to "ENT",
 )
 
 internal fun amcCategoryLabel(key: String): String =
