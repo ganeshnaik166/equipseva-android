@@ -130,6 +130,11 @@ object NotificationDeepLink {
             // contract detail.
             KIND_AMC_VISIT_PENDING_ASSIGNMENT ->
                 data["amc_contract_id"]?.takeIfUuid()?.let(Routes::amcContractDetailRoute)
+            // Round 313: v1 AMC renewal reminder. Server payload
+            // carries the contract id; route to the contract detail
+            // where the hospital can manually renew.
+            KIND_AMC_RENEWAL_DUE ->
+                data["amc_contract_id"]?.takeIfUuid()?.let(Routes::amcContractDetailRoute)
             else -> null
         }
     }
@@ -191,4 +196,8 @@ object NotificationDeepLink {
     const val KIND_AMC_VISIT_ENGINEER_ASSIGNED = "amc_visit_engineer_assigned"
     const val KIND_AMC_VISIT_ENGINEER_CHANGED = "amc_visit_engineer_changed"
     const val KIND_AMC_VISIT_PENDING_ASSIGNMENT = "amc_visit_pending_assignment"
+    // Round 313 — v1 AMC renewal reminder fired by
+    // notify_expiring_amc_contracts cron when end_date enters the
+    // 7-day window. Hospital manually renews via create_amc_contract.
+    const val KIND_AMC_RENEWAL_DUE = "amc_renewal_due"
 }

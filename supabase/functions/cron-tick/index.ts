@@ -128,6 +128,17 @@ serve(async (req) => {
       if (error) throw error;
       return { rows: typeof data === "number" ? data : undefined };
     },
+    // Round 313 — v1 AMC renewal notifier. auto_renew_expiring_amc_contracts
+    // enqueues renewal attempts but no worker drains them yet (needs
+    // Razorpay subscriptions for off-session charge). v1 fallback:
+    // notify the hospital that their AMC is expiring so they can
+    // manually renew. Idempotent per contract via
+    // amc_contracts.last_renewal_notification_at.
+    "amc-renewal-notify": async () => {
+      const { data, error } = await admin.rpc("notify_expiring_amc_contracts");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
     // Round 304 — TTL purge for phone_otp_requests; the table is
     // append-only via phone_otp_can_request and would grow unbounded
     // without this. 7-day retention is plenty for fraud forensics
@@ -155,6 +166,7 @@ serve(async (req) => {
       "purge-virtual-calls",
       "purge-phone-otp-requests",
       "amc-auto-renew",
+      "amc-renewal-notify",
     ],
   };
 

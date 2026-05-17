@@ -284,6 +284,7 @@ private fun iconForKind(kind: String?): Pair<ImageVector, Color> = when (kind) {
     "amc_visit_engineer_assigned",
     "amc_visit_engineer_changed",
     "amc_visit_pending_assignment" -> Icons.Filled.Build to SevaInfo500
+    "amc_renewal_due" -> Icons.Filled.Build to SevaWarning500
     "amc_sla_breach",
     "amc_admin_escalation_raised" -> Icons.Filled.Build to SevaDanger500
     // Cash survey + auto-suspend (PR-D1 / PR-D11).
