@@ -109,6 +109,11 @@ class CreateAmcWizardViewModel @Inject constructor(
         val step: Step = Step.Scope,
         val primaryEngineerId: String = "",
         val primaryEngineerName: String = "",
+        // Round 316 — true when the wizard was launched from the AMC
+        // detail Renew CTA. Flips on after prefillFromSourceContract
+        // succeeds; surfaces an "info" banner on Step 1 so the hospital
+        // knows why the fields are already populated.
+        val isRenewing: Boolean = false,
         // Step 1
         val equipmentCategories: List<String> = emptyList(),
         val scopeText: String = "",
@@ -187,6 +192,7 @@ class CreateAmcWizardViewModel @Inject constructor(
             }.getOrNull()?.let { prior ->
                 _state.update { st ->
                     st.copy(
+                        isRenewing = true,
                         equipmentCategories = prior.equipmentCategories,
                         scopeText = prior.scopeText.orEmpty().take(4000),
                         visitFrequency = prior.visitFrequency,
@@ -554,6 +560,36 @@ fun CreateAmcWizardScreen(
 
 @Composable
 private fun ScopeStep(state: CreateAmcWizardViewModel.UiState, vm: CreateAmcWizardViewModel) {
+    if (state.isRenewing) {
+        // Round 316 — the hospital arrived here from the Renew CTA on
+        // AmcDetailScreen. We've pre-filled the categories, scope,
+        // frequency, fee, and auto-renew flag from the prior contract.
+        // Spell that out so the user knows why fields are populated
+        // and what they're free to change.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(com.equipseva.app.designsystem.theme.SevaInfo50)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+        ) {
+            Column {
+                Text(
+                    "Renewing your prior contract",
+                    color = com.equipseva.app.designsystem.theme.SevaInfo500,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "Scope, frequency, fee, and auto-renew are pre-filled from your last contract. Edit anything that should change for the new term.",
+                    color = SevaInk700,
+                    fontSize = 12.sp,
+                )
+            }
+        }
+    }
     EsSection(title = "Equipment categories") {
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
             Text(
