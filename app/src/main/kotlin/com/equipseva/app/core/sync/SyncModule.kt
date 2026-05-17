@@ -1,6 +1,7 @@
 package com.equipseva.app.core.sync
 
 import android.content.Context
+import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
@@ -31,11 +32,22 @@ object SyncModule {
 
 class OutboxScheduler(private val workManager: WorkManager) {
     fun schedulePeriodic() {
+        // Round 309 — match the one-shot's EXPONENTIAL backoff. The default
+        // (LINEAR + 30s) means a sustained 5xx returning Result.retry()
+        // re-fires at a constant 30s, burning the per-entry attempts budget
+        // before the next 15-minute period even starts. Exponential lets
+        // transient outages breathe instead of fast-failing into a poison
+        // drop. Same rationale as OutboxEnqueuer's one-shot floor.
         val request = PeriodicWorkRequestBuilder<OutboxWorker>(15, TimeUnit.MINUTES)
             .setConstraints(
                 Constraints.Builder()
                     .setRequiredNetworkType(NetworkType.CONNECTED)
                     .build(),
+            )
+            .setBackoffCriteria(
+                BackoffPolicy.EXPONENTIAL,
+                30L,
+                TimeUnit.SECONDS,
             )
             .build()
         workManager.enqueueUniquePeriodicWork(
