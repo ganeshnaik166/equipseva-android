@@ -442,6 +442,9 @@ fun MainNavGraph(
                 com.equipseva.app.features.amc.AmcDetailScreen(
                     onBack = { navController.popBackStack() },
                     onShowMessage = showSnackbar,
+                    onRenew = { engineerId ->
+                        navController.navigate(Routes.createAmcRoute(engineerId))
+                    },
                 )
             }
             composable(
