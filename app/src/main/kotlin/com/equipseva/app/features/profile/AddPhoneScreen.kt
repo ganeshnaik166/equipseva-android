@@ -79,31 +79,7 @@ class AddPhoneViewModel @Inject constructor(
     val effects: kotlinx.coroutines.flow.Flow<Effect> = _effects
 
     fun onPhoneChange(value: String) {
-        // Allow leading + then ASCII digits, max 16 chars (E.164 + a little
-        // buffer). `Char.isDigit()` is Unicode-aware so it would accept
-        // Devanagari / Arabic numerals; Supabase auth's E.164 parser
-        // rejects those and submit silently fails.
-        var cleaned = value.filterIndexed { i, c -> (i == 0 && c == '+') || c in '0'..'9' }.take(16)
-        // Guard against double-prefix: the field defaults to "+91", so a
-        // user who types or pastes "+919812345699" ends up with the
-        // textual concatenation "+91919812345699". The intended dedup
-        // is to strip the duplicate "+91" prefix when the user pastes a
-        // full E.164 number on top of the autoprefix. But the original
-        // `length > 13` guard fires on any "+9191"-prefixed input,
-        // including a typo where the user has pasted 11 digits past
-        // "+91" (cleaned = "+9191234567890", 14 chars). substring(5)
-        // then strips one MORE character than intended and silently
-        // drops a digit ("+91234567890", 12 chars, only 9 mobile
-        // digits). Only commit the dedup when the result is a valid
-        // India mobile shape (+91 + 10 digits = 13 chars). Otherwise
-        // leave the malformed input visible so the user notices and
-        // corrects it.
-        if (cleaned.startsWith("+9191") && cleaned.length > 13) {
-            val candidate = "+91" + cleaned.substring(5)
-            if (candidate.length == 13) {
-                cleaned = candidate
-            }
-        }
+        val cleaned = com.equipseva.app.core.util.normalizeIndiaMobileInput(value)
         _state.update { it.copy(phone = cleaned, error = null) }
     }
 
