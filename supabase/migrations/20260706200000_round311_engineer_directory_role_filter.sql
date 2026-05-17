@@ -22,7 +22,7 @@ UPDATE public.engineers e
    SET verification_status = 'pending'
   FROM public.profiles p
  WHERE e.user_id = p.id
-   AND coalesce(p.role, '') <> 'engineer'
+   AND coalesce(p.role::text, '') <> 'engineer'
    AND coalesce(e.verification_status::text, 'pending') = 'verified';
 
 -- ---------------------------------------------------------------
@@ -89,7 +89,7 @@ AS $$
   FROM public.engineers e
   LEFT JOIN public.profiles p ON p.id = e.user_id
   WHERE coalesce(e.verification_status::text, 'pending') = 'verified'
-    AND coalesce(p.role, '') = 'engineer'  -- round 311: block cross-role leaks
+    AND coalesce(p.role::text, '') = 'engineer'  -- round 311: block cross-role leaks
     AND (
       p_query IS NULL OR p_query = ''
       OR coalesce(p.full_name, '') ILIKE '%' || p_query || '%'
@@ -187,7 +187,7 @@ AS $$
     FROM public.engineers e
     LEFT JOIN public.profiles p ON p.id = e.user_id
     WHERE coalesce(e.verification_status::text, 'pending') = 'verified'
-      AND coalesce(p.role, '') = 'engineer'  -- round 311: block cross-role leaks
+      AND coalesce(p.role::text, '') = 'engineer'  -- round 311: block cross-role leaks
   )
   SELECT
     b.engineer_id,
@@ -281,7 +281,7 @@ BEGIN
     JOIN public.profiles p ON p.id = e.user_id  -- round 311: role gate
     WHERE e.id = p_engineer_id
       AND coalesce(e.verification_status::text, 'pending') = 'verified'
-      AND coalesce(p.role, '') = 'engineer';
+      AND coalesce(p.role::text, '') = 'engineer';
 
   IF v_engineer_user_id IS NULL THEN
     RETURN;
@@ -353,7 +353,7 @@ BEGIN
   LEFT JOIN public.profiles p ON p.id = e.user_id
   WHERE e.id = p_engineer_id
     AND coalesce(e.verification_status::text, 'pending') = 'verified'
-    AND coalesce(p.role, '') = 'engineer';  -- round 311: role gate
+    AND coalesce(p.role::text, '') = 'engineer';  -- round 311: role gate
 END;
 $function$;
 
