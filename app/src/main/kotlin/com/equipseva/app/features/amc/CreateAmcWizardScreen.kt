@@ -427,30 +427,20 @@ class CreateAmcWizardViewModel @Inject constructor(
     }
 }
 
-// Round 318 — must match the public.equipment_category enum on the
-// server. The old list had Compose-only values (ventilator, ct_scan,
-// mri, icu, emergency, etc.) that aren't valid enum members; any
-// hospital who selected one would have hit a
-// `invalid_input_value for enum equipment_category` 22P02 at submit.
-// Source of truth: pg_enum where enumtypid='equipment_category'::regtype.
-private val DEFAULT_CATEGORIES = listOf(
-    "imaging_radiology",
-    "patient_monitoring",
-    "life_support",
-    "surgical",
-    "laboratory",
-    "dental",
-    "ophthalmology",
-    "physiotherapy",
-    "neonatal",
-    "sterilization",
-    "hospital_furniture",
-    "dialysis",
-    "oncology",
-    "cardiology",
-    "ent",
-    "other",
-)
+// Round 320 — source of truth is `RepairEquipmentCategory`, which
+// already mirrors the server's `public.equipment_category` enum and
+// is used by the repair-job booking wizard. Reusing it kills the
+// duplicate hardcoded list that drifted out of sync (round 318 fixed
+// the divergence; this prevents the next one).
+//
+// "other" is intentionally last per the enum order; we drop it from
+// the picker because AMC contracts always cover at least one known
+// equipment family — `other` would let a hospital create a contract
+// the engineer-rotation logic can't reason about.
+private val DEFAULT_CATEGORIES: List<String> =
+    com.equipseva.app.core.data.repair.RepairEquipmentCategory.entries
+        .map { it.storageKey }
+        .filter { it != "other" }
 
 
 @Composable
