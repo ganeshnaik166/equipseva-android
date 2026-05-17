@@ -442,15 +442,23 @@ fun MainNavGraph(
                 com.equipseva.app.features.amc.AmcDetailScreen(
                     onBack = { navController.popBackStack() },
                     onShowMessage = showSnackbar,
-                    onRenew = { engineerId ->
-                        navController.navigate(Routes.createAmcRoute(engineerId))
+                    onRenew = { engineerId, sourceContractId ->
+                        navController.navigate(
+                            Routes.createAmcRouteWithSource(engineerId, sourceContractId),
+                        )
                     },
                 )
             }
             composable(
-                route = "${Routes.CREATE_AMC}/{${Routes.CREATE_AMC_ARG_ENGINEER_ID}}",
+                route = "${Routes.CREATE_AMC}/{${Routes.CREATE_AMC_ARG_ENGINEER_ID}}"
+                    + "?${Routes.CREATE_AMC_ARG_SOURCE_ID}={${Routes.CREATE_AMC_ARG_SOURCE_ID}}",
                 arguments = listOf(
                     navArgument(Routes.CREATE_AMC_ARG_ENGINEER_ID) { type = NavType.StringType },
+                    navArgument(Routes.CREATE_AMC_ARG_SOURCE_ID) {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
                 ),
             ) {
                 com.equipseva.app.features.amc.CreateAmcWizardScreen(

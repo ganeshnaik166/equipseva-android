@@ -223,7 +223,7 @@ class AmcDetailViewModel @Inject constructor(
 fun AmcDetailScreen(
     onBack: () -> Unit,
     onShowMessage: (String) -> Unit,
-    onRenew: (engineerId: String) -> Unit = {},
+    onRenew: (engineerId: String, sourceContractId: String) -> Unit = { _, _ -> },
     viewModel: AmcDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -266,7 +266,8 @@ fun AmcDetailScreen(
                             onSelect = viewModel::selectTab,
                         )
                         when (state.tab) {
-                            AmcDetailViewModel.Tab.Overview -> OverviewTab(state, onRenew)
+                            AmcDetailViewModel.Tab.Overview ->
+                                OverviewTab(state, onRenew)
                             AmcDetailViewModel.Tab.Pool -> PoolTab(
                                 state = state,
                                 onTopUp = { viewModel.openTopUp() },
@@ -450,7 +451,7 @@ private fun TabsRow(
 @Composable
 private fun OverviewTab(
     state: AmcDetailViewModel.UiState,
-    onRenew: (engineerId: String) -> Unit = {},
+    onRenew: (engineerId: String, sourceContractId: String) -> Unit = { _, _ -> },
 ) {
     val title = state.hospital?.primaryEngineerName ?: state.engineerView?.hospitalName ?: "—"
     val status = state.hospital?.status ?: state.engineerView?.status ?: "active"
@@ -502,9 +503,11 @@ private fun OverviewTab(
                 // they actually land on the detail screen so they don't
                 // have to bounce back to the engineer profile.
                 val engineerIdForRenew = state.hospital?.primaryEngineerId
+                val sourceIdForRenew = state.hospital?.id
                 if (state.viewerIsHospital
                     && status == "active"
                     && !engineerIdForRenew.isNullOrBlank()
+                    && !sourceIdForRenew.isNullOrBlank()
                     && isWithinDays(end, 14)
                 ) {
                     Spacer(Modifier.height(4.dp))
@@ -513,7 +516,7 @@ private fun OverviewTab(
                         kind = EsBtnKind.Primary,
                         size = EsBtnSize.Md,
                         full = true,
-                        onClick = { onRenew(engineerIdForRenew) },
+                        onClick = { onRenew(engineerIdForRenew, sourceIdForRenew) },
                     )
                 }
             }

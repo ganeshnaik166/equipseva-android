@@ -191,6 +191,13 @@ object Routes {
 
     const val CREATE_AMC = "amc/create"
     const val CREATE_AMC_ARG_ENGINEER_ID = "engineerId"
+    // Round 315 — optional query arg: when the user lands on the wizard
+    // from the Renew CTA we pass the prior contract id so the ViewModel
+    // can pre-populate scope/frequency/fee/categories from it.
+    const val CREATE_AMC_ARG_SOURCE_ID = "sourceContractId"
     fun createAmcRoute(engineerId: String): String =
         "$CREATE_AMC/$engineerId"
+
+    fun createAmcRouteWithSource(engineerId: String, sourceContractId: String): String =
+        "$CREATE_AMC/$engineerId?$CREATE_AMC_ARG_SOURCE_ID=$sourceContractId"
 }
