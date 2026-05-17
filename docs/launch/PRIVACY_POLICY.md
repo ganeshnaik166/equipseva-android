@@ -10,7 +10,7 @@ redirect_from:
 # Privacy Policy — EquipSeva
 
 **Effective:** 2026-04-25
-**Last updated:** 2026-05-15
+**Last updated:** 2026-05-17
 
 EquipSeva ("we", "us", "our") operates the EquipSeva mobile application ("App"), a marketplace connecting hospitals, biomedical engineers, suppliers, manufacturers, and logistics partners for hospital equipment, spare parts, and repair services in India. This policy explains what we collect, why, with whom we share it, and the rights you have under the Digital Personal Data Protection Act, 2023 ("DPDP Act").
 
