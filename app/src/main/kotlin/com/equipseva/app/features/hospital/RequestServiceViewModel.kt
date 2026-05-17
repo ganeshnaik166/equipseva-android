@@ -175,6 +175,14 @@ class RequestServiceViewModel @Inject constructor(
             _state.update { it.copy(errorMessage = "Sign in again and retry.") }
             return
         }
+        // Block submit when no slot is picked. Earlier code happily wrote
+        // a job with scheduledDate=null + scheduledTimeSlot=null, which
+        // engineers couldn't filter on and hospital later couldn't tell
+        // why the bid feed was quiet.
+        if (selectedSlot < 0) {
+            _state.update { it.copy(errorMessage = "Pick when the engineer should come.") }
+            return
+        }
         val current = _state.value
         val issue = current.issue.trim()
         if (issue.length < 10) {
