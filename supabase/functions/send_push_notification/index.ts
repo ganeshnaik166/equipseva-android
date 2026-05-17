@@ -318,7 +318,11 @@ serve(async (req) => {
   try {
     accessToken = await getAccessToken(sa);
   } catch (e) {
-    return json(502, { ok: false, code: "fcm_auth_failed", message: String(e).slice(0, 200) });
+    // Round 306 — don't echo raw Google OAuth response body; it can
+    // contain account metadata, quota errors, or service-account
+    // identifiers. Log server-side, return generic to client.
+    console.error("send_push_notification fcm_auth_failed", e);
+    return json(502, { ok: false, code: "fcm_auth_failed", message: "fcm_auth_failed" });
   }
 
   const data = (notif.data ?? {}) as Record<string, unknown>;

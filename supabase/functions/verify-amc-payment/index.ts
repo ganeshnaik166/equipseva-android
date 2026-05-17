@@ -202,7 +202,12 @@ serve(async (req) => {
     "apply_amc_pool_credit",
     { p_payment_order_id: payment_order_id },
   );
-  if (rpcErr) return bad("server_error", rpcErr.message, 500);
+  if (rpcErr) {
+    // Round 306 — don't echo raw postgres error; it can leak constraint
+    // names + internal column hints. Same theme as rounds 269–273, 282, 293.
+    console.error("verify-amc-payment apply_amc_pool_credit_failed", rpcErr);
+    return bad("server_error", "apply_amc_pool_credit_failed", 500);
+  }
 
   // Re-read the freshly inserted ledger row + contract status for the
   // response. Cheap; both are point lookups.
