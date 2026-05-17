@@ -427,19 +427,29 @@ class CreateAmcWizardViewModel @Inject constructor(
     }
 }
 
+// Round 318 — must match the public.equipment_category enum on the
+// server. The old list had Compose-only values (ventilator, ct_scan,
+// mri, icu, emergency, etc.) that aren't valid enum members; any
+// hospital who selected one would have hit a
+// `invalid_input_value for enum equipment_category` 22P02 at submit.
+// Source of truth: pg_enum where enumtypid='equipment_category'::regtype.
 private val DEFAULT_CATEGORIES = listOf(
+    "imaging_radiology",
     "patient_monitoring",
-    "ventilator",
-    "ultrasound",
-    "x_ray",
-    "ct_scan",
-    "mri",
-    "anaesthesia",
+    "life_support",
     "surgical",
     "laboratory",
-    "icu",
-    "emergency",
-    "life_support",
+    "dental",
+    "ophthalmology",
+    "physiotherapy",
+    "neonatal",
+    "sterilization",
+    "hospital_furniture",
+    "dialysis",
+    "oncology",
+    "cardiology",
+    "ent",
+    "other",
 )
 
 
