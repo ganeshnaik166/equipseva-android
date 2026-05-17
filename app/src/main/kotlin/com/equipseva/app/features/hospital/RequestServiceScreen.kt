@@ -165,6 +165,19 @@ fun RequestServiceScreen(
 
     val stepLabels = listOf("Equipment", "Issue", "When", "Where")
 
+    // Mirror the PR #639 AmcWizard gating pattern: each step gates Next on
+    // its own minimum-valid input so the user can't reach Submit with a
+    // provably-bad form. The submit handler (onSubmit) already enforces
+    // issue+address again as a defense-in-depth, but without per-step
+    // gating the wizard let an empty Brand/Model job advance to Step 2.
+    val canProceed = when (step) {
+        0 -> state.brand.isNotBlank() && state.model.isNotBlank()
+        1 -> state.issue.trim().length >= 10
+        2 -> selectedSlot in 0..3 ||
+            (selectedSlot == 4 && state.pickedDateMillis != null)
+        else -> true
+    }
+
     Scaffold(
         topBar = {
             ESBackTopBar(
@@ -182,6 +195,7 @@ fun RequestServiceScreen(
                 // state.photos. The submitted job loses that photo with
                 // no error surfaced.
                 uploadingPhoto = state.uploadingPhoto,
+                canProceed = canProceed,
                 onBack = { if (step > 0) step -= 1 },
                 onNext = { if (step < stepLabels.lastIndex) step += 1 },
                 onSubmit = { viewModel.onSubmit(selectedSlot) },
@@ -719,6 +733,7 @@ private fun WizardBottomBar(
     step: Int,
     submitting: Boolean,
     uploadingPhoto: Boolean,
+    canProceed: Boolean,
     onBack: () -> Unit,
     onNext: () -> Unit,
     onSubmit: () -> Unit,
@@ -743,7 +758,7 @@ private fun WizardBottomBar(
         val isLast = step == 3
         Button(
             onClick = if (isLast) onSubmit else onNext,
-            enabled = !submitting && !uploadingPhoto,
+            enabled = !submitting && !uploadingPhoto && canProceed,
             modifier = Modifier
                 .weight(1f)
                 .height(Spacing.MinTouchTarget),
