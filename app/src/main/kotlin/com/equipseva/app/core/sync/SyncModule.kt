@@ -50,9 +50,14 @@ class OutboxScheduler(private val workManager: WorkManager) {
                 TimeUnit.SECONDS,
             )
             .build()
+        // Round 310 — UPDATE (not KEEP) so the round-309 backoff change
+        // actually reaches existing installs. KEEP leaves the pre-existing
+        // WorkManager record (with the old LINEAR default backoff) in
+        // place forever; UPDATE swaps the spec on the next scheduled run
+        // without resetting the period timer. New installs are unaffected.
         workManager.enqueueUniquePeriodicWork(
             OutboxWorker.UNIQUE_NAME,
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.UPDATE,
             request,
         )
     }
