@@ -30,6 +30,7 @@ import androidx.lifecycle.ViewModel
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.payments.PendingEscrowPaymentsStore
 import com.equipseva.app.core.payments.RazorpayCheckoutLauncher
 import com.equipseva.app.core.util.formatRupees
@@ -79,7 +80,9 @@ class JobEscrowPaymentViewModel @Inject constructor(
 
         val orderRes = repo.createPaymentOrder(repairJobId)
         if (orderRes.isFailure) {
-            _state.update { it.copy(busy = false, error = orderRes.exceptionOrNull()?.message) }
+            _state.update {
+                it.copy(busy = false, error = orderRes.exceptionOrNull()?.toUserMessage())
+            }
             return false
         }
         val order = orderRes.getOrThrow()
@@ -111,7 +114,7 @@ class JobEscrowPaymentViewModel @Inject constructor(
                     keyId = order.keyId,
                 )
             }.getOrElse {
-                _state.update { s -> s.copy(busy = false, error = it.message) }
+                _state.update { s -> s.copy(busy = false, error = it.toUserMessage()) }
                 return false
             }
         } finally {
@@ -149,7 +152,7 @@ class JobEscrowPaymentViewModel @Inject constructor(
                         true
                     },
                     onFailure = { e ->
-                        _state.update { it.copy(busy = false, error = e.message) }
+                        _state.update { it.copy(busy = false, error = e.toUserMessage()) }
                         false
                     },
                 )
