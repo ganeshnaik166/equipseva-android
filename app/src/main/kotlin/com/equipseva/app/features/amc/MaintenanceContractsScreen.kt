@@ -74,6 +74,7 @@ data class AmcListItem(
     val visitFrequency: String,
     val monthlyFeeRupees: Double,
     val nextVisitAt: String?,
+    val endDate: String,         // round 314 — drives "Expires in X days" pill
     val visitsCompleted: Int,
     val visitsPerYear: Int,
     val autoRenew: Boolean,
@@ -159,6 +160,7 @@ class MaintenanceContractsViewModel @Inject constructor(
         visitFrequency = c.visitFrequency,
         monthlyFeeRupees = c.monthlyFeeRupees,
         nextVisitAt = c.nextVisitAt,
+        endDate = c.endDate,
         visitsCompleted = c.visitsCompleted,
         visitsPerYear = c.visitsPerYear,
         autoRenew = c.autoRenew,
@@ -172,6 +174,7 @@ class MaintenanceContractsViewModel @Inject constructor(
         visitFrequency = c.visitFrequency,
         monthlyFeeRupees = c.monthlyFeeRupees,
         nextVisitAt = c.nextVisitAt,
+        endDate = c.endDate,
         visitsCompleted = c.visitsCompleted,
         visitsPerYear = c.visitsPerYear,
         autoRenew = false, // not exposed for the engineer view
@@ -276,6 +279,17 @@ private fun ContractCard(
                 fontSize = 12.sp,
             )
             if (item.autoRenew) Pill(text = "Auto-renew", kind = PillKind.Default)
+        }
+        // Round 314 — surface near-expiry warning at list level so the
+        // hospital sees urgency without opening each contract. Matches
+        // the Renew-CTA threshold on AmcDetailScreen.
+        if (item.status == "active"
+            && com.equipseva.app.core.util.isWithinDays(item.endDate, 14)
+        ) {
+            Pill(
+                text = "Expires ${prettyDate(item.endDate)}",
+                kind = PillKind.Warn,
+            )
         }
         if (!item.nextVisitAt.isNullOrBlank()) {
             Text(
