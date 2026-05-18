@@ -355,7 +355,19 @@ fun EngineerDirectoryScreen(
                         message = state.error!!,
                         onRetry = { viewModel.onRefresh() },
                     )
-                    visibleRows.isEmpty() -> EmptyEngineers()
+                    visibleRows.isEmpty() -> {
+                        // Round 344 — surface a Reset button when filters are
+                        // narrowing to zero so the hospital can re-open the
+                        // catalog in one tap instead of unwinding each chip.
+                        val filtersActive = state.district != "All Telangana" || state.specialization != null
+                        EmptyEngineers(
+                            filtersActive = filtersActive,
+                            onReset = {
+                                viewModel.onDistrictChange("All Telangana")
+                                viewModel.onSpecializationChange(null)
+                            },
+                        )
+                    }
                     else -> LazyColumn(
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -421,7 +433,10 @@ private fun EmptyEngineersError(message: String, onRetry: () -> Unit) {
 }
 
 @Composable
-private fun EmptyEngineers() {
+private fun EmptyEngineers(
+    filtersActive: Boolean = false,
+    onReset: () -> Unit = {},
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -444,10 +459,19 @@ private fun EmptyEngineers() {
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            "Try a wider district or fewer filters",
+            if (filtersActive) "Try a wider district or fewer filters" else "No verified engineers in your area yet",
             color = SevaInk500,
             fontSize = 12.sp,
         )
+        if (filtersActive) {
+            Spacer(Modifier.height(16.dp))
+            EsBtn(
+                text = "Reset filters",
+                onClick = onReset,
+                kind = EsBtnKind.Secondary,
+                size = EsBtnSize.Sm,
+            )
+        }
     }
 }
 
