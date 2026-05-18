@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.SupportAgent
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -168,6 +169,31 @@ fun AboutScreen(
                                 )
                             },
                             onClick = { open("https://equipseva.com/licenses") },
+                        )
+                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(BorderDefault))
+                        // Round 345 — Report an issue. mailto: keeps the
+                        // launch-v1 ticketing surface zero-infra; future
+                        // in-app form can swap to a route without changing
+                        // the user-facing label.
+                        EsListRow(
+                            title = "Report an issue",
+                            leading = {
+                                Icon(
+                                    Icons.Outlined.SupportAgent,
+                                    contentDescription = null,
+                                    tint = SevaInk600,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            },
+                            trailing = {
+                                Icon(
+                                    Icons.AutoMirrored.Outlined.OpenInNew,
+                                    contentDescription = null,
+                                    tint = SevaInk400,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            },
+                            onClick = { open("mailto:support@equipseva.com?subject=EquipSeva%20issue%20report") },
                         )
                     }
                 }
