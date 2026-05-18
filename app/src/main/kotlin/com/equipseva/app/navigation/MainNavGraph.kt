@@ -832,9 +832,26 @@ fun MainNavGraph(
             composable(Routes.FOUNDER_PAYMENTS) {
                 com.equipseva.app.features.founder.FounderPaymentsScreen(
                     onBack = { navController.popBackStack() },
+                    onOpenBuyerIntegrity = { userId, name ->
+                        navController.navigate(Routes.founderIntegrityRoute(userId, name))
+                    },
                 )
             }
-            composable(Routes.FOUNDER_INTEGRITY) {
+            composable(
+                route = "${Routes.FOUNDER_INTEGRITY}?${Routes.FOUNDER_INTEGRITY_ARG_USER}={${Routes.FOUNDER_INTEGRITY_ARG_USER}}&${Routes.FOUNDER_INTEGRITY_ARG_NAME}={${Routes.FOUNDER_INTEGRITY_ARG_NAME}}",
+                arguments = listOf(
+                    androidx.navigation.navArgument(Routes.FOUNDER_INTEGRITY_ARG_USER) {
+                        type = androidx.navigation.NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    androidx.navigation.navArgument(Routes.FOUNDER_INTEGRITY_ARG_NAME) {
+                        type = androidx.navigation.NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) {
                 com.equipseva.app.features.founder.FounderIntegrityScreen(
                     onBack = { navController.popBackStack() },
                 )

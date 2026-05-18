@@ -126,6 +126,22 @@ object Routes {
     const val FOUNDER_USERS = "founder/users"
     const val FOUNDER_PAYMENTS = "founder/payments"
     const val FOUNDER_INTEGRITY = "founder/integrity"
+    // Round 360 — optional buyer filter so the r351 Payments-row pill
+    // can tap-through. Both params optional; absence = full list.
+    const val FOUNDER_INTEGRITY_ARG_USER = "user"
+    const val FOUNDER_INTEGRITY_ARG_NAME = "name"
+    fun founderIntegrityRoute(userId: String? = null, name: String? = null): String {
+        if (userId.isNullOrBlank()) return FOUNDER_INTEGRITY
+        val q = buildString {
+            append("?").append(FOUNDER_INTEGRITY_ARG_USER).append('=')
+            append(java.net.URLEncoder.encode(userId, "UTF-8"))
+            if (!name.isNullOrBlank()) {
+                append('&').append(FOUNDER_INTEGRITY_ARG_NAME).append('=')
+                append(java.net.URLEncoder.encode(name, "UTF-8"))
+            }
+        }
+        return FOUNDER_INTEGRITY + q
+    }
     const val FOUNDER_CATEGORIES = "founder/categories"
     const val FOUNDER_BUYER_KYC = "founder/buyer_kyc"
     const val FOUNDER_ENGINEER_MAP = "founder/engineers_map"
