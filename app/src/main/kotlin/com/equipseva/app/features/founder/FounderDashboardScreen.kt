@@ -45,6 +45,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.EsSection
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
@@ -81,6 +82,7 @@ class FounderDashboardViewModel @Inject constructor(
         val stats: FounderRepository.DashboardStats? = null,
         val error: String? = null,
         val founderEmail: String? = null,
+        val topEngineers: List<FounderRepository.TopEngineerRow> = emptyList(),
     )
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
@@ -98,6 +100,12 @@ class FounderDashboardViewModel @Inject constructor(
     fun reload() {
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
+            // Round 349 — top engineers fetched in parallel; failure is
+            // non-fatal (card hides, dashboard still loads).
+            val leaderboardJob = launch {
+                repo.fetchTopEngineers(windowDays = 30, limit = 5)
+                    .onSuccess { rows -> _state.update { it.copy(topEngineers = rows) } }
+            }
             repo.fetchDashboardStats()
                 .onSuccess { s ->
                     // No more DUMMY_STATS substitution — an empty platform
@@ -116,6 +124,7 @@ class FounderDashboardViewModel @Inject constructor(
                         )
                     }
                 }
+            leaderboardJob.join()
         }
     }
 }
@@ -185,6 +194,18 @@ fun FounderDashboardScreen(
                     amcContractsActive = stats?.amcContractsActive,
                     amcContractsExpired = stats?.amcContractsExpired,
                 )
+
+                // Round 349 — Top engineers (last 30d) by released-escrow
+                // revenue. Only shown when at least one engineer has been
+                // paid out in the window; otherwise hidden so the dashboard
+                // doesn't render an empty card on a cold platform.
+                if (state.topEngineers.isNotEmpty()) {
+                    EsSection(title = "Top engineers (30d)") {
+                        Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                            TopEngineersCard(rows = state.topEngineers)
+                        }
+                    }
+                }
 
                 // Queues card — 6 stacked rows.
                 EsSection(title = "Queues") {
@@ -652,3 +673,64 @@ private fun QueueRow(
     }
 }
 
+
+@Composable
+private fun TopEngineersCard(rows: List<FounderRepository.TopEngineerRow>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp)),
+    ) {
+        rows.forEachIndexed { index, row ->
+            TopEngineerRow(rank = index + 1, row = row)
+            if (index < rows.lastIndex) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(BorderDefault),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TopEngineerRow(rank: Int, row: FounderRepository.TopEngineerRow) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(
+            text = "#$rank",
+            color = SevaInk500,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.width(28.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = row.fullName,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = SevaInk900,
+            )
+            Text(
+                text = "${row.jobsCompleted} job${if (row.jobsCompleted == 1L) "" else "s"} released",
+                fontSize = 12.sp,
+                color = SevaInk500,
+            )
+        }
+        Text(
+            text = formatRupees(row.revenueInr),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = SevaGreen700,
+        )
+    }
+}
