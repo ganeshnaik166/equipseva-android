@@ -139,6 +139,15 @@ serve(async (req) => {
       if (error) throw error;
       return { rows: typeof data === "number" ? data : undefined };
     },
+    // Round 322 — flip lapsed (active + end_date < today) AMC
+    // contracts to 'expired'. v2.1 shipped 'expired' as a valid status
+    // but no transition fn existed, so contracts stuck 'active' past
+    // term and kept auto-creating visits. Idempotent.
+    "expire-amc-contracts": async () => {
+      const { data, error } = await admin.rpc("expire_lapsed_amc_contracts");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
     // Round 304 — TTL purge for phone_otp_requests; the table is
     // append-only via phone_otp_can_request and would grow unbounded
     // without this. 7-day retention is plenty for fraud forensics
@@ -167,6 +176,7 @@ serve(async (req) => {
       "purge-phone-otp-requests",
       "amc-auto-renew",
       "amc-renewal-notify",
+      "expire-amc-contracts",
     ],
   };
 
