@@ -75,3 +75,17 @@ fun isWithinDays(iso: String, days: Long): Boolean =
         val today = LocalDate.now(IST_ZONE)
         !target.isBefore(today) && !target.isAfter(today.plusDays(days))
     }.getOrDefault(false)
+
+/**
+ * Days remaining until [iso] (`yyyy-MM-dd` or full ISO instant) in
+ * Asia/Kolkata. Negative if already past. Null on parse failure.
+ * Pairs with [isWithinDays] for surfaces that want to render the
+ * exact countdown alongside the gate.
+ */
+fun daysUntil(iso: String): Long? =
+    runCatching {
+        val target = runCatching { Instant.parse(iso).atZone(IST_ZONE).toLocalDate() }
+            .getOrNull()
+            ?: LocalDate.parse(iso)
+        java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(IST_ZONE), target)
+    }.getOrNull()

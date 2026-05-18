@@ -281,14 +281,24 @@ private fun ContractCard(
             if (item.autoRenew) Pill(text = "Auto-renew", kind = PillKind.Default)
         }
         // Round 314 — surface near-expiry warning at list level so the
-        // hospital sees urgency without opening each contract. Matches
-        // the Renew-CTA threshold on AmcDetailScreen.
+        // hospital sees urgency without opening each contract.
+        // Round 353 — widen threshold to 30 days so this aligns with the
+        // founder dashboard "Expiring 30d" KPI; previously hospital saw
+        // pills only within 14d while founder ops already flagged the
+        // contract 16 days earlier. Show "N days" countdown for urgency.
         if (item.status == "active"
-            && com.equipseva.app.core.util.isWithinDays(item.endDate, 14)
+            && com.equipseva.app.core.util.isWithinDays(item.endDate, 30)
         ) {
+            val n = com.equipseva.app.core.util.daysUntil(item.endDate)
+            val label = when {
+                n == null -> "Expires ${prettyDate(item.endDate)}"
+                n <= 0L -> "Expires today"
+                n == 1L -> "Expires in 1 day"
+                else -> "Expires in $n days"
+            }
             Pill(
-                text = "Expires ${prettyDate(item.endDate)}",
-                kind = PillKind.Warn,
+                text = label,
+                kind = if (n != null && n <= 7L) PillKind.Danger else PillKind.Warn,
             )
         }
         if (!item.nextVisitAt.isNullOrBlank()) {
