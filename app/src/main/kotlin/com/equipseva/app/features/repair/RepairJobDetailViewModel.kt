@@ -370,6 +370,21 @@ class RepairJobDetailViewModel @Inject constructor(
                 )
                 return@launch
             }
+            // Round 334 — gate on engineer.verification_status='verified'.
+            // The v21 RLS policy on repair_job_bids requires verified
+            // status server-side (20260621 hotfix); without a client
+            // pre-check the engineer taps "Place bid" and hits a
+            // postgres "permission denied" error with no recovery path.
+            // Far cleaner to short-circuit + direct them to KYC.
+            val selfEngineer = selfId?.let { engineerRepository.fetchByUserId(it).getOrNull() }
+            val verifKey = selfEngineer?.verificationStatus?.storageKey
+            if (verifKey != "verified") {
+                _state.update { it.copy(placingBid = false, bidComposerOpen = false) }
+                _messages.emit(
+                    "Complete KYC verification first — bids open up once your engineer profile is approved.",
+                )
+                return@launch
+            }
             bidRepository.placeBid(
                 jobId = jobId,
                 amountRupees = amountRupees,
