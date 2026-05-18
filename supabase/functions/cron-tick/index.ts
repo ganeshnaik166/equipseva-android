@@ -157,6 +157,15 @@ serve(async (req) => {
       if (error) throw error;
       return { rows: typeof data === "number" ? data : undefined };
     },
+    // Round 332 — TTL purge for chat_message_moderation_events older
+    // than 90 days. The table records pre-masking PII users tried
+    // to share (Aadhaar/PAN/phone/email); indefinite retention
+    // defeats the chat-masking redaction. DPDP-driven retention.
+    "purge-chat-moderation-events": async () => {
+      const { data, error } = await admin.rpc("purge_old_chat_moderation_events");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
     // Round 304 — TTL purge for phone_otp_requests; the table is
     // append-only via phone_otp_can_request and would grow unbounded
     // without this. 7-day retention is plenty for fraud forensics
@@ -187,6 +196,7 @@ serve(async (req) => {
       "amc-renewal-notify",
       "expire-amc-contracts",
       "purge-spot-audit-invitations",
+      "purge-chat-moderation-events",
     ],
   };
 
