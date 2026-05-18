@@ -49,22 +49,24 @@ import com.equipseva.app.designsystem.theme.SevaInk900
 import com.equipseva.app.designsystem.theme.SevaWarning500
 import com.equipseva.app.designsystem.theme.SevaWarning50
 
-// Suggested specializations chip catalog. Toggling one updates the
-// VM's comma-separated `specializations` string so save logic stays intact.
-private val SPEC_CATALOG = listOf(
-    "CT Scanner",
-    "MRI",
-    "X-Ray",
-    "Ultrasound",
-    "Ventilator",
-    "ECG",
-    "Defibrillator",
-    "Anesthesia",
-    "Patient Monitor",
-    "Dialysis",
-    "Endoscopy",
-    "Lab Equipment",
-)
+// Round 321 — chip catalog source-of-truth must be the
+// public.equipment_category enum on the server. The prior list used
+// free-form display strings ("CT Scanner", "ECG", "Patient Monitor")
+// that aren't valid enum members; any engineer who tapped a chip
+// and saved would have hit a 22P02 invalid_input_value at upsert
+// against engineers.specializations (which is equipment_category[]).
+//
+// Source of truth: RepairEquipmentCategory.entries (already mirrors
+// pg_enum). Chip text uses .displayName; selection state stores
+// .storageKey so save sends valid enum values.
+private val SPEC_CATALOG: List<String> =
+    com.equipseva.app.core.data.repair.RepairEquipmentCategory.entries
+        .map { it.storageKey }
+        .filter { it != "other" }
+
+private fun specDisplayName(storageKey: String): String =
+    com.equipseva.app.core.data.repair.RepairEquipmentCategory
+        .fromKey(storageKey).displayName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -248,7 +250,10 @@ private fun EngineerProfileForm(
                 chips.forEach { spec ->
                     val isOn = selectedSet.any { it.equals(spec, ignoreCase = true) }
                     EsChip(
-                        text = spec,
+                        // Round 321 — chip shows the display name; the
+                        // underlying state always stores the enum storage
+                        // key so save can't send an invalid value.
+                        text = specDisplayName(spec),
                         active = isOn,
                         onClick = if (state.saving) null else {
                             {
