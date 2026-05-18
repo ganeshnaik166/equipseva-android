@@ -193,6 +193,7 @@ fun FounderDashboardScreen(
                     activeRepairJobs = stats?.activeRepairJobs,
                     amcContractsActive = stats?.amcContractsActive,
                     amcContractsExpired = stats?.amcContractsExpired,
+                    amcContractsExpiringSoon = stats?.amcContractsExpiringSoon,
                 )
 
                 // Round 349 — Top engineers (last 30d) by released-escrow
@@ -341,6 +342,7 @@ private fun GrowthKpiStrip(
     activeRepairJobs: Int?,
     amcContractsActive: Int?,
     amcContractsExpired: Int?,
+    amcContractsExpiringSoon: Int?,
 ) {
     Row(
         modifier = Modifier
@@ -377,11 +379,21 @@ private fun GrowthKpiStrip(
             sub = "contracts",
             modifier = Modifier.weight(1f),
         )
+        // Round 352 — forward-looking renewal signal. Warn-color to nudge
+        // outreach before the contract lapses (vs r343 "AMC expired"
+        // which is reactive).
+        KpiCell(
+            label = "Expiring 30d",
+            value = amcContractsExpiringSoon?.toString() ?: "—",
+            valueColor = SevaWarning500,
+            sub = "renew now",
+            modifier = Modifier.weight(1f),
+        )
         KpiCell(
             label = "AMC expired",
             value = amcContractsExpired?.toString() ?: "—",
             valueColor = SevaInk500,
-            sub = "needs renewal",
+            sub = "lapsed",
             modifier = Modifier.weight(1f),
         )
     }
