@@ -356,6 +356,20 @@ class RepairJobDetailViewModel @Inject constructor(
         val hadPending = _state.value.ownBid?.status == RepairBidStatus.Pending
         _state.update { it.copy(placingBid = true) }
         viewModelScope.launch {
+            // Round 324 (engineer side) — gate on profile.phone. Without
+            // it the hospital tries to call back via request-call-session
+            // and hits 422 missing_phone with no UI recovery path. Easier
+            // for the engineer to add a phone now than for the hospital
+            // to be stuck later.
+            val selfId = (authRepository.sessionState.firstOrNull() as? AuthSession.SignedIn)?.userId
+            val selfPhone = selfId?.let { profileRepository.fetchById(it).getOrNull()?.phone }
+            if (selfPhone.isNullOrBlank()) {
+                _state.update { it.copy(placingBid = false, bidComposerOpen = false) }
+                _messages.emit(
+                    "Add your phone number on Profile → Phone number before placing bids — hospitals need it to coordinate the visit.",
+                )
+                return@launch
+            }
             bidRepository.placeBid(
                 jobId = jobId,
                 amountRupees = amountRupees,
