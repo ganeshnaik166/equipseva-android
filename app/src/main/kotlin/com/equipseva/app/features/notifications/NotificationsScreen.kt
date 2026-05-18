@@ -199,7 +199,7 @@ private fun NotificationRow(
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            KindIcon(kind = notification.kind)
+            KindIcon(kind = notification.kind, data = notification.data)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = notification.title.ifBlank { notification.body },
@@ -244,8 +244,8 @@ private fun NotificationRow(
 }
 
 @Composable
-private fun KindIcon(kind: String?) {
-    val (icon, tint) = iconForKind(kind)
+private fun KindIcon(kind: String?, data: Map<String, String> = emptyMap()) {
+    val (icon, tint) = iconForKind(kind, data)
     Box(
         modifier = Modifier
             .size(36.dp)
@@ -258,7 +258,10 @@ private fun KindIcon(kind: String?) {
     }
 }
 
-private fun iconForKind(kind: String?): Pair<ImageVector, Color> = when (kind) {
+private fun iconForKind(
+    kind: String?,
+    data: Map<String, String> = emptyMap(),
+): Pair<ImageVector, Color> = when (kind) {
     // Money / commerce kinds — green ₹.
     "repair_bid_new",
     "repair_bid_accepted",
@@ -284,7 +287,16 @@ private fun iconForKind(kind: String?): Pair<ImageVector, Color> = when (kind) {
     "amc_visit_engineer_assigned",
     "amc_visit_engineer_changed",
     "amc_visit_pending_assignment" -> Icons.Filled.Build to SevaInfo500
-    "amc_renewal_due" -> Icons.Filled.Build to SevaWarning500
+    // Round 331 — escalate icon tint by stage. Round 326 cadence
+    // attaches data["stage"] = "1" | "2" | "3". Stage 3 (1-day window)
+    // gets the Danger tint so it visually stands apart from earlier
+    // reminders in a backed-up inbox.
+    "amc_renewal_due" -> Icons.Filled.Build to (
+        when (data["stage"]) {
+            "3" -> SevaDanger500
+            else -> SevaWarning500
+        }
+    )
     "amc_sla_breach",
     "amc_admin_escalation_raised" -> Icons.Filled.Build to SevaDanger500
     // Cash survey + auto-suspend (PR-D1 / PR-D11).
