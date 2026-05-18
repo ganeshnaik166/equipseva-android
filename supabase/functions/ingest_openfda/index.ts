@@ -132,8 +132,22 @@ Deno.serve(async (req: Request) => {
   }
 
   const url = new URL(req.url);
-  const maxRows = Number(url.searchParams.get('max') ?? '5000');
-  const startSkip = Number(url.searchParams.get('skip') ?? '0');
+  // Round 336 — Number(...) on a query param happily yields Infinity
+  // for "9e999" / NaN for "foo", which would either burn the entire
+  // 300s function budget in an infinite loop or send a malformed
+  // request to the FDA API. Cap maxRows at 50_000 (well above the
+  // largest sane catalog refresh) and floor it at 1; floor skip at
+  // 0 + reject non-finite values.
+  const rawMax = Number(url.searchParams.get('max') ?? '5000');
+  const rawSkip = Number(url.searchParams.get('skip') ?? '0');
+  if (!Number.isFinite(rawMax) || !Number.isFinite(rawSkip)) {
+    return new Response(
+      JSON.stringify({ error: 'invalid_query_params' }),
+      { status: 400, headers: { 'content-type': 'application/json' } },
+    );
+  }
+  const maxRows = Math.min(50_000, Math.max(1, Math.floor(rawMax)));
+  const startSkip = Math.max(0, Math.floor(rawSkip));
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
