@@ -359,10 +359,14 @@ fun EngineerDirectoryScreen(
                         // Round 344 — surface a Reset button when filters are
                         // narrowing to zero so the hospital can re-open the
                         // catalog in one tap instead of unwinding each chip.
-                        val filtersActive = state.district != "All Telangana" || state.specialization != null
+                        // Query string also counts as a narrowing filter.
+                        val filtersActive = state.district != "All Telangana" ||
+                            state.specialization != null ||
+                            state.query.isNotBlank()
                         EmptyEngineers(
                             filtersActive = filtersActive,
                             onReset = {
+                                viewModel.onQueryChange("")
                                 viewModel.onDistrictChange("All Telangana")
                                 viewModel.onSpecializationChange(null)
                             },
