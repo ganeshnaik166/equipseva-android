@@ -77,6 +77,7 @@ import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.designsystem.theme.Success
 import com.equipseva.app.designsystem.theme.Surface200
 import com.equipseva.app.designsystem.theme.Warning
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,6 +92,7 @@ fun RequestServiceScreen(
     var selectedSlot by rememberSaveable { mutableStateOf(-1) }
 
     val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     // Camera capture (preview-resolution thumbnail). Encoded to JPEG bytes
     // before handing to the VM so the upload payload is consistent.
@@ -140,12 +142,17 @@ fun RequestServiceScreen(
         contract = ActivityResultContracts.PickVisualMedia(),
     ) { uri: android.net.Uri? ->
         if (uri != null) {
-            val cr = context.contentResolver
-            val mime = cr.getType(uri) ?: MIME_JPEG
-            val bytes = cr.openInputStream(uri)?.use { it.readBytes() }
-            val fileName = uri.lastPathSegment ?: "gallery-${System.currentTimeMillis()}"
-            if (bytes != null) {
-                viewModel.onPhotoPicked(fileName, bytes, mime)
+            // Round 340 — launcher callbacks run on Main. Reading a multi-MB
+            // gallery image with readBytes() on Main is ANR-prone on low-end
+            // devices. Push the read off to IO.
+            scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                val cr = context.contentResolver
+                val mime = cr.getType(uri) ?: MIME_JPEG
+                val bytes = cr.openInputStream(uri)?.use { it.readBytes() }
+                val fileName = uri.lastPathSegment ?: "gallery-${System.currentTimeMillis()}"
+                if (bytes != null) {
+                    viewModel.onPhotoPicked(fileName, bytes, mime)
+                }
             }
         }
     }

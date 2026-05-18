@@ -64,11 +64,13 @@ import com.equipseva.app.designsystem.theme.SevaInk900
 import com.equipseva.app.designsystem.components.EmptyStateView
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private fun url(draft: FounderCategoriesViewModel.EditDraft): String? =
     draft.imageUrl?.takeIf { it.isNotBlank() }
@@ -141,7 +143,12 @@ class FounderCategoriesViewModel @Inject constructor(
         viewModelScope.launch {
             val resolver = context.contentResolver
             val mime = resolver.getType(uri) ?: MIME_JPEG
-            val bytes = resolver.openInputStream(uri)?.use { it.readBytes() }
+            // Round 340 — read on IO. viewModelScope defaults to Main,
+            // and readBytes() on a multi-MB picked image blocks the UI
+            // long enough to trip ANR on low-end devices.
+            val bytes = withContext(Dispatchers.IO) {
+                resolver.openInputStream(uri)?.use { it.readBytes() }
+            }
             if (bytes == null) {
                 _state.update { it.copy(editDraft = it.editDraft?.copy(uploadingImage = false), error = "Couldn't read image") }
                 return@launch
