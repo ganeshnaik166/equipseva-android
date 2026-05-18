@@ -110,6 +110,20 @@ class FounderRepository @Inject constructor(
     )
 
     @Serializable
+    data class RecentPaymentsStats(
+        @SerialName("window_days") val windowDays: Int,
+        @SerialName("total_orders") val totalOrders: Long,
+        @SerialName("paid_count") val paidCount: Long,
+        @SerialName("failed_count") val failedCount: Long,
+        @SerialName("pending_count") val pendingCount: Long,
+        @SerialName("refunded_count") val refundedCount: Long,
+        @SerialName("gmv_paid_inr") val gmvPaidInr: Double,
+        @SerialName("gmv_refunded_inr") val gmvRefundedInr: Double,
+        @SerialName("largest_paid_inr") val largestPaidInr: Double,
+        @SerialName("last_paid_at") val lastPaidAt: String? = null,
+    )
+
+    @Serializable
     data class IntegrityFlag(
         @SerialName("check_id") val checkId: String,
         @SerialName("user_id") val userId: String? = null,
@@ -250,6 +264,15 @@ class FounderRepository @Inject constructor(
                 put("p_limit", JsonPrimitive(limit))
             },
         ).decodeList<RecentPayment>()
+    }
+
+    suspend fun fetchRecentPaymentsStats(windowDays: Int = 30): Result<RecentPaymentsStats?> = runCatching {
+        client.postgrest.rpc(
+            function = "admin_recent_payments_stats",
+            parameters = buildJsonObject {
+                put("p_days", JsonPrimitive(windowDays))
+            },
+        ).decodeList<RecentPaymentsStats>().firstOrNull()
     }
 
     suspend fun fetchIntegrityFlags(limit: Int = 100): Result<List<IntegrityFlag>> = runCatching {

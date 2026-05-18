@@ -63,6 +63,7 @@ class FounderPaymentsViewModel @Inject constructor(
         val loading: Boolean = true,
         val error: String? = null,
         val rows: List<FounderRepository.RecentPayment> = emptyList(),
+        val stats: FounderRepository.RecentPaymentsStats? = null,
     )
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
@@ -70,9 +71,18 @@ class FounderPaymentsViewModel @Inject constructor(
     fun reload() {
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
+            // Round 348 — stats fire in parallel with the row fetch.
+            // Stats failure is non-fatal: the founder still sees the row
+            // list (which is the page's core job), the header card just
+            // hides.
+            val statsJob = launch {
+                repo.fetchRecentPaymentsStats(windowDays = 30)
+                    .onSuccess { s -> _state.update { it.copy(stats = s) } }
+            }
             repo.fetchRecentPayments(limit = 50)
                 .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
                 .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+            statsJob.join()
         }
     }
 }
@@ -109,6 +119,9 @@ fun FounderPaymentsScreen(
                         contentPadding = PaddingValues(12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
+                        state.stats?.let { s ->
+                            item(key = "stats") { PaymentsStatsCard(stats = s) }
+                        }
                         items(state.rows, key = { it.orderId }) { row ->
                             PaymentRow(
                                 row = row,
@@ -187,6 +200,62 @@ private fun PaymentRow(
                     .padding(vertical = 4.dp),
             )
         }
+    }
+}
+
+@Composable
+private fun PaymentsStatsCard(stats: FounderRepository.RecentPaymentsStats) {
+    // Round 348 — at-a-glance GMV for the current window. Aggregates over
+    // the full 30d, not just the 50-row page, so the founder isn't blind
+    // to volume past the visible list.
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(
+            "Last ${stats.windowDays} days",
+            color = SevaInk500,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = formatRupees(stats.gmvPaidInr),
+            color = SevaInk900,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            StatChip("Paid", stats.paidCount.toString(), PillKind.Success)
+            StatChip("Pending", stats.pendingCount.toString(), PillKind.Neutral)
+            if (stats.failedCount > 0L) {
+                StatChip("Failed", stats.failedCount.toString(), PillKind.Danger)
+            }
+            if (stats.refundedCount > 0L) {
+                StatChip("Refunded", stats.refundedCount.toString(), PillKind.Neutral)
+            }
+        }
+        if (stats.gmvRefundedInr > 0.0) {
+            Text(
+                text = "Refunded: ${formatRupees(stats.gmvRefundedInr)}",
+                color = SevaInk500,
+                fontSize = 12.sp,
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatChip(label: String, value: String, kind: PillKind) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Pill(text = "$label $value", kind = kind)
     }
 }
 
