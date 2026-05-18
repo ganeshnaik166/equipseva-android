@@ -117,6 +117,8 @@ class EngineerDirectoryViewModel @Inject constructor(
         // it as a no-op tap.
         val resolvingLocation: Boolean = false,
         val sortMode: DirectorySortMode = DirectorySortMode.Rating,
+        // Round 350 — "4★+ only" toggle. null = no filter, 4.0 = enabled.
+        val minRating: Double? = null,
     ) {
         val filteredRows: List<EngineerDirectoryRepository.DirectoryRow>
             get() = rows.filter { row ->
@@ -172,6 +174,12 @@ class EngineerDirectoryViewModel @Inject constructor(
         _state.update { it.copy(sortMode = mode) }
         refresh()
     }
+    fun onMinRatingToggle() {
+        // Round 350 — flip the 4★+ filter on/off. Server applies the
+        // predicate so the count flips with the next refresh.
+        _state.update { it.copy(minRating = if (it.minRating == null) 4.0 else null) }
+        refresh()
+    }
 
     private fun resolveLocationThenMaybeRefresh() {
         _state.update { it.copy(resolvingLocation = true) }
@@ -221,6 +229,7 @@ class EngineerDirectoryViewModel @Inject constructor(
                 hospitalLat = s.hospitalLat,
                 hospitalLng = s.hospitalLng,
                 sortMode = effectiveSort,
+                minRating = s.minRating,
             )
                 .onSuccess { rows ->
                     _state.update { it.copy(loading = false, rows = rows) }
@@ -330,6 +339,15 @@ fun EngineerDirectoryScreen(
                         .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
+                    // Round 350 — 4★+ toggle as the first chip in the row.
+                    // Hospital ops feedback: most picks start with a quality
+                    // floor, then district. Placing the rating chip ahead
+                    // of districts matches that decision order.
+                    EsChip(
+                        text = "4★+",
+                        active = state.minRating != null,
+                        onClick = { viewModel.onMinRatingToggle() },
+                    )
                     DEFAULT_DISTRICTS.forEach { d ->
                         EsChip(
                             text = d,
@@ -359,16 +377,19 @@ fun EngineerDirectoryScreen(
                         // Round 344 — surface a Reset button when filters are
                         // narrowing to zero so the hospital can re-open the
                         // catalog in one tap instead of unwinding each chip.
-                        // Query string also counts as a narrowing filter.
+                        // Query string + r350 min-rating also count as
+                        // narrowing filters.
                         val filtersActive = state.district != "All Telangana" ||
                             state.specialization != null ||
-                            state.query.isNotBlank()
+                            state.query.isNotBlank() ||
+                            state.minRating != null
                         EmptyEngineers(
                             filtersActive = filtersActive,
                             onReset = {
                                 viewModel.onQueryChange("")
                                 viewModel.onDistrictChange("All Telangana")
                                 viewModel.onSpecializationChange(null)
+                                if (state.minRating != null) viewModel.onMinRatingToggle()
                             },
                         )
                     }

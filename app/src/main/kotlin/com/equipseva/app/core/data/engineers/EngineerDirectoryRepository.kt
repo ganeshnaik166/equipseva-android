@@ -145,6 +145,7 @@ class EngineerDirectoryRepository @Inject constructor(
         hospitalLat: Double? = null,
         hospitalLng: Double? = null,
         sortMode: DirectorySortMode = DirectorySortMode.Rating,
+        minRating: Double? = null,
     ): Result<List<DirectoryRow>> = runCatching {
         client.postgrest.rpc(
             function = "engineers_directory_search",
@@ -158,6 +159,7 @@ class EngineerDirectoryRepository @Inject constructor(
                 put("p_hospital_lat", hospitalLat?.let { JsonPrimitive(it) } ?: JsonNull)
                 put("p_hospital_lng", hospitalLng?.let { JsonPrimitive(it) } ?: JsonNull)
                 put("p_sort_mode", JsonPrimitive(sortMode.storageKey))
+                put("p_min_rating", minRating?.let { JsonPrimitive(it) } ?: JsonNull)
             },
         ).decodeList<DirectoryRow>()
     }
