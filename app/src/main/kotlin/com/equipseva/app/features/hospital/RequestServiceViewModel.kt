@@ -67,6 +67,12 @@ class RequestServiceViewModel @Inject constructor(
 
     private var userId: String? = null
     private var orgId: String? = null
+    // Round 324 — hospital phone gate. Submitting a booking without
+    // it leaves the engineer with no way to reach the hospital
+    // (chat works, but masked-calling via request-call-session
+    // returns 422 missing_phone). Cache the value at sign-in so the
+    // submit gate doesn't have to fetch on every tap.
+    private var hospitalPhone: String? = null
 
     init {
         viewModelScope.launch {
@@ -75,7 +81,9 @@ class RequestServiceViewModel @Inject constructor(
                 .distinctUntilChangedBy { it.userId }
                 .collect { session ->
                     userId = session.userId
-                    orgId = profileRepository.fetchById(session.userId).getOrNull()?.organizationId
+                    val profile = profileRepository.fetchById(session.userId).getOrNull()
+                    orgId = profile?.organizationId
+                    hospitalPhone = profile?.phone?.takeIf { it.isNotBlank() }
                 }
         }
     }
@@ -173,6 +181,18 @@ class RequestServiceViewModel @Inject constructor(
         val uid = userId
         if (uid == null) {
             _state.update { it.copy(errorMessage = "Sign in again and retry.") }
+            return
+        }
+        // Round 324 — gate on hospital phone. Without it, the engineer
+        // accepts the bid and tries to call but request-call-session
+        // returns 422 missing_phone. The error is more recoverable at
+        // booking time (hospital → AddPhone) than at call time
+        // (engineer can't unblock themselves). Mirror the existing
+        // "Pick a time slot" / "Issue too short" gate UX.
+        if (hospitalPhone.isNullOrBlank()) {
+            val msg = "Add your phone number on Profile → Phone number before posting a job — engineers need it to coordinate the visit."
+            _state.update { it.copy(errorMessage = msg) }
+            effectChannel.tryEmit(Effect.ShowMessage(msg))
             return
         }
         // Block submit when no slot is picked. Earlier code happily wrote
