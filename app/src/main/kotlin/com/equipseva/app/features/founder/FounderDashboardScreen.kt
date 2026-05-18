@@ -177,6 +177,15 @@ fun FounderDashboardScreen(
                     openReports = stats?.pendingReports,
                 )
 
+                // Round 343 — growth metrics row. 4 cards: new signups
+                // today, active repair jobs, AMC active, AMC expired.
+                GrowthKpiStrip(
+                    newSignupsToday = stats?.newSignupsToday,
+                    activeRepairJobs = stats?.activeRepairJobs,
+                    amcContractsActive = stats?.amcContractsActive,
+                    amcContractsExpired = stats?.amcContractsExpired,
+                )
+
                 // Queues card — 6 stacked rows.
                 EsSection(title = "Queues") {
                     Box(modifier = Modifier.padding(horizontal = 16.dp)) {
@@ -296,6 +305,62 @@ private fun KpiStrip(
             value = openReports?.toString() ?: "—",
             valueColor = SevaDanger500,
             sub = "open",
+            modifier = Modifier.weight(1f),
+        )
+    }
+    Spacer(Modifier.height(4.dp))
+}
+
+// Round 343 — second KPI row covering growth metrics. Same visual
+// shape as KpiStrip (4 cards, 8.dp spacing) so the dashboard reads
+// as one connected band.
+@Composable
+private fun GrowthKpiStrip(
+    newSignupsToday: Int?,
+    activeRepairJobs: Int?,
+    amcContractsActive: Int?,
+    amcContractsExpired: Int?,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        KpiCell(
+            label = "New signups",
+            value = newSignupsToday?.toString() ?: "—",
+            valueColor = SevaGreen700,
+            sub = "today",
+            modifier = Modifier.weight(1f),
+        )
+        KpiCell(
+            label = "Active jobs",
+            value = activeRepairJobs?.toString() ?: "—",
+            valueColor = SevaInfo500,
+            sub = "in pipeline",
+            modifier = Modifier.weight(1f),
+        )
+    }
+    Spacer(Modifier.height(4.dp))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        KpiCell(
+            label = "AMC active",
+            value = amcContractsActive?.toString() ?: "—",
+            valueColor = SevaGreen700,
+            sub = "contracts",
+            modifier = Modifier.weight(1f),
+        )
+        KpiCell(
+            label = "AMC expired",
+            value = amcContractsExpired?.toString() ?: "—",
+            valueColor = SevaInk500,
+            sub = "needs renewal",
             modifier = Modifier.weight(1f),
         )
     }
