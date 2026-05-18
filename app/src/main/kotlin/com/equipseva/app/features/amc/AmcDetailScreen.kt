@@ -533,18 +533,22 @@ private fun OverviewTab(
                 }
 
                 // Round 314 — surface the Renew CTA when end_date is within
-                // 14 days and the contract is still active. The server-side
+                // 30 days and the contract is still active. The server-side
                 // notify_expiring_amc_contracts (round 313) pages the
                 // hospital at 7 days; this CTA gives them a button when
                 // they actually land on the detail screen so they don't
                 // have to bounce back to the engineer profile.
+                // Round 354 — threshold widened 14d → 30d to align with the
+                // round-352 founder dashboard "Expiring 30d" KPI + the
+                // round-353 hospital list countdown pill. Surfaces stay in
+                // lock-step on the renewal window.
                 val engineerIdForRenew = state.hospital?.primaryEngineerId
                 val sourceIdForRenew = state.hospital?.id
                 if (state.viewerIsHospital
                     && status == "active"
                     && !engineerIdForRenew.isNullOrBlank()
                     && !sourceIdForRenew.isNullOrBlank()
-                    && isWithinDays(end, 14)
+                    && isWithinDays(end, 30)
                 ) {
                     Spacer(Modifier.height(4.dp))
                     EsBtn(
@@ -559,11 +563,11 @@ private fun OverviewTab(
                 // Round 327 — engineer-side action when the AMC is
                 // approaching expiry. Hospital sees Renew; engineer
                 // sees "Message hospital" so they can prompt the
-                // renewal conversation. Same threshold (≤14d).
+                // renewal conversation. Round 354 — same 30d threshold.
                 if (!state.viewerIsHospital
                     && status == "active"
                     && state.engineerView != null
-                    && isWithinDays(end, 14)
+                    && isWithinDays(end, 30)
                 ) {
                     Spacer(Modifier.height(4.dp))
                     EsBtn(
