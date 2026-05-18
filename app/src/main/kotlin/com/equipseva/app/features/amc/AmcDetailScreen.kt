@@ -84,6 +84,7 @@ class AmcDetailViewModel @Inject constructor(
     private val repo: AmcRepository,
     private val auth: AuthRepository,
     private val userPrefs: UserPrefs,
+    private val chatRepository: com.equipseva.app.core.data.chat.ChatRepository,
 ) : ViewModel() {
 
     private val contractId: String =
@@ -217,6 +218,27 @@ class AmcDetailViewModel @Inject constructor(
     }
 
     fun contractIdValue(): String = contractId
+
+    // Round 327 — engineer-side "Message hospital" entry point. The
+    // round-326 amc_renewal_due notification routes both parties to
+    // this detail screen; hospitals see Renew CTA, engineers had
+    // nothing actionable. Resolves the conversation via getOrCreateDirect
+    // and emits the new id so the screen navigates into chat.
+    private val _openConversation =
+        kotlinx.coroutines.flow.MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val openConversation: kotlinx.coroutines.flow.Flow<String> = _openConversation
+
+    fun messageHospital() {
+        val peer = _state.value.engineerView?.hospitalUserId ?: return
+        viewModelScope.launch {
+            val session = auth.sessionState
+                .filterIsInstance<AuthSession.SignedIn>()
+                .firstOrNull() ?: return@launch
+            chatRepository.getOrCreateDirect(session.userId, peer)
+                .onSuccess { conv -> _openConversation.tryEmit(conv.id) }
+                .onFailure { e -> _state.update { it.copy(error = e.toUserMessage()) } }
+        }
+    }
 }
 
 @Composable
@@ -224,9 +246,18 @@ fun AmcDetailScreen(
     onBack: () -> Unit,
     onShowMessage: (String) -> Unit,
     onRenew: (engineerId: String, sourceContractId: String) -> Unit = { _, _ -> },
+    onOpenConversation: (conversationId: String) -> Unit = {},
     viewModel: AmcDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    // Round 327 — collect the conversation-id effect so engineer can
+    // be routed into chat after messageHospital() resolves.
+    androidx.compose.runtime.LaunchedEffect(viewModel) {
+        viewModel.openConversation.collect { conversationId ->
+            onOpenConversation(conversationId)
+        }
+    }
 
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -267,7 +298,11 @@ fun AmcDetailScreen(
                         )
                         when (state.tab) {
                             AmcDetailViewModel.Tab.Overview ->
-                                OverviewTab(state, onRenew)
+                                OverviewTab(
+                                    state = state,
+                                    onRenew = onRenew,
+                                    onMessageHospital = viewModel::messageHospital,
+                                )
                             AmcDetailViewModel.Tab.Pool -> PoolTab(
                                 state = state,
                                 onTopUp = { viewModel.openTopUp() },
@@ -452,6 +487,7 @@ private fun TabsRow(
 private fun OverviewTab(
     state: AmcDetailViewModel.UiState,
     onRenew: (engineerId: String, sourceContractId: String) -> Unit = { _, _ -> },
+    onMessageHospital: () -> Unit = {},
 ) {
     val title = state.hospital?.primaryEngineerName ?: state.engineerView?.hospitalName ?: "—"
     val status = state.hospital?.status ?: state.engineerView?.status ?: "active"
@@ -517,6 +553,25 @@ private fun OverviewTab(
                         size = EsBtnSize.Md,
                         full = true,
                         onClick = { onRenew(engineerIdForRenew, sourceIdForRenew) },
+                    )
+                }
+
+                // Round 327 — engineer-side action when the AMC is
+                // approaching expiry. Hospital sees Renew; engineer
+                // sees "Message hospital" so they can prompt the
+                // renewal conversation. Same threshold (≤14d).
+                if (!state.viewerIsHospital
+                    && status == "active"
+                    && state.engineerView != null
+                    && isWithinDays(end, 14)
+                ) {
+                    Spacer(Modifier.height(4.dp))
+                    EsBtn(
+                        text = "Message hospital",
+                        kind = EsBtnKind.Primary,
+                        size = EsBtnSize.Md,
+                        full = true,
+                        onClick = onMessageHospital,
                     )
                 }
             }

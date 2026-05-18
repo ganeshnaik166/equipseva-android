@@ -447,6 +447,9 @@ fun MainNavGraph(
                             Routes.createAmcRouteWithSource(engineerId, sourceContractId),
                         )
                     },
+                    onOpenConversation = { conversationId ->
+                        navController.navigate(Routes.chatRoute(conversationId))
+                    },
                 )
             }
             composable(
