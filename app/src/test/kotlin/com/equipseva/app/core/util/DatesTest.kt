@@ -82,4 +82,37 @@ class DatesTest {
             .minusDays(1).toString()
         org.junit.Assert.assertFalse(isWithinDays(yesterday, 14))
     }
+
+    // Round 353/356 — daysUntil helper. Pairs with isWithinDays to render
+    // an exact countdown ("Expires in 5 days") alongside the boolean gate.
+    @Test fun `daysUntil returns 0 for today`() {
+        val today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")).toString()
+        assertEquals(0L, daysUntil(today))
+    }
+
+    @Test fun `daysUntil returns positive for future date`() {
+        val plusFive = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"))
+            .plusDays(5).toString()
+        assertEquals(5L, daysUntil(plusFive))
+    }
+
+    @Test fun `daysUntil returns negative for past date`() {
+        val minusThree = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"))
+            .minusDays(3).toString()
+        assertEquals(-3L, daysUntil(minusThree))
+    }
+
+    @Test fun `daysUntil parses full ISO instant (IST zone)`() {
+        // 2099-12-31T18:30:00Z = 2100-01-01T00:00:00 IST. Pick a far date
+        // so the literal can be checked independently of test run time.
+        val out = daysUntil("2099-12-31T18:30:00Z")
+        // We can't pin the exact int (depends on today), but it must be
+        // positive and a real long.
+        assert(out != null && out > 0L) { "expected positive daysUntil, got $out" }
+    }
+
+    @Test fun `daysUntil returns null for malformed input`() {
+        assertNull(daysUntil("not-a-date"))
+        assertNull(daysUntil(""))
+    }
 }
