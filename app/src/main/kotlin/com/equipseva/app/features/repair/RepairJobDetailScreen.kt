@@ -64,6 +64,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -120,6 +121,7 @@ import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk600
 import com.equipseva.app.designsystem.theme.SevaInk700
 import com.equipseva.app.designsystem.theme.SevaInk900
+import kotlinx.coroutines.launch
 
 private val WarnGold = Color(0xFFF5A623)
 
@@ -2068,6 +2070,7 @@ private fun CheckinSheet(
     // we cap at 4 to keep the upload payload sane on bad reception.
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var picked by rememberSaveable(stateSaver = UriListSaver) { mutableStateOf(emptyList<Uri>()) }
     val maxPhotos = 4
 
@@ -2177,20 +2180,25 @@ private fun CheckinSheet(
             EsBtn(
                 text = if (updating) "Checking in…" else "I'm here · check in",
                 onClick = {
-                    val resolver = context.contentResolver
-                    val photos = picked.mapNotNull { uri ->
-                        val mime = resolver.getType(uri) ?: MIME_JPEG
-                        val name = uri.lastPathSegment ?: "before-${System.currentTimeMillis()}.jpg"
-                        val bytes = runCatching {
-                            resolver.openInputStream(uri)?.use { it.readBytes() }
-                        }.getOrNull() ?: return@mapNotNull null
-                        RepairJobDetailViewModel.CompletionProofPhoto(
-                            fileName = name,
-                            mimeType = mime,
-                            bytes = bytes,
-                        )
+                    // Round 340 — read uris on IO. Compose onClick runs on
+                    // Main; up to 4 multi-MB picked photos blocking Main
+                    // would trip ANR.
+                    scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                        val resolver = context.contentResolver
+                        val photos = picked.mapNotNull { uri ->
+                            val mime = resolver.getType(uri) ?: MIME_JPEG
+                            val name = uri.lastPathSegment ?: "before-${System.currentTimeMillis()}.jpg"
+                            val bytes = runCatching {
+                                resolver.openInputStream(uri)?.use { it.readBytes() }
+                            }.getOrNull() ?: return@mapNotNull null
+                            RepairJobDetailViewModel.CompletionProofPhoto(
+                                fileName = name,
+                                mimeType = mime,
+                                bytes = bytes,
+                            )
+                        }
+                        onConfirm(photos)
                     }
-                    onConfirm(photos)
                 },
                 kind = EsBtnKind.Primary,
                 full = true,
@@ -2217,6 +2225,7 @@ private fun CompletionProofSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var picked by rememberSaveable(stateSaver = UriListSaver) { mutableStateOf(emptyList<Uri>()) }
     val maxPhotos = 4
 
@@ -2326,20 +2335,25 @@ private fun CompletionProofSheet(
             EsBtn(
                 text = if (submitting) "Saving…" else "Mark done",
                 onClick = {
-                    val resolver = context.contentResolver
-                    val photos = picked.mapNotNull { uri ->
-                        val mime = resolver.getType(uri) ?: MIME_JPEG
-                        val name = uri.lastPathSegment ?: "after-${System.currentTimeMillis()}.jpg"
-                        val bytes = runCatching {
-                            resolver.openInputStream(uri)?.use { it.readBytes() }
-                        }.getOrNull() ?: return@mapNotNull null
-                        RepairJobDetailViewModel.CompletionProofPhoto(
-                            fileName = name,
-                            mimeType = mime,
-                            bytes = bytes,
-                        )
+                    // Round 340 — read uris on IO. Compose onClick runs on
+                    // Main; up to 4 multi-MB picked photos blocking Main
+                    // would trip ANR.
+                    scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                        val resolver = context.contentResolver
+                        val photos = picked.mapNotNull { uri ->
+                            val mime = resolver.getType(uri) ?: MIME_JPEG
+                            val name = uri.lastPathSegment ?: "after-${System.currentTimeMillis()}.jpg"
+                            val bytes = runCatching {
+                                resolver.openInputStream(uri)?.use { it.readBytes() }
+                            }.getOrNull() ?: return@mapNotNull null
+                            RepairJobDetailViewModel.CompletionProofPhoto(
+                                fileName = name,
+                                mimeType = mime,
+                                bytes = bytes,
+                            )
+                        }
+                        onSubmit(photos)
                     }
-                    onSubmit(photos)
                 },
                 kind = EsBtnKind.Primary,
                 full = true,
