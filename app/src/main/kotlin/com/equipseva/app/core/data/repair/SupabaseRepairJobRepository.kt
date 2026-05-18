@@ -224,6 +224,10 @@ class SupabaseRepairJobRepository @Inject constructor(
                 .decodeList<EngineerIdRow>().firstOrNull()?.id
                 ?: error("No engineer profile for caller")
         } else null
+        // Round 338 — .decodeSingle() raises NoSuchElementException
+        // when 0 rows match the UPDATE filter (stale job id, mis-roled
+        // caller, job deleted, RLS rejection). Surface a clear error
+        // instead of a cryptic NoSuchElementException leaking through.
         client.from(TABLE).update(patch) {
             filter {
                 eq("id", jobId)
@@ -234,7 +238,8 @@ class SupabaseRepairJobRepository @Inject constructor(
                 }
             }
             select()
-        }.decodeSingle<RepairJobDto>().toDomain()
+        }.decodeSingleOrNull<RepairJobDto>()?.toDomain()
+            ?: error("Repair job not found or no permission to rate")
     }
 
     override suspend fun create(draft: RepairJobDraft): Result<RepairJob> = runCatching {

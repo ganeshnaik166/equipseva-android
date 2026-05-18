@@ -69,6 +69,11 @@ class AddressRepository @Inject constructor(
                 .insert(withOwner) { select() }
                 .decodeSingle<UserAddress>()
         } else {
+            // Round 338 — .decodeSingle() raises NoSuchElementException
+            // when an UPDATE returns 0 rows (stale id, RLS rejection,
+            // address deleted in another session). Surface a clear
+            // error to the caller instead of letting the deserializer
+            // throw cryptically.
             client.postgrest.from("user_addresses")
                 .update(withOwner) {
                     filter {
@@ -77,7 +82,8 @@ class AddressRepository @Inject constructor(
                     }
                     select()
                 }
-                .decodeSingle<UserAddress>()
+                .decodeSingleOrNull<UserAddress>()
+                ?: error("Address not found or no permission")
         }
     }
 
