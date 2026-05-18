@@ -166,6 +166,12 @@ class FounderRepository @Inject constructor(
         @SerialName("pending_reports") val pendingReports: Int = 0,
         @SerialName("orders_today") val ordersToday: Int = 0,
         @SerialName("integrity_failures_today") val integrityFailuresToday: Int = 0,
+        // Round 343 growth metrics. Defaulted to 0 so a client deployed
+        // before the server-side migration lands still decodes the row.
+        @SerialName("new_signups_today") val newSignupsToday: Int = 0,
+        @SerialName("active_repair_jobs") val activeRepairJobs: Int = 0,
+        @SerialName("amc_contracts_active") val amcContractsActive: Int = 0,
+        @SerialName("amc_contracts_expired") val amcContractsExpired: Int = 0,
     )
 
     @Serializable
