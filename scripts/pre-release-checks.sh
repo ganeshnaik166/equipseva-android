@@ -42,24 +42,30 @@ fail() {
 }
 ok() { green "  OK:   $*"; }
 
-# Extract a key from local.properties (no shell-injection — handles
-# quoted values + trims whitespace). Falls back to env var of same name.
+# Extract a key from one or more .properties files (no shell-injection —
+# handles quoted values + trims whitespace). Falls back to env var of
+# same name when no file has it.
 get_prop() {
   local key="$1"
+  shift
   local val=""
-  if [[ -f "$LOCAL_PROPS" ]]; then
-    val="$(awk -F= -v k="$key" '
-      $0 !~ /^[[:space:]]*#/ {
-        gsub(/^[[:space:]]+|[[:space:]]+$/, "", $1)
-        if ($1 == k) {
-          sub(/^[^=]*=/, "", $0)
-          gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0)
-          print $0
-          exit
+  local files=("$@")
+  if [[ ${#files[@]} -eq 0 ]]; then files=("$LOCAL_PROPS"); fi
+  for f in "${files[@]}"; do
+    if [[ -z "$val" && -f "$f" ]]; then
+      val="$(awk -F= -v k="$key" '
+        $0 !~ /^[[:space:]]*#/ {
+          gsub(/^[[:space:]]+|[[:space:]]+$/, "", $1)
+          if ($1 == k) {
+            sub(/^[^=]*=/, "", $0)
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0)
+            print $0
+            exit
+          }
         }
-      }
-    ' "$LOCAL_PROPS")"
-  fi
+      ' "$f")"
+    fi
+  done
   if [[ -z "$val" ]]; then val="${!key:-}"; fi
   printf "%s" "$val"
 }
@@ -114,7 +120,9 @@ KS_PROPS="$ROOT_DIR/keystore.properties"
 if [[ ! -f "$KS_PROPS" ]]; then
   fail "keystore.properties missing — release build will fall back to debug signing (never publish that AAB)"
 else
-  STORE_FILE="$(get_prop storeFile)"
+  # storeFile lives in keystore.properties (it's the canonical Gradle
+  # convention), not local.properties — read from there first.
+  STORE_FILE="$(get_prop storeFile "$KS_PROPS" "$LOCAL_PROPS")"
   if [[ -z "$STORE_FILE" ]]; then
     fail "keystore.properties present but storeFile= line is empty"
   elif [[ ! -f "$ROOT_DIR/$STORE_FILE" && ! -f "$STORE_FILE" ]]; then
