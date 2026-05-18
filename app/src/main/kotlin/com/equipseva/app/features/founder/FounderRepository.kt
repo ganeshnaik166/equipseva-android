@@ -107,6 +107,9 @@ class FounderRepository @Inject constructor(
         @SerialName("payment_id") val paymentId: String? = null,
         @SerialName("invoice_url") val invoiceUrl: String? = null,
         @SerialName("created_at") val createdAt: String? = null,
+        // Round 351 — pre-joined failed Play-Integrity check count for the
+        // buyer. Defaulted to 0 so older clients still decode the row.
+        @SerialName("buyer_failed_integrity_count") val buyerFailedIntegrityCount: Int = 0,
     )
 
     @Serializable

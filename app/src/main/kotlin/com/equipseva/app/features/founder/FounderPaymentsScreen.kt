@@ -170,11 +170,25 @@ private fun PaymentRow(
             )
             PaymentStatusChip(row.paymentStatus)
         }
-        Text(
-            text = row.buyerName ?: "Unknown buyer",
-            color = SevaInk700,
-            fontSize = 13.sp,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = row.buyerName ?: "Unknown buyer",
+                color = SevaInk700,
+                fontSize = 13.sp,
+            )
+            if (row.buyerFailedIntegrityCount > 0) {
+                // Round 351 — surface device-integrity risk inline. Tap is
+                // not wired here; founder cross-checks via Integrity queue
+                // (linked from the Dashboard queue card).
+                Pill(
+                    text = "⚠ ${row.buyerFailedIntegrityCount} integrity",
+                    kind = PillKind.Danger,
+                )
+            }
+        }
         Text(
             text = formatRupees(row.totalAmount),
             color = SevaInk900,
