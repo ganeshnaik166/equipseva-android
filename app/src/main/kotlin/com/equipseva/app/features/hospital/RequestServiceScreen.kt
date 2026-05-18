@@ -581,7 +581,10 @@ private fun StepWhen(
     )
     val customLabel = pickedDateMillis?.let {
         val d = java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.of("Asia/Kolkata")).toLocalDate()
-        "Custom · ${d.dayOfMonth} ${d.month.name.lowercase().replaceFirstChar { c -> c.uppercase() }} ${d.year}"
+        // Round 339 — pin to Locale.ENGLISH. Default Locale on Turkish
+        // devices corrupts the english month enum names via dotted-vs-
+        // dotless 'i' casing rules.
+        "Custom · ${d.dayOfMonth} ${d.month.name.lowercase(java.util.Locale.ENGLISH).replaceFirstChar { c -> c.uppercase(java.util.Locale.ENGLISH) }} ${d.year}"
     } ?: "Pick a date"
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {

@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import com.equipseva.app.designsystem.theme.EsFontFamily
 import com.equipseva.app.designsystem.theme.SevaGreen500
 import com.equipseva.app.designsystem.theme.SevaGreen700
+import java.util.Locale
 
 private val AvatarBrush = Brush.linearGradient(listOf(SevaGreen700, SevaGreen500))
 
@@ -38,7 +39,10 @@ fun Avatar(
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = initials.take(2).uppercase(),
+            // Round 339 — pin to Locale.ENGLISH. Default Locale on Turkish
+            // devices maps lowercase 'i' to dotted-capital 'İ' (and 'I' to
+            // dotless 'ı'), corrupting initials for English names.
+            text = initials.take(2).uppercase(Locale.ENGLISH),
             color = Color.White,
             fontFamily = EsFontFamily,
             fontWeight = FontWeight.SemiBold,
