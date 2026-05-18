@@ -148,6 +148,15 @@ serve(async (req) => {
       if (error) throw error;
       return { rows: typeof data === "number" ? data : undefined };
     },
+    // Round 323 — TTL purge for spot_audit_invitations that expired
+    // >30 days ago AND have no response (responded-to invites stay
+    // for the engineer audit trail). Without this, invitations grow
+    // unbounded once the 1-in-20 post-completion nudge ramps.
+    "purge-spot-audit-invitations": async () => {
+      const { data, error } = await admin.rpc("purge_old_spot_audit_invitations");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
     // Round 304 — TTL purge for phone_otp_requests; the table is
     // append-only via phone_otp_can_request and would grow unbounded
     // without this. 7-day retention is plenty for fraud forensics
@@ -177,6 +186,7 @@ serve(async (req) => {
       "amc-auto-renew",
       "amc-renewal-notify",
       "expire-amc-contracts",
+      "purge-spot-audit-invitations",
     ],
   };
 
