@@ -196,6 +196,15 @@ class FounderRepository @Inject constructor(
         @SerialName("sample_lng") val sampleLng: Double? = null,
     )
 
+    @Serializable
+    data class TopEngineerRow(
+        @SerialName("engineer_user_id") val engineerUserId: String,
+        @SerialName("full_name") val fullName: String,
+        @SerialName("jobs_completed") val jobsCompleted: Long,
+        @SerialName("revenue_inr") val revenueInr: Double,
+        @SerialName("last_completed_at") val lastCompletedAt: String? = null,
+    )
+
     suspend fun fetchPendingEngineers(): Result<List<PendingEngineer>> = runCatching {
         client.postgrest.rpc(function = "admin_pending_engineers")
             .decodeList<PendingEngineer>()
@@ -273,6 +282,16 @@ class FounderRepository @Inject constructor(
                 put("p_days", JsonPrimitive(windowDays))
             },
         ).decodeList<RecentPaymentsStats>().firstOrNull()
+    }
+
+    suspend fun fetchTopEngineers(windowDays: Int = 30, limit: Int = 5): Result<List<TopEngineerRow>> = runCatching {
+        client.postgrest.rpc(
+            function = "admin_top_engineers",
+            parameters = buildJsonObject {
+                put("p_days", JsonPrimitive(windowDays))
+                put("p_limit", JsonPrimitive(limit))
+            },
+        ).decodeList<TopEngineerRow>()
     }
 
     suspend fun fetchIntegrityFlags(limit: Int = 100): Result<List<IntegrityFlag>> = runCatching {
