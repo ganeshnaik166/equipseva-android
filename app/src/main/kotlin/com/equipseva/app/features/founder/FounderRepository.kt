@@ -189,6 +189,9 @@ class FounderRepository @Inject constructor(
         @SerialName("active_repair_jobs") val activeRepairJobs: Int = 0,
         @SerialName("amc_contracts_active") val amcContractsActive: Int = 0,
         @SerialName("amc_contracts_expired") val amcContractsExpired: Int = 0,
+        // Round 352 — active contracts ending in the next 30 days. Default
+        // 0 so older clients decoding a fresh response still parse.
+        @SerialName("amc_contracts_expiring_soon") val amcContractsExpiringSoon: Int = 0,
     )
 
     @Serializable
