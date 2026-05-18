@@ -778,15 +778,19 @@ private fun EngineerStep(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Auto-renew this contract",
+                    "Renewal reminders",
                     color = SevaInk900,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Spacer(Modifier.height(2.dp))
+                // Round 355 — honest copy. The server-side notifier
+                // (round 326) fires reminders at 7d / 3d / 1d before
+                // expiry; auto-charge worker isn't shipped yet. Old
+                // copy promised an auto-charge that doesn't happen.
                 Text(
-                    "We'll charge the next month's fee 7 days before expiry. " +
-                        "You can disable this any time from the contract page.",
+                    "We'll remind you 7, 3 and 1 day before expiry so " +
+                        "you can renew before service pauses.",
                     color = SevaInk500,
                     fontSize = 12.sp,
                 )
