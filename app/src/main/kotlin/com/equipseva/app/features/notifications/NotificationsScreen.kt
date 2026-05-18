@@ -131,11 +131,27 @@ fun NotificationsScreen(
                     Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) { CircularProgressIndicator() }
-                state.rows.isEmpty() -> EmptyStateView(
-                    icon = Icons.Outlined.NotificationsNone,
-                    title = "Nothing here yet",
-                    subtitle = "We'll let you know when there's news.",
-                )
+                // Round 341 — wrap empty state in PullToRefreshBox too.
+                // Without it the user has no way to retry on a 0-row
+                // first load (the LazyColumn that hosts the
+                // PullToRefreshBox never inflates because rows is empty).
+                state.rows.isEmpty() -> PullToRefreshBox(
+                    isRefreshing = state.refreshing,
+                    onRefresh = viewModel::refresh,
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    androidx.compose.foundation.lazy.LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        item {
+                            EmptyStateView(
+                                icon = Icons.Outlined.NotificationsNone,
+                                title = "Nothing here yet",
+                                subtitle = "We'll let you know when there's news. Pull down to refresh.",
+                            )
+                        }
+                    }
+                }
                 else -> PullToRefreshBox(
                     isRefreshing = state.refreshing,
                     onRefresh = viewModel::refresh,

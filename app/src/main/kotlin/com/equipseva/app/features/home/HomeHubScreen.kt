@@ -273,21 +273,33 @@ fun HomeHubScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            // Recent activity
-            if (state.recent.isNotEmpty()) {
-                EsSection(
-                    title = "Recent activity",
-                    action = "See all",
-                    onAction = onOpenNotifications,
+            // Recent activity — round 341: show a placeholder card when
+            // empty rather than collapsing the section. First-time users
+            // landed on Home and saw nothing below the role tiles, which
+            // read as "the app is broken / nothing here". The placeholder
+            // gives them an anchor + clarifies what'll fill this slot.
+            EsSection(
+                title = "Recent activity",
+                action = if (state.recent.isNotEmpty()) "See all" else null,
+                onAction = if (state.recent.isNotEmpty()) onOpenNotifications else null,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White)
+                        .border(1.dp, BorderDefault, RoundedCornerShape(12.dp)),
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp)
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White)
-                            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp)),
-                    ) {
+                    if (state.recent.isEmpty()) {
+                        Text(
+                            text = "Your bookings, bids, and messages will appear here.",
+                            color = SevaInk500,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 18.dp),
+                        )
+                    } else {
                         state.recent.forEachIndexed { i, n ->
                             ActivityRow(
                                 kind = n.kind,
