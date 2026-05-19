@@ -115,4 +115,30 @@ class DatesTest {
         assertNull(daysUntil("not-a-date"))
         assertNull(daysUntil(""))
     }
+
+    // Round 362 — IST midnight-boundary regression. An ISO instant that
+    // reads "today 19:30 UTC" rolls into "tomorrow 01:00 IST". The
+    // countdown badge should treat that instant as tomorrow, not today,
+    // because the helper is documented as IST-zoned (round 326 sets the
+    // notifier cadence around IST dates). A UTC-naive comparison would
+    // render "Expires today" for a moment whose IST date is already the
+    // next day, off by a full day during the 5h30 nightly window.
+    @Test fun `daysUntil normalizes late-UTC instant to IST date`() {
+        val todayIst = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"))
+        // 19:30 UTC on today's IST date = 01:00 IST on the next day.
+        val instant = java.time.LocalDateTime.of(todayIst, java.time.LocalTime.of(19, 30))
+            .atZone(java.time.ZoneOffset.UTC)
+            .toInstant()
+            .toString()
+        assertEquals(1L, daysUntil(instant))
+    }
+
+    // Round 362 — bare yyyy-MM-dd path (the common AMC end_date format)
+    // is independent of any UTC/IST conversion. Anchored off today so
+    // the test is stable regardless of run time.
+    @Test fun `daysUntil bare date is timezone independent`() {
+        val plus10 = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"))
+            .plusDays(10).toString()
+        assertEquals(10L, daysUntil(plus10))
+    }
 }
