@@ -6,6 +6,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -755,12 +757,21 @@ private fun CertificateSection(state: KycViewModel.UiState, onPickCertificate: (
 private fun AttestationSection(state: KycViewModel.UiState, onAttestationChange: (Boolean) -> Unit) {
     val checked = state.attestationAccepted
     Row(
+        // Round 411 — toggleable instead of clickable gives the row
+        // Role.Checkbox + onValueChange semantics so TalkBack announces
+        // "Checkbox, checked/unchecked" instead of "Button" — which
+        // matters because this attestation is the gate for a high-stakes
+        // submission (KYC + bank details).
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(Surface0)
             .border(1.dp, Surface200, RoundedCornerShape(10.dp))
-            .clickable { onAttestationChange(!checked) }
+            .toggleable(
+                value = checked,
+                onValueChange = onAttestationChange,
+                role = Role.Checkbox,
+            )
             .padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.Top,
