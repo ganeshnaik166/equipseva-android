@@ -89,6 +89,8 @@ class MaintenanceContractsViewModel @Inject constructor(
 
     data class UiState(
         val loading: Boolean = true,
+        // Round 388 — pull-to-refresh inline indicator distinct from cold-load.
+        val refreshing: Boolean = false,
         val error: String? = null,
         val role: UserRole? = null,
         val items: List<AmcListItem> = emptyList(),
@@ -98,11 +100,19 @@ class MaintenanceContractsViewModel @Inject constructor(
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     init {
-        refresh()
+        refresh(initial = true)
     }
 
-    fun refresh() {
-        _state.update { it.copy(loading = true, error = null) }
+    fun onPullToRefresh() = refresh(initial = false)
+
+    fun refresh(initial: Boolean = false) {
+        _state.update {
+            it.copy(
+                loading = initial || it.items.isEmpty(),
+                refreshing = !initial && it.items.isNotEmpty(),
+                error = null,
+            )
+        }
         viewModelScope.launch {
             // Wait for an authenticated session — list_amc_contracts_*
             // RPCs are auth-scoped via auth.uid() and would return [] for
@@ -112,7 +122,7 @@ class MaintenanceContractsViewModel @Inject constructor(
                 .filterIsInstance<AuthSession.SignedIn>()
                 .firstOrNull()
             if (session == null) {
-                _state.update { it.copy(loading = false, items = emptyList()) }
+                _state.update { it.copy(loading = false, refreshing = false, items = emptyList()) }
                 return@launch
             }
 
@@ -125,13 +135,14 @@ class MaintenanceContractsViewModel @Inject constructor(
                         _state.update {
                             it.copy(
                                 loading = false,
+                                refreshing = false,
                                 role = role,
                                 items = rows.map(::toItemHospital),
                             )
                         }
                     },
                     onFailure = { e ->
-                        _state.update { it.copy(loading = false, role = role, error = e.toUserMessage()) }
+                        _state.update { it.copy(loading = false, refreshing = false, role = role, error = e.toUserMessage()) }
                     },
                 )
                 else -> repo.listForEngineer().fold(
@@ -139,13 +150,14 @@ class MaintenanceContractsViewModel @Inject constructor(
                         _state.update {
                             it.copy(
                                 loading = false,
+                                refreshing = false,
                                 role = role,
                                 items = rows.map(::toItemEngineer),
                             )
                         }
                     },
                     onFailure = { e ->
-                        _state.update { it.copy(loading = false, role = role, error = e.toUserMessage()) }
+                        _state.update { it.copy(loading = false, refreshing = false, role = role, error = e.toUserMessage()) }
                     },
                 )
             }
@@ -181,6 +193,7 @@ class MaintenanceContractsViewModel @Inject constructor(
     )
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun MaintenanceContractsScreen(
     onBack: () -> Unit,
@@ -195,7 +208,12 @@ fun MaintenanceContractsScreen(
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(title = "Maintenance contracts", onBack = onBack)
-            Box(modifier = Modifier.fillMaxSize()) {
+            // Round 388 — pull-to-refresh. Matches r378-r387 pattern.
+            androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                isRefreshing = state.refreshing,
+                onRefresh = viewModel::onPullToRefresh,
+                modifier = Modifier.fillMaxSize(),
+            ) {
                 when {
                     state.loading -> Box(
                         modifier = Modifier.fillMaxSize(),
