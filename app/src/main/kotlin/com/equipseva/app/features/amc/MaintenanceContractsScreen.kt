@@ -220,6 +220,18 @@ fun MaintenanceContractsScreen(
                         contentAlignment = Alignment.Center,
                     ) { CircularProgressIndicator() }
 
+                    // Round 405 — render error state with retry. Previously a
+                    // failed RPC stayed captured in UiState.error but the
+                    // screen fell through to the "No contracts yet" empty
+                    // state, masking the failure as "user has no contracts".
+                    state.error != null && state.items.isEmpty() -> EmptyStateView(
+                        icon = Icons.Outlined.CalendarMonth,
+                        title = "Couldn't load",
+                        subtitle = state.error,
+                        ctaLabel = "Try again",
+                        onCta = { viewModel.refresh() },
+                    )
+
                     state.items.isEmpty() -> EmptyStateView(
                         icon = Icons.Outlined.CalendarMonth,
                         title = "No maintenance contracts yet",
