@@ -91,6 +91,7 @@ class FounderPaymentsViewModel @Inject constructor(
 @Composable
 fun FounderPaymentsScreen(
     onBack: () -> Unit,
+    onOpenBuyerIntegrity: (userId: String, name: String?) -> Unit = { _, _ -> },
     viewModel: FounderPaymentsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -135,6 +136,12 @@ fun FounderPaymentsScreen(
                                     // link in the app.
                                     com.equipseva.app.core.util.openExternalUrl(context, url)
                                 },
+                                onOpenIntegrity = {
+                                    // Round 360 — tap-through to the
+                                    // integrity flag screen, pre-filtered
+                                    // to this buyer.
+                                    onOpenBuyerIntegrity(row.buyerUserId, row.buyerName)
+                                },
                             )
                         }
                     }
@@ -148,6 +155,7 @@ fun FounderPaymentsScreen(
 private fun PaymentRow(
     row: FounderRepository.RecentPayment,
     onOpenInvoice: (String) -> Unit,
+    onOpenIntegrity: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier
@@ -180,13 +188,19 @@ private fun PaymentRow(
                 fontSize = 13.sp,
             )
             if (row.buyerFailedIntegrityCount > 0) {
-                // Round 351 — surface device-integrity risk inline. Tap is
-                // not wired here; founder cross-checks via Integrity queue
-                // (linked from the Dashboard queue card).
-                Pill(
-                    text = "⚠ ${row.buyerFailedIntegrityCount} integrity",
-                    kind = PillKind.Danger,
-                )
+                // Round 351 — surface device-integrity risk inline.
+                // Round 360 — pill is now tappable; routes to the
+                // Integrity queue pre-filtered to this buyer.
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .clickable { onOpenIntegrity() },
+                ) {
+                    Pill(
+                        text = "⚠ ${row.buyerFailedIntegrityCount} integrity",
+                        kind = PillKind.Danger,
+                    )
+                }
             }
         }
         Text(

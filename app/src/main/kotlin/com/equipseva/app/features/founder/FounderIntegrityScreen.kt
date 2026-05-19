@@ -54,21 +54,41 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class FounderIntegrityViewModel @Inject constructor(
+    savedStateHandle: androidx.lifecycle.SavedStateHandle,
     private val repo: FounderRepository,
 ) : ViewModel() {
+    // Round 360 — optional buyer filter from r351 Payments-row tap.
+    private val filterUserId: String? =
+        savedStateHandle[com.equipseva.app.navigation.Routes.FOUNDER_INTEGRITY_ARG_USER]
+    private val filterUserName: String? =
+        savedStateHandle[com.equipseva.app.navigation.Routes.FOUNDER_INTEGRITY_ARG_NAME]
+
     data class UiState(
         val loading: Boolean = true,
         val error: String? = null,
         val rows: List<FounderRepository.IntegrityFlag> = emptyList(),
+        val filterUserId: String? = null,
+        val filterUserName: String? = null,
     )
-    private val _state = MutableStateFlow(UiState())
+    private val _state = MutableStateFlow(
+        UiState(filterUserId = filterUserId, filterUserName = filterUserName)
+    )
     val state: StateFlow<UiState> = _state.asStateFlow()
     init { reload() }
     fun reload() {
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             repo.fetchIntegrityFlags(limit = 100)
-                .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
+                .onSuccess { rows ->
+                    // Server returns the most recent 100 events globally. With
+                    // a filter we narrow client-side — at the 100-row window
+                    // a single buyer's history is almost always present in
+                    // full, and a server-side filter would need a new RPC
+                    // for a small payoff.
+                    val visible = if (filterUserId.isNullOrBlank()) rows
+                    else rows.filter { it.userId == filterUserId }
+                    _state.update { it.copy(loading = false, rows = visible) }
+                }
                 .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
         }
     }
@@ -86,7 +106,17 @@ fun FounderIntegrityScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Integrity flags",
-                subtitle = if (state.rows.isNotEmpty()) "${state.rows.size} events" else null,
+                subtitle = when {
+                    // Round 360 — when arrived via Payments-row tap-through,
+                    // show whose history we're filtered to. Buyer name first,
+                    // event count second.
+                    !state.filterUserName.isNullOrBlank() ->
+                        "${state.filterUserName} · ${state.rows.size} events"
+                    state.filterUserId != null ->
+                        "Filtered · ${state.rows.size} events"
+                    state.rows.isNotEmpty() -> "${state.rows.size} events"
+                    else -> null
+                },
                 onBack = onBack,
             )
             Box(modifier = Modifier.fillMaxSize()) {
