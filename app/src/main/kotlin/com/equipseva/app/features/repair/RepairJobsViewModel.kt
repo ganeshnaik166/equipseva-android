@@ -84,7 +84,9 @@ class RepairJobsViewModel @Inject constructor(
     }
 
     fun onQueryChange(value: String) {
-        _state.update { it.copy(query = value, errorMessage = null) }
+        // Round 422 — cap at 100 chars; search is a job-title / number /
+        // hospital-name match. No legit query exceeds this length.
+        _state.update { it.copy(query = value.take(100), errorMessage = null) }
     }
 
     /**

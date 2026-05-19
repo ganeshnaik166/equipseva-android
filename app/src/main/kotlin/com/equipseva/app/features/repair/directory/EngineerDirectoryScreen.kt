@@ -167,7 +167,11 @@ class EngineerDirectoryViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    fun onQueryChange(v: String) = _state.update { it.copy(query = v) }
+    fun onQueryChange(v: String) =
+        // Round 422 — cap at 100 chars. Repo trims before RPC but the
+        // state field was uncapped, so a multi-MB paste sat in memory
+        // and re-rendered the directory header on every keystroke.
+        _state.update { it.copy(query = v.take(100)) }
     fun onDistrictChange(d: String) = _state.update { it.copy(district = d) }
     fun onSpecializationChange(s: String?) = _state.update { it.copy(specialization = s) }
     fun onSortModeChange(mode: DirectorySortMode) {
