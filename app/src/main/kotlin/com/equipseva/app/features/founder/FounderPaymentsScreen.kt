@@ -61,15 +61,24 @@ class FounderPaymentsViewModel @Inject constructor(
 ) : ViewModel() {
     data class UiState(
         val loading: Boolean = true,
+        // Round 379 — initial cold-load vs pull-to-refresh distinction
+        // (matches r378 dashboard pattern).
+        val refreshing: Boolean = false,
         val error: String? = null,
         val rows: List<FounderRepository.RecentPayment> = emptyList(),
         val stats: FounderRepository.RecentPaymentsStats? = null,
     )
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
-    init { reload() }
-    fun reload() {
-        _state.update { it.copy(loading = true, error = null) }
+    init { reload(initial = true) }
+    fun reload(initial: Boolean = false) {
+        _state.update {
+            it.copy(
+                loading = initial || it.rows.isEmpty(),
+                refreshing = !initial && it.rows.isNotEmpty(),
+                error = null,
+            )
+        }
         viewModelScope.launch {
             // Round 348 — stats fire in parallel with the row fetch.
             // Stats failure is non-fatal: the founder still sees the row
@@ -80,11 +89,13 @@ class FounderPaymentsViewModel @Inject constructor(
                     .onSuccess { s -> _state.update { it.copy(stats = s) } }
             }
             repo.fetchRecentPayments(limit = 50)
-                .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+                .onSuccess { rows -> _state.update { it.copy(loading = false, refreshing = false, rows = rows) } }
+                .onFailure { e -> _state.update { it.copy(loading = false, refreshing = false, error = e.toUserMessage()) } }
             statsJob.join()
         }
     }
+
+    fun onPullToRefresh() = reload(initial = false)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -100,7 +111,13 @@ fun FounderPaymentsScreen(
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(title = "Payments", onBack = onBack)
-            Box(modifier = Modifier.fillMaxSize()) {
+            // Round 379 — pull-to-refresh on the Payments list. Mirrors
+            // r378 founder dashboard + the engineer EarningsScreen.
+            androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                isRefreshing = state.refreshing,
+                onRefresh = viewModel::onPullToRefresh,
+                modifier = Modifier.fillMaxSize(),
+            ) {
                 when {
                     state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
