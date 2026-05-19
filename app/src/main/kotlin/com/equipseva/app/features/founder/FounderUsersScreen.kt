@@ -85,6 +85,9 @@ class FounderUsersViewModel @Inject constructor(
 ) : ViewModel() {
     data class UiState(
         val loading: Boolean = true,
+        // Round 380 — pull-to-refresh inline indicator distinct from
+        // the cold-load spinner.
+        val refreshing: Boolean = false,
         val error: String? = null,
         val rows: List<FounderRepository.UserRow> = emptyList(),
         val query: String = "",
@@ -113,9 +116,15 @@ class FounderUsersViewModel @Inject constructor(
         fetch()
     }
 
-    private fun fetch() {
+    private fun fetch(refreshing: Boolean = false) {
         val s = _state.value
-        _state.update { it.copy(loading = true, error = null) }
+        _state.update {
+            it.copy(
+                loading = !refreshing && it.rows.isEmpty(),
+                refreshing = refreshing,
+                error = null,
+            )
+        }
         viewModelScope.launch {
             repo.searchUsers(query = s.query, role = s.selectedRole, limit = 50, offset = 0)
                 .onSuccess { rows ->
@@ -123,12 +132,13 @@ class FounderUsersViewModel @Inject constructor(
                     // 2026-05-08 e2e QA so the founder users surface
                     // doesn't lie when the platform genuinely has no
                     // matches for the current filter.
-                    _state.update { it.copy(loading = false, rows = rows) }
+                    _state.update { it.copy(loading = false, refreshing = false, rows = rows) }
                 }
                 .onFailure { ex ->
                     _state.update {
                         it.copy(
                             loading = false,
+                            refreshing = false,
                             rows = emptyList(),
                             error = ex.toUserMessage(),
                         )
@@ -136,6 +146,8 @@ class FounderUsersViewModel @Inject constructor(
                 }
         }
     }
+
+    fun onPullToRefresh() = fetch(refreshing = true)
 
     fun openRoleSheet(userId: String, name: String?) {
         if (_state.value.acting) return
@@ -210,7 +222,13 @@ fun FounderUsersScreen(
                 }
             }
 
-            Box(modifier = Modifier.fillMaxSize()) {
+            // Round 380 — pull-to-refresh on the Users list. Matches
+            // r378/r379 pattern.
+            androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                isRefreshing = state.refreshing,
+                onRefresh = viewModel::onPullToRefresh,
+                modifier = Modifier.fillMaxSize(),
+            ) {
                 when {
                     state.loading && state.rows.isEmpty() -> Box(
                         Modifier.fillMaxSize(),
