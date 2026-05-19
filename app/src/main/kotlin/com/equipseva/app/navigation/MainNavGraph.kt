@@ -121,6 +121,7 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.FOUNDER_INTEGRITY,
     Routes.FOUNDER_CATEGORIES,
     Routes.FOUNDER_BUYER_KYC,
+    Routes.FOUNDER_AMC_EXPIRING,
     Routes.PROFILE_BANK_DETAILS,
     Routes.PROFILE_ADDRESSES,
     Routes.PROFILE_HOSPITAL_SETTINGS,
@@ -713,6 +714,7 @@ fun MainNavGraph(
                     onOpenPartsOutliers = { navController.navigate(Routes.FOUNDER_PARTS_OUTLIERS) },
                     onOpenResolvedDisputes = { navController.navigate(Routes.FOUNDER_RESOLVED_DISPUTES) },
                     onOpenSpotAudits = { navController.navigate(Routes.FOUNDER_SPOT_AUDITS) },
+                    onOpenAmcExpiring = { navController.navigate(Routes.FOUNDER_AMC_EXPIRING) },
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -864,6 +866,15 @@ fun MainNavGraph(
             composable(Routes.FOUNDER_BUYER_KYC) {
                 com.equipseva.app.features.founder.FounderBuyerKycQueueScreen(
                     onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.FOUNDER_AMC_EXPIRING) {
+                com.equipseva.app.features.founder.FounderAmcExpiringScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenContract = { contractId ->
+                        navController.navigate(Routes.amcContractDetailRoute(contractId))
+                    },
                 )
             }
 

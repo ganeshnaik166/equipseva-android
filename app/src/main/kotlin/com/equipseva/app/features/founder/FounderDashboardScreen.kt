@@ -154,6 +154,8 @@ fun FounderDashboardScreen(
     onOpenPartsOutliers: () -> Unit = {},
     onOpenResolvedDisputes: () -> Unit = {},
     onOpenSpotAudits: () -> Unit = {},
+    // Round 364 — drill-down for r352 "Expiring 30d" KPI.
+    onOpenAmcExpiring: () -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: FounderDashboardViewModel = hiltViewModel(),
 ) {
@@ -194,6 +196,7 @@ fun FounderDashboardScreen(
                     amcContractsActive = stats?.amcContractsActive,
                     amcContractsExpired = stats?.amcContractsExpired,
                     amcContractsExpiringSoon = stats?.amcContractsExpiringSoon,
+                    onOpenExpiring = onOpenAmcExpiring,
                 )
 
                 // Round 349 — Top engineers (last 30d) by released-escrow
@@ -343,6 +346,7 @@ private fun GrowthKpiStrip(
     amcContractsActive: Int?,
     amcContractsExpired: Int?,
     amcContractsExpiringSoon: Int?,
+    onOpenExpiring: () -> Unit = {},
 ) {
     Row(
         modifier = Modifier
@@ -381,13 +385,20 @@ private fun GrowthKpiStrip(
         )
         // Round 352 — forward-looking renewal signal. Warn-color to nudge
         // outreach before the contract lapses (vs r343 "AMC expired"
-        // which is reactive).
+        // which is reactive). Round 364 — tappable drill-down to the
+        // full list when count > 0.
         KpiCell(
             label = "Expiring 30d",
             value = amcContractsExpiringSoon?.toString() ?: "—",
             valueColor = SevaWarning500,
             sub = "renew now",
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .then(
+                    if ((amcContractsExpiringSoon ?: 0) > 0)
+                        Modifier.clickable(onClick = onOpenExpiring)
+                    else Modifier
+                ),
         )
         KpiCell(
             label = "AMC expired",

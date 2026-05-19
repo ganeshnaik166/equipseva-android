@@ -211,6 +211,20 @@ class FounderRepository @Inject constructor(
         @SerialName("last_completed_at") val lastCompletedAt: String? = null,
     )
 
+    @Serializable
+    data class ExpiringAmcRow(
+        @SerialName("contract_id") val contractId: String,
+        @SerialName("hospital_user_id") val hospitalUserId: String,
+        @SerialName("hospital_name") val hospitalName: String,
+        @SerialName("primary_engineer_id") val primaryEngineerId: String? = null,
+        @SerialName("primary_engineer_name") val primaryEngineerName: String? = null,
+        @SerialName("end_date") val endDate: String,
+        @SerialName("days_remaining") val daysRemaining: Int,
+        @SerialName("monthly_fee_rupees") val monthlyFeeRupees: Double,
+        @SerialName("auto_renew") val autoRenew: Boolean = false,
+        @SerialName("renewal_notifications_sent") val renewalNotificationsSent: Int = 0,
+    )
+
     suspend fun fetchPendingEngineers(): Result<List<PendingEngineer>> = runCatching {
         client.postgrest.rpc(function = "admin_pending_engineers")
             .decodeList<PendingEngineer>()
@@ -298,6 +312,15 @@ class FounderRepository @Inject constructor(
                 put("p_limit", JsonPrimitive(limit))
             },
         ).decodeList<TopEngineerRow>()
+    }
+
+    suspend fun fetchAmcExpiringSoon(windowDays: Int = 30): Result<List<ExpiringAmcRow>> = runCatching {
+        client.postgrest.rpc(
+            function = "admin_amc_expiring_soon",
+            parameters = buildJsonObject {
+                put("p_days", JsonPrimitive(windowDays))
+            },
+        ).decodeList<ExpiringAmcRow>()
     }
 
     suspend fun fetchIntegrityFlags(limit: Int = 100): Result<List<IntegrityFlag>> = runCatching {
