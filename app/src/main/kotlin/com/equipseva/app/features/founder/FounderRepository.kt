@@ -192,6 +192,8 @@ class FounderRepository @Inject constructor(
         // Round 352 — active contracts ending in the next 30 days. Default
         // 0 so older clients decoding a fresh response still parse.
         @SerialName("amc_contracts_expiring_soon") val amcContractsExpiringSoon: Int = 0,
+        // Round 366 — paused (silent service stop; payment pool negative).
+        @SerialName("amc_contracts_paused") val amcContractsPaused: Int = 0,
     )
 
     @Serializable
