@@ -83,6 +83,23 @@ class DatesTest {
         org.junit.Assert.assertFalse(isWithinDays(yesterday, 14))
     }
 
+    // Round 363 — IST midnight-boundary regression. A UTC instant at
+    // 19:30 today is 01:00 IST tomorrow. With window=0, the result must
+    // be FALSE because "tomorrow" is one day past the IST window edge.
+    // With window=1 it must be TRUE. UTC-naive comparison would call
+    // window=0 true (same UTC day), pulling tomorrow's events into a
+    // today-only filter during the 5h30 nightly slice.
+    @Test fun `isWithinDays normalizes late-UTC instant to IST date`() {
+        val todayIst = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"))
+        val instantTomorrowIst = java.time.LocalDateTime
+            .of(todayIst, java.time.LocalTime.of(19, 30))
+            .atZone(java.time.ZoneOffset.UTC)
+            .toInstant()
+            .toString()
+        org.junit.Assert.assertFalse(isWithinDays(instantTomorrowIst, 0))
+        org.junit.Assert.assertTrue(isWithinDays(instantTomorrowIst, 1))
+    }
+
     // Round 353/356 — daysUntil helper. Pairs with isWithinDays to render
     // an exact countdown ("Expires in 5 days") alongside the boolean gate.
     @Test fun `daysUntil returns 0 for today`() {
