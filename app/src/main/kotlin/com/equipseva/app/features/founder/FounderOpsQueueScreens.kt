@@ -73,6 +73,8 @@ class FounderEscrowDisputesViewModel @Inject constructor(
 ) : ViewModel() {
     data class UiState(
         val loading: Boolean = true,
+        // Round 400 — pull-to-refresh inline indicator.
+        val refreshing: Boolean = false,
         val error: String? = null,
         val rows: List<FounderRepository.EscrowDispute> = emptyList(),
         val acting: Set<String> = emptySet(),
@@ -83,14 +85,21 @@ class FounderEscrowDisputesViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    init { reload() }
+    init { reload(initial = true) }
+    fun onPullToRefresh() = reload(initial = false)
 
-    fun reload() {
-        _state.update { it.copy(loading = true, error = null) }
+    fun reload(initial: Boolean = false) {
+        _state.update {
+            it.copy(
+                loading = initial || it.rows.isEmpty(),
+                refreshing = !initial && it.rows.isNotEmpty(),
+                error = null,
+            )
+        }
         viewModelScope.launch {
             repo.fetchOpenEscrowDisputes()
-                .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+                .onSuccess { rows -> _state.update { it.copy(loading = false, refreshing = false, rows = rows) } }
+                .onFailure { e -> _state.update { it.copy(loading = false, refreshing = false, error = e.toUserMessage()) } }
         }
     }
 
@@ -152,6 +161,8 @@ fun FounderEscrowDisputesScreen(
                 empty = state.rows.isEmpty(),
                 emptyTitle = "No active disputes",
                 emptySubtitle = "Hospitals haven't disputed any held escrows.",
+                refreshing = state.refreshing,
+                onRefresh = viewModel::onPullToRefresh,
             ) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -238,6 +249,7 @@ class FounderAmcEscalationsViewModel @Inject constructor(
 ) : ViewModel() {
     data class UiState(
         val loading: Boolean = true,
+        val refreshing: Boolean = false,
         val error: String? = null,
         val rows: List<FounderRepository.AmcEscalation> = emptyList(),
         val acting: Set<String> = emptySet(),
@@ -246,14 +258,21 @@ class FounderAmcEscalationsViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    init { reload() }
+    init { reload(initial = true) }
+    fun onPullToRefresh() = reload(initial = false)
 
-    fun reload() {
-        _state.update { it.copy(loading = true, error = null) }
+    fun reload(initial: Boolean = false) {
+        _state.update {
+            it.copy(
+                loading = initial || it.rows.isEmpty(),
+                refreshing = !initial && it.rows.isNotEmpty(),
+                error = null,
+            )
+        }
         viewModelScope.launch {
             repo.fetchOpenAmcEscalations()
-                .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+                .onSuccess { rows -> _state.update { it.copy(loading = false, refreshing = false, rows = rows) } }
+                .onFailure { e -> _state.update { it.copy(loading = false, refreshing = false, error = e.toUserMessage()) } }
         }
     }
 
@@ -297,6 +316,8 @@ fun FounderAmcEscalationsScreen(
                 empty = state.rows.isEmpty(),
                 emptyTitle = "No open escalations",
                 emptySubtitle = "Rotation auto-assigns; nothing exhausted.",
+                refreshing = state.refreshing,
+                onRefresh = viewModel::onPullToRefresh,
             ) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -394,6 +415,7 @@ class FounderCashSuspendedViewModel @Inject constructor(
 ) : ViewModel() {
     data class UiState(
         val loading: Boolean = true,
+        val refreshing: Boolean = false,
         val error: String? = null,
         val rows: List<FounderRepository.CashSuspendedEngineer> = emptyList(),
         val acting: Set<String> = emptySet(),
@@ -402,14 +424,21 @@ class FounderCashSuspendedViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    init { reload() }
+    init { reload(initial = true) }
+    fun onPullToRefresh() = reload(initial = false)
 
-    fun reload() {
-        _state.update { it.copy(loading = true, error = null) }
+    fun reload(initial: Boolean = false) {
+        _state.update {
+            it.copy(
+                loading = initial || it.rows.isEmpty(),
+                refreshing = !initial && it.rows.isNotEmpty(),
+                error = null,
+            )
+        }
         viewModelScope.launch {
             repo.fetchCashSuspendedEngineers()
-                .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+                .onSuccess { rows -> _state.update { it.copy(loading = false, refreshing = false, rows = rows) } }
+                .onFailure { e -> _state.update { it.copy(loading = false, refreshing = false, error = e.toUserMessage()) } }
         }
     }
 
@@ -453,6 +482,8 @@ fun FounderCashSuspendedScreen(
                 empty = state.rows.isEmpty(),
                 emptyTitle = "Nobody auto-suspended",
                 emptySubtitle = "Engineers crossing 3 cash-flags / 90 days land here.",
+                refreshing = state.refreshing,
+                onRefresh = viewModel::onPullToRefresh,
             ) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -534,6 +565,7 @@ class FounderPartsOutliersViewModel @Inject constructor(
 ) : ViewModel() {
     data class UiState(
         val loading: Boolean = true,
+        val refreshing: Boolean = false,
         val error: String? = null,
         val rows: List<FounderRepository.PartsCostOutlier> = emptyList(),
     )
@@ -541,14 +573,21 @@ class FounderPartsOutliersViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    init { reload() }
+    init { reload(initial = true) }
+    fun onPullToRefresh() = reload(initial = false)
 
-    fun reload() {
-        _state.update { it.copy(loading = true, error = null) }
+    fun reload(initial: Boolean = false) {
+        _state.update {
+            it.copy(
+                loading = initial || it.rows.isEmpty(),
+                refreshing = !initial && it.rows.isNotEmpty(),
+                error = null,
+            )
+        }
         viewModelScope.launch {
             repo.fetchPartsCostOutliers()
-                .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+                .onSuccess { rows -> _state.update { it.copy(loading = false, refreshing = false, rows = rows) } }
+                .onFailure { e -> _state.update { it.copy(loading = false, refreshing = false, error = e.toUserMessage()) } }
         }
     }
 }
@@ -572,6 +611,8 @@ fun FounderPartsOutliersScreen(
                 empty = state.rows.isEmpty(),
                 emptyTitle = "No outliers in 90 days",
                 emptySubtitle = "Parts charges all within 5× category average.",
+                refreshing = state.refreshing,
+                onRefresh = viewModel::onPullToRefresh,
             ) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -625,6 +666,7 @@ private fun PartsOutlierRow(row: FounderRepository.PartsCostOutlier) {
 // shared bits
 // =====================================================================
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun QueueBox(
     loading: Boolean,
@@ -632,9 +674,14 @@ private fun QueueBox(
     empty: Boolean,
     emptyTitle: String,
     emptySubtitle: String,
+    // Round 400 — optional pull-to-refresh. When both are provided, the
+    // inner content is wrapped in a PullToRefreshBox so every OpsQueue
+    // screen gains in-screen refresh symmetric with the r378-399 sweep.
+    refreshing: Boolean = false,
+    onRefresh: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
+    val body: @Composable () -> Unit = {
         when {
             loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -651,6 +698,15 @@ private fun QueueBox(
             )
             else -> content()
         }
+    }
+    if (onRefresh != null) {
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = onRefresh,
+            modifier = Modifier.fillMaxSize(),
+        ) { body() }
+    } else {
+        Box(modifier = Modifier.fillMaxSize()) { body() }
     }
 }
 
