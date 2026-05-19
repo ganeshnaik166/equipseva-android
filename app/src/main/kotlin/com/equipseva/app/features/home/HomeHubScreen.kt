@@ -292,8 +292,19 @@ fun HomeHubScreen(
                         .border(1.dp, BorderDefault, RoundedCornerShape(12.dp)),
                 ) {
                     if (state.recent.isEmpty()) {
+                        // Round 393 — role-aware empty copy so the placeholder
+                        // points users at the next action instead of just
+                        // stating the obvious.
+                        val empty = when (role) {
+                            UserRole.HOSPITAL ->
+                                "No bookings yet. Tap \"Book a repair engineer\" above to post your first job."
+                            UserRole.ENGINEER ->
+                                "No activity yet. Tap the Jobs tab to find open repair jobs you can bid on."
+                            else ->
+                                "Your bookings, bids, and messages will appear here."
+                        }
                         Text(
-                            text = "Your bookings, bids, and messages will appear here.",
+                            text = empty,
                             color = SevaInk500,
                             modifier = Modifier
                                 .fillMaxWidth()
