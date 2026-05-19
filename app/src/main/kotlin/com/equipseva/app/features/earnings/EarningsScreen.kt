@@ -108,6 +108,24 @@ fun EarningsScreen(
                                 )
                             }
                         }
+                        // Round 368 — self-rank card. Hides when the engineer
+                        // has 0 jobs in the window (rank = null) so a new
+                        // engineer doesn't see a "#— of —" cold-start figure.
+                        state.selfRank?.takeIf {
+                            it.jobsCompleted > 0L && it.rank != null && it.totalRanked > 0
+                        }?.let { rk ->
+                            item("self_rank") {
+                                Box(
+                                    modifier = Modifier.padding(
+                                        start = 16.dp,
+                                        end = 16.dp,
+                                        bottom = 12.dp,
+                                    ),
+                                ) {
+                                    SelfRankCard(rank = rk)
+                                }
+                            }
+                        }
                         // PR-D23 — money-in-flight card. Lives between the hero
                         // and the transactions list so the engineer sees what
                         // is held in escrow + the next auto-release ETA before
@@ -475,5 +493,56 @@ internal fun AmcEarningsList(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SelfRankCard(rank: com.equipseva.app.core.data.escrow.RepairJobEscrowRepository.EngineerSelfRank) {
+    // Round 368 — engineer-facing rank card. Motivational anchor: rank
+    // is the lead figure; jobs + revenue support it. Hidden by caller
+    // when rank is null (engineer hasn't released a job in the window).
+    val rk = rank.rank ?: return
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(
+                Brush.linearGradient(
+                    listOf(SevaGreen900, Color(0xFF042619)),
+                )
+            )
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = "Your last ${rank.windowDays} days",
+            color = Color.White.copy(alpha = 0.65f),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = "#$rk",
+                color = Color.White,
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.6).sp,
+            )
+            Text(
+                text = "of ${rank.totalRanked}",
+                color = Color.White.copy(alpha = 0.75f),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+        }
+        Text(
+            text = "${rank.jobsCompleted} job${if (rank.jobsCompleted == 1L) "" else "s"} · ${formatRupees(rank.revenueInr)}",
+            color = Color.White.copy(alpha = 0.9f),
+            fontSize = 13.sp,
+        )
     }
 }
