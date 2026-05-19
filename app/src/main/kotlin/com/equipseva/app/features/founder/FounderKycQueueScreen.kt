@@ -76,6 +76,8 @@ class FounderKycQueueViewModel @Inject constructor(
 
     data class UiState(
         val loading: Boolean = true,
+        // Round 399 — pull-to-refresh inline indicator.
+        val refreshing: Boolean = false,
         val error: String? = null,
         val rows: List<FounderRepository.PendingEngineer> = emptyList(),
         val sheetUserId: String? = null,
@@ -86,21 +88,29 @@ class FounderKycQueueViewModel @Inject constructor(
     )
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
-    init { reload() }
-    fun reload() {
-        _state.update { it.copy(loading = true, error = null) }
+    init { reload(initial = true) }
+    fun onPullToRefresh() = reload(initial = false)
+    fun reload(initial: Boolean = false) {
+        _state.update {
+            it.copy(
+                loading = initial || it.rows.isEmpty(),
+                refreshing = !initial && it.rows.isNotEmpty(),
+                error = null,
+            )
+        }
         viewModelScope.launch {
             repo.fetchPendingEngineers()
                 .onSuccess { rows ->
                     // Honest empty state on success — Buyer KYC queue
                     // already shows "All clear" when nothing is pending,
                     // so don't fake 3 dummy rows here either.
-                    _state.update { it.copy(loading = false, rows = rows) }
+                    _state.update { it.copy(loading = false, refreshing = false, rows = rows) }
                 }
                 .onFailure { ex ->
                     _state.update {
                         it.copy(
                             loading = false,
+                            refreshing = false,
                             rows = emptyList(),
                             error = ex.toUserMessage(),
                         )
@@ -174,7 +184,12 @@ fun FounderKycQueueScreen(
                 subtitle = if (state.rows.isNotEmpty()) "${state.rows.size} pending" else null,
                 onBack = onBack,
             )
-            Box(modifier = Modifier.fillMaxSize()) {
+            // Round 399 — pull-to-refresh.
+            androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                isRefreshing = state.refreshing,
+                onRefresh = viewModel::onPullToRefresh,
+                modifier = Modifier.fillMaxSize(),
+            ) {
                 when {
                     state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()

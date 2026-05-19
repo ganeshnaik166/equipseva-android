@@ -66,6 +66,8 @@ class FounderBuyerKycQueueViewModel @Inject constructor(
 ) : ViewModel() {
     data class UiState(
         val loading: Boolean = true,
+        // Round 399 — pull-to-refresh inline indicator.
+        val refreshing: Boolean = false,
         val error: String? = null,
         val rows: List<FounderRepository.PendingBuyerKyc> = emptyList(),
         val sheetRequestId: String? = null,
@@ -78,14 +80,21 @@ class FounderBuyerKycQueueViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    init { reload() }
+    init { reload(initial = true) }
+    fun onPullToRefresh() = reload(initial = false)
 
-    fun reload() {
-        _state.update { it.copy(loading = true, error = null) }
+    fun reload(initial: Boolean = false) {
+        _state.update {
+            it.copy(
+                loading = initial || it.rows.isEmpty(),
+                refreshing = !initial && it.rows.isNotEmpty(),
+                error = null,
+            )
+        }
         viewModelScope.launch {
             repo.fetchPendingBuyerKyc()
-                .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+                .onSuccess { rows -> _state.update { it.copy(loading = false, refreshing = false, rows = rows) } }
+                .onFailure { e -> _state.update { it.copy(loading = false, refreshing = false, error = e.toUserMessage()) } }
         }
     }
 
@@ -169,7 +178,12 @@ fun FounderBuyerKycQueueScreen(
                 subtitle = if (state.rows.isNotEmpty()) "${state.rows.size} pending" else null,
                 onBack = onBack,
             )
-            Box(modifier = Modifier.fillMaxSize()) {
+            // Round 399 — pull-to-refresh.
+            androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                isRefreshing = state.refreshing,
+                onRefresh = viewModel::onPullToRefresh,
+                modifier = Modifier.fillMaxSize(),
+            ) {
                 when {
                     state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
