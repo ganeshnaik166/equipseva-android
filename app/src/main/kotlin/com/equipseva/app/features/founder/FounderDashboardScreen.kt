@@ -160,6 +160,8 @@ fun FounderDashboardScreen(
     onOpenInactiveEngineers: () -> Unit = {},
     // Round 373 — drill-down for r366 "AMC paused" KPI.
     onOpenAmcPaused: () -> Unit = {},
+    // Round 374 — engineer-public-profile route per Top Engineers row.
+    onOpenEngineerProfile: (engineerId: String) -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: FounderDashboardViewModel = hiltViewModel(),
 ) {
@@ -214,7 +216,10 @@ fun FounderDashboardScreen(
                 if (state.topEngineers.isNotEmpty()) {
                     EsSection(title = "Top engineers (30d)") {
                         Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                            TopEngineersCard(rows = state.topEngineers)
+                            TopEngineersCard(
+                                rows = state.topEngineers,
+                                onOpenEngineer = onOpenEngineerProfile,
+                            )
                         }
                     }
                 }
@@ -764,7 +769,10 @@ private fun QueueRow(
 
 
 @Composable
-private fun TopEngineersCard(rows: List<FounderRepository.TopEngineerRow>) {
+private fun TopEngineersCard(
+    rows: List<FounderRepository.TopEngineerRow>,
+    onOpenEngineer: (engineerId: String) -> Unit = {},
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -773,7 +781,17 @@ private fun TopEngineersCard(rows: List<FounderRepository.TopEngineerRow>) {
             .border(1.dp, BorderDefault, RoundedCornerShape(12.dp)),
     ) {
         rows.forEachIndexed { index, row ->
-            TopEngineerRow(rank = index + 1, row = row)
+            // Round 374 — row clickable when engineer_id is non-null
+            // (the engineers row exists). Anomalous rows where the
+            // join lost the engineers entry render non-clickable so a
+            // tap doesn't blank-route into a stale profile screen.
+            TopEngineerRow(
+                rank = index + 1,
+                row = row,
+                onClick = row.engineerId
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { id -> { onOpenEngineer(id) } },
+            )
             if (index < rows.lastIndex) {
                 Box(
                     modifier = Modifier
@@ -787,10 +805,15 @@ private fun TopEngineersCard(rows: List<FounderRepository.TopEngineerRow>) {
 }
 
 @Composable
-private fun TopEngineerRow(rank: Int, row: FounderRepository.TopEngineerRow) {
+private fun TopEngineerRow(
+    rank: Int,
+    row: FounderRepository.TopEngineerRow,
+    onClick: (() -> Unit)? = null,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),

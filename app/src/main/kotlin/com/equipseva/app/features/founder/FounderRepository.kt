@@ -213,6 +213,12 @@ class FounderRepository @Inject constructor(
     @Serializable
     data class TopEngineerRow(
         @SerialName("engineer_user_id") val engineerUserId: String,
+        // Round 374 — engineers.id surrogate so the dashboard row tap can
+        // deep-link to engineer_public_profile (which keys on engineers.id,
+        // not user_id). Nullable in case the engineers row is missing (a
+        // released_escrow without a matching engineers entry is a data
+        // anomaly worth surfacing, not crashing the screen).
+        @SerialName("engineer_id") val engineerId: String? = null,
         @SerialName("full_name") val fullName: String,
         @SerialName("jobs_completed") val jobsCompleted: Long,
         @SerialName("revenue_inr") val revenueInr: Double,
