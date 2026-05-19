@@ -56,6 +56,8 @@ class FounderSpotAuditsViewModel @Inject constructor(
 ) : ViewModel() {
     data class UiState(
         val loading: Boolean = true,
+        // Round 410 — pull-to-refresh inline indicator distinct from cold-load.
+        val refreshing: Boolean = false,
         val error: String? = null,
         val rows: List<FounderRepository.SpotAuditResponseRow> = emptyList(),
     )
@@ -63,14 +65,22 @@ class FounderSpotAuditsViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    init { reload() }
+    init { reload(initial = true) }
 
-    fun reload() {
-        _state.update { it.copy(loading = true, error = null) }
+    fun onPullToRefresh() = reload(initial = false)
+
+    fun reload(initial: Boolean = false) {
+        _state.update {
+            it.copy(
+                loading = initial || it.rows.isEmpty(),
+                refreshing = !initial && it.rows.isNotEmpty(),
+                error = null,
+            )
+        }
         viewModelScope.launch {
             repo.fetchRecentSpotAudits()
-                .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+                .onSuccess { rows -> _state.update { it.copy(loading = false, refreshing = false, rows = rows) } }
+                .onFailure { e -> _state.update { it.copy(loading = false, refreshing = false, error = e.toUserMessage()) } }
         }
     }
 }
@@ -80,6 +90,7 @@ class FounderSpotAuditsViewModel @Inject constructor(
  * days). 1-in-20 of completed jobs are sampled; this screen surfaces
  * what hospitals reported back.
  */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun FounderSpotAuditsScreen(
     onBack: () -> Unit,
@@ -101,15 +112,22 @@ fun FounderSpotAuditsScreen(
                 },
                 onBack = onBack,
             )
-            Box(modifier = Modifier.fillMaxSize()) {
+            // Round 410 — pull-to-refresh. Matches r378-r400 pattern.
+            androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                isRefreshing = state.refreshing,
+                onRefresh = viewModel::onPullToRefresh,
+                modifier = Modifier.fillMaxSize(),
+            ) {
                 when {
                     state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
-                    state.error != null -> EmptyStateView(
+                    state.error != null && state.rows.isEmpty() -> EmptyStateView(
                         icon = Icons.Outlined.Inbox,
                         title = "Couldn't load",
                         subtitle = state.error,
+                        ctaLabel = "Try again",
+                        onCta = { viewModel.reload() },
                     )
                     state.rows.isEmpty() -> EmptyStateView(
                         icon = Icons.Outlined.Inbox,
