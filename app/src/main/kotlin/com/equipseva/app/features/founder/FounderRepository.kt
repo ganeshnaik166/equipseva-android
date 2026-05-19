@@ -197,6 +197,9 @@ class FounderRepository @Inject constructor(
         @SerialName("amc_contracts_expiring_soon") val amcContractsExpiringSoon: Int = 0,
         // Round 366 — paused (silent service stop; payment pool negative).
         @SerialName("amc_contracts_paused") val amcContractsPaused: Int = 0,
+        // Round 371 — verified engineers idle for 30 days. Excludes
+        // engineers verified within the last 7 days (cold-start grace).
+        @SerialName("inactive_engineers_30d") val inactiveEngineers30d: Int = 0,
     )
 
     @Serializable

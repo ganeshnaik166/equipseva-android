@@ -197,6 +197,7 @@ fun FounderDashboardScreen(
                     amcContractsExpired = stats?.amcContractsExpired,
                     amcContractsExpiringSoon = stats?.amcContractsExpiringSoon,
                     amcContractsPaused = stats?.amcContractsPaused,
+                    inactiveEngineers30d = stats?.inactiveEngineers30d,
                     onOpenExpiring = onOpenAmcExpiring,
                 )
 
@@ -348,6 +349,7 @@ private fun GrowthKpiStrip(
     amcContractsExpired: Int?,
     amcContractsExpiringSoon: Int?,
     amcContractsPaused: Int?,
+    inactiveEngineers30d: Int?,
     onOpenExpiring: () -> Unit = {},
 ) {
     Row(
@@ -427,6 +429,25 @@ private fun GrowthKpiStrip(
             value = amcContractsExpired?.toString() ?: "—",
             valueColor = SevaInk500,
             sub = "lapsed",
+            modifier = Modifier.weight(1f),
+        )
+    }
+    Spacer(Modifier.height(4.dp))
+    // Round 371 — supply-side health row. Verified engineers idle for
+    // 30 days. Warn-color because they're at risk of churn but not yet
+    // gone; founder should reach out before the engineer ships zero
+    // again next month.
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        KpiCell(
+            label = "Inactive engineers",
+            value = inactiveEngineers30d?.toString() ?: "—",
+            valueColor = SevaWarning500,
+            sub = "0 jobs in 30d",
             modifier = Modifier.weight(1f),
         )
     }
