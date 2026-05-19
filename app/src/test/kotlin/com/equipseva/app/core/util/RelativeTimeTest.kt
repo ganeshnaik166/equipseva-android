@@ -37,4 +37,27 @@ class RelativeTimeTest {
         assertEquals("Overdue by 2h", countdownLabel(now.minus(2, ChronoUnit.HOURS), now))
         assertEquals("Overdue by 1d", countdownLabel(now.minus(1, ChronoUnit.DAYS), now))
     }
+
+    // Round 394 — overload that accepts ISO-8601 strings + tolerates
+    // null / malformed input. Callers (founder lists, integrity feed,
+    // payments rows) feed raw RPC timestamps; a parse failure must not
+    // crash the screen.
+    @Test fun `relativeLabel iso null returns null`() {
+        org.junit.Assert.assertNull(relativeLabel(null as String?, now))
+    }
+
+    @Test fun `relativeLabel iso malformed returns null`() {
+        org.junit.Assert.assertNull(relativeLabel("not-an-instant", now))
+        org.junit.Assert.assertNull(relativeLabel("", now))
+        org.junit.Assert.assertNull(relativeLabel("2026-05-19", now)) // bare date, no time
+    }
+
+    @Test fun `relativeLabel iso parses canonical Z`() {
+        assertEquals("3h", relativeLabel("2026-04-24T07:00:00Z", now))
+    }
+
+    @Test fun `relativeLabel iso parses offset form`() {
+        // 12:30 +05:30 == 07:00 UTC = 3h before our `now`.
+        assertEquals("3h", relativeLabel("2026-04-24T12:30:00+05:30", now))
+    }
 }
