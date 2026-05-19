@@ -233,6 +233,23 @@ class FounderRepository @Inject constructor(
         @SerialName("renewal_notifications_sent") val renewalNotificationsSent: Int = 0,
     )
 
+    @Serializable
+    data class InactiveEngineerRow(
+        @SerialName("engineer_id") val engineerId: String,
+        @SerialName("user_id") val userId: String,
+        @SerialName("full_name") val fullName: String,
+        @SerialName("email") val email: String? = null,
+        @SerialName("phone") val phone: String? = null,
+        @SerialName("city") val city: String? = null,
+        @SerialName("state") val state: String? = null,
+        @SerialName("specializations") val specializations: List<String> = emptyList(),
+        @SerialName("experience_years") val experienceYears: Int = 0,
+        @SerialName("rating_avg") val ratingAvg: Double = 0.0,
+        @SerialName("total_jobs") val totalJobs: Int = 0,
+        @SerialName("verified_at") val verifiedAt: String? = null,
+        @SerialName("last_released_at") val lastReleasedAt: String? = null,
+    )
+
     suspend fun fetchPendingEngineers(): Result<List<PendingEngineer>> = runCatching {
         client.postgrest.rpc(function = "admin_pending_engineers")
             .decodeList<PendingEngineer>()
@@ -329,6 +346,15 @@ class FounderRepository @Inject constructor(
                 put("p_days", JsonPrimitive(windowDays))
             },
         ).decodeList<ExpiringAmcRow>()
+    }
+
+    suspend fun fetchInactiveEngineers(windowDays: Int = 30): Result<List<InactiveEngineerRow>> = runCatching {
+        client.postgrest.rpc(
+            function = "admin_inactive_engineers",
+            parameters = buildJsonObject {
+                put("p_days", JsonPrimitive(windowDays))
+            },
+        ).decodeList<InactiveEngineerRow>()
     }
 
     suspend fun fetchIntegrityFlags(limit: Int = 100): Result<List<IntegrityFlag>> = runCatching {

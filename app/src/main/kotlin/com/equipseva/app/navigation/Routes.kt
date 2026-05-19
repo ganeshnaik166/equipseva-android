@@ -147,6 +147,8 @@ object Routes {
     const val FOUNDER_ENGINEER_MAP = "founder/engineers_map"
     // Round 364 — drill-down for the dashboard r352 "Expiring 30d" KPI.
     const val FOUNDER_AMC_EXPIRING = "founder/amc_expiring"
+    // Round 372 — drill-down for the dashboard r371 "Inactive engineers" KPI.
+    const val FOUNDER_INACTIVE_ENGINEERS = "founder/inactive_engineers"
     // v2.1 PR-D21 ops queues — surface admin RPCs that previously had no UI.
     const val FOUNDER_ESCROW_DISPUTES = "founder/escrow_disputes"
     const val FOUNDER_AMC_ESCALATIONS = "founder/amc_escalations"

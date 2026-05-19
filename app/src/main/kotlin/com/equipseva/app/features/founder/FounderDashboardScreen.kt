@@ -156,6 +156,8 @@ fun FounderDashboardScreen(
     onOpenSpotAudits: () -> Unit = {},
     // Round 364 — drill-down for r352 "Expiring 30d" KPI.
     onOpenAmcExpiring: () -> Unit = {},
+    // Round 372 — drill-down for r371 "Inactive engineers" KPI.
+    onOpenInactiveEngineers: () -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: FounderDashboardViewModel = hiltViewModel(),
 ) {
@@ -199,6 +201,7 @@ fun FounderDashboardScreen(
                     amcContractsPaused = stats?.amcContractsPaused,
                     inactiveEngineers30d = stats?.inactiveEngineers30d,
                     onOpenExpiring = onOpenAmcExpiring,
+                    onOpenInactive = onOpenInactiveEngineers,
                 )
 
                 // Round 349 — Top engineers (last 30d) by released-escrow
@@ -351,6 +354,7 @@ private fun GrowthKpiStrip(
     amcContractsPaused: Int?,
     inactiveEngineers30d: Int?,
     onOpenExpiring: () -> Unit = {},
+    onOpenInactive: () -> Unit = {},
 ) {
     Row(
         modifier = Modifier
@@ -448,7 +452,14 @@ private fun GrowthKpiStrip(
             value = inactiveEngineers30d?.toString() ?: "—",
             valueColor = SevaWarning500,
             sub = "0 jobs in 30d",
-            modifier = Modifier.weight(1f),
+            // Round 372 — tappable drill-down to the list when count > 0.
+            modifier = Modifier
+                .weight(1f)
+                .then(
+                    if ((inactiveEngineers30d ?: 0) > 0)
+                        Modifier.clickable(onClick = onOpenInactive)
+                    else Modifier
+                ),
         )
     }
     Spacer(Modifier.height(4.dp))
