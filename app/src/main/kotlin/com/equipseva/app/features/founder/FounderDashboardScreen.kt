@@ -79,6 +79,10 @@ class FounderDashboardViewModel @Inject constructor(
 ) : ViewModel() {
     data class UiState(
         val loading: Boolean = true,
+        // Round 378 — `refreshing` distinguishes initial cold-load
+        // (full-screen spinner) from a pull-to-refresh while data is
+        // already on screen (subtle inline spinner).
+        val refreshing: Boolean = false,
         val stats: FounderRepository.DashboardStats? = null,
         val error: String? = null,
         val founderEmail: String? = null,
@@ -88,7 +92,7 @@ class FounderDashboardViewModel @Inject constructor(
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     init {
-        reload()
+        reload(initial = true)
         viewModelScope.launch {
             val signedIn = authRepository.sessionState
                 .filterIsInstance<com.equipseva.app.core.auth.AuthSession.SignedIn>()
@@ -97,8 +101,14 @@ class FounderDashboardViewModel @Inject constructor(
         }
     }
 
-    fun reload() {
-        _state.update { it.copy(loading = true, error = null) }
+    fun reload(initial: Boolean = false) {
+        _state.update {
+            it.copy(
+                loading = initial || it.stats == null,
+                refreshing = !initial && it.stats != null,
+                error = null,
+            )
+        }
         viewModelScope.launch {
             // Round 349 — top engineers fetched in parallel; failure is
             // non-fatal (card hides, dashboard still loads).
@@ -113,13 +123,14 @@ class FounderDashboardViewModel @Inject constructor(
                     // not a query failure to paper over. Founder needs to
                     // see honest zeros, not a fake "7 / 3 / 14" tile that
                     // implies operational load that doesn't exist.
-                    _state.update { it.copy(loading = false, stats = s) }
+                    _state.update { it.copy(loading = false, refreshing = false, stats = s) }
                 }
                 .onFailure { err ->
                     _state.update {
                         it.copy(
                             loading = false,
-                            stats = FounderRepository.DashboardStats(),
+                            refreshing = false,
+                            stats = it.stats ?: FounderRepository.DashboardStats(),
                             error = err.toUserMessage(),
                         )
                     }
@@ -127,6 +138,8 @@ class FounderDashboardViewModel @Inject constructor(
             leaderboardJob.join()
         }
     }
+
+    fun onPullToRefresh() = reload(initial = false)
 }
 
 /**
@@ -175,11 +188,20 @@ fun FounderDashboardScreen(
                 subtitle = state.founderEmail?.let { "Founder · $it" } ?: "Founder",
                 onBack = onBack,
             )
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
+            // Round 378 — pull-to-refresh on the founder dashboard.
+            // Previously the screen only refreshed via RefreshOnReturn
+            // (nav back). Pull-down gives ops a way to refresh in place
+            // when a counter changes (e.g. after a long ops session).
+            androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                isRefreshing = state.refreshing,
+                onRefresh = viewModel::onPullToRefresh,
+                modifier = Modifier.fillMaxSize(),
             ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
+                ) {
                 // Hero — jobs posted today. The earlier copy led with a
                 // "₹—" payments figure (admin_dashboard_stats RPC has no
                 // payments-today field) which read as a missing value, not
@@ -277,6 +299,7 @@ fun FounderDashboardScreen(
                 // Engineer Zones tile in Operations exposes the live
                 // counts when the RPC ships.
                 Spacer(Modifier.height(32.dp))
+                }
             }
         }
     }
