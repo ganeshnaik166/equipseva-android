@@ -61,20 +61,29 @@ class FounderPausedAmcViewModel @Inject constructor(
 ) : ViewModel() {
     data class UiState(
         val loading: Boolean = true,
+        // Round 382 — pull-to-refresh inline indicator.
+        val refreshing: Boolean = false,
         val error: String? = null,
         val rows: List<FounderRepository.PausedAmcRow> = emptyList(),
     )
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
-    init { reload() }
-    fun reload() {
-        _state.update { it.copy(loading = true, error = null) }
+    init { reload(initial = true) }
+    fun reload(initial: Boolean = false) {
+        _state.update {
+            it.copy(
+                loading = initial || it.rows.isEmpty(),
+                refreshing = !initial && it.rows.isNotEmpty(),
+                error = null,
+            )
+        }
         viewModelScope.launch {
             repo.fetchPausedAmcContracts()
-                .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+                .onSuccess { rows -> _state.update { it.copy(loading = false, refreshing = false, rows = rows) } }
+                .onFailure { e -> _state.update { it.copy(loading = false, refreshing = false, error = e.toUserMessage()) } }
         }
     }
+    fun onPullToRefresh() = reload(initial = false)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -93,7 +102,12 @@ fun FounderPausedAmcScreen(
                 subtitle = if (state.rows.isNotEmpty()) "${state.rows.size} silent service stop${if (state.rows.size == 1) "" else "s"}" else null,
                 onBack = onBack,
             )
-            Box(modifier = Modifier.fillMaxSize()) {
+            // Round 382 — pull-to-refresh.
+            androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                isRefreshing = state.refreshing,
+                onRefresh = viewModel::onPullToRefresh,
+                modifier = Modifier.fillMaxSize(),
+            ) {
                 when {
                     state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
