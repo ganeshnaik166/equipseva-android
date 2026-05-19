@@ -84,6 +84,15 @@ class RepairJobEscrowRepository @Inject constructor(
     )
 
     @Serializable
+    data class EngineerSelfRank(
+        @SerialName("window_days") val windowDays: Int,
+        @SerialName("jobs_completed") val jobsCompleted: Long,
+        @SerialName("revenue_inr") val revenueInr: Double,
+        @SerialName("rank") val rank: Int? = null,
+        @SerialName("total_ranked") val totalRanked: Int = 0,
+    )
+
+    @Serializable
     data class ActiveEscrowRow(
         @SerialName("escrow_id") val escrowId: String,
         @SerialName("repair_job_id") val repairJobId: String,
@@ -112,6 +121,15 @@ class RepairJobEscrowRepository @Inject constructor(
         supabase.postgrest.rpc(function = "engineer_escrow_summary")
             .decodeList<EngineerEscrowSummary>()
             .firstOrNull() ?: EngineerEscrowSummary()
+    }
+
+    suspend fun fetchEngineerSelfRank(windowDays: Int = 30): Result<EngineerSelfRank?> = runCatching {
+        supabase.postgrest.rpc(
+            function = "engineer_my_rank",
+            parameters = kotlinx.serialization.json.buildJsonObject {
+                put("p_days", kotlinx.serialization.json.JsonPrimitive(windowDays))
+            },
+        ).decodeList<EngineerSelfRank>().firstOrNull()
     }
 
     suspend fun fetchEngineerActiveEscrows(): Result<List<ActiveEscrowRow>> = runCatching {

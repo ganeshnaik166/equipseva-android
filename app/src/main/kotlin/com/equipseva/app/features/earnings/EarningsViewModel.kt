@@ -47,6 +47,9 @@ class EarningsViewModel @Inject constructor(
         // hasn't completed any AMC visits.
         val amcEarnings: List<AmcRepository.EngineerAmcEarning> = emptyList(),
         val amcPaidTotal: Double = 0.0,
+        // Round 368 — engineer's own monthly rank + jobs + revenue. Null
+        // while loading or on RPC failure; the card hides in either case.
+        val selfRank: RepairJobEscrowRepository.EngineerSelfRank? = null,
         val errorMessage: String? = null,
     )
 
@@ -119,6 +122,14 @@ class EarningsViewModel @Inject constructor(
                         escrowRepository.fetchEngineerSummary().onSuccess { sum ->
                             _state.update { it.copy(escrowSummary = sum) }
                         }
+                    }
+                    // Round 368 — self-rank fetch (auth.uid()-scoped).
+                    // Same fire-and-forget pattern; the card hides on
+                    // null. RPC returns a single row even if engineer
+                    // has 0 jobs in window (rank = null then).
+                    viewModelScope.launch {
+                        escrowRepository.fetchEngineerSelfRank(windowDays = 30)
+                            .onSuccess { rk -> _state.update { it.copy(selfRank = rk) } }
                     }
                     // Same fire-and-forget pattern for AMC visit payouts.
                     // Quiet on errors: the section just stays hidden.
