@@ -38,15 +38,22 @@ class MoneyTest {
         )
     }
 
-    @Test fun `decimals are dropped`() {
-        // maximumFractionDigits = 0 → 1500.75 should render as 1,501 (rounded)
-        // or 1,500 (truncated). NumberFormat default rounds half-up.
-        val out = formatRupees(1500.75)
-        org.junit.Assert.assertTrue(
-            "expected rounded whole rupees, got '$out'",
-            out.contains("1,501") || out.contains("1,500"),
-        )
-        org.junit.Assert.assertFalse("paise should be hidden in '$out'", out.contains(".75"))
+    @Test fun `decimals are rounded to nearest whole rupee`() {
+        // Round 409 — tighten the last remaining `A || B` assertion. After
+        // r408 the impl uses `kotlin.math.round` deterministically:
+        //   round-to-nearest, ties to even (banker's rounding).
+        // 1500.75 is unambiguously 1501; 1500.25 is unambiguously 1500.
+        org.junit.Assert.assertEquals("₹1,501", formatRupees(1500.75))
+        org.junit.Assert.assertEquals("₹1,500", formatRupees(1500.25))
+    }
+
+    @Test fun `half-rupee ties round to even (banker's rounding)`() {
+        // Round 409 — pin the tie-breaker behavior so a future refactor
+        // to half-up wouldn't slip through. 1500.5 → 1500 (even neighbor),
+        // 1501.5 → 1502 (even neighbor). This matches kotlin.math.round's
+        // documented contract.
+        org.junit.Assert.assertEquals("₹1,500", formatRupees(1500.5))
+        org.junit.Assert.assertEquals("₹1,502", formatRupees(1501.5))
     }
 
     @Test fun `zero rendered cleanly`() {
