@@ -46,9 +46,13 @@ class ChangeEmailViewModel @Inject constructor(
     val effects: kotlinx.coroutines.flow.Flow<Effect> = _effects
 
     fun onPasswordChange(value: String) {
+        // Round 414 — cap at 128 chars. Passwords longer than this are
+        // pathological (no legit user types one); the cap prevents a
+        // paste-bomb from wedging compose recomposition + the auth POST
+        // body from getting unnecessarily large.
         _state.update {
             it.copy(
-                currentPassword = value,
+                currentPassword = value.take(128),
                 passwordError = null,
                 errorMessage = null,
             )
@@ -56,9 +60,12 @@ class ChangeEmailViewModel @Inject constructor(
     }
 
     fun onEmailChange(value: String) {
+        // Round 414 — cap at 255 chars (RFC 5321 max). Same paste-bomb
+        // defense plus matches the auth.users.email column constraint
+        // upstream.
         _state.update {
             it.copy(
-                newEmail = value,
+                newEmail = value.take(255),
                 emailError = null,
                 errorMessage = null,
             )
