@@ -602,12 +602,16 @@ class FounderRepository @Inject constructor(
         outcome: String, // "release" or "refund"
         note: String? = null,
     ): Result<Unit> = runCatching {
+        // Round 406 — repo-side defense-in-depth: clamp at the same 500
+        // cap the AdminResolveDisputeSheet enforces. Server has CHECK +
+        // explicit guard, but matching here keeps the boundary local.
+        val cappedNote = note?.take(500)
         client.postgrest.rpc(
             function = "admin_resolve_escrow_dispute",
             parameters = buildJsonObject {
                 put("p_escrow_id", JsonPrimitive(escrowId))
                 put("p_outcome", JsonPrimitive(outcome))
-                put("p_note", note?.let { JsonPrimitive(it) } ?: kotlinx.serialization.json.JsonNull)
+                put("p_note", cappedNote?.let { JsonPrimitive(it) } ?: kotlinx.serialization.json.JsonNull)
             },
         )
         Unit
