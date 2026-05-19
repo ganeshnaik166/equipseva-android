@@ -103,7 +103,10 @@ class FounderUsersViewModel @Inject constructor(
     init { fetch() }
 
     fun onQueryChange(q: String) {
-        _state.update { it.copy(query = q) }
+        // Round 422 — cap at 100 chars. Search is a name/email/phone match;
+        // no legitimate query is longer. Unbounded paste would balloon the
+        // debounced RPC body + Compose recomposition each keystroke.
+        _state.update { it.copy(query = q.take(100)) }
         debounceJob?.cancel()
         debounceJob = viewModelScope.launch {
             delay(300)
