@@ -19,17 +19,23 @@ class MoneyTest {
         org.junit.Assert.assertTrue(out.contains("1,800"))
     }
 
-    @Test fun `large amount carries rupee symbol and digits`() {
-        // Note: current impl uses `Locale("en","IN")` which on most JVMs
-        // produces Western-grouped digits (180,000 not 1,80,000) because
-        // ICU rules vary. Lock the current observable behaviour — symbol
-        // + correct digits — so a future refactor that swaps to custom
-        // DecimalFormat with explicit Indian grouping wouldn't silently
-        // break callers that grep on this output (Sentry breadcrumbs,
-        // tests, etc.).
+    @Test fun `large amount uses Indian lakh grouping`() {
+        // Round 408 — tighten the assertion that round 397 had to leave
+        // loose. After r398's explicit `##,##,##0` DecimalFormat the
+        // output is guaranteed Indian-grouped regardless of JVM ICU.
+        // ₹180000 must read "₹1,80,000" — anything else (including the
+        // Western "180,000") is a regression and customers would see
+        // the wrong number on every money-bearing surface.
         val out = formatRupees(180000.0)
         org.junit.Assert.assertTrue(out.contains("₹"))
-        org.junit.Assert.assertTrue(out.contains("180,000") || out.contains("1,80,000"))
+        org.junit.Assert.assertTrue(
+            "expected Indian-grouped 1,80,000 in '$out'",
+            out.contains("1,80,000"),
+        )
+        org.junit.Assert.assertFalse(
+            "Western grouping '180,000' must not appear in '$out'",
+            out.contains("180,000"),
+        )
     }
 
     @Test fun `decimals are dropped`() {
@@ -49,10 +55,28 @@ class MoneyTest {
         org.junit.Assert.assertTrue(out.contains("0"))
     }
 
-    @Test fun `crore-scale carries rupee symbol`() {
+    @Test fun `crore-scale uses Indian crore grouping`() {
+        // Round 408 — same tightening: post-r398 we own the grouping
+        // explicitly. ₹12,00,00,000 (twelve crore) is the canonical
+        // Indian rendering; "120,000,000" would be a regression to the
+        // platform Locale path that r398 deliberately abandoned.
         val out = formatRupees(120000000.0)
         org.junit.Assert.assertTrue(out.contains("₹"))
-        // Accept either grouping pattern depending on JVM ICU.
-        org.junit.Assert.assertTrue(out.contains("120,000,000") || out.contains("12,00,00,000"))
+        org.junit.Assert.assertTrue(
+            "expected Indian-grouped 12,00,00,000 in '$out'",
+            out.contains("12,00,00,000"),
+        )
+        org.junit.Assert.assertFalse(
+            "Western grouping '120,000,000' must not appear in '$out'",
+            out.contains("120,000,000"),
+        )
+    }
+
+    @Test fun `lakh boundary renders with first comma after three digits`() {
+        // Round 408 — verify the exact boundary: 99,999 stays 3-digit
+        // grouped; 1,00,000 introduces the lakh grouping. This pins the
+        // ##,##,##0 pattern: rightmost group is 3 digits, then 2 each.
+        org.junit.Assert.assertEquals("₹99,999", formatRupees(99999.0))
+        org.junit.Assert.assertEquals("₹1,00,000", formatRupees(100000.0))
     }
 }
