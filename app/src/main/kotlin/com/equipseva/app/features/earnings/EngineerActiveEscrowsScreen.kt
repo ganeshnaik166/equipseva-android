@@ -59,6 +59,8 @@ class EngineerActiveEscrowsViewModel @Inject constructor(
 ) : ViewModel() {
     data class UiState(
         val loading: Boolean = true,
+        // Round 389 — pull-to-refresh inline indicator.
+        val refreshing: Boolean = false,
         val error: String? = null,
         val rows: List<RepairJobEscrowRepository.ActiveEscrowRow> = emptyList(),
     )
@@ -66,18 +68,26 @@ class EngineerActiveEscrowsViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    init { reload() }
+    init { reload(initial = true) }
 
-    fun reload() {
-        _state.update { it.copy(loading = true, error = null) }
+    fun reload(initial: Boolean = false) {
+        _state.update {
+            it.copy(
+                loading = initial || it.rows.isEmpty(),
+                refreshing = !initial && it.rows.isNotEmpty(),
+                error = null,
+            )
+        }
         viewModelScope.launch {
             repo.fetchEngineerActiveEscrows()
-                .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+                .onSuccess { rows -> _state.update { it.copy(loading = false, refreshing = false, rows = rows) } }
+                .onFailure { e -> _state.update { it.copy(loading = false, refreshing = false, error = e.toUserMessage()) } }
         }
     }
+    fun onPullToRefresh() = reload(initial = false)
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun EngineerActiveEscrowsScreen(
     onBack: () -> Unit,
@@ -99,7 +109,12 @@ fun EngineerActiveEscrowsScreen(
                 subtitle = state.rows.size.takeIf { it > 0 }?.let { "$it open" },
                 onBack = onBack,
             )
-            Box(modifier = Modifier.fillMaxSize()) {
+            // Round 389 — pull-to-refresh.
+            androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                isRefreshing = state.refreshing,
+                onRefresh = viewModel::onPullToRefresh,
+                modifier = Modifier.fillMaxSize(),
+            ) {
                 when {
                     state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
