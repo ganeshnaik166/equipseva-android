@@ -210,8 +210,12 @@ private fun PaymentRow(
             fontWeight = FontWeight.SemiBold,
         )
         val rzpShort = row.razorpayOrderId?.takeLast(8)
+        // Round 375 — relative "Nh ago" surfaces freshness so founder
+        // can sort triage by recency without parsing raw timestamps.
+        val createdRel = row.createdAt?.let { com.equipseva.app.core.util.relativeLabel(it) }
         val metaLine = listOfNotNull(
             rzpShort?.let { "rzp …$it" },
+            createdRel?.let { "$it ago" },
         ).joinToString(" · ")
         if (metaLine.isNotBlank()) {
             Text(metaLine, color = SevaInk500, fontSize = 12.sp)
