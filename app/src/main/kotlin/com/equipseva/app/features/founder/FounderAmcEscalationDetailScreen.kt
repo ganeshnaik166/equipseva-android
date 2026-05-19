@@ -69,6 +69,8 @@ class FounderAmcEscalationDetailViewModel @Inject constructor(
 
     data class UiState(
         val loading: Boolean = true,
+        // Round 416 — pull-to-refresh inline indicator distinct from cold-load.
+        val refreshing: Boolean = false,
         val error: String? = null,
         val detail: FounderRepository.AmcEscalationDetail? = null,
         val rotation: List<AmcRepository.AmcRotationRow> = emptyList(),
@@ -79,14 +81,22 @@ class FounderAmcEscalationDetailViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    init { reload() }
+    init { reload(initial = true) }
 
-    fun reload() {
+    fun onPullToRefresh() = reload(initial = false)
+
+    fun reload(initial: Boolean = false) {
         if (escalationId.isBlank()) {
-            _state.update { it.copy(loading = false, error = "Missing escalation id") }
+            _state.update { it.copy(loading = false, refreshing = false, error = "Missing escalation id") }
             return
         }
-        _state.update { it.copy(loading = true, error = null) }
+        _state.update {
+            it.copy(
+                loading = initial || it.detail == null,
+                refreshing = !initial && it.detail != null,
+                error = null,
+            )
+        }
         viewModelScope.launch {
             // Fetch escalation context first; we need amc_contract_id for the
             // rotation call. Detail and rotation aren't independent, so a
@@ -97,6 +107,7 @@ class FounderAmcEscalationDetailViewModel @Inject constructor(
                 _state.update {
                     it.copy(
                         loading = false,
+                        refreshing = false,
                         error = detailResult.exceptionOrNull()?.toUserMessage() ?: "Escalation not found",
                     )
                 }
@@ -106,6 +117,7 @@ class FounderAmcEscalationDetailViewModel @Inject constructor(
             _state.update {
                 it.copy(
                     loading = false,
+                    refreshing = false,
                     detail = detail,
                     rotation = rotationResult.getOrNull().orEmpty(),
                 )
@@ -124,6 +136,7 @@ class FounderAmcEscalationDetailViewModel @Inject constructor(
     }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun FounderAmcEscalationDetailScreen(
     onBack: () -> Unit,
@@ -133,15 +146,24 @@ fun FounderAmcEscalationDetailScreen(
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(title = "Escalation detail", onBack = onBack)
-            Box(modifier = Modifier.fillMaxSize()) {
+            // Round 416 — pull-to-refresh. Admin reviewing an escalation
+            // wants to pick up new rotation changes / status updates without
+            // backing out + re-entering.
+            androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                isRefreshing = state.refreshing,
+                onRefresh = viewModel::onPullToRefresh,
+                modifier = Modifier.fillMaxSize(),
+            ) {
                 when {
                     state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
-                    state.error != null -> EmptyStateView(
+                    state.error != null && state.detail == null -> EmptyStateView(
                         icon = Icons.Outlined.Inbox,
                         title = "Couldn't load",
                         subtitle = state.error,
+                        ctaLabel = "Try again",
+                        onCta = { viewModel.reload() },
                     )
                     state.detail == null -> EmptyStateView(
                         icon = Icons.Outlined.Inbox,
