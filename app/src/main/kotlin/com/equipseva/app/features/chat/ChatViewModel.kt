@@ -157,11 +157,18 @@ class ChatViewModel @Inject constructor(
     }
 
     fun onDraftChange(value: String) {
-        _state.update { it.copy(draft = value) }
+        // Round 413 — cap the main draft at the same 4000-char limit that
+        // (a) the submit guard already enforces (line ~292) and (b) the
+        // edit-draft setter applies (round 262, PR #710). A paste of an
+        // unbounded blob would wedge Compose recomposition during typing
+        // even though submit would later reject it — the slowness happens
+        // on every keystroke after the bad paste.
+        val capped = value.take(4000)
+        _state.update { it.copy(draft = capped) }
         val self = _state.value.selfUserId ?: return
         // Only announce typing while there's actual content — clearing the field shouldn't
         // read as "still typing" to the other side.
-        if (value.isBlank()) return
+        if (capped.isBlank()) return
         val now = System.currentTimeMillis()
         if (now - lastTypingBroadcastAtMs < TYPING_BROADCAST_MIN_INTERVAL_MS) return
         lastTypingBroadcastAtMs = now
