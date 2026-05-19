@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Gavel
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -59,6 +60,8 @@ class EngineerMyDisputesViewModel @Inject constructor(
 ) : ViewModel() {
     data class UiState(
         val loading: Boolean = true,
+        // Round 387 — pull-to-refresh distinct from cold-load.
+        val refreshing: Boolean = false,
         val error: String? = null,
         val rows: List<RepairJobEscrowRepository.EngineerDisputeRow> = emptyList(),
     )
@@ -66,22 +69,30 @@ class EngineerMyDisputesViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    init { reload() }
+    init { reload(initial = true) }
 
-    fun reload() {
-        _state.update { it.copy(loading = true, error = null) }
+    fun reload(initial: Boolean = false) {
+        _state.update {
+            it.copy(
+                loading = initial || it.rows.isEmpty(),
+                refreshing = !initial && it.rows.isNotEmpty(),
+                error = null,
+            )
+        }
         viewModelScope.launch {
             escrowRepo.fetchEngineerDisputeHistory()
-                .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+                .onSuccess { rows -> _state.update { it.copy(loading = false, refreshing = false, rows = rows) } }
+                .onFailure { e -> _state.update { it.copy(loading = false, refreshing = false, error = e.toUserMessage()) } }
         }
     }
+    fun onPullToRefresh() = reload(initial = false)
 }
 
 /**
  * v2.1 PR-D42 — engineer self-view of disputes received. Symmetric
  * mirror of the hospital-side D41 screen.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EngineerMyDisputesScreen(
     onBack: () -> Unit,
@@ -110,7 +121,12 @@ fun EngineerMyDisputesScreen(
                 },
                 onBack = onBack,
             )
-            Box(modifier = Modifier.fillMaxSize()) {
+            // Round 387 — pull-to-refresh. Matches r378-r382 pattern.
+            androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                isRefreshing = state.refreshing,
+                onRefresh = viewModel::onPullToRefresh,
+                modifier = Modifier.fillMaxSize(),
+            ) {
                 when {
                     state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
