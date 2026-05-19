@@ -479,6 +479,100 @@ class AmcRepository @Inject constructor(
         JSON.decodeFromString(VerifyAmcPaymentResponse.serializer(), text)
     }
 
+    // =====================================================================
+    //  Round 419 — AMC auto-charge (subscriptions) read + setup + cancel.
+    //  Phase 3 of the auto-charge feature: thin RPC wrappers. The
+    //  forthcoming Razorpay edge fn (phase 5) will call back through
+    //  SECDEF webhook RPCs added in r418.
+    // =====================================================================
+
+    /** One row from `get_amc_subscription_for_contract`. */
+    @Serializable
+    data class SubscriptionRow(
+        val id: String,
+        val status: String,
+        @SerialName("razorpay_subscription_id") val razorpaySubscriptionId: String? = null,
+        @SerialName("current_period_start") val currentPeriodStart: String? = null,
+        @SerialName("current_period_end") val currentPeriodEnd: String? = null,
+        @SerialName("next_charge_at") val nextChargeAt: String? = null,
+        @SerialName("last_charged_at") val lastChargedAt: String? = null,
+        @SerialName("total_charges_succeeded") val totalChargesSucceeded: Int = 0,
+        @SerialName("total_charges_failed") val totalChargesFailed: Int = 0,
+        @SerialName("mandate_summary") val mandateSummary: String? = null,
+        @SerialName("last_failure_reason") val lastFailureReason: String? = null,
+        @SerialName("last_failure_at") val lastFailureAt: String? = null,
+    )
+
+    /** One row from `list_amc_subscription_charges_for_contract`. */
+    @Serializable
+    data class SubscriptionChargeRow(
+        val id: String,
+        @SerialName("razorpay_payment_id") val razorpayPaymentId: String? = null,
+        @SerialName("amount_rupees") val amountRupees: Double,
+        val status: String, // attempted|succeeded|failed|refunded
+        @SerialName("period_start") val periodStart: String,
+        @SerialName("period_end") val periodEnd: String,
+        @SerialName("failure_reason") val failureReason: String? = null,
+        @SerialName("attempted_at") val attemptedAt: String,
+        @SerialName("settled_at") val settledAt: String? = null,
+    )
+
+    /**
+     * Read the most-recent subscription row for the given contract. Returns
+     * null when no subscription has been set up (cold-state) or when the
+     * caller isn't authorized to see it (RLS).
+     */
+    suspend fun fetchSubscription(amcContractId: String): Result<SubscriptionRow?> = runCatching {
+        supabase.postgrest.rpc(
+            function = "get_amc_subscription_for_contract",
+            parameters = buildJsonObject {
+                put("p_amc_contract_id", JsonPrimitive(amcContractId))
+            },
+        ).decodeList<SubscriptionRow>().firstOrNull()
+    }
+
+    /**
+     * Idempotent setup-request. Server enforces hospital-only + active/paused
+     * contract status. Returns the local subscription row id; the actual
+     * Razorpay subscription creation happens in a follow-up edge-fn call.
+     */
+    suspend fun requestSubscriptionSetup(amcContractId: String): Result<String> = runCatching {
+        val res = supabase.postgrest.rpc(
+            function = "request_amc_subscription_setup",
+            parameters = buildJsonObject {
+                put("p_amc_contract_id", JsonPrimitive(amcContractId))
+            },
+        )
+        // Server returns the uuid as a JSON scalar — supabase-kt wraps it
+        // in the response body; decode as String directly.
+        res.data.trim('"')
+    }
+
+    /** Cancel a subscription. Hospital / admin / founder allowed. Idempotent on terminal status. */
+    suspend fun cancelSubscription(subscriptionId: String): Result<Unit> = runCatching {
+        supabase.postgrest.rpc(
+            function = "cancel_amc_subscription",
+            parameters = buildJsonObject {
+                put("p_subscription_id", JsonPrimitive(subscriptionId))
+            },
+        )
+        Unit
+    }
+
+    /** Last N charge attempts for the contract. Default 50, server clamps [1,200]. */
+    suspend fun listSubscriptionCharges(
+        amcContractId: String,
+        limit: Int = 50,
+    ): Result<List<SubscriptionChargeRow>> = runCatching {
+        supabase.postgrest.rpc(
+            function = "list_amc_subscription_charges_for_contract",
+            parameters = buildJsonObject {
+                put("p_amc_contract_id", JsonPrimitive(amcContractId))
+                put("p_limit", JsonPrimitive(limit))
+            },
+        ).decodeList<SubscriptionChargeRow>()
+    }
+
     private fun parseRestExceptionBody(rest: RestException): EdgeFnError? {
         for (raw in listOfNotNull(rest.error, rest.description)) {
             if (raw.isBlank()) continue
