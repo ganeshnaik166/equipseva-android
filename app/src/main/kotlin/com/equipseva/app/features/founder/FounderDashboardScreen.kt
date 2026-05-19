@@ -196,6 +196,7 @@ fun FounderDashboardScreen(
                     amcContractsActive = stats?.amcContractsActive,
                     amcContractsExpired = stats?.amcContractsExpired,
                     amcContractsExpiringSoon = stats?.amcContractsExpiringSoon,
+                    amcContractsPaused = stats?.amcContractsPaused,
                     onOpenExpiring = onOpenAmcExpiring,
                 )
 
@@ -346,6 +347,7 @@ private fun GrowthKpiStrip(
     amcContractsActive: Int?,
     amcContractsExpired: Int?,
     amcContractsExpiringSoon: Int?,
+    amcContractsPaused: Int?,
     onOpenExpiring: () -> Unit = {},
 ) {
     Row(
@@ -370,6 +372,7 @@ private fun GrowthKpiStrip(
         )
     }
     Spacer(Modifier.height(4.dp))
+    // Row 2 — AMC healthy lifecycle: active + forward-looking expiry.
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -399,6 +402,25 @@ private fun GrowthKpiStrip(
                         Modifier.clickable(onClick = onOpenExpiring)
                     else Modifier
                 ),
+        )
+    }
+    Spacer(Modifier.height(4.dp))
+    // Round 366 — Row 3: AMC problem states. Paused = silent service
+    // stop (payment pool negative, visits not firing). Expired = lapsed,
+    // already churned. Keeping in their own row keeps the forward-looking
+    // row 2 visually distinct from the trouble row 3.
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        KpiCell(
+            label = "AMC paused",
+            value = amcContractsPaused?.toString() ?: "—",
+            valueColor = SevaDanger500,
+            sub = "visits stopped",
+            modifier = Modifier.weight(1f),
         )
         KpiCell(
             label = "AMC expired",
