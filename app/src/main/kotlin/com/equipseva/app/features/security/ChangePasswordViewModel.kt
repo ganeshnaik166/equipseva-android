@@ -45,10 +45,16 @@ class ChangePasswordViewModel @Inject constructor(
     )
     val effects: kotlinx.coroutines.flow.Flow<Effect> = _effects
 
+    // Round 414 — cap password inputs at 128 chars. Longer values are
+    // pathological (real users can't type one) and an unbounded paste
+    // would wedge compose recomposition while ballooning the auth POST
+    // body. Same cap applied to ChangeEmailViewModel.onPasswordChange.
+    private fun String.cappedPassword(): String = take(128)
+
     fun onCurrentPasswordChange(value: String) {
         _state.update {
             it.copy(
-                currentPassword = value,
+                currentPassword = value.cappedPassword(),
                 currentPasswordError = null,
                 errorMessage = null,
             )
@@ -58,7 +64,7 @@ class ChangePasswordViewModel @Inject constructor(
     fun onNewPasswordChange(value: String) {
         _state.update {
             it.copy(
-                newPassword = value,
+                newPassword = value.cappedPassword(),
                 newPasswordError = null,
                 errorMessage = null,
             )
@@ -68,7 +74,7 @@ class ChangePasswordViewModel @Inject constructor(
     fun onConfirmPasswordChange(value: String) {
         _state.update {
             it.copy(
-                confirmPassword = value,
+                confirmPassword = value.cappedPassword(),
                 confirmPasswordError = null,
                 errorMessage = null,
             )
