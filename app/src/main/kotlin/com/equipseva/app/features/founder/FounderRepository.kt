@@ -234,6 +234,21 @@ class FounderRepository @Inject constructor(
     )
 
     @Serializable
+    data class PausedAmcRow(
+        @SerialName("contract_id") val contractId: String,
+        @SerialName("hospital_user_id") val hospitalUserId: String,
+        @SerialName("hospital_name") val hospitalName: String,
+        @SerialName("primary_engineer_id") val primaryEngineerId: String? = null,
+        @SerialName("primary_engineer_name") val primaryEngineerName: String? = null,
+        @SerialName("start_date") val startDate: String,
+        @SerialName("end_date") val endDate: String,
+        @SerialName("monthly_fee_rupees") val monthlyFeeRupees: Double,
+        @SerialName("visits_completed") val visitsCompleted: Int = 0,
+        @SerialName("visits_per_year") val visitsPerYear: Int = 0,
+        @SerialName("paused_at") val pausedAt: String? = null,
+    )
+
+    @Serializable
     data class InactiveEngineerRow(
         @SerialName("engineer_id") val engineerId: String,
         @SerialName("user_id") val userId: String,
@@ -346,6 +361,15 @@ class FounderRepository @Inject constructor(
                 put("p_days", JsonPrimitive(windowDays))
             },
         ).decodeList<ExpiringAmcRow>()
+    }
+
+    suspend fun fetchPausedAmcContracts(limit: Int = 200): Result<List<PausedAmcRow>> = runCatching {
+        client.postgrest.rpc(
+            function = "admin_amc_paused",
+            parameters = buildJsonObject {
+                put("p_limit", JsonPrimitive(limit))
+            },
+        ).decodeList<PausedAmcRow>()
     }
 
     suspend fun fetchInactiveEngineers(windowDays: Int = 30): Result<List<InactiveEngineerRow>> = runCatching {

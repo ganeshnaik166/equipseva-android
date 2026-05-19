@@ -123,6 +123,7 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.FOUNDER_BUYER_KYC,
     Routes.FOUNDER_AMC_EXPIRING,
     Routes.FOUNDER_INACTIVE_ENGINEERS,
+    Routes.FOUNDER_AMC_PAUSED,
     Routes.PROFILE_BANK_DETAILS,
     Routes.PROFILE_ADDRESSES,
     Routes.PROFILE_HOSPITAL_SETTINGS,
@@ -716,6 +717,8 @@ fun MainNavGraph(
                     onOpenResolvedDisputes = { navController.navigate(Routes.FOUNDER_RESOLVED_DISPUTES) },
                     onOpenSpotAudits = { navController.navigate(Routes.FOUNDER_SPOT_AUDITS) },
                     onOpenAmcExpiring = { navController.navigate(Routes.FOUNDER_AMC_EXPIRING) },
+                    onOpenInactiveEngineers = { navController.navigate(Routes.FOUNDER_INACTIVE_ENGINEERS) },
+                    onOpenAmcPaused = { navController.navigate(Routes.FOUNDER_AMC_PAUSED) },
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -884,6 +887,15 @@ fun MainNavGraph(
                     onBack = { navController.popBackStack() },
                     onOpenEngineer = { engineerId ->
                         navController.navigate(Routes.engineerPublicProfileRoute(engineerId))
+                    },
+                )
+            }
+
+            composable(Routes.FOUNDER_AMC_PAUSED) {
+                com.equipseva.app.features.founder.FounderPausedAmcScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenContract = { contractId ->
+                        navController.navigate(Routes.amcContractDetailRoute(contractId))
                     },
                 )
             }

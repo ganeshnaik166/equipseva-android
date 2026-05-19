@@ -158,6 +158,8 @@ fun FounderDashboardScreen(
     onOpenAmcExpiring: () -> Unit = {},
     // Round 372 — drill-down for r371 "Inactive engineers" KPI.
     onOpenInactiveEngineers: () -> Unit = {},
+    // Round 373 — drill-down for r366 "AMC paused" KPI.
+    onOpenAmcPaused: () -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: FounderDashboardViewModel = hiltViewModel(),
 ) {
@@ -202,6 +204,7 @@ fun FounderDashboardScreen(
                     inactiveEngineers30d = stats?.inactiveEngineers30d,
                     onOpenExpiring = onOpenAmcExpiring,
                     onOpenInactive = onOpenInactiveEngineers,
+                    onOpenPaused = onOpenAmcPaused,
                 )
 
                 // Round 349 — Top engineers (last 30d) by released-escrow
@@ -355,6 +358,7 @@ private fun GrowthKpiStrip(
     inactiveEngineers30d: Int?,
     onOpenExpiring: () -> Unit = {},
     onOpenInactive: () -> Unit = {},
+    onOpenPaused: () -> Unit = {},
 ) {
     Row(
         modifier = Modifier
@@ -421,12 +425,20 @@ private fun GrowthKpiStrip(
             .padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        // Round 373 — tappable drill-down to the paused contracts list
+        // when count > 0. Same pattern as r364 expiring + r372 inactive.
         KpiCell(
             label = "AMC paused",
             value = amcContractsPaused?.toString() ?: "—",
             valueColor = SevaDanger500,
             sub = "visits stopped",
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .then(
+                    if ((amcContractsPaused ?: 0) > 0)
+                        Modifier.clickable(onClick = onOpenPaused)
+                    else Modifier
+                ),
         )
         KpiCell(
             label = "AMC expired",
