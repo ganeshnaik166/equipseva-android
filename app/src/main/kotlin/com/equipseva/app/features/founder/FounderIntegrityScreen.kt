@@ -65,6 +65,8 @@ class FounderIntegrityViewModel @Inject constructor(
 
     data class UiState(
         val loading: Boolean = true,
+        // Round 381 — pull-to-refresh inline indicator.
+        val refreshing: Boolean = false,
         val error: String? = null,
         val rows: List<FounderRepository.IntegrityFlag> = emptyList(),
         val filterUserId: String? = null,
@@ -74,9 +76,15 @@ class FounderIntegrityViewModel @Inject constructor(
         UiState(filterUserId = filterUserId, filterUserName = filterUserName)
     )
     val state: StateFlow<UiState> = _state.asStateFlow()
-    init { reload() }
-    fun reload() {
-        _state.update { it.copy(loading = true, error = null) }
+    init { reload(initial = true) }
+    fun reload(initial: Boolean = false) {
+        _state.update {
+            it.copy(
+                loading = initial || it.rows.isEmpty(),
+                refreshing = !initial && it.rows.isNotEmpty(),
+                error = null,
+            )
+        }
         viewModelScope.launch {
             repo.fetchIntegrityFlags(limit = 100)
                 .onSuccess { rows ->
@@ -87,11 +95,13 @@ class FounderIntegrityViewModel @Inject constructor(
                     // for a small payoff.
                     val visible = if (filterUserId.isNullOrBlank()) rows
                     else rows.filter { it.userId == filterUserId }
-                    _state.update { it.copy(loading = false, rows = visible) }
+                    _state.update { it.copy(loading = false, refreshing = false, rows = visible) }
                 }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+                .onFailure { e -> _state.update { it.copy(loading = false, refreshing = false, error = e.toUserMessage()) } }
         }
     }
+
+    fun onPullToRefresh() = reload(initial = false)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,7 +129,12 @@ fun FounderIntegrityScreen(
                 },
                 onBack = onBack,
             )
-            Box(modifier = Modifier.fillMaxSize()) {
+            // Round 381 — pull-to-refresh. Matches r378-r380 pattern.
+            androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                isRefreshing = state.refreshing,
+                onRefresh = viewModel::onPullToRefresh,
+                modifier = Modifier.fillMaxSize(),
+            ) {
                 when {
                     state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
