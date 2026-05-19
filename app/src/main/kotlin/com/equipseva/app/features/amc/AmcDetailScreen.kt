@@ -110,6 +110,12 @@ class AmcDetailViewModel @Inject constructor(
         val topUpOpen: Boolean = false,
         val topUpMonths: Int = 1,
         val topUpBusy: Boolean = false,
+        // Round 420 — AMC auto-charge (phase 4). subscription is the most-
+        // recent row from get_amc_subscription_for_contract; null when the
+        // hospital hasn't set up auto-pay or RLS hides it. autoPayBusy
+        // covers both the setup-request and cancel paths.
+        val subscription: AmcRepository.SubscriptionRow? = null,
+        val autoPayBusy: Boolean = false,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -169,6 +175,11 @@ class AmcDetailViewModel @Inject constructor(
                 .onSuccess { v -> _state.update { it.copy(rotation = v) } }
             repo.listSlaBreaches(contractId)
                 .onSuccess { v -> _state.update { it.copy(breaches = v) } }
+            // Round 420 — auto-pay subscription state. Read-only here; the
+            // Setup / Cancel CTAs are wired through their own viewmodel
+            // methods. Null is OK (hospital hasn't enrolled).
+            repo.fetchSubscription(contractId)
+                .onSuccess { v -> _state.update { it.copy(subscription = v) } }
 
             _state.update {
                 it.copy(loading = false, role = role, viewerIsHospital = isHospital)
@@ -197,6 +208,49 @@ class AmcDetailViewModel @Inject constructor(
                 }
                 .onFailure { e ->
                     _state.update { it.copy(cancelling = false, error = e.toUserMessage()) }
+                }
+        }
+    }
+
+    // Round 420 — request auto-pay setup. The actual Razorpay mandate
+    // authorization will fire from a follow-up edge fn (phase 5); for
+    // now the RPC just inserts the pending row. The UI shows a "Pending
+    // mandate" state until the edge fn wires in.
+    private val _autoPayMessage =
+        kotlinx.coroutines.flow.MutableSharedFlow<String>(extraBufferCapacity = 2)
+    val autoPayMessage: kotlinx.coroutines.flow.Flow<String> = _autoPayMessage
+
+    fun setupAutoPay() {
+        if (_state.value.autoPayBusy) return
+        _state.update { it.copy(autoPayBusy = true) }
+        viewModelScope.launch {
+            repo.requestSubscriptionSetup(contractId)
+                .onSuccess {
+                    _autoPayMessage.tryEmit(
+                        "Auto-pay setup requested. You'll receive a payment-authorization link shortly."
+                    )
+                    _state.update { it.copy(autoPayBusy = false) }
+                    refresh()
+                }
+                .onFailure { e ->
+                    _state.update { it.copy(autoPayBusy = false, error = e.toUserMessage()) }
+                }
+        }
+    }
+
+    fun cancelAutoPay() {
+        val sub = _state.value.subscription ?: return
+        if (_state.value.autoPayBusy) return
+        _state.update { it.copy(autoPayBusy = true) }
+        viewModelScope.launch {
+            repo.cancelSubscription(sub.id)
+                .onSuccess {
+                    _autoPayMessage.tryEmit("Auto-pay cancelled.")
+                    _state.update { it.copy(autoPayBusy = false) }
+                    refresh()
+                }
+                .onFailure { e ->
+                    _state.update { it.copy(autoPayBusy = false, error = e.toUserMessage()) }
                 }
         }
     }
@@ -258,6 +312,10 @@ fun AmcDetailScreen(
             onOpenConversation(conversationId)
         }
     }
+    // Round 420 — surface auto-pay setup / cancel outcome to the user.
+    androidx.compose.runtime.LaunchedEffect(viewModel) {
+        viewModel.autoPayMessage.collect { msg -> onShowMessage(msg) }
+    }
 
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -306,6 +364,8 @@ fun AmcDetailScreen(
                             AmcDetailViewModel.Tab.Pool -> PoolTab(
                                 state = state,
                                 onTopUp = { viewModel.openTopUp() },
+                                onSetupAutoPay = viewModel::setupAutoPay,
+                                onCancelAutoPay = viewModel::cancelAutoPay,
                             )
                             AmcDetailViewModel.Tab.Visits -> VisitsTab(state)
                             AmcDetailViewModel.Tab.Sla -> SlaTab(state)
@@ -599,7 +659,12 @@ private fun OverviewTab(
 }
 
 @Composable
-private fun PoolTab(state: AmcDetailViewModel.UiState, onTopUp: () -> Unit) {
+private fun PoolTab(
+    state: AmcDetailViewModel.UiState,
+    onTopUp: () -> Unit,
+    onSetupAutoPay: () -> Unit,
+    onCancelAutoPay: () -> Unit,
+) {
     EsSection(title = "Pool balance") {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp),
@@ -628,6 +693,17 @@ private fun PoolTab(state: AmcDetailViewModel.UiState, onTopUp: () -> Unit) {
             }
         }
     }
+    // Round 420 — auto-pay enrolment block. Hospital-only; the back-end
+    // RPC enforces this too. Show one of: cold-state with Setup CTA,
+    // pending-mandate state, active state with mandate summary + cancel,
+    // or halted/cancelled state with a re-enrol CTA.
+    if (state.viewerIsHospital) {
+        AutoPaySection(
+            state = state,
+            onSetup = onSetupAutoPay,
+            onCancel = onCancelAutoPay,
+        )
+    }
     EsSection(title = "Recent activity") {
         if (state.poolLedger.isEmpty()) {
             Text(
@@ -642,6 +718,126 @@ private fun PoolTab(state: AmcDetailViewModel.UiState, onTopUp: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 state.poolLedger.forEach { row -> PoolLedgerRow(row) }
+            }
+        }
+    }
+}
+
+// Round 420 — auto-pay enrolment section. Reads state.subscription and
+// renders one of four flavors based on status. Setup is the cold-state
+// CTA; Cancel appears while a subscription is live; halted/cancelled
+// surfaces a re-enrol affordance. The actual Razorpay mandate-link
+// flow lands in a follow-up phase — for now Setup just persists the
+// pending row + raises a "we'll send a link" toast.
+@Composable
+private fun AutoPaySection(
+    state: AmcDetailViewModel.UiState,
+    onSetup: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    val sub = state.subscription
+    val title = "Auto-pay"
+    EsSection(title = title) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            when (val status = sub?.status) {
+                null -> {
+                    // Cold state — never enrolled.
+                    Text(
+                        "Pay your monthly fee automatically. We'll send a payment-authorization link for your bank or UPI app, then debit each month with no further action needed.",
+                        color = SevaInk500,
+                        fontSize = 12.sp,
+                    )
+                    EsBtn(
+                        text = if (state.autoPayBusy) "Requesting…" else "Set up auto-pay",
+                        onClick = onSetup,
+                        kind = EsBtnKind.Primary,
+                        disabled = state.autoPayBusy,
+                    )
+                }
+                "pending", "authenticated" -> {
+                    Pill(text = "Pending authorization", kind = PillKind.Warn)
+                    Text(
+                        "We've started setting up auto-pay. Once you authorize the mandate, monthly debits will resume here.",
+                        color = SevaInk500,
+                        fontSize = 12.sp,
+                    )
+                    EsBtn(
+                        text = if (state.autoPayBusy) "Cancelling…" else "Cancel auto-pay",
+                        onClick = onCancel,
+                        kind = EsBtnKind.Secondary,
+                        disabled = state.autoPayBusy,
+                    )
+                }
+                "active" -> {
+                    Pill(text = "Active", kind = PillKind.Success)
+                    sub.mandateSummary?.takeIf { it.isNotBlank() }?.let { summary ->
+                        Text("Paying via $summary", color = SevaInk700, fontSize = 13.sp)
+                    }
+                    sub.nextChargeAt?.let { next ->
+                        Text(
+                            "Next debit: ${prettyDate(next)}",
+                            color = SevaInk500,
+                            fontSize = 12.sp,
+                        )
+                    }
+                    if (sub.totalChargesSucceeded > 0) {
+                        Text(
+                            "${sub.totalChargesSucceeded} successful debits to date",
+                            color = SevaInk500,
+                            fontSize = 12.sp,
+                        )
+                    }
+                    EsBtn(
+                        text = if (state.autoPayBusy) "Cancelling…" else "Cancel auto-pay",
+                        onClick = onCancel,
+                        kind = EsBtnKind.Secondary,
+                        disabled = state.autoPayBusy,
+                    )
+                }
+                "paused" -> {
+                    Pill(text = "Paused", kind = PillKind.Warn)
+                    Text(
+                        "Auto-pay is paused — usually because of insufficient balance on your linked instrument. We retry automatically.",
+                        color = SevaInk500,
+                        fontSize = 12.sp,
+                    )
+                    EsBtn(
+                        text = if (state.autoPayBusy) "Cancelling…" else "Cancel auto-pay",
+                        onClick = onCancel,
+                        kind = EsBtnKind.Secondary,
+                        disabled = state.autoPayBusy,
+                    )
+                }
+                "halted", "cancelled", "completed", "expired" -> {
+                    val pillText = when (status) {
+                        "halted" -> "Halted"
+                        "cancelled" -> "Cancelled"
+                        "completed" -> "Completed"
+                        else -> "Expired"
+                    }
+                    Pill(text = pillText, kind = PillKind.Default)
+                    sub.lastFailureReason?.takeIf { it.isNotBlank() }?.let { reason ->
+                        Text(
+                            "Last issue: $reason",
+                            color = SevaInk500,
+                            fontSize = 12.sp,
+                        )
+                    }
+                    EsBtn(
+                        text = if (state.autoPayBusy) "Requesting…" else "Set up auto-pay again",
+                        onClick = onSetup,
+                        kind = EsBtnKind.Primary,
+                        disabled = state.autoPayBusy,
+                    )
+                }
+                else -> {
+                    // Unknown status — render the raw value defensively
+                    // so ops see something rather than a blank section.
+                    Pill(text = status.replaceFirstChar { it.uppercase() }, kind = PillKind.Default)
+                }
             }
         }
     }
