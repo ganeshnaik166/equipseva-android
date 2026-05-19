@@ -238,6 +238,11 @@ private fun PaymentRow(
             Text(metaLine, color = SevaInk500, fontSize = 12.sp)
         }
         if (!row.invoiceUrl.isNullOrBlank()) {
+            // Round 403 — bump vertical padding from 4dp to 12dp so the
+            // tappable region clears the Material 48dp minimum. 13sp text
+            // is ~17dp tall; 2×12 + 17 = 41dp + horizontal padding to
+            // give a touch slop. Material guideline: clickable text rows
+            // need either explicit min-height or sufficient padding.
             Text(
                 text = "Open invoice",
                 color = SevaGreen700,
@@ -246,7 +251,7 @@ private fun PaymentRow(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .clickable { onOpenInvoice(row.invoiceUrl) }
-                    .padding(vertical = 4.dp),
+                    .padding(horizontal = 8.dp, vertical = 12.dp),
             )
         }
     }

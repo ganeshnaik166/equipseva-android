@@ -455,11 +455,14 @@ internal fun AmcEarningsList(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         rows.forEach { row ->
+            // Round 403 — bump vertical padding to clear the 48dp Material
+            // tap-target minimum. 10dp×2 + 13sp text (~17dp) = ~37dp;
+            // 14dp×2 + content gets us to ~45dp + child padding slop.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onVisitClick(row.visitId) }
-                    .padding(vertical = 10.dp),
+                    .padding(vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
