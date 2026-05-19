@@ -64,4 +64,67 @@ class RoutesTest {
             Routes.founderKycReviewRoute("user-7"),
         )
     }
+
+    // Round 360/369 — founderIntegrityRoute. URL-encoding matters because
+    // buyer names contain spaces, ampersands, unicode (Hindi names),
+    // slashes (S/O initials). A naive concat would corrupt the nav arg
+    // and the destination screen would parse the wrong filter.
+
+    @Test fun `founderIntegrityRoute null userId returns bare path`() {
+        assertEquals(Routes.FOUNDER_INTEGRITY, Routes.founderIntegrityRoute(null, null))
+        assertEquals(Routes.FOUNDER_INTEGRITY, Routes.founderIntegrityRoute(null, "ignored"))
+    }
+
+    @Test fun `founderIntegrityRoute blank userId returns bare path`() {
+        assertEquals(Routes.FOUNDER_INTEGRITY, Routes.founderIntegrityRoute("", "ignored"))
+        assertEquals(Routes.FOUNDER_INTEGRITY, Routes.founderIntegrityRoute("  ", null))
+    }
+
+    @Test fun `founderIntegrityRoute encodes userId only`() {
+        assertEquals(
+            "${Routes.FOUNDER_INTEGRITY}?user=abc-123",
+            Routes.founderIntegrityRoute("abc-123", null),
+        )
+    }
+
+    @Test fun `founderIntegrityRoute encodes both userId and name`() {
+        assertEquals(
+            "${Routes.FOUNDER_INTEGRITY}?user=abc-123&name=Asha",
+            Routes.founderIntegrityRoute("abc-123", "Asha"),
+        )
+    }
+
+    @Test fun `founderIntegrityRoute url-encodes spaces in name`() {
+        assertEquals(
+            "${Routes.FOUNDER_INTEGRITY}?user=u1&name=Asha+Devi",
+            Routes.founderIntegrityRoute("u1", "Asha Devi"),
+        )
+    }
+
+    @Test fun `founderIntegrityRoute url-encodes ampersand in name`() {
+        // "&" must not survive raw — it would terminate the user= param
+        // and the destination would parse a phantom second arg.
+        assertEquals(
+            "${Routes.FOUNDER_INTEGRITY}?user=u1&name=A+%26+Co",
+            Routes.founderIntegrityRoute("u1", "A & Co"),
+        )
+    }
+
+    @Test fun `founderIntegrityRoute url-encodes slash in name`() {
+        assertEquals(
+            "${Routes.FOUNDER_INTEGRITY}?user=u1&name=Asha+S%2FO+Ramu",
+            Routes.founderIntegrityRoute("u1", "Asha S/O Ramu"),
+        )
+    }
+
+    @Test fun `founderIntegrityRoute skips name when blank`() {
+        assertEquals(
+            "${Routes.FOUNDER_INTEGRITY}?user=u1",
+            Routes.founderIntegrityRoute("u1", ""),
+        )
+        assertEquals(
+            "${Routes.FOUNDER_INTEGRITY}?user=u1",
+            Routes.founderIntegrityRoute("u1", "  "),
+        )
+    }
 }
