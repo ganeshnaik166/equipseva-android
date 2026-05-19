@@ -122,6 +122,7 @@ private val fullScreenRoutePrefixes = listOf(
     Routes.FOUNDER_CATEGORIES,
     Routes.FOUNDER_BUYER_KYC,
     Routes.FOUNDER_AMC_EXPIRING,
+    Routes.FOUNDER_INACTIVE_ENGINEERS,
     Routes.PROFILE_BANK_DETAILS,
     Routes.PROFILE_ADDRESSES,
     Routes.PROFILE_HOSPITAL_SETTINGS,
@@ -874,6 +875,15 @@ fun MainNavGraph(
                     onBack = { navController.popBackStack() },
                     onOpenContract = { contractId ->
                         navController.navigate(Routes.amcContractDetailRoute(contractId))
+                    },
+                )
+            }
+
+            composable(Routes.FOUNDER_INACTIVE_ENGINEERS) {
+                com.equipseva.app.features.founder.FounderInactiveEngineersScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenEngineer = { engineerId ->
+                        navController.navigate(Routes.engineerPublicProfileRoute(engineerId))
                     },
                 )
             }
