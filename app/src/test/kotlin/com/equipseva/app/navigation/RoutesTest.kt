@@ -127,4 +127,43 @@ class RoutesTest {
             Routes.founderIntegrityRoute("u1", "  "),
         )
     }
+
+    // Round 401 — extra one-arg builders for ops-queue deep-link targets.
+    // Each is reached via notification taps; silent change in format
+    // would land the user on a blank screen.
+
+    @Test fun `founderCashFlagHistoryRoute appends engineerId`() {
+        assertEquals(
+            "${Routes.FOUNDER_CASH_FLAG_HISTORY}/eng-abc",
+            Routes.founderCashFlagHistoryRoute("eng-abc"),
+        )
+    }
+
+    @Test fun `founderEscrowDisputeDetailRoute appends escrowId`() {
+        assertEquals(
+            "${Routes.FOUNDER_ESCROW_DISPUTE_DETAIL}/esc-42",
+            Routes.founderEscrowDisputeDetailRoute("esc-42"),
+        )
+    }
+
+    @Test fun `founderAmcEscalationDetailRoute appends escalationId`() {
+        assertEquals(
+            "${Routes.FOUNDER_AMC_ESCALATION_DETAIL}/esc-7",
+            Routes.founderAmcEscalationDetailRoute("esc-7"),
+        )
+    }
+
+    @Test fun `amcContractDetailRoute appends contractId`() {
+        assertEquals(
+            "${Routes.AMC_CONTRACT_DETAIL}/cnt-1",
+            Routes.amcContractDetailRoute("cnt-1"),
+        )
+    }
+
+    @Test fun `createAmcRoute appends engineerId`() {
+        assertEquals(
+            "${Routes.CREATE_AMC}/eng-9",
+            Routes.createAmcRoute("eng-9"),
+        )
+    }
 }
