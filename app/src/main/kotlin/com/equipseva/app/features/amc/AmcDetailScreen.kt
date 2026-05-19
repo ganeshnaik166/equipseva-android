@@ -918,15 +918,21 @@ private fun RotationCard(
             kind = if (row.isAvailable) PillKind.Success else PillKind.Warn,
         )
         if (canRemove) {
+            // Round 412 — TalkBack says "Remove" with no context; many
+            // engineers on the row → user can't tell which they're about
+            // to delete. Include the engineer name in the description so
+            // the screen reader announces "Remove Asha Devi" / etc.
+            val removeLabel = row.engineerName.takeIf { it.isNotBlank() }
+                ?.let { "Remove $it" } ?: "Remove engineer"
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .clickable { onRemove() }
+                    .clickable(onClickLabel = removeLabel) { onRemove() }
                     .padding(8.dp),
             ) {
                 Icon(
                     Icons.Outlined.Delete,
-                    contentDescription = "Remove",
+                    contentDescription = removeLabel,
                     tint = SevaDanger500,
                 )
             }
