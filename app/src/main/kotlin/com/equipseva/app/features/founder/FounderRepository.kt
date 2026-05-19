@@ -149,6 +149,9 @@ class FounderRepository @Inject constructor(
         @SerialName("organization_id") val organizationId: String? = null,
         @SerialName("is_active") val isActive: Boolean = true,
         @SerialName("created_at") val createdAt: String? = null,
+        // Round 367 — pre-joined failed Play-Integrity check count for the
+        // user. Default 0 so older clients still decode.
+        @SerialName("failed_integrity_count") val failedIntegrityCount: Int = 0,
     )
 
     @Serializable

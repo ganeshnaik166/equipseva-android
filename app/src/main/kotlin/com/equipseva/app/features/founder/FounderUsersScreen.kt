@@ -50,6 +50,8 @@ import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsChip
 import com.equipseva.app.designsystem.components.EsTopBar
+import com.equipseva.app.designsystem.components.Pill
+import com.equipseva.app.designsystem.components.PillKind
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.Paper2
 import com.equipseva.app.designsystem.theme.PaperDefault
@@ -340,7 +342,22 @@ private fun UserRow(
                 Icon(Icons.Filled.Edit, contentDescription = "Change role", tint = SevaGreen700)
             }
         }
-        RoleChip(role = row.role)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            RoleChip(role = row.role)
+            // Round 367 — surface device-integrity risk on the Users
+            // queue. Mirror of r351 Payments badge so the founder can
+            // spot risky users at a glance regardless of which surface
+            // they're inspecting.
+            if (row.failedIntegrityCount > 0) {
+                Pill(
+                    text = "⚠ ${row.failedIntegrityCount} integrity",
+                    kind = PillKind.Danger,
+                )
+            }
+        }
     }
 }
 
