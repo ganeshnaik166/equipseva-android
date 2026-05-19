@@ -453,11 +453,13 @@ class FounderRepository @Inject constructor(
         isActive: Boolean,
         imageUrl: String? = null,
     ): Result<Unit> = runCatching {
+        // Round 415 — repo-side defense-in-depth matching the server
+        // CHECKs + RPC length guards: key 50, displayName 200.
         client.postgrest.rpc(
             function = "admin_categories_upsert",
             parameters = buildJsonObject {
-                put("p_key", JsonPrimitive(key))
-                put("p_display_name", JsonPrimitive(displayName))
+                put("p_key", JsonPrimitive(key.take(50)))
+                put("p_display_name", JsonPrimitive(displayName.take(200)))
                 put("p_scope", JsonPrimitive(scope))
                 put("p_sort_order", JsonPrimitive(sortOrder))
                 put("p_is_active", JsonPrimitive(isActive))

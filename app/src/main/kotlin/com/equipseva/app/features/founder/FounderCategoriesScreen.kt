@@ -345,14 +345,19 @@ fun FounderCategoriesScreen(
 
                 OutlinedTextField(
                     value = draft.key,
-                    onValueChange = { v -> viewModel.onDraftChange { it.copy(key = v) } },
+                    // Round 415 — cap at 50 chars matching the server CHECK
+                    // + RPC guard. Founder is the only caller so accidental
+                    // paste-bombs are the realistic risk, not abuse.
+                    onValueChange = { v -> viewModel.onDraftChange { it.copy(key = v.take(50)) } },
                     label = { Text("Key (snake_case)") },
                     enabled = draft.isNew && !state.saving,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
                     value = draft.displayName,
-                    onValueChange = { v -> viewModel.onDraftChange { it.copy(displayName = v) } },
+                    // Round 415 — cap at 200 chars matching the server CHECK
+                    // + RPC guard.
+                    onValueChange = { v -> viewModel.onDraftChange { it.copy(displayName = v.take(200)) } },
                     label = { Text("Display name") },
                     enabled = !state.saving,
                     modifier = Modifier.fillMaxWidth(),
