@@ -719,6 +719,9 @@ fun MainNavGraph(
                     onOpenAmcExpiring = { navController.navigate(Routes.FOUNDER_AMC_EXPIRING) },
                     onOpenInactiveEngineers = { navController.navigate(Routes.FOUNDER_INACTIVE_ENGINEERS) },
                     onOpenAmcPaused = { navController.navigate(Routes.FOUNDER_AMC_PAUSED) },
+                    onOpenEngineerProfile = { engineerId ->
+                        navController.navigate(Routes.engineerPublicProfileRoute(engineerId))
+                    },
                     onBack = { navController.popBackStack() },
                 )
             }
