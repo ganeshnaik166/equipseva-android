@@ -305,7 +305,7 @@ private fun EngineerRow(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = row.fullName.firstOrNull()?.uppercaseChar()?.toString() ?: "E",
+                    text = founderEngineerInitial(row.fullName),
                     color = androidx.compose.ui.graphics.Color.White,
                     fontWeight = FontWeight.Bold,
                 )
@@ -313,19 +313,19 @@ private fun EngineerRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(row.fullName, fontWeight = FontWeight.Bold, color = SevaInk900)
                 Text(
-                    listOfNotNull(row.email, row.phone).joinToString(" · ").ifBlank { "No contact" },
+                    founderEngineerContactLine(row.email, row.phone),
                     color = SevaInk500,
                     fontSize = 12.sp,
                 )
             }
             Pill(text = "Review", kind = PillKind.Warn)
         }
-        val locationLine = listOfNotNull(row.city, row.state).joinToString(", ").ifBlank { null }
-        val metaLine = listOfNotNull(
-            row.experienceYears?.let { "$it yrs exp" },
-            row.serviceRadiusKm?.let { "${it}km radius" },
-            locationLine,
-        ).joinToString(" · ")
+        val metaLine = founderEngineerMetaLine(
+            experienceYears = row.experienceYears,
+            serviceRadiusKm = row.serviceRadiusKm,
+            city = row.city,
+            state = row.state,
+        )
         if (metaLine.isNotBlank()) {
             Text(metaLine, color = SevaInk700, fontSize = 13.sp)
         }
@@ -363,4 +363,40 @@ private fun EngineerRow(
             }
         }
     }
+}
+
+/**
+ * Avatar initial for the founder KYC queue row. Uppercased so lowercase
+ * names ("ravi") still render with a capital letter; blank/empty names
+ * fall back to "E" (engineer) to keep the avatar circle non-empty.
+ */
+internal fun founderEngineerInitial(fullName: String): String =
+    fullName.firstOrNull()?.uppercaseChar()?.toString() ?: "E"
+
+/**
+ * "email · phone" line — falls back to "No contact" only when both are
+ * null or the join is blank. (Blank strings from the RPC currently
+ * leak as a dangling separator; consider tightening this once the
+ * server-side normalisation lands.)
+ */
+internal fun founderEngineerContactLine(email: String?, phone: String?): String =
+    listOfNotNull(email, phone).joinToString(" · ").ifBlank { "No contact" }
+
+/**
+ * Compact meta strip for the founder KYC queue row — joins experience,
+ * service radius, and "city, state" with " · " separators, skipping any
+ * fields the engineer hasn't filled in yet.
+ */
+internal fun founderEngineerMetaLine(
+    experienceYears: Int?,
+    serviceRadiusKm: Int?,
+    city: String?,
+    state: String?,
+): String {
+    val locationLine = listOfNotNull(city, state).joinToString(", ").ifBlank { null }
+    return listOfNotNull(
+        experienceYears?.let { "$it yrs exp" },
+        serviceRadiusKm?.let { "${it}km radius" },
+        locationLine,
+    ).joinToString(" · ")
 }

@@ -113,13 +113,8 @@ class FounderBuyerKycQueueViewModel @Inject constructor(
      */
     suspend fun signedDocUrl(row: FounderRepository.PendingBuyerKyc): String? {
         val bucket = com.equipseva.app.core.storage.StorageRepository.Buckets.KYC_DOCS
-        val marker = "/object/sign/$bucket/"
-        val idx = row.docUrl.indexOf(marker)
-        val path = if (idx >= 0) {
-            row.docUrl.substring(idx + marker.length).substringBefore('?')
-        } else {
-            return row.docUrl // fall back to the persisted URL on parse failure
-        }
+        val path = founderParseSignedKycPath(row.docUrl, bucket)
+            ?: return row.docUrl // fall back to the persisted URL on parse failure
         return runCatching { storage.signedUrl(bucket, path, expiresInMinutes = 15) }
             .getOrNull() ?: row.docUrl
     }
@@ -276,7 +271,7 @@ private fun BuyerKycRowCard(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(row.fullName, color = SevaInk900, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
-            Pill(text = prettyDocType(row.docType), kind = PillKind.Default)
+            Pill(text = founderPrettyBuyerDocType(row.docType), kind = PillKind.Default)
         }
         Text(
             listOfNotNull(row.email, row.phone).joinToString(" · ").ifBlank { "No contact" },
@@ -315,7 +310,12 @@ private fun BuyerKycRowCard(
     }
 }
 
-private fun prettyDocType(key: String): String = when (key) {
+/**
+ * Compact label for the buyer KYC doc-type chip. Anything unknown falls
+ * through to the raw key so a new doc kind from the backend is still
+ * surfaced (rather than silently rendering as blank / "Unknown").
+ */
+internal fun founderPrettyBuyerDocType(key: String): String = when (key) {
     "shop_registration" -> "Shop Reg"
     "gst" -> "GST"
     "drug_license" -> "Drug Lic"
@@ -323,4 +323,17 @@ private fun prettyDocType(key: String): String = when (key) {
     "dci" -> "DCI"
     "medical_id" -> "Medical ID"
     else -> key
+}
+
+/**
+ * Pulls the storage path out of a persisted `/object/sign/<bucket>/<path>?token=…`
+ * URL so we can ask Storage for a fresh signed URL when the persisted
+ * one has expired. Returns null on parse miss so the caller can fall
+ * back to the persisted URL verbatim.
+ */
+internal fun founderParseSignedKycPath(docUrl: String, bucket: String): String? {
+    val marker = "/object/sign/$bucket/"
+    val idx = docUrl.indexOf(marker)
+    if (idx < 0) return null
+    return docUrl.substring(idx + marker.length).substringBefore('?')
 }

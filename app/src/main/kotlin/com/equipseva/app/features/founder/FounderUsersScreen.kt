@@ -314,9 +314,7 @@ private fun UserRow(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = row.fullName?.firstOrNull()?.uppercaseChar()?.toString()
-                        ?: row.email?.firstOrNull()?.uppercaseChar()?.toString()
-                        ?: "?",
+                    text = founderUserInitial(row.fullName, row.email),
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                 )
@@ -366,6 +364,17 @@ private fun RoleChip(role: String?) {
         )
     }
 }
+
+/**
+ * Avatar initial for the founder Users row. Prefers the full name,
+ * then the email's first character, then "?" so the avatar circle is
+ * never empty even on a half-populated profile (e.g. social-only signup).
+ * Lowercase letters are upper-cased so the rendered glyph is consistent.
+ */
+internal fun founderUserInitial(fullName: String?, email: String?): String =
+    fullName?.firstOrNull()?.uppercaseChar()?.toString()
+        ?: email?.firstOrNull()?.uppercaseChar()?.toString()
+        ?: "?"
 
 private val DUMMY_USERS: List<FounderRepository.UserRow> = listOf(
     FounderRepository.UserRow(

@@ -142,7 +142,7 @@ private fun IntegrityRow(row: FounderRepository.IntegrityFlag) {
             )
             row.createdAt?.let { ts ->
                 Text(
-                    text = relativeTime(ts),
+                    text = founderRelativeTime(ts, System.currentTimeMillis()),
                     color = SevaInk500,
                     fontSize = 11.sp,
                 )
@@ -186,10 +186,16 @@ private fun VerdictChip(label: String, value: String?) {
     }
 }
 
-// Coarse relative-time formatter; ISO-8601 timestamps from Postgres.
-private fun relativeTime(iso: String): String = runCatching {
+/**
+ * Coarse relative-time formatter for the integrity-flags row. Takes
+ * `nowMillis` as a parameter so the bucket boundaries (1m / 1h / 24h)
+ * stay unit-testable without faking the system clock. Bad ISO falls
+ * back to a date-prefix slug so the UI never crashes on malformed
+ * RPC payloads.
+ */
+internal fun founderRelativeTime(iso: String, nowMillis: Long): String = runCatching {
     val ts = java.time.OffsetDateTime.parse(iso).toInstant().toEpochMilli()
-    val diff = System.currentTimeMillis() - ts
+    val diff = nowMillis - ts
     val mins = diff / 60_000L
     when {
         mins < 1 -> "now"

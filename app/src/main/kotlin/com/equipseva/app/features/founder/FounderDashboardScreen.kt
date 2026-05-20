@@ -250,7 +250,7 @@ private fun FounderHero(
                 color = Color.White.copy(alpha = 0.65f),
             )
             Text(
-                text = todayPayments?.let { "₹${formatRupeesShort(it)}" } ?: "—",
+                text = todayPayments?.let { "₹${founderFormatRupeesShort(it)}" } ?: "—",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.56).sp,
@@ -586,7 +586,13 @@ private fun CoverageCard() {
     }
 }
 
-private fun formatRupeesShort(amount: Double?): String {
+/**
+ * Indian-style number grouping (1,23,456) for the founder hero card.
+ * Truncates to whole rupees and null-guards so the UI can render "₹0"
+ * during loading without branching at the call-site. Negative inputs
+ * round toward zero (founder dashboard never shows refunds in red).
+ */
+internal fun founderFormatRupeesShort(amount: Double?): String {
     val v = amount ?: 0.0
     val whole = v.toLong()
     // Indian-style grouping: 1,23,456

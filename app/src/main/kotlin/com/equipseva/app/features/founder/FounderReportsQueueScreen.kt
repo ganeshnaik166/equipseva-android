@@ -172,7 +172,7 @@ private fun ReportRow(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    row.targetType.replace('_', ' ').replaceFirstChar { it.uppercase() },
+                    founderPrettifySnakeCase(row.targetType),
                     color = SevaInk900,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
@@ -181,8 +181,7 @@ private fun ReportRow(
                     // Snake-case reason kinds (e.g. "off_platform_payment")
                     // were leaking into the UI verbatim; render as
                     // "Off platform payment" instead.
-                    row.reason.replace('_', ' ')
-                        .replaceFirstChar { it.uppercase() },
+                    founderPrettifySnakeCase(row.reason),
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
@@ -191,7 +190,7 @@ private fun ReportRow(
             Pill(text = "Open", kind = PillKind.Danger)
         }
         Text(
-            "Reporter: ${row.reporterName ?: row.reporterUserId.take(8)}",
+            "Reporter: ${founderReporterLabel(row.reporterName, row.reporterUserId)}",
             color = SevaInk500,
             fontSize = 12.sp,
         )
@@ -199,7 +198,7 @@ private fun ReportRow(
         // the row stays scannable. Founders who need the exact id can copy
         // it from the action handler / detail page.
         Text(
-            "Target: ${row.targetId.takeLast(8)}",
+            "Target: ${founderTargetIdSlug(row.targetId)}",
             color = SevaInk500,
             fontSize = 11.sp,
         )
@@ -237,6 +236,29 @@ private fun ReportRow(
         }
     }
 }
+
+/**
+ * Snake-case → Title-case for the founder reports row. Used for both
+ * the `target_type` headline and the `reason` subline so the founder UI
+ * doesn't leak raw enum keys (`off_platform_payment`).
+ */
+internal fun founderPrettifySnakeCase(raw: String): String =
+    raw.replace('_', ' ').replaceFirstChar { it.uppercase() }
+
+/**
+ * Reporter display label — prefer the joined profile name when present,
+ * otherwise fall back to the first 8 chars of the reporter UUID so the
+ * row stays scannable on production data that hasn't been joined yet.
+ */
+internal fun founderReporterLabel(reporterName: String?, reporterUserId: String): String =
+    reporterName ?: reporterUserId.take(8)
+
+/**
+ * Last-8-char slug of the target id. We avoid showing the whole UUID
+ * because the column is tiny and the suffix is enough to copy/paste
+ * into ops queries.
+ */
+internal fun founderTargetIdSlug(targetId: String): String = targetId.takeLast(8)
 
 private val DUMMY_PENDING_REPORTS: List<FounderRepository.PendingReport> = listOf(
     FounderRepository.PendingReport(

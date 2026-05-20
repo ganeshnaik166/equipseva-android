@@ -143,11 +143,7 @@ class FounderCategoriesViewModel @Inject constructor(
                 _state.update { it.copy(editDraft = it.editDraft?.copy(uploadingImage = false), error = "Couldn't read image") }
                 return@launch
             }
-            val ext = when (mime.lowercase()) {
-                "image/png" -> "png"
-                "image/webp" -> "webp"
-                else -> "jpg"
-            }
+            val ext = founderCategoryImageExt(mime)
             val path = "$key.$ext"
             storage.upload(StorageRepository.Buckets.CATEGORY_IMAGES, path, bytes, mime)
                 .onSuccess {
@@ -179,12 +175,9 @@ class FounderCategoriesViewModel @Inject constructor(
 
     fun save() {
         val draft = _state.value.editDraft ?: return
-        if (draft.key.isBlank() || draft.displayName.isBlank()) {
-            _state.update { it.copy(error = "Key and name are required") }
-            return
-        }
-        if (draft.scope !in setOf("spare_part", "repair", "both")) {
-            _state.update { it.copy(error = "Scope must be spare_part, repair, or both") }
+        val validation = founderValidateCategoryDraft(draft.key, draft.displayName, draft.scope)
+        if (validation != null) {
+            _state.update { it.copy(error = validation) }
             return
         }
         val sort = draft.sortOrder.toIntOrNull() ?: 100
@@ -450,4 +443,34 @@ private fun CategoryRowCard(
             Text("scope: ${row.scope} · order: ${row.sortOrder}", color = SevaInk700, fontSize = 12.sp)
         }
     }
+}
+
+/**
+ * Picks the storage-path file extension from a MIME type. Unknown
+ * MIMEs (including null-ish "application/octet-stream" from picky
+ * content providers) fall through to jpg so the upload still succeeds
+ * — Storage transcodes server-side anyway.
+ */
+internal fun founderCategoryImageExt(mime: String): String = when (mime.lowercase()) {
+    "image/png" -> "png"
+    "image/webp" -> "webp"
+    else -> "jpg"
+}
+
+/**
+ * Pure validator for the category upsert sheet. Returns the founder-
+ * facing error string when something is wrong, or null when the draft
+ * is safe to send to `admin_categories_upsert`. Mirrors the SQL CHECK
+ * constraint on `categories.scope` (`spare_part` / `repair` / `both`).
+ */
+internal fun founderValidateCategoryDraft(
+    key: String,
+    displayName: String,
+    scope: String,
+): String? {
+    if (key.isBlank() || displayName.isBlank()) return "Key and name are required"
+    if (scope !in setOf("spare_part", "repair", "both")) {
+        return "Scope must be spare_part, repair, or both"
+    }
+    return null
 }

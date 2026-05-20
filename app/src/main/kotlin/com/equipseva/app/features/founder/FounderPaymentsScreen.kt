@@ -190,10 +190,18 @@ private fun PaymentRow(
 @Composable
 private fun PaymentStatusChip(status: String?) {
     val s = status?.lowercase() ?: "unknown"
-    val kind = when (s) {
-        "completed", "captured", "paid", "success" -> PillKind.Success
-        "failed", "cancelled", "canceled" -> PillKind.Danger
-        else -> PillKind.Neutral
-    }
-    Pill(text = s.uppercase(), kind = kind)
+    Pill(text = s.uppercase(), kind = founderPaymentStatusKind(s))
+}
+
+/**
+ * Buckets the lower-cased payment_status string into a Pill colour.
+ * Razorpay vs in-house naming drift (captured / paid / success) all
+ * collapse to green; explicit failures collapse to red; everything
+ * else (created, pending, refunded, etc.) stays neutral so the UI
+ * doesn't lie about money state.
+ */
+internal fun founderPaymentStatusKind(lowercaseStatus: String): PillKind = when (lowercaseStatus) {
+    "completed", "captured", "paid", "success" -> PillKind.Success
+    "failed", "cancelled", "canceled" -> PillKind.Danger
+    else -> PillKind.Neutral
 }

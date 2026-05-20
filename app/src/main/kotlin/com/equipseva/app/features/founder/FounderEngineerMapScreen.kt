@@ -138,7 +138,7 @@ fun FounderEngineerMapScreen(
                 else -> Column(modifier = Modifier.fillMaxSize()) {
                     ZoneMap(rows = state.rows, selected = selected)
                     Text(
-                        text = "${state.rows.size} zones · ${state.rows.sumOf { it.engineerCount }} verified engineers",
+                        text = founderZonesSummary(state.rows),
                         fontSize = 12.sp,
                         color = SevaInk500,
                         fontWeight = FontWeight.SemiBold,
@@ -173,13 +173,7 @@ private fun ZoneMap(
 ) {
     // Memoize the lat/lng filter so it doesn't re-fire every parent
     // recomposition (founder dashboard ticks every realtime event).
-    val pinned = androidx.compose.runtime.remember(rows) {
-        rows.mapNotNull { row ->
-            val lat = row.sampleLat ?: return@mapNotNull null
-            val lng = row.sampleLng ?: return@mapNotNull null
-            Triple(row, lat, lng)
-        }
-    }
+    val pinned = androidx.compose.runtime.remember(rows) { founderPinnedZones(rows) }
     if (pinned.isEmpty()) {
         Box(
             modifier = Modifier
@@ -235,7 +229,7 @@ private fun ZoneMap(
             Marker(
                 state = rememberMarkerState(key = row.district, position = LatLng(lat, lng)),
                 title = row.district,
-                snippet = "${row.engineerCount} verified engineer${if (row.engineerCount == 1) "" else "s"}",
+                snippet = founderZoneMarkerSnippet(row.engineerCount),
                 alpha = if (selected == null || isSel) 1f else 0.45f,
             )
         }
@@ -281,14 +275,53 @@ private fun ZoneRow(
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                text = if (row.sampleLat != null && row.sampleLng != null) {
-                    "Avg pin: ${"%.4f".format(row.sampleLat)}, ${"%.4f".format(row.sampleLng)}"
-                } else {
-                    "No coordinates pinned"
-                },
+                text = founderAvgPinLabel(row.sampleLat, row.sampleLng),
                 fontSize = 11.sp,
                 color = SevaInk500,
             )
         }
     }
 }
+
+/**
+ * Summary line for the founder zones header: "5 zones · 47 verified engineers".
+ * Pluralisation kept stable across counts to match the existing visual; if
+ * product wants singular for size==1, branch here in one place.
+ */
+internal fun founderZonesSummary(rows: List<FounderRepository.EngineerZoneRow>): String {
+    val count = rows.sumOf { it.engineerCount }
+    return "${rows.size} zones · $count verified engineers"
+}
+
+/**
+ * Drops rows missing either lat or lng so GoogleMap doesn't render a
+ * pin at (0, 0). Order is preserved so the founder's tap order maps
+ * back to the visible row list one-to-one.
+ */
+internal fun founderPinnedZones(
+    rows: List<FounderRepository.EngineerZoneRow>,
+): List<Triple<FounderRepository.EngineerZoneRow, Double, Double>> =
+    rows.mapNotNull { row ->
+        val lat = row.sampleLat ?: return@mapNotNull null
+        val lng = row.sampleLng ?: return@mapNotNull null
+        Triple(row, lat, lng)
+    }
+
+/**
+ * Pluralises the marker snippet (1 verified engineer / 3 verified engineers).
+ * Zero falls through to the plural form to match English grammar.
+ */
+internal fun founderZoneMarkerSnippet(count: Int): String =
+    "$count verified engineer${if (count == 1) "" else "s"}"
+
+/**
+ * Row-level "Avg pin: lat, lng" formatter. Either coord missing collapses
+ * to a single "No coordinates pinned" string — used to drive the founder
+ * zones list to surface the gap honestly instead of "0.0000, 0.0000".
+ */
+internal fun founderAvgPinLabel(lat: Double?, lng: Double?): String =
+    if (lat != null && lng != null) {
+        "Avg pin: ${"%.4f".format(lat)}, ${"%.4f".format(lng)}"
+    } else {
+        "No coordinates pinned"
+    }

@@ -325,10 +325,7 @@ private fun ReviewBody(
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(engineer.fullName, style = EsType.H4, color = SevaInk900)
-                    val sub = listOfNotNull(
-                        engineer.city,
-                        engineer.createdAt?.let { "submitted ${it.take(10)}" },
-                    ).joinToString(" · ")
+                    val sub = founderReviewSubtitle(engineer.city, engineer.createdAt)
                     if (sub.isNotBlank()) {
                         Text(sub, style = EsType.Caption, color = SevaInk500)
                     }
@@ -463,4 +460,15 @@ private fun DocTile(
         )
     }
 }
+
+/**
+ * Hero subtitle for the founder KYC review screen — "Hyderabad · submitted 2025-04-12".
+ * Either field missing drops out cleanly so we don't show "null · submitted ..."
+ * or stray separators when the RPC payload is incomplete.
+ */
+internal fun founderReviewSubtitle(city: String?, createdAt: String?): String =
+    listOfNotNull(
+        city,
+        createdAt?.let { "submitted ${it.take(10)}" },
+    ).joinToString(" · ")
 
