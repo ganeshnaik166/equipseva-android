@@ -46,10 +46,28 @@ class NotificationReadOutboxHandler @Inject constructor(
                 )
             }
         }
-        return notificationRepository.markRead(payload.notificationId).fold(
-            onSuccess = { OutboxKindHandler.Outcome.Success },
+        // Round 437 — bound the RPC like the chat / bid / job-status
+        // handlers do. Without it, a hung TLS connection burns the full
+        // MAX_ATTEMPTS retry budget on the same broken socket and the
+        // mark-read poison-drops without surfacing why. 15s matches
+        // ChatMessageOutboxHandler's SEND_TIMEOUT_MS.
+        return runCatching {
+            kotlinx.coroutines.withTimeout(MARK_READ_TIMEOUT_MS) {
+                notificationRepository.markRead(payload.notificationId)
+            }
+        }.fold(
+            onSuccess = { result ->
+                result.fold(
+                    onSuccess = { OutboxKindHandler.Outcome.Success },
+                    onFailure = ::classifyOutboxError,
+                )
+            },
             onFailure = ::classifyOutboxError,
         )
+    }
+
+    companion object {
+        private const val MARK_READ_TIMEOUT_MS = 15_000L
     }
 }
 
