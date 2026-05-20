@@ -143,6 +143,13 @@ fun RepairJobDetailScreen(
     var cancelSheetOpen by rememberSaveable { mutableStateOf(false) }
     var rateSheetOpen by rememberSaveable { mutableStateOf(false) }
 
+    // Round 426 — re-fetch on return so new bids / status flips / cost-
+    // revision outcomes that landed while the user was in chat or picker
+    // surfaces refresh instead of showing stale data. The viewmodel only
+    // subscribes to outbox counters + pending cost-revision realtime;
+    // bids and job-row updates require an explicit fetch.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.retry() }
+
     LaunchedEffect(viewModel) {
         viewModel.messages.collect { onShowMessage(it) }
     }
