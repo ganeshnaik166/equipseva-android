@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import com.equipseva.app.core.data.account.AccountDeletionRepository
 import com.equipseva.app.core.data.account.DataExportRepository
 import com.equipseva.app.core.data.dao.OutboxDao
+import com.equipseva.app.core.data.engineers.Engineer
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.prefs.ThemeMode
@@ -250,11 +251,7 @@ class ProfileViewModel @Inject constructor(
         if (current.roleUpdating) return
         val profile = current.profile ?: return
         val currentRole = profile.activeRole ?: profile.role ?: return
-        val target = when (currentRole) {
-            UserRole.ENGINEER -> UserRole.HOSPITAL
-            UserRole.HOSPITAL -> UserRole.ENGINEER
-            else -> UserRole.HOSPITAL
-        }
+        val target = nextRoleForToggle(currentRole)
         _state.update { it.copy(roleUpdating = true) }
         viewModelScope.launch {
             val hasRole = profile.roles.contains(target)
@@ -354,11 +351,7 @@ class ProfileViewModel @Inject constructor(
                 _effects.send(Effect.ShowMessage("Couldn't read image"))
                 return@launch
             }
-            val ext = when (mime.lowercase()) {
-                "image/png" -> "png"
-                "image/webp" -> "webp"
-                else -> "jpg"
-            }
+            val ext = avatarExtensionForMime(mime)
             val path = "${profile.id}/avatar.$ext"
             storageRepository.upload(
                 bucket = com.equipseva.app.core.storage.StorageRepository.Buckets.AVATARS,
@@ -528,10 +521,7 @@ class ProfileViewModel @Inject constructor(
                             ?.takeIf { eng -> eng.verificationStatus == VerificationStatus.Verified }
                             ?.id,
                         engineerStatus = engineer?.verificationStatus,
-                        engineerKycSubmitted = engineer != null &&
-                            !engineer.aadhaarDocPath.isNullOrBlank() &&
-                            !engineer.panDocPath.isNullOrBlank() &&
-                            engineer.certDocPaths.isNotEmpty(),
+                        engineerKycSubmitted = isEngineerKycSubmitted(engineer),
                         errorMessage = if (profile == null) "Profile not found" else null,
                     )
                 }
@@ -546,4 +536,39 @@ class ProfileViewModel @Inject constructor(
             }
     }
 
+}
+
+/**
+ * The Profile screen's KYC chip distinguishes "draft" from "in review" while the
+ * backend still reports a single Pending status — this helper encodes the
+ * three-doc rule (Aadhaar + PAN + at least one cert) so the gate is testable
+ * without spinning up the whole ViewModel + repos.
+ */
+internal fun isEngineerKycSubmitted(engineer: Engineer?): Boolean =
+    engineer != null &&
+        !engineer.aadhaarDocPath.isNullOrBlank() &&
+        !engineer.panDocPath.isNullOrBlank() &&
+        engineer.certDocPaths.isNotEmpty()
+
+/**
+ * "Switch" CTA in the Account-type section flips between Engineer ↔ Hospital.
+ * Any other role (supplier/manufacturer/logistics) falls back to Hospital so
+ * the toggle is never a no-op.
+ */
+internal fun nextRoleForToggle(currentRole: UserRole): UserRole = when (currentRole) {
+    UserRole.ENGINEER -> UserRole.HOSPITAL
+    UserRole.HOSPITAL -> UserRole.ENGINEER
+    else -> UserRole.HOSPITAL
+}
+
+/**
+ * Map an avatar upload's content-type to the file extension we persist in the
+ * `avatars` bucket. Default is `jpg` — anything we don't explicitly recognise
+ * is still a JPEG more often than not, and the Storage bucket doesn't care
+ * about the suffix for serving.
+ */
+internal fun avatarExtensionForMime(mime: String): String = when (mime.lowercase()) {
+    "image/png" -> "png"
+    "image/webp" -> "webp"
+    else -> "jpg"
 }
