@@ -167,6 +167,9 @@ fun FounderKycQueueScreen(
     viewModel: FounderKycQueueViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Round 429 — refresh on return so newly-submitted engineers / docs
+    // surface as soon as the admin returns from a review screen.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val openDoc: (FounderRepository.PendingEngineer.DocRef) -> Unit = { doc ->

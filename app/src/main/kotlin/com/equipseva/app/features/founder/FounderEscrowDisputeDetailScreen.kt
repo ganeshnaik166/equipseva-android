@@ -114,6 +114,9 @@ fun FounderEscrowDisputeDetailScreen(
     viewModel: FounderEscrowDisputeDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Round 429 — refresh on return so new admin notes / status flips
+    // landed while the user was off-screen surface immediately.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(

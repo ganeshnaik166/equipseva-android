@@ -143,6 +143,9 @@ fun FounderAmcEscalationDetailScreen(
     viewModel: FounderAmcEscalationDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Round 429 — refresh on return so rotation changes / resolution
+    // events landed while user was off-screen surface immediately.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(title = "Escalation detail", onBack = onBack)
