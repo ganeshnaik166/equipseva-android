@@ -2,10 +2,12 @@ package com.equipseva.app.core.observability
 
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.data.prefs.UserPrefs
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -31,22 +33,39 @@ import javax.inject.Singleton
 @Singleton
 class CrashlyticsUserBridge @Inject constructor(
     private val authRepository: AuthRepository,
+    private val userPrefs: UserPrefs,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     fun attach() {
         scope.launch {
-            authRepository.sessionState
+            // Round 463 — combine session + active-role pref. Multi-role
+            // users flip activeRole at runtime; without observing the
+            // pref the Crashlytics custom key would be set once at
+            // sign-in and never updated.
+            combine(
+                authRepository.sessionState,
+                userPrefs.activeRole,
+            ) { session, role -> session to role }
                 .distinctUntilChanged()
-                .collect { session ->
+                .collect { (session, role) ->
+                    val crashlytics = FirebaseCrashlytics.getInstance()
                     when (session) {
-                        is AuthSession.SignedIn ->
-                            FirebaseCrashlytics.getInstance().setUserId(session.userId)
+                        is AuthSession.SignedIn -> {
+                            crashlytics.setUserId(session.userId)
+                            crashlytics.setCustomKey(KEY_ACTIVE_ROLE, role.orEmpty())
+                        }
                         AuthSession.SignedOut,
-                        AuthSession.Unknown ->
-                            FirebaseCrashlytics.getInstance().setUserId("")
+                        AuthSession.Unknown -> {
+                            crashlytics.setUserId("")
+                            crashlytics.setCustomKey(KEY_ACTIVE_ROLE, "")
+                        }
                     }
                 }
         }
+    }
+
+    private companion object {
+        const val KEY_ACTIVE_ROLE = "active_role"
     }
 }
