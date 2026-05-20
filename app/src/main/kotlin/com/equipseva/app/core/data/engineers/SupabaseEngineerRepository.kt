@@ -36,25 +36,21 @@ class SupabaseEngineerRepository @Inject constructor(
         aadhaarUploaded: Boolean,
         resetVerificationToPending: Boolean,
     ): Result<Engineer> = runCatching {
-        val payload = EngineerUpsertDto(
+        val payload = buildEngineerUpsertDto(
             userId = userId,
-            aadhaarNumber = aadhaarNumber?.takeIf { it.isNotBlank() },
-            panNumber = panNumber?.takeIf { it.isNotBlank() },
-            qualifications = qualifications.ifEmpty { null },
-            specializations = specializations.map { it.storageKey }.ifEmpty { null },
+            aadhaarNumber = aadhaarNumber,
+            panNumber = panNumber,
+            qualifications = qualifications,
+            specializations = specializations,
             experienceYears = experienceYears,
             serviceRadiusKm = serviceRadiusKm,
-            city = city?.takeIf { it.isNotBlank() },
-            state = state?.takeIf { it.isNotBlank() },
+            city = city,
+            state = state,
             latitude = latitude,
             longitude = longitude,
-            certificates = certificates.ifEmpty { null },
-            aadhaarVerified = if (aadhaarUploaded) true else null,
-            verificationStatus = if (resetVerificationToPending) {
-                VerificationStatus.Pending.storageKey
-            } else {
-                null
-            },
+            certificates = certificates,
+            aadhaarUploaded = aadhaarUploaded,
+            resetVerificationToPending = resetVerificationToPending,
         )
         client.from(TABLE).upsert(payload) {
             onConflict = "user_id"
@@ -122,3 +118,55 @@ class SupabaseEngineerRepository @Inject constructor(
         const val TABLE = "engineers"
     }
 }
+
+/**
+ * Builds the KYC upsert payload. Lifted out of [SupabaseEngineerRepository.upsert]
+ * so the blank-collapse / empty-list-to-null / conditional flag logic can be
+ * unit-tested in isolation. Behavior is identical to the inline construction
+ * the call site previously did.
+ *
+ * Three load-bearing conventions are pinned here:
+ * - blank strings collapse to `null` so the server-side CHECK constraints fire
+ *   on missing data rather than storing literal `""`,
+ * - empty `qualifications` / `specializations` / `certificates` lists collapse
+ *   to `null` so the upsert doesn't clobber a previously-populated array with
+ *   `[]` on a partial edit,
+ * - `aadhaarVerified` is only set to `true` (never to `false`) — the only
+ *   transition we own from the client side is the optimistic flip after a
+ *   successful Aadhaar OTP. Server-side review can flip it back to `false`.
+ */
+internal fun buildEngineerUpsertDto(
+    userId: String,
+    aadhaarNumber: String?,
+    panNumber: String?,
+    qualifications: List<String>,
+    specializations: List<RepairEquipmentCategory>,
+    experienceYears: Int,
+    serviceRadiusKm: Int,
+    city: String?,
+    state: String?,
+    latitude: Double?,
+    longitude: Double?,
+    certificates: List<EngineerCertificate>,
+    aadhaarUploaded: Boolean,
+    resetVerificationToPending: Boolean,
+): EngineerUpsertDto = EngineerUpsertDto(
+    userId = userId,
+    aadhaarNumber = aadhaarNumber?.takeIf { it.isNotBlank() },
+    panNumber = panNumber?.takeIf { it.isNotBlank() },
+    qualifications = qualifications.ifEmpty { null },
+    specializations = specializations.map { it.storageKey }.ifEmpty { null },
+    experienceYears = experienceYears,
+    serviceRadiusKm = serviceRadiusKm,
+    city = city?.takeIf { it.isNotBlank() },
+    state = state?.takeIf { it.isNotBlank() },
+    latitude = latitude,
+    longitude = longitude,
+    certificates = certificates.ifEmpty { null },
+    aadhaarVerified = if (aadhaarUploaded) true else null,
+    verificationStatus = if (resetVerificationToPending) {
+        VerificationStatus.Pending.storageKey
+    } else {
+        null
+    },
+)

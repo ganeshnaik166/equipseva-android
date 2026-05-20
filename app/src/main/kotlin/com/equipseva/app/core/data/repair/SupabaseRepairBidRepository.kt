@@ -44,21 +44,15 @@ class SupabaseRepairBidRepository @Inject constructor(
         etaHours: Int?,
         note: String?,
     ): Result<RepairBid> = runCatching {
-        require(amountRupees.isFinite() && amountRupees in 1.0..10_000_000.0) {
-            "Bid amount must be between ₹1 and ₹1 crore"
-        }
-        require(etaHours == null || etaHours in 1..720) {
-            "ETA must be between 1 and 720 hours"
-        }
         val userId = requireNotNull(client.auth.currentUserOrNull()?.id) {
             "No authenticated user"
         }
-        val payload = RepairBidInsertDto(
-            repairJobId = jobId,
+        val payload = buildRepairBidInsertDto(
+            jobId = jobId,
             engineerUserId = userId,
             amountRupees = amountRupees,
             etaHours = etaHours,
-            note = note?.takeIf { it.isNotBlank() },
+            note = note,
         )
         client.from(TABLE).upsert(payload) {
             onConflict = "repair_job_id,engineer_user_id"
@@ -98,4 +92,35 @@ class SupabaseRepairBidRepository @Inject constructor(
     private companion object {
         const val TABLE = "repair_job_bids"
     }
+}
+
+/**
+ * Validates the bid form inputs and builds the insert payload. Pulled out of
+ * [SupabaseRepairBidRepository.placeBid] so the range checks + blank-note
+ * collapse can be pinned without standing up a SupabaseClient.
+ *
+ * Ranges mirror the UI's input constraints — anything outside these bounds is
+ * an out-of-spec call (likely a programming error), so we throw rather than
+ * silently clamp.
+ */
+internal fun buildRepairBidInsertDto(
+    jobId: String,
+    engineerUserId: String,
+    amountRupees: Double,
+    etaHours: Int?,
+    note: String?,
+): RepairBidInsertDto {
+    require(amountRupees.isFinite() && amountRupees in 1.0..10_000_000.0) {
+        "Bid amount must be between ₹1 and ₹1 crore"
+    }
+    require(etaHours == null || etaHours in 1..720) {
+        "ETA must be between 1 and 720 hours"
+    }
+    return RepairBidInsertDto(
+        repairJobId = jobId,
+        engineerUserId = engineerUserId,
+        amountRupees = amountRupees,
+        etaHours = etaHours,
+        note = note?.takeIf { it.isNotBlank() },
+    )
 }
