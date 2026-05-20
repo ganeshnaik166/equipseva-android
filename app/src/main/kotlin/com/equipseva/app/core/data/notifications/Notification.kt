@@ -1,5 +1,6 @@
 package com.equipseva.app.core.data.notifications
 
+import androidx.compose.runtime.Immutable
 import java.time.Instant
 
 /**
@@ -10,6 +11,11 @@ import java.time.Instant
  * `{"order_id": "..."}`). The screen consults it on tap to route the user
  * to the related surface; an empty map means the row is informational only.
  */
+// Round 460 — @Immutable lets Compose skip NotificationRow recomposition
+// when row.equals(prevRow). Without it, the Map<String,String> data
+// field marks the class as Unstable; every parent recomposition of the
+// notifications inbox (markRead, realtime tick) re-rendered every row.
+@Immutable
 data class Notification(
     val id: String,
     val title: String,

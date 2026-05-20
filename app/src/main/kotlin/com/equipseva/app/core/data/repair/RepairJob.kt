@@ -1,5 +1,6 @@
 package com.equipseva.app.core.data.repair
 
+import androidx.compose.runtime.Immutable
 import com.equipseva.app.core.util.parseInstantOrNull
 import java.time.Instant
 
@@ -8,6 +9,13 @@ import java.time.Instant
  * the screen never has to care about wire formats. Anything server-side that
  * can be null is resolved to a safe default at the domain boundary.
  */
+// Round 460 — @Immutable lets Compose skip JobCard recomposition when
+// job.equals(prevJob). Without it, the 3 List<String> photo fields
+// (issuePhotos / beforePhotos / afterPhotos) mark the class as Unstable;
+// every parent recomposition of the repair jobs feed (distance update,
+// PTR tick, bid arrival) re-rendered every card even when the per-job
+// data was identical.
+@Immutable
 data class RepairJob(
     val id: String,
     val jobNumber: String?,
