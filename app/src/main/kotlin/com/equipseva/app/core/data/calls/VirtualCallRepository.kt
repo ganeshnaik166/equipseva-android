@@ -53,36 +53,43 @@ class VirtualCallRepository @Inject constructor(
     suspend fun requestCallSession(
         repairJobId: String,
     ): Result<CallSessionResult> = runCatching {
-        // supabase-kt 3.x's Functions plugin auto-throws RestException on
-        // any non-2xx response (see Functions.parseErrorResponse). We
-        // catch it here so the typed error mapping below actually runs;
-        // letting it bubble would surface a generic "Something went
-        // wrong" toast and bury the 503/422/429 codes the edge function
-        // returns.
-        val res = try {
-            supabase.functions.invoke(
-                function = "request-call-session",
-                body = buildJsonObject {
-                    put("repair_job_id", JsonPrimitive(repairJobId))
-                },
-            )
-        } catch (rest: RestException) {
-            return@runCatching mapError(rest.statusCode, parseRestExceptionBody(rest))
-        }
-        val text = res.bodyAsText()
-        val status = res.status
+        // Round 438 — bound at 10s. Interactive UI ("Call" tap), fail
+        // fast so the user can switch to chat or retry instead of
+        // staring at a spinner while Exotel auth hangs. Same rationale
+        // as ChatMessageOutboxHandler's 15s but tighter because this
+        // is a foreground tap, not a background drain.
+        kotlinx.coroutines.withTimeout(10_000L) {
+            // supabase-kt 3.x's Functions plugin auto-throws RestException on
+            // any non-2xx response (see Functions.parseErrorResponse). We
+            // catch it here so the typed error mapping below actually runs;
+            // letting it bubble would surface a generic "Something went
+            // wrong" toast and bury the 503/422/429 codes the edge function
+            // returns.
+            val res = try {
+                supabase.functions.invoke(
+                    function = "request-call-session",
+                    body = buildJsonObject {
+                        put("repair_job_id", JsonPrimitive(repairJobId))
+                    },
+                )
+            } catch (rest: RestException) {
+                return@withTimeout mapError(rest.statusCode, parseRestExceptionBody(rest))
+            }
+            val text = res.bodyAsText()
+            val status = res.status
 
-        if (status.isSuccess()) {
-            val parsed = JSON.decodeFromString(SuccessBody.serializer(), text)
-            CallSessionResult.ClickToCall(
-                message = parsed.message ?: "Connecting your call…",
-                callSid = parsed.callSid,
-            )
-        } else {
-            // Defensive: if a future SDK upgrade stops auto-throwing,
-            // we still parse the body the same way as the catch branch.
-            val err = runCatching { JSON.decodeFromString(ErrorBody.serializer(), text) }.getOrNull()
-            mapError(status.value, err)
+            if (status.isSuccess()) {
+                val parsed = JSON.decodeFromString(SuccessBody.serializer(), text)
+                CallSessionResult.ClickToCall(
+                    message = parsed.message ?: "Connecting your call…",
+                    callSid = parsed.callSid,
+                )
+            } else {
+                // Defensive: if a future SDK upgrade stops auto-throwing,
+                // we still parse the body the same way as the catch branch.
+                val err = runCatching { JSON.decodeFromString(ErrorBody.serializer(), text) }.getOrNull()
+                mapError(status.value, err)
+            }
         }
     }
 
