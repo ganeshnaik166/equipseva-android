@@ -106,8 +106,16 @@ fun HospitalMyDisputesScreen(
     // would otherwise show stale counts until restart.
     com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
 
-    val openCount = state.rows.count { it.status == "in_dispute" }
-    val resolvedCount = state.rows.size - openCount
+    // Round 434 — memoize the count walks so they don't re-fire on every
+    // recomposition (PullToRefresh state ticks, scroll, realtime). Keyed
+    // on state.rows so the cached value invalidates when the list itself
+    // changes. Mirror of the r387 fix on EngineerMyDisputes.
+    val openCount = androidx.compose.runtime.remember(state.rows) {
+        state.rows.count { it.status == "in_dispute" }
+    }
+    val resolvedCount = androidx.compose.runtime.remember(state.rows) {
+        state.rows.size - state.rows.count { it.status == "in_dispute" }
+    }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(

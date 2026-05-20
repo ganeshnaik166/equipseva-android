@@ -143,14 +143,19 @@ fun FounderEngineerMapScreen(
                 }
                 else -> Column(modifier = Modifier.fillMaxSize()) {
                     ZoneMap(rows = state.rows, selected = selected)
+                    // Round 434 — memoize the zone/engineer count walk so the
+                    // sumOf doesn't re-fire on every recomposition (realtime
+                    // ticks, selected-zone change, etc.). Keyed on rows so the
+                    // cache invalidates when the list itself changes.
+                    val summaryText = androidx.compose.runtime.remember(state.rows) {
+                        val zones = state.rows.size
+                        val engineers = state.rows.sumOf { it.engineerCount }
+                        val zoneLabel = if (zones == 1) "1 zone" else "$zones zones"
+                        val engLabel = if (engineers == 1) "1 verified engineer" else "$engineers verified engineers"
+                        "$zoneLabel · $engLabel"
+                    }
                     Text(
-                        text = run {
-                            val zones = state.rows.size
-                            val engineers = state.rows.sumOf { it.engineerCount }
-                            val zoneLabel = if (zones == 1) "1 zone" else "$zones zones"
-                            val engLabel = if (engineers == 1) "1 verified engineer" else "$engineers verified engineers"
-                            "$zoneLabel · $engLabel"
-                        },
+                        text = summaryText,
                         fontSize = 12.sp,
                         color = SevaInk500,
                         fontWeight = FontWeight.SemiBold,
