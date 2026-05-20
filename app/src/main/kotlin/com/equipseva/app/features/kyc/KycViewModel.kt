@@ -884,21 +884,13 @@ internal fun kycDocTypeLabel(type: String): String = when (type) {
 }
 
 /**
- * Builds a storage-safe upload filename: epoch millis prefix + the
- * trailing path segment with non-alphanumeric chars (except `.`, `_`, `-`)
- * collapsed to underscore. Guards against (a) supplying a SAF-returned
- * URI path containing `/`, (b) blanks, (c) characters Supabase Storage
- * rejects in object keys.
- *
- * The timestamp prefix is taken from System.currentTimeMillis(); the
- * suffix transform is pure and is what the test pins.
+ * KYC-side upload filename. Thin wrapper over the shared
+ * [com.equipseva.app.core.util.storageObjectFilename] — blank-tail falls
+ * back to "file" since the doc-type label is already baked into the
+ * storage path prefix by the caller.
  */
-internal fun kycTimestampedName(original: String): String {
-    val sanitized = original.substringAfterLast('/').ifBlank { "file" }
-        .replace(Regex("[^A-Za-z0-9._-]"), "_")
-    val stamp = System.currentTimeMillis()
-    return "$stamp-$sanitized"
-}
+internal fun kycTimestampedName(original: String): String =
+    com.equipseva.app.core.util.storageObjectFilename(original)
 
 /**
  * Parses an engineer's "city" field (typically the last edited service-area

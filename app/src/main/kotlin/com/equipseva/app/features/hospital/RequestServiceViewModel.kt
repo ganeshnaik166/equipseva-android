@@ -265,14 +265,10 @@ internal fun resolveScheduledSlot(
 }
 
 /**
- * Builds the storage-safe `issue-<epoch>-<filename>` shape the booking
- * form's photo uploader uses. Same sanitisation policy as KYC's
- * upload-name helper but with a different blank fallback (photo.jpg vs
- * file). Pulled out for unit testing.
+ * Booking-form upload filename. Thin wrapper over the shared
+ * [com.equipseva.app.core.util.storageObjectFilename] — blank-tail falls
+ * back to "photo.jpg" since the booking form doesn't bake a doc-type
+ * label into the storage path prefix.
  */
-internal fun requestServiceTimestampedName(original: String): String {
-    val sanitized = original.substringAfterLast('/').ifBlank { "photo.jpg" }
-        .replace(Regex("[^A-Za-z0-9._-]"), "_")
-    val stamp = System.currentTimeMillis()
-    return "$stamp-$sanitized"
-}
+internal fun requestServiceTimestampedName(original: String): String =
+    com.equipseva.app.core.util.storageObjectFilename(original, blankFallback = "photo.jpg")
