@@ -49,4 +49,39 @@ object Validators {
         if (!GSTIN_REGEX.matches(v)) return "Invalid GSTIN format"
         return null
     }
+
+    // Round 441 — Indian mobile-shape check for the optional secondary
+    // phone fields (hospital reception, biomed contact). The primary
+    // sign-in / KYC phone path uses normalizeIndiaMobileInput +
+    // AddPhoneScreen dedup (r287). For form fields where the user
+    // types freely, accept either "+91" + 10 digits or just 10 digits
+    // starting 6-9 (India mobile prefix range).
+    private val INDIA_MOBILE_DIGITS = Regex("^[6-9][0-9]{9}$")
+
+    /** Empty = not required at this layer; non-empty must match the India mobile shape. */
+    fun indiaMobileError(value: String): String? {
+        val trimmed = value.trim()
+        if (trimmed.isEmpty()) return null
+        val digits = trimmed
+            .removePrefix("+91")
+            .removePrefix("+")
+            .removePrefix("91")
+            .filter { it.isDigit() }
+        if (digits.length != 10) return "Enter 10 digits"
+        if (!INDIA_MOBILE_DIGITS.matches(digits)) return "Indian mobile must start with 6, 7, 8, or 9"
+        return null
+    }
+
+    // Round 441 — Indian pincode is exactly 6 digits, first digit 1-9.
+    // Source: https://en.wikipedia.org/wiki/Postal_Index_Number
+    private val PINCODE_REGEX = Regex("^[1-9][0-9]{5}$")
+
+    /** Empty = not required at this layer; non-empty must be a 6-digit PIN. */
+    fun pincodeError(value: String): String? {
+        val v = value.trim()
+        if (v.isEmpty()) return null
+        if (v.length != 6) return "PIN code must be exactly 6 digits"
+        if (!PINCODE_REGEX.matches(v)) return "Invalid PIN code"
+        return null
+    }
 }

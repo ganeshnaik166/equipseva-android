@@ -72,4 +72,59 @@ class ValidatorsTest {
         assertEquals("Invalid GSTIN format", Validators.gstinError("22ABCDE12345115"))
         assertEquals("Invalid GSTIN format", Validators.gstinError("22abcde1234fAA5".uppercase()))
     }
+
+    // Round 441 — indiaMobileError validator
+    @Test fun `india mobile empty is treated as not-required`() {
+        assertNull(Validators.indiaMobileError(""))
+        assertNull(Validators.indiaMobileError("   "))
+    }
+
+    @Test fun `india mobile accepts 10 digits starting 6-9`() {
+        assertNull(Validators.indiaMobileError("9876543210"))
+        assertNull(Validators.indiaMobileError("6000000000"))
+        assertNull(Validators.indiaMobileError("8123456789"))
+    }
+
+    @Test fun `india mobile accepts +91 and 91 prefixes`() {
+        assertNull(Validators.indiaMobileError("+919876543210"))
+        assertNull(Validators.indiaMobileError("919876543210"))
+        assertNull(Validators.indiaMobileError("  +91 98765 43210 "))
+    }
+
+    @Test fun `india mobile rejects 10 digits starting 1-5 or 0`() {
+        // Indian mobile range is 6-9 per TRAI numbering plan.
+        assertEquals("Indian mobile must start with 6, 7, 8, or 9", Validators.indiaMobileError("1234567890"))
+        assertEquals("Indian mobile must start with 6, 7, 8, or 9", Validators.indiaMobileError("5876543210"))
+        assertEquals("Indian mobile must start with 6, 7, 8, or 9", Validators.indiaMobileError("0876543210"))
+    }
+
+    @Test fun `india mobile rejects wrong digit count`() {
+        assertEquals("Enter 10 digits", Validators.indiaMobileError("12345"))
+        assertEquals("Enter 10 digits", Validators.indiaMobileError("98765432101"))
+    }
+
+    // Round 441 — pincodeError validator
+    @Test fun `pincode empty is treated as not-required`() {
+        assertNull(Validators.pincodeError(""))
+        assertNull(Validators.pincodeError("   "))
+    }
+
+    @Test fun `pincode accepts 6 digits starting 1-9`() {
+        assertNull(Validators.pincodeError("110001")) // New Delhi
+        assertNull(Validators.pincodeError("500001")) // Hyderabad
+        assertNull(Validators.pincodeError("999999"))
+    }
+
+    @Test fun `pincode rejects 6 digits starting 0`() {
+        assertEquals("Invalid PIN code", Validators.pincodeError("012345"))
+    }
+
+    @Test fun `pincode rejects wrong length`() {
+        assertEquals("PIN code must be exactly 6 digits", Validators.pincodeError("12345"))
+        assertEquals("PIN code must be exactly 6 digits", Validators.pincodeError("1234567"))
+    }
+
+    @Test fun `pincode rejects non-digit chars`() {
+        assertEquals("Invalid PIN code", Validators.pincodeError("1100AB"))
+    }
 }

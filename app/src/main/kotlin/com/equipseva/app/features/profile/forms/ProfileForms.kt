@@ -341,8 +341,13 @@ fun HospitalAddressesScreen(onBack: () -> Unit, onShowMessage: (String) -> Unit)
             FieldSpec("street", "Street + locality", kind = FieldKind.MULTILINE),
             FieldSpec("city", "City"),
             FieldSpec("state", "State"),
-            FieldSpec("pincode", "PIN code", FieldKind.NUMBER),
-            FieldSpec("contact_phone", "Reception phone", FieldKind.PHONE),
+            // Round 441 — wire format validators that match server-side
+            // shape (6-digit PIN, 10-digit India mobile starting 6-9).
+            // Without these the field accepted any keyboard input and the
+            // hospital row shipped with junk that broke downstream lookups
+            // (e.g. distance-by-pincode aggregations).
+            FieldSpec("pincode", "PIN code", FieldKind.NUMBER, validator = Validators::pincodeError),
+            FieldSpec("contact_phone", "Reception phone", FieldKind.PHONE, validator = Validators::indiaMobileError),
             // Storage key kept as "default_shipping" to preserve existing
             // user data; only the user-visible label changes for v1.
             FieldSpec("default_shipping", "Default service-call address", kind = FieldKind.SWITCH),
@@ -368,7 +373,7 @@ fun HospitalSettingsScreen(onBack: () -> Unit, onShowMessage: (String) -> Unit) 
             FieldSpec("departments", "Departments served", FieldKind.MULTILINE, helper = "Comma-separated"),
             FieldSpec("billing_email", "Billing email", FieldKind.EMAIL),
             FieldSpec("gstin", "GSTIN", placeholder = "22ABCDE1234F1Z5", helper = "15 characters · 2-digit state + 10-char PAN + entity + Z + check digit", validator = Validators::gstinError),
-            FieldSpec("biomed_contact", "Biomed contact phone", FieldKind.PHONE),
+            FieldSpec("biomed_contact", "Biomed contact phone", FieldKind.PHONE, validator = Validators::indiaMobileError),
         ),
         onBack = onBack,
         onShowMessage = onShowMessage,
