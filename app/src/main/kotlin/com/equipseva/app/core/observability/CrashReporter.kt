@@ -33,13 +33,7 @@ class CrashReporter @Inject constructor() {
         Sentry.setUser(userId?.let { io.sentry.protocol.User().apply { id = it } })
     }
 
-    private fun wrapScrubbed(t: Throwable): Throwable {
-        val scrubbedMessage = CrashDataScrubber.scrub(t.message)
-        if (scrubbedMessage == t.message) return t
-        // Preserve the original class + stack trace while swapping in a scrubbed message.
-        // Crashlytics uses the message via toString(); Sentry reads the class + message.
-        return ScrubbedException(t::class.java.name, scrubbedMessage, t)
-    }
+    private fun wrapScrubbed(t: Throwable): Throwable = scrubExceptionMessage(t)
 
     /** Carrier exception whose message has been scrubbed. The original is kept as `cause`. */
     class ScrubbedException(
@@ -49,4 +43,18 @@ class CrashReporter @Inject constructor() {
     ) : RuntimeException(message, cause) {
         override fun toString(): String = "$originalType: ${message.orEmpty()}"
     }
+}
+
+/**
+ * Pure scrubber: if the throwable's message contains PII the
+ * [CrashDataScrubber] regexes recognise, return a
+ * [CrashReporter.ScrubbedException] carrying the scrubbed message + the
+ * original as cause (so the stack trace + class are preserved). When
+ * the message is already safe, return the original throwable unchanged
+ * so we don't pay the wrapping cost.
+ */
+internal fun scrubExceptionMessage(t: Throwable): Throwable {
+    val scrubbedMessage = CrashDataScrubber.scrub(t.message)
+    if (scrubbedMessage == t.message) return t
+    return CrashReporter.ScrubbedException(t::class.java.name, scrubbedMessage, t)
 }
