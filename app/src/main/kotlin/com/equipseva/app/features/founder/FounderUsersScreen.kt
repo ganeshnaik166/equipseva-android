@@ -188,6 +188,10 @@ fun FounderUsersScreen(
     viewModel: FounderUsersViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Round 430 — refresh on return so an admin-acted user (suspend /
+    // verify / role-change via the action sheet) reflects when the
+    // user list is re-shown.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.onPullToRefresh() }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(title = "Users", onBack = onBack)
