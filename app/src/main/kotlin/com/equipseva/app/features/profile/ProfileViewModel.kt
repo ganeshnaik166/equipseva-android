@@ -13,6 +13,7 @@ import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import io.github.jan.supabase.realtime.realtime
 import com.equipseva.app.core.auth.InvalidCurrentPasswordException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.firstOrNull
 import com.equipseva.app.core.data.account.SupabaseAccountDeletionRepository
 import com.equipseva.app.core.data.account.SupabaseDataExportRepository
@@ -575,7 +576,15 @@ class ProfileViewModel @Inject constructor(
 
                     // Sign out wipes the local session even if the network
                     // call fails — the SDK clears the cached token unconditionally.
-                    runCatching { authRepository.signOut() }
+                    // Round 432 — runCatching swallows CancellationException
+                    // too; explicit re-throw lets scope teardown abort cleanly.
+                    try {
+                        authRepository.signOut()
+                    } catch (ce: CancellationException) {
+                        throw ce
+                    } catch (_: Throwable) {
+                        // Best-effort; SDK already cleared the cached token.
+                    }
                 },
                 onFailure = { error ->
                     _state.update {
