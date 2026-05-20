@@ -24,6 +24,8 @@ import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.SevaDanger500
+import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk700
 import com.equipseva.app.designsystem.theme.SevaInk900
@@ -48,7 +50,15 @@ fun CostRevisionDecisionSheet(
                 .padding(horizontal = 16.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Delta block
+            // Delta block. Round 427 — surface the swing explicitly so the
+            // hospital doesn't have to mentally compute "revised - original"
+            // before tapping Approve / Reject. Big-ticket revisions can be
+            // 50%+ of the original; a +₹50k surprise approval is exactly the
+            // class of mistake the explicit delta row prevents.
+            val delta = revision.revisedAmountRupees - revision.originalAmountRupees
+            val pct = if (revision.originalAmountRupees > 0) {
+                (delta / revision.originalAmountRupees * 100)
+            } else 0.0
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -60,6 +70,9 @@ fun CostRevisionDecisionSheet(
             ) {
                 AmountRow(label = "Original", amount = revision.originalAmountRupees, accent = false)
                 AmountRow(label = "Revised", amount = revision.revisedAmountRupees, accent = true)
+                if (kotlin.math.abs(delta) >= 1.0) {
+                    DeltaRow(delta = delta, pct = pct)
+                }
             }
             Text(
                 text = "Engineer's note",
@@ -97,6 +110,32 @@ fun CostRevisionDecisionSheet(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun DeltaRow(delta: Double, pct: Double) {
+    val sign = if (delta >= 0) "+" else "−"
+    val color = if (delta >= 0) SevaDanger500 else SevaGreen700
+    val pctText = if (kotlin.math.abs(pct) >= 0.5) {
+        " (${sign}${"%.0f".format(java.util.Locale.US, kotlin.math.abs(pct))}%)"
+    } else ""
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "Difference",
+            fontSize = 12.sp,
+            color = SevaInk500,
+        )
+        Text(
+            text = "$sign${formatRupees(kotlin.math.abs(delta))}$pctText",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = color,
+        )
     }
 }
 
