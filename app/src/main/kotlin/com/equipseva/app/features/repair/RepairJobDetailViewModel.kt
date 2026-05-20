@@ -823,27 +823,13 @@ class RepairJobDetailViewModel @Inject constructor(
         selfEngineerRowId: String?,
         selfProfileRole: String?,
         selfActiveRole: String?,
-    ): ViewerRole {
-        if (job == null || selfId.isNullOrBlank()) return ViewerRole.Other
-        return when {
-            selfId == job.hospitalUserId -> ViewerRole.Hospital
-            // Three signals counted as "user is an engineer", in order of
-            // server-side trust:
-            //   1. engineers row exists (fully onboarded, KYC complete)
-            //   2. profiles.role == 'engineer' (signed up via role tile #225)
-            //   3. UserPrefs.activeRole == 'engineer' (currently in Engineer
-            //      Hub on this device — Hub can switch persona without
-            //      writing to the auth profile)
-            // 1 lets them actually bid server-side; 2 and 3 let them at
-            // least see the Place bid CTA so they discover the next-step
-            // prompt. RLS surfaces a clear error if they tap Submit without
-            // an engineers row.
-            !selfEngineerRowId.isNullOrBlank() -> ViewerRole.Engineer
-            selfProfileRole == "engineer" -> ViewerRole.Engineer
-            selfActiveRole == "engineer" -> ViewerRole.Engineer
-            else -> ViewerRole.Other
-        }
-    }
+    ): ViewerRole = resolveRepairJobViewerRole(
+        job = job,
+        selfId = selfId,
+        selfEngineerRowId = selfEngineerRowId,
+        selfProfileRole = selfProfileRole,
+        selfActiveRole = selfActiveRole,
+    )
 
     private fun buildDummyJob(id: String): RepairJob {
         // Pre-canned dummies for the hospital Bookings list. Switching on the
@@ -977,4 +963,39 @@ class RepairJobDetailViewModel @Inject constructor(
         createdAtInstant = java.time.Instant.now().minusSeconds(86400),
         updatedAtInstant = java.time.Instant.now(),
     )
+}
+
+/**
+ * Pure resolver for which side of a repair job the currently-signed-in
+ * user is viewing it from. Pulled out of the ViewModel so the priority
+ * order (engineers-row > profile.role > prefs.activeRole) is testable
+ * without standing up auth / engineer repositories.
+ *
+ * Order of precedence — Hospital wins outright when `selfId` matches
+ * the job's `hospital_user_id`; otherwise we try three "is an engineer"
+ * signals in order of server-side trust:
+ *  1. engineers row exists (fully onboarded, KYC complete)
+ *  2. profiles.role == 'engineer' (signed up via role tile #225)
+ *  3. UserPrefs.activeRole == 'engineer' (currently in Engineer Hub
+ *     on this device — Hub can switch persona without writing to the
+ *     auth profile)
+ *
+ * The looser signals (2, 3) only enable the CTA to *render* — RLS still
+ * blocks the actual bid INSERT unless the engineers row exists.
+ */
+internal fun resolveRepairJobViewerRole(
+    job: com.equipseva.app.core.data.repair.RepairJob?,
+    selfId: String?,
+    selfEngineerRowId: String?,
+    selfProfileRole: String?,
+    selfActiveRole: String?,
+): RepairJobDetailViewModel.ViewerRole {
+    if (job == null || selfId.isNullOrBlank()) return RepairJobDetailViewModel.ViewerRole.Other
+    return when {
+        selfId == job.hospitalUserId -> RepairJobDetailViewModel.ViewerRole.Hospital
+        !selfEngineerRowId.isNullOrBlank() -> RepairJobDetailViewModel.ViewerRole.Engineer
+        selfProfileRole == "engineer" -> RepairJobDetailViewModel.ViewerRole.Engineer
+        selfActiveRole == "engineer" -> RepairJobDetailViewModel.ViewerRole.Engineer
+        else -> RepairJobDetailViewModel.ViewerRole.Other
+    }
 }
