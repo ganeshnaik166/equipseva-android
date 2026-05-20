@@ -292,6 +292,11 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.test.runner)
+    // Hilt test infra — HiltTestApplication + HiltAndroidRule so JVM
+    // tests can boot the real Hilt graph with @TestInstallIn modules
+    // replacing the prod ones (e.g. swap SupabaseClient for a fake).
+    testImplementation(libs.hilt.android.testing)
+    kspTest(libs.hilt.compiler)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
