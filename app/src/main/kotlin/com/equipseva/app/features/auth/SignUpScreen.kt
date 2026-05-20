@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -130,6 +131,10 @@ fun SignUpScreen(
                     hint = "8+ chars, with at least one letter and one number",
                     error = state.passwordError,
                     enabled = !state.form.submitting,
+                    // Last text field on the form; the role picker below
+                    // still needs a tap before Submit, so this just
+                    // dismisses the keyboard rather than auto-submits.
+                    imeAction = ImeAction.Done,
                 )
 
                 Spacer(Modifier.height(20.dp))
