@@ -1,5 +1,6 @@
 package com.equipseva.app.features.engineerprofile
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
@@ -20,7 +21,22 @@ import javax.inject.Inject
 class EngineerProfileViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val engineerRepository: EngineerRepository,
+    private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+
+    // Round 457 — process-death safe edit drafts. Engineer profile is
+    // a single-screen form with bio (1500 chars) + service areas /
+    // specializations text — non-trivial work. Without persistence an
+    // OS kill while the user is in another app drops everything they
+    // typed since the last server load.
+    private object SavedKeys {
+        const val HOURLY_RATE = "engPro.hourlyRate"
+        const val YEARS = "engPro.years"
+        const val SERVICE_AREAS = "engPro.serviceAreas"
+        const val SPECIALIZATIONS = "engPro.specializations"
+        const val BIO = "engPro.bio"
+        const val AVAILABLE = "engPro.isAvailable"
+    }
 
     data class UiState(
         val loading: Boolean = true,
@@ -53,8 +69,40 @@ class EngineerProfileViewModel @Inject constructor(
         data object NavigateBack : Effect
     }
 
-    private val _state = MutableStateFlow(UiState())
+    private val _state = MutableStateFlow(restoredInitialState())
     val state: StateFlow<UiState> = _state.asStateFlow()
+
+    private fun restoredInitialState(): UiState =
+        UiState(
+            // loading is true until either restore-only completes (no
+            // server values yet) or load() finishes. Leave at default
+            // so the initial spinner doesn't flash for users without
+            // any saved draft.
+            loading = true,
+            hourlyRate = savedStateHandle.get<String>(SavedKeys.HOURLY_RATE).orEmpty(),
+            yearsExperience = savedStateHandle.get<String>(SavedKeys.YEARS).orEmpty(),
+            serviceAreas = savedStateHandle.get<String>(SavedKeys.SERVICE_AREAS).orEmpty(),
+            specializations = savedStateHandle.get<String>(SavedKeys.SPECIALIZATIONS).orEmpty(),
+            bio = savedStateHandle.get<String>(SavedKeys.BIO).orEmpty(),
+            isAvailable = savedStateHandle.get<Boolean>(SavedKeys.AVAILABLE) ?: true,
+        )
+
+    private fun hasDraft(): Boolean =
+        savedStateHandle.contains(SavedKeys.HOURLY_RATE) ||
+            savedStateHandle.contains(SavedKeys.YEARS) ||
+            savedStateHandle.contains(SavedKeys.SERVICE_AREAS) ||
+            savedStateHandle.contains(SavedKeys.SPECIALIZATIONS) ||
+            savedStateHandle.contains(SavedKeys.BIO) ||
+            savedStateHandle.contains(SavedKeys.AVAILABLE)
+
+    private fun clearSavedDraft() {
+        savedStateHandle.remove<String>(SavedKeys.HOURLY_RATE)
+        savedStateHandle.remove<String>(SavedKeys.YEARS)
+        savedStateHandle.remove<String>(SavedKeys.SERVICE_AREAS)
+        savedStateHandle.remove<String>(SavedKeys.SPECIALIZATIONS)
+        savedStateHandle.remove<String>(SavedKeys.BIO)
+        savedStateHandle.remove<Boolean>(SavedKeys.AVAILABLE)
+    }
 
     private val _effects = kotlinx.coroutines.flow.MutableSharedFlow<Effect>(extraBufferCapacity = 4)
     val effects: kotlinx.coroutines.flow.Flow<Effect> = _effects
@@ -96,19 +144,26 @@ class EngineerProfileViewModel @Inject constructor(
                 val first = v.indexOf('.')
                 if (first == -1) v else v.substring(0, first + 1) + v.substring(first + 1).replace(".", "")
             }
+        savedStateHandle[SavedKeys.HOURLY_RATE] = sanitized
         _state.update { it.copy(hourlyRate = sanitized, errorMessage = null) }
     }
 
     fun onYearsChange(value: String) {
-        _state.update { it.copy(yearsExperience = value.filter { c -> c in '0'..'9' }, errorMessage = null) }
+        val sanitized = value.filter { c -> c in '0'..'9' }
+        savedStateHandle[SavedKeys.YEARS] = sanitized
+        _state.update { it.copy(yearsExperience = sanitized, errorMessage = null) }
     }
 
     fun onServiceAreasChange(value: String) {
-        _state.update { it.copy(serviceAreas = value.take(500), errorMessage = null) }
+        val capped = value.take(500)
+        savedStateHandle[SavedKeys.SERVICE_AREAS] = capped
+        _state.update { it.copy(serviceAreas = capped, errorMessage = null) }
     }
 
     fun onSpecializationsChange(value: String) {
-        _state.update { it.copy(specializations = value.take(500), errorMessage = null) }
+        val capped = value.take(500)
+        savedStateHandle[SavedKeys.SPECIALIZATIONS] = capped
+        _state.update { it.copy(specializations = capped, errorMessage = null) }
     }
 
     fun onBioChange(value: String) {
@@ -116,10 +171,13 @@ class EngineerProfileViewModel @Inject constructor(
         // module — paste of a 10 KB blob otherwise either truncates
         // server-side (silent corruption) or wedges save on the row's
         // effective varchar limit.
-        _state.update { it.copy(bio = value.take(1500), errorMessage = null) }
+        val capped = value.take(1500)
+        savedStateHandle[SavedKeys.BIO] = capped
+        _state.update { it.copy(bio = capped, errorMessage = null) }
     }
 
     fun onAvailableChange(value: Boolean) {
+        savedStateHandle[SavedKeys.AVAILABLE] = value
         _state.update { it.copy(isAvailable = value) }
     }
 
@@ -170,6 +228,7 @@ class EngineerProfileViewModel @Inject constructor(
                 bio = bio,
                 isAvailable = current.isAvailable,
             ).onSuccess {
+                clearSavedDraft()
                 _state.update { it.copy(saving = false) }
                 _effects.emit(Effect.ShowMessage("Profile saved"))
                 _effects.emit(Effect.NavigateBack)
@@ -202,16 +261,24 @@ class EngineerProfileViewModel @Inject constructor(
                         bio = bio,
                         isAvailable = engineer.isAvailable,
                     )
-                    _state.update {
-                        it.copy(
-                            loading = false,
-                            hourlyRate = rate,
-                            yearsExperience = years,
-                            serviceAreas = areas,
-                            specializations = specs,
-                            bio = bio,
-                            isAvailable = engineer.isAvailable,
-                        )
+                    // Round 457 — drafts win over server values. If the
+                    // user was mid-edit and got process-killed, restore
+                    // their typed values from SavedStateHandle rather
+                    // than clobbering with the older server snapshot.
+                    if (hasDraft()) {
+                        _state.update { it.copy(loading = false) }
+                    } else {
+                        _state.update {
+                            it.copy(
+                                loading = false,
+                                hourlyRate = rate,
+                                yearsExperience = years,
+                                serviceAreas = areas,
+                                specializations = specs,
+                                bio = bio,
+                                isAvailable = engineer.isAvailable,
+                            )
+                        }
                     }
                 }
             }
