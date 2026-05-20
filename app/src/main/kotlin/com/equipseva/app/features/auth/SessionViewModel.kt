@@ -9,6 +9,7 @@ import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.push.DeviceTokenRegistrar
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -62,7 +63,17 @@ class SessionViewModel @Inject constructor(
                     // user signing in on a device whose previous session
                     // was revoke()'d would otherwise have no row in
                     // device_tokens and receive zero pushes. Best-effort.
-                    runCatching { deviceTokenRegistrar.refresh() }
+                    // Round 431 — runCatching also catches CancellationException,
+                    // which would silently break scope cancellation when the
+                    // viewmodel tears down. Explicit try/catch with rethrow.
+                    try {
+                        deviceTokenRegistrar.refresh()
+                    } catch (ce: CancellationException) {
+                        throw ce
+                    } catch (_: Throwable) {
+                        // Best-effort token refresh; ignore non-cancellation
+                        // failures (network, Play Services missing).
+                    }
                     bootstrapProfile(signedIn.userId)
                 }
         }
@@ -153,7 +164,18 @@ class SessionViewModel @Inject constructor(
                 // mutes hanging around for whoever signed in next on
                 // the same device.
                 signOutCleanup.wipeLocalUserState()
-                runCatching { authRepository.signOut() }
+                // Round 431 — explicit try/catch so CancellationException
+                // surfaces and aborts the coroutine cleanly. runCatching
+                // would swallow it and the calling launch would continue
+                // through the `return` below as if everything succeeded.
+                try {
+                    authRepository.signOut()
+                } catch (ce: CancellationException) {
+                    throw ce
+                } catch (_: Throwable) {
+                    // signOut is best-effort here; even if it fails the
+                    // local-state wipe already ran.
+                }
                 return
             }
             // Defense-in-depth gate: legacy soft-delete (is_active=false)
@@ -162,7 +184,13 @@ class SessionViewModel @Inject constructor(
             if (fetched != null && !fetched.isActive) {
                 _messages.tryEmit("This account was deleted. Contact support to restore it.")
                 signOutCleanup.wipeLocalUserState()
-                runCatching { authRepository.signOut() }
+                try {
+                    authRepository.signOut()
+                } catch (ce: CancellationException) {
+                    throw ce
+                } catch (_: Throwable) {
+                    // Best-effort; see above.
+                }
                 return
             }
             // Always overwrite the cached role with the server-confirmed
