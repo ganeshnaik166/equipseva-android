@@ -111,7 +111,13 @@ fun MyBidsScreen(
                 onRefresh = viewModel::onRefresh,
                 modifier = Modifier.fillMaxSize(),
             ) {
-                val visibleRows = state.rows.filter { it.bid.status == activeFilter }
+                // Round 442 — memoize the filtered list so the walk doesn't
+                // re-fire on every PTR / list-scroll recomposition. Keyed
+                // on rows + activeFilter so the cache invalidates exactly
+                // when either changes. Mirror of the r434 pattern.
+                val visibleRows = remember(state.rows, activeFilter) {
+                    state.rows.filter { it.bid.status == activeFilter }
+                }
                 when {
                     state.loading && state.rows.isEmpty() -> ListSkeleton(rows = 8)
                     visibleRows.isEmpty() -> EmptyStateView(
