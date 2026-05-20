@@ -6,6 +6,8 @@ What's still missing / stubbed / non-functional. Updated 2026-05-05 after PR #25
 
 **PR #255** landed the audit-driven hardening: TamperPolicy gates auth mutations + delete-account on Play Integrity, Play Integrity nonces are now server-issued (replay-proof), `device_tokens` register/revoke moved to SECURITY DEFINER RPCs (shared-device cleanup works again), CrashDataScrubber covers Aadhaar/PAN/GST/Indian-mobile, founder DUMMY fallbacks no longer mask real errors in release, `assembleRelease` fails fast when Supabase secrets are blank, and the dead `equipseva://auth-callback` deep-link + dead Phone CTA in chat are gone. Stale `KycViewModelTest` (broken since the AuthRepository / ProfileRepository / EngineerRepository signatures rotated) was deleted; new tests in a follow-up.
 
+**Follow-up test backfill (2026-05-20):** the v1-test gap from PR #255 is closed. `:app:testDebugUnitTest` grew from 63 → 213 tests covering TamperPolicy / Play Integrity nonce delegation, the `request-call-session` → CallSessionResponseMapper contract for every Exotel error code, propose/decide cost-revision wire shape + status enum, OrderReview / Notification / Profile / Engineer / RepairJob DTO mapping defaults, KYC step gate + Aadhaar Verhoeff / PAN shape + status timeline render, SignatureVerifier fingerprint parser, v2 deep-link kinds (cost-revision lifecycle + rating reminders), ThemeMode + Route formatters.
+
 Legend: 🔴 blocker · 🟠 needs attention · 🟡 nice-to-have · ⚪ beyond v1
 
 ---
