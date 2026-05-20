@@ -73,21 +73,7 @@ class HospitalActiveJobsViewModel @Inject constructor(
         viewModelScope.launch {
             jobRepository.fetchByHospitalUser(userId)
                 .onSuccess { jobs ->
-                    val open = jobs.filter { it.status == RepairJobStatus.Requested }
-                    val inProgress = jobs.filter {
-                        it.status in listOf(
-                            RepairJobStatus.Assigned,
-                            RepairJobStatus.EnRoute,
-                            RepairJobStatus.InProgress,
-                        )
-                    }
-                    val closed = jobs.filter {
-                        it.status in listOf(
-                            RepairJobStatus.Completed,
-                            RepairJobStatus.Cancelled,
-                            RepairJobStatus.Disputed,
-                        )
-                    }
+                    val (open, inProgress, closed) = partitionHospitalJobs(jobs)
                     _state.update {
                         UiState(
                             loading = false,
@@ -113,5 +99,37 @@ class HospitalActiveJobsViewModel @Inject constructor(
                 }
         }
     }
+}
+
+/**
+ * Three-way split for a hospital user's repair jobs: open (still up for
+ * bids), in-progress (engineer accepted, work happening), and closed
+ * (terminal — completed, cancelled, or disputed).
+ *
+ * Disputed lands in `closed` deliberately: from the hospital's feed the
+ * work is over; the dispute resolution flow lives elsewhere.
+ *
+ * Pure function — top-level so unit tests can pin every status branch
+ * without standing up the repository or ViewModel.
+ */
+internal fun partitionHospitalJobs(
+    jobs: List<RepairJob>,
+): Triple<List<RepairJob>, List<RepairJob>, List<RepairJob>> {
+    val open = jobs.filter { it.status == RepairJobStatus.Requested }
+    val inProgress = jobs.filter {
+        it.status in listOf(
+            RepairJobStatus.Assigned,
+            RepairJobStatus.EnRoute,
+            RepairJobStatus.InProgress,
+        )
+    }
+    val closed = jobs.filter {
+        it.status in listOf(
+            RepairJobStatus.Completed,
+            RepairJobStatus.Cancelled,
+            RepairJobStatus.Disputed,
+        )
+    }
+    return Triple(open, inProgress, closed)
 }
 

@@ -62,21 +62,7 @@ class ActiveWorkViewModel @Inject constructor(
         viewModelScope.launch {
             jobRepository.fetchAssignedToMe()
                 .onSuccess { jobs ->
-                    val active = jobs.filter {
-                        // Include Assigned so engineers see jobs the moment a
-                        // hospital accepts their bid — without this they had
-                        // no entry point to the job until they Check-in
-                        // flipped status to InProgress, which is impossible
-                        // to do from a screen the assignment doesn't appear on.
-                        it.status in listOf(
-                            RepairJobStatus.Assigned,
-                            RepairJobStatus.EnRoute,
-                            RepairJobStatus.InProgress,
-                        )
-                    }
-                    val completed = jobs.filter {
-                        it.status in listOf(RepairJobStatus.Completed, RepairJobStatus.Cancelled)
-                    }
+                    val (active, completed) = partitionEngineerJobs(jobs)
                     _state.update {
                         it.copy(
                             loading = false,
@@ -102,3 +88,29 @@ class ActiveWorkViewModel @Inject constructor(
     }
 }
 
+/**
+ * Splits the engineer's assigned-jobs feed into the two buckets the
+ * [ActiveWorkViewModel.UiState] surfaces. Assigned is intentionally in the
+ * active bucket so engineers see a job the moment a hospital accepts their
+ * bid — without that, the job had no entry point until the engineer flipped
+ * status to InProgress, which is impossible to do from a screen the
+ * assignment doesn't appear on.
+ *
+ * Pure function — top-level so unit tests can pin every status branch
+ * without standing up the repository or ViewModel.
+ */
+internal fun partitionEngineerJobs(
+    jobs: List<RepairJob>,
+): Pair<List<RepairJob>, List<RepairJob>> {
+    val active = jobs.filter {
+        it.status in listOf(
+            RepairJobStatus.Assigned,
+            RepairJobStatus.EnRoute,
+            RepairJobStatus.InProgress,
+        )
+    }
+    val completed = jobs.filter {
+        it.status in listOf(RepairJobStatus.Completed, RepairJobStatus.Cancelled)
+    }
+    return active to completed
+}
