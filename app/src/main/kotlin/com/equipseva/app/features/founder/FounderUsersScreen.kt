@@ -201,11 +201,22 @@ fun FounderUsersScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
                 OutlinedTextField(
                     value = state.query,
                     onValueChange = viewModel::onQueryChange,
                     label = { Text("Search name, email, phone") },
                     singleLine = true,
+                    // Round 466 — show a Search icon on the IME so the
+                    // user knows this is the search field, and dismiss
+                    // the keyboard on tap (query updates debounced as
+                    // they type, so there's nothing else to fire).
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        imeAction = androidx.compose.ui.text.input.ImeAction.Search,
+                    ),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                        onSearch = { keyboardController?.hide() },
+                    ),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(
