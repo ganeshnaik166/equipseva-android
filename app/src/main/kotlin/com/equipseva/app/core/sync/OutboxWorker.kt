@@ -17,6 +17,7 @@ import com.equipseva.app.core.data.dao.OutboxDao
 import com.equipseva.app.core.push.NotificationChannels
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.CancellationException
 
 /**
  * Drains the offline outbox by dispatching each pending entry to a registered
@@ -55,8 +56,18 @@ class OutboxWorker @AssistedInject constructor(
                 outbox.delete(entry.id)
                 continue
             }
-            val outcome = runCatching { handler.handle(entry) }
-                .getOrElse { OutboxKindHandler.Outcome.Retry(it) }
+            // Round 435 — runCatching catches CancellationException too,
+            // which would absorb WorkManager's stop()/cancel signal and
+            // keep the drain loop spinning until natural completion. The
+            // explicit re-throw lets the worker stop cleanly while still
+            // demoting genuine handler failures to a Retry outcome.
+            val outcome = try {
+                handler.handle(entry)
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (e: Throwable) {
+                OutboxKindHandler.Outcome.Retry(e)
+            }
             when (outcome) {
                 is OutboxKindHandler.Outcome.Success -> outbox.delete(entry.id)
                 is OutboxKindHandler.Outcome.GiveUp -> {
