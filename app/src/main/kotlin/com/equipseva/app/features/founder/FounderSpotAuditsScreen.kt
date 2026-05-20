@@ -97,6 +97,9 @@ fun FounderSpotAuditsScreen(
     viewModel: FounderSpotAuditsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Round 429 — refresh on return so new audit responses appear without
+    // a manual pull-to-refresh.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
     // Memoize the avg walk so it doesn't re-sum every recomposition.
     val avgRating = androidx.compose.runtime.remember(state.rows) {
         state.rows.takeIf { it.isNotEmpty() }

@@ -136,6 +136,9 @@ fun FounderEscrowDisputesScreen(
     viewModel: FounderEscrowDisputesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Round 429 — refresh on return; admin resolving a dispute pops back
+    // to this list and expects the resolved row to drop off immediately.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
 
     // PR-D32 — resolve sheet (note + outcome).
     state.resolveSheetForEscrowId?.let { escrowId ->
@@ -303,6 +306,8 @@ fun FounderAmcEscalationsScreen(
     viewModel: FounderAmcEscalationsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Round 429 — refresh on return.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
@@ -469,6 +474,8 @@ fun FounderCashSuspendedScreen(
     viewModel: FounderCashSuspendedViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Round 429 — refresh on return.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
@@ -598,6 +605,8 @@ fun FounderPartsOutliersScreen(
     viewModel: FounderPartsOutliersViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Round 429 — refresh on return.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
