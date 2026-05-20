@@ -84,17 +84,8 @@ class SessionViewModel @Inject constructor(
             authRepository.sessionState,
             userPrefs.activeRole,
             bootstrapping,
-        ) { session, role, syncing ->
-            when (session) {
-                is AuthSession.Unknown -> SessionState.Loading
-                is AuthSession.SignedOut -> SessionState.SignedOut
-                is AuthSession.SignedIn -> when {
-                    !role.isNullOrBlank() -> SessionState.Ready(session.userId, session.email, role)
-                    syncing -> SessionState.Loading
-                    else -> SessionState.NeedsRole(session.userId, session.email)
-                }
-            }
-        }.stateIn(
+        ) { session, role, syncing -> resolveSessionState(session, role, syncing) }
+            .stateIn(
             scope = viewModelScope,
             // Eagerly: the upstream session subscription must survive
             // background → foreground transitions. With WhileSubscribed(5_000)
@@ -162,4 +153,32 @@ sealed interface SessionState {
     data object SignedOut : SessionState
     data class NeedsRole(val userId: String, val email: String?) : SessionState
     data class Ready(val userId: String, val email: String?, val role: String) : SessionState
+}
+
+/**
+ * Pure fold from (auth session × cached active role × in-flight profile
+ * bootstrap) → [SessionState]. Pulled out of [SessionViewModel.state]
+ * so the gate logic for AUTH vs RoleSelect vs Ready is testable without
+ * standing up auth/profile repositories.
+ *
+ * Precedence — Unknown maps to Loading (cold start), SignedOut is
+ * terminal, SignedIn branches on whether we have a confirmed role:
+ *  - role non-blank: Ready
+ *  - role blank but bootstrap in flight: Loading (so we don't bounce
+ *    the user to RoleSelect during the brief sync window after a
+ *    Supabase session restore)
+ *  - role blank and bootstrap settled: NeedsRole
+ */
+internal fun resolveSessionState(
+    session: com.equipseva.app.core.auth.AuthSession,
+    role: String?,
+    syncing: Boolean,
+): SessionState = when (session) {
+    is com.equipseva.app.core.auth.AuthSession.Unknown -> SessionState.Loading
+    is com.equipseva.app.core.auth.AuthSession.SignedOut -> SessionState.SignedOut
+    is com.equipseva.app.core.auth.AuthSession.SignedIn -> when {
+        !role.isNullOrBlank() -> SessionState.Ready(session.userId, session.email, role)
+        syncing -> SessionState.Loading
+        else -> SessionState.NeedsRole(session.userId, session.email)
+    }
 }
