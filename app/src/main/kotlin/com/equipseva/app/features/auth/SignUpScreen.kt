@@ -3,6 +3,8 @@ package com.equipseva.app.features.auth
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -205,10 +207,23 @@ private fun RoleTile(
     val borderColor = if (selected) SevaGreen700 else BorderDefault
     val bgColor = if (selected) SevaGreen50 else Color.White
     Row(
+        // Round 446 — selectable + Role.RadioButton (matches r445 fix on
+        // the post-signup RoleSelectScreen). The signup-time pick is the
+        // first interactive a11y surface a new user touches, so TalkBack
+        // calling these "buttons" instead of "radio buttons" was a
+        // disproportionately bad first impression.
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .let { m -> if (enabled) m.clickable(onClick = onClick) else m }
+            .let { m ->
+                if (enabled) {
+                    m.selectable(
+                        selected = selected,
+                        onClick = onClick,
+                        role = Role.RadioButton,
+                    )
+                } else m
+            }
             .background(bgColor)
             .border(1.dp, borderColor, RoundedCornerShape(10.dp))
             .padding(horizontal = 14.dp, vertical = 12.dp),
