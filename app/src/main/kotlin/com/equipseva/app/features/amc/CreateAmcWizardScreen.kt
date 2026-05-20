@@ -80,7 +80,7 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class CreateAmcWizardViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
+    private val savedStateHandle: SavedStateHandle,
     private val repo: AmcRepository,
     private val engineerRepo: EngineerDirectoryRepository,
     private val auth: AuthRepository,
@@ -96,6 +96,23 @@ class CreateAmcWizardViewModel @Inject constructor(
     // standard "set up new AMC" entry from the engineer profile.
     private val sourceContractId: String? =
         savedStateHandle.get<String>(Routes.CREATE_AMC_ARG_SOURCE_ID)?.takeIf { it.isNotBlank() }
+
+    // Round 456 — process-death safety. AMC setup is a 4-step wizard;
+    // scope_text alone allows 4000 chars and the SLA / fee inputs take
+    // considered thought. Without SavedStateHandle persistence, an OS
+    // kill while the user is in another app (looking up the contract
+    // they want to renew, copying a price) wipes everything they typed.
+    private object SavedKeys {
+        const val STEP = "amc.step"
+        const val CATEGORIES = "amc.categories"
+        const val SCOPE_TEXT = "amc.scopeText"
+        const val VISIT_FREQUENCY = "amc.visitFreq"
+        const val VISITS_PER_YEAR = "amc.visitsPerYear"
+        const val MONTHLY_FEE = "amc.fee"
+        const val STD_HOURS = "amc.stdHours"
+        const val EMERG_HOURS = "amc.emergHours"
+        const val AUTO_RENEW = "amc.autoRenew"
+    }
 
     enum class Step { Scope, FrequencyFee, Sla, Engineer }
 
@@ -160,8 +177,40 @@ class CreateAmcWizardViewModel @Inject constructor(
             }
     }
 
-    private val _state = MutableStateFlow(UiState(primaryEngineerId = primaryEngineerId))
+    private val _state = MutableStateFlow(restoredInitialState())
     val state: StateFlow<UiState> = _state.asStateFlow()
+
+    private fun restoredInitialState(): UiState {
+        val step = savedStateHandle.get<String>(SavedKeys.STEP)
+            ?.let { name -> runCatching { Step.valueOf(name) }.getOrNull() }
+            ?: Step.Scope
+        val categories = savedStateHandle.get<Array<String>>(SavedKeys.CATEGORIES)?.toList().orEmpty()
+        return UiState(
+            primaryEngineerId = primaryEngineerId,
+            step = step,
+            equipmentCategories = categories,
+            scopeText = savedStateHandle.get<String>(SavedKeys.SCOPE_TEXT).orEmpty(),
+            visitFrequency = savedStateHandle.get<String>(SavedKeys.VISIT_FREQUENCY) ?: "monthly",
+            visitsPerYear = savedStateHandle.get<Int>(SavedKeys.VISITS_PER_YEAR) ?: 12,
+            monthlyFeeRupees = savedStateHandle.get<String>(SavedKeys.MONTHLY_FEE)
+                ?: DEFAULT_MONTHLY_FEE_RUPEES,
+            responseTimeStandardHours = savedStateHandle.get<String>(SavedKeys.STD_HOURS) ?: "24",
+            responseTimeEmergencyHours = savedStateHandle.get<String>(SavedKeys.EMERG_HOURS) ?: "4",
+            autoRenew = savedStateHandle.get<Boolean>(SavedKeys.AUTO_RENEW) ?: false,
+        )
+    }
+
+    private fun clearSavedDraft() {
+        savedStateHandle.remove<String>(SavedKeys.STEP)
+        savedStateHandle.remove<Array<String>>(SavedKeys.CATEGORIES)
+        savedStateHandle.remove<String>(SavedKeys.SCOPE_TEXT)
+        savedStateHandle.remove<String>(SavedKeys.VISIT_FREQUENCY)
+        savedStateHandle.remove<Int>(SavedKeys.VISITS_PER_YEAR)
+        savedStateHandle.remove<String>(SavedKeys.MONTHLY_FEE)
+        savedStateHandle.remove<String>(SavedKeys.STD_HOURS)
+        savedStateHandle.remove<String>(SavedKeys.EMERG_HOURS)
+        savedStateHandle.remove<Boolean>(SavedKeys.AUTO_RENEW)
+    }
 
     init {
         loadPrimaryName()
@@ -190,24 +239,55 @@ class CreateAmcWizardViewModel @Inject constructor(
                 repo.listForHospital().getOrNull()
                     ?.firstOrNull { it.id == src }
             }.getOrNull()?.let { prior ->
-                _state.update { st ->
-                    st.copy(
-                        isRenewing = true,
-                        equipmentCategories = prior.equipmentCategories,
-                        scopeText = prior.scopeText.orEmpty().take(4000),
-                        visitFrequency = prior.visitFrequency,
-                        visitsPerYear = prior.visitsPerYear,
-                        monthlyFeeRupees = prior.monthlyFeeRupees.toLong().toString(),
-                        autoRenew = prior.autoRenew,
-                    )
+                // Round 456 — only overlay the prior contract when we don't
+                // already have a partially-filled draft from a process-death
+                // restore. Without this guard, a user resuming mid-wizard
+                // would have their typed scope clobbered by the prior
+                // contract's scope.
+                if (savedStateHandle.get<String>(SavedKeys.SCOPE_TEXT).isNullOrBlank()) {
+                    val cats = prior.equipmentCategories
+                    val scope = prior.scopeText.orEmpty().take(4000)
+                    val freq = prior.visitFrequency
+                    val visits = prior.visitsPerYear
+                    val fee = prior.monthlyFeeRupees.toLong().toString()
+                    savedStateHandle[SavedKeys.CATEGORIES] = cats.toTypedArray()
+                    savedStateHandle[SavedKeys.SCOPE_TEXT] = scope
+                    savedStateHandle[SavedKeys.VISIT_FREQUENCY] = freq
+                    savedStateHandle[SavedKeys.VISITS_PER_YEAR] = visits
+                    savedStateHandle[SavedKeys.MONTHLY_FEE] = fee
+                    savedStateHandle[SavedKeys.AUTO_RENEW] = prior.autoRenew
+                    _state.update { st ->
+                        st.copy(
+                            isRenewing = true,
+                            equipmentCategories = cats,
+                            scopeText = scope,
+                            visitFrequency = freq,
+                            visitsPerYear = visits,
+                            monthlyFeeRupees = fee,
+                            autoRenew = prior.autoRenew,
+                        )
+                    }
+                } else {
+                    _state.update { it.copy(isRenewing = true) }
                 }
             }
         }
     }
 
-    fun setStep(s: Step) = _state.update { it.copy(step = s) }
-    fun next() = _state.update { it.copy(step = next(it.step)) }
-    fun back() = _state.update { it.copy(step = back(it.step)) }
+    fun setStep(s: Step) {
+        savedStateHandle[SavedKeys.STEP] = s.name
+        _state.update { it.copy(step = s) }
+    }
+    fun next() = _state.update {
+        val nextStep = next(it.step)
+        savedStateHandle[SavedKeys.STEP] = nextStep.name
+        it.copy(step = nextStep)
+    }
+    fun back() = _state.update {
+        val prev = back(it.step)
+        savedStateHandle[SavedKeys.STEP] = prev.name
+        it.copy(step = prev)
+    }
 
     private fun next(s: Step): Step = when (s) {
         Step.Scope -> Step.FrequencyFee
@@ -226,6 +306,7 @@ class CreateAmcWizardViewModel @Inject constructor(
     fun toggleCategory(c: String) = _state.update { st ->
         val s = st.equipmentCategories.toMutableList()
         if (s.contains(c)) s.remove(c) else s.add(c)
+        savedStateHandle[SavedKeys.CATEGORIES] = s.toTypedArray()
         st.copy(equipmentCategories = s)
     }
 
@@ -233,15 +314,38 @@ class CreateAmcWizardViewModel @Inject constructor(
     // chars. Cap here so a paste-bomb hits the UI clamp first instead
     // of failing save with a confusing 23514 constraint-violation
     // toast.
-    fun setScopeText(v: String) = _state.update { it.copy(scopeText = v.take(4000)) }
-    fun setFrequency(v: String) = _state.update { it.copy(visitFrequency = v, visitsPerYear = derive(v)) }
-    fun setVisitsPerYear(v: String) = _state.update {
-        it.copy(visitsPerYear = v.toIntOrNull()?.coerceIn(1, 52) ?: it.visitsPerYear)
+    fun setScopeText(v: String) {
+        val capped = v.take(4000)
+        savedStateHandle[SavedKeys.SCOPE_TEXT] = capped
+        _state.update { it.copy(scopeText = capped) }
     }
-    fun setMonthlyFeeRupees(v: String) = _state.update { it.copy(monthlyFeeRupees = v) }
-    fun setStandardHours(v: String) = _state.update { it.copy(responseTimeStandardHours = v) }
-    fun setEmergencyHours(v: String) = _state.update { it.copy(responseTimeEmergencyHours = v) }
-    fun setAutoRenew(v: Boolean) = _state.update { it.copy(autoRenew = v) }
+    fun setFrequency(v: String) {
+        val visits = derive(v)
+        savedStateHandle[SavedKeys.VISIT_FREQUENCY] = v
+        savedStateHandle[SavedKeys.VISITS_PER_YEAR] = visits
+        _state.update { it.copy(visitFrequency = v, visitsPerYear = visits) }
+    }
+    fun setVisitsPerYear(v: String) = _state.update {
+        val coerced = v.toIntOrNull()?.coerceIn(1, 52) ?: it.visitsPerYear
+        savedStateHandle[SavedKeys.VISITS_PER_YEAR] = coerced
+        it.copy(visitsPerYear = coerced)
+    }
+    fun setMonthlyFeeRupees(v: String) {
+        savedStateHandle[SavedKeys.MONTHLY_FEE] = v
+        _state.update { it.copy(monthlyFeeRupees = v) }
+    }
+    fun setStandardHours(v: String) {
+        savedStateHandle[SavedKeys.STD_HOURS] = v
+        _state.update { it.copy(responseTimeStandardHours = v) }
+    }
+    fun setEmergencyHours(v: String) {
+        savedStateHandle[SavedKeys.EMERG_HOURS] = v
+        _state.update { it.copy(responseTimeEmergencyHours = v) }
+    }
+    fun setAutoRenew(v: Boolean) {
+        savedStateHandle[SavedKeys.AUTO_RENEW] = v
+        _state.update { it.copy(autoRenew = v) }
+    }
 
     fun openPicker() = _state.update { it.copy(pickerOpen = true, pickerQuery = "") }
     fun closePicker() = _state.update { it.copy(pickerOpen = false) }
@@ -343,6 +447,7 @@ class CreateAmcWizardViewModel @Inject constructor(
                 fallbackEngineerIds = s.fallbackEngineers.map { it.engineerId },
             ).fold(
                 onSuccess = { newId ->
+                    clearSavedDraft()
                     _state.update { it.copy(createdContractId = newId) }
                     // Immediately fire first-month upfront. If the user
                     // cancels Razorpay we still keep the contract — pool
