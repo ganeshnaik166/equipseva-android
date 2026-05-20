@@ -261,26 +261,32 @@ class RepairJobEscrowRepository @Inject constructor(
         razorpayPaymentId: String,
         razorpaySignature: String,
     ): Result<VerifyPaymentResponse> = runCatching {
-        val res = try {
-            supabase.functions.invoke(
-                function = "verify-repair-job-payment",
-                body = buildJsonObject {
-                    put("escrow_id", JsonPrimitive(escrowId))
-                    put("razorpay_order_id", JsonPrimitive(razorpayOrderId))
-                    put("razorpay_payment_id", JsonPrimitive(razorpayPaymentId))
-                    put("razorpay_signature", JsonPrimitive(razorpaySignature))
-                },
-            )
-        } catch (rest: RestException) {
-            val parsed = parseError(rest)
-            error(parsed?.message ?: rest.description ?: "Couldn't verify payment")
+        // Round 438 — bound the verify call. Sibling to AmcRepository's
+        // verifyPayment (20s); same rationale — hung TLS on the Razorpay
+        // verification path would leave the user uncertain whether their
+        // escrow was funded.
+        kotlinx.coroutines.withTimeout(20_000L) {
+            val res = try {
+                supabase.functions.invoke(
+                    function = "verify-repair-job-payment",
+                    body = buildJsonObject {
+                        put("escrow_id", JsonPrimitive(escrowId))
+                        put("razorpay_order_id", JsonPrimitive(razorpayOrderId))
+                        put("razorpay_payment_id", JsonPrimitive(razorpayPaymentId))
+                        put("razorpay_signature", JsonPrimitive(razorpaySignature))
+                    },
+                )
+            } catch (rest: RestException) {
+                val parsed = parseError(rest)
+                error(parsed?.message ?: rest.description ?: "Couldn't verify payment")
+            }
+            val text = res.bodyAsText()
+            if (!res.status.isSuccess()) {
+                val parsed = runCatching { JSON.decodeFromString(EdgeError.serializer(), text) }.getOrNull()
+                error(parsed?.message ?: "Couldn't verify payment (HTTP ${res.status.value})")
+            }
+            JSON.decodeFromString(VerifyPaymentResponse.serializer(), text)
         }
-        val text = res.bodyAsText()
-        if (!res.status.isSuccess()) {
-            val parsed = runCatching { JSON.decodeFromString(EdgeError.serializer(), text) }.getOrNull()
-            error(parsed?.message ?: "Couldn't verify payment (HTTP ${res.status.value})")
-        }
-        JSON.decodeFromString(VerifyPaymentResponse.serializer(), text)
     }
 
     private fun parseError(rest: RestException): EdgeError? {

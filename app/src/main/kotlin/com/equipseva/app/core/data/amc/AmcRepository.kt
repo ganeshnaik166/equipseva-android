@@ -419,28 +419,34 @@ class AmcRepository @Inject constructor(
         amcContractId: String,
         months: Int,
     ): Result<CreateAmcPaymentOrderResponse> = runCatching {
-        val res = try {
-            supabase.functions.invoke(
-                function = "create-amc-payment-order",
-                body = buildJsonObject {
-                    put("amc_contract_id", JsonPrimitive(amcContractId))
-                    put("months", JsonPrimitive(months))
-                },
-            )
-        } catch (rest: RestException) {
-            // Mirror the typed-error mapping pattern from
-            // VirtualCallRepository so non-2xx responses surface
-            // a useful message instead of a generic toast.
-            val parsed = parseRestExceptionBody(rest)
-            error(parsed?.message ?: rest.description ?: "Couldn't create payment order")
+        // Round 438 — bound Razorpay order creation. Without it a hung TLS
+        // handshake or slow gateway stalls the payment-sheet UI until
+        // Ktor's default timeout (often 30s+ on android-ktor). 25s leaves
+        // headroom for legitimately-slow networks but caps the spinner.
+        kotlinx.coroutines.withTimeout(25_000L) {
+            val res = try {
+                supabase.functions.invoke(
+                    function = "create-amc-payment-order",
+                    body = buildJsonObject {
+                        put("amc_contract_id", JsonPrimitive(amcContractId))
+                        put("months", JsonPrimitive(months))
+                    },
+                )
+            } catch (rest: RestException) {
+                // Mirror the typed-error mapping pattern from
+                // VirtualCallRepository so non-2xx responses surface
+                // a useful message instead of a generic toast.
+                val parsed = parseRestExceptionBody(rest)
+                error(parsed?.message ?: rest.description ?: "Couldn't create payment order")
+            }
+            val text = res.bodyAsText()
+            if (!res.status.isSuccess()) {
+                val parsed = runCatching { JSON.decodeFromString(EdgeFnError.serializer(), text) }
+                    .getOrNull()
+                error(parsed?.message ?: "Couldn't create payment order (HTTP ${res.status.value})")
+            }
+            JSON.decodeFromString(CreateAmcPaymentOrderResponse.serializer(), text)
         }
-        val text = res.bodyAsText()
-        if (!res.status.isSuccess()) {
-            val parsed = runCatching { JSON.decodeFromString(EdgeFnError.serializer(), text) }
-                .getOrNull()
-            error(parsed?.message ?: "Couldn't create payment order (HTTP ${res.status.value})")
-        }
-        JSON.decodeFromString(CreateAmcPaymentOrderResponse.serializer(), text)
     }
 
     /**
@@ -456,27 +462,33 @@ class AmcRepository @Inject constructor(
         razorpayPaymentId: String,
         razorpaySignature: String,
     ): Result<VerifyAmcPaymentResponse> = runCatching {
-        val res = try {
-            supabase.functions.invoke(
-                function = "verify-amc-payment",
-                body = buildJsonObject {
-                    put("payment_order_id", JsonPrimitive(paymentOrderId))
-                    put("razorpay_order_id", JsonPrimitive(razorpayOrderId))
-                    put("razorpay_payment_id", JsonPrimitive(razorpayPaymentId))
-                    put("razorpay_signature", JsonPrimitive(razorpaySignature))
-                },
-            )
-        } catch (rest: RestException) {
-            val parsed = parseRestExceptionBody(rest)
-            error(parsed?.message ?: rest.description ?: "Payment verification failed")
+        // Round 438 — verify is critical path post-checkout. Hung TLS or
+        // slow Razorpay auth would leave the user staring at a spinner
+        // believing payment is unconfirmed. 20s lets the HMAC verify +
+        // pool credit complete while capping the visible wait.
+        kotlinx.coroutines.withTimeout(20_000L) {
+            val res = try {
+                supabase.functions.invoke(
+                    function = "verify-amc-payment",
+                    body = buildJsonObject {
+                        put("payment_order_id", JsonPrimitive(paymentOrderId))
+                        put("razorpay_order_id", JsonPrimitive(razorpayOrderId))
+                        put("razorpay_payment_id", JsonPrimitive(razorpayPaymentId))
+                        put("razorpay_signature", JsonPrimitive(razorpaySignature))
+                    },
+                )
+            } catch (rest: RestException) {
+                val parsed = parseRestExceptionBody(rest)
+                error(parsed?.message ?: rest.description ?: "Payment verification failed")
+            }
+            val text = res.bodyAsText()
+            if (!res.status.isSuccess()) {
+                val parsed = runCatching { JSON.decodeFromString(EdgeFnError.serializer(), text) }
+                    .getOrNull()
+                error(parsed?.message ?: "Payment verification failed (HTTP ${res.status.value})")
+            }
+            JSON.decodeFromString(VerifyAmcPaymentResponse.serializer(), text)
         }
-        val text = res.bodyAsText()
-        if (!res.status.isSuccess()) {
-            val parsed = runCatching { JSON.decodeFromString(EdgeFnError.serializer(), text) }
-                .getOrNull()
-            error(parsed?.message ?: "Payment verification failed (HTTP ${res.status.value})")
-        }
-        JSON.decodeFromString(VerifyAmcPaymentResponse.serializer(), text)
     }
 
     // =====================================================================
