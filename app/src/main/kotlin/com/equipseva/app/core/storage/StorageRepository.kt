@@ -56,23 +56,29 @@ class StorageRepository @Inject constructor(
         return supabase.storage.from(bucket).createSignedUrl(path, expiresInMinutes.minutes)
     }
 
-    // Defense-in-depth path guard. Callers (e.g. KycViewModel.timestampedName) already
-    // sanitize the file-name segment, but we re-check at the repository so a future
-    // caller can't accidentally route user input straight into an object key. Supabase
-    // Storage object keys are S3-style, but `storage.foldername()`-based RLS policies
-    // typically key on the first segment — a leading slash or `..` could collapse the
-    // owner prefix and route writes to another user's folder.
-    private fun validatePath(path: String): Result<Unit> {
-        if (path.isBlank()) return Result.failure(UploadError.InvalidPath(path, "empty"))
-        if (path.startsWith('/')) return Result.failure(UploadError.InvalidPath(path, "absolute"))
-        if (path.contains('\\')) return Result.failure(UploadError.InvalidPath(path, "backslash"))
-        if (path.any { it.code < 0x20 || it.code == 0x7F }) {
-            return Result.failure(UploadError.InvalidPath(path, "control char"))
-        }
-        val segments = path.split('/')
-        if (segments.any { it == ".." || it == "." }) {
-            return Result.failure(UploadError.InvalidPath(path, "traversal segment"))
-        }
-        return Result.success(Unit)
+    private fun validatePath(path: String): Result<Unit> = validateStoragePath(path)
+}
+
+/**
+ * Defense-in-depth guard on Supabase Storage object keys. Callers (e.g.
+ * kycTimestampedName) already sanitize the file-name segment, but the
+ * repository re-checks here so a future caller can't accidentally route
+ * user input straight into an object key. Supabase Storage keys are
+ * S3-style, but `storage.foldername()`-based RLS policies typically key
+ * on the first segment — a leading slash or `..` could collapse the
+ * owner prefix and route writes to another user's folder. Pulled out
+ * for unit testing.
+ */
+internal fun validateStoragePath(path: String): Result<Unit> {
+    if (path.isBlank()) return Result.failure(UploadError.InvalidPath(path, "empty"))
+    if (path.startsWith('/')) return Result.failure(UploadError.InvalidPath(path, "absolute"))
+    if (path.contains('\\')) return Result.failure(UploadError.InvalidPath(path, "backslash"))
+    if (path.any { it.code < 0x20 || it.code == 0x7F }) {
+        return Result.failure(UploadError.InvalidPath(path, "control char"))
     }
+    val segments = path.split('/')
+    if (segments.any { it == ".." || it == "." }) {
+        return Result.failure(UploadError.InvalidPath(path, "traversal segment"))
+    }
+    return Result.success(Unit)
 }
