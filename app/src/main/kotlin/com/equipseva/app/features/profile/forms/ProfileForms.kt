@@ -70,6 +70,38 @@ internal data class FieldSpec(
     val helper: String? = null,
 )
 
+/**
+ * Splits a free-form JsonObject from UserSettingsRepository into two flat
+ * maps the form scaffold renders: text values (everything that isn't a
+ * boolean primitive) and switch values (boolean primitives). Pulled out
+ * for unit testing because the repo accepts any JSON shape and getting
+ * this wrong silently drops fields on the floor.
+ */
+internal fun splitJsonValues(
+    obj: JsonObject?,
+): Pair<Map<String, String>, Map<String, Boolean>> {
+    val texts = mutableMapOf<String, String>()
+    val switches = mutableMapOf<String, Boolean>()
+    obj?.forEach { (k, v) ->
+        when {
+            v is JsonPrimitive && v.booleanOrNull != null -> switches[k] = v.boolean
+            v is JsonPrimitive -> texts[k] = v.contentOrNull.orEmpty()
+            else -> texts[k] = v.toString()
+        }
+    }
+    return texts to switches
+}
+
+/**
+ * Guard that prevents Save from overwriting prior data with a fully-blank
+ * payload. A switch being set (even to false) counts as content — having
+ * a key in the switches map means the user toggled it once.
+ */
+internal fun hasFormContent(
+    values: Map<String, String>,
+    switches: Map<String, Boolean>,
+): Boolean = values.values.any { it.isNotBlank() } || switches.isNotEmpty()
+
 @HiltViewModel(assistedFactory = ProfileFormViewModel.Factory::class)
 class ProfileFormViewModel @AssistedInject constructor(
     @Assisted private val settingsKey: String,
@@ -105,15 +137,7 @@ class ProfileFormViewModel @AssistedInject constructor(
         viewModelScope.launch {
             repo.get(settingsKey)
                 .onSuccess { obj ->
-                    val texts = mutableMapOf<String, String>()
-                    val switches = mutableMapOf<String, Boolean>()
-                    obj?.forEach { (k, v) ->
-                        when {
-                            v is JsonPrimitive && v.booleanOrNull != null -> switches[k] = v.boolean
-                            v is JsonPrimitive -> texts[k] = v.contentOrNull.orEmpty()
-                            else -> texts[k] = v.toString()
-                        }
-                    }
+                    val (texts, switches) = splitJsonValues(obj)
                     _state.update {
                         it.copy(loading = false, values = texts, switches = switches)
                     }
@@ -244,8 +268,7 @@ internal fun ProfileFormScaffold(
                     // without this guard tapping Save on a blank Bank
                     // Details / Hospital Settings / Addresses screen would
                     // overwrite previous data with empty strings.
-                    val anyContent = state.values.values.any { it.isNotBlank() } ||
-                        state.switches.isNotEmpty()
+                    val anyContent = hasFormContent(state.values, state.switches)
                     Button(
                         onClick = { viewModel.onSave(onDone = onBack) },
                         enabled = !state.saving && anyContent,

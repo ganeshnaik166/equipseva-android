@@ -155,32 +155,27 @@ class AddressFormViewModel @Inject constructor(
             val resolved = locationFetcher.reverseGeocode(coords)
             _state.update { st ->
                 val current = st.form
-                val filledFields = buildList {
-                    if (!resolved?.line1.isNullOrBlank() && current.line1.isBlank()) add("line 1")
-                    if (!resolved?.city.isNullOrBlank() && current.city.isBlank()) add("city")
-                    if (!resolved?.state.isNullOrBlank() && current.state.isBlank()) add("state")
-                    if (!resolved?.pincode.isNullOrBlank() && current.pincode.isBlank()) add("pincode")
-                }
-                val info = when {
-                    filledFields.isNotEmpty() -> "Filled ${filledFields.joinToString()} from your GPS pin."
-                    resolved != null -> "Saved your GPS pin — fill the address fields manually."
-                    else -> "Saved your GPS pin (couldn't read a street address here)."
-                }
-                // Only fill BLANK fields — never overwrite text the user
-                // already typed. The geocoder is best-effort; preserving
-                // user input matters more than freshness.
-                fun fill(current: String, resolved: String?): String =
-                    if (current.isBlank()) resolved?.takeIf { it.isNotBlank() } ?: current else current
+                val info = locationFillInfo(
+                    line1Blank = current.line1.isBlank(),
+                    cityBlank = current.city.isBlank(),
+                    stateBlank = current.state.isBlank(),
+                    pincodeBlank = current.pincode.isBlank(),
+                    resolvedLine1 = resolved?.line1,
+                    resolvedCity = resolved?.city,
+                    resolvedState = resolved?.state,
+                    resolvedPincode = resolved?.pincode,
+                    resolvedAny = resolved != null,
+                )
                 st.copy(
                     locating = false,
                     locationInfo = info,
                     form = current.copy(
-                        line1 = fill(current.line1, resolved?.line1),
-                        line2 = fill(current.line2, resolved?.line2),
-                        landmark = fill(current.landmark, resolved?.landmark),
-                        city = fill(current.city, resolved?.city),
-                        state = fill(current.state, resolved?.state),
-                        pincode = fill(current.pincode, resolved?.pincode),
+                        line1 = fillIfBlank(current.line1, resolved?.line1),
+                        line2 = fillIfBlank(current.line2, resolved?.line2),
+                        landmark = fillIfBlank(current.landmark, resolved?.landmark),
+                        city = fillIfBlank(current.city, resolved?.city),
+                        state = fillIfBlank(current.state, resolved?.state),
+                        pincode = fillIfBlank(current.pincode, resolved?.pincode),
                         latitude = coords.lat,
                         longitude = coords.lng,
                     ),
@@ -191,17 +186,9 @@ class AddressFormViewModel @Inject constructor(
 
     fun save() {
         val f = _state.value.form
-        if (f.fullName.isBlank() || f.phone.isBlank() || f.line1.isBlank()
-            || f.city.isBlank() || f.state.isBlank() || f.pincode.isBlank()) {
-            _state.update { it.copy(error = "Name, phone, line 1, city, state, pincode are required.") }
-            return
-        }
-        // India-only flow (city / state cascade is hard-coded to Indian
-        // states), so the pincode is exactly 6 digits. The earlier 4..10
-        // window let through international formats that the rest of the
-        // form can't actually deliver to.
-        if (f.pincode.length != 6 || !f.pincode.all { it.isDigit() }) {
-            _state.update { it.copy(error = "Pincode must be 6 digits.") }
+        val validationError = validateAddressForm(f)
+        if (validationError != null) {
+            _state.update { it.copy(error = validationError) }
             return
         }
         _state.update { it.copy(saving = true, error = null) }
@@ -371,10 +358,7 @@ fun AddressFormScreen(
             // Mirror the required-field check that VM.save() runs server-side
             // so the user sees the button as disabled instead of tapping
             // through to a generic "fields are required" toast.
-            val f = state.form
-            val canSave = f.fullName.isNotBlank() && f.phone.isNotBlank() &&
-                f.line1.isNotBlank() && f.city.isNotBlank() &&
-                f.state.isNotBlank() && f.pincode.length in 4..10
+            val canSave = canSaveAddressForm(state.form)
             Button(
                 onClick = { viewModel.save() },
                 enabled = !state.saving && !state.locating && canSave,
@@ -408,3 +392,74 @@ private fun FormField(
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
     )
 }
+
+/**
+ * Server-side guard the VM runs before posting the address. Returns the
+ * user-facing error string or null when the form is good to send. Pulled
+ * out so the JUnit suite can pin every branch (required fields + 6-digit
+ * pincode) without spinning a VM.
+ */
+internal fun validateAddressForm(f: AddressFormViewModel.Form): String? {
+    if (f.fullName.isBlank() || f.phone.isBlank() || f.line1.isBlank()
+        || f.city.isBlank() || f.state.isBlank() || f.pincode.isBlank()) {
+        return "Name, phone, line 1, city, state, pincode are required."
+    }
+    if (f.pincode.length != 6 || !f.pincode.all { it.isDigit() }) {
+        return "Pincode must be 6 digits."
+    }
+    return null
+}
+
+/**
+ * UI-side gate for the Save button. Looser than [validateAddressForm] —
+ * it accepts pincode lengths 4..10 so the user sees the button enable as
+ * soon as they're roughly done typing (the strict 6-digit check still
+ * blocks submit). Keeping the two in lock-step matters: a stricter UI
+ * gate would lock users out of editing.
+ */
+internal fun canSaveAddressForm(f: AddressFormViewModel.Form): Boolean =
+    f.fullName.isNotBlank() && f.phone.isNotBlank() &&
+        f.line1.isNotBlank() && f.city.isNotBlank() &&
+        f.state.isNotBlank() && f.pincode.length in 4..10
+
+/**
+ * Builds the transient feedback string shown after "Use my current location"
+ * resolves. Summarises which fields the geocoder actually filled — useful so
+ * the user knows whether to keep typing.
+ *
+ * Order of preference:
+ *  - at least one field filled -> "Filled <list> from your GPS pin."
+ *  - geocoder resolved but every field was already typed -> "Saved your GPS pin — fill manually."
+ *  - geocoder failed entirely -> "Saved your GPS pin (couldn't read a street address here)."
+ */
+internal fun locationFillInfo(
+    line1Blank: Boolean,
+    cityBlank: Boolean,
+    stateBlank: Boolean,
+    pincodeBlank: Boolean,
+    resolvedLine1: String?,
+    resolvedCity: String?,
+    resolvedState: String?,
+    resolvedPincode: String?,
+    resolvedAny: Boolean,
+): String {
+    val filled = buildList {
+        if (!resolvedLine1.isNullOrBlank() && line1Blank) add("line 1")
+        if (!resolvedCity.isNullOrBlank() && cityBlank) add("city")
+        if (!resolvedState.isNullOrBlank() && stateBlank) add("state")
+        if (!resolvedPincode.isNullOrBlank() && pincodeBlank) add("pincode")
+    }
+    return when {
+        filled.isNotEmpty() -> "Filled ${filled.joinToString()} from your GPS pin."
+        resolvedAny -> "Saved your GPS pin — fill the address fields manually."
+        else -> "Saved your GPS pin (couldn't read a street address here)."
+    }
+}
+
+/**
+ * Only fills a blank field — never overwrites text the user already typed.
+ * Geocoder is best-effort; preserving user input matters more than
+ * freshness. Falls through to [current] when [resolved] is null or blank.
+ */
+internal fun fillIfBlank(current: String, resolved: String?): String =
+    if (current.isBlank()) resolved?.takeIf { it.isNotBlank() } ?: current else current

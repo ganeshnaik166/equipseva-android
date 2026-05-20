@@ -460,16 +460,7 @@ class KycViewModel @Inject constructor(
                 it.copy(loading = false)
             } else {
                 val raw = engineer.city.orEmpty()
-                val (parsedState, parsedDistrict) = run {
-                    val parts = raw.split(",").map { it.trim() }
-                    val maybeState = parts.lastOrNull()?.takeIf {
-                        it in com.equipseva.app.core.data.location.IndiaLocations.STATES
-                    }
-                    val maybeDistrict = parts.dropLast(1).lastOrNull()?.takeIf {
-                        maybeState != null && it in com.equipseva.app.core.data.location.IndiaLocations.districtsFor(maybeState)
-                    }
-                    maybeState to maybeDistrict
-                }
+                val (parsedState, parsedDistrict) = parseStateDistrict(raw)
                 it.copy(
                     loading = false,
                     verificationStatus = engineer.verificationStatus,
@@ -561,20 +552,8 @@ class KycViewModel @Inject constructor(
             // list (case-insensitive contains both ways) so dropdowns
             // pre-select correctly even when the geocoder uses a slightly
             // different label ("Telangana State" vs "Telangana").
-            val matchedState = resolved.state?.let { rs ->
-                com.equipseva.app.core.data.location.IndiaLocations.STATES.firstOrNull { st ->
-                    st.equals(rs, ignoreCase = true) ||
-                        st.contains(rs, ignoreCase = true) ||
-                        rs.contains(st, ignoreCase = true)
-                }
-            }
-            val matchedDistrict = if (matchedState != null && resolved.district != null) {
-                com.equipseva.app.core.data.location.IndiaLocations.districtsFor(matchedState).firstOrNull { d ->
-                    d.equals(resolved.district, ignoreCase = true) ||
-                        d.contains(resolved.district, ignoreCase = true) ||
-                        resolved.district.contains(d, ignoreCase = true)
-                }
-            } else null
+            val matchedState = matchStateFromGeocode(resolved.state)
+            val matchedDistrict = matchDistrictFromGeocode(matchedState, resolved.district)
             // Re-check inside the coroutine — user may have started typing
             // while reverse-geocode was in flight. Only fill blank fields so
             // we never clobber a user's edit.
@@ -924,6 +903,56 @@ internal fun kycTimestampedName(original: String): String {
         .replace(Regex("[^A-Za-z0-9._-]"), "_")
     val stamp = System.currentTimeMillis()
     return "$stamp-$sanitized"
+}
+
+/**
+ * Parses an engineer's "city" field (typically the last edited service-area
+ * string like "Bangalore Urban, Karnataka") into a (state, district) pair
+ * matched against [com.equipseva.app.core.data.location.IndiaLocations].
+ *
+ * Returns nulls when the value doesn't line up — that's fine, the UI just
+ * leaves the dropdowns empty. Pulled out of [KycViewModel.hydrate] to keep
+ * the branch coverage testable in pure JUnit.
+ */
+internal fun parseStateDistrict(raw: String): Pair<String?, String?> {
+    val parts = raw.split(",").map { it.trim() }
+    val maybeState = parts.lastOrNull()?.takeIf {
+        it in com.equipseva.app.core.data.location.IndiaLocations.STATES
+    }
+    val maybeDistrict = parts.dropLast(1).lastOrNull()?.takeIf {
+        maybeState != null && it in com.equipseva.app.core.data.location.IndiaLocations.districtsFor(maybeState)
+    }
+    return maybeState to maybeDistrict
+}
+
+/**
+ * Fuzzy-match a geocoder's state string (e.g. "Telangana State") against
+ * the canonical IndiaLocations list. Three-way contains check tolerates
+ * "Karnataka", "karnataka", and "Karnataka State" all resolving to the
+ * canonical "Karnataka" — the dropdown pre-select relies on an exact match.
+ */
+internal fun matchStateFromGeocode(resolvedState: String?): String? {
+    if (resolvedState.isNullOrBlank()) return null
+    return com.equipseva.app.core.data.location.IndiaLocations.STATES.firstOrNull { st ->
+        st.equals(resolvedState, ignoreCase = true) ||
+            st.contains(resolvedState, ignoreCase = true) ||
+            resolvedState.contains(st, ignoreCase = true)
+    }
+}
+
+/**
+ * Fuzzy-match the geocoder's district against the canonical district list
+ * for [matchedState]. Returns null if either input is null/blank or the
+ * state doesn't have a district list. Same three-way contains as the
+ * state matcher.
+ */
+internal fun matchDistrictFromGeocode(matchedState: String?, resolvedDistrict: String?): String? {
+    if (matchedState.isNullOrBlank() || resolvedDistrict.isNullOrBlank()) return null
+    return com.equipseva.app.core.data.location.IndiaLocations.districtsFor(matchedState).firstOrNull { d ->
+        d.equals(resolvedDistrict, ignoreCase = true) ||
+            d.contains(resolvedDistrict, ignoreCase = true) ||
+            resolvedDistrict.contains(d, ignoreCase = true)
+    }
 }
 
 // Anchored — covers the 99% case for engineer signups without trying to be

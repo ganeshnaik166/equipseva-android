@@ -680,12 +680,7 @@ private fun AadhaarSection(
     val aadhaarUploaded = !state.aadhaarDocPath.isNullOrBlank()
     val digits = state.aadhaarNumber
     val checksumOk = digits.length == 12 && AadhaarValidator.isValid(digits)
-    val hint = when {
-        digits.isEmpty() -> "12 digits, no spaces"
-        digits.length < 12 -> "${digits.length}/12 digits"
-        !checksumOk -> "Number doesn't pass the standard Aadhaar checksum"
-        else -> "Looks valid ✓"
-    }
+    val hint = aadhaarNumberHint(digits, checksumOk)
     val hintColor = when {
         digits.isEmpty() -> Ink500
         checksumOk -> Success
@@ -725,12 +720,7 @@ private fun PanSection(
     val panUploaded = !state.panDocPath.isNullOrBlank()
     val pan = state.panNumber
     val panOk = pan.length == 10 && PanValidator.isValid(pan)
-    val panHint = when {
-        pan.isEmpty() -> "10 chars: 5 letters, 4 digits, 1 letter (e.g. ABCDE1234F)"
-        pan.length < 10 -> "${pan.length}/10 chars"
-        !panOk -> "Format must be ABCDE1234F"
-        else -> "Looks valid ✓"
-    }
+    val panHint = panNumberHint(pan, panOk)
     val panHintColor = when {
         pan.isEmpty() -> Ink500
         panOk -> Success
@@ -979,16 +969,7 @@ private fun ReuploadCta(
     rejectedDocTypes: List<String>,
     onClick: () -> Unit,
 ) {
-    val flaggedLabel = rejectedDocTypes
-        .joinToString { type ->
-            when (type) {
-                "aadhaar" -> "Aadhaar"
-                "selfie" -> "selfie"
-                "cert" -> "certificate"
-                else -> type
-            }
-        }
-        .ifBlank { null }
+    val flaggedLabel = flaggedDocsLabel(rejectedDocTypes)
     Card(
         colors = CardDefaults.cardColors(containerColor = ErrorBg),
         shape = RoundedCornerShape(14.dp),
@@ -1167,11 +1148,7 @@ private fun StepperBottomBar(
     val canSubmit = isLast && state.canAdvance && !state.saving
     val canNext = !isLast && state.canAdvance
     val rejected = state.verificationStatus == VerificationStatus.Rejected
-    val nextLabel = when {
-        isLast && rejected -> "Re-submit for review"
-        isLast -> "Submit for review"
-        else -> "Next"
-    }
+    val nextLabel = stepperNextLabel(isLast = isLast, rejected = rejected)
 
     Row(
         modifier = Modifier
@@ -1234,4 +1211,57 @@ private fun queryDisplayName(context: android.content.Context, uri: Uri): String
     )?.use { cursor ->
         if (cursor.moveToFirst()) cursor.getString(0) else null
     }
+}
+
+/**
+ * Maps the admin-flagged rejected-doc storage keys (aadhaar / selfie / cert)
+ * to user-facing labels for the re-upload CTA. Returns null when the list
+ * is empty so the CTA can switch to its generic copy. Unknown keys fall
+ * through to the raw key — forwards-compat with server adding new types.
+ */
+internal fun flaggedDocsLabel(rejectedDocTypes: List<String>): String? =
+    rejectedDocTypes
+        .joinToString { type ->
+            when (type) {
+                "aadhaar" -> "Aadhaar"
+                "selfie" -> "selfie"
+                "cert" -> "certificate"
+                else -> type
+            }
+        }
+        .ifBlank { null }
+
+/**
+ * Inline supporting-text copy for the Aadhaar number field. Four branches:
+ * empty, partial, length-correct-but-checksum-fail, valid. [checksumOk] is
+ * already AadhaarValidator-checked by the caller so the helper stays pure.
+ */
+internal fun aadhaarNumberHint(digits: String, checksumOk: Boolean): String = when {
+    digits.isEmpty() -> "12 digits, no spaces"
+    digits.length < 12 -> "${digits.length}/12 digits"
+    !checksumOk -> "Number doesn't pass the standard Aadhaar checksum"
+    else -> "Looks valid ✓"
+}
+
+/**
+ * Inline supporting-text copy for the PAN number field. Mirrors
+ * [aadhaarNumberHint] for the 10-char ABCDE1234F format.
+ */
+internal fun panNumberHint(pan: String, panOk: Boolean): String = when {
+    pan.isEmpty() -> "10 chars: 5 letters, 4 digits, 1 letter (e.g. ABCDE1234F)"
+    pan.length < 10 -> "${pan.length}/10 chars"
+    !panOk -> "Format must be ABCDE1234F"
+    else -> "Looks valid ✓"
+}
+
+/**
+ * Label for the primary action button at the bottom of the KYC wizard.
+ * On non-last steps it's "Next"; on the final step it switches between
+ * "Submit for review" and "Re-submit for review" depending on whether the
+ * engineer is recovering from a rejection.
+ */
+internal fun stepperNextLabel(isLast: Boolean, rejected: Boolean): String = when {
+    isLast && rejected -> "Re-submit for review"
+    isLast -> "Submit for review"
+    else -> "Next"
 }
