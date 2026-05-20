@@ -29,6 +29,12 @@ enum class DirectorySortMode(val storageKey: String) {
 class EngineerDirectoryRepository @Inject constructor(
     private val client: SupabaseClient,
 ) {
+    // Round 461 — @Immutable lets Compose skip the row card recomposition
+    // when row.equals(prev). Without it the 3 List<String> arrays
+    // (service_areas / specializations / brands_serviced) flagged the
+    // class as Unstable, so every distance update / filter tick on the
+    // Engineer Directory re-rendered every card.
+    @androidx.compose.runtime.Immutable
     @Serializable
     data class DirectoryRow(
         @SerialName("engineer_id") val engineerId: String,

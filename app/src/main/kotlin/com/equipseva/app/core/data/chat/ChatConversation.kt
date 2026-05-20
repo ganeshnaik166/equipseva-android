@@ -1,8 +1,14 @@
 package com.equipseva.app.core.data.chat
 
+import androidx.compose.runtime.Immutable
 import com.equipseva.app.core.util.parseInstantOrNull
 import java.time.Instant
 
+// Round 461 — @Immutable lets Compose skip ConversationRow recomposition
+// when conversation.equals(prev). Without it the participantUserIds
+// List<String> field flagged the class as Unstable, so every realtime
+// tick / unread-count update on the inbox re-rendered every row.
+@Immutable
 data class ChatConversation(
     val id: String,
     val participantUserIds: List<String>,
