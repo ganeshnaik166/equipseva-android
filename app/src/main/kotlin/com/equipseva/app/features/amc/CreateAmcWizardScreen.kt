@@ -268,7 +268,15 @@ class CreateAmcWizardViewModel @Inject constructor(
                         )
                     }
                 }
-                .onFailure { _state.update { st -> st.copy(pickerLoading = false) } }
+                .onFailure { e ->
+                    // Round 424 — was silently swallowing the picker
+                    // search failure; the user saw the loader disappear
+                    // with no results and no signal that the directory
+                    // RPC actually failed. Surface via the existing
+                    // error channel so the WizardError banner renders
+                    // a recoverable message + Try Again loop.
+                    _state.update { st -> st.copy(pickerLoading = false, error = e.toUserMessage()) }
+                }
         }
     }
 
