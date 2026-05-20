@@ -1,9 +1,17 @@
 package com.equipseva.app.core.util
 
+import java.util.Locale
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class StringsTest {
+
+    private val originalLocale: Locale = Locale.getDefault()
+
+    @After fun restoreLocale() {
+        Locale.setDefault(originalLocale)
+    }
 
     // Round 396 — prettyKey is the display formatter for enum storage
     // keys (equipment_category, repair_priority, etc.). Surfaces across
@@ -45,5 +53,14 @@ class StringsTest {
     @Test fun `consecutive delimiters yield empty middle token`() {
         // "x__y" splits as ["x", "", "y"] → "X  Y" (double space).
         assertEquals("X  Y", prettyKey("x__y"))
+    }
+
+    @Test fun `Turkish locale does not dot the I`() {
+        // Default Turkish locale upper-cases 'i' to 'İ' (dotted). The
+        // function is pinned to Locale.ROOT so equipment category labels
+        // stay ASCII no matter what locale the device runs in.
+        Locale.setDefault(Locale.forLanguageTag("tr-TR"))
+        assertEquals("Imaging", prettyKey("imaging"))
+        assertEquals("Icu", prettyKey("icu"))
     }
 }
