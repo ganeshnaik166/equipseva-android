@@ -103,6 +103,11 @@ fun RepairJobsScreen(
     viewModel: RepairJobsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Round 440 — refresh on return. Engineer leaves the open-jobs list
+    // for a job detail / chat / picker; new jobs (or status flips on
+    // existing ones) land server-side. Without this hook the list shows
+    // its pre-navigation snapshot until manual pull-to-refresh.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.onRefresh() }
     val listState = rememberLazyListState()
 
     val reachedEnd by remember {
