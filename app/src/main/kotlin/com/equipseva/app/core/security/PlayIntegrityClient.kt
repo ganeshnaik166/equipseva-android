@@ -102,21 +102,26 @@ open class PlayIntegrityClient @Inject constructor(
 
     private suspend fun runVerification(action: String): Boolean {
         val token = requestToken()
-        val res = supabase.functions.invoke(
-            function = "verify-play-integrity",
-            body = buildJsonObject {
-                put("token", JsonPrimitive(token))
-                put("action", JsonPrimitive(action))
-            },
-        )
-        val text = res.bodyAsText()
-        if (!res.status.isSuccess()) {
-            // Edge function 4xx/5xx — surface to the caller. The debug/release
-            // split is applied one level up, in [requestVerification].
-            throw IntegrityServerException(res.status.value, text)
+        // Round 449 — bound the integrity verify. Used as a gate on KYC
+        // submit (and any other high-stakes action); hung TLS would
+        // block the submit button indefinitely.
+        return kotlinx.coroutines.withTimeout(15_000L) {
+            val res = supabase.functions.invoke(
+                function = "verify-play-integrity",
+                body = buildJsonObject {
+                    put("token", JsonPrimitive(token))
+                    put("action", JsonPrimitive(action))
+                },
+            )
+            val text = res.bodyAsText()
+            if (!res.status.isSuccess()) {
+                // Edge function 4xx/5xx — surface to the caller. The debug/release
+                // split is applied one level up, in [requestVerification].
+                throw IntegrityServerException(res.status.value, text)
+            }
+            val parsed = json.decodeFromString(VerifyResponse.serializer(), text)
+            parsed.ok && parsed.pass
         }
-        val parsed = json.decodeFromString(VerifyResponse.serializer(), text)
-        return parsed.ok && parsed.pass
     }
 
     /**

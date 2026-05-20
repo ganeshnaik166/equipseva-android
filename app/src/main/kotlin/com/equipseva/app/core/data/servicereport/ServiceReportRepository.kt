@@ -33,24 +33,31 @@ class ServiceReportRepository @Inject constructor(
     )
 
     suspend fun generate(jobId: String): Result<String> = runCatching {
-        val res = try {
-            supabase.functions.invoke(
-                function = "generate_service_report",
-                body = buildJsonObject {
-                    put("job_id", JsonPrimitive(jobId))
-                },
-            )
-        } catch (rest: RestException) {
-            error(rest.description ?: "Couldn't generate service report")
+        // Round 449 — bound the PDF generation. The edge fn assembles the
+        // service report (job metadata + photos + signatures) and uploads
+        // it to storage; a 30s ceiling gives room for legitimately-slow
+        // photo URL fetches but prevents the user from staring at an
+        // unbounded "Generating…" spinner.
+        kotlinx.coroutines.withTimeout(30_000L) {
+            val res = try {
+                supabase.functions.invoke(
+                    function = "generate_service_report",
+                    body = buildJsonObject {
+                        put("job_id", JsonPrimitive(jobId))
+                    },
+                )
+            } catch (rest: RestException) {
+                error(rest.description ?: "Couldn't generate service report")
+            }
+            val text = res.bodyAsText()
+            if (!res.status.isSuccess()) {
+                val parsed = runCatching { JSON.decodeFromString(GenerateResponse.serializer(), text) }
+                    .getOrNull()
+                error(parsed?.message ?: "Couldn't generate service report (HTTP ${res.status.value})")
+            }
+            val parsed = JSON.decodeFromString(GenerateResponse.serializer(), text)
+            parsed.serviceReportUrl ?: error(parsed.message ?: "missing url")
         }
-        val text = res.bodyAsText()
-        if (!res.status.isSuccess()) {
-            val parsed = runCatching { JSON.decodeFromString(GenerateResponse.serializer(), text) }
-                .getOrNull()
-            error(parsed?.message ?: "Couldn't generate service report (HTTP ${res.status.value})")
-        }
-        val parsed = JSON.decodeFromString(GenerateResponse.serializer(), text)
-        parsed.serviceReportUrl ?: error(parsed.message ?: "missing url")
     }
 
     private companion object {
