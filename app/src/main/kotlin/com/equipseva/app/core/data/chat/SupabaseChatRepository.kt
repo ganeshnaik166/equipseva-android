@@ -272,15 +272,8 @@ class SupabaseChatRepository @Inject constructor(
         val lastSeen = mutableMapOf<String, Long>()
         var emitted: Set<String> = emptySet()
 
-        fun recompute(): Set<String> {
-            val now = System.currentTimeMillis()
-            val iter = lastSeen.entries.iterator()
-            while (iter.hasNext()) {
-                val (_, ts) = iter.next()
-                if (now - ts > TYPING_TTL_MS) iter.remove()
-            }
-            return lastSeen.keys.toSet()
-        }
+        fun recompute(): Set<String> =
+            pruneAndSnapshotTyping(lastSeen, System.currentTimeMillis(), TYPING_TTL_MS)
 
         fun maybeEmit() {
             val next = recompute()
@@ -390,4 +383,27 @@ class SupabaseChatRepository @Inject constructor(
         const val TYPING_TTL_MS = 3_000L
         const val TYPING_TICK_MS = 1_000L
     }
+}
+
+/**
+ * Mutates [lastSeen] by dropping entries whose timestamp is older than
+ * `nowMs - ttlMs`, and returns a snapshot of the remaining userIds.
+ * Pulled out of [SupabaseChatRepository.observeTyping] so the TTL
+ * filter is unit-testable without a Realtime channel.
+ *
+ * The repo intentionally mutates the map in place — it's a per-flow
+ * scratchpad that lives only inside the callbackFlow scope. The
+ * pure-function shape here matches that.
+ */
+internal fun pruneAndSnapshotTyping(
+    lastSeen: MutableMap<String, Long>,
+    nowMs: Long,
+    ttlMs: Long,
+): Set<String> {
+    val iter = lastSeen.entries.iterator()
+    while (iter.hasNext()) {
+        val (_, ts) = iter.next()
+        if (nowMs - ts > ttlMs) iter.remove()
+    }
+    return lastSeen.keys.toSet()
 }
