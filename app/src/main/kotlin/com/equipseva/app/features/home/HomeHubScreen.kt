@@ -311,13 +311,27 @@ fun HomeHubScreen(
                                 .padding(horizontal = 14.dp, vertical = 18.dp),
                         )
                     } else {
-                        state.recent.forEachIndexed { i, n ->
+                        // Round 459 — precompute the relative-time label
+                        // and the isLast flag once per state.recent
+                        // identity. Previously each parent recomposition
+                        // (SLA-credit update, pending survey tick, role
+                        // refresh, etc.) re-parsed every notification's
+                        // ISO timestamp via relativeTime(). Cached now
+                        // so unrelated state changes don't churn the row
+                        // params.
+                        val labeledRows = remember(state.recent) {
+                            val last = state.recent.lastIndex
+                            state.recent.mapIndexed { i, n ->
+                                Triple(n, relativeTime(n.sentAt), i == last)
+                            }
+                        }
+                        labeledRows.forEach { (n, timeLabel, isLast) ->
                             ActivityRow(
                                 kind = n.kind,
                                 title = n.title.ifBlank { n.body },
-                                relativeTime = relativeTime(n.sentAt),
+                                relativeTime = timeLabel,
                                 unread = n.isUnread,
-                                isLast = i == state.recent.lastIndex,
+                                isLast = isLast,
                                 onClick = onOpenNotifications,
                             )
                         }
