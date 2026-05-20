@@ -44,6 +44,11 @@ fun EsField(
     // Default Next so chained fields advance focus on Enter; pass Done on
     // the last field of a form to just dismiss the keyboard.
     imeAction: ImeAction = ImeAction.Next,
+    // Round 462 — fired when the keyboard's submit-equivalent key (Done /
+    // Send / Go / Search) is tapped, so screens can submit the form on
+    // Enter instead of forcing a button tap. When null the keyboard
+    // simply dismisses on Done (original behavior).
+    onImeAction: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -93,7 +98,22 @@ fun EsField(
                 imeAction = imeAction,
             ),
             keyboardActions = KeyboardActions(
-                onDone = { keyboardController?.hide() },
+                onDone = {
+                    onImeAction?.invoke()
+                    keyboardController?.hide()
+                },
+                onSend = {
+                    onImeAction?.invoke()
+                    keyboardController?.hide()
+                },
+                onGo = {
+                    onImeAction?.invoke()
+                    keyboardController?.hide()
+                },
+                onSearch = {
+                    onImeAction?.invoke()
+                    keyboardController?.hide()
+                },
             ),
             enabled = enabled,
             shape = RoundedCornerShape(EsRadius.Md),

@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -116,6 +117,8 @@ fun SignInScreen(
                     type = EsFieldType.Password,
                     error = state.passwordError,
                     enabled = !state.form.submitting,
+                    imeAction = ImeAction.Done,
+                    onImeAction = viewModel::onSubmit,
                 )
                 // Forgot link, right-aligned.
                 Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.End) {
