@@ -574,10 +574,7 @@ private fun ProfileBody(
                         )
                         InlineVerifiedBadge(small = false)
                     }
-                    val locLine = listOfNotNull(
-                        p.city?.takeIf { it.isNotBlank() },
-                        p.state?.takeIf { it.isNotBlank() },
-                    ).joinToString(", ")
+                    val locLine = formatProfileCityStateLine(p.city, p.state)
                     if (locLine.isNotBlank()) {
                         Spacer(Modifier.height(4.dp))
                         Text(locLine, color = SevaInk500, fontSize = 12.sp)
@@ -615,10 +612,7 @@ private fun ProfileBody(
                 Stat(
                     modifier = Modifier.weight(1f),
                     label = "Completion",
-                    value = run {
-                        val pct = if (p.completionRate <= 1.0) p.completionRate * 100 else p.completionRate
-                        "${pct.toInt()}%"
-                    },
+                    value = formatCompletionRatePct(p.completionRate),
                     color = SevaGreen700,
                 )
             }
@@ -879,7 +873,7 @@ private fun ReviewItem(r: EngineerDirectoryRepository.EngineerReview) {
             }
         }.getOrNull().orEmpty()
     }
-    val cityLabel = r.hospitalCity?.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty()
+    val cityLabel = formatReviewCitySuffix(r.hospitalCity)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -978,5 +972,35 @@ private fun ChipFlowNeutral(items: List<String>) {
     }
 }
 
-private fun prettyKey(k: String): String =
-    k.split('_', '-').joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
+private fun prettyKey(k: String): String = prettyKeyLabel(k)
+
+/**
+ * Render `completion_rate` as a percentage label. The RPC returns the
+ * value as either a 0..1 fraction (legacy mock seed) or a 0..100 percent
+ * (current backend). Detect by magnitude: anything <= 1.0 is treated as
+ * a fraction and scaled. Truncated via toInt() — the design's spec uses
+ * whole-percent values.
+ */
+internal fun formatCompletionRatePct(completionRate: Double): String {
+    val pct = if (completionRate <= 1.0) completionRate * 100 else completionRate
+    return "${pct.toInt()}%"
+}
+
+/**
+ * Hero-line city/state joiner: drops blanks, joins with ", ". Returns ""
+ * when both are blank/null so the caller can skip the row entirely
+ * (avoids a stray comma like ", Telangana" or "Hyderabad, ").
+ */
+internal fun formatProfileCityStateLine(city: String?, state: String?): String =
+    listOfNotNull(
+        city?.takeIf { it.isNotBlank() },
+        state?.takeIf { it.isNotBlank() },
+    ).joinToString(", ")
+
+/**
+ * Suffix shown after the relative-time stamp on each review row:
+ * " · Hyderabad" or "" when the RPC returned no city (hospital identity
+ * is intentionally redacted there). Blank city is treated as missing.
+ */
+internal fun formatReviewCitySuffix(hospitalCity: String?): String =
+    hospitalCity?.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty()

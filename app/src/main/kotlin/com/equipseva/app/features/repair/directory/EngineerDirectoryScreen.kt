@@ -376,14 +376,14 @@ private fun EngCard(
                 InlineVerifiedBadge(small = true)
             }
             Spacer(Modifier.height(2.dp))
-            val locParts = listOfNotNull(
-                row.city,
-                row.distanceKm?.let { "${"%.1f".format(it)} km" },
-                row.hourlyRate?.let { "₹${it.toInt()}/hr" },
+            val locLine = formatDirectoryRowLocationLine(
+                city = row.city,
+                distanceKm = row.distanceKm,
+                hourlyRate = row.hourlyRate,
             )
-            if (locParts.isNotEmpty()) {
+            if (locLine != null) {
                 Text(
-                    locParts.joinToString(" · "),
+                    locLine,
                     color = SevaInk500,
                     fontSize = 12.sp,
                 )
@@ -503,9 +503,42 @@ internal fun InlineVerifiedBadge(small: Boolean = false) {
 // EngineerRatingCard + ReviewItem render the same glyph without a fork.
 // See app/src/main/kotlin/com/equipseva/app/designsystem/components/InlineStars.kt
 
-private fun prettyKey(k: String): String =
+private fun prettyKey(k: String): String = prettyKeyLabel(k)
+
+private fun computeCompletion(totalJobs: Int): Int = computeFallbackCompletionPct(totalJobs)
+
+/**
+ * Title-case a snake/kebab-cased token for chip labels (`patient_monitor`
+ * → "Patient Monitor"). Used by the directory card chips and the public
+ * profile specialization chip flow — both rendered the exact same
+ * transform privately so they stay in lock-step.
+ */
+internal fun prettyKeyLabel(k: String): String =
     k.split('_', '-').joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
 
-private fun computeCompletion(totalJobs: Int): Int {
-    return (90 + (totalJobs.coerceAtMost(20) / 2)).coerceAtMost(100)
+/**
+ * Fallback completion percentage for engineers without a server-side
+ * override. Curve: 90% + (min(jobs, 20) / 2) clamped to 100. So 0 jobs →
+ * 90%, 20+ jobs → 100%. Locked inside the EngCard composable; pulled out
+ * so the curve can be pinned and tweaked without standing up Compose.
+ */
+internal fun computeFallbackCompletionPct(totalJobs: Int): Int =
+    (90 + (totalJobs.coerceAtMost(20) / 2)).coerceAtMost(100)
+
+/**
+ * Build the second line of the directory card: "city · X.Y km · ₹R/hr".
+ * Any null/blank component is dropped, separators collapse. Returns null
+ * when nothing is renderable so the caller can skip the Text node.
+ */
+internal fun formatDirectoryRowLocationLine(
+    city: String?,
+    distanceKm: Double?,
+    hourlyRate: Double?,
+): String? {
+    val parts = listOfNotNull(
+        city?.takeIf { it.isNotBlank() },
+        distanceKm?.let { "${"%.1f".format(it)} km" },
+        hourlyRate?.let { "₹${it.toInt()}/hr" },
+    )
+    return if (parts.isEmpty()) null else parts.joinToString(" · ")
 }
