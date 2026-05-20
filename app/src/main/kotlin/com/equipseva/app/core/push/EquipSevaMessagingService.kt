@@ -123,7 +123,11 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
             else -> NotificationCompat.CATEGORY_RECOMMENDATION
         }
         val notification = NotificationCompat.Builder(this, channel)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            // Round 450 — ic_notification (white-on-transparent vector). The
+            // previous mipmap.ic_launcher was the colored adaptive launcher
+            // icon, which renders as a blank/garbled square in the status
+            // bar on Lollipop+ per the platform's "white only" rule.
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)
