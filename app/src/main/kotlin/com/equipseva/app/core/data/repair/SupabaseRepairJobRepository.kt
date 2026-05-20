@@ -151,32 +151,46 @@ class SupabaseRepairJobRepository @Inject constructor(
     }
 
     override suspend fun create(draft: RepairJobDraft): Result<RepairJob> = runCatching {
-        val payload = RepairJobInsertDto(
-            hospitalUserId = draft.hospitalUserId,
-            hospitalOrgId = draft.hospitalOrgId?.takeIf { it.isNotBlank() },
-            equipmentType = draft.equipmentCategory.storageKey,
-            equipmentBrand = draft.equipmentBrand?.takeIf { it.isNotBlank() },
-            equipmentModel = draft.equipmentModel?.takeIf { it.isNotBlank() },
-            equipmentSerial = draft.equipmentSerial?.takeIf { it.isNotBlank() },
-            siteLocation = draft.siteLocation?.takeIf { it.isNotBlank() },
-            siteLatitude = draft.siteLatitude,
-            siteLongitude = draft.siteLongitude,
-            urgency = draft.urgency.storageKey.takeIf { it.isNotBlank() },
-            issueDescription = draft.issueDescription,
-            issuePhotos = draft.issuePhotos.takeIf { it.isNotEmpty() },
-            scheduledDate = draft.scheduledDate?.takeIf { it.isNotBlank() },
-            scheduledTimeSlot = draft.scheduledTimeSlot?.takeIf { it.isNotBlank() },
-            estimatedCost = draft.estimatedCostRupees?.takeIf { it > 0.0 },
-        )
-        client.from(TABLE).insert(payload) {
+        client.from(TABLE).insert(draft.toInsertDto()) {
             select()
         }.decodeSingle<RepairJobDto>().toDomain()
     }
-
-    private fun String.sanitizeForIlike(): String =
-        replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
     private companion object {
         const val TABLE = "repair_jobs"
     }
 }
+
+/**
+ * Escapes Postgres ILIKE wildcards (`%`, `_`) and the escape character
+ * itself in a user-supplied search needle. Without this, typing `100%`
+ * would match every job description containing "100" followed by
+ * anything, and a literal underscore would match any single character.
+ * Pulled out for unit testing.
+ */
+internal fun String.sanitizeForIlike(): String =
+    replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+/**
+ * Pure mapping from the booking-form domain object to the Postgrest
+ * insert payload. Empties / zero costs collapse to null so the server's
+ * column defaults can fire (e.g. status='requested', urgency='scheduled')
+ * rather than overwriting with blanks. Pulled out for unit testing.
+ */
+internal fun RepairJobDraft.toInsertDto(): RepairJobInsertDto = RepairJobInsertDto(
+    hospitalUserId = hospitalUserId,
+    hospitalOrgId = hospitalOrgId?.takeIf { it.isNotBlank() },
+    equipmentType = equipmentCategory.storageKey,
+    equipmentBrand = equipmentBrand?.takeIf { it.isNotBlank() },
+    equipmentModel = equipmentModel?.takeIf { it.isNotBlank() },
+    equipmentSerial = equipmentSerial?.takeIf { it.isNotBlank() },
+    siteLocation = siteLocation?.takeIf { it.isNotBlank() },
+    siteLatitude = siteLatitude,
+    siteLongitude = siteLongitude,
+    urgency = urgency.storageKey.takeIf { it.isNotBlank() },
+    issueDescription = issueDescription,
+    issuePhotos = issuePhotos.takeIf { it.isNotEmpty() },
+    scheduledDate = scheduledDate?.takeIf { it.isNotBlank() },
+    scheduledTimeSlot = scheduledTimeSlot?.takeIf { it.isNotBlank() },
+    estimatedCost = estimatedCostRupees?.takeIf { it > 0.0 },
+)
