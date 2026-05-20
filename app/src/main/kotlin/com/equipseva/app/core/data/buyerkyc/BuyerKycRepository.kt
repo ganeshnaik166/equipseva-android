@@ -45,15 +45,10 @@ class BuyerKycRepository @Inject constructor(
     ): Result<Unit> = runCatching {
         val uid = client.auth.currentUserOrNull()?.id
             ?: error("not_authenticated")
-        if (docType == DocType.Gst && (gstNumber.isNullOrBlank() || gstNumber.length !in 10..20)) {
+        if (docType == DocType.Gst && !isPlausibleGstNumber(gstNumber)) {
             error("gst_number_required")
         }
-        val ext = when (mimeType.lowercase()) {
-            "application/pdf" -> "pdf"
-            "image/png" -> "png"
-            "image/webp" -> "webp"
-            else -> "jpg"
-        }
+        val ext = buyerKycMimeExtension(mimeType)
         val path = "$uid/buyer_kyc_${docType.key}.$ext"
         storage.upload(StorageRepository.Buckets.KYC_DOCS, path, bytes, mimeType).getOrThrow()
         // KYC docs contain Aadhaar / PAN / GST / drug-license PII, so keep
@@ -78,3 +73,27 @@ class BuyerKycRepository @Inject constructor(
         Unit
     }
 }
+
+/**
+ * Maps a content-type string from the SAF picker to the file extension
+ * used in the storage object key. Falls back to `jpg` for anything not
+ * explicitly recognised — `image/jpeg` is the by-far common case, and
+ * an unknown mime would already be rejected by [UploadValidator] long
+ * before reaching the key construction.
+ */
+internal fun buyerKycMimeExtension(mimeType: String): String = when (mimeType.lowercase()) {
+    "application/pdf" -> "pdf"
+    "image/png" -> "png"
+    "image/webp" -> "webp"
+    else -> "jpg"
+}
+
+/**
+ * Sanity-check the GST number the buyer typed in before the upload
+ * flow proceeds. Real GSTIN is 15 chars; the 10..20 window is
+ * deliberately loose because some buyers also paste their UDYAM /
+ * UAM number into this field and we'd rather let admin reject than
+ * brick the submission client-side.
+ */
+internal fun isPlausibleGstNumber(gstNumber: String?): Boolean =
+    !gstNumber.isNullOrBlank() && gstNumber.length in 10..20
