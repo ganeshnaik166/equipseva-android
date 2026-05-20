@@ -4,6 +4,13 @@ import android.app.Application
 import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.disk.DiskCache
+import coil3.disk.directory
+import coil3.memory.MemoryCache
+import coil3.request.crossfade
 import com.equipseva.app.core.observability.CrashlyticsUserBridge
 import com.equipseva.app.core.observability.SentryInitializer
 import com.equipseva.app.core.observability.SentryUserBridge
@@ -22,7 +29,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 @HiltAndroidApp
-class EquipSevaApplication : Application(), Configuration.Provider {
+class EquipSevaApplication : Application(), Configuration.Provider, SingletonImageLoader.Factory {
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var sentryInitializer: SentryInitializer
@@ -103,6 +110,37 @@ class EquipSevaApplication : Application(), Configuration.Provider {
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
+            .build()
+
+    /**
+     * Configure the singleton Coil ImageLoader.
+     *
+     * Coil's defaults are tuned for high-end Pixels (25% of available
+     * heap for memory cache, no disk cache by default on Coil 3.x).
+     * On the low-end Realme/Samsung devices we ship to, a screen of
+     * engineer avatars + a chat with image attachments can race the
+     * heap cap and OOM. Pinning explicit byte sizes gives us
+     * predictable footprint regardless of device class.
+     *
+     * The disk cache also matters: without it, every cold start
+     * re-downloads engineer avatars + KYC thumbnails over the user's
+     * data, even though the Supabase signed URLs are byte-identical
+     * for the cache-control lifetime.
+     */
+    override fun newImageLoader(context: PlatformContext): ImageLoader =
+        ImageLoader.Builder(context)
+            .crossfade(true)
+            .memoryCache {
+                MemoryCache.Builder()
+                    .maxSizeBytes(64L * 1024 * 1024)
+                    .build()
+            }
+            .diskCache {
+                DiskCache.Builder()
+                    .directory(cacheDir.resolve("image_cache"))
+                    .maxSizeBytes(50L * 1024 * 1024)
+                    .build()
+            }
             .build()
 
     private companion object {
