@@ -23,33 +23,40 @@ fun Throwable.toUserMessage(fallback: String = "Something went wrong. Please try
     }
 }
 
-private fun friendlyRestMessage(ex: RestException): String? {
-    val raw = ex.message.orEmpty()
-    return when {
-        // PostgREST stamps PGRST301 on expired JWTs and PGRST302 on missing /
-        // malformed ones. The Supabase SDK auto-refreshes on the next request,
-        // so the user usually doesn't need to do anything — but the screen
-        // they triggered needs a friendly nudge instead of "JWT expired".
-        raw.contains("PGRST301", ignoreCase = true) ||
-            raw.contains("PGRST302", ignoreCase = true) ||
-            raw.contains("jwt expired", ignoreCase = true) ||
-            raw.contains("jwt is invalid", ignoreCase = true) ||
-            raw.contains("invalid_jwt", ignoreCase = true) ->
-            "Your session expired. Tap retry — if this keeps happening, sign in again."
-        // 42501 = insufficient_privilege; also matches the literal phrase
-        // Postgres returns when column-level grants block a SELECT.
-        raw.contains("42501") || raw.contains("permission denied", ignoreCase = true) ->
-            "You don't have access to this yet. Try again after KYC is verified."
-        raw.contains("PGRST116", ignoreCase = true) || raw.contains("not found", ignoreCase = true) ->
-            "We couldn't find that record."
-        raw.contains("23505") -> "That looks like a duplicate. Please try a different value."
-        raw.contains("23503") -> "Linked record is missing — refresh and try again."
-        raw.isNotBlank() && !looksLikeRawDbError(raw) -> raw
-        else -> null
-    }
+private fun friendlyRestMessage(ex: RestException): String? =
+    classifyRestMessage(ex.message.orEmpty())
+
+/**
+ * Pure classifier for raw Postgrest error message text. Pulled out of
+ * [friendlyRestMessage] so the SQLSTATE / PGRST-code branches are
+ * unit-testable without standing up a Supabase RestException. Returns
+ * `null` when the input is blank or looks like a raw DB error we'd
+ * rather not show the user; returns user-facing copy otherwise.
+ */
+internal fun classifyRestMessage(raw: String): String? = when {
+    // PostgREST stamps PGRST301 on expired JWTs and PGRST302 on missing /
+    // malformed ones. The Supabase SDK auto-refreshes on the next request,
+    // so the user usually doesn't need to do anything — but the screen
+    // they triggered needs a friendly nudge instead of "JWT expired".
+    raw.contains("PGRST301", ignoreCase = true) ||
+        raw.contains("PGRST302", ignoreCase = true) ||
+        raw.contains("jwt expired", ignoreCase = true) ||
+        raw.contains("jwt is invalid", ignoreCase = true) ||
+        raw.contains("invalid_jwt", ignoreCase = true) ->
+        "Your session expired. Tap retry — if this keeps happening, sign in again."
+    // 42501 = insufficient_privilege; also matches the literal phrase
+    // Postgres returns when column-level grants block a SELECT.
+    raw.contains("42501") || raw.contains("permission denied", ignoreCase = true) ->
+        "You don't have access to this yet. Try again after KYC is verified."
+    raw.contains("PGRST116", ignoreCase = true) || raw.contains("not found", ignoreCase = true) ->
+        "We couldn't find that record."
+    raw.contains("23505") -> "That looks like a duplicate. Please try a different value."
+    raw.contains("23503") -> "Linked record is missing — refresh and try again."
+    raw.isNotBlank() && !looksLikeRawDbError(raw) -> raw
+    else -> null
 }
 
-private fun looksLikeRawDbError(text: String): Boolean =
+internal fun looksLikeRawDbError(text: String): Boolean =
     text.contains("URL:", ignoreCase = false) ||
         text.contains("permission denied", ignoreCase = true) ||
         text.contains("SQLSTATE", ignoreCase = true) ||
