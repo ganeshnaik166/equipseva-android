@@ -297,6 +297,12 @@ dependencies {
     // replacing the prod ones (e.g. swap SupabaseClient for a fake).
     testImplementation(libs.hilt.android.testing)
     kspTest(libs.hilt.compiler)
+    // Compose UI testing on JVM via Robolectric. `ui-test-junit4` provides
+    // createComposeRule + assertions; `ui-test-manifest` ships the empty
+    // ComponentActivity the createAndroidComposeRule variant needs.
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
