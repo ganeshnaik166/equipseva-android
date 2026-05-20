@@ -3,6 +3,7 @@ package com.equipseva.app.core.payments
 import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
 
 /**
  * Round 280 — sweep stale entries from [PendingEscrowPaymentsStore] after
@@ -33,7 +34,16 @@ class PendingEscrowPaymentsReconciler @Inject constructor(
 ) {
 
     suspend fun reconcile() {
-        val pending = runCatching { store.list() }.getOrNull().orEmpty()
+        // Round 433 — explicit try/catch so CancellationException re-throws.
+        // runCatching catches all Throwables including CancellationException,
+        // which would silently absorb scope teardown (Worker stop, etc.).
+        val pending = try {
+            store.list()
+        } catch (ce: CancellationException) {
+            throw ce
+        } catch (_: Throwable) {
+            emptyList()
+        }
         if (pending.isEmpty()) return
         for (repairJobId in pending) {
             // Round 294 — distinguish "row is gone" (Result.success(null))
@@ -46,7 +56,13 @@ class PendingEscrowPaymentsReconciler @Inject constructor(
             when (result.getOrNull()?.status) {
                 "held", "released", "refunded", "in_dispute", null -> {
                     // Terminal / post-pending / row-gone — clear the marker.
-                    runCatching { store.remove(repairJobId) }
+                    try {
+                        store.remove(repairJobId)
+                    } catch (ce: CancellationException) {
+                        throw ce
+                    } catch (_: Throwable) {
+                        // Best-effort; lingering marker is recovered on next cold-start.
+                    }
                 }
                 else -> Unit // still 'pending' — keep for the UI banner.
             }
