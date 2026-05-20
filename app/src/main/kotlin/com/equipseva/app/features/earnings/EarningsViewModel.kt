@@ -67,24 +67,15 @@ class EarningsViewModel @Inject constructor(
                         .getOrElse { emptyList() }
                         .associateBy { it.id }
 
-                    val rows = accepted.map { EarningRow(it, jobsById[it.repairJobId]) }
-                    // Drop bids whose job we couldn't resolve (server-side
-                    // delete, RLS hides it, or the row dropped) — counting
-                    // them as "pending" inflated the engineer's expected
-                    // payout. They surface in the row list with a null-job
-                    // hint so the engineer can investigate.
-                    val resolved = rows.filter { it.job != null }
-                    val paid = resolved.filter { it.job?.status == RepairJobStatus.Completed }
-                        .sumOf { it.bid.amountRupees }
-                    val pending = resolved.filter { it.job?.status != RepairJobStatus.Completed }
-                        .sumOf { it.bid.amountRupees }
+                    val rows = buildEarningRows(accepted, jobsById)
+                    val totals = computeEarningTotals(rows)
 
                     _state.update {
                         UiState(
                             loading = false,
                             refreshing = false,
-                            paidTotal = paid,
-                            pendingTotal = pending,
+                            paidTotal = totals.paid,
+                            pendingTotal = totals.pending,
                             rows = rows,
                             errorMessage = null,
                         )
@@ -104,5 +95,40 @@ class EarningsViewModel @Inject constructor(
                 }
         }
     }
+}
+
+/**
+ * Paid (Completed job) vs pending (still-in-flight job) rupee totals
+ * for the engineer's earnings screen. Bids whose job couldn't be
+ * resolved (server-side delete, RLS hides it, or row dropped) are
+ * excluded from both buckets — counting them as pending inflated the
+ * expected payout in production.
+ */
+internal data class EarningTotals(val paid: Double, val pending: Double)
+
+/**
+ * Pair every accepted bid with the (already-fetched) job map. The row
+ * list mirrors the engineer's bid order so the UI can render even when
+ * a job is missing (null-job hint) — only the totals filter those out.
+ */
+internal fun buildEarningRows(
+    acceptedBids: List<RepairBid>,
+    jobsById: Map<String, RepairJob>,
+): List<EarningsViewModel.EarningRow> =
+    acceptedBids.map { EarningsViewModel.EarningRow(it, jobsById[it.repairJobId]) }
+
+/**
+ * Split rows into paid (Completed) vs pending (anything else) rupee
+ * sums. Rows with a null job are dropped from both buckets — they're
+ * unresolved on the server and we don't want to inflate either total
+ * by guessing their state.
+ */
+internal fun computeEarningTotals(rows: List<EarningsViewModel.EarningRow>): EarningTotals {
+    val resolved = rows.filter { it.job != null }
+    val paid = resolved.filter { it.job?.status == RepairJobStatus.Completed }
+        .sumOf { it.bid.amountRupees }
+    val pending = resolved.filter { it.job?.status != RepairJobStatus.Completed }
+        .sumOf { it.bid.amountRupees }
+    return EarningTotals(paid = paid, pending = pending)
 }
 
