@@ -91,7 +91,9 @@ import com.equipseva.app.designsystem.theme.Surface50
 import com.equipseva.app.designsystem.theme.Surface200
 import com.equipseva.app.designsystem.theme.Warning
 import com.equipseva.app.designsystem.theme.WarningBg
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
@@ -299,7 +301,17 @@ private fun EmailVerifySheet(
                 onValueChange = onCodeChange,
                 label = { Text("6-digit code") },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.NumberPassword,
+                    // Round 464 — Done lets the user submit the 6-digit
+                    // OTP from the keyboard once it's complete, instead
+                    // of having to dismiss the keyboard first and then
+                    // reach for the Verify button.
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { if (!verifying && code.length == 6) onSubmit() },
+                ),
                 enabled = !verifying,
                 supportingText = if (sending) {
                     { Text("Sending code…", fontSize = 12.sp, color = Ink500) }
