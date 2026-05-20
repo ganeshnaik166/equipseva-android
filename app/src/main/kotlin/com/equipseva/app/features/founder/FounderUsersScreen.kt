@@ -372,9 +372,7 @@ private fun RoleChip(role: String?) {
  * Lowercase letters are upper-cased so the rendered glyph is consistent.
  */
 internal fun founderUserInitial(fullName: String?, email: String?): String =
-    fullName?.firstOrNull()?.uppercaseChar()?.toString()
-        ?: email?.firstOrNull()?.uppercaseChar()?.toString()
-        ?: "?"
+    com.equipseva.app.core.util.avatarInitial(fullName, secondary = email)
 
 private val DUMMY_USERS: List<FounderRepository.UserRow> = listOf(
     FounderRepository.UserRow(

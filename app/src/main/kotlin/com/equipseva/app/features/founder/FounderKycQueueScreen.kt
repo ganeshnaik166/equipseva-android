@@ -366,12 +366,12 @@ private fun EngineerRow(
 }
 
 /**
- * Avatar initial for the founder KYC queue row. Uppercased so lowercase
- * names ("ravi") still render with a capital letter; blank/empty names
- * fall back to "E" (engineer) to keep the avatar circle non-empty.
+ * Avatar initial for the founder KYC queue row. Delegates to the
+ * shared [com.equipseva.app.core.util.avatarInitial] with an "E"
+ * (engineer) fallback so the chip is never empty.
  */
 internal fun founderEngineerInitial(fullName: String): String =
-    fullName.firstOrNull()?.uppercaseChar()?.toString() ?: "E"
+    com.equipseva.app.core.util.avatarInitial(fullName, blankFallback = "E")
 
 /**
  * "email · phone" line — falls back to "No contact" only when both are
