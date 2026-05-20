@@ -376,7 +376,13 @@ fun AddressFormScreen(
                 // Server CHECK (round281) caps at 120 chars.
                 viewModel.update { it.copy(city = cleaned.take(120)) }
             }
-            FormField(state.form.pincode, "Pincode", keyboardType = KeyboardType.Number) { v ->
+            FormField(
+                state.form.pincode,
+                "Pincode",
+                keyboardType = KeyboardType.Number,
+                imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                onImeAction = { viewModel.save() },
+            ) { v ->
                 // ASCII-only digits — Char.isDigit() accepts Arabic /
                 // Devanagari digits which would round-trip through Postgres
                 // and break the length-6 validator downstream.
@@ -441,6 +447,14 @@ private fun FormField(
     value: String,
     label: String,
     keyboardType: KeyboardType = KeyboardType.Text,
+    // Round 465 — Done on the last field of the form so the user can
+    // submit from the keyboard. Other fields stay on the platform
+    // default (which for singleLine on Android is also Done — but at
+    // least the last field's onImeAction fires the form submit instead
+    // of silently dismissing).
+    imeAction: androidx.compose.ui.text.input.ImeAction =
+        androidx.compose.ui.text.input.ImeAction.Default,
+    onImeAction: (() -> Unit)? = null,
     onChange: (String) -> Unit,
 ) {
     OutlinedTextField(
@@ -449,6 +463,12 @@ private fun FormField(
         label = { Text(label) },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = keyboardType,
+            imeAction = imeAction,
+        ),
+        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+            onDone = { onImeAction?.invoke() },
+        ),
     )
 }
