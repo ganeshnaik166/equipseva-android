@@ -3,6 +3,8 @@ package com.equipseva.app.features.auth
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -184,13 +186,26 @@ private fun RoleCard(
     val tileBg = if (selected) SevaGreen700 else Paper2
     val tileFg = if (selected) Color.White else SevaInk600
     Row(
+        // Round 445 — selectable + Role.RadioButton so TalkBack announces
+        // "Radio button, selected" / "not selected" + handles the
+        // exclusive-pick semantics correctly. Mirror of r411/r444. The
+        // greyed-out non-active roles stay non-interactive (no semantics
+        // attached, matching the visual disabled state).
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(bg)
             .border(1.5.dp, borderColor, RoundedCornerShape(12.dp))
             .alpha(if (v.active) 1f else 0.5f)
-            .let { if (v.active) it.clickable(onClick = onClick) else it }
+            .let {
+                if (v.active) {
+                    it.selectable(
+                        selected = selected,
+                        onClick = onClick,
+                        role = Role.RadioButton,
+                    )
+                } else it
+            }
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
