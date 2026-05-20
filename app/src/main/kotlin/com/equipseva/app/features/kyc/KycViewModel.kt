@@ -827,17 +827,12 @@ class KycViewModel @Inject constructor(
                 return@launch
             }
             val now = Clock.System.now().toString()
-            val certificates = buildList {
-                snap.aadhaarDocPath?.let {
-                    add(EngineerCertificate(EngineerCertificate.TYPE_AADHAAR, it, now))
-                }
-                snap.panDocPath?.let {
-                    add(EngineerCertificate(EngineerCertificate.TYPE_PAN, it, now))
-                }
-                snap.certDocPaths.forEach {
-                    add(EngineerCertificate(EngineerCertificate.TYPE_CERT, it, now))
-                }
-            }
+            val certificates = buildKycCertificates(
+                aadhaarDocPath = snap.aadhaarDocPath,
+                panDocPath = snap.panDocPath,
+                certDocPaths = snap.certDocPaths,
+                uploadedAt = now,
+            )
             engineerRepository.upsert(
                 userId = uid,
                 aadhaarNumber = aadhaarDigits.takeIf { it.isNotEmpty() },
@@ -960,3 +955,29 @@ internal fun matchDistrictFromGeocode(matchedState: String?, resolvedDistrict: S
 private val EMAIL_REGEX = Regex(
     "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\$",
 )
+
+/**
+ * Assembles the `certificates` jsonb payload posted on KYC submit. Order is
+ * load-bearing for `Engineer.aadhaarDocPath` / `panDocPath` derivation —
+ * those use `lastOrNull { it.type == TYPE_X }` so the most-recently-added
+ * entry wins. Multiple `cert` entries are preserved.
+ *
+ * Extracted from [KycViewModel.save] so the branch coverage (each doc slot
+ * optional, multiple certs) is testable in pure JUnit.
+ */
+internal fun buildKycCertificates(
+    aadhaarDocPath: String?,
+    panDocPath: String?,
+    certDocPaths: List<String>,
+    uploadedAt: String,
+): List<EngineerCertificate> = buildList {
+    aadhaarDocPath?.let {
+        add(EngineerCertificate(EngineerCertificate.TYPE_AADHAAR, it, uploadedAt))
+    }
+    panDocPath?.let {
+        add(EngineerCertificate(EngineerCertificate.TYPE_PAN, it, uploadedAt))
+    }
+    certDocPaths.forEach {
+        add(EngineerCertificate(EngineerCertificate.TYPE_CERT, it, uploadedAt))
+    }
+}

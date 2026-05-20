@@ -481,19 +481,29 @@ private fun ActivityRow(
     }
 }
 
-private fun greetingForNow(): String {
-    val h = java.time.LocalTime.now().hour
-    return when {
-        h < 12 -> "Good morning"
-        h < 17 -> "Good afternoon"
-        else -> "Good evening"
-    }
+private fun greetingForNow(): String = greetingForHour(java.time.LocalTime.now().hour)
+
+private fun relativeTime(at: Instant?): String = relativeTimeBetween(at, Instant.now())
+
+/**
+ * Greeting bucket for the hero card. Pure, parameterised on [hour] (0..23
+ * in local time) so the boundary branches (noon, 5pm) are pinnable in a
+ * pure JUnit test.
+ */
+internal fun greetingForHour(hour: Int): String = when {
+    hour < 12 -> "Good morning"
+    hour < 17 -> "Good afternoon"
+    else -> "Good evening"
 }
 
-private fun relativeTime(at: Instant?): String {
+/**
+ * Human-readable relative timestamp for the Recent Activity list. Pure,
+ * parameterised on [now] so the rounding boundaries (1 min, 1 hr, 1 day)
+ * can be pinned without clock manipulation.
+ */
+internal fun relativeTimeBetween(at: Instant?, now: Instant): String {
     if (at == null) return ""
-    val d = Duration.between(at, Instant.now())
-    val mins = d.toMinutes()
+    val mins = Duration.between(at, now).toMinutes()
     return when {
         mins < 1 -> "just now"
         mins < 60 -> "${mins}m ago"

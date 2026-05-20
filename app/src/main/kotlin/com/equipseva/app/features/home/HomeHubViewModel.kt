@@ -86,7 +86,7 @@ class HomeHubViewModel @Inject constructor(
         // bottom-nav (which already reads from this prefs key).
         viewModelScope.launch {
             userPrefs.activeRole.collect { key ->
-                val cached = key?.let { k -> UserRole.entries.firstOrNull { it.storageKey == k } }
+                val cached = cachedRoleFromKey(key)
                 if (cached != null && _state.value.role == null) {
                     _state.update { it.copy(role = cached) }
                 }
@@ -120,13 +120,7 @@ class HomeHubViewModel @Inject constructor(
             val pendingBids = bidRepository.fetchMyBids().getOrNull()
                 ?.count { it.status == RepairBidStatus.Pending }
             val activeMine = jobRepository.fetchAssignedToMe().getOrNull()
-                ?.count {
-                    it.status in listOf(
-                        RepairJobStatus.Assigned,
-                        RepairJobStatus.EnRoute,
-                        RepairJobStatus.InProgress,
-                    )
-                }
+                ?.count { isActiveJobStatus(it.status) }
             _state.update {
                 it.copy(pendingBidsCount = pendingBids, activeCount = activeMine)
             }
@@ -137,13 +131,7 @@ class HomeHubViewModel @Inject constructor(
             // reads the platform-wide pool, not a per-district slice.
             val jobs = jobRepository.fetchByHospitalUser(userId).getOrNull().orEmpty()
             val open = jobs.count { it.status == RepairJobStatus.Requested }
-            val active = jobs.count {
-                it.status in listOf(
-                    RepairJobStatus.Assigned,
-                    RepairJobStatus.EnRoute,
-                    RepairJobStatus.InProgress,
-                )
-            }
+            val active = jobs.count { isActiveJobStatus(it.status) }
             val engineers = engineerDirectoryRepository.search(limit = 200)
                 .getOrNull()?.size
             _state.update {
@@ -241,3 +229,28 @@ class HomeHubViewModel @Inject constructor(
         }
     }
 }
+
+/**
+ * Lookup of the persisted active-role key (mirrors the server `user_role`
+ * enum verbatim) back to a [UserRole]. Returns `null` for unknown / blank /
+ * null keys so the caller can keep waiting for the profile fetch.
+ *
+ * Extracted out of [HomeHubViewModel] so the role-cache fallback branch is
+ * pinnable in pure JUnit — was a real bug pre-extraction (hospital users
+ * saw the engineer tiles for the first frame after signup).
+ */
+internal fun cachedRoleFromKey(key: String?): UserRole? {
+    if (key.isNullOrBlank()) return null
+    return UserRole.entries.firstOrNull { it.storageKey == key }
+}
+
+/**
+ * Predicate for "the engineer is actively working this job" — used by the
+ * hero stat strip to count both the engineer's own active jobs and the
+ * hospital's in-flight queue. Centralised so the two sites can't drift
+ * (status enum gains a new value once and forgets to update one of them).
+ */
+internal fun isActiveJobStatus(status: RepairJobStatus): Boolean =
+    status == RepairJobStatus.Assigned ||
+        status == RepairJobStatus.EnRoute ||
+        status == RepairJobStatus.InProgress
