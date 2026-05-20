@@ -112,18 +112,14 @@ class SupabaseChatRepository @Inject constructor(
 
         val existing = client.from(CONVERSATIONS_TABLE).select {
             filter {
-                eq("related_entity_type", "repair_job")
+                eq("related_entity_type", RELATED_TYPE_REPAIR_JOB)
                 eq("related_entity_id", jobId)
             }
             limit(count = 1)
         }.decodeList<ConversationDto>().firstOrNull()
 
         val dto = existing ?: client.from(CONVERSATIONS_TABLE).insert(
-            ConversationInsertDto(
-                participantUserIds = participantUserIds,
-                relatedEntityType = "repair_job",
-                relatedEntityId = jobId,
-            ),
+            buildConversationInsert(RELATED_TYPE_REPAIR_JOB, jobId, participantUserIds),
         ) { select() }.decodeSingle<ConversationDto>()
 
         dto.toDomain()
@@ -137,18 +133,14 @@ class SupabaseChatRepository @Inject constructor(
 
         val existing = client.from(CONVERSATIONS_TABLE).select {
             filter {
-                eq("related_entity_type", "rfq_bid")
+                eq("related_entity_type", RELATED_TYPE_RFQ_BID)
                 eq("related_entity_id", bidId)
             }
             limit(count = 1)
         }.decodeList<ConversationDto>().firstOrNull()
 
         val dto = existing ?: client.from(CONVERSATIONS_TABLE).insert(
-            ConversationInsertDto(
-                participantUserIds = participantUserIds,
-                relatedEntityType = "rfq_bid",
-                relatedEntityId = bidId,
-            ),
+            buildConversationInsert(RELATED_TYPE_RFQ_BID, bidId, participantUserIds),
         ) { select() }.decodeSingle<ConversationDto>()
 
         dto.toDomain()
@@ -166,19 +158,19 @@ class SupabaseChatRepository @Inject constructor(
         // since Postgrest doesn't expose a clean array-contains-all match.
         val mine = client.from(CONVERSATIONS_TABLE).select {
             filter {
-                eq("related_entity_type", "direct")
+                eq("related_entity_type", RELATED_TYPE_DIRECT)
             }
         }.decodeList<ConversationDto>()
 
         val match = mine.firstOrNull { dto ->
-            dto.participantUserIds?.toSet() == setOf(selfUserId, peerUserId)
+            matchesDirectParticipants(dto.participantUserIds, selfUserId, peerUserId)
         }
 
         val dto = match ?: client.from(CONVERSATIONS_TABLE).insert(
-            ConversationInsertDto(
+            buildConversationInsert(
+                RELATED_TYPE_DIRECT,
+                entityId = null,
                 participantUserIds = listOf(selfUserId, peerUserId),
-                relatedEntityType = "direct",
-                relatedEntityId = null,
             ),
         ) { select() }.decodeSingle<ConversationDto>()
 
@@ -384,6 +376,43 @@ class SupabaseChatRepository @Inject constructor(
         const val TYPING_TICK_MS = 1_000L
     }
 }
+
+// Wire-format constants for chat_conversations.related_entity_type. These
+// strings are part of the row contract (server filters on them; admin
+// queries group by them). Renames here flow to RLS-visible behavior, so
+// pin them via tests rather than letting them drift inline.
+internal const val RELATED_TYPE_REPAIR_JOB = "repair_job"
+internal const val RELATED_TYPE_RFQ_BID = "rfq_bid"
+internal const val RELATED_TYPE_DIRECT = "direct"
+
+/**
+ * Builds the insert payload for a new chat_conversations row. Direct
+ * chats intentionally have a null `related_entity_id`; entity-anchored
+ * chats (repair_job, rfq_bid) carry one. Pulled out so the wire shape
+ * is testable without standing up a SupabaseClient.
+ */
+internal fun buildConversationInsert(
+    relatedEntityType: String,
+    entityId: String?,
+    participantUserIds: List<String>,
+): ConversationInsertDto = ConversationInsertDto(
+    participantUserIds = participantUserIds,
+    relatedEntityType = relatedEntityType,
+    relatedEntityId = entityId,
+)
+
+/**
+ * Direct-chat dedup: a stored conversation matches the (self, peer) pair
+ * iff its participant_user_ids set equals {self, peer}, ignoring order.
+ * A null participant list never matches. Extracted from getOrCreateDirect
+ * so the order-insensitive comparison is pinned by a test — a refactor
+ * back to list equality would silently create duplicate direct chats.
+ */
+internal fun matchesDirectParticipants(
+    stored: List<String>?,
+    selfUserId: String,
+    peerUserId: String,
+): Boolean = stored?.toSet() == setOf(selfUserId, peerUserId)
 
 /**
  * Mutates [lastSeen] by dropping entries whose timestamp is older than
