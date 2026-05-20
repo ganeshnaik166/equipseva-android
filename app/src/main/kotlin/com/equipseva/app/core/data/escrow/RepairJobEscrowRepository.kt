@@ -236,23 +236,28 @@ class RepairJobEscrowRepository @Inject constructor(
     // ---- Razorpay edge-fn calls -------------------------------------
 
     suspend fun createPaymentOrder(repairJobId: String): Result<CreatePaymentOrderResponse> = runCatching {
-        val res = try {
-            supabase.functions.invoke(
-                function = "create-repair-job-payment-order",
-                body = buildJsonObject {
-                    put("repair_job_id", JsonPrimitive(repairJobId))
-                },
-            )
-        } catch (rest: RestException) {
-            val parsed = parseError(rest)
-            error(parsed?.message ?: rest.description ?: "Couldn't create payment order")
+        // Round 449 — sibling to r438's verifyPayment bound. createOrder
+        // hits Razorpay's order-create endpoint; hung TLS would block the
+        // payment-sheet UI 30s+ before failing.
+        kotlinx.coroutines.withTimeout(25_000L) {
+            val res = try {
+                supabase.functions.invoke(
+                    function = "create-repair-job-payment-order",
+                    body = buildJsonObject {
+                        put("repair_job_id", JsonPrimitive(repairJobId))
+                    },
+                )
+            } catch (rest: RestException) {
+                val parsed = parseError(rest)
+                error(parsed?.message ?: rest.description ?: "Couldn't create payment order")
+            }
+            val text = res.bodyAsText()
+            if (!res.status.isSuccess()) {
+                val parsed = runCatching { JSON.decodeFromString(EdgeError.serializer(), text) }.getOrNull()
+                error(parsed?.message ?: "Couldn't create payment order (HTTP ${res.status.value})")
+            }
+            JSON.decodeFromString(CreatePaymentOrderResponse.serializer(), text)
         }
-        val text = res.bodyAsText()
-        if (!res.status.isSuccess()) {
-            val parsed = runCatching { JSON.decodeFromString(EdgeError.serializer(), text) }.getOrNull()
-            error(parsed?.message ?: "Couldn't create payment order (HTTP ${res.status.value})")
-        }
-        JSON.decodeFromString(CreatePaymentOrderResponse.serializer(), text)
     }
 
     suspend fun verifyPayment(
