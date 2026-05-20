@@ -53,7 +53,7 @@ object SignatureVerifier {
         }
     }
 
-    private fun parseExpectedFingerprints(raw: String): List<String> =
+    internal fun parseExpectedFingerprints(raw: String): List<String> =
         raw.split(',').map { it.trim() }.filter { it.isNotEmpty() }
 
     private fun currentCertSha256(context: Context): String {
