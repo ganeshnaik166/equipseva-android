@@ -100,6 +100,30 @@ fun CostRevisionDecisionSheet(
     }
 }
 
+/**
+ * Pure delta summary for the Revised-quote decision sheet. Returns the
+ * absolute difference + the percentage change rounded to a whole number.
+ * Percent change is `null` when the original is zero (avoid divide-by-
+ * zero — the server's [`propose_cost_revision`] guards against an original
+ * of zero but defensively returning null lets callers fall back gracefully
+ * instead of rendering "Infinity %").
+ */
+internal data class CostRevisionDelta(
+    val absoluteRupees: Double,
+    val percentChange: Int?,
+    val isIncrease: Boolean,
+)
+
+internal fun costRevisionDelta(original: Double, revised: Double): CostRevisionDelta {
+    val diff = revised - original
+    val percent = if (original == 0.0) null else Math.round(diff / original * 100.0).toInt()
+    return CostRevisionDelta(
+        absoluteRupees = if (diff < 0) -diff else diff,
+        percentChange = percent,
+        isIncrease = diff > 0,
+    )
+}
+
 @Composable
 private fun AmountRow(label: String, amount: Double, accent: Boolean) {
     Row(

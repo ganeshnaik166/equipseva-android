@@ -390,12 +390,7 @@ private fun ChatTopBar(
     }
 }
 
-private fun initialsOf(name: String): String =
-    name.split(" ", limit = 2)
-        .mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
-        .joinToString("")
-        .take(2)
-        .ifBlank { "?" }
+private fun initialsOf(name: String): String = chatInitialsOf(name)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -693,28 +688,12 @@ private fun formatTime(iso: String?): String? =
 // Group key by local date so the day-separator only appears at boundaries.
 // Falls back to "unknown" when a timestamp is unparseable; DaySeparator
 // short-circuits on a blank label so unparseable buckets render no header.
-private fun dayKey(iso: String?): String =
-    iso?.let {
-        runCatching { Instant.parse(it).atZone(ZoneId.systemDefault()).toLocalDate().toString() }
-            .getOrNull()
-    } ?: "unknown"
+private fun dayKey(iso: String?): String = chatDayKey(iso, ZoneId.systemDefault())
 
-private fun dayLabel(key: String): String {
-    if (key == "unknown") return ""
-    val date = runCatching { LocalDate.parse(key) }.getOrNull() ?: return ""
-    val today = LocalDate.now()
-    return when (date) {
-        today -> "Today"
-        today.minusDays(1) -> "Yesterday"
-        else -> dayHeaderFormatter.format(date.atStartOfDay(ZoneId.systemDefault()).toInstant())
-    }
-}
+private fun dayLabel(key: String): String =
+    chatDayLabel(key, LocalDate.now(), ZoneId.systemDefault(), dayHeaderFormatter)
 
-private fun String.isImageUrl(): Boolean {
-    val lower = substringBefore('?').lowercase()
-    return lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") ||
-        lower.endsWith(".webp") || lower.endsWith(".gif") || lower.endsWith(".heic")
-}
+private fun String.isImageUrl(): Boolean = isImageUrlExtension()
 
 @Composable
 private fun JobContextStrip(jobId: String, onClick: () -> Unit) {
@@ -768,4 +747,62 @@ private fun JobContextStrip(jobId: String, onClick: () -> Unit) {
                 .background(SevaGreen100),
         )
     }
+}
+
+/**
+ * Two-letter initials for a chat avatar circle. Splits the first two
+ * whitespace-separated tokens, takes their first character uppercased,
+ * caps at 2 chars, and falls back to "?" when nothing usable. Pulled
+ * out for unit testing.
+ */
+internal fun chatInitialsOf(name: String): String =
+    name.split(" ", limit = 2)
+        .mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
+        .joinToString("")
+        .take(2)
+        .ifBlank { "?" }
+
+/**
+ * Local-date grouping key for the message list's day separator.
+ * Unparseable / null timestamps collapse to "unknown" so the caller
+ * can short-circuit the header render. Pulled out so the zone is
+ * injectable in tests.
+ */
+internal fun chatDayKey(iso: String?, zoneId: ZoneId): String =
+    iso?.let {
+        runCatching { Instant.parse(it).atZone(zoneId).toLocalDate().toString() }
+            .getOrNull()
+    } ?: "unknown"
+
+/**
+ * User-visible label for a day-separator. "Today" / "Yesterday" / a
+ * formatted date for older days, empty string for "unknown" or
+ * unparseable keys (the separator render short-circuits on blank).
+ * `today` + `zoneId` + `formatter` are parameters so the test can pin
+ * a frozen reference point.
+ */
+internal fun chatDayLabel(
+    key: String,
+    today: LocalDate,
+    zoneId: ZoneId,
+    formatter: DateTimeFormatter,
+): String {
+    if (key == "unknown") return ""
+    val date = runCatching { LocalDate.parse(key) }.getOrNull() ?: return ""
+    return when (date) {
+        today -> "Today"
+        today.minusDays(1) -> "Yesterday"
+        else -> formatter.format(date.atStartOfDay(zoneId).toInstant())
+    }
+}
+
+/**
+ * Cheap "looks like an image URL" check used to pick image vs file
+ * preview for chat attachments. Drops query string, lowercases,
+ * tests against the six bucket-allowed extensions.
+ */
+internal fun String.isImageUrlExtension(): Boolean {
+    val lower = substringBefore('?').lowercase()
+    return lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") ||
+        lower.endsWith(".webp") || lower.endsWith(".gif") || lower.endsWith(".heic")
 }

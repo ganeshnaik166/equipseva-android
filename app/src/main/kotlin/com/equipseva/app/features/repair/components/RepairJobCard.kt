@@ -86,8 +86,8 @@ fun RepairJobCard(
                         )
                     }
                 }
-                val modelLine = listOfNotNull(job.equipmentBrand, job.equipmentModel).joinToString(" ")
-                if (modelLine.isNotBlank() && modelLine != job.equipmentLabel) {
+                val modelLine = repairJobModelLine(job)
+                if (modelLine != null) {
                     Text(
                         text = modelLine,
                         fontSize = 12.sp,
@@ -97,10 +97,10 @@ fun RepairJobCard(
                         modifier = Modifier.padding(top = 2.dp),
                     )
                 }
-                val schedule = listOfNotNull(job.scheduledDate, job.scheduledTimeSlot).joinToString(" ").trim()
-                if (schedule.isNotBlank()) {
+                val schedule = repairJobScheduleLabel(job)
+                if (schedule != null) {
                     Text(
-                        text = "Scheduled $schedule",
+                        text = schedule,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = Ink900,
@@ -150,23 +150,52 @@ fun RepairJobCard(
     }
 }
 
-internal fun iconForEquipment(job: RepairJob): Pair<Int, ImageVector> {
+/**
+ * Pure-Kotlin proxy for icon/hue selection. Keyword sniff over the brand +
+ * model + label first, then a fallback by [RepairEquipmentCategory]. The
+ * Compose-facing [iconForEquipment] maps this to the actual [ImageVector] —
+ * splitting it out keeps the routing rules unit-testable without pulling
+ * in Compose for the icon lookup.
+ */
+internal enum class EquipmentIconKind(val hue: Int) {
+    Imaging(200),
+    Cardiac(40),
+    LifeSupport(0),
+    Infusion(280),
+    Surgical(0),
+    Generic(150),
+}
+
+internal fun equipmentIconKind(job: RepairJob): EquipmentIconKind {
     val label = (job.equipmentLabel + " " + (job.equipmentBrand ?: "") + " " + (job.equipmentModel ?: "")).lowercase()
     return when {
-        "mri" in label || "ct" in label || "x-ray" in label || "xray" in label -> 200 to Icons.Outlined.Radar
-        "ultrasound" in label -> 200 to Icons.Outlined.Radar
-        "ecg" in label || "ekg" in label -> 40 to Icons.Outlined.MonitorHeart
-        "ventilator" in label -> 0 to Icons.Outlined.Air
-        "pump" in label || "infusion" in label -> 280 to Icons.Outlined.WaterDrop
-        "defibrillator" in label || "defib" in label -> 200 to Icons.Outlined.MonitorHeart
+        "mri" in label || "ct" in label || "x-ray" in label || "xray" in label -> EquipmentIconKind.Imaging
+        "ultrasound" in label -> EquipmentIconKind.Imaging
+        "ecg" in label || "ekg" in label -> EquipmentIconKind.Cardiac
+        "ventilator" in label -> EquipmentIconKind.LifeSupport
+        "pump" in label || "infusion" in label -> EquipmentIconKind.Infusion
+        "defibrillator" in label || "defib" in label -> EquipmentIconKind.Cardiac
         else -> when (job.equipmentCategory) {
-            RepairEquipmentCategory.ImagingRadiology -> 200 to Icons.Outlined.Radar
-            RepairEquipmentCategory.PatientMonitoring, RepairEquipmentCategory.Cardiology -> 40 to Icons.Outlined.MonitorHeart
-            RepairEquipmentCategory.LifeSupport -> 0 to Icons.Outlined.Air
-            RepairEquipmentCategory.Surgical -> 0 to Icons.Outlined.MedicalServices
-            else -> 150 to Icons.Outlined.Build
+            RepairEquipmentCategory.ImagingRadiology -> EquipmentIconKind.Imaging
+            RepairEquipmentCategory.PatientMonitoring, RepairEquipmentCategory.Cardiology -> EquipmentIconKind.Cardiac
+            RepairEquipmentCategory.LifeSupport -> EquipmentIconKind.LifeSupport
+            RepairEquipmentCategory.Surgical -> EquipmentIconKind.Surgical
+            else -> EquipmentIconKind.Generic
         }
     }
+}
+
+internal fun iconForEquipment(job: RepairJob): Pair<Int, ImageVector> {
+    val kind = equipmentIconKind(job)
+    val icon = when (kind) {
+        EquipmentIconKind.Imaging -> Icons.Outlined.Radar
+        EquipmentIconKind.Cardiac -> Icons.Outlined.MonitorHeart
+        EquipmentIconKind.LifeSupport -> Icons.Outlined.Air
+        EquipmentIconKind.Infusion -> Icons.Outlined.WaterDrop
+        EquipmentIconKind.Surgical -> Icons.Outlined.MedicalServices
+        EquipmentIconKind.Generic -> Icons.Outlined.Build
+    }
+    return kind.hue to icon
 }
 
 internal fun RepairJobStatus.toTone(): StatusTone = when (this) {
@@ -192,4 +221,34 @@ internal fun RepairBidStatus.toTone(): StatusTone = when (this) {
     RepairBidStatus.Rejected -> StatusTone.Danger
     RepairBidStatus.Withdrawn -> StatusTone.Neutral
     RepairBidStatus.Unknown -> StatusTone.Neutral
+}
+
+/**
+ * Secondary line under the equipment label: "<brand> <model>", but only if
+ * it adds information over [RepairJob.equipmentLabel] (which already falls
+ * back to brand+model when blank). Returns `null` when there's nothing
+ * useful to show, so the composable can skip the row entirely. Mirrors the
+ * inline check that lived in the Composable verbatim — the trailing
+ * `joinToString(" ")` keeps a leading space if `equipmentBrand` is null
+ * because the original code does too.
+ */
+internal fun repairJobModelLine(job: RepairJob): String? {
+    val combined = listOfNotNull(job.equipmentBrand, job.equipmentModel).joinToString(" ")
+    if (combined.isBlank()) return null
+    if (combined == job.equipmentLabel) return null
+    return combined
+}
+
+/**
+ * "Scheduled <date> <slot>" — built when the joined date + slot has any
+ * non-blank text. Returns `null` when there's nothing to show so the
+ * composable can skip the row and not render a dangling "Scheduled "
+ * label. Behaviour-preserving: matches the inline `joinToString(" ").trim()`
+ * pattern, so a blank-but-non-null date still introduces internal
+ * whitespace just like the original.
+ */
+internal fun repairJobScheduleLabel(job: RepairJob): String? {
+    val schedule = listOfNotNull(job.scheduledDate, job.scheduledTimeSlot).joinToString(" ").trim()
+    if (schedule.isBlank()) return null
+    return "Scheduled $schedule"
 }

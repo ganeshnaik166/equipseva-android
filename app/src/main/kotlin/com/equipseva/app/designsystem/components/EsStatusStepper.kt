@@ -29,7 +29,7 @@ import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk900
 
-private val Steps = listOf(
+internal val StepperSteps: List<Pair<String, RepairJobStatus>> = listOf(
     "Requested" to RepairJobStatus.Requested,
     "Assigned"  to RepairJobStatus.Assigned,
     "En route"  to RepairJobStatus.EnRoute,
@@ -37,7 +37,14 @@ private val Steps = listOf(
     "Completed" to RepairJobStatus.Completed,
 )
 
-private fun stepIndex(s: RepairJobStatus): Int = when (s) {
+/**
+ * Position of [s] in the 5-step happy-path Requested → Completed track.
+ * Returns -1 for off-track statuses (Cancelled / Disputed / Unknown) so the
+ * composable can render every circle as Pending. Pinned as a unit so a
+ * future enum addition (e.g. a new "AwaitingParts" status) doesn't silently
+ * slip past as -1 and erase progress for the user.
+ */
+internal fun stepperStepIndex(s: RepairJobStatus): Int = when (s) {
     RepairJobStatus.Requested -> 0
     RepairJobStatus.Assigned -> 1
     RepairJobStatus.EnRoute -> 2
@@ -48,6 +55,23 @@ private fun stepIndex(s: RepairJobStatus): Int = when (s) {
     RepairJobStatus.Unknown -> -1
 }
 
+/**
+ * Pure step-state resolver mirroring the composable's per-circle branch.
+ * Given the current step's index and the index of the circle being drawn,
+ * returns whether that circle should render Done / Active / Pending.
+ *
+ * Behaviour-preserving: off-track current ([currentIdx] < 0) → every step
+ * Pending so no progress is implied for Cancelled/Disputed/Unknown.
+ */
+internal fun stepperStepState(currentIdx: Int, index: Int): StepperState = when {
+    currentIdx < 0 -> StepperState.Pending
+    index < currentIdx -> StepperState.Done
+    index == currentIdx -> StepperState.Active
+    else -> StepperState.Pending
+}
+
+internal enum class StepperState { Pending, Active, Done }
+
 // 5-circle linear progress matching `shared.jsx:StatusStepper`.
 // Circles: filled green when done/active, outlined ink-300 when pending.
 // Connecting lines: green when both ends done, paper-3 when not.
@@ -57,21 +81,16 @@ fun EsStatusStepper(
     current: RepairJobStatus,
     modifier: Modifier = Modifier,
 ) {
-    val currentIdx = stepIndex(current)
+    val currentIdx = stepperStepIndex(current)
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Steps.forEachIndexed { index, _ ->
-                val state = when {
-                    currentIdx < 0 -> StepState.Pending
-                    index < currentIdx -> StepState.Done
-                    index == currentIdx -> StepState.Active
-                    else -> StepState.Pending
-                }
+            StepperSteps.forEachIndexed { index, _ ->
+                val state = stepperStepState(currentIdx, index)
                 StepCircle(state = state)
-                if (index < Steps.lastIndex) {
+                if (index < StepperSteps.lastIndex) {
                     val connectorDone = currentIdx > index
                     Box(
                         modifier = Modifier
@@ -86,7 +105,7 @@ fun EsStatusStepper(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Steps.forEachIndexed { index, (label, _) ->
+            StepperSteps.forEachIndexed { index, (label, _) ->
                 val active = index == currentIdx
                 Text(
                     text = label,
@@ -100,19 +119,17 @@ fun EsStatusStepper(
     }
 }
 
-private enum class StepState { Pending, Active, Done }
-
 @Composable
-private fun StepCircle(state: StepState) {
+private fun StepCircle(state: StepperState) {
     val fill = when (state) {
-        StepState.Done -> SevaGreen700
-        StepState.Active -> Color.White
-        StepState.Pending -> Color.White
+        StepperState.Done -> SevaGreen700
+        StepperState.Active -> Color.White
+        StepperState.Pending -> Color.White
     }
     val border = when (state) {
-        StepState.Done -> SevaGreen700
-        StepState.Active -> SevaGreen700
-        StepState.Pending -> Paper3
+        StepperState.Done -> SevaGreen700
+        StepperState.Active -> SevaGreen700
+        StepperState.Pending -> Paper3
     }
     Box(
         modifier = Modifier
@@ -123,16 +140,16 @@ private fun StepCircle(state: StepState) {
         contentAlignment = Alignment.Center,
     ) {
         when (state) {
-            StepState.Done -> Icon(
+            StepperState.Done -> Icon(
                 imageVector = Icons.Outlined.Check,
                 contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier.size(12.dp),
             )
-            StepState.Active -> Box(
+            StepperState.Active -> Box(
                 modifier = Modifier.size(8.dp).clip(CircleShape).background(SevaGreen700),
             )
-            StepState.Pending -> Unit
+            StepperState.Pending -> Unit
         }
     }
 }

@@ -32,12 +32,24 @@ class DeepLinkRouter @Inject constructor() {
 
     fun dispatch(intent: Intent?) {
         if (intent == null) return
-        intent.getStringExtra(EXTRA_ROUTE)
-            ?.takeIf { it.isNotBlank() }
-            ?.let { channel.trySend(Event.OpenRoute(it)) }
+        eventForRouteExtra(intent.getStringExtra(EXTRA_ROUTE))
+            ?.let { channel.trySend(it) }
     }
 
     companion object {
         const val EXTRA_ROUTE = "com.equipseva.app.deeplink.ROUTE"
     }
+}
+
+/**
+ * Pure intent-extra → Event mapping, split out so a JVM unit test can
+ * pin the null / blank / whitespace rules without spinning up an Android
+ * Intent. Returns null when the extra is absent or whitespace-only — in
+ * either case the router stays silent rather than navigating to a bogus
+ * route. Any non-blank string is forwarded verbatim; the nav graph is
+ * the source of truth for route validity, not the router.
+ */
+internal fun eventForRouteExtra(raw: String?): DeepLinkRouter.Event? {
+    val trimmed = raw?.takeIf { it.isNotBlank() } ?: return null
+    return DeepLinkRouter.Event.OpenRoute(trimmed)
 }

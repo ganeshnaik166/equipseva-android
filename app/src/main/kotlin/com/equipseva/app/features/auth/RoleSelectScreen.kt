@@ -65,37 +65,57 @@ private data class RoleVisual(
     val active: Boolean,
 )
 
-private fun UserRole.visual(): RoleVisual = when (this) {
-    UserRole.HOSPITAL -> RoleVisual(
-        Icons.Filled.Apartment,
+/**
+ * Pure label/desc/active for a role tile. Split from icon resolution so a
+ * JVM unit test can pin the picker copy + the "Coming soon" inactive set
+ * without spinning up Compose. The visual layer below stitches in the
+ * icon. Keep these strings 1:1 with the design — drift here means the
+ * picker says one thing while the rest of onboarding says another.
+ */
+internal data class RoleTileText(
+    val label: String,
+    val desc: String,
+    val active: Boolean,
+)
+
+internal fun roleTileText(role: UserRole): RoleTileText = when (role) {
+    UserRole.HOSPITAL -> RoleTileText(
         "Hospital admin",
         "Book engineers for your facility",
         true,
     )
-    UserRole.ENGINEER -> RoleVisual(
-        Icons.Filled.Build,
+    UserRole.ENGINEER -> RoleTileText(
         "Engineer",
         "Independent biomedical technician",
         true,
     )
-    UserRole.SUPPLIER -> RoleVisual(
-        Icons.Filled.Inventory2,
+    UserRole.SUPPLIER -> RoleTileText(
         "Supplier",
         "Coming soon",
         false,
     )
-    UserRole.MANUFACTURER -> RoleVisual(
-        Icons.Filled.Layers,
+    UserRole.MANUFACTURER -> RoleTileText(
         "Manufacturer",
         "Coming soon",
         false,
     )
-    UserRole.LOGISTICS -> RoleVisual(
-        Icons.Filled.LocalShipping,
+    UserRole.LOGISTICS -> RoleTileText(
         "Logistics",
         "Coming soon",
         false,
     )
+}
+
+private fun UserRole.visual(): RoleVisual {
+    val t = roleTileText(this)
+    val icon = when (this) {
+        UserRole.HOSPITAL -> Icons.Filled.Apartment
+        UserRole.ENGINEER -> Icons.Filled.Build
+        UserRole.SUPPLIER -> Icons.Filled.Inventory2
+        UserRole.MANUFACTURER -> Icons.Filled.Layers
+        UserRole.LOGISTICS -> Icons.Filled.LocalShipping
+    }
+    return RoleVisual(icon, t.label, t.desc, t.active)
 }
 
 @Composable

@@ -111,10 +111,20 @@ class DeepLinkHost @Inject constructor(
     init {
         viewModelScope.launch {
             router.events.collect { raw ->
-                when (raw) {
-                    is DeepLinkRouter.Event.OpenRoute -> _events.trySend(VerifiedEvent.OpenRoute(raw.route))
-                }
+                _events.trySend(verifyRouterEvent(raw))
             }
         }
     }
+}
+
+/**
+ * Pure Router.Event → VerifiedEvent mapping, lifted out of the init
+ * block so a JVM unit test can pin the verification contract without
+ * having to construct the full Hilt ViewModel. Right now every router
+ * event passes through verbatim — but this is the single seam where any
+ * future cross-user "are you allowed to open this route" check will
+ * land, so it's worth a regression test.
+ */
+internal fun verifyRouterEvent(raw: DeepLinkRouter.Event): DeepLinkHost.VerifiedEvent = when (raw) {
+    is DeepLinkRouter.Event.OpenRoute -> DeepLinkHost.VerifiedEvent.OpenRoute(raw.route)
 }

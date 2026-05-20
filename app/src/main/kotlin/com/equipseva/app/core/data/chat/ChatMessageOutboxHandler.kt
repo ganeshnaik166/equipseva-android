@@ -39,14 +39,7 @@ class ChatMessageOutboxHandler @Inject constructor(
             .getOrElse { return OutboxKindHandler.Outcome.GiveUp("Malformed payload: ${it.message}") }
 
         val currentUid = supabase.auth.currentUserOrNull()?.id
-            ?: return OutboxKindHandler.Outcome.Retry(
-                IllegalStateException("No auth session — deferring chat drain"),
-            )
-        if (currentUid != payload.senderUserId) {
-            return OutboxKindHandler.Outcome.GiveUp(
-                "Sender mismatch: queued as ${payload.senderUserId}, current auth is $currentUid",
-            )
-        }
+        senderGateDecision(payload.senderUserId, currentUid)?.let { return it }
 
         return chatRepository.sendMessage(
             conversationId = payload.conversationId,
@@ -67,3 +60,32 @@ data class ChatMessagePayload(
     val body: String,
     val attachments: List<String> = emptyList(),
 )
+
+/**
+ * Pure owner-gate decision for a queued chat drain. Pulled out so the
+ * Retry-vs-GiveUp-vs-proceed branches are unit-testable without standing
+ * up a SupabaseClient.
+ *
+ * Returns:
+ *  - [OutboxKindHandler.Outcome.Retry] when no user is currently signed in
+ *    (the next flush, after the user signs back in, will reconsider).
+ *  - [OutboxKindHandler.Outcome.GiveUp] on a real mismatch (different user
+ *    signed in — drop rather than loop until poison).
+ *  - `null` when the caller should proceed with the actual send.
+ */
+internal fun senderGateDecision(
+    payloadSenderUserId: String,
+    currentUid: String?,
+): OutboxKindHandler.Outcome? {
+    if (currentUid == null) {
+        return OutboxKindHandler.Outcome.Retry(
+            IllegalStateException("No auth session — deferring chat drain"),
+        )
+    }
+    if (currentUid != payloadSenderUserId) {
+        return OutboxKindHandler.Outcome.GiveUp(
+            "Sender mismatch: queued as $payloadSenderUserId, current auth is $currentUid",
+        )
+    }
+    return null
+}

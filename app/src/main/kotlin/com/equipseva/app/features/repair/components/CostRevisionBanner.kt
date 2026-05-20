@@ -65,9 +65,7 @@ fun CostRevisionBanner(
                 color = BANNER_INK,
             )
             Text(
-                text = "${formatRupees(revision.originalAmountRupees)} → " +
-                    formatRupees(revision.revisedAmountRupees) +
-                    ". Tap to review.",
+                text = costRevisionBannerSubtitle(revision),
                 fontSize = 12.sp,
                 color = BANNER_INK,
             )
@@ -80,3 +78,15 @@ fun CostRevisionBanner(
 private val BANNER_BG = Color(0xFFFFF8E1)
 private val BANNER_BORDER = Color(0xFFF5C518)
 private val BANNER_INK = Color(0xFF7A4F01)
+
+/**
+ * Subtitle text shown under "Engineer requested a revised quote". Built
+ * from the original and revised amounts plus a "Tap to review." nudge.
+ * Extracted so the rupee formatting + arrow glue can be pinned without
+ * touching Compose — drift in either side of the arrow would mislead the
+ * hospital about the actual delta.
+ */
+internal fun costRevisionBannerSubtitle(revision: CostRevision): String =
+    "${formatRupees(revision.originalAmountRupees)} → " +
+        formatRupees(revision.revisedAmountRupees) +
+        ". Tap to review."
