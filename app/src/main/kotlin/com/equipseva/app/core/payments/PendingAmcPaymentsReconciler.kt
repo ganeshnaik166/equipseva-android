@@ -32,7 +32,15 @@ class PendingAmcPaymentsReconciler @Inject constructor(
 ) {
 
     suspend fun reconcile() {
-        val pending = runCatching { store.list() }.getOrNull().orEmpty()
+        // Round 433 — explicit try/catch so CancellationException re-throws.
+        // Sibling to PendingEscrowPaymentsReconciler.
+        val pending = try {
+            store.list()
+        } catch (ce: kotlinx.coroutines.CancellationException) {
+            throw ce
+        } catch (_: Throwable) {
+            emptyList()
+        }
         if (pending.isEmpty()) return
         for (id in pending) {
             // Round 294 — distinguish "row is gone" (Result.success(null))
@@ -45,7 +53,13 @@ class PendingAmcPaymentsReconciler @Inject constructor(
             if (result.isFailure) continue
             when (result.getOrNull()) {
                 "paid", "refunded", "failed", null -> {
-                    runCatching { store.remove(id) }
+                    try {
+                        store.remove(id)
+                    } catch (ce: kotlinx.coroutines.CancellationException) {
+                        throw ce
+                    } catch (_: Throwable) {
+                        // Best-effort; lingering marker is recovered on next cold-start.
+                    }
                 }
                 else -> Unit
             }
