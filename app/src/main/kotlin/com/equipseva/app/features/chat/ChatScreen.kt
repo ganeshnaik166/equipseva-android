@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -145,7 +146,11 @@ fun ChatScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            Column {
+            // Round 454 — imePadding lifts the input bar above the
+            // software keyboard. Without it, edge-to-edge windows let
+            // the IME overlap the BasicTextField; the user types blind
+            // until they manually dismiss the keyboard.
+            Column(modifier = Modifier.imePadding()) {
                 if (state.editingMessageId != null) {
                     EditMessageBar(
                         draft = state.editDraft,
