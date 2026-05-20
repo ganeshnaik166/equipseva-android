@@ -3,8 +3,6 @@ package com.equipseva.app.core.data.calls
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
 import io.ktor.client.statement.bodyAsText
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.isSuccess
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.serialization.SerialName
@@ -27,27 +25,44 @@ class SupabaseVirtualCallRepository @Inject constructor(
                 put("repair_job_id", JsonPrimitive(repairJobId))
             },
         )
-        val text = res.bodyAsText()
-        val status = res.status
+        CallSessionResponseMapper.map(
+            httpStatus = res.status.value,
+            body = res.bodyAsText(),
+        )
+    }
+}
 
-        // Server errors come back as JSON with `code` + `message`.
-        // Map well-known codes to typed CallSessionResult variants so
-        // the screen can render the right UX (rate-limit toast,
-        // "coming soon" sheet, etc.) without parsing the message.
-        if (status.isSuccess()) {
-            val parsed = JSON.decodeFromString(SuccessBody.serializer(), text)
+/**
+ * Pure mapping of the request-call-session edge function's HTTP response onto
+ * the [VirtualCallRepository.CallSessionResult] sealed type. Pulled out of
+ * [SupabaseVirtualCallRepository] so the error-shape contract is unit-testable
+ * without spinning up a SupabaseClient / Ktor pipeline.
+ *
+ * The function contract this mirrors lives in
+ * `supabase/functions/request-call-session/index.ts`.
+ */
+internal object CallSessionResponseMapper {
+
+    private val json = Json { ignoreUnknownKeys = true }
+
+    fun map(httpStatus: Int, body: String): VirtualCallRepository.CallSessionResult =
+        if (httpStatus in 200..299) {
+            val parsed = runCatching {
+                json.decodeFromString(SuccessBody.serializer(), body)
+            }.getOrNull()
             VirtualCallRepository.CallSessionResult.ClickToCall(
-                message = parsed.message ?: "Connecting your call…",
-                callSid = parsed.callSid,
+                message = parsed?.message ?: "Connecting your call…",
+                callSid = parsed?.callSid,
             )
         } else {
-            val err = runCatching { JSON.decodeFromString(ErrorBody.serializer(), text) }.getOrNull()
-            mapError(status, err)
+            val err = runCatching {
+                json.decodeFromString(ErrorBody.serializer(), body)
+            }.getOrNull()
+            mapError(httpStatus, err)
         }
-    }
 
     private fun mapError(
-        status: HttpStatusCode,
+        httpStatus: Int,
         err: ErrorBody?,
     ): VirtualCallRepository.CallSessionResult = when (err?.code) {
         "provider_not_configured" -> VirtualCallRepository.CallSessionResult.ProviderNotConfigured
@@ -57,7 +72,7 @@ class SupabaseVirtualCallRepository @Inject constructor(
         "missing_phone" -> VirtualCallRepository.CallSessionResult.MissingPhone
         "not_participant" -> VirtualCallRepository.CallSessionResult.NotParticipant
         else -> VirtualCallRepository.CallSessionResult.Error(
-            message = err?.message ?: "Couldn't start the call (HTTP ${status.value}).",
+            message = err?.message ?: "Couldn't start the call (HTTP $httpStatus).",
         )
     }
 
@@ -75,8 +90,4 @@ class SupabaseVirtualCallRepository @Inject constructor(
         @SerialName("code") val code: String? = null,
         @SerialName("message") val message: String? = null,
     )
-
-    private companion object {
-        val JSON = Json { ignoreUnknownKeys = true }
-    }
 }
