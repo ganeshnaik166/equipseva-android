@@ -138,12 +138,7 @@ class PhotoUploadOutboxHandler @Inject constructor(
         contextId: String,
         objectPath: String,
     ) {
-        val column = when (contextType) {
-            PhotoUploadPayload.CONTEXT_REPAIR_JOB_BEFORE -> "before_photos"
-            PhotoUploadPayload.CONTEXT_REPAIR_JOB_AFTER -> "after_photos"
-            PhotoUploadPayload.CONTEXT_REPAIR_JOB_ISSUE -> "issue_photos"
-            else -> return
-        }
+        val column = photoContextColumn(contextType) ?: return
         if (contextId.isBlank()) return
 
         runCatching {
@@ -177,13 +172,8 @@ class PhotoUploadOutboxHandler @Inject constructor(
         }
     }
 
-    private fun isTransient(error: Throwable): Boolean {
-        // Validator errors (com.equipseva.app.core.storage.UploadError) are
-        // permanent — bad mime/size/path won't fix itself. Everything else
-        // (IOException, Ktor HTTP exceptions, RLS 500s from transient DB hic-
-        // cups) gets one more flush attempt before the worker poisons it.
-        return error !is com.equipseva.app.core.storage.UploadError
-    }
+    private fun isTransient(error: Throwable): Boolean =
+        isTransientUploadError(error)
 
     @Serializable
     @Suppress("ConstructorParameterNaming", "ConstructorParameterNaming")
@@ -204,4 +194,26 @@ class PhotoUploadOutboxHandler @Inject constructor(
     private companion object {
         const val TAG = "PhotoUploadOutbox"
     }
+}
+
+/**
+ * Pure classifier — true when the error is worth one more flush attempt,
+ * false when it's a permanent rejection (bad mime / size / path from the
+ * client-side validator). Pulled out so the retry-vs-poison decision is
+ * unit-testable without a SupabaseClient.
+ */
+internal fun isTransientUploadError(error: Throwable): Boolean =
+    error !is com.equipseva.app.core.storage.UploadError
+
+/**
+ * Map a photo-upload context type onto the array column on `repair_jobs`
+ * to append the resulting object path to. Returns null when the context
+ * is "upload-only" (KYC doc, or an unknown / future context the caller
+ * persists itself). Pulled out for unit testing.
+ */
+internal fun photoContextColumn(contextType: String): String? = when (contextType) {
+    PhotoUploadPayload.CONTEXT_REPAIR_JOB_BEFORE -> "before_photos"
+    PhotoUploadPayload.CONTEXT_REPAIR_JOB_AFTER -> "after_photos"
+    PhotoUploadPayload.CONTEXT_REPAIR_JOB_ISSUE -> "issue_photos"
+    else -> null
 }
