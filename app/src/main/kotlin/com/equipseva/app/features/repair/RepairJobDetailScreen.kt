@@ -2422,10 +2422,20 @@ private fun RateSheet(
                 (1..5).forEach { n ->
                     val filled = n <= rating
                     Box(
+                        // Round 448 — onClickLabel + Role.Button so TalkBack
+                        // announces "Rate $n stars, button" instead of just
+                        // "$n star" + a system "double-tap to activate"
+                        // hint. The icon's contentDescription still carries
+                        // the filled / outline visual; the click semantics
+                        // describe the action.
                         modifier = Modifier
                             .size(44.dp)
                             .clip(CircleShape)
-                            .clickable(enabled = existing == null && !submitting) {
+                            .clickable(
+                                enabled = existing == null && !submitting,
+                                onClickLabel = "Rate $n out of 5 stars",
+                                role = androidx.compose.ui.semantics.Role.Button,
+                            ) {
                                 rating = n
                             },
                         contentAlignment = Alignment.Center,
