@@ -79,18 +79,10 @@ class ChangePasswordViewModel @Inject constructor(
         val newPwd = current.newPassword
         val confirmPwd = current.confirmPassword
 
-        val currentError = if (currentPwd.isBlank()) "Enter your current password" else null
-        val newError = when {
-            newPwd.isBlank() -> "Enter a new password"
-            newPwd.length < MIN_PASSWORD_LENGTH -> "Use at least $MIN_PASSWORD_LENGTH characters"
-            newPwd == currentPwd -> "Choose a password different from your current one"
-            else -> null
-        }
-        val confirmError = when {
-            confirmPwd.isBlank() -> "Re-enter your new password"
-            confirmPwd != newPwd -> "Passwords don't match"
-            else -> null
-        }
+        val errors = validateChangePassword(currentPwd, newPwd, confirmPwd)
+        val currentError = errors.currentPasswordError
+        val newError = errors.newPasswordError
+        val confirmError = errors.confirmPasswordError
 
         if (currentError != null || newError != null || confirmError != null) {
             _state.update {
@@ -135,3 +127,46 @@ class ChangePasswordViewModel @Inject constructor(
         const val MIN_PASSWORD_LENGTH = 8
     }
 }
+
+/**
+ * Inline validation result for the change-password form. Each field
+ * carries its own error string (or null when clean) so the screen can
+ * surface them next to the right input. Pulled out of
+ * [ChangePasswordViewModel.onSubmit] so the rules are testable without
+ * standing up an AuthRepository.
+ */
+internal data class ChangePasswordErrors(
+    val currentPasswordError: String?,
+    val newPasswordError: String?,
+    val confirmPasswordError: String?,
+)
+
+/**
+ * Apply the same rules [ChangePasswordViewModel.onSubmit] runs:
+ *  - current password must be non-blank
+ *  - new password must be non-blank, ≥ MIN_PASSWORD_LENGTH, AND different
+ *    from the current one
+ *  - confirm must be non-blank AND equal to the new password
+ *
+ * Returns a triple of nullable error strings — null means the field is
+ * clean.
+ */
+internal fun validateChangePassword(
+    currentPwd: String,
+    newPwd: String,
+    confirmPwd: String,
+): ChangePasswordErrors = ChangePasswordErrors(
+    currentPasswordError = if (currentPwd.isBlank()) "Enter your current password" else null,
+    newPasswordError = when {
+        newPwd.isBlank() -> "Enter a new password"
+        newPwd.length < ChangePasswordViewModel.MIN_PASSWORD_LENGTH ->
+            "Use at least ${ChangePasswordViewModel.MIN_PASSWORD_LENGTH} characters"
+        newPwd == currentPwd -> "Choose a password different from your current one"
+        else -> null
+    },
+    confirmPasswordError = when {
+        confirmPwd.isBlank() -> "Re-enter your new password"
+        confirmPwd != newPwd -> "Passwords don't match"
+        else -> null
+    },
+)

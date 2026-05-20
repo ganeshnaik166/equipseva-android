@@ -63,11 +63,7 @@ class ChangeEmailViewModel @Inject constructor(
         if (current.submitting) return
 
         val trimmed = current.newEmail.trim()
-        val emailError = when {
-            trimmed.isBlank() -> "Enter your new email"
-            !Validators.emailIsValid(trimmed) -> "Enter a valid email address"
-            else -> null
-        }
+        val emailError = validateChangeEmail(trimmed)
         if (emailError != null) {
             _state.update { it.copy(emailError = emailError) }
             return
@@ -98,4 +94,17 @@ class ChangeEmailViewModel @Inject constructor(
             )
         }
     }
+}
+
+/**
+ * Apply the same rules ChangeEmailViewModel.onSubmit runs on the inline
+ * email error: trimmed-blank ⇒ "Enter your new email", invalid shape
+ * (via [Validators.emailIsValid]) ⇒ "Enter a valid email address",
+ * otherwise null. Pulled out so the rules are testable without
+ * standing up auth + profile repositories.
+ */
+internal fun validateChangeEmail(trimmedEmail: String): String? = when {
+    trimmedEmail.isBlank() -> "Enter your new email"
+    !Validators.emailIsValid(trimmedEmail) -> "Enter a valid email address"
+    else -> null
 }

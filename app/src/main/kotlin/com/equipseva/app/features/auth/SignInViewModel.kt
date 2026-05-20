@@ -45,8 +45,9 @@ class SignInViewModel @Inject constructor(
         val current = _state.value
         if (current.form.submitting) return
 
-        val emailError = if (Validators.emailIsValid(current.email)) null else "Enter a valid email"
-        val passwordError = if (current.password.isNotBlank()) null else "Password is required"
+        val errors = validateSignIn(current.email, current.password)
+        val emailError = errors.emailError
+        val passwordError = errors.passwordError
         if (emailError != null || passwordError != null) {
             _state.update { it.copy(emailError = emailError, passwordError = passwordError) }
             return
@@ -73,6 +74,11 @@ class SignInViewModel @Inject constructor(
      * — the SignIn screen previously routed the Google button to onSubmit,
      * which tried to sign in with whatever was typed in email/password
      * (i.e. usually nothing) so the button was effectively a dead UI element.
+     */
+    /**
+     * Companion function exposed for unit testing — the actual VM calls
+     * [validateSignIn] in onSubmit. Keep this private to the file so it
+     * doesn't accidentally get reused outside the auth screen.
      */
     fun onGoogleClicked(activityContext: Context) {
         if (_state.value.form.submitting) return
@@ -110,3 +116,19 @@ class SignInViewModel @Inject constructor(
     }
 
 }
+
+/**
+ * Inline validation result for the SignIn screen. emailError covers
+ * shape (uses [Validators.emailIsValid]); passwordError covers presence
+ * only — actual strength is enforced server-side at sign-up time, so a
+ * sign-in just needs the user to type something.
+ */
+internal data class SignInErrors(
+    val emailError: String?,
+    val passwordError: String?,
+)
+
+internal fun validateSignIn(email: String, password: String): SignInErrors = SignInErrors(
+    emailError = if (Validators.emailIsValid(email)) null else "Enter a valid email",
+    passwordError = if (password.isNotBlank()) null else "Password is required",
+)
