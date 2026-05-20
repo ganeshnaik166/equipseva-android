@@ -92,8 +92,15 @@ fun EsTopBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (onBack != null) {
+            // Round 455 — 48 dp touch target per Material a11y. Icon still
+            // renders at 20 dp; only the clickable Box grows so the back
+            // button is hittable for users with motor impairments or
+            // larger fingers. ESTopBar is the global top bar so this
+            // ripples to every screen with a back arrow.
             Box(
-                modifier = Modifier.size(36.dp).clickable(onClick = onBack),
+                modifier = Modifier
+                    .size(48.dp)
+                    .clickable(onClick = onBack),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
