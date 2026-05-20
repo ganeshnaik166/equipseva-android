@@ -84,6 +84,12 @@ fun NotificationsScreen(
     viewModel: NotificationsInboxViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Round 439 — refresh on return. Tapping a notification opens the
+    // routed destination (chat, job, AMC contract, etc.); when the user
+    // pops back here, read_at flips landed server-side while they were
+    // off-screen + new pushes may have arrived. Without this hook the
+    // list shows stale unread counts until the next pull-to-refresh.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.refresh() }
 
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
