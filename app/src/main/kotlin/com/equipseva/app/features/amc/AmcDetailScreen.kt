@@ -316,6 +316,12 @@ fun AmcDetailScreen(
     androidx.compose.runtime.LaunchedEffect(viewModel) {
         viewModel.autoPayMessage.collect { msg -> onShowMessage(msg) }
     }
+    // Round 428 — re-fetch on return so visits / pool balance / SLA
+    // breaches / subscription state landed while user was in chat
+    // or picker surface refresh. The viewmodel only runs refresh()
+    // once via init {}; without this hook, a top-up that completed
+    // during a chat hop wouldn't appear in the Pool tab.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.refresh() }
 
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
