@@ -3,6 +3,8 @@ package com.equipseva.app.features.founder
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -815,6 +817,10 @@ private fun OutcomeOption(
     onClick: () -> Unit,
 ) {
     Row(
+        // Round 447 — Release / Refund picks are an exclusive radio group
+        // inside the AdminResolveDisputeSheet. selectable + Role.RadioButton
+        // gives TalkBack the proper "Radio button, selected/not selected"
+        // announce. Sibling to r445/r446.
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
@@ -824,7 +830,11 @@ private fun OutcomeOption(
                 color = if (selected) SevaDanger500 else BorderDefault,
                 shape = RoundedCornerShape(10.dp),
             )
-            .clickable(onClick = onClick)
+            .selectable(
+                selected = selected,
+                onClick = onClick,
+                role = Role.RadioButton,
+            )
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
