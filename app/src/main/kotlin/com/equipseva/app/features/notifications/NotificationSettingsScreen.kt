@@ -6,6 +6,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -186,6 +188,11 @@ private fun CategoryRow(
 // 44x26 pill toggle with 20x20 white thumb. Mirrors the JSX `<Toggle>`
 // helper inside `screens-comm.jsx:NotificationSettings` — green-700 on,
 // borderStrong off, 200ms ease on the thumb x-offset.
+//
+// Round 444 — wired through toggleable + Role.Switch so TalkBack
+// announces "Switch, on / off" instead of generic "double-tap to
+// activate". Critical because this composable drives the entire
+// notification-mute matrix + quiet-hours toggle.
 @Composable
 private fun EsToggle(on: Boolean, onClick: () -> Unit) {
     val thumbX by animateDpAsState(
@@ -198,7 +205,11 @@ private fun EsToggle(on: Boolean, onClick: () -> Unit) {
             .size(width = 44.dp, height = 26.dp)
             .clip(RoundedCornerShape(999.dp))
             .background(if (on) SevaGreen700 else BorderStrong)
-            .clickable(onClick = onClick),
+            .toggleable(
+                value = on,
+                onValueChange = { onClick() },
+                role = Role.Switch,
+            ),
     ) {
         Box(
             modifier = Modifier
