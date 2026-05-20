@@ -104,4 +104,59 @@ class NotificationDeepLinkTest {
         )
         assertEquals(Routes.KYC, route)
     }
+
+    @Test
+    fun `v2 cost-revision kinds resolve to repair job detail`() {
+        // Server-side push triggers for the propose_cost_revision /
+        // decide_cost_revision RPCs (migration 20260504130000). All
+        // three lifecycle kinds deep-link the receiving side onto the
+        // detail screen which renders the banner or decision sheet.
+        listOf(
+            NotificationDeepLink.KIND_COST_REVISION_PROPOSED,
+            NotificationDeepLink.KIND_COST_REVISION_APPROVED,
+            NotificationDeepLink.KIND_COST_REVISION_REJECTED,
+        ).forEach { kind ->
+            val route = NotificationDeepLink.routeFor(
+                kind = kind,
+                data = mapOf("repair_job_id" to sampleUuid),
+            )
+            assertEquals("kind=$kind", Routes.repairJobDetailRoute(sampleUuid), route)
+        }
+    }
+
+    @Test
+    fun `v2 rating reminder kinds resolve to repair job detail`() {
+        listOf(
+            NotificationDeepLink.KIND_RATE_ENGINEER,
+            NotificationDeepLink.KIND_RATE_HOSPITAL,
+        ).forEach { kind ->
+            val route = NotificationDeepLink.routeFor(
+                kind = kind,
+                data = mapOf("repair_job_id" to sampleUuid),
+            )
+            assertEquals("kind=$kind", Routes.repairJobDetailRoute(sampleUuid), route)
+        }
+    }
+
+    @Test
+    fun `cost-revision without repair_job_id returns null`() {
+        // Server must always include repair_job_id for the cost-revision
+        // family — a missing id should bounce to inbox, not crash.
+        assertNull(
+            NotificationDeepLink.routeFor(
+                kind = NotificationDeepLink.KIND_COST_REVISION_PROPOSED,
+                data = emptyMap(),
+            ),
+        )
+    }
+
+    @Test
+    fun `rate_engineer with non-uuid repair_job_id is rejected`() {
+        assertNull(
+            NotificationDeepLink.routeFor(
+                kind = NotificationDeepLink.KIND_RATE_ENGINEER,
+                data = mapOf("repair_job_id" to "not-a-uuid"),
+            ),
+        )
+    }
 }

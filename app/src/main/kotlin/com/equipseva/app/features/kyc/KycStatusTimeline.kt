@@ -57,35 +57,11 @@ fun KycStatusTimeline(
 ) {
     // Per-step render state.
     // step 1 = Submitted, step 2 = Under review, step 3 = Verified.
-    val (s1, s2, s3, subtitle) = when (status) {
-        VerificationStatus.Verified -> TimelineRender(
-            s1 = StepState.Done,
-            s2 = StepState.Done,
-            s3 = StepState.Done,
-            subtitle = "Your verification is complete.",
-        )
-        VerificationStatus.Rejected -> TimelineRender(
-            s1 = StepState.Done,
-            s2 = StepState.Rejected,
-            s3 = StepState.Pending,
-            subtitle = "Your documents were rejected. Re-upload to send it back for review.",
-        )
-        VerificationStatus.Pending -> if (submitted) {
-            TimelineRender(
-                s1 = StepState.Done,
-                s2 = StepState.Active,
-                s3 = StepState.Pending,
-                subtitle = "Submitted. A reviewer is checking your documents.",
-            )
-        } else {
-            TimelineRender(
-                s1 = StepState.Active,
-                s2 = StepState.Pending,
-                s3 = StepState.Pending,
-                subtitle = "Upload documents and submit to start the review.",
-            )
-        }
-    }
+    val render = TimelineRender.from(status, submitted)
+    val s1 = render.s1
+    val s2 = render.s2
+    val s3 = render.s3
+    val subtitle = render.subtitle
 
     Column(
         modifier = modifier
@@ -134,14 +110,56 @@ fun KycStatusTimeline(
     }
 }
 
-private enum class StepState { Pending, Active, Done, Rejected }
+internal enum class StepState { Pending, Active, Done, Rejected }
 
-private data class TimelineRender(
+/**
+ * Pure mapping of [VerificationStatus] + the `submitted` toggle onto the
+ * three step markers + subtitle. Pulled out of the composable so the
+ * branch matrix is unit-testable without standing up a Compose runtime.
+ *
+ * The `submitted` flag only matters when status is [VerificationStatus.Pending]
+ * — it distinguishes "still drafting" (no docs yet) from "submitted and
+ * waiting on the reviewer". Verified and Rejected are terminal and
+ * unambiguous, so the flag is ignored in those cases.
+ */
+internal data class TimelineRender(
     val s1: StepState,
     val s2: StepState,
     val s3: StepState,
     val subtitle: String,
-)
+) {
+    companion object {
+        fun from(status: VerificationStatus, submitted: Boolean): TimelineRender = when (status) {
+            VerificationStatus.Verified -> TimelineRender(
+                s1 = StepState.Done,
+                s2 = StepState.Done,
+                s3 = StepState.Done,
+                subtitle = "Your verification is complete.",
+            )
+            VerificationStatus.Rejected -> TimelineRender(
+                s1 = StepState.Done,
+                s2 = StepState.Rejected,
+                s3 = StepState.Pending,
+                subtitle = "Your documents were rejected. Re-upload to send it back for review.",
+            )
+            VerificationStatus.Pending -> if (submitted) {
+                TimelineRender(
+                    s1 = StepState.Done,
+                    s2 = StepState.Active,
+                    s3 = StepState.Pending,
+                    subtitle = "Submitted. A reviewer is checking your documents.",
+                )
+            } else {
+                TimelineRender(
+                    s1 = StepState.Active,
+                    s2 = StepState.Pending,
+                    s3 = StepState.Pending,
+                    subtitle = "Upload documents and submit to start the review.",
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun TimelineStep(
