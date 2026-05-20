@@ -103,6 +103,10 @@ fun FounderEngineerMapScreen(
     viewModel: FounderEngineerMapViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Round 443 — refresh on return so newly-verified engineers (admin
+    // approves KYC in another tab, comes back here) appear in the zone
+    // counts without a manual back+forward dance.
+    com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.refresh() }
     var selected by remember { mutableStateOf<String?>(null) }
 
     androidx.compose.material3.Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
