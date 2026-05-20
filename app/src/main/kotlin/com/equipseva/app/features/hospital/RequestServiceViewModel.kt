@@ -1,5 +1,6 @@
 package com.equipseva.app.features.hospital
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
@@ -30,7 +31,29 @@ class RequestServiceViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val jobRepository: RepairJobRepository,
     private val storageRepository: StorageRepository,
+    private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+
+    // Round 453 — process-death-safe draft state. Hospital booking is a
+    // 4-step wizard, often filled out over several minutes (issue field
+    // can be 2k chars). Without this the user goes to another app to
+    // copy-paste a serial number, the OS kills our process in the
+    // background, and they return to a blank form with everything lost.
+    private object SavedKeys {
+        const val CATEGORY = "req.category"
+        const val URGENCY = "req.urgency"
+        const val BRAND = "req.brand"
+        const val MODEL = "req.model"
+        const val SERIAL = "req.serial"
+        const val SITE_ADDRESS = "req.siteAddress"
+        const val SITE_LOCATION = "req.siteLocation"
+        const val PICKED_DATE = "req.pickedDate"
+        const val SITE_LAT = "req.siteLat"
+        const val SITE_LNG = "req.siteLng"
+        const val ISSUE = "req.issue"
+        const val BUDGET = "req.budget"
+        const val PHOTOS = "req.photos"
+    }
 
     data class UiState(
         val category: RepairEquipmentCategory = RepairEquipmentCategory.ImagingRadiology,
@@ -59,8 +82,48 @@ class RequestServiceViewModel @Inject constructor(
         data class ShowMessage(val text: String) : Effect
     }
 
-    private val _state = MutableStateFlow(UiState())
+    private val _state = MutableStateFlow(restoredInitialState())
     val state: StateFlow<UiState> = _state.asStateFlow()
+
+    private fun restoredInitialState(): UiState {
+        val category = savedStateHandle.get<String>(SavedKeys.CATEGORY)
+            ?.let { name -> runCatching { RepairEquipmentCategory.valueOf(name) }.getOrNull() }
+            ?: RepairEquipmentCategory.ImagingRadiology
+        val urgency = savedStateHandle.get<String>(SavedKeys.URGENCY)
+            ?.let { name -> runCatching { RepairJobUrgency.valueOf(name) }.getOrNull() }
+            ?: RepairJobUrgency.Scheduled
+        return UiState(
+            category = category,
+            urgency = urgency,
+            brand = savedStateHandle.get<String>(SavedKeys.BRAND).orEmpty(),
+            model = savedStateHandle.get<String>(SavedKeys.MODEL).orEmpty(),
+            serial = savedStateHandle.get<String>(SavedKeys.SERIAL).orEmpty(),
+            siteAddress = savedStateHandle.get<String>(SavedKeys.SITE_ADDRESS).orEmpty(),
+            siteLocation = savedStateHandle.get<String>(SavedKeys.SITE_LOCATION).orEmpty(),
+            pickedDateMillis = savedStateHandle.get<Long>(SavedKeys.PICKED_DATE),
+            siteLatitude = savedStateHandle.get<Double>(SavedKeys.SITE_LAT),
+            siteLongitude = savedStateHandle.get<Double>(SavedKeys.SITE_LNG),
+            issue = savedStateHandle.get<String>(SavedKeys.ISSUE).orEmpty(),
+            budget = savedStateHandle.get<String>(SavedKeys.BUDGET).orEmpty(),
+            photos = savedStateHandle.get<Array<String>>(SavedKeys.PHOTOS)?.toList().orEmpty(),
+        )
+    }
+
+    private fun clearSavedDraft() {
+        savedStateHandle.remove<String>(SavedKeys.CATEGORY)
+        savedStateHandle.remove<String>(SavedKeys.URGENCY)
+        savedStateHandle.remove<String>(SavedKeys.BRAND)
+        savedStateHandle.remove<String>(SavedKeys.MODEL)
+        savedStateHandle.remove<String>(SavedKeys.SERIAL)
+        savedStateHandle.remove<String>(SavedKeys.SITE_ADDRESS)
+        savedStateHandle.remove<String>(SavedKeys.SITE_LOCATION)
+        savedStateHandle.remove<Long>(SavedKeys.PICKED_DATE)
+        savedStateHandle.remove<Double>(SavedKeys.SITE_LAT)
+        savedStateHandle.remove<Double>(SavedKeys.SITE_LNG)
+        savedStateHandle.remove<String>(SavedKeys.ISSUE)
+        savedStateHandle.remove<String>(SavedKeys.BUDGET)
+        savedStateHandle.remove<Array<String>>(SavedKeys.PHOTOS)
+    }
 
     private val effectChannel = kotlinx.coroutines.flow.MutableSharedFlow<Effect>(extraBufferCapacity = 4)
     val effects: kotlinx.coroutines.flow.Flow<Effect> = effectChannel
@@ -88,16 +151,45 @@ class RequestServiceViewModel @Inject constructor(
         }
     }
 
-    fun onCategoryChange(value: RepairEquipmentCategory) = _state.update { it.copy(category = value) }
-    fun onUrgencyChange(value: RepairJobUrgency) = _state.update { it.copy(urgency = value) }
-    fun onBrandChange(value: String) = _state.update { it.copy(brand = value.take(100)) }
-    fun onModelChange(value: String) = _state.update { it.copy(model = value.take(100)) }
-    fun onSerialChange(value: String) = _state.update { it.copy(serial = value.take(100)) }
-    fun onSiteAddressChange(value: String) = _state.update {
-        it.copy(siteAddress = value.take(500), siteAddressError = null, errorMessage = null)
+    fun onCategoryChange(value: RepairEquipmentCategory) {
+        savedStateHandle[SavedKeys.CATEGORY] = value.name
+        _state.update { it.copy(category = value) }
     }
-    fun onSiteLocationChange(value: String) = _state.update { it.copy(siteLocation = value.take(500)) }
-    fun onPickedDateChange(value: Long?) = _state.update { it.copy(pickedDateMillis = value) }
+    fun onUrgencyChange(value: RepairJobUrgency) {
+        savedStateHandle[SavedKeys.URGENCY] = value.name
+        _state.update { it.copy(urgency = value) }
+    }
+    fun onBrandChange(value: String) {
+        val capped = value.take(100)
+        savedStateHandle[SavedKeys.BRAND] = capped
+        _state.update { it.copy(brand = capped) }
+    }
+    fun onModelChange(value: String) {
+        val capped = value.take(100)
+        savedStateHandle[SavedKeys.MODEL] = capped
+        _state.update { it.copy(model = capped) }
+    }
+    fun onSerialChange(value: String) {
+        val capped = value.take(100)
+        savedStateHandle[SavedKeys.SERIAL] = capped
+        _state.update { it.copy(serial = capped) }
+    }
+    fun onSiteAddressChange(value: String) {
+        val capped = value.take(500)
+        savedStateHandle[SavedKeys.SITE_ADDRESS] = capped
+        _state.update {
+            it.copy(siteAddress = capped, siteAddressError = null, errorMessage = null)
+        }
+    }
+    fun onSiteLocationChange(value: String) {
+        val capped = value.take(500)
+        savedStateHandle[SavedKeys.SITE_LOCATION] = capped
+        _state.update { it.copy(siteLocation = capped) }
+    }
+    fun onPickedDateChange(value: Long?) {
+        savedStateHandle[SavedKeys.PICKED_DATE] = value
+        _state.update { it.copy(pickedDateMillis = value) }
+    }
 
     /**
      * Picked from the LocationPickerMap composable. Pair of nullable doubles
@@ -114,22 +206,34 @@ class RequestServiceViewModel @Inject constructor(
         val lngOk = longitude == null ||
             (longitude in -180.0..180.0 && !longitude.isNaN())
         if (!latOk || !lngOk) {
+            savedStateHandle.remove<Double>(SavedKeys.SITE_LAT)
+            savedStateHandle.remove<Double>(SavedKeys.SITE_LNG)
             _state.update { it.copy(siteLatitude = null, siteLongitude = null) }
             return
         }
+        savedStateHandle[SavedKeys.SITE_LAT] = latitude
+        savedStateHandle[SavedKeys.SITE_LNG] = longitude
         _state.update { it.copy(siteLatitude = latitude, siteLongitude = longitude) }
     }
-    fun onIssueChange(value: String) = _state.update {
+    fun onIssueChange(value: String) {
         // Issue is the long-form bug description; 2000 char cap covers
         // the longest realistic case while preventing a 10 KB paste
         // from wedging the form submit.
-        it.copy(issue = value.take(2000), issueError = null, errorMessage = null)
+        val capped = value.take(2000)
+        savedStateHandle[SavedKeys.ISSUE] = capped
+        _state.update {
+            it.copy(issue = capped, issueError = null, errorMessage = null)
+        }
     }
-    fun onBudgetChange(value: String) = _state.update {
+    fun onBudgetChange(value: String) {
         // Budget is a numeric amount typed as text (parsed later via
         // toDoubleOrNull). Cap at 12 chars — enough for "9999999999.99"
         // (10-digit rupees + 2 decimals); blocks abuse paste.
-        it.copy(budget = value.take(12), budgetError = null, errorMessage = null)
+        val capped = value.take(12)
+        savedStateHandle[SavedKeys.BUDGET] = capped
+        _state.update {
+            it.copy(budget = capped, budgetError = null, errorMessage = null)
+        }
     }
 
     /**
@@ -159,9 +263,11 @@ class RequestServiceViewModel @Inject constructor(
             ).fold(
                 onSuccess = {
                     _state.update {
+                        val nextPhotos = it.photos + path
+                        savedStateHandle[SavedKeys.PHOTOS] = nextPhotos.toTypedArray()
                         it.copy(
                             uploadingPhoto = false,
-                            photos = it.photos + path,
+                            photos = nextPhotos,
                         )
                     }
                 },
@@ -174,7 +280,11 @@ class RequestServiceViewModel @Inject constructor(
     }
 
     fun onRemovePhoto(path: String) {
-        _state.update { it.copy(photos = it.photos - path) }
+        _state.update {
+            val nextPhotos = it.photos - path
+            savedStateHandle[SavedKeys.PHOTOS] = nextPhotos.toTypedArray()
+            it.copy(photos = nextPhotos)
+        }
     }
 
     fun onSubmit(selectedSlot: Int = -1) {
@@ -304,6 +414,7 @@ class RequestServiceViewModel @Inject constructor(
             )
             jobRepository.create(draft)
                 .onSuccess { job ->
+                    clearSavedDraft()
                     _state.update { UiState() }
                     effectChannel.tryEmit(Effect.Submitted(jobId = job.id, jobNumber = job.jobNumber))
                 }
