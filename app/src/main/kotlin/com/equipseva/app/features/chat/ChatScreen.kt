@@ -626,21 +626,30 @@ private fun ChatInputBar(
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
-                // 40dp circle send button — green-700 when active, paper-2 disabled.
+                // 40dp circle send button — green-700 when active, paper-2
+                // disabled. Round 458: wrapped in a 48 dp click target so
+                // the a11y hit area meets Material spec; the visible 40 dp
+                // circle is preserved.
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(if (canSend) SevaGreen700 else Paper2)
+                        .size(48.dp)
                         .clickable(enabled = canSend, onClick = onSend),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
-                        contentDescription = "Send",
-                        tint = if (canSend) Color.White else SevaInk400,
-                        modifier = Modifier.size(18.dp),
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(if (canSend) SevaGreen700 else Paper2),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                            contentDescription = "Send",
+                            tint = if (canSend) Color.White else SevaInk400,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
                 }
             }
         }
