@@ -663,12 +663,7 @@ class KycViewModel @Inject constructor(
         }
     }
 
-    private fun docTypeLabel(type: String): String = when (type) {
-        EngineerCertificate.TYPE_AADHAAR -> "Aadhaar"
-        EngineerCertificate.TYPE_PAN -> "PAN"
-        EngineerCertificate.TYPE_CERT -> "certificate"
-        else -> type
-    }
+    private fun docTypeLabel(type: String): String = kycDocTypeLabel(type)
 
     fun uploadAadhaarDoc(fileName: String, bytes: ByteArray, contentType: String?) {
         val uid = userId ?: return
@@ -896,13 +891,39 @@ class KycViewModel @Inject constructor(
         }
     }
 
-    private fun timestampedName(original: String): String {
-        val sanitized = original.substringAfterLast('/').ifBlank { "file" }
-            .replace(Regex("[^A-Za-z0-9._-]"), "_")
-        val stamp = System.currentTimeMillis()
-        return "$stamp-$sanitized"
-    }
+    private fun timestampedName(original: String): String =
+        kycTimestampedName(original)
 
+}
+
+/**
+ * Friendly label for a rejected-doc badge. Falls back to the raw key for
+ * forwards-compat — a new doc type added server-side still renders, just
+ * with the storage key as its label until the client catches up. Pulled
+ * out for unit testing.
+ */
+internal fun kycDocTypeLabel(type: String): String = when (type) {
+    EngineerCertificate.TYPE_AADHAAR -> "Aadhaar"
+    EngineerCertificate.TYPE_PAN -> "PAN"
+    EngineerCertificate.TYPE_CERT -> "certificate"
+    else -> type
+}
+
+/**
+ * Builds a storage-safe upload filename: epoch millis prefix + the
+ * trailing path segment with non-alphanumeric chars (except `.`, `_`, `-`)
+ * collapsed to underscore. Guards against (a) supplying a SAF-returned
+ * URI path containing `/`, (b) blanks, (c) characters Supabase Storage
+ * rejects in object keys.
+ *
+ * The timestamp prefix is taken from System.currentTimeMillis(); the
+ * suffix transform is pure and is what the test pins.
+ */
+internal fun kycTimestampedName(original: String): String {
+    val sanitized = original.substringAfterLast('/').ifBlank { "file" }
+        .replace(Regex("[^A-Za-z0-9._-]"), "_")
+    val stamp = System.currentTimeMillis()
+    return "$stamp-$sanitized"
 }
 
 // Anchored — covers the 99% case for engineer signups without trying to be
