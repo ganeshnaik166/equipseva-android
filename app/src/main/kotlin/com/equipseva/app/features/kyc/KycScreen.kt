@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -280,8 +281,15 @@ private fun EmailVerifySheet(
         onDismissRequest = { if (!verifying) onDismiss() },
         sheetState = sheetState,
     ) {
+        // Round 454 — imePadding lifts the OTP field above the IME so
+        // the user can see what they're typing. ModalBottomSheet handles
+        // safe-content (nav-bar) insets but does not push above the
+        // soft keyboard on its own.
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md),
+            modifier = Modifier
+                .fillMaxWidth()
+                .imePadding()
+                .padding(horizontal = Spacing.lg, vertical = Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             Text("Verify your email", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ink900)
