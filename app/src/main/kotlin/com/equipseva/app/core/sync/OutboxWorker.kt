@@ -87,18 +87,7 @@ class OutboxWorker @AssistedInject constructor(
 
     private fun notifyPoisonDrop(kind: String) {
         val nm = appContext.getSystemService<NotificationManager>() ?: return
-        val (title, body) = when (kind) {
-            OutboxKinds.CHAT_MESSAGE -> "Couldn't send a chat message" to
-                "We tried several times but couldn't deliver it. Open the conversation to retype."
-            OutboxKinds.PHOTO_UPLOAD -> "Couldn't upload a photo" to
-                "Tap the job to re-attach the photo when you have a stronger network."
-            OutboxKinds.REPAIR_BID -> "Couldn't place your bid" to
-                "Open the job to retry your bid — the previous attempt was discarded."
-            OutboxKinds.JOB_STATUS -> "Couldn't sync a job status update" to
-                "Open the job and re-tap the status button when you're online."
-            else -> "Couldn't sync a queued action" to
-                "Some offline action was discarded after repeated failures."
-        }
+        val (title, body) = poisonDropCopy(kind)
         val notif = NotificationCompat.Builder(appContext, NotificationChannels.ACCOUNT)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(title)
@@ -116,4 +105,26 @@ class OutboxWorker @AssistedInject constructor(
         private const val TAG = "OutboxWorker"
         private const val POISON_NOTIF_BASE_ID = 0x0BA0
     }
+}
+
+/**
+ * User-facing (title, body) copy for the system notification we post
+ * when an outbox entry has exhausted [OutboxWorker.MAX_ATTEMPTS] and
+ * is being dropped. Pulled out for unit testing — the actual
+ * NotificationManager.notify call is a separate Android side effect.
+ *
+ * Unknown kinds fall through to a generic message so a new outbox kind
+ * shipped without a matching arm doesn't crash the worker.
+ */
+internal fun poisonDropCopy(kind: String): Pair<String, String> = when (kind) {
+    OutboxKinds.CHAT_MESSAGE -> "Couldn't send a chat message" to
+        "We tried several times but couldn't deliver it. Open the conversation to retype."
+    OutboxKinds.PHOTO_UPLOAD -> "Couldn't upload a photo" to
+        "Tap the job to re-attach the photo when you have a stronger network."
+    OutboxKinds.REPAIR_BID -> "Couldn't place your bid" to
+        "Open the job to retry your bid — the previous attempt was discarded."
+    OutboxKinds.JOB_STATUS -> "Couldn't sync a job status update" to
+        "Open the job and re-tap the status button when you're online."
+    else -> "Couldn't sync a queued action" to
+        "Some offline action was discarded after repeated failures."
 }
