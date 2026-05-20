@@ -127,7 +127,8 @@ class OutboxWorker @AssistedInject constructor(
                 "Some offline action was discarded after repeated failures."
         }
         val notif = NotificationCompat.Builder(appContext, NotificationChannels.ACCOUNT)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            // Round 450 — see EquipSevaMessagingService for rationale.
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
