@@ -8,6 +8,7 @@ import com.equipseva.app.core.sync.classifyOutboxError
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
@@ -159,7 +160,11 @@ class PhotoUploadOutboxHandler @Inject constructor(
         }
         if (contextId.isBlank()) return
 
-        runCatching {
+        // Round 436 — explicit try/catch so CancellationException re-throws
+        // when WorkManager cancels the parent worker. runCatching would
+        // swallow it and the appendUrl flow would log "Append-URL failed:
+        // StandaloneCoroutine was cancelled" as if it were a real error.
+        try {
             val current = supabase.from("repair_jobs").select {
                 filter { eq("id", contextId) }
                 limit(count = 1)
@@ -171,22 +176,24 @@ class PhotoUploadOutboxHandler @Inject constructor(
                 "issue_photos" -> current?.issue_photos
                 else -> null
             }.orEmpty()
-            if (objectPath in existing) return@runCatching // idempotent
+            if (objectPath in existing) return // idempotent
 
             val next = existing + objectPath
             val patch = when (column) {
                 "before_photos" -> RepairJobPhotosPatch(before_photos = next)
                 "after_photos" -> RepairJobPhotosPatch(after_photos = next)
                 "issue_photos" -> RepairJobPhotosPatch(issue_photos = next)
-                else -> return@runCatching
+                else -> return
             }
             supabase.from("repair_jobs").update(patch) {
                 filter { eq("id", contextId) }
             }
-        }.onFailure {
+        } catch (ce: CancellationException) {
+            throw ce
+        } catch (t: Throwable) {
             // Deliberately swallow — see class doc. The storage upload is the
             // load-bearing half of this operation; the URL append is nice-to-have.
-            Log.w(TAG, "Append-URL failed for $contextType/$contextId", it)
+            Log.w(TAG, "Append-URL failed for $contextType/$contextId", t)
         }
     }
 
