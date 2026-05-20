@@ -1,8 +1,15 @@
 package com.equipseva.app.core.data.chat
 
+import androidx.compose.runtime.Immutable
 import com.equipseva.app.core.util.parseInstantOrNull
 import java.time.Instant
 
+// Round 460 — @Immutable lets Compose skip MessageRow recomposition
+// when message.equals(prevMessage). Without it, the List<String>
+// attachments field marks the class as Unstable to Compose and every
+// parent recomposition of ChatScreen (typing tick, new message arrive,
+// snackbar) re-renders every row even when no row content changed.
+@Immutable
 data class ChatMessage(
     val id: String,
     val conversationId: String,
