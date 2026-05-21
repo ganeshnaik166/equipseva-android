@@ -237,16 +237,7 @@ class EngineerPublicProfileViewModel @Inject constructor(
 
     private fun haversineKm(
         lat1: Double, lng1: Double, lat2: Double, lng2: Double,
-    ): Double {
-        val r = 6371.0
-        val dLat = Math.toRadians(lat2 - lat1)
-        val dLng = Math.toRadians(lng2 - lng1)
-        val a = kotlin.math.sin(dLat / 2).let { it * it } +
-            kotlin.math.cos(Math.toRadians(lat1)) *
-            kotlin.math.cos(Math.toRadians(lat2)) *
-            kotlin.math.sin(dLng / 2).let { it * it }
-        return 2 * r * kotlin.math.asin(kotlin.math.sqrt(a))
-    }
+    ): Double = com.equipseva.app.features.repair.directory.haversineKm(lat1, lng1, lat2, lng2)
 
     /**
      * Resolve role + most-recent active job between viewer and this
@@ -1193,4 +1184,23 @@ private fun ChipFlowNeutral(items: List<String>) {
             }
         }
     }
+}
+
+/**
+ * Great-circle distance between two lat/lng pairs in km. Earth radius
+ * 6371 km. Pure helper — extracted top-level so the
+ * EngineerPublicProfileScreen / RepeatBookingNudge distance gate can
+ * be unit-tested without standing up the surrounding VM.
+ */
+internal fun haversineKm(
+    lat1: Double, lng1: Double, lat2: Double, lng2: Double,
+): Double {
+    val r = 6371.0
+    val dLat = Math.toRadians(lat2 - lat1)
+    val dLng = Math.toRadians(lng2 - lng1)
+    val a = kotlin.math.sin(dLat / 2).let { it * it } +
+        kotlin.math.cos(Math.toRadians(lat1)) *
+        kotlin.math.cos(Math.toRadians(lat2)) *
+        kotlin.math.sin(dLng / 2).let { it * it }
+    return 2 * r * kotlin.math.asin(kotlin.math.sqrt(a))
 }
