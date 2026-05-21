@@ -71,7 +71,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-private val VALID_ROLES = listOf(
+internal val VALID_ROLES = listOf(
     "hospital_admin",
     "engineer",
     "supplier",
