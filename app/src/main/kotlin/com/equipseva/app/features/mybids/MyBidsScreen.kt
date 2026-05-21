@@ -173,13 +173,7 @@ private fun BidRowCard(
                 color = SevaInk900,
                 modifier = Modifier.weight(1f),
             )
-            val pillKind = when (row.bid.status) {
-                RepairBidStatus.Accepted -> PillKind.Success
-                RepairBidStatus.Rejected -> PillKind.Danger
-                RepairBidStatus.Withdrawn -> PillKind.Neutral
-                else -> PillKind.Info
-            }
-            Pill(text = row.bid.status.displayName, kind = pillKind)
+            Pill(text = row.bid.status.displayName, kind = bidStatusPillKind(row.bid.status))
         }
         row.job?.siteLocation?.takeIf { it.isNotBlank() }?.let {
             Text(
@@ -236,4 +230,18 @@ private fun QueuedBidPill(count: Int) {
             color = SevaInk900,
         )
     }
+}
+
+/**
+ * Bid-card pill colour for each bid status. Pinned to keep the
+ * MyBids list visually consistent with the rest of the app (Accepted
+ * = green Success, Rejected = red Danger). Pending and Unknown share
+ * Info so an in-flight bid + a legacy row both read as "still
+ * resolving".
+ */
+internal fun bidStatusPillKind(status: RepairBidStatus): PillKind = when (status) {
+    RepairBidStatus.Accepted -> PillKind.Success
+    RepairBidStatus.Rejected -> PillKind.Danger
+    RepairBidStatus.Withdrawn -> PillKind.Neutral
+    else -> PillKind.Info
 }
