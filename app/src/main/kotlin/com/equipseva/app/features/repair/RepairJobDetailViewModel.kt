@@ -345,12 +345,9 @@ class RepairJobDetailViewModel @Inject constructor(
 
     fun submitBid(amountRupees: Double, etaHours: Int?, note: String?) {
         if (_state.value.placingBid) return
-        if (!amountRupees.isFinite() || amountRupees !in 1.0..10_000_000.0) {
-            viewModelScope.launch { _messages.emit("Enter a bid between ₹1 and ₹1 crore") }
-            return
-        }
-        if (etaHours != null && etaHours !in 1..720) {
-            viewModelScope.launch { _messages.emit("ETA must be 1\u2013720 hours") }
+        val validationError = validateBidInput(amountRupees, etaHours)
+        if (validationError != null) {
+            viewModelScope.launch { _messages.emit(validationError) }
             return
         }
         val hadPending = _state.value.ownBid?.status == RepairBidStatus.Pending
@@ -1159,4 +1156,27 @@ internal fun resolveViewerRole(
         selfActiveRole == "engineer" -> RepairJobDetailViewModel.ViewerRole.Engineer
         else -> RepairJobDetailViewModel.ViewerRole.Other
     }
+}
+
+/**
+ * Validates a freshly-submitted bid before it reaches the network.
+ * Returns the user-visible error message when invalid, or null when
+ * the inputs pass the gate. Pinned ranges:
+ *
+ *   * amount: finite, [1, 10_000_000] rupees (cap at 1 crore so a
+ *     misplaced decimal point on the engineer side surfaces a fast
+ *     "too big" toast instead of a server-side 422).
+ *   * eta: optional; when present, must be 1..720 hours (30 days).
+ *
+ * Extracted from RepairJobDetailViewModel.submitBid so the boundary
+ * cases can be unit-tested without driving the VM through Hilt.
+ */
+internal fun validateBidInput(amountRupees: Double, etaHours: Int?): String? {
+    if (!amountRupees.isFinite() || amountRupees !in 1.0..10_000_000.0) {
+        return "Enter a bid between ₹1 and ₹1 crore"
+    }
+    if (etaHours != null && etaHours !in 1..720) {
+        return "ETA must be 1–720 hours"
+    }
+    return null
 }
