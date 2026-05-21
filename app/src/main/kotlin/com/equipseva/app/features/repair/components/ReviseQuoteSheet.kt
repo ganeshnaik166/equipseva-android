@@ -25,8 +25,44 @@ import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk700
 import com.equipseva.app.designsystem.theme.SevaInk900
 
-private const val REASON_MIN = 50
-private const val REASON_MAX = 500
+internal const val REASON_MIN = 50
+internal const val REASON_MAX = 500
+
+/**
+ * Validation outcome for the revise-quote sheet's local pre-validate
+ * pass. The server is still the source of truth (the
+ * propose_cost_revision RPC re-checks every field), but the client
+ * runs this gate to enable / disable the submit button so users get
+ * immediate feedback before the network round-trip.
+ */
+internal data class ReviseQuoteValidation(
+    val parsedAmount: Double?,
+    val amountValid: Boolean,
+    val reasonValid: Boolean,
+) {
+    val canSubmit: Boolean get() = amountValid && reasonValid
+}
+
+/**
+ * Pure validator extracted from [ReviseQuoteSheet] so the
+ * amount-greater-than-contracted + reason-length gates can be
+ * unit-tested without standing up the bottom sheet's composable.
+ */
+internal fun validateReviseQuote(
+    amountText: String,
+    reason: String,
+    currentContractedRupees: Double,
+): ReviseQuoteValidation {
+    val parsedAmount = amountText.trim().toDoubleOrNull()
+    val amountValid = parsedAmount != null && parsedAmount > currentContractedRupees
+    val reasonLen = reason.trim().length
+    val reasonValid = reasonLen in REASON_MIN..REASON_MAX
+    return ReviseQuoteValidation(
+        parsedAmount = parsedAmount,
+        amountValid = amountValid,
+        reasonValid = reasonValid,
+    )
+}
 
 /**
  * Engineer-side bottom sheet to propose a revised quote when more
@@ -49,12 +85,12 @@ fun ReviseQuoteSheet(
 ) {
     var amountText by rememberSaveable { mutableStateOf("") }
     var reason by rememberSaveable { mutableStateOf("") }
-    val parsedAmount = amountText.trim().toDoubleOrNull()
-    val amountValid = parsedAmount != null && parsedAmount > currentContractedRupees
+    val validation = validateReviseQuote(amountText, reason, currentContractedRupees)
+    val parsedAmount = validation.parsedAmount
     val reasonTrimmed = reason.trim()
     val reasonLen = reasonTrimmed.length
-    val reasonValid = reasonLen in REASON_MIN..REASON_MAX
-    val canSubmit = amountValid && reasonValid && !submitting
+    val reasonValid = validation.reasonValid
+    val canSubmit = validation.canSubmit && !submitting
 
     EsBottomSheet(onClose = onDismiss, title = "Revise quote") {
         Column(
