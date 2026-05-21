@@ -670,12 +670,7 @@ private fun AadhaarSection(
     val aadhaarUploaded = !state.aadhaarDocPath.isNullOrBlank()
     val digits = state.aadhaarNumber
     val checksumOk = digits.length == 12 && AadhaarValidator.isValid(digits)
-    val hint = when {
-        digits.isEmpty() -> "12 digits, no spaces"
-        digits.length < 12 -> "${digits.length}/12 digits"
-        !checksumOk -> "Number doesn't pass the standard Aadhaar checksum"
-        else -> "Looks valid ✓"
-    }
+    val hint = aadhaarNumberHint(digits, checksumOk)
     val hintColor = when {
         digits.isEmpty() -> Ink500
         checksumOk -> Success
@@ -715,12 +710,7 @@ private fun PanSection(
     val panUploaded = !state.panDocPath.isNullOrBlank()
     val pan = state.panNumber
     val panOk = pan.length == 10 && PanValidator.isValid(pan)
-    val panHint = when {
-        pan.isEmpty() -> "10 chars: 5 letters, 4 digits, 1 letter (e.g. ABCDE1234F)"
-        pan.length < 10 -> "${pan.length}/10 chars"
-        !panOk -> "Format must be ABCDE1234F"
-        else -> "Looks valid ✓"
-    }
+    val panHint = panNumberHint(pan, panOk)
     val panHintColor = when {
         pan.isEmpty() -> Ink500
         panOk -> Success
@@ -1245,4 +1235,31 @@ private fun queryDisplayName(context: android.content.Context, uri: Uri): String
     )?.use { cursor ->
         if (cursor.moveToFirst()) cursor.getString(0) else null
     }
+}
+
+/**
+ * Inline hint copy under the Aadhaar input field, driven by the
+ * sanitized digit count and the [AadhaarValidator] checksum result.
+ * Four states:
+ *   empty            -> "12 digits, no spaces"
+ *   short            -> "N/12 digits"
+ *   12 + bad checksum -> "Number doesn't pass the standard Aadhaar checksum"
+ *   12 + good checksum -> "Looks valid ✓"
+ */
+internal fun aadhaarNumberHint(digits: String, checksumOk: Boolean): String = when {
+    digits.isEmpty() -> "12 digits, no spaces"
+    digits.length < 12 -> "${digits.length}/12 digits"
+    !checksumOk -> "Number doesn't pass the standard Aadhaar checksum"
+    else -> "Looks valid ✓"
+}
+
+/**
+ * Inline hint copy under the PAN input field. Mirrors the
+ * Aadhaar helper's four-state shape with PAN-specific copy.
+ */
+internal fun panNumberHint(pan: String, panOk: Boolean): String = when {
+    pan.isEmpty() -> "10 chars: 5 letters, 4 digits, 1 letter (e.g. ABCDE1234F)"
+    pan.length < 10 -> "${pan.length}/10 chars"
+    !panOk -> "Format must be ABCDE1234F"
+    else -> "Looks valid ✓"
 }
