@@ -343,7 +343,21 @@ private fun ContractCard(
 
 @Composable
 internal fun StatusPillFor(status: String) {
-    val (label, kind) = when (status.lowercase()) {
+    val (label, kind) = amcStatusLabelAndKind(status)
+    Pill(text = label, kind = kind)
+}
+
+/**
+ * Pure mapping behind [StatusPillFor]: maps an AMC contract status
+ * key (`active`, `paused`, `expired`, `cancelled`, `renewal_failed`)
+ * to user-facing copy + a [PillKind] tone.
+ *
+ * The case-insensitive comparison lets a future server-side write
+ * use mixed-case without crashing the card — pin so a tightening
+ * doesn't slip past review.
+ */
+internal fun amcStatusLabelAndKind(status: String): Pair<String, PillKind> =
+    when (status.lowercase()) {
         "active" -> "Active" to PillKind.Success
         "paused" -> "Paused" to PillKind.Danger
         "expired" -> "Expired" to PillKind.Neutral
@@ -351,8 +365,6 @@ internal fun StatusPillFor(status: String) {
         "renewal_failed" -> "Renewal failed" to PillKind.Danger
         else -> status.replaceFirstChar { it.uppercase() } to PillKind.Neutral
     }
-    Pill(text = label, kind = kind)
-}
 
 internal fun prettyFrequency(f: String): String = when (f.lowercase()) {
     "weekly" -> "Weekly"
