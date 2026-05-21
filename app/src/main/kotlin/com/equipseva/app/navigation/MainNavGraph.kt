@@ -107,7 +107,7 @@ internal fun tabRoutesForRole(
 }
 
 /** Routes that take over the screen and should hide the bottom navigation bar. */
-private val fullScreenRoutePrefixes = listOf(
+internal val fullScreenRoutePrefixes = listOf(
     Routes.REPAIR_DETAIL,
     Routes.ENGINEER_DIRECTORY,
     Routes.ENGINEER_PUBLIC_PROFILE,
@@ -220,8 +220,7 @@ fun MainNavGraph(
         }
     }
 
-    val isFullScreenRoute = currentRoute != null &&
-        fullScreenRoutePrefixes.any { currentRoute.startsWith(it) }
+    val isFullScreenRoute = isFullScreenRoute(currentRoute)
 
     val activeRoleKey by deepLinkHost.activeRole.collectAsStateWithLifecycle(initialValue = null)
     val activeRole = activeRoleKey?.let { com.equipseva.app.features.auth.UserRole.fromKey(it) }
@@ -1031,6 +1030,19 @@ private fun routeNotificationDeepLink(
  * blank/unparseable. Extracted to keep the side-effecting NavController
  * wrapper thin and the link parsing testable.
  */
+/**
+ * True when [route] is a destination that should take over the
+ * screen and hide the bottom navigation bar. Pure helper extracted so
+ * the route → bottom-bar visibility decision can be unit-tested
+ * without standing up a NavController. Match semantics are prefix —
+ * sub-routes (e.g. `repair/detail/<id>`) inherit the parent's
+ * full-screen flag.
+ */
+internal fun isFullScreenRoute(route: String?): Boolean {
+    if (route == null) return false
+    return fullScreenRoutePrefixes.any { route.startsWith(it) }
+}
+
 internal fun resolveNotificationDeepLink(link: String): String? {
     val trimmed = link.trim().ifBlank { return null }
 
