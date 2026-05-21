@@ -101,15 +101,28 @@ class EngineerJobsHubViewModel @Inject constructor(
     private suspend fun refresh(userId: String) {
         engineerRepository.fetchByUserId(userId)
             .onSuccess { eng ->
-                val s = when (eng?.verificationStatus?.name?.lowercase()) {
-                    null -> Status.NotEngineer
-                    "verified" -> Status.Verified
-                    "rejected" -> Status.Rejected
-                    else -> Status.Pending
-                }
-                _state.update { it.copy(status = s) }
+                _state.update { it.copy(status = hubStatusFor(eng?.verificationStatus)) }
             }
             .onFailure { _state.update { it.copy(status = Status.NotEngineer) } }
+    }
+
+    internal companion object {
+        /**
+         * Pure mapper from the server's [VerificationStatus] to the hub's
+         * tile-gate [Status]. Extracted so the gating logic can be
+         * unit-tested without the engineer repository.
+         *
+         * Null status (engineer row missing) → [Status.NotEngineer] so
+         * the hub renders the onboarding hero instead of locked tiles.
+         */
+        internal fun hubStatusFor(
+            verification: com.equipseva.app.core.data.engineers.VerificationStatus?,
+        ): Status = when (verification) {
+            null -> Status.NotEngineer
+            com.equipseva.app.core.data.engineers.VerificationStatus.Verified -> Status.Verified
+            com.equipseva.app.core.data.engineers.VerificationStatus.Rejected -> Status.Rejected
+            com.equipseva.app.core.data.engineers.VerificationStatus.Pending -> Status.Pending
+        }
     }
 
     /**
