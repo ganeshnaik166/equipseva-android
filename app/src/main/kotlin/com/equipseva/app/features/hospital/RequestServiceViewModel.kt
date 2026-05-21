@@ -364,32 +364,11 @@ class RequestServiceViewModel @Inject constructor(
         // time (IST); a device on UTC would otherwise compute "today"
         // 5.5h behind and submit a date the hospital wouldn't recognise.
         val today = LocalDate.now(ZoneId.of("Asia/Kolkata"))
-        val (scheduledDate, scheduledTimeSlot) = when (selectedSlot) {
-            0 -> today.toString() to "evening"
-            1 -> today.plusDays(1).toString() to "morning"
-            2 -> today.plusDays(1).toString() to "afternoon"
-            // "Flexible" tile — the user picked it intentionally, so record
-            // the preference rather than collapsing to no-selection. Date
-            // stays null since they did not commit to a specific day.
-            3 -> null to "flexible"
-            4 -> {
-                // Custom date from the calendar tile. Persist the picked date
-                // with a generic "any" slot since the user did not narrow to a
-                // morning / afternoon / evening window.
-                val millis = current.pickedDateMillis
-                if (millis != null) {
-                    // Pin to IST so the date the hospital sees in the
-                    // picker matches the date persisted server-side,
-                    // independent of device time zone (round 237).
-                    val picked = java.time.Instant.ofEpochMilli(millis)
-                        .atZone(java.time.ZoneId.of("Asia/Kolkata")).toLocalDate()
-                    picked.toString() to "any"
-                } else {
-                    null to null
-                }
-            }
-            else -> null to null
-        }
+        val (scheduledDate, scheduledTimeSlot) = resolveScheduledSlot(
+            selectedSlot = selectedSlot,
+            today = today,
+            pickedDateMillis = current.pickedDateMillis,
+        )
         _state.update { it.copy(submitting = true, errorMessage = null) }
         viewModelScope.launch {
             val draft = RepairJobDraft(
@@ -424,4 +403,44 @@ class RequestServiceViewModel @Inject constructor(
         }
     }
 
+}
+
+/**
+ * Resolves the request-service form's slot picker into a
+ * (scheduledDate, scheduledTimeSlot) pair anchored to IST. Five slots:
+ *   * 0 → today, "evening"
+ *   * 1 → tomorrow, "morning"
+ *   * 2 → tomorrow, "afternoon"
+ *   * 3 → flexible (null date, "flexible" slot — user opted for any time)
+ *   * 4 → custom calendar pick. Uses [pickedDateMillis] (Instant epoch
+ *     ms from the date picker); resolves to that date in IST with
+ *     "any" slot. Falls back to (null, null) when the user tapped the
+ *     calendar tile but didn't pick a date.
+ *   * any other value → (null, null) (no selection).
+ *
+ * Extracted from RequestServiceViewModel.onSubmit so the date arithmetic
+ * + IST anchoring can be unit-tested deterministically.
+ */
+internal fun resolveScheduledSlot(
+    selectedSlot: Int,
+    today: LocalDate,
+    pickedDateMillis: Long?,
+): Pair<String?, String?> = when (selectedSlot) {
+    0 -> today.toString() to "evening"
+    1 -> today.plusDays(1).toString() to "morning"
+    2 -> today.plusDays(1).toString() to "afternoon"
+    3 -> null to "flexible"
+    4 -> {
+        if (pickedDateMillis != null) {
+            // Pin to IST so the date the hospital sees in the picker
+            // matches the date persisted server-side, independent of
+            // device time zone (round 237).
+            val picked = java.time.Instant.ofEpochMilli(pickedDateMillis)
+                .atZone(java.time.ZoneId.of("Asia/Kolkata")).toLocalDate()
+            picked.toString() to "any"
+        } else {
+            null to null
+        }
+    }
+    else -> null to null
 }
