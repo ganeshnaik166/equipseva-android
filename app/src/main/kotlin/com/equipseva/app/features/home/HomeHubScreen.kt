@@ -1067,24 +1067,30 @@ private fun RecommendedEngineerCard(
     }
 }
 
-private fun greetingForNow(): String {
-    val h = java.time.LocalTime.now().hour
-    return when {
-        h < 12 -> "Good morning"
-        h < 17 -> "Good afternoon"
-        else -> "Good evening"
-    }
+private fun greetingForNow(): String = greetingForHour(java.time.LocalTime.now().hour)
+
+/**
+ * Pure form of [greetingForNow]. The screen calls this with
+ * `LocalTime.now().hour`; tests can pass an arbitrary hour to exercise
+ * the three buckets without resetting the system clock.
+ */
+internal fun greetingForHour(hour: Int): String = when {
+    hour < 12 -> "Good morning"
+    hour < 17 -> "Good afternoon"
+    else -> "Good evening"
 }
 
-private fun relativeTime(at: Instant?): String {
-    if (at == null) return ""
-    val d = Duration.between(at, Instant.now())
-    val mins = d.toMinutes()
-    return when {
-        mins < 1 -> "just now"
-        mins < 60 -> "${mins}m ago"
-        mins < 60 * 24 -> "${mins / 60}h ago"
-        else -> "${mins / (60 * 24)}d ago"
-    }
+private fun relativeTime(at: Instant?): String =
+    if (at == null) "" else relativeTimeFromMinutes(Duration.between(at, Instant.now()).toMinutes())
+
+/**
+ * Pure form of [relativeTime]. Bucketed copy that the home dashboard
+ * uses for "X ago" labels.
+ */
+internal fun relativeTimeFromMinutes(mins: Long): String = when {
+    mins < 1 -> "just now"
+    mins < 60 -> "${mins}m ago"
+    mins < 60 * 24 -> "${mins / 60}h ago"
+    else -> "${mins / (60 * 24)}d ago"
 }
 
