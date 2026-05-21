@@ -291,11 +291,11 @@ class EngineerProfileViewModel @Inject constructor(
 
 internal const val BIO_MIN_LEN = 20
 
-private fun parseList(raw: String): List<String> =
+internal fun parseList(raw: String): List<String> =
     raw.split(',').map { it.trim() }.filter { it.isNotBlank() }
 
 // Strip trailing zero noise from "75.0" -> "75" while keeping "75.5".
-private fun formatRate(value: Double): String {
+internal fun formatRate(value: Double): String {
     val asLong = value.toLong()
     return if (value == asLong.toDouble()) asLong.toString() else value.toString()
 }

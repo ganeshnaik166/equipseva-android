@@ -1002,12 +1002,27 @@ private fun routeNotificationDeepLink(
     navController: androidx.navigation.NavHostController,
     showSnackbar: (String) -> Unit,
 ) {
-    val trimmed = link.trim().ifBlank { return }
+    val target = resolveNotificationDeepLink(link)
+    if (target == null) {
+        if (link.isNotBlank()) showSnackbar("Couldn't open that link")
+        return
+    }
+    navController.navigate(target)
+}
+
+/**
+ * Pure resolver: maps a deep-link string (app://, equipseva://, or a
+ * bare top-level route) to a NavGraph route, or null if the link is
+ * blank/unparseable. Extracted to keep the side-effecting NavController
+ * wrapper thin and the link parsing testable.
+ */
+internal fun resolveNotificationDeepLink(link: String): String? {
+    val trimmed = link.trim().ifBlank { return null }
 
     val uuidRegex =
         Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
-    val target = when {
+    return when {
         trimmed.startsWith("app://") || trimmed.startsWith("equipseva://") -> {
             val rest = trimmed.substringAfter("://")
             val parts = rest.split('/').filter { it.isNotBlank() }
@@ -1030,10 +1045,4 @@ private fun routeNotificationDeepLink(
         ) -> trimmed
         else -> null
     }
-
-    if (target == null) {
-        showSnackbar("Couldn't open that link")
-        return
-    }
-    navController.navigate(target)
 }

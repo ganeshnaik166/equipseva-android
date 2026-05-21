@@ -94,7 +94,7 @@ fun ServiceAreaMap(
     }
 }
 
-private fun zoomFor(radiusKm: Int?): Float = when {
+internal fun zoomFor(radiusKm: Int?): Float = when {
     radiusKm == null -> 10f
     radiusKm <= 10 -> 12f
     radiusKm <= 25 -> 11f

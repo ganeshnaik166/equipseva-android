@@ -40,15 +40,24 @@ fun Throwable.toAuthError(): AuthError = when (this) {
     else -> AuthError.Unknown(message ?: "Something went wrong.")
 }
 
-private fun classifyAuthRest(e: AuthRestException): AuthError {
-    val msg = (e.message ?: "").lowercase()
-    val code = e.error.lowercase()
+private fun classifyAuthRest(e: AuthRestException): AuthError =
+    classifyAuthRestCodes(code = e.error, message = e.message)
+
+/**
+ * Pure classifier — splits the auth-error code + message into the
+ * known [AuthError] cases. Kept top-level so unit tests don't have to
+ * construct a real [AuthRestException] (which transitively pulls in
+ * the Supabase Auth SDK + a live HTTP session).
+ */
+internal fun classifyAuthRestCodes(code: String?, message: String?): AuthError {
+    val msg = (message ?: "").lowercase()
+    val codeLower = (code ?: "").lowercase()
     return when {
-        code.contains("invalid_credentials") || msg.contains("invalid login credentials") -> AuthError.InvalidCredentials
-        code.contains("email_not_confirmed") || msg.contains("email not confirmed") -> AuthError.EmailNotConfirmed
-        code.contains("user_already_exists") || msg.contains("already registered") -> AuthError.UserAlreadyExists
-        code.contains("otp_expired") || msg.contains("token has expired") || msg.contains("invalid otp") || msg.contains("invalid token") -> AuthError.OtpExpiredOrInvalid
-        code.contains("over_email_send_rate_limit") || code.contains("over_request_rate_limit") || msg.contains("rate limit") -> AuthError.RateLimited
-        else -> AuthError.Unknown(e.message ?: "Authentication failed.")
+        codeLower.contains("invalid_credentials") || msg.contains("invalid login credentials") -> AuthError.InvalidCredentials
+        codeLower.contains("email_not_confirmed") || msg.contains("email not confirmed") -> AuthError.EmailNotConfirmed
+        codeLower.contains("user_already_exists") || msg.contains("already registered") -> AuthError.UserAlreadyExists
+        codeLower.contains("otp_expired") || msg.contains("token has expired") || msg.contains("invalid otp") || msg.contains("invalid token") -> AuthError.OtpExpiredOrInvalid
+        codeLower.contains("over_email_send_rate_limit") || codeLower.contains("over_request_rate_limit") || msg.contains("rate limit") -> AuthError.RateLimited
+        else -> AuthError.Unknown(message ?: "Authentication failed.")
     }
 }
