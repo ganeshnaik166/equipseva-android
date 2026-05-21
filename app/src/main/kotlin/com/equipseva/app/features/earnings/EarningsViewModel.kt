@@ -82,21 +82,10 @@ class EarningsViewModel @Inject constructor(
                         .associateBy { it.id }
 
                     val rows = accepted.map { EarningRow(it, jobsById[it.repairJobId]) }
-                    // Drop bids whose job we couldn't resolve (server-side
-                    // delete, RLS hides it, or the row dropped) — counting
-                    // them as "pending" inflated the engineer's expected
-                    // payout. They surface in the row list with a null-job
-                    // hint so the engineer can investigate.
-                    val resolved = rows.filter { it.job != null }
-                    // PR-D36: paid total reflects ACTUAL payout after the
-                    // commission split (PR #259 + tier-aware PR-D2). Falls
-                    // back to bid amount only when payout column is null
-                    // (legacy completed rows pre-trigger). Pending stays
-                    // on bid amount — it's an estimate.
-                    val paid = resolved.filter { it.job?.status == RepairJobStatus.Completed }
-                        .sumOf { it.job?.engineerPayoutRupees ?: it.bid.amountRupees }
-                    val pending = resolved.filter { it.job?.status != RepairJobStatus.Completed }
-                        .sumOf { it.bid.amountRupees }
+                    val split = computeEarningsSplit(rows)
+                    val resolved = split.resolvedRows
+                    val paid = split.paidTotal
+                    val pending = split.pendingTotal
 
                     _state.update {
                         UiState(
@@ -158,5 +147,48 @@ class EarningsViewModel @Inject constructor(
                 }
         }
     }
+}
+
+/**
+ * Bundle returned by [computeEarningsSplit]. Carries the projected
+ * row list (job-resolved rows only) plus the paid / pending totals
+ * the EarningsScreen hero cards render.
+ */
+internal data class EarningsSplit(
+    val resolvedRows: List<EarningsViewModel.EarningRow>,
+    val paidTotal: Double,
+    val pendingTotal: Double,
+)
+
+/**
+ * Pure projector that splits an accepted-bid row list into:
+ *   * resolvedRows — only rows whose job was successfully fetched.
+ *     Rows whose job is null (server-side delete / RLS hide / row
+ *     dropped) are filtered out so they don't inflate the engineer's
+ *     pending total.
+ *   * paidTotal — sum of payout for completed rows. Uses
+ *     `job.engineerPayoutRupees` (post-commission-split per PR-D36 /
+ *     PR-D2 tier-aware) when present, falling back to the bid amount
+ *     only on legacy rows that pre-date the commission trigger.
+ *   * pendingTotal — sum of bid amounts for non-completed rows.
+ *     Stays on bid amount because it's an estimate; commission hasn't
+ *     been computed server-side yet.
+ *
+ * Extracted from EarningsViewModel.load so the post-D36 payout
+ * semantics + null-job filtering can be unit-tested.
+ */
+internal fun computeEarningsSplit(
+    rows: List<EarningsViewModel.EarningRow>,
+): EarningsSplit {
+    val resolved = rows.filter { it.job != null }
+    val paid = resolved.filter { it.job?.status == RepairJobStatus.Completed }
+        .sumOf { it.job?.engineerPayoutRupees ?: it.bid.amountRupees }
+    val pending = resolved.filter { it.job?.status != RepairJobStatus.Completed }
+        .sumOf { it.bid.amountRupees }
+    return EarningsSplit(
+        resolvedRows = resolved,
+        paidTotal = paid,
+        pendingTotal = pending,
+    )
 }
 
