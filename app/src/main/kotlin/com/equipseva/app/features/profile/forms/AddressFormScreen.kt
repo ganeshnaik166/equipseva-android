@@ -157,17 +157,7 @@ class AddressFormViewModel @Inject constructor(
             val resolved = locationFetcher.reverseGeocode(coords)
             _state.update { st ->
                 val current = st.form
-                val filledFields = buildList {
-                    if (!resolved?.line1.isNullOrBlank() && current.line1.isBlank()) add("line 1")
-                    if (!resolved?.city.isNullOrBlank() && current.city.isBlank()) add("city")
-                    if (!resolved?.state.isNullOrBlank() && current.state.isBlank()) add("state")
-                    if (!resolved?.pincode.isNullOrBlank() && current.pincode.isBlank()) add("pincode")
-                }
-                val info = when {
-                    filledFields.isNotEmpty() -> "Filled ${filledFields.joinToString()} from your GPS pin."
-                    resolved != null -> "Saved your GPS pin — fill the address fields manually."
-                    else -> "Saved your GPS pin (couldn't read a street address here)."
-                }
+                val info = locationFillInfo(current, resolved)
                 // Only fill BLANK fields — never overwrite text the user
                 // already typed. The geocoder is best-effort; preserving
                 // user input matters more than freshness.
@@ -463,6 +453,40 @@ private fun FormField(
             onDone = { onImeAction?.invoke() },
         ),
     )
+}
+
+/**
+ * Resolves the "Filled X from your GPS pin" transient feedback copy.
+ * Picks the most-specific copy in this order:
+ *
+ *   1) If the reverse-geocoder filled at least one previously-blank
+ *      field, list those fields ("Filled line 1, city from your GPS
+ *      pin.").
+ *   2) If the geocoder returned something but every field was
+ *      already typed, fall back to "Saved your GPS pin — fill the
+ *      address fields manually." so the user knows the pin landed.
+ *   3) If the geocoder returned nothing, surface the third copy so
+ *      the user understands geocoding failed but the pin still
+ *      saved.
+ *
+ * Pure helper extracted so the three-way precedence + the blank-only
+ * fill semantics can be unit-tested without the LocationFetcher.
+ */
+internal fun locationFillInfo(
+    current: AddressFormViewModel.Form,
+    resolved: LocationFetcher.Resolved?,
+): String {
+    val filledFields = buildList {
+        if (!resolved?.line1.isNullOrBlank() && current.line1.isBlank()) add("line 1")
+        if (!resolved?.city.isNullOrBlank() && current.city.isBlank()) add("city")
+        if (!resolved?.state.isNullOrBlank() && current.state.isBlank()) add("state")
+        if (!resolved?.pincode.isNullOrBlank() && current.pincode.isBlank()) add("pincode")
+    }
+    return when {
+        filledFields.isNotEmpty() -> "Filled ${filledFields.joinToString()} from your GPS pin."
+        resolved != null -> "Saved your GPS pin — fill the address fields manually."
+        else -> "Saved your GPS pin (couldn't read a street address here)."
+    }
 }
 
 /**
