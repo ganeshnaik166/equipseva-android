@@ -42,18 +42,7 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         val data = message.data
-        // Empty-string payloads (`data["channel"] = ""`) used to slip past
-        // the Elvis fallback and reach NotificationCompat.Builder, where
-        // Android silently drops the notification on API 26+. Treat empty
-        // OR unknown channel ids as ACCOUNT so a malformed server send
-        // still surfaces to the user instead of vanishing.
-        val rawChannel = data["channel"]?.takeIf { it.isNotBlank() }
-        val channel = when (rawChannel) {
-            NotificationChannels.JOBS,
-            NotificationChannels.CHAT,
-            NotificationChannels.ACCOUNT -> rawChannel
-            else -> NotificationChannels.ACCOUNT
-        }
+        val channel = resolvePushChannel(data["channel"])
         val category = data["category"]?.takeIf { it.isNotBlank() } ?: channel
 
         // Client-side per-category mute. Server-side send rules are a separate
@@ -170,5 +159,22 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
         // push the notification Bundle past the 1MB IPC ceiling.
         const val MAX_TITLE_CHARS = 200
         const val MAX_BODY_CHARS = 1000
+    }
+}
+
+/**
+ * Resolves an incoming push payload's `channel` to one of the three
+ * registered [NotificationChannels] ids. Empty-string and unknown
+ * channels fold to ACCOUNT so a malformed server send still surfaces
+ * to the user instead of vanishing (NotificationCompat silently drops
+ * posts with a blank/unknown channel on API 26+).
+ */
+internal fun resolvePushChannel(rawChannel: String?): String {
+    val nonBlank = rawChannel?.takeIf { it.isNotBlank() }
+    return when (nonBlank) {
+        NotificationChannels.JOBS,
+        NotificationChannels.CHAT,
+        NotificationChannels.ACCOUNT -> nonBlank
+        else -> NotificationChannels.ACCOUNT
     }
 }
