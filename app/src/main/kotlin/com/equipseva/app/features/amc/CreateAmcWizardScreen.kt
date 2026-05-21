@@ -279,7 +279,7 @@ class CreateAmcWizardViewModel @Inject constructor(
         _state.update { it.copy(step = s) }
     }
     fun next() = _state.update {
-        val nextStep = next(it.step)
+        val nextStep = nextAmcWizardStep(it.step)
         savedStateHandle[SavedKeys.STEP] = nextStep.name
         it.copy(step = nextStep)
     }
@@ -289,19 +289,7 @@ class CreateAmcWizardViewModel @Inject constructor(
         it.copy(step = prev)
     }
 
-    private fun next(s: Step): Step = when (s) {
-        Step.Scope -> Step.FrequencyFee
-        Step.FrequencyFee -> Step.Sla
-        Step.Sla -> Step.Engineer
-        Step.Engineer -> Step.Engineer
-    }
-
-    private fun back(s: Step): Step = when (s) {
-        Step.Scope -> Step.Scope
-        Step.FrequencyFee -> Step.Scope
-        Step.Sla -> Step.FrequencyFee
-        Step.Engineer -> Step.Sla
-    }
+    private fun back(s: Step): Step = previousAmcWizardStep(s)
 
     fun toggleCategory(c: String) = _state.update { st ->
         val s = st.equipmentCategories.toMutableList()
@@ -1008,6 +996,35 @@ private fun CategoryFlow(
             )
         }
     }
+}
+
+/**
+ * Step forward navigation. The final step (Engineer) is a fixed
+ * point — calling next() from there leaves the wizard on the same
+ * step rather than wrapping around. Pinned so a "next from last"
+ * doesn't silently advance off the end.
+ */
+internal fun nextAmcWizardStep(
+    current: CreateAmcWizardViewModel.Step,
+): CreateAmcWizardViewModel.Step = when (current) {
+    CreateAmcWizardViewModel.Step.Scope -> CreateAmcWizardViewModel.Step.FrequencyFee
+    CreateAmcWizardViewModel.Step.FrequencyFee -> CreateAmcWizardViewModel.Step.Sla
+    CreateAmcWizardViewModel.Step.Sla -> CreateAmcWizardViewModel.Step.Engineer
+    CreateAmcWizardViewModel.Step.Engineer -> CreateAmcWizardViewModel.Step.Engineer
+}
+
+/**
+ * Step backward navigation. The first step (Scope) is a fixed
+ * point — calling back() from there stays on Scope rather than
+ * wrapping around or returning null.
+ */
+internal fun previousAmcWizardStep(
+    current: CreateAmcWizardViewModel.Step,
+): CreateAmcWizardViewModel.Step = when (current) {
+    CreateAmcWizardViewModel.Step.Scope -> CreateAmcWizardViewModel.Step.Scope
+    CreateAmcWizardViewModel.Step.FrequencyFee -> CreateAmcWizardViewModel.Step.Scope
+    CreateAmcWizardViewModel.Step.Sla -> CreateAmcWizardViewModel.Step.FrequencyFee
+    CreateAmcWizardViewModel.Step.Engineer -> CreateAmcWizardViewModel.Step.Sla
 }
 
 internal fun stepLabel(s: CreateAmcWizardViewModel.Step): String = when (s) {
