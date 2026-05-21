@@ -108,27 +108,7 @@ class VirtualCallRepository @Inject constructor(
     private fun mapError(
         statusCode: Int,
         err: ErrorBody?,
-    ): CallSessionResult = when (err?.code) {
-        "provider_not_configured" -> CallSessionResult.ProviderNotConfigured
-        "rate_limited" -> CallSessionResult.RateLimited(
-            message = err.message ?: "Too many call attempts today.",
-        )
-        "missing_phone" -> CallSessionResult.MissingPhone
-        "not_participant" -> CallSessionResult.NotParticipant
-        else -> when (statusCode) {
-            // Status-only fallback for when the body lacks a typed code
-            // (e.g. edge router returns its own error envelope).
-            503 -> CallSessionResult.ProviderNotConfigured
-            422 -> CallSessionResult.MissingPhone
-            403 -> CallSessionResult.NotParticipant
-            429 -> CallSessionResult.RateLimited(
-                message = err?.message ?: "Too many call attempts today.",
-            )
-            else -> CallSessionResult.Error(
-                message = err?.message ?: "Couldn't start the call (HTTP $statusCode).",
-            )
-        }
-    }
+    ): CallSessionResult = mapCallSessionError(statusCode, err?.code, err?.message)
 
     @Serializable
     private data class SuccessBody(
@@ -147,5 +127,41 @@ class VirtualCallRepository @Inject constructor(
 
     private companion object {
         val JSON = Json { ignoreUnknownKeys = true }
+    }
+}
+
+/**
+ * Pure mapper from edge-function `(statusCode, code, message)` to a
+ * typed [CallSessionResult]. Extracted from [VirtualCallRepository]
+ * so the body-code → result + HTTP-status fallback paths can be
+ * unit-tested without standing up SupabaseClient.
+ *
+ * Precedence: a typed body `code` always wins over the HTTP status —
+ * the edge function emits the code explicitly when it can, and we
+ * fall through to status-only mapping only when the body envelope
+ * isn't parseable (e.g. when an upstream edge router returns its own
+ * error shape).
+ */
+internal fun mapCallSessionError(
+    statusCode: Int,
+    code: String?,
+    message: String?,
+): CallSessionResult = when (code) {
+    "provider_not_configured" -> CallSessionResult.ProviderNotConfigured
+    "rate_limited" -> CallSessionResult.RateLimited(
+        message = message ?: "Too many call attempts today.",
+    )
+    "missing_phone" -> CallSessionResult.MissingPhone
+    "not_participant" -> CallSessionResult.NotParticipant
+    else -> when (statusCode) {
+        503 -> CallSessionResult.ProviderNotConfigured
+        422 -> CallSessionResult.MissingPhone
+        403 -> CallSessionResult.NotParticipant
+        429 -> CallSessionResult.RateLimited(
+            message = message ?: "Too many call attempts today.",
+        )
+        else -> CallSessionResult.Error(
+            message = message ?: "Couldn't start the call (HTTP $statusCode).",
+        )
     }
 }
