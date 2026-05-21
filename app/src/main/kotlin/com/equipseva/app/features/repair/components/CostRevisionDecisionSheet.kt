@@ -115,11 +115,7 @@ fun CostRevisionDecisionSheet(
 
 @Composable
 private fun DeltaRow(delta: Double, pct: Double) {
-    val sign = if (delta >= 0) "+" else "−"
     val color = if (delta >= 0) SevaDanger500 else SevaGreen700
-    val pctText = if (kotlin.math.abs(pct) >= 0.5) {
-        " (${sign}${"%.0f".format(java.util.Locale.US, kotlin.math.abs(pct))}%)"
-    } else ""
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -131,12 +127,27 @@ private fun DeltaRow(delta: Double, pct: Double) {
             color = SevaInk500,
         )
         Text(
-            text = "$sign${formatRupees(kotlin.math.abs(delta))}$pctText",
+            text = costRevisionDeltaText(delta, pct),
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             color = color,
         )
     }
+}
+
+/**
+ * Formats the delta + pct text shown on the hospital-side decision
+ * sheet ("+₹500 (+10%)"). Negative deltas use the U+2212 MINUS SIGN
+ * (typographically correct for currency; aligns with the +/- pair).
+ * Percent is shown only when |pct| >= 0.5 — tiny rounding deltas
+ * round to "0%" otherwise.
+ */
+internal fun costRevisionDeltaText(delta: Double, pct: Double): String {
+    val sign = if (delta >= 0) "+" else "−"
+    val pctText = if (kotlin.math.abs(pct) >= 0.5) {
+        " ($sign${"%.0f".format(java.util.Locale.US, kotlin.math.abs(pct))}%)"
+    } else ""
+    return "$sign${formatRupees(kotlin.math.abs(delta))}$pctText"
 }
 
 @Composable
