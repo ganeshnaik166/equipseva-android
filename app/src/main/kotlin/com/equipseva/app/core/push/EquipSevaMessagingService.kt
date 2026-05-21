@@ -124,16 +124,7 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
             .setContentIntent(pendingIntent)
             .build()
 
-        // Stable notify id per (kind, conversationId) for chat pushes so
-        // a second message in the same thread replaces the previous push
-        // instead of stacking. Falls back to messageId.hashCode for any
-        // non-chat kind so existing collapse behaviour is unchanged.
-        val convoId = data["conversationId"] ?: data["conversation_id"]
-        val notifyId = if (data["kind"] == "chat_message" && convoId != null) {
-            ("chat:$convoId").hashCode()
-        } else {
-            message.messageId.hashCode()
-        }
+        val notifyId = resolveNotifyId(data["kind"], data, message.messageId)
         // POST_NOTIFICATIONS is a runtime permission on Android 13+
         // (TIRAMISU). When the user denies it, NotificationManager.notify
         // silently drops the post — but a SecurityException has been
@@ -176,5 +167,30 @@ internal fun resolvePushChannel(rawChannel: String?): String {
         NotificationChannels.CHAT,
         NotificationChannels.ACCOUNT -> nonBlank
         else -> NotificationChannels.ACCOUNT
+    }
+}
+
+/**
+ * Resolves the per-message notify-id used to post the system
+ * notification. Chat pushes collapse per `conversationId` so a
+ * second message in the same thread replaces the previous post
+ * instead of stacking; all other kinds use the FCM messageId so
+ * each push surfaces independently.
+ *
+ * Accepts both wire shapes for the conversation id: snake_case
+ * (`conversation_id`, post-PR #200) and camelCase (`conversationId`,
+ * legacy). Pin so a server-side rename doesn't silently lose the
+ * collapse behaviour.
+ */
+internal fun resolveNotifyId(
+    kind: String?,
+    data: Map<String, String>,
+    messageId: String?,
+): Int {
+    val convoId = data["conversationId"] ?: data["conversation_id"]
+    return if (kind == "chat_message" && convoId != null) {
+        ("chat:$convoId").hashCode()
+    } else {
+        messageId.hashCode()
     }
 }
