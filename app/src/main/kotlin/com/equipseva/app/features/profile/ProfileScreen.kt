@@ -700,14 +700,7 @@ private fun buildProfileSections(
 
     val business = mutableListOf<SettingsRow>().apply {
         if (isEngineer) {
-            val (kycLabel, kycTone) = when (engineerStatus) {
-                null -> "Start" to StatusTone.Warn
-                VerificationStatus.Pending ->
-                    if (engineerKycSubmitted) "In review" to StatusTone.Info
-                    else "Draft" to StatusTone.Warn
-                VerificationStatus.Verified -> "Verified" to StatusTone.Success
-                VerificationStatus.Rejected -> "Rejected" to StatusTone.Danger
-            }
+            val (kycLabel, kycTone) = kycRowLabelAndTone(engineerStatus, engineerKycSubmitted)
             add(SettingsRow(
                 icon = Icons.Outlined.Shield,
                 label = "Verification (KYC)",
@@ -795,6 +788,26 @@ private fun buildProfileSections(
         add(ProfileSection("Support", support))
         add(ProfileSection("Danger zone", danger))
     }
+}
+
+/**
+ * Verification-row label + tone shown next to "Verification (KYC)" on
+ * the engineer Profile. The four-way map encodes the canonical KYC
+ * lifecycle, with the extra Draft-vs-In-review distinction for
+ * Pending: server-side the engineer is in a single "pending" bucket,
+ * but the client splits it so the row reflects whether the engineer
+ * has actually finished uploading the three required docs.
+ */
+internal fun kycRowLabelAndTone(
+    engineerStatus: VerificationStatus?,
+    engineerKycSubmitted: Boolean,
+): Pair<String, StatusTone> = when (engineerStatus) {
+    null -> "Start" to StatusTone.Warn
+    VerificationStatus.Pending ->
+        if (engineerKycSubmitted) "In review" to StatusTone.Info
+        else "Draft" to StatusTone.Warn
+    VerificationStatus.Verified -> "Verified" to StatusTone.Success
+    VerificationStatus.Rejected -> "Rejected" to StatusTone.Danger
 }
 
 @Composable
