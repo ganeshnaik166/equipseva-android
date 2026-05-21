@@ -2606,7 +2606,17 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
     }
 }
 
-private fun initialsOf(name: String): String {
+private fun initialsOf(name: String): String = repairDetailInitials(name)
+
+/**
+ * Initials for a counterparty avatar on the repair-job detail screen.
+ * Differs from the canonical [com.equipseva.app.core.util.initialsOf]
+ * in one specific way: a single-token name uses the first TWO chars
+ * (so "Priyanka" → "Pr") rather than first-letter only ("P"). Pinned
+ * top-level so the divergence is unit-testable and a future merge
+ * with the canonical helper would have to be intentional.
+ */
+internal fun repairDetailInitials(name: String): String {
     val parts = name.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
     return when {
         parts.isEmpty() -> "?"
