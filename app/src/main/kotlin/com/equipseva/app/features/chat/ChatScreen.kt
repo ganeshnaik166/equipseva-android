@@ -743,8 +743,17 @@ internal fun dayLabelAt(key: String, today: LocalDate): String {
     }
 }
 
-private fun String.isImageUrl(): Boolean {
-    val lower = substringBefore('?').lowercase()
+private fun String.isImageUrl(): Boolean = isImageUrlExtension(this)
+
+/**
+ * True when [url]'s path (anything before the query string) ends in
+ * one of the six image extensions the chat composer accepts. Used by
+ * the attachment renderer to decide between AsyncImage vs the generic
+ * file-pill. Extracted top-level so the case-folding + query-strip
+ * logic can be unit-tested without the surrounding row composable.
+ */
+internal fun isImageUrlExtension(url: String): Boolean {
+    val lower = url.substringBefore('?').lowercase()
     return lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") ||
         lower.endsWith(".webp") || lower.endsWith(".gif") || lower.endsWith(".heic")
 }

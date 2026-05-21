@@ -28,13 +28,19 @@ val ContentMaxWidth: Dp = 840.dp
  */
 @Composable
 @ReadOnlyComposable
-fun rememberAdaptiveWidth(): AdaptiveWidth {
-    val widthDp = LocalConfiguration.current.screenWidthDp
-    return when {
-        widthDp < 600 -> AdaptiveWidth.Compact
-        widthDp < 840 -> AdaptiveWidth.Medium
-        else -> AdaptiveWidth.Expanded
-    }
+fun rememberAdaptiveWidth(): AdaptiveWidth =
+    adaptiveWidthForDp(LocalConfiguration.current.screenWidthDp)
+
+/**
+ * Pure form of [rememberAdaptiveWidth]: bucket an integer dp value
+ * into one of the three [AdaptiveWidth] entries. Extracted so the
+ * boundary cases (599/600, 839/840) can be unit-tested without
+ * standing up a Compose configuration.
+ */
+internal fun adaptiveWidthForDp(widthDp: Int): AdaptiveWidth = when {
+    widthDp < 600 -> AdaptiveWidth.Compact
+    widthDp < 840 -> AdaptiveWidth.Medium
+    else -> AdaptiveWidth.Expanded
 }
 
 /**
