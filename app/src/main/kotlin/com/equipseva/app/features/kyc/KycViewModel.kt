@@ -765,12 +765,8 @@ class KycViewModel @Inject constructor(
         }
     }
 
-    private fun docTypeLabel(type: String): String = when (type) {
-        EngineerCertificate.TYPE_AADHAAR -> "Aadhaar"
-        EngineerCertificate.TYPE_PAN -> "PAN"
-        EngineerCertificate.TYPE_CERT -> "certificate"
-        else -> type
-    }
+    private fun docTypeLabel(type: String): String =
+        com.equipseva.app.features.kyc.docTypeLabel(type)
 
     fun uploadAadhaarDoc(fileName: String, bytes: ByteArray, contentType: String?) {
         val uid = userId ?: return
@@ -1010,5 +1006,18 @@ class KycViewModel @Inject constructor(
         }
     }
 
+}
+
+/**
+ * User-facing label for an [EngineerCertificate] `type` value, used
+ * in upload-failure / acceptance copy ("Aadhaar uploaded", "PAN
+ * failed", etc.). Extracted top-level so the mapping can be unit-
+ * tested without standing up the full KycViewModel.
+ */
+internal fun docTypeLabel(type: String): String = when (type) {
+    EngineerCertificate.TYPE_AADHAAR -> "Aadhaar"
+    EngineerCertificate.TYPE_PAN -> "PAN"
+    EngineerCertificate.TYPE_CERT -> "certificate"
+    else -> type
 }
 
