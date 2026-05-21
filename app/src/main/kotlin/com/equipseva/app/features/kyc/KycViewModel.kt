@@ -588,20 +588,13 @@ class KycViewModel @Inject constructor(
     }
 
     fun onAadhaarNumberChange(value: String) {
-        // ASCII-only digits — AadhaarValidator's Verhoeff checksum
-        // assumes ASCII codepoints. Devanagari "१२३" passes
-        // Char.isDigit() but fails the digit-table lookup.
-        val digits = value.filter { it in '0'..'9' }.take(12)
+        val digits = sanitizeAadhaarInput(value)
         savedStateHandle[SavedKeys.AADHAAR] = digits
         _state.update { it.copy(aadhaarNumber = digits) }
     }
 
     fun onPanNumberChange(value: String) {
-        // PAN is exactly 10 ASCII chars: A-Z + 0-9. `isLetterOrDigit()` is
-        // Unicode-aware (would accept Devanagari "५" / Arabic "٥"), which
-        // passed the take(10) cap but failed server validation as silent
-        // "invalid PAN" later. Force ASCII A-Z / 0-9 only.
-        val cleaned = value.uppercase().filter { it in 'A'..'Z' || it in '0'..'9' }.take(10)
+        val cleaned = sanitizePanInput(value)
         savedStateHandle[SavedKeys.PAN] = cleaned
         _state.update { it.copy(panNumber = cleaned) }
     }
@@ -1020,4 +1013,22 @@ internal fun docTypeLabel(type: String): String = when (type) {
     EngineerCertificate.TYPE_CERT -> "certificate"
     else -> type
 }
+
+/**
+ * Strip everything but ASCII digits from a user-typed Aadhaar number
+ * and cap at 12 chars. ASCII-only because [AadhaarValidator]'s
+ * Verhoeff checksum assumes ASCII codepoints — Devanagari "१२३"
+ * passes Char.isDigit() but fails the digit-table lookup later.
+ */
+internal fun sanitizeAadhaarInput(value: String): String =
+    value.filter { it in '0'..'9' }.take(12)
+
+/**
+ * Force a PAN input to exactly the wire shape — uppercase ASCII A-Z
+ * + 0-9, capped at 10 chars. Char.isLetterOrDigit() would accept
+ * Unicode digits like "५" / "٥" which silently fail server-side
+ * PAN validation.
+ */
+internal fun sanitizePanInput(value: String): String =
+    value.uppercase().filter { it in 'A'..'Z' || it in '0'..'9' }.take(10)
 
