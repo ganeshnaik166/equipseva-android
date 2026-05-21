@@ -193,17 +193,9 @@ class AddressFormViewModel @Inject constructor(
 
     fun save() {
         val f = _state.value.form
-        if (f.fullName.isBlank() || f.phone.isBlank() || f.line1.isBlank()
-            || f.city.isBlank() || f.state.isBlank() || f.pincode.isBlank()) {
-            _state.update { it.copy(error = "Name, phone, line 1, city, state, pincode are required.") }
-            return
-        }
-        // India-only flow (city / state cascade is hard-coded to Indian
-        // states), so the pincode is exactly 6 digits. The earlier 4..10
-        // window let through international formats that the rest of the
-        // form can't actually deliver to.
-        if (f.pincode.length != 6 || !f.pincode.all { it in '0'..'9' }) {
-            _state.update { it.copy(error = "Pincode must be 6 digits.") }
+        val err = validateAddressForm(f)
+        if (err != null) {
+            _state.update { it.copy(error = err) }
             return
         }
         _state.update { it.copy(saving = true, error = null) }
@@ -471,4 +463,24 @@ private fun FormField(
             onDone = { onImeAction?.invoke() },
         ),
     )
+}
+
+/**
+ * Pure form-validation for the user address form. Returns null on
+ * success; a user-facing one-line error message otherwise. India-only:
+ * the pincode is exactly 6 ASCII digits.
+ *
+ * Extracted so the validation can be exercised without the
+ * AddressRepository / LocationFetcher scaffolding around the VM.
+ */
+internal fun validateAddressForm(f: AddressFormViewModel.Form): String? {
+    if (f.fullName.isBlank() || f.phone.isBlank() || f.line1.isBlank() ||
+        f.city.isBlank() || f.state.isBlank() || f.pincode.isBlank()
+    ) {
+        return "Name, phone, line 1, city, state, pincode are required."
+    }
+    if (f.pincode.length != 6 || !f.pincode.all { it in '0'..'9' }) {
+        return "Pincode must be 6 digits."
+    }
+    return null
 }
