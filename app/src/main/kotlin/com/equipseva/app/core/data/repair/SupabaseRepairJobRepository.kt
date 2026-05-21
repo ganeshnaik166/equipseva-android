@@ -266,10 +266,21 @@ class SupabaseRepairJobRepository @Inject constructor(
     }
 
     private fun String.sanitizeForIlike(): String =
-        replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        com.equipseva.app.core.data.repair.sanitizeForIlike(this)
 
     private companion object {
         const val TABLE = "repair_jobs"
         val JOB_CODE_PATTERN = Regex("^RPR-\\d+$")
     }
 }
+
+/**
+ * Escapes PostgREST ilike wildcards in a user-supplied search term.
+ * Backslash → `\\`, percent → `\%`, underscore → `\_`. Without this
+ * a user typing "100%" or "model_x" into the repair-feed search box
+ * would produce an over-broad query that matches every row (Postgres
+ * ilike treats `%` and `_` as wildcards by default; backslash needs
+ * doubling so the escape itself is escaped).
+ */
+internal fun sanitizeForIlike(input: String): String =
+    input.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
