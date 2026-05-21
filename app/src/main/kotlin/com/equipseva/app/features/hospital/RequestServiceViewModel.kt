@@ -379,10 +379,7 @@ class RequestServiceViewModel @Inject constructor(
                 equipmentBrand = current.brand.trim().ifBlank { null },
                 equipmentModel = current.model.trim().ifBlank { null },
                 equipmentSerial = current.serial.trim().ifBlank { null },
-                siteLocation = listOfNotNull(
-                    current.siteAddress.trim().ifBlank { null }?.let { "Address: $it" },
-                    current.siteLocation.trim().ifBlank { null }?.let { "Notes: $it" },
-                ).joinToString("\n").ifBlank { null },
+                siteLocation = composeSiteLocation(current.siteAddress, current.siteLocation),
                 siteLatitude = current.siteLatitude,
                 siteLongitude = current.siteLongitude,
                 issuePhotos = current.photos,
@@ -404,6 +401,25 @@ class RequestServiceViewModel @Inject constructor(
     }
 
 }
+
+/**
+ * Compose the repair-job `site_location` text from the request-form's
+ * two location fields. Output shape:
+ *
+ *   - both present  → "Address: ${addr}\nNotes: ${notes}"
+ *   - only address  → "Address: ${addr}"
+ *   - only notes    → "Notes: ${notes}"
+ *   - both blank    → null
+ *
+ * Both fields are trimmed before composition, and entirely blank
+ * inputs fold out of the listOfNotNull so the composed string never
+ * carries a label without a value.
+ */
+internal fun composeSiteLocation(siteAddress: String, siteNotes: String): String? =
+    listOfNotNull(
+        siteAddress.trim().ifBlank { null }?.let { "Address: $it" },
+        siteNotes.trim().ifBlank { null }?.let { "Notes: $it" },
+    ).joinToString("\n").ifBlank { null }
 
 /**
  * Resolves the request-service form's slot picker into a
