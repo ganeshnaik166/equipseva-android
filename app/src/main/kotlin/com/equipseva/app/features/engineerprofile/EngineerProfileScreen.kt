@@ -59,12 +59,12 @@ import com.equipseva.app.designsystem.theme.SevaWarning50
 // Source of truth: RepairEquipmentCategory.entries (already mirrors
 // pg_enum). Chip text uses .displayName; selection state stores
 // .storageKey so save sends valid enum values.
-private val SPEC_CATALOG: List<String> =
+internal val SPEC_CATALOG: List<String> =
     com.equipseva.app.core.data.repair.RepairEquipmentCategory.entries
         .map { it.storageKey }
         .filter { it != "other" }
 
-private fun specDisplayName(storageKey: String): String =
+internal fun specDisplayName(storageKey: String): String =
     com.equipseva.app.core.data.repair.RepairEquipmentCategory
         .fromKey(storageKey).displayName
 
