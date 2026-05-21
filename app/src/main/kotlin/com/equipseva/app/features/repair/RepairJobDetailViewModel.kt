@@ -1115,26 +1115,48 @@ class RepairJobDetailViewModel @Inject constructor(
         selfEngineerRowId: String?,
         selfProfileRole: String?,
         selfActiveRole: String?,
-    ): ViewerRole {
-        if (job == null || selfId.isNullOrBlank()) return ViewerRole.Other
-        return when {
-            selfId == job.hospitalUserId -> ViewerRole.Hospital
-            // Three signals counted as "user is an engineer", in order of
-            // server-side trust:
-            //   1. engineers row exists (fully onboarded, KYC complete)
-            //   2. profiles.role == 'engineer' (signed up via role tile #225)
-            //   3. UserPrefs.activeRole == 'engineer' (currently in Engineer
-            //      Hub on this device — Hub can switch persona without
-            //      writing to the auth profile)
-            // 1 lets them actually bid server-side; 2 and 3 let them at
-            // least see the Place bid CTA so they discover the next-step
-            // prompt. RLS surfaces a clear error if they tap Submit without
-            // an engineers row.
-            !selfEngineerRowId.isNullOrBlank() -> ViewerRole.Engineer
-            selfProfileRole == "engineer" -> ViewerRole.Engineer
-            selfActiveRole == "engineer" -> ViewerRole.Engineer
-            else -> ViewerRole.Other
-        }
-    }
+    ): ViewerRole = com.equipseva.app.features.repair.resolveViewerRole(
+        hospitalUserId = job?.hospitalUserId,
+        selfId = selfId,
+        selfEngineerRowId = selfEngineerRowId,
+        selfProfileRole = selfProfileRole,
+        selfActiveRole = selfActiveRole,
+    )
 
+}
+
+/**
+ * Pure resolver — given the four signals the VM has about the viewer
+ * (their own auth id, their engineers-row id, their profile role,
+ * their device-local active role) plus the job's hospital user id,
+ * decide which [RepairJobDetailViewModel.ViewerRole] bucket they fall
+ * into.
+ *
+ * Order matters:
+ *   1) blank selfId or null hospitalUserId → Other (loading state).
+ *   2) selfId == hospitalUserId → Hospital (the poster sees Hospital
+ *      copy regardless of any engineer flags).
+ *   3) Three signals count as Engineer in descending server-side
+ *      trust: engineers row exists, profile.role=engineer, active
+ *      role=engineer. The first lets them actually bid; the others
+ *      let them at least see the Place bid CTA.
+ *   4) Everyone else → Other.
+ */
+internal fun resolveViewerRole(
+    hospitalUserId: String?,
+    selfId: String?,
+    selfEngineerRowId: String?,
+    selfProfileRole: String?,
+    selfActiveRole: String?,
+): RepairJobDetailViewModel.ViewerRole {
+    if (hospitalUserId == null || selfId.isNullOrBlank()) {
+        return RepairJobDetailViewModel.ViewerRole.Other
+    }
+    return when {
+        selfId == hospitalUserId -> RepairJobDetailViewModel.ViewerRole.Hospital
+        !selfEngineerRowId.isNullOrBlank() -> RepairJobDetailViewModel.ViewerRole.Engineer
+        selfProfileRole == "engineer" -> RepairJobDetailViewModel.ViewerRole.Engineer
+        selfActiveRole == "engineer" -> RepairJobDetailViewModel.ViewerRole.Engineer
+        else -> RepairJobDetailViewModel.ViewerRole.Other
+    }
 }

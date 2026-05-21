@@ -9,7 +9,17 @@ import com.equipseva.app.core.data.repair.RepairJobStatus
 // renders (job board, my-bids, active-work, repair detail header).
 @Composable
 fun StatusPill(status: RepairJobStatus, modifier: Modifier = Modifier) {
-    val (text, kind) = when (status) {
+    val (text, kind) = statusPillTextAndKind(status)
+    Pill(text = text, kind = kind, modifier = modifier)
+}
+
+/**
+ * Pure mapping behind [StatusPill]. Extracted so the text + colour
+ * tone for each [RepairJobStatus] can be unit-tested without standing
+ * up the Compose runtime.
+ */
+internal fun statusPillTextAndKind(status: RepairJobStatus): Pair<String, PillKind> =
+    when (status) {
         RepairJobStatus.Requested  -> "Requested"  to PillKind.Info
         RepairJobStatus.Assigned   -> "Assigned"   to PillKind.Warn
         RepairJobStatus.EnRoute    -> "En route"   to PillKind.Warn
@@ -19,5 +29,3 @@ fun StatusPill(status: RepairJobStatus, modifier: Modifier = Modifier) {
         RepairJobStatus.Disputed   -> "Disputed"   to PillKind.Danger
         RepairJobStatus.Unknown    -> "Unknown"    to PillKind.Neutral
     }
-    Pill(text = text, kind = kind, modifier = modifier)
-}
