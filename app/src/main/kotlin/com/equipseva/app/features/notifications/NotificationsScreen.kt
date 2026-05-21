@@ -341,7 +341,19 @@ private fun groupByDay(rows: List<Notification>): List<Pair<String, List<Notific
     // ZoneId the device happens to be on (some carrier-flashed Realme
     // units default to UTC, which would shift grouping by 5.5 hours).
     val zone = ZoneId.of("Asia/Kolkata")
-    val today = LocalDate.now(zone)
+    return groupByDayAt(rows, LocalDate.now(zone), zone)
+}
+
+/**
+ * Pure form of [groupByDay] — exposed for tests so the "Today /
+ * Yesterday / Last week / Earlier" bucketing can be exercised without
+ * binding to wall-clock now.
+ */
+internal fun groupByDayAt(
+    rows: List<Notification>,
+    today: LocalDate,
+    zone: ZoneId,
+): List<Pair<String, List<Notification>>> {
     val groups = linkedMapOf<String, MutableList<Notification>>()
     rows.forEach { n ->
         val sent = n.sentAt ?: Instant.EPOCH

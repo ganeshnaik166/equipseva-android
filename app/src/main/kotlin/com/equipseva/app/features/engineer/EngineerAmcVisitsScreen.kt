@@ -212,7 +212,7 @@ private fun VisitRow(
     }
 }
 
-private fun pillForStatus(status: String): PillKind = when (status.lowercase()) {
+internal fun pillForStatus(status: String): PillKind = when (status.lowercase()) {
     "completed" -> PillKind.Success
     "in_progress" -> PillKind.Info
     "en_route", "assigned" -> PillKind.Info

@@ -718,22 +718,24 @@ private val timeFormatter = DateTimeFormatter.ofPattern("h:mm a", java.util.Loca
 private val dayHeaderFormatter = DateTimeFormatter.ofPattern("dd MMM", java.util.Locale.ENGLISH)
     .withZone(IST_ZONE)
 
-private fun formatTime(iso: String?): String? =
+internal fun formatTime(iso: String?): String? =
     iso?.let { runCatching { timeFormatter.format(Instant.parse(it)) }.getOrNull() }
 
 // Group key by local date so the day-separator only appears at boundaries.
 // Falls back to "unknown" when a timestamp is unparseable; DaySeparator
 // short-circuits on a blank label so unparseable buckets render no header.
-private fun dayKey(iso: String?): String =
+internal fun dayKey(iso: String?): String =
     iso?.let {
         runCatching { Instant.parse(it).atZone(IST_ZONE).toLocalDate().toString() }
             .getOrNull()
     } ?: "unknown"
 
-private fun dayLabel(key: String): String {
+private fun dayLabel(key: String): String = dayLabelAt(key, LocalDate.now(IST_ZONE))
+
+/** Pure variant of [dayLabel] used by tests. */
+internal fun dayLabelAt(key: String, today: LocalDate): String {
     if (key == "unknown") return ""
     val date = runCatching { LocalDate.parse(key) }.getOrNull() ?: return ""
-    val today = LocalDate.now(IST_ZONE)
     return when (date) {
         today -> "Today"
         today.minusDays(1) -> "Yesterday"

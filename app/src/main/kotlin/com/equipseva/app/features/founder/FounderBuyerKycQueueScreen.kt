@@ -336,7 +336,7 @@ private fun BuyerKycRowCard(
     }
 }
 
-private fun prettyDocType(key: String): String = when (key) {
+internal fun prettyDocType(key: String): String = when (key) {
     "shop_registration" -> "Shop Reg"
     "gst" -> "GST"
     "drug_license" -> "Drug Lic"

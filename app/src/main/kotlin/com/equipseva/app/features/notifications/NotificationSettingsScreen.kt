@@ -135,7 +135,7 @@ fun NotificationSettingsScreen(
     }
 }
 
-private fun formatMinutes(min: Int, is24Hour: Boolean = true): String {
+internal fun formatMinutes(min: Int, is24Hour: Boolean = true): String {
     val safe = ((min % (24 * 60)) + 24 * 60) % (24 * 60)
     val hour24 = safe / 60
     val minute = safe % 60

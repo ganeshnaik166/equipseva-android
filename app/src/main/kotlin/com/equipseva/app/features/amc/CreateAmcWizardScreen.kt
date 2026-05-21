@@ -1010,7 +1010,7 @@ private fun CategoryFlow(
     }
 }
 
-private fun stepLabel(s: CreateAmcWizardViewModel.Step): String = when (s) {
+internal fun stepLabel(s: CreateAmcWizardViewModel.Step): String = when (s) {
     CreateAmcWizardViewModel.Step.Scope -> "Step 1 of 4 · Scope"
     CreateAmcWizardViewModel.Step.FrequencyFee -> "Step 2 of 4 · Frequency + Fee"
     CreateAmcWizardViewModel.Step.Sla -> "Step 3 of 4 · SLA"
