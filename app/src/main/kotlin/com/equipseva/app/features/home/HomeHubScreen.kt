@@ -292,17 +292,7 @@ fun HomeHubScreen(
                         .border(1.dp, BorderDefault, RoundedCornerShape(12.dp)),
                 ) {
                     if (state.recent.isEmpty()) {
-                        // Round 393 — role-aware empty copy so the placeholder
-                        // points users at the next action instead of just
-                        // stating the obvious.
-                        val empty = when (role) {
-                            UserRole.HOSPITAL ->
-                                "No bookings yet. Tap \"Book a repair engineer\" above to post your first job."
-                            UserRole.ENGINEER ->
-                                "No activity yet. Tap the Jobs tab to find open repair jobs you can bid on."
-                            else ->
-                                "Your bookings, bids, and messages will appear here."
-                        }
+                        val empty = homeRecentEmptyCopy(role)
                         Text(
                             text = empty,
                             color = SevaInk500,
@@ -1112,6 +1102,26 @@ internal fun relativeTimeFromMinutes(mins: Long): String = when {
  * Compose runtime that wraps the colors + click handler.
  */
 internal data class HomeKycBannerCopy(val title: String, val subtitle: String)
+
+/**
+ * Role-aware empty-state copy for the Home hub's "Recent activity"
+ * section. Each role points the user at their next concrete action
+ * (Hospital → post a job; Engineer → find open jobs; everyone else
+ * → generic "stuff appears here").
+ *
+ * Pinned regression: a previous version showed the same generic
+ * "Your bookings, bids, and messages will appear here." for all
+ * three roles. That stated the obvious without telling the user how
+ * to get unstuck — role-aware copy points at the next CTA.
+ */
+internal fun homeRecentEmptyCopy(role: UserRole?): String = when (role) {
+    UserRole.HOSPITAL ->
+        "No bookings yet. Tap \"Book a repair engineer\" above to post your first job."
+    UserRole.ENGINEER ->
+        "No activity yet. Tap the Jobs tab to find open repair jobs you can bid on."
+    else ->
+        "Your bookings, bids, and messages will appear here."
+}
 
 internal fun homeKycBannerCopy(status: VerificationStatus?): HomeKycBannerCopy = when (status) {
     VerificationStatus.Pending -> HomeKycBannerCopy(
