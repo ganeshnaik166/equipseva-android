@@ -630,27 +630,27 @@ private fun PartsOutlierRow(row: FounderRepository.PartsCostOutlier) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    row.jobNumber ?: "RPR-${row.repairJobId.take(6)}",
+                    partsOutlierRowTitle(row.jobNumber, row.repairJobId),
                     color = SevaInk900,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                 )
                 Text(
-                    row.equipmentType?.replace('_', ' ')?.replaceFirstChar { it.uppercase() } ?: "Unknown",
+                    partsOutlierEquipmentTypeLabel(row.equipmentType),
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                 )
             }
-            Pill(text = "${"%.1f".format(java.util.Locale.US, row.ratio)}×", kind = PillKind.Warn)
+            Pill(text = partsOutlierRatioPillText(row.ratio), kind = PillKind.Warn)
         }
         Text(
-            "Parts ${formatRupees(row.partsCost)} vs category avg ${formatRupees(row.categoryAvgParts)}",
+            partsOutlierComparisonLine(row.partsCost, row.categoryAvgParts),
             color = SevaInk700,
             fontSize = 13.sp,
         )
         Text(
-            "${row.engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"} → ${row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"}",
+            partsOutlierPartiesLine(row.engineerName, row.hospitalName),
             color = SevaInk500,
             fontSize = 12.sp,
         )
@@ -960,3 +960,74 @@ internal fun amcEscalationContextLine(visitNumber: Int?, amcContractId: String):
     } else {
         "Contract ${amcContractId.take(8)}"
     }
+
+/**
+ * Title on the parts-cost-outlier row: prefer the server-issued
+ * `jobNumber` (e.g. "RPR-2026-00041"), fall back to a synthetic
+ * "RPR-${first 6 chars of repairJobId}".
+ *
+ * Pin take(6) (not take(8) like the AMC contract case) — the outlier
+ * queue uses 6 because the matching server jobNumber suffix is also 6
+ * digits (year-prefixed). A refactor that unified the prefix length
+ * across queues would silently shift this and confuse the founder
+ * doing manual lookups.
+ */
+internal fun partsOutlierRowTitle(jobNumber: String?, repairJobId: String): String =
+    jobNumber ?: "RPR-${repairJobId.take(6)}"
+
+/**
+ * Equipment-type label on the parts-cost-outlier row. The wire stores
+ * enum codes like `mri_scanner`, `ct_scanner`, `xray` — we render them
+ * as Title-cased prose with underscores → spaces and first-letter
+ * capitalised. Null/blank reads as "Unknown".
+ *
+ * Pin the "Unknown" fallback so a row with a missing equipment type
+ * (legacy data) stays addressable rather than rendering as an empty
+ * row subtitle that breaks the row's visual hierarchy.
+ */
+internal fun partsOutlierEquipmentTypeLabel(equipmentType: String?): String =
+    equipmentType?.replace('_', ' ')?.replaceFirstChar { it.uppercase() } ?: "Unknown"
+
+/**
+ * Ratio pill text on the parts-cost-outlier row: "%.1fx" with the
+ * U+00D7 multiplication sign (NOT ASCII 'x').
+ *
+ * Critical region:
+ *   1. Locale.US — Hindi-locale would render "3,2×" (comma decimal)
+ *      and break the founder's number parsing intuition.
+ *   2. One decimal — pin so a refactor to %d (integer) doesn't lose
+ *      precision (the 5x threshold means most rows cluster in 5.0–8.0
+ *      and the .x digit is load-bearing for triage prioritisation).
+ *   3. U+00D7 — pin the proper multiplication sign survives.
+ */
+internal fun partsOutlierRatioPillText(ratio: Double): String =
+    "${"%.1f".format(java.util.Locale.US, ratio)}×"
+
+/**
+ * Comparison line on the parts-cost-outlier row:
+ * "Parts ₹X vs category avg ₹Y" with both values run through
+ * [formatRupees] (Indian-lakh grouping). Pin the literal "vs category
+ * avg" phrasing — a refactor that changed it to "Category avg ₹Y"
+ * would break the founder's mental model of which number is the
+ * outlier and which is the baseline.
+ */
+internal fun partsOutlierComparisonLine(partsCost: Double, categoryAvgParts: Double): String =
+    "Parts ${formatRupees(partsCost)} vs category avg ${formatRupees(categoryAvgParts)}"
+
+/**
+ * Parties line on the parts-cost-outlier row: "Engineer → Hospital"
+ * with the U+2192 rightwards arrow and null/blank fallbacks for
+ * either side.
+ *
+ * Pin so:
+ *   1. The U+2192 arrow (NOT "->" or "→ ") survives — visual symmetry
+ *      with the other founder ops-queue arrows.
+ *   2. The role labels ("Engineer", "Hospital") appear capitalised —
+ *      a backfill row missing both names still reads as
+ *      "Engineer → Hospital", not " → " or "engineer → hospital".
+ */
+internal fun partsOutlierPartiesLine(engineerName: String?, hospitalName: String?): String {
+    val eng = engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"
+    val hos = hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"
+    return "$eng → $hos"
+}
