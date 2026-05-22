@@ -197,7 +197,7 @@ private fun EscrowDisputeRow(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    row.jobNumber ?: "RPR-${row.repairJobId.take(6)}",
+                    escrowDisputeRowTitle(row.jobNumber, row.repairJobId),
                     color = SevaInk900,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
@@ -212,10 +212,7 @@ private fun EscrowDisputeRow(
             Pill(text = "Disputed", kind = PillKind.Danger)
         }
         Text(
-            // Mirror rounds 37 / 53 / 54 / 58: dev-placeholder "(unnamed)"
-            // reads as a data bug in the queue. Founder still has the
-            // jobNumber / repairJobId in the row above for triage.
-            "${row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"} → ${row.engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"}",
+            escrowDisputePartiesLine(row.hospitalName, row.engineerName),
             color = SevaInk500,
             fontSize = 12.sp,
         )
@@ -856,6 +853,34 @@ private fun OutcomeOption(
             Text(sub, color = SevaInk500, fontSize = 11.sp)
         }
     }
+}
+
+/**
+ * Title for an escrow-dispute row on the founder ops queue.
+ *
+ *   * Server-provided jobNumber → use as-is (preferred)
+ *   * Fallback → "RPR-${first 6 chars of repairJobId}" — pin the
+ *     6-char prefix so a future change is reviewed (must match the
+ *     UI's tap-target so a founder hunting for the row in another
+ *     queue gets a consistent identifier).
+ */
+internal fun escrowDisputeRowTitle(jobNumber: String?, repairJobId: String): String =
+    jobNumber ?: "RPR-${repairJobId.take(6)}"
+
+/**
+ * Hospital → engineer parties line on an escrow-dispute row.
+ * Mirrors the dev-placeholder safety check used elsewhere
+ * (cashSuspendedRowName / amcVisitHospitalName) — blank names fold
+ * to "Hospital" / "Engineer" generic labels so the founder doesn't
+ * see "(unnamed) → (unnamed)" on rows where the join failed.
+ *
+ * Unicode rightwards arrow (U+2192) pinned — pin so an ASCII "->"
+ * fragmentation doesn't surface.
+ */
+internal fun escrowDisputePartiesLine(hospitalName: String?, engineerName: String?): String {
+    val h = hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"
+    val e = engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"
+    return "$h → $e"
 }
 
 /**
