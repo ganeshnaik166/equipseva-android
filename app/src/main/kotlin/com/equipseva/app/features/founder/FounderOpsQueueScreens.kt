@@ -353,36 +353,26 @@ private fun AmcEscalationRow(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital",
+                    amcEscalationHospitalName(row.hospitalName),
                     color = SevaInk900,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                 )
                 Text(
-                    row.reason.replace('_', ' ').replaceFirstChar { it.uppercase() },
+                    amcEscalationReasonLabel(row.reason),
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                 )
             }
-            Pill(
-                text = if (row.reason == "rotation_exhausted") "Exhausted" else "Open",
-                kind = if (row.reason == "rotation_exhausted") PillKind.Danger else PillKind.Warn,
-            )
+            val (text, kind) = amcEscalationPillTextAndKind(row.reason)
+            Pill(text = text, kind = kind)
         }
-        if (row.visitNumber != null) {
-            Text(
-                "Visit #${row.visitNumber} · contract ${row.amcContractId.take(8)}",
-                color = SevaInk500,
-                fontSize = 11.sp,
-            )
-        } else {
-            Text(
-                "Contract ${row.amcContractId.take(8)}",
-                color = SevaInk500,
-                fontSize = 11.sp,
-            )
-        }
+        Text(
+            amcEscalationContextLine(row.visitNumber, row.amcContractId),
+            color = SevaInk500,
+            fontSize = 11.sp,
+        )
         if (!row.notes.isNullOrBlank()) {
             Text(row.notes, color = SevaInk700, fontSize = 13.sp)
         }
@@ -904,3 +894,69 @@ internal fun cashSuspendedRowName(fullName: String?): String =
  */
 internal fun cashSuspendedFlagCountLabel(flagCount90d: Int): String =
     "$flagCount90d flags / 90d"
+
+/**
+ * Hospital-name fallback on the founder's AMC-escalation row. Mirrors
+ * [cashSuspendedRowName] — null/blank reads as the role label so an
+ * incomplete row stays addressable. Pin so a backfill bug that lands a
+ * blank hospital name doesn't surface a naked "·" or a dev-placeholder
+ * on the founder's escalation triage queue.
+ */
+internal fun amcEscalationHospitalName(hospitalName: String?): String =
+    hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"
+
+/**
+ * Reason label on the AMC-escalation row. The wire stores
+ * `snake_case` reason codes (`rotation_exhausted`, `engineer_unavailable`,
+ * `parts_delayed`, …); we render them as Title-cased prose with
+ * underscores → spaces and first-letter capitalised.
+ *
+ * Pin so a refactor to a lookup table doesn't accidentally drop the
+ * underscore→space step (would surface "Rotation_exhausted") or skip
+ * the first-letter capitalisation (would surface "rotation exhausted",
+ * which reads as a sentence fragment in the row header).
+ */
+internal fun amcEscalationReasonLabel(reason: String): String =
+    reason.replace('_', ' ').replaceFirstChar { it.uppercase() }
+
+/**
+ * Pill text + colour kind for the AMC-escalation row.
+ *
+ * Critical region: `rotation_exhausted` is the ONLY reason that warrants
+ * the Danger pill — it means every engineer in the geographic pool has
+ * declined or already done their max visits, and the contract is now
+ * unstaffable without manual founder intervention. Every other reason
+ * is a Warn (recoverable: a different engineer can be assigned, parts
+ * can be sourced, etc.).
+ *
+ * Pin the exact wire string + the binary pill split so a refactor that
+ * renamed the wire code (e.g. to `pool_exhausted`) surfaces as a test
+ * failure rather than silently downgrading the urgency cue to Warn.
+ */
+internal fun amcEscalationPillTextAndKind(reason: String): Pair<String, PillKind> =
+    if (reason == "rotation_exhausted") {
+        "Exhausted" to PillKind.Danger
+    } else {
+        "Open" to PillKind.Warn
+    }
+
+/**
+ * Context subline on the AMC-escalation row: "Visit #N · contract XXXXXXXX"
+ * (or just "Contract XXXXXXXX" when the visit number is null — an
+ * escalation can be raised against a contract before any visits have
+ * been scheduled).
+ *
+ * Pin so the U+00B7 middle-dot separator survives, the contract-id
+ * `take(8)` truncation stays (load-bearing — the founder uses the
+ * 8-char prefix to cross-reference the AMC detail screen), and the
+ * null-visit branch keeps "Contract" with a capital C (the
+ * non-null branch already has "Visit #N ·" leading, so "contract" is
+ * lowercase there — a refactor that unified the casing would surface
+ * either as wrong on the no-visit row or wrong on the with-visit row).
+ */
+internal fun amcEscalationContextLine(visitNumber: Int?, amcContractId: String): String =
+    if (visitNumber != null) {
+        "Visit #$visitNumber · contract ${amcContractId.take(8)}"
+    } else {
+        "Contract ${amcContractId.take(8)}"
+    }
