@@ -87,12 +87,7 @@ class AddPhoneViewModel @Inject constructor(
 
     fun onSave() {
         val phone = _state.value.phone.trim()
-        // E.164 floor: '+' + country code (1-3) + national number (4-14) =
-        // 8-18 chars. The previous '< 10' floor accepted '+12345678' (9
-        // chars) which silently routed SMS/WhatsApp to the wrong number.
-        // 11 covers India ('+91' + 10) plus the global minimum where it
-        // matters.
-        if (!phone.startsWith("+") || phone.length < 11) {
+        if (!isPhoneE164Routable(phone)) {
             _state.update { it.copy(error = "Enter the number in international format, e.g. +919999999999") }
             return
         }
@@ -198,3 +193,16 @@ fun AddPhoneScreen(
         }
     }
 }
+
+/**
+ * True when [phone] looks like an E.164-routable phone number: starts
+ * with '+' and is at least 11 chars total. The 11-char floor covers
+ * India ('+91' + 10) plus the global minimum that matters in practice.
+ *
+ * The previous `< 10` floor accepted "+12345678" (9 chars), which
+ * silently routed SMS/WhatsApp dispatches to the wrong number on
+ * carriers that strip a leading country code. Pin so a future relax
+ * is reviewed.
+ */
+internal fun isPhoneE164Routable(phone: String): Boolean =
+    phone.startsWith("+") && phone.length >= 11
