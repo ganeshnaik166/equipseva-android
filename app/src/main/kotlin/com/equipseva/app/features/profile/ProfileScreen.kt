@@ -534,19 +534,7 @@ private fun EngineerSuspensionBanner(
 
 @Composable
 private fun AccountTypeSection(role: UserRole?, onEditRole: () -> Unit) {
-    // role can legitimately be null while the profile is mid-fetch — in
-    // that case we want a neutral label, not a misleading "Hospital admin"
-    // (which used to appear because the old `else` branch swallowed null
-    // and ENGINEER-not-equal cases together). Per-role labels now come
-    // from UserRole.displayName so the role-editor sheet + snackbar +
-    // this title all stay in sync.
-    val title = role?.displayName ?: "Loading…"
-    val subtitle = when (role) {
-        UserRole.ENGINEER -> "You bid on and complete repair jobs"
-        UserRole.HOSPITAL -> "You book engineers for repairs"
-        null -> ""
-        else -> role.description
-    }
+    val (title, subtitle) = accountTypeSectionCopy(role)
     Text(
         text = "Account type",
         fontSize = 18.sp,
@@ -1333,4 +1321,26 @@ private fun shareExportFile(context: Context, absolutePath: String) {
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
     context.startActivity(chooser)
+}
+
+/**
+ * Account-type section copy on the Profile screen. Role can legitimately
+ * be null while the profile is mid-fetch — render a neutral "Loading…"
+ * title in that case, NOT a misleading "Hospital admin" fallback (a
+ * previous regression collapsed null + ENGINEER-not-equal into the same
+ * branch). Per-role title comes from [UserRole.displayName] so the
+ * role-editor sheet + snackbar + this section all stay in sync.
+ *
+ * Engineer/Hospital get hand-written first-person subtitles ("You bid
+ * on…", "You book…"); other roles fall back to [UserRole.description].
+ */
+internal fun accountTypeSectionCopy(role: UserRole?): Pair<String, String> {
+    val title = role?.displayName ?: "Loading…"
+    val subtitle = when (role) {
+        UserRole.ENGINEER -> "You bid on and complete repair jobs"
+        UserRole.HOSPITAL -> "You book engineers for repairs"
+        null -> ""
+        else -> role.description
+    }
+    return title to subtitle
 }
