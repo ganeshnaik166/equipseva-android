@@ -169,24 +169,8 @@ class SupabaseAuthRepository @Inject constructor(
     class PhoneOtpRateLimitedException(val retryAfterSeconds: Int) :
         RuntimeException("Too many OTP requests. Try again in ${retryAfterSeconds}s.")
 
-    /**
-     * Twilio trial accounts reject sends to non-verified numbers with error
-     * 21608. Map that to a clear message; preserve the original cause for logs.
-     */
-    private fun mapTwilioTrialError(t: Throwable): Throwable {
-        val msg = (t.message.orEmpty() + " " + (t.cause?.message.orEmpty())).lowercase()
-        val trial = "21608" in msg ||
-            ("unverified" in msg && "twilio" in msg) ||
-            ("trial" in msg && "verified" in msg)
-        if (!trial) return t
-        return RuntimeException(
-            "We can't send OTP to this number yet — our SMS provider is in trial " +
-                "mode and only delivers to whitelisted numbers. Ask the team to " +
-                "verify this number in the Twilio dashboard, or use a number " +
-                "that's already verified.",
-            t,
-        )
-    }
+    private fun mapTwilioTrialError(t: Throwable): Throwable =
+        com.equipseva.app.core.auth.mapTwilioTrialError(t)
 
     override suspend fun verifyPhoneAdd(phone: String, token: String): Result<Unit> = runCatching {
         client.auth.verifyPhoneOtp(
@@ -250,4 +234,34 @@ class SupabaseAuthRepository @Inject constructor(
     override suspend fun refreshSession(): Result<Unit> = runCatching {
         client.auth.refreshCurrentSession()
     }
+}
+
+/**
+ * Twilio trial accounts reject sends to non-verified numbers with
+ * error 21608. Map that to a clearer message; preserve the original
+ * cause for logs.
+ *
+ * Trial-mode detection looks for three signals (any one trips it):
+ *   * literal Twilio error code `21608` anywhere in the message chain
+ *   * the words `unverified` + `twilio` together (catches reworded
+ *     Supabase wrappers)
+ *   * the words `trial` + `verified` together (catches the human-
+ *     readable Twilio dashboard copy)
+ *
+ * Returns the original throwable when no trial signal is found so
+ * Crashlytics still sees the underlying exception class + stack.
+ */
+internal fun mapTwilioTrialError(t: Throwable): Throwable {
+    val msg = (t.message.orEmpty() + " " + (t.cause?.message.orEmpty())).lowercase()
+    val trial = "21608" in msg ||
+        ("unverified" in msg && "twilio" in msg) ||
+        ("trial" in msg && "verified" in msg)
+    if (!trial) return t
+    return RuntimeException(
+        "We can't send OTP to this number yet — our SMS provider is in trial " +
+            "mode and only delivers to whitelisted numbers. Ask the team to " +
+            "verify this number in the Twilio dashboard, or use a number " +
+            "that's already verified.",
+        t,
+    )
 }
