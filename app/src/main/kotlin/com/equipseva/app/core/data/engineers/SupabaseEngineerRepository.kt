@@ -60,25 +60,21 @@ class SupabaseEngineerRepository @Inject constructor(
         aadhaarUploaded: Boolean,
         resetVerificationToPending: Boolean,
     ): Result<Engineer> = runCatching {
-        val payload = EngineerUpsertDto(
+        val payload = buildEngineerUpsertDto(
             userId = userId,
-            aadhaarNumber = aadhaarNumber?.takeIf { it.isNotBlank() },
-            panNumber = panNumber?.takeIf { it.isNotBlank() },
-            qualifications = qualifications.ifEmpty { null },
-            specializations = specializations.map { it.storageKey }.ifEmpty { null },
+            aadhaarNumber = aadhaarNumber,
+            panNumber = panNumber,
+            qualifications = qualifications,
+            specializations = specializations,
             experienceYears = experienceYears,
             serviceRadiusKm = serviceRadiusKm,
-            city = city?.takeIf { it.isNotBlank() },
-            state = state?.takeIf { it.isNotBlank() },
+            city = city,
+            state = state,
             latitude = latitude,
             longitude = longitude,
-            certificates = certificates.ifEmpty { null },
-            aadhaarVerified = if (aadhaarUploaded) true else null,
-            verificationStatus = if (resetVerificationToPending) {
-                VerificationStatus.Pending.storageKey
-            } else {
-                null
-            },
+            certificates = certificates,
+            aadhaarUploaded = aadhaarUploaded,
+            resetVerificationToPending = resetVerificationToPending,
         )
         client.from(TABLE).upsert(payload) {
             onConflict = "user_id"
@@ -169,3 +165,56 @@ class SupabaseEngineerRepository @Inject constructor(
         const val TABLE = "engineers"
     }
 }
+
+/**
+ * Compose an [EngineerUpsertDto] from raw KYC inputs. Pulled out of
+ * [SupabaseEngineerRepository.upsert] so the null-folding rules (blank
+ * strings → null, empty collections → null, conditional verification
+ * flag transitions) can be unit-tested without a real Supabase client.
+ *
+ *   * Blank string fields fold to null so Postgrest doesn't write
+ *     empty strings into a NOT NULL column with a non-null default.
+ *   * Empty collections fold to null so the upsert doesn't clobber
+ *     server-side values that the user didn't touch this round.
+ *   * `aadhaarUploaded=true` flips `aadhaar_verified` to true (this is
+ *     a positive-only signal — never set false on the wire, even on
+ *     KYC re-submission).
+ *   * `resetVerificationToPending=true` writes verification_status back
+ *     to pending so a rejected engineer's re-submit re-enters the
+ *     admin review queue. Otherwise the column is left untouched.
+ */
+internal fun buildEngineerUpsertDto(
+    userId: String,
+    aadhaarNumber: String?,
+    panNumber: String?,
+    qualifications: List<String>,
+    specializations: List<RepairEquipmentCategory>,
+    experienceYears: Int,
+    serviceRadiusKm: Int,
+    city: String?,
+    state: String?,
+    latitude: Double?,
+    longitude: Double?,
+    certificates: List<EngineerCertificate>,
+    aadhaarUploaded: Boolean,
+    resetVerificationToPending: Boolean,
+): EngineerUpsertDto = EngineerUpsertDto(
+    userId = userId,
+    aadhaarNumber = aadhaarNumber?.takeIf { it.isNotBlank() },
+    panNumber = panNumber?.takeIf { it.isNotBlank() },
+    qualifications = qualifications.ifEmpty { null },
+    specializations = specializations.map { it.storageKey }.ifEmpty { null },
+    experienceYears = experienceYears,
+    serviceRadiusKm = serviceRadiusKm,
+    city = city?.takeIf { it.isNotBlank() },
+    state = state?.takeIf { it.isNotBlank() },
+    latitude = latitude,
+    longitude = longitude,
+    certificates = certificates.ifEmpty { null },
+    aadhaarVerified = if (aadhaarUploaded) true else null,
+    verificationStatus = if (resetVerificationToPending) {
+        VerificationStatus.Pending.storageKey
+    } else {
+        null
+    },
+)
