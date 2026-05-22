@@ -998,24 +998,23 @@ private fun SlaBreachCard(b: AmcRepository.AmcSlaBreach) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            val severity = amcSeverityLabel(b.severity)
             Pill(
-                text = if (b.severity == "emergency") "Emergency" else "Standard",
+                text = severity,
                 kind = if (b.severity == "emergency") PillKind.Danger else PillKind.Warn,
             )
-            val typeLabel = when (b.breachType) {
-                "response_time" -> "Response time"
-                "no_show" -> "No-show"
-                "quality" -> "Quality"
-                else -> b.breachType
-            }
-            Text(typeLabel, color = SevaInk900, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                amcBreachTypeLabel(b.breachType),
+                color = SevaInk900,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
         }
         if (!b.visitCode.isNullOrBlank()) {
             Text("Visit ${b.visitCode}", color = SevaInk500, fontSize = 12.sp)
         }
         Text(
-            "Expected within ${b.expectedWithinHours}h" +
-                (b.actualHours?.let { " · actual ${"%.1f".format(java.util.Locale.US, it)}h" } ?: ""),
+            amcBreachWindowLine(b.expectedWithinHours, b.actualHours),
             color = SevaInk700,
             fontSize = 12.sp,
         )
@@ -1176,6 +1175,44 @@ private fun CategoryFlow(items: List<String>) {
         }
     }
 }
+
+/**
+ * User-facing copy for an AMC SLA breach severity. The wire enum
+ * carries `emergency` or anything else; the latter folds to
+ * "Standard" so the pill renders consistently.
+ */
+internal fun amcSeverityLabel(severity: String?): String =
+    if (severity == "emergency") "Emergency" else "Standard"
+
+/**
+ * Label for an AMC SLA breach type. Three known wire values:
+ *   * response_time → "Response time" (visit not started within SLA)
+ *   * no_show → "No-show" (engineer never arrived)
+ *   * quality → "Quality" (post-visit hospital complaint)
+ *
+ * Unknown values pass through verbatim so a future server-side
+ * breach type still surfaces (just untranslated) until the client
+ * catches up.
+ */
+internal fun amcBreachTypeLabel(breachType: String): String = when (breachType) {
+    "response_time" -> "Response time"
+    "no_show" -> "No-show"
+    "quality" -> "Quality"
+    else -> breachType
+}
+
+/**
+ * "Expected within Xh · actual Yh" line on the SLA breach card.
+ * Drops the "actual" segment when [actualHours] is null (the breach
+ * is still mid-flight); `actual` formatted with `Locale.US` "%.1f"
+ * so a comma-decimal device locale doesn't render "5,2h" (would
+ * read as a list of hours).
+ */
+internal fun amcBreachWindowLine(
+    expectedWithinHours: Int,
+    actualHours: Double?,
+): String = "Expected within ${expectedWithinHours}h" +
+    (actualHours?.let { " · actual ${"%.1f".format(java.util.Locale.US, it)}h" } ?: "")
 
 /**
  * Header copy for a single AMC visit row: "Visit #N · RPR-NNNN".
