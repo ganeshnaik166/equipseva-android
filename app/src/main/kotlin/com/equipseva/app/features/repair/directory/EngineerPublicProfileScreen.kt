@@ -730,10 +730,7 @@ private fun ProfileBody(
                         )
                         InlineVerifiedBadge(small = false)
                     }
-                    val locLine = listOfNotNull(
-                        p.city?.takeIf { it.isNotBlank() },
-                        p.state?.takeIf { it.isNotBlank() },
-                    ).joinToString(", ")
+                    val locLine = formatCityStateLine(p.city, p.state)
                     if (locLine.isNotBlank()) {
                         Spacer(Modifier.height(4.dp))
                         Text(locLine, color = SevaInk500, fontSize = 12.sp)
@@ -759,7 +756,7 @@ private fun ProfileBody(
                 Stat(
                     modifier = Modifier.weight(1f),
                     label = "Hourly",
-                    value = p.hourlyRate?.let { formatRupees(it) } ?: "—",
+                    value = formatHourlyRateOrDash(p.hourlyRate),
                     color = SevaInk900,
                 )
                 Stat(
@@ -1186,6 +1183,27 @@ private fun ChipFlowNeutral(items: List<String>) {
         }
     }
 }
+
+/**
+ * "City, State" header line on the engineer public profile. Both
+ * fields blank → empty (caller hides the line). Either alone passes
+ * through without separator. Pin so a refactor doesn't surface
+ * ", State" or "City," fragments.
+ */
+internal fun formatCityStateLine(city: String?, state: String?): String =
+    listOfNotNull(
+        city?.takeIf { it.isNotBlank() },
+        state?.takeIf { it.isNotBlank() },
+    ).joinToString(", ")
+
+/**
+ * Hourly-rate stat-card value: rupee-formatted, or em-dash (U+2014)
+ * when null. Pin so a refactor to "Not set" / "—" ASCII / "₹0" doesn't
+ * drift — the em-dash glyph signals "data unavailable", not "engineer
+ * works for free".
+ */
+internal fun formatHourlyRateOrDash(hourlyRate: Double?): String =
+    hourlyRate?.let { com.equipseva.app.core.util.formatRupees(it) } ?: "—"
 
 /**
  * Format an engineer's completion-rate column as a "%" string on the
