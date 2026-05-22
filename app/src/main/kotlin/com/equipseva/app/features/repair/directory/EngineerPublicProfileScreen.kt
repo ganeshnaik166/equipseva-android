@@ -771,10 +771,7 @@ private fun ProfileBody(
                 Stat(
                     modifier = Modifier.weight(1f),
                     label = "Completion",
-                    value = run {
-                        val pct = if (p.completionRate <= 1.0) p.completionRate * 100 else p.completionRate
-                        "${pct.toInt()}%"
-                    },
+                    value = formatCompletionRatePct(p.completionRate),
                     color = SevaGreen700,
                 )
             }
@@ -1188,6 +1185,28 @@ private fun ChipFlowNeutral(items: List<String>) {
             }
         }
     }
+}
+
+/**
+ * Format an engineer's completion-rate column as a "%" string on the
+ * public-profile stat strip.
+ *
+ * Tolerates both wire shapes:
+ *   * 0..1 fraction (e.g. 0.97 → "97%")
+ *   * 0..100 percentage (e.g. 97.0 → "97%")
+ *
+ * Pinned regression: the column type drifted between fraction and
+ * percentage during the v1 migrations; pin so a future server-side
+ * normalisation doesn't accidentally surface "0%" (treating 97 as
+ * 0.97 and dropping the int conversion) or "9700%" (treating 0.97
+ * as 0.97 percent and multiplying twice).
+ *
+ * Heuristic: values ≤ 1.0 are fractions (multiplied by 100), values
+ * > 1.0 are already percentages.
+ */
+internal fun formatCompletionRatePct(completionRate: Double): String {
+    val pct = if (completionRate <= 1.0) completionRate * 100 else completionRate
+    return "${pct.toInt()}%"
 }
 
 /**
