@@ -984,16 +984,7 @@ private fun ReuploadCta(
     rejectedDocTypes: List<String>,
     onClick: () -> Unit,
 ) {
-    val flaggedLabel = rejectedDocTypes
-        .joinToString { type ->
-            when (type) {
-                "aadhaar" -> "Aadhaar"
-                "pan" -> "PAN"
-                "cert" -> "certificate"
-                else -> type
-            }
-        }
-        .ifBlank { null }
+    val flaggedLabel = flaggedDocsLabel(rejectedDocTypes)
     Card(
         colors = CardDefaults.cardColors(containerColor = ErrorBg),
         shape = RoundedCornerShape(14.dp),
@@ -1279,3 +1270,26 @@ internal fun panNumberHint(pan: String, panOk: Boolean): String = when {
     !panOk -> "Format must be ABCDE1234F"
     else -> "Looks valid ✓"
 }
+
+/**
+ * User-facing comma-joined list of flagged doc types for the re-upload
+ * CTA. Returns null when the admin used a global rejection (the
+ * server emits an empty list) so the caller can pick a different
+ * "all docs" copy variant.
+ *
+ *   * `aadhaar` → "Aadhaar"
+ *   * `pan` → "PAN"
+ *   * `cert` → "certificate" (lowercase — slots into a sentence)
+ *   * unknown → raw key (forward-compat for a future doc type)
+ */
+internal fun flaggedDocsLabel(rejectedDocTypes: List<String>): String? =
+    rejectedDocTypes
+        .joinToString { type ->
+            when (type) {
+                "aadhaar" -> "Aadhaar"
+                "pan" -> "PAN"
+                "cert" -> "certificate"
+                else -> type
+            }
+        }
+        .ifBlank { null }
