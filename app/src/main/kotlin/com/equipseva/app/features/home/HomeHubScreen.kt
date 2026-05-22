@@ -715,16 +715,9 @@ private fun KycBanner(status: VerificationStatus?, onClick: () -> Unit) {
     val pending = status == VerificationStatus.Pending
     val bg = if (pending) SevaInfo50 else SevaWarning50
     val tint = if (pending) SevaInfo500 else SevaWarning500
-    val title = when (status) {
-        VerificationStatus.Pending -> "KYC under review"
-        VerificationStatus.Rejected -> "KYC needs another try"
-        else -> "Become a verified engineer"
-    }
-    val sub = when (status) {
-        VerificationStatus.Pending -> "Usually 24h. We'll notify you."
-        VerificationStatus.Rejected -> "Re-submit the missing docs to enter the queue."
-        else -> "Submit KYC to start bidding on jobs."
-    }
+    val copy = homeKycBannerCopy(status)
+    val title = copy.title
+    val sub = copy.subtitle
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1094,3 +1087,31 @@ internal fun relativeTimeFromMinutes(mins: Long): String = when {
     else -> "${mins / (60 * 24)}d ago"
 }
 
+/**
+ * Title + subtitle copy for the home-screen KYC banner. Three states:
+ *
+ *   * Pending — engineer has submitted, awaiting review.
+ *   * Rejected — admin flagged docs; engineer needs to re-upload.
+ *   * Null / Unknown / pre-engineer — the "become an engineer"
+ *     onboarding nudge (verified status is terminal, so it doesn't
+ *     surface the banner; the screen renders nothing in that case).
+ *
+ * Extracted so the per-state copy is unit-testable without the
+ * Compose runtime that wraps the colors + click handler.
+ */
+internal data class HomeKycBannerCopy(val title: String, val subtitle: String)
+
+internal fun homeKycBannerCopy(status: VerificationStatus?): HomeKycBannerCopy = when (status) {
+    VerificationStatus.Pending -> HomeKycBannerCopy(
+        title = "KYC under review",
+        subtitle = "Usually 24h. We'll notify you.",
+    )
+    VerificationStatus.Rejected -> HomeKycBannerCopy(
+        title = "KYC needs another try",
+        subtitle = "Re-submit the missing docs to enter the queue.",
+    )
+    else -> HomeKycBannerCopy(
+        title = "Become a verified engineer",
+        subtitle = "Submit KYC to start bidding on jobs.",
+    )
+}
