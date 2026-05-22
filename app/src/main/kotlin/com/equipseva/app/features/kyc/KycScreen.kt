@@ -1162,12 +1162,10 @@ private fun StepperBottomBar(
     val isFirst = state.currentStep.isFirst
     val canSubmit = isLast && state.canAdvance && !state.saving
     val canNext = !isLast && state.canAdvance
-    val rejected = state.verificationStatus == VerificationStatus.Rejected
-    val nextLabel = when {
-        isLast && rejected -> "Re-submit for review"
-        isLast -> "Submit for review"
-        else -> "Next"
-    }
+    val nextLabel = stepperNextLabel(
+        isLast = isLast,
+        rejected = state.verificationStatus == VerificationStatus.Rejected,
+    )
 
     Row(
         modifier = Modifier
@@ -1269,6 +1267,26 @@ internal fun panNumberHint(pan: String, panOk: Boolean): String = when {
     pan.length < 10 -> "${pan.length}/10 chars"
     !panOk -> "Format must be ABCDE1234F"
     else -> "Looks valid ✓"
+}
+
+/**
+ * Primary CTA label on the KYC stepper bottom bar. Three branches:
+ *
+ *   * Mid-stepper (isLast=false) → "Next"
+ *   * Last step + initial submission → "Submit for review"
+ *   * Last step + previously-rejected resubmit → "Re-submit for
+ *     review" (signals the re-entry path so the engineer knows
+ *     they're not starting fresh)
+ *
+ * The "Re-submit" wording is the easy regression — without the
+ * rejected-state branch, a rejected engineer would see "Submit for
+ * review" as if it were their first time, when actually their
+ * previous row will be flipped back to pending.
+ */
+internal fun stepperNextLabel(isLast: Boolean, rejected: Boolean): String = when {
+    isLast && rejected -> "Re-submit for review"
+    isLast -> "Submit for review"
+    else -> "Next"
 }
 
 /**
