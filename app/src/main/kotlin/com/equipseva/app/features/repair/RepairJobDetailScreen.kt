@@ -726,39 +726,16 @@ private fun EscrowStatusCard(
     onOpenDispute: () -> Unit,
     onOpenEngineerResponse: () -> Unit,
 ) {
-    val (label, sub, accent) = when {
-        escrow.isPending -> Triple(
-            "Awaiting payment",
-            "Pay ${formatRupees(escrow.amountRupees)} into escrow to release the engineer to start work.",
-            WarnGold,
-        )
-        escrow.isHeld -> Triple(
-            "Funds in escrow",
-            "${formatRupees(escrow.amountRupees)} is held by EquipSeva. Auto-released to engineer 48h after completion.",
-            SevaGreen700,
-        )
-        escrow.isInDispute -> Triple(
-            "Dispute open",
-            "Our team is reviewing this escrow. Funds are paused until resolved.",
-            SevaDanger500,
-        )
-        escrow.isReleased -> Triple(
-            // Engineer reads the same card, so third-person "to engineer"
-            // is jarring on their view. Branch on viewer role.
-            if (isHospital) "Released to engineer" else "Released to you",
-            if (isHospital) {
-                "${formatRupees(escrow.amountRupees)} released. Settlement to engineer's bank account."
-            } else {
-                "${formatRupees(escrow.amountRupees)} released. Settlement to your bank account."
-            },
-            SevaGreen700,
-        )
-        escrow.isRefunded -> Triple(
-            "Refunded",
-            "${formatRupees(escrow.amountRupees)} refunded.",
-            SevaInk700,
-        )
-        else -> Triple("Escrow ${escrow.status}", "", SevaInk500)
+    val copy = escrowStatusCardCopy(escrow, isHospital)
+    val label = copy.label
+    val sub = copy.subtitle
+    val accent = when {
+        escrow.isPending -> WarnGold
+        escrow.isHeld -> SevaGreen700
+        escrow.isInDispute -> SevaDanger500
+        escrow.isReleased -> SevaGreen700
+        escrow.isRefunded -> SevaInk700
+        else -> SevaInk500
     }
     Column(
         modifier = Modifier
@@ -2638,3 +2615,55 @@ private val UriListSaver = androidx.compose.runtime.saveable.listSaver<List<Uri>
     save = { it.map(Uri::toString) },
     restore = { it.map(Uri::parse) },
 )
+
+/**
+ * Label + subtitle copy on the escrow status card on RepairJobDetail.
+ *
+ * Five user-visible states + a generic fallback for any future
+ * status that isn't yet wired. The Released state branches on
+ * [isHospital] — engineer reads the same card, so third-person
+ * "to engineer" is jarring on their view. Pin the role-aware split
+ * so a refactor doesn't lose it.
+ *
+ * Pinned regions:
+ *   * 48-hour auto-release callout on Held (a load-bearing UX promise)
+ *   * "to engineer" vs "to you" branching on Released
+ *   * Fallback "Escrow ${status}" surfaces an unknown server-side
+ *     state literally rather than crashing or showing blank
+ */
+internal data class EscrowStatusCopy(val label: String, val subtitle: String)
+
+internal fun escrowStatusCardCopy(
+    escrow: com.equipseva.app.core.data.escrow.RepairJobEscrowRepository.EscrowRow,
+    isHospital: Boolean,
+): EscrowStatusCopy = when {
+    escrow.isPending -> EscrowStatusCopy(
+        label = "Awaiting payment",
+        subtitle = "Pay ${com.equipseva.app.core.util.formatRupees(escrow.amountRupees)} " +
+            "into escrow to release the engineer to start work.",
+    )
+    escrow.isHeld -> EscrowStatusCopy(
+        label = "Funds in escrow",
+        subtitle = "${com.equipseva.app.core.util.formatRupees(escrow.amountRupees)} " +
+            "is held by EquipSeva. Auto-released to engineer 48h after completion.",
+    )
+    escrow.isInDispute -> EscrowStatusCopy(
+        label = "Dispute open",
+        subtitle = "Our team is reviewing this escrow. Funds are paused until resolved.",
+    )
+    escrow.isReleased -> EscrowStatusCopy(
+        label = if (isHospital) "Released to engineer" else "Released to you",
+        subtitle = if (isHospital) {
+            "${com.equipseva.app.core.util.formatRupees(escrow.amountRupees)} " +
+                "released. Settlement to engineer's bank account."
+        } else {
+            "${com.equipseva.app.core.util.formatRupees(escrow.amountRupees)} " +
+                "released. Settlement to your bank account."
+        },
+    )
+    escrow.isRefunded -> EscrowStatusCopy(
+        label = "Refunded",
+        subtitle = "${com.equipseva.app.core.util.formatRupees(escrow.amountRupees)} refunded.",
+    )
+    else -> EscrowStatusCopy(label = "Escrow ${escrow.status}", subtitle = "")
+}
