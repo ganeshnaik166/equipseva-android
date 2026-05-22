@@ -1075,7 +1075,7 @@ private fun ReviewItem(r: EngineerDirectoryRepository.EngineerReview) {
     val whenLabel: String = remember(r.completedAtIso) {
         com.equipseva.app.core.util.relativeLabel(r.completedAtIso).orEmpty()
     }
-    val cityLabel = r.hospitalCity?.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty()
+    val whenAndCityLabel = formatReviewWhenAndCity(whenLabel, r.hospitalCity)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1094,7 +1094,7 @@ private fun ReviewItem(r: EngineerDirectoryRepository.EngineerReview) {
             // wrapper that hides the count chip when 0. Falls back to the
             // shared component for the star + number.
             Text(
-                text = whenLabel + cityLabel,
+                text = whenAndCityLabel,
                 color = SevaInk500,
                 fontSize = 11.sp,
             )
@@ -1184,6 +1184,23 @@ private fun ChipFlowNeutral(items: List<String>) {
             }
         }
     }
+}
+
+/**
+ * Compose the "when · city" line on an engineer-review item.
+ *
+ *   * Both present → "3 days ago · Bengaluru"
+ *   * Only when → "3 days ago"
+ *   * Only city → " · Bengaluru" (leading separator — defensive; the
+ *     UI always supplies a non-empty whenLabel from relativeLabel)
+ *   * Both blank → ""
+ *
+ * The middle-dot separator (U+00B7) and the surrounding spaces match
+ * the chat row's last-seen line so the two surfaces feel cohesive.
+ */
+internal fun formatReviewWhenAndCity(whenLabel: String, hospitalCity: String?): String {
+    val cityLabel = hospitalCity?.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty()
+    return whenLabel + cityLabel
 }
 
 /**
