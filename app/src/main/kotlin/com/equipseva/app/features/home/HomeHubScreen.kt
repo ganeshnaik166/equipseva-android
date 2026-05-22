@@ -794,6 +794,7 @@ private fun PhoneMissingBanner(onClick: () -> Unit) {
 
 @Composable
 private fun PendingAmcPaymentBanner(count: Int) {
+    val title = pendingAmcPaymentBannerTitle(count)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -811,8 +812,7 @@ private fun PendingAmcPaymentBanner(count: Int) {
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                if (count == 1) "Payment may still be in progress"
-                else "$count payments may still be in progress",
+                title,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = SevaInk900,
@@ -827,6 +827,18 @@ private fun PendingAmcPaymentBanner(count: Int) {
         }
     }
 }
+
+/**
+ * Title copy for the pending AMC-payment banner. Singular vs plural
+ * split — pin the explicit "1 payment" → unsigned "Payment may still
+ * be in progress" so the count doesn't read as "1 payments".
+ *
+ * Count of 0 shouldn't reach the banner (caller gates), but pin a
+ * sensible fallback to the plural shape so the helper is total.
+ */
+internal fun pendingAmcPaymentBannerTitle(count: Int): String =
+    if (count == 1) "Payment may still be in progress"
+    else "$count payments may still be in progress"
 
 private enum class TileAccent { Default, Admin }
 
