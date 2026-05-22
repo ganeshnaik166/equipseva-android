@@ -317,11 +317,29 @@ private fun StatChip(label: String, value: String, kind: PillKind) {
 
 @Composable
 private fun PaymentStatusChip(status: String?) {
+    val (text, kind) = paymentStatusChipTextAndKind(status)
+    Pill(text = text, kind = kind)
+}
+
+/**
+ * Pure (text, PillKind) mapping for the founder Payments queue chip.
+ * Accepts the diverging vocab the Razorpay edge-fn / server-side
+ * webhook receivers emit:
+ *
+ *   * "completed", "captured", "paid", "success" → Success
+ *   * "failed", "cancelled", "canceled" (US + UK spelling) → Danger
+ *   * unknown / null → Neutral with literal "UNKNOWN"
+ *
+ * Text is uppercased — the chip is visual emphasis on a status the
+ * founder is triaging. Null folds to "UNKNOWN" so a stale row that
+ * lost its status column doesn't render an empty chip.
+ */
+internal fun paymentStatusChipTextAndKind(status: String?): Pair<String, PillKind> {
     val s = status?.lowercase() ?: "unknown"
     val kind = when (s) {
         "completed", "captured", "paid", "success" -> PillKind.Success
         "failed", "cancelled", "canceled" -> PillKind.Danger
         else -> PillKind.Neutral
     }
-    Pill(text = s.uppercase(), kind = kind)
+    return s.uppercase() to kind
 }
