@@ -180,34 +180,25 @@ fun EngineerJobsHubScreen(
                     ) {
                         CircularProgressIndicator()
                     }
-                EngineerJobsHubViewModel.Status.NotSignedIn ->
-                    OnboardingHero(
-                        title = "Sign in to start taking jobs",
-                        body = "Create an account, complete engineer KYC, and start receiving repair leads in your district.",
-                        ctaLabel = "Sign in / Sign up",
-                        onCta = onSignIn,
-                    )
-                EngineerJobsHubViewModel.Status.NotEngineer ->
-                    OnboardingHero(
-                        title = "Become a verified engineer",
-                        body = "Submit a quick KYC (Aadhaar, PAN, qualification) so hospitals know you're verified.",
-                        ctaLabel = "Submit KYC",
-                        onCta = onSubmitKyc,
-                    )
-                EngineerJobsHubViewModel.Status.Pending ->
-                    OnboardingHero(
-                        title = "KYC under review",
-                        body = "We're verifying your documents. You'll get a push when approved (usually under 24h).",
-                        ctaLabel = null,
-                        onCta = {},
-                    )
-                EngineerJobsHubViewModel.Status.Rejected ->
-                    OnboardingHero(
-                        title = "KYC rejected — try again",
-                        body = "Open KYC to see the rejection reason and resubmit. Most rejections are fixed by uploading a clearer photo.",
-                        ctaLabel = "Open KYC",
-                        onCta = onSubmitKyc,
-                    )
+                EngineerJobsHubViewModel.Status.NotSignedIn,
+                EngineerJobsHubViewModel.Status.NotEngineer,
+                EngineerJobsHubViewModel.Status.Pending,
+                EngineerJobsHubViewModel.Status.Rejected -> {
+                    val copy = jobsHubOnboardingCopy(state.status)
+                    if (copy != null) {
+                        OnboardingHero(
+                            title = copy.title,
+                            body = copy.body,
+                            ctaLabel = copy.ctaLabel,
+                            onCta = when (state.status) {
+                                EngineerJobsHubViewModel.Status.NotSignedIn -> onSignIn
+                                EngineerJobsHubViewModel.Status.NotEngineer,
+                                EngineerJobsHubViewModel.Status.Rejected -> onSubmitKyc
+                                else -> { -> Unit }
+                            },
+                        )
+                    }
+                }
                 EngineerJobsHubViewModel.Status.Verified -> Unit
             }
 
@@ -377,4 +368,52 @@ private fun HubTile(
             modifier = Modifier.size(18.dp),
         )
     }
+}
+
+/**
+ * Onboarding-hero copy per Status. Returns null for Verified (no
+ * hero — engineer sees the hub tiles instead) and for Loading (the
+ * caller renders a spinner).
+ *
+ *   * NotSignedIn → sign-in / sign-up CTA copy
+ *   * NotEngineer → "Become a verified engineer" KYC CTA
+ *   * Pending → "KYC under review" (no CTA — user can only wait)
+ *   * Rejected → "KYC rejected — try again" + Open-KYC CTA
+ *
+ * Pinned regression: a CTA on the Pending state would be useless
+ * (the user can't do anything until the admin approves) — pin the
+ * null-ctaLabel branch so a refactor doesn't surface a meaningless
+ * button.
+ */
+internal data class JobsHubOnboardingCopy(
+    val title: String,
+    val body: String,
+    val ctaLabel: String?,
+)
+
+internal fun jobsHubOnboardingCopy(
+    status: EngineerJobsHubViewModel.Status,
+): JobsHubOnboardingCopy? = when (status) {
+    EngineerJobsHubViewModel.Status.NotSignedIn -> JobsHubOnboardingCopy(
+        title = "Sign in to start taking jobs",
+        body = "Create an account, complete engineer KYC, and start receiving repair leads in your district.",
+        ctaLabel = "Sign in / Sign up",
+    )
+    EngineerJobsHubViewModel.Status.NotEngineer -> JobsHubOnboardingCopy(
+        title = "Become a verified engineer",
+        body = "Submit a quick KYC (Aadhaar, PAN, qualification) so hospitals know you're verified.",
+        ctaLabel = "Submit KYC",
+    )
+    EngineerJobsHubViewModel.Status.Pending -> JobsHubOnboardingCopy(
+        title = "KYC under review",
+        body = "We're verifying your documents. You'll get a push when approved (usually under 24h).",
+        ctaLabel = null,
+    )
+    EngineerJobsHubViewModel.Status.Rejected -> JobsHubOnboardingCopy(
+        title = "KYC rejected — try again",
+        body = "Open KYC to see the rejection reason and resubmit. Most rejections are fixed by uploading a clearer photo.",
+        ctaLabel = "Open KYC",
+    )
+    EngineerJobsHubViewModel.Status.Verified,
+    EngineerJobsHubViewModel.Status.Loading -> null
 }
