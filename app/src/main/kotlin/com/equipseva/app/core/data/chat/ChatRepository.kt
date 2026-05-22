@@ -352,15 +352,11 @@ class ChatRepository @Inject constructor(
         val lastSeen = mutableMapOf<String, Long>()
         var emitted: Set<String> = emptySet()
 
-        fun recompute(): Set<String> {
-            val now = System.currentTimeMillis()
-            val iter = lastSeen.entries.iterator()
-            while (iter.hasNext()) {
-                val (_, ts) = iter.next()
-                if (now - ts > TYPING_TTL_MS) iter.remove()
-            }
-            return lastSeen.keys.toSet()
-        }
+        fun recompute(): Set<String> = pruneAndSnapshotTyping(
+            lastSeen = lastSeen,
+            nowMs = System.currentTimeMillis(),
+            ttlMs = TYPING_TTL_MS,
+        )
 
         fun maybeEmit() {
             val next = recompute()
@@ -474,6 +470,35 @@ class ChatRepository @Inject constructor(
         const val TYPING_TTL_MS = 3_000L
         const val TYPING_TICK_MS = 1_000L
     }
+}
+
+/**
+ * In-place prune of [lastSeen] (a userId → epoch-ms last-seen map)
+ * removing entries whose timestamp is older than [ttlMs]; returns
+ * the remaining userId set.
+ *
+ * Used by the chat typing-indicator stream — a user counts as
+ * "typing" while we've heard from them within the TTL, and we
+ * re-snapshot the surviving set after each tick / incoming frame.
+ *
+ * Pinned semantics:
+ *   * STRICTLY greater than ttlMs is the cutoff — entries exactly
+ *     ttlMs old stay alive (a typist whose last frame just hit the
+ *     TTL boundary stays visible until the next tick).
+ *   * Empty input returns empty (no allocation surprises).
+ *   * Mutates the map in place — caller observes the side effect.
+ */
+internal fun pruneAndSnapshotTyping(
+    lastSeen: MutableMap<String, Long>,
+    nowMs: Long,
+    ttlMs: Long,
+): Set<String> {
+    val iter = lastSeen.entries.iterator()
+    while (iter.hasNext()) {
+        val (_, ts) = iter.next()
+        if (nowMs - ts > ttlMs) iter.remove()
+    }
+    return lastSeen.keys.toSet()
 }
 
 /**
