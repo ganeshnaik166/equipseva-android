@@ -198,11 +198,7 @@ class SupabaseRepairJobRepository @Inject constructor(
     ): Result<RepairJob> = runCatching {
         require(stars in 1..5) { "Rating must be 1..5" }
         val uid = requireNotNull(client.auth.currentUserOrNull()?.id) { "not signed in" }
-        // Cap review text at 1000 chars before sending. Unbounded text
-        // let a pasted blob bloat the engineers directory card's review
-        // preview and wedge the layout; 1000 is generous for a real
-        // free-form review.
-        val trimmedReview = review?.trim()?.take(1000)?.takeIf { it.isNotBlank() }
+        val trimmedReview = normaliseRatingReview(review)
         val patch = when (role) {
             RatingRole.HospitalRatesEngineer -> RepairJobRatingPatchDto(
                 hospitalRating = stars,
@@ -284,3 +280,15 @@ class SupabaseRepairJobRepository @Inject constructor(
  */
 internal fun sanitizeForIlike(input: String): String =
     input.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+/**
+ * Normalises a free-form rating review string before sending to
+ * the server. Trims whitespace, caps at 1000 chars, and folds an
+ * all-whitespace input to null so the column stays NULL (not an
+ * empty string masquerading as a review). Pinned cap matches the
+ * server-side CHECK / directory-card preview budget — pre-cap,
+ * a pasted blob would bloat the engineer-directory review preview
+ * row and wedge the layout.
+ */
+internal fun normaliseRatingReview(review: String?): String? =
+    review?.trim()?.take(1000)?.takeIf { it.isNotBlank() }
