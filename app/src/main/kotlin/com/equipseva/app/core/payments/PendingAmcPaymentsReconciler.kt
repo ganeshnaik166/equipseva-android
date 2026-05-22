@@ -51,18 +51,39 @@ class PendingAmcPaymentsReconciler @Inject constructor(
             // Network failure → leave the marker for next cold-start.
             val result = amcRepository.fetchAmcPaymentOrderStatus(id)
             if (result.isFailure) continue
-            when (result.getOrNull()) {
-                "paid", "refunded", "failed", null -> {
-                    try {
-                        store.remove(id)
-                    } catch (ce: kotlinx.coroutines.CancellationException) {
-                        throw ce
-                    } catch (_: Throwable) {
-                        // Best-effort; lingering marker is recovered on next cold-start.
-                    }
+            if (shouldClearAmcPaymentMarker(result.getOrNull())) {
+                try {
+                    store.remove(id)
+                } catch (ce: kotlinx.coroutines.CancellationException) {
+                    throw ce
+                } catch (_: Throwable) {
+                    // Best-effort; lingering marker is recovered on next cold-start.
                 }
-                else -> Unit
             }
         }
     }
+}
+
+/**
+ * True when the reconciler should clear the in-flight AMC-payment
+ * marker for a payment order, based on the server-side `status`
+ * returned by `fetchAmcPaymentOrderStatus`.
+ *
+ *   * "paid", "refunded" — terminal; verify-amc-payment fired and
+ *     the hospital's ledger is in order. Clear.
+ *   * "failed" — terminal (Razorpay reported failure). Clear; the
+ *     hospital will retry from the AMC detail screen.
+ *   * null (row missing — RLS denied / deleted / never created) —
+ *     clear; we can't act on what we can't see.
+ *   * "pending" — keep the marker so the home banner / support
+ *     prompt can surface it to the user.
+ *   * Unknown future status — keep (forward-compat).
+ *
+ * Sibling to [shouldClearEscrowMarker] — same shape but different
+ * status vocabulary (AMC payment orders have `failed`; escrow rows
+ * don't).
+ */
+internal fun shouldClearAmcPaymentMarker(status: String?): Boolean = when (status) {
+    "paid", "refunded", "failed", null -> true
+    else -> false  // "pending" + unknown future status — keep
 }
