@@ -228,23 +228,7 @@ class SupabaseRepairJobRepository @Inject constructor(
     }
 
     override suspend fun create(draft: RepairJobDraft): Result<RepairJob> = runCatching {
-        val payload = RepairJobInsertDto(
-            hospitalUserId = draft.hospitalUserId,
-            hospitalOrgId = draft.hospitalOrgId?.takeIf { it.isNotBlank() },
-            equipmentType = draft.equipmentCategory.storageKey,
-            equipmentBrand = draft.equipmentBrand?.takeIf { it.isNotBlank() },
-            equipmentModel = draft.equipmentModel?.takeIf { it.isNotBlank() },
-            equipmentSerial = draft.equipmentSerial?.takeIf { it.isNotBlank() },
-            siteLocation = draft.siteLocation?.takeIf { it.isNotBlank() },
-            siteLatitude = draft.siteLatitude,
-            siteLongitude = draft.siteLongitude,
-            urgency = draft.urgency.storageKey.takeIf { it.isNotBlank() },
-            issueDescription = draft.issueDescription,
-            issuePhotos = draft.issuePhotos.takeIf { it.isNotEmpty() },
-            scheduledDate = draft.scheduledDate?.takeIf { it.isNotBlank() },
-            scheduledTimeSlot = draft.scheduledTimeSlot?.takeIf { it.isNotBlank() },
-            estimatedCost = draft.estimatedCostRupees?.takeIf { it > 0.0 },
-        )
+        val payload = buildRepairJobInsert(draft)
         client.from(TABLE).insert(payload) {
             select()
         }.decodeSingle<RepairJobDto>().toDomain()
@@ -292,6 +276,34 @@ internal fun normaliseRatingReview(review: String?): String? =
  *   * Review goes through [normaliseRatingReview] so blank inputs fold
  *     to null (the column stays NULL, not an empty string).
  */
+/**
+ * Compose a [RepairJobInsertDto] from a [RepairJobDraft]. Folds every
+ * blank string field to null and every empty collection to null so a
+ * partial draft (e.g. user didn't pick a scheduled date) doesn't write
+ * empty strings into columns that have a non-null default. Estimated
+ * cost ≤ 0 also folds to null — the UI lets users enter "0" as a
+ * skip, and writing that would surface as a phantom "₹0 estimate" on
+ * every engineer's bid card.
+ */
+internal fun buildRepairJobInsert(draft: RepairJobDraft): RepairJobInsertDto =
+    RepairJobInsertDto(
+        hospitalUserId = draft.hospitalUserId,
+        hospitalOrgId = draft.hospitalOrgId?.takeIf { it.isNotBlank() },
+        equipmentType = draft.equipmentCategory.storageKey,
+        equipmentBrand = draft.equipmentBrand?.takeIf { it.isNotBlank() },
+        equipmentModel = draft.equipmentModel?.takeIf { it.isNotBlank() },
+        equipmentSerial = draft.equipmentSerial?.takeIf { it.isNotBlank() },
+        siteLocation = draft.siteLocation?.takeIf { it.isNotBlank() },
+        siteLatitude = draft.siteLatitude,
+        siteLongitude = draft.siteLongitude,
+        urgency = draft.urgency.storageKey.takeIf { it.isNotBlank() },
+        issueDescription = draft.issueDescription,
+        issuePhotos = draft.issuePhotos.takeIf { it.isNotEmpty() },
+        scheduledDate = draft.scheduledDate?.takeIf { it.isNotBlank() },
+        scheduledTimeSlot = draft.scheduledTimeSlot?.takeIf { it.isNotBlank() },
+        estimatedCost = draft.estimatedCostRupees?.takeIf { it > 0.0 },
+    )
+
 internal fun buildRatingPatch(
     role: RatingRole,
     stars: Int,
