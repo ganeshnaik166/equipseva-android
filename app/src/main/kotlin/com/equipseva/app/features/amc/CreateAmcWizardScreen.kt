@@ -464,13 +464,7 @@ class CreateAmcWizardViewModel @Inject constructor(
         }
     }
 
-    private fun derive(freq: String): Int = when (freq) {
-        "weekly" -> 52
-        "biweekly" -> 26
-        "monthly" -> 12
-        "quarterly" -> 4
-        else -> 12
-    }
+    private fun derive(freq: String): Int = visitsPerYearForFrequency(freq)
 
     /**
      * End-to-end Razorpay flow used by the wizard's first-month upfront
@@ -538,7 +532,7 @@ class CreateAmcWizardViewModel @Inject constructor(
 // the picker because AMC contracts always cover at least one known
 // equipment family — `other` would let a hospital create a contract
 // the engineer-rotation logic can't reason about.
-private val DEFAULT_CATEGORIES: List<String> =
+internal val DEFAULT_CATEGORIES: List<String> =
     com.equipseva.app.core.data.repair.RepairEquipmentCategory.entries
         .map { it.storageKey }
         .filter { it != "other" }
@@ -1032,4 +1026,26 @@ internal fun stepLabel(s: CreateAmcWizardViewModel.Step): String = when (s) {
     CreateAmcWizardViewModel.Step.FrequencyFee -> "Step 2 of 4 · Frequency + Fee"
     CreateAmcWizardViewModel.Step.Sla -> "Step 3 of 4 · SLA"
     CreateAmcWizardViewModel.Step.Engineer -> "Step 4 of 4 · Engineer"
+}
+
+/**
+ * Maps an AMC visit-frequency key to the per-year visit count the
+ * wizard pre-fills onto the wizard's "visits per year" field. Unknown
+ * frequencies fall back to the monthly default (12) so a future
+ * server-side frequency option doesn't 0-out the form before the
+ * client knows about it.
+ *
+ * Pinned values:
+ *   * weekly → 52 (one per week)
+ *   * biweekly → 26 (every two weeks)
+ *   * monthly → 12 (twelve per year)
+ *   * quarterly → 4 (one per quarter)
+ *   * unknown → 12 (monthly fallback)
+ */
+internal fun visitsPerYearForFrequency(freq: String): Int = when (freq) {
+    "weekly" -> 52
+    "biweekly" -> 26
+    "monthly" -> 12
+    "quarterly" -> 4
+    else -> 12
 }
