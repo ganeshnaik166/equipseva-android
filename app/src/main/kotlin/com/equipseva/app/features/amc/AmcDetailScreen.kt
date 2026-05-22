@@ -851,15 +851,10 @@ private fun AutoPaySection(
 
 @Composable
 private fun PoolLedgerRow(row: AmcRepository.PoolLedgerRow) {
-    val isCredit = row.ledgerKind == "credit" || row.ledgerKind == "refund"
+    val isCredit = isPoolLedgerCredit(row.ledgerKind)
     val sign = if (isCredit) "+" else "−"
     val color = if (isCredit) SevaGreen700 else SevaDanger500
-    val label = when (row.ledgerKind) {
-        "credit" -> if (row.sourceBreachId != null) "SLA credit" else "Top-up"
-        "debit" -> "Visit fair share"
-        "refund" -> "Refund"
-        else -> row.ledgerKind.replaceFirstChar { it.uppercase() }
-    }
+    val label = poolLedgerLabel(row.ledgerKind, row.sourceBreachId)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -1180,5 +1175,32 @@ private fun CategoryFlow(items: List<String>) {
             }
         }
     }
+}
+
+/**
+ * True when a pool-ledger entry is a credit (Top-up or Refund). The
+ * AMC payment pool nets credits (hospital top-ups / SLA breach
+ * refunds) against debits (per-visit fair-share withdrawals); the row
+ * card colour-codes accordingly.
+ */
+internal fun isPoolLedgerCredit(ledgerKind: String): Boolean =
+    ledgerKind == "credit" || ledgerKind == "refund"
+
+/**
+ * User-facing label for a pool-ledger row. `credit` entries split
+ * by source: a credit with a [sourceBreachId] is an automated SLA
+ * credit; otherwise it's a hospital top-up. `debit` is always
+ * "Visit fair share"; `refund` is "Refund". Unknown wire values fall
+ * back to a first-letter-capitalised echo so the row still shows
+ * something readable.
+ */
+internal fun poolLedgerLabel(
+    ledgerKind: String,
+    sourceBreachId: String?,
+): String = when (ledgerKind) {
+    "credit" -> if (sourceBreachId != null) "SLA credit" else "Top-up"
+    "debit" -> "Visit fair share"
+    "refund" -> "Refund"
+    else -> ledgerKind.replaceFirstChar { it.uppercase() }
 }
 
