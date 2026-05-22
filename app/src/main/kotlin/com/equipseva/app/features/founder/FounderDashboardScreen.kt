@@ -856,7 +856,7 @@ private fun TopEngineerRow(
                 color = SevaInk900,
             )
             Text(
-                text = "${row.jobsCompleted} job${if (row.jobsCompleted == 1L) "" else "s"} released",
+                text = topEngineerJobsReleasedLabel(row.jobsCompleted),
                 fontSize = 12.sp,
                 color = SevaInk500,
             )
@@ -869,3 +869,15 @@ private fun TopEngineerRow(
         )
     }
 }
+
+/**
+ * Top-engineer row subtitle on the founder dashboard's leaderboard.
+ *
+ *   * 1 job → "1 job released"
+ *   * N jobs → "N jobs released"
+ *
+ * Pin so a regression to always-"jobs" would surface "1 jobs" on
+ * an engineer who just hit their first release.
+ */
+internal fun topEngineerJobsReleasedLabel(jobsCompleted: Long): String =
+    "$jobsCompleted job${if (jobsCompleted == 1L) "" else "s"} released"
