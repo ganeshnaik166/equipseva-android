@@ -900,39 +900,18 @@ private fun VerifiedSummaryCard(state: KycViewModel.UiState) {
 
 @Composable
 private fun StatusBanner(status: VerificationStatus, submitted: Boolean) {
-    val (bg, fg, label, subtitle, icon) = when (status) {
-        VerificationStatus.Verified -> BannerStyle(
-            bg = SuccessBg,
-            fg = Success,
-            label = "Verified",
-            subtitle = "You can accept jobs.",
-            icon = Icons.Filled.Verified,
-        )
-        VerificationStatus.Rejected -> BannerStyle(
-            bg = ErrorBg,
-            fg = ErrorRed,
-            label = "Rejected",
-            subtitle = "Re-upload the flagged documents.",
-            icon = Icons.Filled.Error,
-        )
+    val copy = kycStatusBannerCopy(status, submitted)
+    val (bg, fg, icon) = when (status) {
+        VerificationStatus.Verified -> Triple(SuccessBg, Success, Icons.Filled.Verified)
+        VerificationStatus.Rejected -> Triple(ErrorBg, ErrorRed, Icons.Filled.Error)
         VerificationStatus.Pending -> if (submitted) {
-            BannerStyle(
-                bg = InfoBg,
-                fg = Info,
-                label = "Submitted for review",
-                subtitle = "Typically reviewed within 4–24 hours.",
-                icon = Icons.Filled.HourglassTop,
-            )
+            Triple(InfoBg, Info, Icons.Filled.HourglassTop)
         } else {
-            BannerStyle(
-                bg = WarningBg,
-                fg = Warning,
-                label = "In progress",
-                subtitle = "Complete every step to submit for review.",
-                icon = Icons.Filled.HourglassTop,
-            )
+            Triple(WarningBg, Warning, Icons.Filled.HourglassTop)
         }
     }
+    val label = copy.label
+    val subtitle = copy.subtitle
 
     Row(
         modifier = Modifier
@@ -961,6 +940,43 @@ private data class BannerStyle(
     val subtitle: String,
     val icon: ImageVector,
 )
+
+/**
+ * Pure label/subtitle copy for the KYC status banner. Verified /
+ * Rejected map 1:1 to a fixed pair; Pending splits on whether the
+ * engineer has uploaded the three required docs (submitted) vs is
+ * still mid-flight on Step 2.
+ *
+ * Extracted so the copy → status mapping can be tested without the
+ * Compose runtime, since the screen-side composable wires icon + bg
+ * + fg colours which all need Material runtime.
+ */
+internal data class KycStatusBannerCopy(val label: String, val subtitle: String)
+
+internal fun kycStatusBannerCopy(
+    status: VerificationStatus,
+    submitted: Boolean,
+): KycStatusBannerCopy = when (status) {
+    VerificationStatus.Verified -> KycStatusBannerCopy(
+        label = "Verified",
+        subtitle = "You can accept jobs.",
+    )
+    VerificationStatus.Rejected -> KycStatusBannerCopy(
+        label = "Rejected",
+        subtitle = "Re-upload the flagged documents.",
+    )
+    VerificationStatus.Pending -> if (submitted) {
+        KycStatusBannerCopy(
+            label = "Submitted for review",
+            subtitle = "Typically reviewed within 4–24 hours.",
+        )
+    } else {
+        KycStatusBannerCopy(
+            label = "In progress",
+            subtitle = "Complete every step to submit for review.",
+        )
+    }
+}
 
 @Composable
 private fun ReuploadCta(
