@@ -128,12 +128,7 @@ class SupabaseEngineerRepository @Inject constructor(
         // EngineerLocationViewModel (PR #662) already filters at the UI
         // layer, but this is the last line in front of the network so
         // a future non-UI caller can't bypass the bounds.
-        require(latitude in -90.0..90.0 && !latitude.isNaN()) {
-            "updateBaseLocation refused: invalid latitude $latitude"
-        }
-        require(longitude in -180.0..180.0 && !longitude.isNaN()) {
-            "updateBaseLocation refused: invalid longitude $longitude"
-        }
+        validateWgs84(latitude, longitude)
         client.from(TABLE).update(
             {
                 set("latitude", latitude)
@@ -163,6 +158,21 @@ class SupabaseEngineerRepository @Inject constructor(
 
     private companion object {
         const val TABLE = "engineers"
+    }
+}
+
+/**
+ * Clamp lat/lng to WGS84 ranges + reject NaN. Defense-in-depth gate
+ * for any non-UI caller of `updateBaseLocation` that bypasses the
+ * EngineerLocationViewModel filter. Throws IllegalArgumentException
+ * with a descriptive message on out-of-range or NaN.
+ */
+internal fun validateWgs84(latitude: Double, longitude: Double) {
+    require(latitude in -90.0..90.0 && !latitude.isNaN()) {
+        "updateBaseLocation refused: invalid latitude $latitude"
+    }
+    require(longitude in -180.0..180.0 && !longitude.isNaN()) {
+        "updateBaseLocation refused: invalid longitude $longitude"
     }
 }
 
