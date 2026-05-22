@@ -164,7 +164,7 @@ private fun ResolvedRow(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    row.jobNumber ?: "RPR-${row.repairJobId.take(6)}",
+                    resolvedDisputeRowTitle(row.jobNumber, row.repairJobId),
                     color = SevaInk900,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
@@ -176,13 +176,11 @@ private fun ResolvedRow(
                     fontWeight = FontWeight.Medium,
                 )
             }
-            Pill(
-                text = if (row.outcome == "release") "Released" else "Refunded",
-                kind = if (row.outcome == "release") PillKind.Success else PillKind.Warn,
-            )
+            val (pillText, pillKind) = resolvedDisputeOutcomePillTextAndKind(row.outcome)
+            Pill(text = pillText, kind = pillKind)
         }
         Text(
-            "${row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"} → ${row.engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"}",
+            resolvedDisputePartiesLine(row.hospitalName, row.engineerName),
             color = SevaInk500,
             fontSize = 12.sp,
         )
@@ -204,4 +202,50 @@ private fun ResolvedRow(
             )
         }
     }
+}
+
+/**
+ * Title on the resolved-dispute row: prefer the server jobNumber,
+ * fall back to "RPR-${first 6 chars of repairJobId}". Mirrors
+ * [escrowDisputeRowTitle] and [partsOutlierRowTitle] — pin take(6)
+ * so the founder lookup prefix stays consistent across queues.
+ */
+internal fun resolvedDisputeRowTitle(jobNumber: String?, repairJobId: String): String =
+    jobNumber ?: "RPR-${repairJobId.take(6)}"
+
+/**
+ * Outcome pill text + colour kind on the resolved-dispute row.
+ *
+ * Critical regression target: the wire string "release" maps to
+ * "Released" + Success (green), and every other value (notably the
+ * other valid CHECK value "refund") maps to "Refunded" + Warn (amber).
+ *
+ * Pin the EXACT "release" wire string and the Success/Warn split — a
+ * server-side rename to "released" would silently flip every resolved
+ * row to Refunded/Warn (false negative) and undermine the founder's
+ * trust in the queue. A refactor that flipped the kinds would surface
+ * green on a refund (visually misleading: refund is the non-default,
+ * less-common outcome).
+ */
+internal fun resolvedDisputeOutcomePillTextAndKind(outcome: String): Pair<String, PillKind> =
+    if (outcome == "release") {
+        "Released" to PillKind.Success
+    } else {
+        "Refunded" to PillKind.Warn
+    }
+
+/**
+ * Parties line on the resolved-dispute row: "Hospital → Engineer"
+ * with U+2192 arrow and role-aware fallbacks for null/blank.
+ *
+ * Critical pin: the ORDER is hospital-first, engineer-second — the
+ * INVERSE of [partsOutlierPartiesLine] which renders engineer→hospital.
+ * The flow reads "hospital raised the dispute against the engineer";
+ * a refactor that unified the two would silently swap the perceived
+ * subject/object on one of the screens.
+ */
+internal fun resolvedDisputePartiesLine(hospitalName: String?, engineerName: String?): String {
+    val hos = hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"
+    val eng = engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"
+    return "$hos → $eng"
 }
