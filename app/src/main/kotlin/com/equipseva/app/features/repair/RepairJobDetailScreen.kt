@@ -495,18 +495,11 @@ private fun JobBody(
         // through the normal flow (Cancelled / Disputed). Without this,
         // the stepper sits at "Requested" forever on cancelled jobs
         // and gives no visual signal that the job is closed.
-        when (job.status) {
-            RepairJobStatus.Cancelled -> TerminalStatusBanner(
-                title = "Job cancelled",
-                subtitle = job.cancellationReason?.takeIf { it.isNotBlank() }
-                    ?.let { "Reason: $it" }
-                    ?: "No further action needed.",
-            )
-            RepairJobStatus.Disputed -> TerminalStatusBanner(
-                title = "Job in dispute",
-                subtitle = "Our team will reach out once a decision is made.",
-            )
-            else -> StatusStepperRow(currentStatus = job.status)
+        val terminal = terminalStatusBannerCopy(job.status, job.cancellationReason)
+        if (terminal != null) {
+            TerminalStatusBanner(title = terminal.title, subtitle = terminal.subtitle)
+        } else {
+            StatusStepperRow(currentStatus = job.status)
         }
 
         // PR-D9 + PR-D12 — 30-day warranty banner. Server stamped this
@@ -2615,6 +2608,39 @@ private val UriListSaver = androidx.compose.runtime.saveable.listSaver<List<Uri>
     save = { it.map(Uri::toString) },
     restore = { it.map(Uri::parse) },
 )
+
+/**
+ * Banner copy for the terminal-status replacement of the status
+ * stepper. Returns null when the job is still progressing through
+ * the normal flow (the caller renders the stepper instead).
+ *
+ *   * Cancelled → "Job cancelled" + admin-provided reason (or generic
+ *     "No further action needed" if reason is null/blank).
+ *   * Disputed → "Job in dispute" + canned subtitle.
+ *   * Anything else → null.
+ *
+ * Pinned: the reason prefix is "Reason: " (with colon + space) — a
+ * refactor that dropped the prefix would surface the bare admin
+ * sentence as if it were the engineer's own copy.
+ */
+internal data class TerminalStatusCopy(val title: String, val subtitle: String)
+
+internal fun terminalStatusBannerCopy(
+    status: RepairJobStatus,
+    cancellationReason: String?,
+): TerminalStatusCopy? = when (status) {
+    RepairJobStatus.Cancelled -> TerminalStatusCopy(
+        title = "Job cancelled",
+        subtitle = cancellationReason?.takeIf { it.isNotBlank() }
+            ?.let { "Reason: $it" }
+            ?: "No further action needed.",
+    )
+    RepairJobStatus.Disputed -> TerminalStatusCopy(
+        title = "Job in dispute",
+        subtitle = "Our team will reach out once a decision is made.",
+    )
+    else -> null
+}
 
 /**
  * Label + subtitle copy on the escrow status card on RepairJobDetail.
