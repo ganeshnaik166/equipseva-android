@@ -162,13 +162,10 @@ private fun AlternativeCard(
                     color = SevaInk900,
                     maxLines = 1,
                 )
-                val locParts = listOfNotNull(
-                    row.city,
-                    row.distanceKm?.let { "${"%.1f".format(java.util.Locale.US, it)}km" },
-                )
-                if (locParts.isNotEmpty()) {
+                val locLine = engineerCardLocationLine(row.city, row.distanceKm)
+                if (locLine != null) {
                     Text(
-                        text = locParts.joinToString(" · "),
+                        text = locLine,
                         fontSize = 10.sp,
                         color = SevaInk500,
                         maxLines = 1,
@@ -206,4 +203,27 @@ internal fun CarouselAvatar(initials: String, avatarUrl: String?, size: Int) {
             )
         }
     }
+}
+
+/**
+ * Compose the city · distance line under an engineer's name on the
+ * RepeatBookingNudge alternative card / HomeHub recommended card.
+ *
+ *   * Both present → "Bengaluru · 3.2km"
+ *   * Only city → "Bengaluru"
+ *   * Only distance → "3.2km"
+ *   * Both null → null (caller hides the row)
+ *
+ * Returns null on the all-empty case so the caller doesn't render
+ * an empty Text() / extra Spacer.
+ *
+ * Distance is formatted under Locale.US to keep the decimal as "3.2"
+ * not "3,2" on Hindi-locale devices.
+ */
+internal fun engineerCardLocationLine(city: String?, distanceKm: Double?): String? {
+    val parts = listOfNotNull(
+        city?.takeIf { it.isNotBlank() },
+        distanceKm?.let { "${"%.1f".format(java.util.Locale.US, it)}km" },
+    )
+    return if (parts.isEmpty()) null else parts.joinToString(" · ")
 }
