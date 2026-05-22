@@ -110,19 +110,14 @@ fun HospitalMyDisputesScreen(
     // recomposition (PullToRefresh state ticks, scroll, realtime). Keyed
     // on state.rows so the cached value invalidates when the list itself
     // changes. Mirror of the r387 fix on EngineerMyDisputes.
-    val openCount = androidx.compose.runtime.remember(state.rows) {
-        state.rows.count { it.status == "in_dispute" }
-    }
-    val resolvedCount = androidx.compose.runtime.remember(state.rows) {
-        state.rows.size - state.rows.count { it.status == "in_dispute" }
+    val subtitle = androidx.compose.runtime.remember(state.rows) {
+        hospitalDisputesSubtitle(state.rows)
     }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Your disputes",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let {
-                    "$openCount open · $resolvedCount resolved · last 12 months"
-                },
+                subtitle = subtitle,
                 onBack = onBack,
             )
             // Round 387 — pull-to-refresh.
@@ -224,4 +219,23 @@ private fun DisputeRow(
             Text("Resolved: ${prettyDate(it)}", color = SevaInk500, fontSize = 11.sp)
         }
     }
+}
+
+/**
+ * "N open · M resolved · last 12 months" subtitle on the hospital
+ * disputes screen. Null when the list is empty so the top-bar doesn't
+ * render a phantom "0 open · 0 resolved" line on cold-load. Extracted
+ * so the open/resolved split + the empty-list short-circuit are
+ * unit-testable without the Compose runtime.
+ *
+ * Status semantics: "in_dispute" = open; anything else (released /
+ * refunded / resolved / future-status) counts as resolved.
+ */
+internal fun hospitalDisputesSubtitle(
+    rows: List<com.equipseva.app.core.data.escrow.RepairJobEscrowRepository.HospitalDisputeRow>,
+): String? {
+    if (rows.isEmpty()) return null
+    val open = rows.count { it.status == "in_dispute" }
+    val resolved = rows.size - open
+    return "$open open · $resolved resolved · last 12 months"
 }

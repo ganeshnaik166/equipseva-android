@@ -106,19 +106,14 @@ fun EngineerMyDisputesScreen(
     // list scroll, retry button click, status flow tick) over the same
     // rows list. Keyed on state.rows so the cached value invalidates
     // when the underlying data actually changes.
-    val openCount = androidx.compose.runtime.remember(state.rows) {
-        state.rows.count { it.status == "in_dispute" }
-    }
-    val wonCount = androidx.compose.runtime.remember(state.rows) {
-        state.rows.count { it.outcome == "release" }
+    val subtitle = androidx.compose.runtime.remember(state.rows) {
+        engineerDisputesSubtitle(state.rows)
     }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Disputes received",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let {
-                    "$openCount open · $wonCount released to you · last 12 months"
-                },
+                subtitle = subtitle,
                 onBack = onBack,
             )
             // Round 387 — pull-to-refresh. Matches r378-r382 pattern.
@@ -222,4 +217,24 @@ private fun DisputeRow(
             Text("Resolved: ${prettyDate(it)}", color = SevaInk500, fontSize = 11.sp)
         }
     }
+}
+
+/**
+ * "N open · M released to you · last 12 months" subtitle on the
+ * engineer disputes screen. Distinct from
+ * [com.equipseva.app.features.hospital.hospitalDisputesSubtitle] —
+ * engineers care about how many disputes RELEASED the escrow to
+ * them (outcome == "release"), not the broader "resolved" bucket
+ * (which also covers refunds against them).
+ *
+ * Null when the list is empty so the top-bar stays clean on
+ * cold-load.
+ */
+internal fun engineerDisputesSubtitle(
+    rows: List<com.equipseva.app.core.data.escrow.RepairJobEscrowRepository.EngineerDisputeRow>,
+): String? {
+    if (rows.isEmpty()) return null
+    val open = rows.count { it.status == "in_dispute" }
+    val won = rows.count { it.outcome == "release" }
+    return "$open open · $won released to you · last 12 months"
 }
