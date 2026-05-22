@@ -1040,7 +1040,11 @@ private fun ReviewsSection(
             ) {
                 categorySummary.forEach { sum ->
                     EsChip(
-                        text = "${prettyKey(sum.equipmentCategory)} · ${sum.reviewCount} · ${"%.1f".format(java.util.Locale.US, sum.ratingAvg)}★",
+                        text = categoryRatingChipText(
+                            categoryKey = sum.equipmentCategory,
+                            reviewCount = sum.reviewCount,
+                            ratingAvg = sum.ratingAvg,
+                        ),
                         active = false,
                     )
                 }
@@ -1185,6 +1189,32 @@ private fun ChipFlowNeutral(items: List<String>) {
         }
     }
 }
+
+/**
+ * Compose the per-category rating chip text shown on
+ * EngineerPublicProfile's review summary band:
+ *
+ *   "Imaging · 7 · 4.8★"
+ *
+ *   * `categoryKey` is the snake_case wire key — title-cased via
+ *     prettyKey
+ *   * `reviewCount` interpolates verbatim (caller filters out
+ *     zero-count rows)
+ *   * `ratingAvg` formatted to 1 decimal place under Locale.US so
+ *     a Hindi-locale device doesn't surface "4,8" (Devanagari /
+ *     comma-decimal) which reads as "4 to 8" or a list.
+ *
+ * Middle-dot separator pinned (U+00B7) — same character as the
+ * adjacent review-item "when · city" line.
+ */
+internal fun categoryRatingChipText(
+    categoryKey: String,
+    reviewCount: Int,
+    ratingAvg: Double,
+): String =
+    "${com.equipseva.app.core.util.prettyKey(categoryKey)} · " +
+        "$reviewCount · " +
+        "${"%.1f".format(java.util.Locale.US, ratingAvg)}★"
 
 /**
  * Compose the "when · city" line on an engineer-review item.
