@@ -1115,10 +1115,6 @@ private fun StepDot(done: Boolean, active: Boolean, number: Int) {
 // --- Equipment card ---------------------------------------------------------
 @Composable
 private fun EquipmentCard(job: RepairJob) {
-    val schedule = listOfNotNull(
-        job.scheduledDate?.takeIf { it.isNotBlank() },
-        job.scheduledTimeSlot?.takeIf { it.isNotBlank() },
-    ).joinToString(" ").ifBlank { "—" }
     Column(
         modifier = Modifier
             .padding(horizontal = 16.dp)
@@ -1128,13 +1124,13 @@ private fun EquipmentCard(job: RepairJob) {
             .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
             .padding(14.dp),
     ) {
-        EqRow("Brand", job.equipmentBrand?.takeIf { it.isNotBlank() } ?: "—")
+        EqRow("Brand", textOrDash(job.equipmentBrand))
         Spacer(Modifier.height(8.dp))
-        EqRow("Model", job.equipmentModel?.takeIf { it.isNotBlank() } ?: "—")
+        EqRow("Model", textOrDash(job.equipmentModel))
         Spacer(Modifier.height(8.dp))
         EqRow("Category", job.equipmentCategory.displayName)
         Spacer(Modifier.height(8.dp))
-        EqRow("Schedule", schedule)
+        EqRow("Schedule", equipmentScheduleLine(job.scheduledDate, job.scheduledTimeSlot))
     }
 }
 
@@ -2608,6 +2604,31 @@ private val UriListSaver = androidx.compose.runtime.saveable.listSaver<List<Uri>
     save = { it.map(Uri::toString) },
     restore = { it.map(Uri::parse) },
 )
+
+/**
+ * Render a nullable / possibly-blank text field as either its
+ * content or the em-dash placeholder (U+2014). Pin so a refactor
+ * that swapped to ASCII "-" surfaces.
+ */
+internal fun textOrDash(value: String?): String =
+    value?.takeIf { it.isNotBlank() } ?: "—"
+
+/**
+ * Compose the schedule line on EquipmentCard's "Schedule" row.
+ *
+ *   * date + slot → "2026-05-22 morning"
+ *   * date only → "2026-05-22"
+ *   * slot only → "morning"
+ *   * neither / blank → "—"
+ *
+ * Joined with a single space; blank parts dropped. Pin so a refactor
+ * doesn't leave a trailing/leading space when one side is missing.
+ */
+internal fun equipmentScheduleLine(scheduledDate: String?, scheduledTimeSlot: String?): String =
+    listOfNotNull(
+        scheduledDate?.takeIf { it.isNotBlank() },
+        scheduledTimeSlot?.takeIf { it.isNotBlank() },
+    ).joinToString(" ").ifBlank { "—" }
 
 /**
  * Banner copy for the terminal-status replacement of the status
