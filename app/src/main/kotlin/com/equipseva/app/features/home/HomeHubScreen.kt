@@ -526,15 +526,8 @@ private fun SlaCreditsCard(
     summary: com.equipseva.app.core.data.amc.AmcRepository.HospitalSlaCreditSummary,
     onClick: () -> Unit,
 ) {
-    // formatRupees applies Indian grouping (₹1,23,456) + the rupee sign;
-    // the prior "%,.0f" format used the default Locale which falls back
-    // to US grouping (₹123,456) and lost the leading ₹ glyph too.
     val rupeesLabel = formatRupees(summary.totalCreditRupees)
-    val sub = if (summary.breachCount == 1) {
-        "1 SLA breach in the last 30 days. Tap to review."
-    } else {
-        "${summary.breachCount} SLA breaches in the last 30 days. Tap to review."
-    }
+    val sub = slaCreditsCardSubtitle(summary.breachCount)
     Row(
         modifier = androidx.compose.ui.Modifier
             .padding(horizontal = 16.dp)
@@ -1102,6 +1095,20 @@ internal fun relativeTimeFromMinutes(mins: Long): String = when {
  * Compose runtime that wraps the colors + click handler.
  */
 internal data class HomeKycBannerCopy(val title: String, val subtitle: String)
+
+/**
+ * SLA-credits card subtitle on Home: "N SLA breach(es) in the last
+ * 30 days. Tap to review." Singular/plural split on the breach count.
+ *
+ * Pin so a regression to always-"breaches" doesn't surface "1
+ * breaches" on the most common single-breach case.
+ */
+internal fun slaCreditsCardSubtitle(breachCount: Int): String =
+    if (breachCount == 1) {
+        "1 SLA breach in the last 30 days. Tap to review."
+    } else {
+        "$breachCount SLA breaches in the last 30 days. Tap to review."
+    }
 
 /**
  * Compose the cash-survey question body for the bottom-sheet on
