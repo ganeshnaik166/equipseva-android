@@ -135,21 +135,13 @@ class EngineerProfileViewModel @Inject constructor(
     }
 
     fun onHourlyRateChange(value: String) {
-        // ASCII digits + a single decimal point. Char.isDigit() would
-        // also accept Devanagari / Arabic codepoints, which the server
-        // toDoubleOrNull can't parse — the field would look filled
-        // while save fails with "amount required".
-        val sanitized = value.filter { it in '0'..'9' || it == '.' }
-            .let { v ->
-                val first = v.indexOf('.')
-                if (first == -1) v else v.substring(0, first + 1) + v.substring(first + 1).replace(".", "")
-            }
+        val sanitized = sanitizeHourlyRateInput(value)
         savedStateHandle[SavedKeys.HOURLY_RATE] = sanitized
         _state.update { it.copy(hourlyRate = sanitized, errorMessage = null) }
     }
 
     fun onYearsChange(value: String) {
-        val sanitized = value.filter { c -> c in '0'..'9' }
+        val sanitized = sanitizeYearsInput(value)
         savedStateHandle[SavedKeys.YEARS] = sanitized
         _state.update { it.copy(yearsExperience = sanitized, errorMessage = null) }
     }
@@ -299,3 +291,30 @@ internal fun formatRate(value: Double): String {
     val asLong = value.toLong()
     return if (value == asLong.toDouble()) asLong.toString() else value.toString()
 }
+
+/**
+ * Sanitise the hourly-rate input field. Keep ASCII 0-9 + a single
+ * decimal point; reject Devanagari / Arabic digits (Char.isDigit()
+ * accepts them but Double.toDoubleOrNull doesn't, so the field would
+ * look filled while save fails as "amount required").
+ *
+ * After-the-first-dot logic: keep the first '.' but strip any
+ * subsequent dots (no rate is "75.5.5").
+ */
+internal fun sanitizeHourlyRateInput(value: String): String {
+    val filtered = value.filter { it in '0'..'9' || it == '.' }
+    val first = filtered.indexOf('.')
+    return if (first == -1) {
+        filtered
+    } else {
+        filtered.substring(0, first + 1) + filtered.substring(first + 1).replace(".", "")
+    }
+}
+
+/**
+ * Sanitise the years-of-experience input — ASCII digits only.
+ * Same Devanagari / Arabic / decimal rejection as hourly rate, but
+ * a whole-number gate (no fractional years).
+ */
+internal fun sanitizeYearsInput(value: String): String =
+    value.filter { c -> c in '0'..'9' }
