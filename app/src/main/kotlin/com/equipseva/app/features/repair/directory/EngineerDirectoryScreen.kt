@@ -488,7 +488,7 @@ private fun EmptyEngineers(
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            if (filtersActive) "Try a wider district or fewer filters" else "No verified engineers in your area yet",
+            emptyEngineersSubtitle(filtersActive),
             color = SevaInk500,
             fontSize = 12.sp,
         )
@@ -751,6 +751,21 @@ internal fun InlineVerifiedBadge(small: Boolean = false) {
         )
     }
 }
+
+/**
+ * Subtitle copy for the engineer-directory empty state. Two branches:
+ *
+ *   * filtersActive=true → "Try a wider district or fewer filters"
+ *     (actionable — user has a reset button to undo)
+ *   * filtersActive=false → "No verified engineers in your area yet"
+ *     (passive — no engineers signed up nearby; no user action helps)
+ *
+ * The screen reads filtersActive from the directory's filter state
+ * (district != "All Telangana", or specialization != null, etc.).
+ */
+internal fun emptyEngineersSubtitle(filtersActive: Boolean): String =
+    if (filtersActive) "Try a wider district or fewer filters"
+    else "No verified engineers in your area yet"
 
 // InlineStars promoted to a shared component so the new
 // EngineerRatingCard + ReviewItem render the same glyph without a fork.
