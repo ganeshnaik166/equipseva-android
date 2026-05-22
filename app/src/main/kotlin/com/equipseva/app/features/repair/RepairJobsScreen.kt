@@ -586,10 +586,7 @@ private fun InitialShimmerList() {
 
 @Composable
 private fun EmptyFeedState(radiusKm: Int?) {
-    // "No jobs in this radius / Try widening" lied when the user
-    // already had All radii selected — there's no wider option, and
-    // the count reflects every open job in the country. Conditional
-    // copy so the empty state matches the active filter.
+    val copy = emptyFeedStateCopy(radiusKm)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -597,24 +594,45 @@ private fun EmptyFeedState(radiusKm: Int?) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = if (radiusKm == null) "No open jobs right now" else "No jobs in this radius",
+            text = copy.title,
             style = EsType.Body.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
             color = SevaInk700,
             textAlign = TextAlign.Center,
         )
         Box(modifier = Modifier.height(4.dp))
         Text(
-            text = if (radiusKm == null) {
-                "Pull to refresh — new requests show up the moment hospitals post."
-            } else {
-                "Try widening the radius filter, or pick All to see every open job."
-            },
+            text = copy.subtitle,
             style = EsType.Caption.copy(fontSize = 12.sp),
             color = SevaInk500,
             textAlign = TextAlign.Center,
         )
     }
 }
+
+/**
+ * Title + subtitle copy for the engineer feed's empty state, split
+ * by whether the user is on All-radius (no wider filter to suggest)
+ * or a numeric radius (can be widened).
+ *
+ * Pinned regression: the old "Try widening / No jobs in this radius"
+ * copy lied when the user already had All radii selected — there's
+ * no wider option, and the count reflects every open job in the
+ * country.
+ */
+internal data class EmptyFeedStateCopy(val title: String, val subtitle: String)
+
+internal fun emptyFeedStateCopy(radiusKm: Int?): EmptyFeedStateCopy =
+    if (radiusKm == null) {
+        EmptyFeedStateCopy(
+            title = "No open jobs right now",
+            subtitle = "Pull to refresh — new requests show up the moment hospitals post.",
+        )
+    } else {
+        EmptyFeedStateCopy(
+            title = "No jobs in this radius",
+            subtitle = "Try widening the radius filter, or pick All to see every open job.",
+        )
+    }
 
 /**
  * Label for the open-jobs stat card on the engineer's repair feed.
