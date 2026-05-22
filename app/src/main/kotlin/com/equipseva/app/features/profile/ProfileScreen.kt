@@ -508,18 +508,13 @@ private fun EngineerSuspensionBanner(
             )
         }
         Text(
-            text = suspension.reason
-                ?: run {
-                    val n = suspension.flagCount90d
-                    val flagPhrase = if (n == 1) "1 hospital cash-payment flag" else "$n hospital cash-payment flags"
-                    "$flagPhrase in the last 90 days. EquipSeva paused your availability while we review."
-                },
+            text = engineerSuspensionReason(suspension.reason, suspension.flagCount90d),
             fontSize = 12.sp,
             color = com.equipseva.app.designsystem.theme.SevaInk700,
         )
         suspension.suspendedAt?.let {
             Text(
-                text = "Paused: ${it.take(19).replace('T', ' ')}",
+                text = "Paused: ${formatSuspensionTimestamp(it)}",
                 fontSize = 11.sp,
                 color = com.equipseva.app.designsystem.theme.SevaInk500,
             )
@@ -1322,6 +1317,38 @@ private fun shareExportFile(context: Context, absolutePath: String) {
     }
     context.startActivity(chooser)
 }
+
+/**
+ * User-facing reason copy on the engineer-suspension banner.
+ * Server-provided [explicitReason] wins; otherwise compose a generic
+ * line referencing the flag count in the last 90 days.
+ *
+ * Singular/plural split: 1 flag → "1 hospital cash-payment flag",
+ * 2+ → "N hospital cash-payment flags". Pin so a regression to
+ * always-interpolated count doesn't surface "1 flags" on the most
+ * common one-strike case.
+ */
+internal fun engineerSuspensionReason(explicitReason: String?, flagCount90d: Int): String {
+    if (explicitReason != null) return explicitReason
+    val flagPhrase = if (flagCount90d == 1) {
+        "1 hospital cash-payment flag"
+    } else {
+        "$flagCount90d hospital cash-payment flags"
+    }
+    return "$flagPhrase in the last 90 days. EquipSeva paused your availability while we review."
+}
+
+/**
+ * Trim an ISO-8601 timestamp to "YYYY-MM-DD HH:MM:SS" for the
+ * "Paused: …" line on the suspension banner. Replaces the ISO 'T'
+ * separator with a space so the line reads naturally rather than
+ * forcing a context switch back to machine-readable shape.
+ *
+ * Inputs shorter than 19 chars take whatever's there (defensive —
+ * a server-side rename to a shorter format would still render).
+ */
+internal fun formatSuspensionTimestamp(iso: String): String =
+    iso.take(19).replace('T', ' ')
 
 /**
  * Account-type section copy on the Profile screen. Role can legitimately
