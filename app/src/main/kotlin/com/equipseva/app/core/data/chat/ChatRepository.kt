@@ -216,7 +216,7 @@ class ChatRepository @Inject constructor(
         }.decodeList<ConversationDto>()
 
         val match = mine.firstOrNull { dto ->
-            dto.participantUserIds?.toSet() == setOf(selfUserId, peerUserId)
+            matchesDirectParticipants(dto.participantUserIds, selfUserId, peerUserId)
         }
 
         val dto = match ?: client.from(CONVERSATIONS_TABLE).insert(
@@ -486,3 +486,19 @@ class ChatRepository @Inject constructor(
         const val TYPING_TICK_MS = 1_000L
     }
 }
+
+/**
+ * True when [participantUserIds] is exactly the pair `{self, peer}`.
+ * Set-equality so the de-dupe matches regardless of insertion order in
+ * the participant_user_ids array. A regression that compared lists
+ * order-sensitively would let a duplicate "direct" conversation slip
+ * past the de-dupe and surface two threads to the same pair.
+ *
+ * Null participant list is treated as no match (legacy conversation
+ * row that pre-dates the column being non-null).
+ */
+internal fun matchesDirectParticipants(
+    participantUserIds: List<String>?,
+    selfUserId: String,
+    peerUserId: String,
+): Boolean = participantUserIds?.toSet() == setOf(selfUserId, peerUserId)
