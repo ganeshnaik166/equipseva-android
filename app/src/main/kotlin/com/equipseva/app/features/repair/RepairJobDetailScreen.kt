@@ -1040,8 +1040,8 @@ private fun HospitalBanner(siteName: String, siteCity: String?, urgency: com.equ
 }
 
 // --- Status stepper ---------------------------------------------------------
-private val StepLabels = listOf("Requested", "Assigned", "En route", "In progress", "Completed")
-private val StepStatuses = listOf(
+internal val StepLabels = listOf("Requested", "Assigned", "En route", "In progress", "Completed")
+internal val StepStatuses = listOf(
     RepairJobStatus.Requested,
     RepairJobStatus.Assigned,
     RepairJobStatus.EnRoute,
@@ -1049,9 +1049,18 @@ private val StepStatuses = listOf(
     RepairJobStatus.Completed,
 )
 
+/**
+ * Index of [currentStatus] in the [StepStatuses] timeline, or -1 when
+ * the status isn't part of the stepper at all (Cancelled, Disputed,
+ * Unknown). Extracted so the index-to-dot rendering logic can be
+ * unit-tested without the Compose runtime.
+ */
+internal fun statusStepIndex(currentStatus: RepairJobStatus): Int =
+    StepStatuses.indexOf(currentStatus).let { if (it < 0) -1 else it }
+
 @Composable
 private fun StatusStepperRow(currentStatus: RepairJobStatus) {
-    val currentIdx = StepStatuses.indexOf(currentStatus).let { if (it < 0) -1 else it }
+    val currentIdx = statusStepIndex(currentStatus)
     Column(
         modifier = Modifier
             .fillMaxWidth()
