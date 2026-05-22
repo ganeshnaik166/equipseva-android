@@ -174,11 +174,7 @@ class ChatRepository @Inject constructor(
         }.decodeList<ConversationDto>().firstOrNull()
 
         val dto = existing ?: client.from(CONVERSATIONS_TABLE).insert(
-            ConversationInsertDto(
-                participantUserIds = participantUserIds,
-                relatedEntityType = "repair_job",
-                relatedEntityId = jobId,
-            ),
+            buildRepairJobConversationInsert(participantUserIds, jobId),
         ) { select() }.decodeSingle<ConversationDto>()
 
         dto.toDomain()
@@ -217,11 +213,7 @@ class ChatRepository @Inject constructor(
         }
 
         val dto = match ?: client.from(CONVERSATIONS_TABLE).insert(
-            ConversationInsertDto(
-                participantUserIds = listOf(selfUserId, peerUserId),
-                relatedEntityType = "direct",
-                relatedEntityId = null,
-            ),
+            buildDirectConversationInsert(selfUserId, peerUserId),
         ) { select() }.decodeSingle<ConversationDto>()
 
         dto.toDomain()
@@ -483,6 +475,35 @@ class ChatRepository @Inject constructor(
         const val TYPING_TICK_MS = 1_000L
     }
 }
+
+/**
+ * Compose a [ConversationInsertDto] for a repair-job-tied chat. The
+ * `related_entity_type` literal is wire-frozen ("repair_job") so the
+ * de-dupe query later finds the row; pin so a refactor that renamed
+ * the literal doesn't silently break the de-dupe.
+ */
+internal fun buildRepairJobConversationInsert(
+    participantUserIds: List<String>,
+    jobId: String,
+): ConversationInsertDto = ConversationInsertDto(
+    participantUserIds = participantUserIds,
+    relatedEntityType = "repair_job",
+    relatedEntityId = jobId,
+)
+
+/**
+ * Compose a [ConversationInsertDto] for a direct (peer-to-peer) chat
+ * not tied to any repair job. `relatedEntityType` is "direct";
+ * `relatedEntityId` is null since there's no entity to link.
+ */
+internal fun buildDirectConversationInsert(
+    selfUserId: String,
+    peerUserId: String,
+): ConversationInsertDto = ConversationInsertDto(
+    participantUserIds = listOf(selfUserId, peerUserId),
+    relatedEntityType = "direct",
+    relatedEntityId = null,
+)
 
 /**
  * Compose a [MessageInsertDto] for the chat-send path. Caps the
