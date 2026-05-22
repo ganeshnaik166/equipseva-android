@@ -163,15 +163,7 @@ private fun ExpiringRow(
                 color = SevaInk900,
                 modifier = Modifier.weight(1f),
             )
-            // Match the hospital-side list r353 colour rule: Danger when
-            // ≤7 days, Warn otherwise. Keeps founder + hospital reading
-            // the same urgency cue for the same contract.
-            val (text, kind) = when {
-                row.daysRemaining <= 0 -> "Expires today" to PillKind.Danger
-                row.daysRemaining == 1 -> "1 day left" to PillKind.Danger
-                row.daysRemaining <= 7 -> "${row.daysRemaining} days left" to PillKind.Danger
-                else -> "${row.daysRemaining} days left" to PillKind.Warn
-            }
+            val (text, kind) = expiringAmcPillTextAndKind(row.daysRemaining)
             Pill(text = text, kind = kind)
         }
         row.primaryEngineerName?.let {
@@ -192,4 +184,26 @@ private fun ExpiringRow(
             )
         }
     }
+}
+
+/**
+ * Pin the urgency colour + label rule on the founder's
+ * AMC-expiring-soon row.
+ *
+ *   * days ≤ 0 → "Expires today" + Danger
+ *   * exactly 1 day → "1 day left" + Danger (singular)
+ *   * 2..7 days → "N days left" + Danger
+ *   * > 7 days → "N days left" + Warn (amber)
+ *
+ * Matches the hospital-side r353 rule so founder + hospital see the
+ * same urgency cue for the same contract. Pin so a colour change on
+ * one surface doesn't desync the other.
+ */
+internal fun expiringAmcPillTextAndKind(
+    daysRemaining: Int,
+): Pair<String, com.equipseva.app.designsystem.components.PillKind> = when {
+    daysRemaining <= 0 -> "Expires today" to com.equipseva.app.designsystem.components.PillKind.Danger
+    daysRemaining == 1 -> "1 day left" to com.equipseva.app.designsystem.components.PillKind.Danger
+    daysRemaining <= 7 -> "$daysRemaining days left" to com.equipseva.app.designsystem.components.PillKind.Danger
+    else -> "$daysRemaining days left" to com.equipseva.app.designsystem.components.PillKind.Warn
 }
