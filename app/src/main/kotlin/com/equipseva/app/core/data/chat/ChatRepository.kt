@@ -117,18 +117,15 @@ class ChatRepository @Inject constructor(
         message: String,
         attachments: List<String> = emptyList(),
     ): Result<ChatMessage> = runCatching {
-        // Server CHECK (round286) caps chat_messages.message at 4000.
-        // ChatViewModel already clamps the draft; mirror at the repo
-        // boundary so outbox replays / scripts hit the same gate.
-        val cappedMessage = message.take(4000)
-        val dto = client.from(MESSAGES_TABLE).insert(
-            MessageInsertDto(
-                conversationId = conversationId,
-                senderUserId = senderUserId,
-                message = cappedMessage,
-                attachments = attachments.ifEmpty { null },
-            ),
-        ) { select() }.decodeSingle<MessageDto>()
+        val payload = buildMessageInsert(
+            conversationId = conversationId,
+            senderUserId = senderUserId,
+            message = message,
+            attachments = attachments,
+        )
+        val cappedMessage = payload.message
+        val dto = client.from(MESSAGES_TABLE).insert(payload) { select() }
+            .decodeSingle<MessageDto>()
 
         runCatching {
             client.from(CONVERSATIONS_TABLE).update({
@@ -486,6 +483,28 @@ class ChatRepository @Inject constructor(
         const val TYPING_TICK_MS = 1_000L
     }
 }
+
+/**
+ * Compose a [MessageInsertDto] for the chat-send path. Caps the
+ * message body at 4000 chars to match the server CHECK on
+ * chat_messages.message — the ChatViewModel UI already clamps drafts,
+ * but the outbox replay path goes through a different code path so
+ * mirror the gate at the repo boundary too.
+ *
+ * Empty attachment lists fold to null so the DTO doesn't carry an
+ * empty `attachments: []` array on every text-only message.
+ */
+internal fun buildMessageInsert(
+    conversationId: String,
+    senderUserId: String,
+    message: String,
+    attachments: List<String> = emptyList(),
+): MessageInsertDto = MessageInsertDto(
+    conversationId = conversationId,
+    senderUserId = senderUserId,
+    message = message.take(4000),
+    attachments = attachments.ifEmpty { null },
+)
 
 /**
  * True when [participantUserIds] is exactly the pair `{self, peer}`.
