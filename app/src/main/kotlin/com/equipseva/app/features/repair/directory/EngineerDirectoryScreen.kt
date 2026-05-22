@@ -623,14 +623,14 @@ private fun EngCard(
                 InlineVerifiedBadge(small = true)
             }
             Spacer(Modifier.height(2.dp))
-            val locParts = listOfNotNull(
-                row.city,
-                row.distanceKm?.let { "${"%.1f".format(java.util.Locale.US, it)} km" },
-                row.hourlyRate?.let { "${formatRupees(it)}/hr" },
+            val locLine = formatDirectoryRowLocationLine(
+                city = row.city,
+                distanceKm = row.distanceKm,
+                hourlyRate = row.hourlyRate,
             )
-            if (locParts.isNotEmpty()) {
+            if (locLine != null) {
                 Text(
-                    locParts.joinToString(" · "),
+                    locLine,
                     color = SevaInk500,
                     fontSize = 12.sp,
                 )
@@ -750,6 +750,35 @@ internal fun InlineVerifiedBadge(small: Boolean = false) {
             fontWeight = FontWeight.SemiBold,
         )
     }
+}
+
+/**
+ * Compose the city · distance · rate line on a directory-row card.
+ *
+ * Three optional parts joined by " · ":
+ *   * city — blank/null omitted
+ *   * distanceKm — null omitted; else "N.N km" formatted under
+ *     Locale.US so a Hindi-locale device doesn't surface "3,2"
+ *   * hourlyRate — null omitted; else "₹N/hr"
+ *
+ * Returns null on all-empty so the caller doesn't render an empty
+ * Text.
+ *
+ * Spaced "km" suffix (vs the no-space variant on the home-card
+ * recommended carousel) is intentional — directory rows have more
+ * horizontal room.
+ */
+internal fun formatDirectoryRowLocationLine(
+    city: String?,
+    distanceKm: Double?,
+    hourlyRate: Double?,
+): String? {
+    val parts = listOfNotNull(
+        city?.takeIf { it.isNotBlank() },
+        distanceKm?.let { "${"%.1f".format(java.util.Locale.US, it)} km" },
+        hourlyRate?.let { "${com.equipseva.app.core.util.formatRupees(it)}/hr" },
+    )
+    return if (parts.isEmpty()) null else parts.joinToString(" · ")
 }
 
 /**
