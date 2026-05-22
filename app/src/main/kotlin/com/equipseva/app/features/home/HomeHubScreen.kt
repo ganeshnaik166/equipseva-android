@@ -469,7 +469,7 @@ private fun CashSurveySheetBody(
             color = SevaInk900,
         )
         Text(
-            text = "Job ${survey.jobNumber} with ${survey.engineerName} just wrapped. Did the engineer ask for any payment outside the app?",
+            text = cashSurveyQuestionBody(survey.jobNumber, survey.engineerName),
             style = EsType.Body,
             color = SevaInk700,
         )
@@ -1102,6 +1102,26 @@ internal fun relativeTimeFromMinutes(mins: Long): String = when {
  * Compose runtime that wraps the colors + click handler.
  */
 internal data class HomeKycBannerCopy(val title: String, val subtitle: String)
+
+/**
+ * Compose the cash-survey question body for the bottom-sheet on
+ * HomeHub. Embeds the public job number + engineer name so the user
+ * has unambiguous context about which visit they're rating.
+ *
+ *   "Job RPR-00027 with Ravi Kumar just wrapped. Did the engineer
+ *    ask for any payment outside the app?"
+ *
+ * Pinned regions:
+ *   * Both interpolations are caller-supplied + non-null on this
+ *     code path (the parent survey null-check happens upstream), so
+ *     the helper trusts inputs.
+ *   * Question phrasing pinned word-for-word — this is the
+ *     trust-and-safety signal the founder uses to investigate
+ *     cash-flag patterns; the wording was reviewed by product.
+ */
+internal fun cashSurveyQuestionBody(jobNumber: String, engineerName: String): String =
+    "Job $jobNumber with $engineerName just wrapped. " +
+        "Did the engineer ask for any payment outside the app?"
 
 /**
  * Role-aware empty-state copy for the Home hub's "Recent activity"
