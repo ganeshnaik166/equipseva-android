@@ -524,13 +524,13 @@ private fun CashSuspendedRow(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    row.fullName?.takeIf { it.isNotBlank() } ?: "Engineer",
+                    cashSuspendedRowName(row.fullName),
                     color = SevaInk900,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                 )
                 Text(
-                    "${row.flagCount90d} flags / 90d",
+                    cashSuspendedFlagCountLabel(row.flagCount90d),
                     color = SevaDanger500,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -857,3 +857,25 @@ private fun OutcomeOption(
         }
     }
 }
+
+/**
+ * Display name for a cash-suspended engineer row on the founder
+ * ops queue. Blank/null → "Engineer" generic fallback. Mirrors the
+ * AMC-visit row's [amcVisitHospitalName] pattern — pin so the same
+ * dev-placeholder safety check applies on both surfaces.
+ */
+internal fun cashSuspendedRowName(fullName: String?): String =
+    fullName?.takeIf { it.isNotBlank() } ?: "Engineer"
+
+/**
+ * "N flags / 90d" subtitle on the cash-suspended row. Always plural
+ * "flags" — the suspension trigger requires 3+ flags in 90 days, so
+ * 1-flag rows shouldn't appear; if they do (race / manual flag
+ * removal), pluralisation is still correct because the window
+ * cadence reads as "flags per 90d" regardless of count.
+ *
+ * Pin so the unit "/ 90d" stays intact — load-bearing rolling-window
+ * context the founder uses to decide whether to clear.
+ */
+internal fun cashSuspendedFlagCountLabel(flagCount90d: Int): String =
+    "$flagCount90d flags / 90d"
