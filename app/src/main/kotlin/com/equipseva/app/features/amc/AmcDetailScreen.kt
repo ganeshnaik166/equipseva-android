@@ -941,7 +941,7 @@ private fun VisitRow(v: AmcRepository.AmcVisitRow) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                "Visit #${v.amcVisitNumber ?: '-'} · ${v.jobNumber ?: ""}".trim(),
+                amcVisitHeaderLine(v.amcVisitNumber, v.jobNumber),
                 color = SevaInk900,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -1175,6 +1175,24 @@ private fun CategoryFlow(items: List<String>) {
             }
         }
     }
+}
+
+/**
+ * Header copy for a single AMC visit row: "Visit #N · RPR-NNNN".
+ * Falls back to "-" for a missing visit number (legacy rows from
+ * before the auto-numbering column landed); job number folds out
+ * gracefully so a null / blank jobNumber renders "Visit #3" without
+ * the dangling " · " separator. Pre-extraction code used a
+ * `.trim()` which only stripped whitespace and left the trailing
+ * middle-dot; the helper now drops the separator branch cleanly.
+ */
+internal fun amcVisitHeaderLine(
+    amcVisitNumber: Int?,
+    jobNumber: String?,
+): String {
+    val n = amcVisitNumber?.toString() ?: "-"
+    val job = jobNumber?.takeIf { it.isNotBlank() }
+    return if (job != null) "Visit #$n · $job" else "Visit #$n"
 }
 
 /**
