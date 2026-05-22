@@ -196,19 +196,8 @@ class SupabaseRepairJobRepository @Inject constructor(
         stars: Int,
         review: String?,
     ): Result<RepairJob> = runCatching {
-        require(stars in 1..5) { "Rating must be 1..5" }
         val uid = requireNotNull(client.auth.currentUserOrNull()?.id) { "not signed in" }
-        val trimmedReview = normaliseRatingReview(review)
-        val patch = when (role) {
-            RatingRole.HospitalRatesEngineer -> RepairJobRatingPatchDto(
-                hospitalRating = stars,
-                hospitalReview = trimmedReview,
-            )
-            RatingRole.EngineerRatesHospital -> RepairJobRatingPatchDto(
-                engineerRating = stars,
-                engineerReview = trimmedReview,
-            )
-        }
+        val patch = buildRatingPatch(role, stars, review)
         // repair_jobs.engineer_id FKs to engineers.id (not auth.uid). Resolve the
         // engineer row for this user when the caller claims to be the engineer.
         val engineerRowId = if (role == RatingRole.EngineerRatesHospital) {
@@ -292,3 +281,32 @@ internal fun sanitizeForIlike(input: String): String =
  */
 internal fun normaliseRatingReview(review: String?): String? =
     review?.trim()?.take(1000)?.takeIf { it.isNotBlank() }
+
+/**
+ * Compose the rating patch DTO from a (role, stars, review) tuple.
+ * Mirrors the wire shape of `repair_jobs.{hospital,engineer}_{rating,review}`
+ * — the patch sparsely writes only the role's side so the counterparty's
+ * rating isn't accidentally clobbered on the same row.
+ *
+ *   * Validates stars in [1, 5] (server CHECK matches)
+ *   * Review goes through [normaliseRatingReview] so blank inputs fold
+ *     to null (the column stays NULL, not an empty string).
+ */
+internal fun buildRatingPatch(
+    role: RatingRole,
+    stars: Int,
+    review: String?,
+): RepairJobRatingPatchDto {
+    require(stars in 1..5) { "Rating must be 1..5" }
+    val trimmedReview = normaliseRatingReview(review)
+    return when (role) {
+        RatingRole.HospitalRatesEngineer -> RepairJobRatingPatchDto(
+            hospitalRating = stars,
+            hospitalReview = trimmedReview,
+        )
+        RatingRole.EngineerRatesHospital -> RepairJobRatingPatchDto(
+            engineerRating = stars,
+            engineerReview = trimmedReview,
+        )
+    }
+}
