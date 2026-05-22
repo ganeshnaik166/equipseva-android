@@ -286,17 +286,13 @@ private fun StatStrip(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         StatCard(
-            // "Nearby" lied when the user picked All radius — the count
-            // is whatever the radius filter returned, including country-
-            // wide. Switch label with the active radius so the number is
-            // never decoupled from the filter that produced it.
-            label = if (radiusKm == null) "Open" else "Within ${radiusKm} km",
+            label = openStatCardLabel(radiusKm),
             value = openCount.toString(),
             modifier = Modifier.weight(1f),
         )
         StatCard(
             label = "Pending bids",
-            value = if (pending > 0) pending.toString() else "—",
+            value = pendingBidsValue(pending),
             valueColor = SevaWarning500,
             modifier = Modifier.weight(1f),
         )
@@ -619,3 +615,28 @@ private fun EmptyFeedState(radiusKm: Int?) {
         )
     }
 }
+
+/**
+ * Label for the open-jobs stat card on the engineer's repair feed.
+ *
+ * Switches with the active radius filter so the number is never
+ * decoupled from the filter that produced it:
+ *
+ *   * radiusKm null (All radius) → "Open" (count is country-wide)
+ *   * radiusKm N → "Within N km" (count matches the radius)
+ *
+ * Pinned regression: an older version always read "Nearby", which
+ * lied to the user when they picked All radius — the count became
+ * "Nearby: 47" for jobs across the whole country.
+ */
+internal fun openStatCardLabel(radiusKm: Int?): String =
+    if (radiusKm == null) "Open" else "Within ${radiusKm} km"
+
+/**
+ * Value cell on the pending-bids stat card. Zero renders as the
+ * em-dash placeholder (U+2014) rather than a literal "0" — the
+ * em-dash reads as "no active bids yet" rather than the misleading
+ * "you have 0 pending bids" framing.
+ */
+internal fun pendingBidsValue(pending: Int): String =
+    if (pending > 0) pending.toString() else "—"
