@@ -116,16 +116,7 @@ fun HospitalActiveJobsScreen(
                         // haven't finished any yet, posting another job
                         // doesn't help. Tell them what the empty state
                         // actually means under the active filter.
-                        val (emptyTitle, emptySubtitle) = when (state.filter) {
-                            HospitalActiveJobsViewModel.Filter.All ->
-                                "No repair jobs yet" to "Tap Post new job below to create one."
-                            HospitalActiveJobsViewModel.Filter.Open ->
-                                "No open jobs" to "Jobs you post and haven't assigned yet appear here."
-                            HospitalActiveJobsViewModel.Filter.Active ->
-                                "No jobs in progress" to "Jobs an engineer has accepted appear here."
-                            HospitalActiveJobsViewModel.Filter.Closed ->
-                                "No closed jobs yet" to "Finished, cancelled, or disputed jobs land here."
-                        }
+                        val (emptyTitle, emptySubtitle) = hospitalActiveJobsEmptyCopy(state.filter)
                         EmptyStateView(
                             icon = Icons.AutoMirrored.Outlined.Assignment,
                             title = emptyTitle,
@@ -399,3 +390,38 @@ internal fun hospitalBookingLeftLabel(
  */
 internal fun hospitalBookingShouldShowPostedOnRight(schedule: String): Boolean =
     schedule.isNotBlank()
+
+/**
+ * Filter-aware empty-state copy on the hospital active-jobs screen.
+ *
+ * Each filter gets its own (title, subtitle) pair:
+ *   - All → generic "Tap Post new job below" CTA prompt (the hospital
+ *     genuinely has nothing)
+ *   - Open → "No open jobs" + the explanation of what the Open tab
+ *     surfaces (so the user understands the filter intent)
+ *   - Active → "No jobs in progress" + engineer-acceptance explanation
+ *   - Closed → "No closed jobs yet" + finished/cancelled/disputed
+ *     bucket explanation
+ *
+ * Critical pin: the All branch is the ONLY one with the "Post new job
+ * below" CTA. A refactor that surfaced that CTA on the Closed branch
+ * would suggest posting another job fixes the empty-closed state
+ * (which it doesn't — Closed is empty because nothing has been
+ * finished yet, not because nothing has been posted).
+ *
+ * Pin each filter's explanation copy — these are the user's mental
+ * model of what each tab contains. A refactor that swapped any pair
+ * would mismatch the explanation to the filter.
+ */
+internal fun hospitalActiveJobsEmptyCopy(
+    filter: HospitalActiveJobsViewModel.Filter,
+): Pair<String, String> = when (filter) {
+    HospitalActiveJobsViewModel.Filter.All ->
+        "No repair jobs yet" to "Tap Post new job below to create one."
+    HospitalActiveJobsViewModel.Filter.Open ->
+        "No open jobs" to "Jobs you post and haven't assigned yet appear here."
+    HospitalActiveJobsViewModel.Filter.Active ->
+        "No jobs in progress" to "Jobs an engineer has accepted appear here."
+    HospitalActiveJobsViewModel.Filter.Closed ->
+        "No closed jobs yet" to "Finished, cancelled, or disputed jobs land here."
+}
