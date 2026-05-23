@@ -224,13 +224,13 @@ private fun NotificationRow(
             KindIcon(kind = notification.kind, data = notification.data)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = notification.title.ifBlank { notification.body },
+                    text = notificationRowTitleText(notification.title, notification.body),
                     fontSize = 13.sp,
                     fontWeight = if (notification.isUnread) FontWeight.SemiBold else FontWeight.Normal,
                     color = SevaInk900,
                     lineHeight = (13 * 1.4f).sp,
                 )
-                if (notification.body.isNotBlank() && notification.title.isNotBlank()) {
+                if (notificationRowShouldShowBody(notification.title, notification.body)) {
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = notification.body,
@@ -442,3 +442,30 @@ internal fun notificationIconStyle(
     )
 }
 
+/**
+ * Title text on a notification row.
+ *
+ * Prefer the structured title; if blank (legacy server-side rows
+ * with only body content), promote the body up into the title slot
+ * so the row still surfaces readable text in the primary position.
+ *
+ * Pin the ifBlank gate — a refactor to `?:` (null-only) would leak
+ * a whitespace-only title onto the row and the body would not be
+ * promoted, leaving the row visually broken.
+ */
+internal fun notificationRowTitleText(title: String, body: String): String =
+    title.ifBlank { body }
+
+/**
+ * Gate for rendering the body subline on a notification row.
+ *
+ * Show the body only when BOTH title and body are non-blank — i.e.
+ * when the body was NOT just promoted up into the title slot.
+ * Otherwise the row would double-print: title slot shows the body
+ * AND a separate body subline ALSO shows the body.
+ *
+ * Pin the AND condition — a refactor to OR (either non-blank) would
+ * surface the body even when the title slot already contains it.
+ */
+internal fun notificationRowShouldShowBody(title: String, body: String): Boolean =
+    title.isNotBlank() && body.isNotBlank()
