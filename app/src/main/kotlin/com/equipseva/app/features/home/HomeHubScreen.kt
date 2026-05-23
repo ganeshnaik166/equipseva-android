@@ -396,7 +396,11 @@ private fun SpotAuditSheetBody(
             color = SevaInk900,
         )
         Text(
-            text = "Job ${invitation.jobNumber ?: "RPR-${invitation.repairJobId.take(6)}"} with ${invitation.engineerName ?: "the engineer"} just wrapped. Rate the work.",
+            text = spotAuditQuestionBody(
+                jobNumber = invitation.jobNumber,
+                repairJobId = invitation.repairJobId,
+                engineerName = invitation.engineerName,
+            ),
             style = EsType.Body,
             color = SevaInk700,
         )
@@ -1182,6 +1186,34 @@ internal fun slaCreditsCardSubtitle(breachCount: Int): String =
 internal fun cashSurveyQuestionBody(jobNumber: String, engineerName: String): String =
     "Job $jobNumber with $engineerName just wrapped. " +
         "Did the engineer ask for any payment outside the app?"
+
+/**
+ * Question prompt on the spot-audit sheet.
+ *
+ * Sibling of [cashSurveyQuestionBody] — both surface a freshly-completed
+ * job's job number + engineer name and ask the hospital a quality
+ * question. Critical pin: the FALLBACK strings distinguish the two:
+ *
+ *   - jobNumber → "RPR-${take(6)}" when null (same convention as the
+ *     founder queue rows).
+ *   - engineerName → "the engineer" (lowercase, definite article) when
+ *     null. Sibling cashSurveyQuestionBody requires both fields
+ *     non-null (the cash-survey caller gates upstream); this helper
+ *     stays total because the spot-audit caller doesn't.
+ *
+ * Pin the literal "just wrapped" and "Rate the work." — concise prose
+ * that doesn't pre-bias the answer (vs "Rate the quality" which
+ * suggests there might be a quality issue).
+ */
+internal fun spotAuditQuestionBody(
+    jobNumber: String?,
+    repairJobId: String,
+    engineerName: String?,
+): String {
+    val jobLabel = jobNumber ?: "RPR-${repairJobId.take(6)}"
+    val engineerLabel = engineerName ?: "the engineer"
+    return "Job $jobLabel with $engineerLabel just wrapped. Rate the work."
+}
 
 /**
  * Role-aware empty-state copy for the Home hub's "Recent activity"
