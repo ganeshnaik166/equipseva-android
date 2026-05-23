@@ -1891,9 +1891,9 @@ private fun BidComposerSheet(
     var etaFocused by rememberSaveable { mutableStateOf(false) }
 
     val parsedAmount = amount.toDoubleOrNull()
-    val amountValid = parsedAmount != null && parsedAmount > 0.0
+    val amountValid = bidComposerAmountValid(amount)
     val parsedEta = eta.trim().takeIf { it.isNotEmpty() }?.toIntOrNull()
-    val etaValid = eta.trim().isEmpty() || (parsedEta != null && parsedEta > 0)
+    val etaValid = bidComposerEtaValid(eta)
 
     val amountError by remember(amount, amountTouched) {
         derivedStateOf { amountTouched && !amountValid }
@@ -2811,3 +2811,43 @@ internal fun locationCardPlaceholderCopy(
  */
 internal fun canSubmitEngineerResponse(response: String, submitting: Boolean): Boolean =
     response.trim().length >= 10 && !submitting
+
+/**
+ * Amount-field validation gate on the bid composer sheet.
+ *
+ * True when the amount parses to a positive (> 0.0) Double.
+ *
+ * Pin strict > 0.0 (not >=) — a 0-rupee bid would be a free-job offer
+ * which the server-side CHECK rejects with `amount_must_be_positive`.
+ * Pin null-on-non-numeric — toDoubleOrNull returns null for input
+ * the user typed but hasn't completed yet.
+ *
+ * Note: the buildRepairBidInsert helper also enforces this server-
+ * side; this client gate is just for the UI affordance.
+ */
+internal fun bidComposerAmountValid(amount: String): Boolean {
+    val parsed = amount.toDoubleOrNull()
+    return parsed != null && parsed > 0.0
+}
+
+/**
+ * ETA-field validation gate on the bid composer sheet.
+ *
+ * True when EITHER:
+ *   - the ETA field is blank/empty (ETA is optional)
+ *   - OR the ETA parses to a positive (> 0) Int
+ *
+ * Pin the blank-as-valid branch — ETA is optional per the
+ * RepairBidInsert wire schema (etaHours: Int? = null). A refactor
+ * that required a value would silently break bids that don't
+ * specify an ETA.
+ *
+ * Pin > 0 strict — a 0-hour ETA would be meaningless. The
+ * buildRepairBidInsert helper also enforces this server-side.
+ */
+internal fun bidComposerEtaValid(eta: String): Boolean {
+    val trimmed = eta.trim()
+    if (trimmed.isEmpty()) return true
+    val parsed = trimmed.toIntOrNull()
+    return parsed != null && parsed > 0
+}
