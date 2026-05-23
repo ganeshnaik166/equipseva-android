@@ -106,7 +106,7 @@ fun FounderResolvedDisputesScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Resolved disputes",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let { "$it in last 30 days" },
+                subtitle = resolvedDisputesSubtitle(state.rows.size),
                 onBack = onBack,
             )
             // Round 410 — pull-to-refresh. Matches r378-r400 pattern.
@@ -249,3 +249,19 @@ internal fun resolvedDisputePartiesLine(hospitalName: String?, engineerName: Str
     val eng = engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"
     return "$hos → $eng"
 }
+
+/**
+ * Subtitle on the founder Resolved-Disputes top bar.
+ *
+ * Returns null when the list is empty so the top-bar stays clean on
+ * cold-load. Otherwise reads "N in last 30 days" — the "30 days"
+ * literal matches the server-side query window and the empty-state
+ * subtitle ("Disputes you resolve in the last 30 days land here.").
+ *
+ * Pin the bare "N in last 30 days" with NO noun — a refactor that
+ * added "N disputes in last 30 days" would surface "1 disputes" on
+ * the singular case. The current phrasing is intentionally noun-less
+ * because the screen title ("Resolved disputes") already supplies it.
+ */
+internal fun resolvedDisputesSubtitle(rowCount: Int): String? =
+    if (rowCount > 0) "$rowCount in last 30 days" else null
