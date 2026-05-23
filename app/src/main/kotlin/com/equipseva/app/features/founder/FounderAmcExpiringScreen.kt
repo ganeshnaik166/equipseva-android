@@ -170,7 +170,10 @@ private fun ExpiringRow(
             Text("Engineer: $it", color = SevaInk700, fontSize = 13.sp)
         }
         Text(
-            text = "Ends ${prettyDate(row.endDate)} · ${formatRupees(row.monthlyFeeRupees)} / month",
+            text = expiringAmcRowEndLine(
+                prettyEndDate = prettyDate(row.endDate),
+                monthlyFeeRupees = row.monthlyFeeRupees,
+            ),
             color = SevaInk500,
             fontSize = 12.sp,
         )
@@ -178,7 +181,7 @@ private fun ExpiringRow(
             // Surface reminder cadence so the founder doesn't double-page
             // a hospital that already received stage 1/2/3.
             Text(
-                text = "Reminders sent: ${row.renewalNotificationsSent}/3",
+                text = renewalRemindersSentLabel(row.renewalNotificationsSent),
                 color = SevaInk500,
                 fontSize = 11.sp,
             )
@@ -207,3 +210,34 @@ internal fun expiringAmcPillTextAndKind(
     daysRemaining <= 7 -> "$daysRemaining days left" to com.equipseva.app.designsystem.components.PillKind.Danger
     else -> "$daysRemaining days left" to com.equipseva.app.designsystem.components.PillKind.Warn
 }
+
+/**
+ * End-date subline on the founder's AMC-expiring row.
+ *
+ * Format: "Ends $endDate · ₹X / month" — sibling of [pausedAmcTermLine]
+ * but says "Ends" not "Term" because the expiring queue is focused on
+ * the END date only (the start is irrelevant when the renewal call is
+ * imminent).
+ *
+ * Pin the literal "Ends " prefix and the " / month" suffix (with
+ * spaces around the slash). U+00B7 middle-dot separator.
+ */
+internal fun expiringAmcRowEndLine(
+    prettyEndDate: String,
+    monthlyFeeRupees: Double,
+): String = "Ends $prettyEndDate · ${com.equipseva.app.core.util.formatRupees(monthlyFeeRupees)} / month"
+
+/**
+ * Reminder-cadence label on the founder's AMC-expiring row.
+ *
+ * Format: "Reminders sent: N/3" — the /3 is load-bearing context.
+ * The server sends up to 3 stages of renewal reminders (30d, 14d,
+ * 7d). The founder uses this label to decide whether to manually
+ * page the hospital (i.e. don't double-page if they've already
+ * received stage 3).
+ *
+ * Pin the "/3" denominator — a refactor to bare "N reminders sent"
+ * would lose the cadence anchor.
+ */
+internal fun renewalRemindersSentLabel(count: Int): String =
+    "Reminders sent: $count/3"
