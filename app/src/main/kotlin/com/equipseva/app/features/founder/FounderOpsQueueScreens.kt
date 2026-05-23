@@ -157,7 +157,7 @@ fun FounderEscrowDisputesScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Escrow disputes",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let { "$it open" },
+                subtitle = simpleQueueCountSubtitle(state.rows.size, "open"),
                 onBack = onBack,
             )
             QueueBox(
@@ -311,7 +311,7 @@ fun FounderAmcEscalationsScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "AMC escalations",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let { "$it open" },
+                subtitle = simpleQueueCountSubtitle(state.rows.size, "open"),
                 onBack = onBack,
             )
             QueueBox(
@@ -469,7 +469,7 @@ fun FounderCashSuspendedScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Cash-flag suspensions",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let { "$it suspended" },
+                subtitle = simpleQueueCountSubtitle(state.rows.size, "suspended"),
                 onBack = onBack,
             )
             QueueBox(
@@ -1059,3 +1059,25 @@ internal fun escrowDisputeAmountHeldLine(amountRupees: Double): String =
  */
 internal fun partsOutliersSubtitle(rowCount: Int): String? =
     if (rowCount > 0) "$rowCount >5x category avg" else null
+
+/**
+ * Shared subtitle helper for founder ops-queue tabs that use the
+ * pattern "$count $noun" (e.g. "5 open", "3 suspended").
+ *
+ *   - rowCount <= 0 → null (top bar stays clean on cold-load)
+ *   - rowCount > 0 → "$rowCount $noun"
+ *
+ * Callers pass the surface-specific status noun:
+ *   - Escrow disputes: "open"
+ *   - AMC escalations: "open"
+ *   - Cash-flag suspensions: "suspended"
+ *
+ * Pin the shared shape so a refactor that diverged one queue (e.g.
+ * "5 open · last 30d") would need to drop this helper rather than
+ * silently shift the format on the others.
+ *
+ * Pin plural-blind shape — singular "1 open" / "1 suspended" reads
+ * fine because the status is a state, not a count-noun.
+ */
+internal fun simpleQueueCountSubtitle(rowCount: Int, statusNoun: String): String? =
+    if (rowCount > 0) "$rowCount $statusNoun" else null
