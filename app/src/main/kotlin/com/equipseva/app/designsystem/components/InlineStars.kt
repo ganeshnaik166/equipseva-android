@@ -38,17 +38,35 @@ fun InlineStars(rating: Double, count: Int, small: Boolean = false) {
             modifier = Modifier.size(if (small) 11.dp else 13.dp),
         )
         Text(
-            // Pin Locale.US — a comma-decimal device locale would render
-            // ratings as "4,8" which reads as "4 to 8" / list of ratings.
-            text = "%.1f".format(java.util.Locale.US, rating),
+            text = inlineStarsRatingLabel(rating),
             color = SevaInk700,
             fontSize = if (small) 11.sp else 12.sp,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            text = "($count)",
+            text = inlineStarsCountLabel(count),
             color = SevaInk400,
             fontSize = if (small) 11.sp else 12.sp,
         )
     }
 }
+
+/**
+ * Rating text in InlineStars: "%.1f" with Locale.US.
+ *
+ * Critical regression target — a comma-decimal device locale
+ * (Hindi / German / French) would render "4,8" which reads as
+ * "4 to 8" or a list of ratings to an English-speaking user.
+ * Pin Locale.US so the decimal point stays a dot.
+ */
+internal fun inlineStarsRatingLabel(rating: Double): String =
+    "%.1f".format(java.util.Locale.US, rating)
+
+/**
+ * Count text in InlineStars: parens-wrapped integer.
+ *
+ * Pin "(N)" format — a refactor to " · N" or " N reviews" would
+ * change the compact-rating signature the app uses across screens.
+ */
+internal fun inlineStarsCountLabel(count: Int): String =
+    "($count)"
