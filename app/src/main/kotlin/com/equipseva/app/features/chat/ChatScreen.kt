@@ -777,6 +777,24 @@ internal fun queuedChatMessagePillText(count: Int): String =
         "$count messages queued — will send when back online"
     }
 
+/**
+ * Label on the job-context strip above the chat thread.
+ *
+ *   - jobNumber non-blank → use as-is (e.g. "RPR-2026-00041")
+ *   - jobNumber null/blank → "RJ-${jobId.take(8)}" fallback
+ *
+ * Pin the "RJ-" prefix (NOT "RPR-") on the fallback — distinguishes
+ * the chat-context-only label from the canonical jobNumber form so
+ * users / founders inspecting screenshots can tell whether they're
+ * looking at the real number or the in-flight chat fallback.
+ *
+ * Pin take(8) — the 8-char prefix matches the founder's other
+ * id-prefix conventions (userDisplayName, contract slugs, etc.) so
+ * cross-referencing in Supabase Studio stays consistent.
+ */
+internal fun jobContextStripLabel(jobNumber: String?, jobId: String): String =
+    jobNumber?.takeIf { it.isNotBlank() } ?: "RJ-${jobId.take(8)}"
+
 @Composable
 private fun JobContextStrip(jobId: String, jobNumber: String?, onClick: () -> Unit) {
     Column {
@@ -800,7 +818,7 @@ private fun JobContextStrip(jobId: String, jobNumber: String?, onClick: () -> Un
             // suffix to that label.
             // Real job_number when resolved; truncated UUID otherwise so the
             // strip is never blank during the fetch window.
-            val label = jobNumber?.takeIf { it.isNotBlank() } ?: "RJ-${jobId.take(8)}"
+            val label = jobContextStripLabel(jobNumber, jobId)
             Row(
                 modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically,
