@@ -203,7 +203,7 @@ private fun EscrowDisputeRow(
                     fontSize = 14.sp,
                 )
                 Text(
-                    "${formatRupees(row.amountRupees)} held",
+                    escrowDisputeAmountHeldLine(row.amountRupees),
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
@@ -1031,3 +1031,14 @@ internal fun partsOutlierPartiesLine(engineerName: String?, hospitalName: String
     val hos = hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"
     return "$eng → $hos"
 }
+
+/**
+ * Amount-held subline on the founder escrow-dispute row: "₹X held".
+ *
+ * Pin the trailing " held" — load-bearing escrow-state context. A
+ * dispute row says HELD (the money is locked pending resolution);
+ * a resolved row says RELEASED or REFUNDED elsewhere. A refactor
+ * that dropped the suffix would lose the state signal.
+ */
+internal fun escrowDisputeAmountHeldLine(amountRupees: Double): String =
+    "${formatRupees(amountRupees)} held"
