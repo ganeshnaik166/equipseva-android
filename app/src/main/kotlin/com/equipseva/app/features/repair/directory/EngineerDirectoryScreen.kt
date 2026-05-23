@@ -295,10 +295,7 @@ fun EngineerDirectoryScreen(
                 // "Near All Telangana" reads awkwardly when the user
                 // hasn't picked a district — "near" implies proximity
                 // to a point, not a whole state. Phrase as scope instead.
-                subtitle = if (state.district == "All Telangana")
-                    "${visibleRows.size} verified · across Telangana"
-                else
-                    "${visibleRows.size} verified · near ${state.district}",
+                subtitle = engineerDirectorySubtitle(visibleRows.size, state.district),
                 onBack = onBack,
             )
             // Sticky search + district chip strip — paper bg, padding 8/16/4
@@ -815,6 +812,28 @@ internal fun emptyEngineersSubtitle(filtersActive: Boolean): String =
  */
 internal fun nearestSortChipLabel(resolvingLocation: Boolean, hasLocation: Boolean): String =
     if (resolvingLocation && !hasLocation) "Nearest…" else "Nearest"
+
+/**
+ * Top-bar subtitle on the engineer directory screen.
+ *
+ *   - district == "All Telangana" → "$count verified · across Telangana"
+ *   - else → "$count verified · near $district"
+ *
+ * Critical pin: the "All Telangana" → "across Telangana" branch.
+ * "Near All Telangana" reads awkwardly because "near" implies
+ * proximity to a point, not a whole state. The "across" alternative
+ * frames the count as a scope, not a distance.
+ *
+ * Pin the literal "All Telangana" sentinel — matches the dropdown's
+ * default item label. A refactor to "All districts" would silently
+ * switch to the "near" branch for the wrong UX.
+ */
+internal fun engineerDirectorySubtitle(visibleCount: Int, district: String): String =
+    if (district == "All Telangana") {
+        "$visibleCount verified · across Telangana"
+    } else {
+        "$visibleCount verified · near $district"
+    }
 
 // InlineStars promoted to a shared component so the new
 // EngineerRatingCard + ReviewItem render the same glyph without a fork.
