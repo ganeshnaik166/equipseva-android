@@ -583,7 +583,7 @@ private fun OverviewTab(
                 }
                 if (state.engineerView != null && !state.viewerIsHospital) {
                     Pill(
-                        text = if (state.engineerView.isPrimary) "Primary engineer" else "Fallback engineer",
+                        text = engineerRolePillLabel(state.engineerView.isPrimary),
                         kind = PillKind.Default,
                     )
                 }
@@ -1259,3 +1259,19 @@ internal fun poolLedgerLabel(
     else -> ledgerKind.replaceFirstChar { it.uppercase() }
 }
 
+/**
+ * Engineer role pill label on the AMC-detail overview tab, shown
+ * only when an engineer is viewing their own contract.
+ *
+ * isPrimary = true → "Primary engineer"
+ * isPrimary = false → "Fallback engineer"
+ *
+ * Pin the literal strings — these are role-aware semantics the
+ * engineer uses to understand whether they're the lead on the
+ * contract or a backup that only gets called when the primary
+ * declines. A refactor to "Lead engineer" / "Backup engineer"
+ * would change the engineer's mental model of their rotation
+ * status.
+ */
+internal fun engineerRolePillLabel(isPrimary: Boolean): String =
+    if (isPrimary) "Primary engineer" else "Fallback engineer"
