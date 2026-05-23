@@ -303,7 +303,7 @@ private fun TrackPartyRow(
             fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
         )
         Text(
-            text = "$filed total · $won $wonLabel · $lost lost · $open open",
+            text = trackPartyStatsLine(filed, won, wonLabel, lost, open),
             color = SevaInk700,
             fontSize = 12.sp,
         )
@@ -358,3 +358,27 @@ internal fun escrowEventActorLine(actorName: String?, actorUserId: String?): Str
  */
 internal fun escrowEventPayloadDisplay(payloadText: String?): String? =
     payloadText?.takeIf { it.isNotBlank() && it != "{}" }
+
+/**
+ * Dispute track-record stats line on the founder dispute detail.
+ *
+ * Format: "N total · M wonLabel · K lost · L open" with U+00B7
+ * separators between the four stats.
+ *
+ * Critical pin: `wonLabel` is parameterised because the hospital
+ * "wins" on refund (filed → refund) while the engineer "wins" on
+ * release (filed → release). Caller passes "refunded" or "won" or
+ * "released" depending on the party. Pin the param so a unifying
+ * refactor doesn't hard-code one side's vocabulary.
+ *
+ * Pin the literal " total" suffix on the first stat (NOT "filed",
+ * NOT just the bare number) — load-bearing context that anchors the
+ * other three as a breakdown.
+ */
+internal fun trackPartyStatsLine(
+    filed: Int,
+    won: Int,
+    wonLabel: String,
+    lost: Int,
+    open: Int,
+): String = "$filed total · $won $wonLabel · $lost lost · $open open"
