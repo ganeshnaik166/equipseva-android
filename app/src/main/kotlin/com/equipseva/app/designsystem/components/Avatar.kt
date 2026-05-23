@@ -39,10 +39,7 @@ fun Avatar(
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            // Round 339 — pin to Locale.ENGLISH. Default Locale on Turkish
-            // devices maps lowercase 'i' to dotted-capital 'İ' (and 'I' to
-            // dotless 'ı'), corrupting initials for English names.
-            text = initials.take(2).uppercase(Locale.ENGLISH),
+            text = avatarDisplayInitials(initials),
             color = Color.White,
             fontFamily = EsFontFamily,
             fontWeight = FontWeight.SemiBold,
@@ -50,3 +47,16 @@ fun Avatar(
         )
     }
 }
+
+/**
+ * Avatar display initials.
+ *
+ * Truncates the source to 2 characters and uppercases with
+ * Locale.ENGLISH. Critical regression target: Turkish-locale
+ * default uppercase() maps 'i' to dotted-capital 'İ' (and 'I' to
+ * dotless 'ı'), corrupting initials for English names like
+ * "ig" → "İG" or "li" → "Lİ". Pin Locale.ENGLISH so the rendering
+ * stays consistent regardless of device locale.
+ */
+internal fun avatarDisplayInitials(initials: String): String =
+    initials.take(2).uppercase(Locale.ENGLISH)
