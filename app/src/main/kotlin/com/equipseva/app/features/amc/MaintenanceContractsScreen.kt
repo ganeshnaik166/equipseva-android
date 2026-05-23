@@ -235,11 +235,7 @@ fun MaintenanceContractsScreen(
                     state.items.isEmpty() -> EmptyStateView(
                         icon = Icons.Outlined.CalendarMonth,
                         title = "No maintenance contracts yet",
-                        subtitle = if (state.role == UserRole.ENGINEER) {
-                            "Contracts where a hospital adds you as primary or fallback engineer will appear here."
-                        } else {
-                            "Set up monthly maintenance with a verified engineer for predictable preventive care."
-                        },
+                        subtitle = maintenanceContractsEmptySubtitle(state.role),
                         ctaLabel = if (state.role == UserRole.HOSPITAL) "Browse engineers" else null,
                         onCta = if (state.role == UserRole.HOSPITAL) onBrowseEngineers else null,
                     )
@@ -408,6 +404,28 @@ internal fun contractVisitsLabel(visitsCompleted: Int, visitsPerYear: Int): Stri
  * Pin the singular "1 day" branch — a regression that always
  * appended "days" would surface "1 days" on the most-urgent row.
  */
+/**
+ * Empty-state subtitle on the maintenance contracts screen.
+ *
+ * Role-aware copy:
+ *   - ENGINEER → passive "will appear here" framing (hospitals
+ *     initiate the contract; engineer waits)
+ *   - HOSPITAL or null → active call-to-action framing (the
+ *     hospital is the one who sets up the contract)
+ *
+ * Pin both copies — the role-aware framing reflects who has
+ * agency in the contract-setup flow. A refactor that surfaced
+ * the engineer-facing copy on the hospital side would imply the
+ * hospital is waiting for someone else, which is wrong (they're
+ * the initiator).
+ */
+internal fun maintenanceContractsEmptySubtitle(role: UserRole?): String =
+    if (role == UserRole.ENGINEER) {
+        "Contracts where a hospital adds you as primary or fallback engineer will appear here."
+    } else {
+        "Set up monthly maintenance with a verified engineer for predictable preventive care."
+    }
+
 internal fun contractExpiryPillTextAndKind(
     daysUntilEnd: Long?,
     prettyEndDate: String,
