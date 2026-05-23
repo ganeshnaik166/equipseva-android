@@ -184,14 +184,14 @@ private fun IntegrityRow(row: FounderRepository.IntegrityFlag) {
         ) {
             PassFailPill(pass = row.pass)
             Text(
-                text = row.action ?: "unknown action",
+                text = integrityActionLabel(row.action),
                 color = SevaInk900,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f),
             )
             row.createdAt?.let { ts ->
                 Text(
-                    text = com.equipseva.app.core.util.relativeLabel(ts) ?: ts.take(10),
+                    text = integrityRowTimestampLabel(ts, com.equipseva.app.core.util.relativeLabel(ts)),
                     color = SevaInk500,
                     fontSize = 11.sp,
                 )
@@ -210,15 +210,12 @@ private fun IntegrityRow(row: FounderRepository.IntegrityFlag) {
 
 @Composable
 private fun PassFailPill(pass: Boolean) {
-    Pill(
-        text = if (pass) "PASS" else "FAIL",
-        kind = if (pass) PillKind.Success else PillKind.Danger,
-    )
+    val (text, kind) = integrityPassFailPillTextAndKind(pass)
+    Pill(text = text, kind = kind)
 }
 
 @Composable
 private fun VerdictChip(label: String, value: String?) {
-    val v = value?.takeIf { it.isNotBlank() } ?: "—"
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
@@ -227,11 +224,59 @@ private fun VerdictChip(label: String, value: String?) {
             .padding(horizontal = 8.dp, vertical = 3.dp),
     ) {
         Text(
-            text = "$label: $v",
+            text = verdictChipText(label, value),
             color = SevaInk700,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
         )
     }
 }
+
+/**
+ * Action-name label on the integrity-flag row. Wire value is a
+ * server-side enum (`launch`, `request_signed`, …); null/missing
+ * surfaces as "unknown action" so a backfill row stays addressable.
+ *
+ * Pin literal "unknown action" — a refactor to "Unknown" (capitalised)
+ * would clash with the surrounding lowercase action codes that flow
+ * inline as continuous prose.
+ */
+internal fun integrityActionLabel(action: String?): String =
+    action ?: "unknown action"
+
+/**
+ * Timestamp label on the integrity-flag row. Prefer the
+ * locale-friendly relative label ("2 hours ago"), fall back to the
+ * raw ISO date prefix (first 10 chars = "YYYY-MM-DD") when the
+ * relative formatter returns null (unparseable timestamp).
+ *
+ * Pin take(10) — load-bearing because the integrity stream stores
+ * ISO-8601 with timezone suffix; truncating to 10 strips time + tz
+ * and gives the founder a stable date key for log cross-referencing.
+ */
+internal fun integrityRowTimestampLabel(rawIso: String, relativeLabel: String?): String =
+    relativeLabel ?: rawIso.take(10)
+
+/**
+ * Chip text on the integrity-flag verdict chip: "$label: $value".
+ *
+ * Critical region: blank/null value surfaces as U+2014 em-dash (NOT
+ * "N/A", "unknown", or empty). The chip is visually tight and the
+ * em-dash is the project-wide convention for missing data — pin so a
+ * refactor that introduced a "N/A" string would clash with the
+ * sibling repair-job-detail [textOrDash] convention.
+ */
+internal fun verdictChipText(label: String, value: String?): String {
+    val v = value?.takeIf { it.isNotBlank() } ?: "—"
+    return "$label: $v"
+}
+
+/**
+ * Pass/fail pill text + colour kind on the integrity-flag row.
+ * Pin the all-caps "PASS" / "FAIL" — these are not full words; they
+ * intentionally mirror the server's compact log shape so the founder
+ * can grep logs and screen consistently.
+ */
+internal fun integrityPassFailPillTextAndKind(pass: Boolean): Pair<String, PillKind> =
+    if (pass) "PASS" to PillKind.Success else "FAIL" to PillKind.Danger
 
