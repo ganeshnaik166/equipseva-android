@@ -1460,10 +1460,7 @@ private fun YourBidCard(ownBid: RepairBid, onWithdraw: () -> Unit) {
             color = SevaInk500,
         )
         Text(
-            text = buildString {
-                append(formatRupees(ownBid.amountRupees))
-                ownBid.etaHours?.let { append(" · ETA ${it}h") }
-            },
+            text = ownBidAmountAndEtaLine(ownBid.amountRupees, ownBid.etaHours),
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
             color = SevaGreen900,
@@ -2714,3 +2711,23 @@ internal fun escrowStatusCardCopy(
     )
     else -> EscrowStatusCopy(label = "Escrow ${escrow.status}", subtitle = "")
 }
+
+/**
+ * Amount + ETA hero line on the engineer's own-bid card.
+ *
+ * Format: "₹X" or "₹X · ETA Nh" when etaHours is non-null.
+ *
+ * Pin the U+00B7 middle-dot separator. Pin the "ETA Nh" form (no
+ * space between N and h) — matches the bid-list card's compact form
+ * so an engineer sees the same shape on both surfaces. A refactor to
+ * "ETA N hours" would inflate the line width on the hero typography.
+ *
+ * Pin: null etaHours drops the suffix entirely (NO trailing
+ * separator). A refactor that always appended " · ETA " would
+ * surface a naked trailing dot when ETA is null.
+ */
+internal fun ownBidAmountAndEtaLine(amountRupees: Double, etaHours: Int?): String =
+    buildString {
+        append(com.equipseva.app.core.util.formatRupees(amountRupees))
+        etaHours?.let { append(" · ETA ${it}h") }
+    }
