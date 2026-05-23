@@ -100,13 +100,11 @@ fun EngineerLocationScreen(
                     )
                 }
 
-                if (state.savedLatitude != null && state.savedLongitude != null) {
+                val savedLat = state.savedLatitude
+                val savedLng = state.savedLongitude
+                if (savedLat != null && savedLng != null) {
                     Text(
-                        text = "Currently saved: %.5f, %.5f".format(
-                            java.util.Locale.US,
-                            state.savedLatitude,
-                            state.savedLongitude,
-                        ),
+                        text = formatSavedServiceLocation(savedLat, savedLng),
                         style = EsType.Caption,
                         color = SevaInk900,
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
@@ -118,3 +116,29 @@ fun EngineerLocationScreen(
         }
     }
 }
+
+/**
+ * "Currently saved: LAT, LNG" caption on the engineer service-
+ * location screen.
+ *
+ * Critical regions:
+ *   - Locale.US — a Hindi-locale device would render "12,97432,
+ *     77,59465" with commas-as-decimals and a comma separator
+ *     that's now ambiguous. Pin so coordinates stay parseable.
+ *   - %.5f precision — 5 decimal places ≈ 1.1m on the ground at
+ *     the equator. Pin so a drift to %.4f (which would be ~11m
+ *     and would cluster nearby pins to the same coordinate) or
+ *     %.6f (which would be ~0.1m, well below the GPS noise floor
+ *     and false-precision) surfaces here.
+ *   - The literal "Currently saved:" prefix — pin so a refactor
+ *     to "Saved location:" doesn't slip in.
+ */
+internal fun formatSavedServiceLocation(
+    savedLatitude: Double,
+    savedLongitude: Double,
+): String =
+    "Currently saved: %.5f, %.5f".format(
+        java.util.Locale.US,
+        savedLatitude,
+        savedLongitude,
+    )
