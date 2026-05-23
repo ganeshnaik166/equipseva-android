@@ -80,8 +80,8 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.maps.android.compose.rememberMarkerState
 import com.equipseva.app.features.repair.components.EngineerJobCard
 import androidx.compose.material.icons.outlined.Build
 
@@ -504,8 +504,12 @@ private fun MapPreviewBox(
                             fillColor = SevaGreen700.copy(alpha = 0.06f),
                         )
                     }
+                    val youMarkerState = rememberMarkerState(
+                        key = "you-$baseLat-$baseLng",
+                        position = LatLng(baseLat, baseLng),
+                    )
                     Marker(
-                        state = MarkerState(LatLng(baseLat, baseLng)),
+                        state = youMarkerState,
                         title = "You",
                         icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN),
                     )
@@ -517,8 +521,12 @@ private fun MapPreviewBox(
                 )
                 jobs.take(3).forEachIndexed { idx, job ->
                     val coord = jobCoords[job.id] ?: return@forEachIndexed
+                    val jobMarkerState = rememberMarkerState(
+                        key = "job-${job.id}",
+                        position = LatLng(coord.first, coord.second),
+                    )
                     Marker(
-                        state = MarkerState(LatLng(coord.first, coord.second)),
+                        state = jobMarkerState,
                         title = job.title,
                         snippet = distanceByJobId[job.id]?.let { "%.1f km away".format(java.util.Locale.US, it) },
                         icon = BitmapDescriptorFactory.defaultMarker(pinHues[idx % pinHues.size]),

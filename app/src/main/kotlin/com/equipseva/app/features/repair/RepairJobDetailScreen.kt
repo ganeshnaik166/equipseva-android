@@ -1539,8 +1539,12 @@ private fun LocationCard(
                         rotationGesturesEnabled = false,
                     ),
                 ) {
+                    val markerState = com.google.maps.android.compose.rememberMarkerState(
+                        key = "site-${job.siteLatitude}-${job.siteLongitude}",
+                        position = target,
+                    )
                     com.google.maps.android.compose.Marker(
-                        state = com.google.maps.android.compose.MarkerState(position = target),
+                        state = markerState,
                         title = "Service site",
                     )
                 }
