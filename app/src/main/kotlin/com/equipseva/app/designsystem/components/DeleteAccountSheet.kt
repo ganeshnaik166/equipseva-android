@@ -121,10 +121,25 @@ fun DeleteAccountSheet(
                     // Require a non-blank password before the Confirm
                     // is tappable. The VM still validates server-side
                     // so an empty value can't slip through stale state.
-                    disabled = deleting || password.isBlank(),
+                    disabled = !canConfirmDeleteAccount(password, deleting),
                     modifier = Modifier.weight(1f),
                 )
             }
         }
     }
 }
+
+/**
+ * Confirm-button gate on the delete-account sheet.
+ *
+ * Enabled when password is non-blank AND not currently deleting.
+ *
+ * Critical pin: requires non-blank password (re-auth gate). Without
+ * proof of the current password an attacker with momentary access
+ * to an unlocked device could hard-delete the legitimate owner's
+ * account — the RPC runs purely on auth.uid with no other server-
+ * side gate. A refactor that dropped the password check would
+ * surface as a security regression.
+ */
+internal fun canConfirmDeleteAccount(password: String, deleting: Boolean): Boolean =
+    password.isNotBlank() && !deleting
