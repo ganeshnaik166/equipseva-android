@@ -168,7 +168,7 @@ private fun BidRowCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = row.job?.equipmentLabel ?: row.job?.title ?: "Repair job",
+                text = bidRowEquipmentTitle(row.job?.equipmentLabel, row.job?.title),
                 style = EsType.Body.copy(fontWeight = FontWeight.SemiBold),
                 color = SevaInk900,
                 modifier = Modifier.weight(1f),
@@ -224,8 +224,7 @@ private fun QueuedBidPill(count: Int) {
             modifier = Modifier.size(16.dp),
         )
         Text(
-            text = if (count == 1) "1 bid queued — will submit when back online"
-            else "$count bids queued — will submit when back online",
+            text = queuedBidPillText(count),
             style = EsType.Caption,
             color = SevaInk900,
         )
@@ -245,3 +244,44 @@ internal fun bidStatusPillKind(status: RepairBidStatus): PillKind = when (status
     RepairBidStatus.Withdrawn -> PillKind.Neutral
     else -> PillKind.Info
 }
+
+/**
+ * Title on the engineer's My-Bids row.
+ *
+ * Multi-fallback chain: equipmentLabel → job title → "Repair job".
+ *
+ * Pin the chain — equipmentLabel ("Ultrasound machine") is more
+ * specific than the hospital's freeform title ("Repair needed
+ * urgently") and reads better at-a-glance on the row. A refactor
+ * that flipped the order would surface the freeform title on top
+ * even when the structured field was populated.
+ *
+ * Final "Repair job" fallback is generic but tap-targetable — pin
+ * so backfill rows with neither field still render an addressable
+ * row instead of empty whitespace.
+ */
+internal fun bidRowEquipmentTitle(
+    equipmentLabel: String?,
+    jobTitle: String?,
+): String = equipmentLabel ?: jobTitle ?: "Repair job"
+
+/**
+ * Banner text on the queued-bid pill (offline submit queue).
+ *
+ * Critical region: singular/plural split AND the U+2014 em-dash
+ * separator that visually anchors the explanatory clause.
+ *
+ *   - count == 1 → "1 bid queued — will submit when back online"
+ *   - count != 1 → "N bids queued — will submit when back online"
+ *
+ * Pin the literal "will submit when back online" — a refactor to
+ * "will be sent when online" or similar would change the verb tense
+ * + voice and could mislead the engineer about the submit semantics
+ * (the queue is fire-and-forget, not store-and-forward with retry).
+ */
+internal fun queuedBidPillText(count: Int): String =
+    if (count == 1) {
+        "1 bid queued — will submit when back online"
+    } else {
+        "$count bids queued — will submit when back online"
+    }
