@@ -165,7 +165,7 @@ class RepairJobDetailViewModel @Inject constructor(
     ) {
         /** Hide the report CTA when the viewer posted the job. */
         val canReport: Boolean
-            get() = job != null && viewerRole != ViewerRole.Hospital
+            get() = canReportRepairJob(jobIsLoaded = job != null, viewerRole = viewerRole)
     }
 
     private val jobId: String =
@@ -1180,3 +1180,24 @@ internal fun validateBidInput(amountRupees: Double, etaHours: Int?): String? {
     }
     return null
 }
+
+/**
+ * Report-CTA visibility gate on the repair-job detail screen.
+ *
+ *   - jobIsLoaded must be true (no point showing report on a
+ *     blank screen)
+ *   - viewerRole must NOT be Hospital (the hospital posted the job;
+ *     they shouldn't be able to report their own posting — that
+ *     would create false-positive moderation queue entries)
+ *
+ * Engineer and Other roles can both report — engineers reporting a
+ * job they've considered; other-role viewers (e.g. founder browsing)
+ * still get the CTA because they might be doing manual moderation.
+ *
+ * Pin the inequality `!=` not `==` — a refactor that flipped the
+ * comparison would let hospitals report their own jobs.
+ */
+internal fun canReportRepairJob(
+    jobIsLoaded: Boolean,
+    viewerRole: RepairJobDetailViewModel.ViewerRole,
+): Boolean = jobIsLoaded && viewerRole != RepairJobDetailViewModel.ViewerRole.Hospital
