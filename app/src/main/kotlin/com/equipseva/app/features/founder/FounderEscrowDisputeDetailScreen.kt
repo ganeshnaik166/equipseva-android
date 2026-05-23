@@ -121,7 +121,7 @@ fun FounderEscrowDisputeDetailScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Escrow timeline",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let { if (it == 1) "1 event" else "$it events" },
+                subtitle = escrowTimelineSubtitle(state.rows.size),
                 onBack = onBack,
             )
             // Round 416 — pull-to-refresh. Admin reviewing a dispute timeline
@@ -382,3 +382,19 @@ internal fun trackPartyStatsLine(
     lost: Int,
     open: Int,
 ): String = "$filed total · $won $wonLabel · $lost lost · $open open"
+
+/**
+ * Top-bar subtitle on the escrow-dispute timeline screen.
+ *
+ *   - 0 events → null (top bar stays clean on cold-load)
+ *   - 1 event → "1 event" (singular)
+ *   - 2+ events → "N events" (plural)
+ *
+ * Pin the singular/plural split at exactly 1 — a refactor to a
+ * blanket "N event(s)" would erode polish on the most common case.
+ */
+internal fun escrowTimelineSubtitle(eventCount: Int): String? = when {
+    eventCount <= 0 -> null
+    eventCount == 1 -> "1 event"
+    else -> "$eventCount events"
+}
