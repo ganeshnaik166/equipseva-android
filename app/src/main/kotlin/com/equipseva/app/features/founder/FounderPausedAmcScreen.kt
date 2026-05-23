@@ -167,12 +167,16 @@ private fun PausedRow(
             Text("Engineer: $it", color = SevaInk700, fontSize = 13.sp)
         }
         Text(
-            text = "Term ${prettyDate(row.startDate)} → ${prettyDate(row.endDate)} · ${formatRupees(row.monthlyFeeRupees)} / month",
+            text = pausedAmcTermLine(
+                prettyStartDate = prettyDate(row.startDate),
+                prettyEndDate = prettyDate(row.endDate),
+                monthlyFeeRupees = row.monthlyFeeRupees,
+            ),
             color = SevaInk500,
             fontSize = 12.sp,
         )
         Text(
-            text = "Visits: ${row.visitsCompleted} / ${row.visitsPerYear} per year",
+            text = pausedAmcVisitsLine(row.visitsCompleted, row.visitsPerYear),
             color = SevaInk500,
             fontSize = 12.sp,
         )
@@ -182,3 +186,30 @@ private fun PausedRow(
         }
     }
 }
+
+/**
+ * Term subline on the paused-AMC row: "Term X → Y · ₹Z / month"
+ * with U+2192 arrow between dates and U+00B7 middle-dot before fee.
+ *
+ * Pin both glyphs (NOT "-" or "to" between dates, NOT "•" or "-"
+ * before fee) and the literal " / month" suffix (NOT "/month",
+ * NOT "monthly").
+ */
+internal fun pausedAmcTermLine(
+    prettyStartDate: String,
+    prettyEndDate: String,
+    monthlyFeeRupees: Double,
+): String =
+    "Term $prettyStartDate → $prettyEndDate · ${formatRupees(monthlyFeeRupees)} / month"
+
+/**
+ * Visits subline on the paused-AMC row: "Visits: N / M per year".
+ *
+ * Pin the trailing " per year" — load-bearing context the founder
+ * uses to size the SLA-credits owed during the pause. A drift to
+ * just "Visits: N / M" would lose the cadence anchor and could be
+ * mis-read as "N completed, M remaining" instead of "N done out
+ * of M annual quota".
+ */
+internal fun pausedAmcVisitsLine(visitsCompleted: Int, visitsPerYear: Int): String =
+    "Visits: $visitsCompleted / $visitsPerYear per year"
