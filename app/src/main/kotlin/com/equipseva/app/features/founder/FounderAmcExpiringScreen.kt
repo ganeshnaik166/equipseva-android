@@ -98,7 +98,7 @@ fun FounderAmcExpiringScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Expiring AMCs",
-                subtitle = if (state.rows.isNotEmpty()) "${state.rows.size} contracts in next 30 days" else null,
+                subtitle = expiringAmcsSubtitle(state.rows.size),
                 onBack = onBack,
             )
             // Round 382 — pull-to-refresh.
@@ -241,3 +241,24 @@ internal fun expiringAmcRowEndLine(
  */
 internal fun renewalRemindersSentLabel(count: Int): String =
     "Reminders sent: $count/3"
+
+/**
+ * Subtitle on the founder Expiring-AMCs top bar.
+ *
+ * Returns null when the list is empty so the top-bar stays clean on
+ * cold-load. Otherwise reads "N contracts in next 30 days" — the
+ * "30 days" window is the LITERAL constant matching the server-side
+ * `notify_expiring_amc_contracts` cutoff (r352 dashboard KPI).
+ *
+ * Critical cross-surface invariant: the 30-day vocabulary matches
+ * the founder dashboard "Expiring 30d" KPI tile + the hospital-side
+ * 30d countdown pill. Pin so a refactor that drifted to 14d or 7d
+ * on one surface would silently desync the cohort.
+ *
+ * Pin the plural-blind "N contracts" — singular case (rowCount == 1)
+ * still reads "1 contracts in next 30 days" which is technically
+ * wrong, but pinning it documents the current behaviour. A future
+ * fix should be a deliberate change, not a slip.
+ */
+internal fun expiringAmcsSubtitle(rowCount: Int): String? =
+    if (rowCount > 0) "$rowCount contracts in next 30 days" else null
