@@ -245,9 +245,7 @@ class KycViewModel @Inject constructor(
          * cross-surface chip that needs a single source of truth.
          */
         val kycSubmitted: Boolean
-            get() = !aadhaarDocPath.isNullOrBlank() &&
-                !panDocPath.isNullOrBlank() &&
-                certDocPaths.isNotEmpty()
+            get() = isKycSubmitted(aadhaarDocPath, panDocPath, certDocPaths)
     }
 
     sealed interface Effect {
@@ -1031,4 +1029,25 @@ internal fun sanitizeAadhaarInput(value: String): String =
  */
 internal fun sanitizePanInput(value: String): String =
     value.uppercase().filter { it in 'A'..'Z' || it in '0'..'9' }.take(10)
+
+/**
+ * KYC "submitted" gate — true once every required document has been
+ * uploaded to storage.
+ *
+ * Critical regression target: requires ALL THREE of aadhaarDocPath,
+ * panDocPath, AND a non-empty certDocPaths list. The previous
+ * `aadhaarVerified` proxy was misleading because Aadhaar can verify
+ * before PAN/cert exist, leaving the timeline + banner claiming
+ * "submitted" while the row was still mid-edit.
+ *
+ * Pin so a refactor that gated on any one OR two of the three would
+ * surface here.
+ */
+internal fun isKycSubmitted(
+    aadhaarDocPath: String?,
+    panDocPath: String?,
+    certDocPaths: List<String>,
+): Boolean = !aadhaarDocPath.isNullOrBlank() &&
+    !panDocPath.isNullOrBlank() &&
+    certDocPaths.isNotEmpty()
 
