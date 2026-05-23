@@ -98,7 +98,7 @@ fun FounderInactiveEngineersScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Inactive engineers",
-                subtitle = if (state.rows.isNotEmpty()) "${state.rows.size} verified · 0 jobs in 30d" else null,
+                subtitle = inactiveEngineersSubtitle(state.rows.size),
                 onBack = onBack,
             )
             // Round 382 — pull-to-refresh.
@@ -277,3 +277,19 @@ internal fun inactiveEngineerVerifiedLine(
     prettyVerifiedDate: String,
     relativeAgoLabel: String,
 ): String = "Verified $prettyVerifiedDate · $relativeAgoLabel ago"
+
+/**
+ * Subtitle on the founder Inactive-Engineers top bar.
+ *
+ * Returns null when the list is empty so the top-bar stays clean on
+ * cold-load. Otherwise reads "N verified · 0 jobs in 30d" — the
+ * "0 jobs in 30d" clause is the LITERAL constant (NOT computed from
+ * the rows), because the query filters in exactly that condition.
+ *
+ * Pin the literal "0 jobs in 30d" — a refactor that tried to
+ * compute it from the rows would surface the same value but couple
+ * the screen to a stat that's already implicit in the query's
+ * existence. Pin so the surface stays decoupled.
+ */
+internal fun inactiveEngineersSubtitle(rowCount: Int): String? =
+    if (rowCount > 0) "$rowCount verified · 0 jobs in 30d" else null
