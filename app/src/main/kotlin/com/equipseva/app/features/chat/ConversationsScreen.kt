@@ -232,8 +232,7 @@ private fun QueuedPill(count: Int) {
             modifier = Modifier.size(16.dp),
         )
         Text(
-            text = if (count == 1) "1 message queued — will send when back online"
-            else "$count messages queued — will send when back online",
+            text = queuedChatMessagePillText(count),
             style = EsType.Caption,
             color = SevaInk900,
         )
