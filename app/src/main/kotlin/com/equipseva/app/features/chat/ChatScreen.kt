@@ -318,8 +318,7 @@ private fun QueuedPill(count: Int) {
             modifier = Modifier.size(16.dp),
         )
         Text(
-            text = if (count == 1) "1 message queued — will send when back online"
-            else "$count messages queued — will send when back online",
+            text = queuedChatMessagePillText(count),
             fontSize = 12.sp,
             color = SevaInk900,
         )
@@ -757,6 +756,26 @@ internal fun isImageUrlExtension(url: String): Boolean {
     return lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") ||
         lower.endsWith(".webp") || lower.endsWith(".gif") || lower.endsWith(".heic")
 }
+
+/**
+ * Banner text on the queued-chat-message pill (offline send queue).
+ *
+ * Critical region: singular/plural split AND the U+2014 em-dash
+ * separator. Sibling of [com.equipseva.app.features.mybids.queuedBidPillText]
+ * but with chat-specific vocabulary ("message" / "send" instead of
+ * "bid" / "submit"). Pin the cross-surface vocabulary asymmetry —
+ * a refactor that unified them via a parametric helper would risk
+ * mixing "bid send" / "message submit" prose on either surface.
+ *
+ *   - count == 1 → "1 message queued — will send when back online"
+ *   - count != 1 → "N messages queued — will send when back online"
+ */
+internal fun queuedChatMessagePillText(count: Int): String =
+    if (count == 1) {
+        "1 message queued — will send when back online"
+    } else {
+        "$count messages queued — will send when back online"
+    }
 
 @Composable
 private fun JobContextStrip(jobId: String, jobNumber: String?, onClick: () -> Unit) {
