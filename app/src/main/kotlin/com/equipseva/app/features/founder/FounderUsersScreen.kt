@@ -344,9 +344,7 @@ private fun UserRow(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = row.fullName?.firstOrNull()?.uppercaseChar()?.toString()
-                        ?: row.email?.firstOrNull()?.uppercaseChar()?.toString()
-                        ?: "?",
+                    text = userAvatarInitial(row.fullName, row.email),
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                 )
@@ -354,10 +352,7 @@ private fun UserRow(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = row.fullName?.takeIf { it.isNotBlank() }
-                            ?: row.email
-                            ?: row.phone
-                            ?: "User · ${row.userId.take(8)}",
+                        text = userDisplayName(row.fullName, row.email, row.phone, row.userId),
                         fontWeight = FontWeight.Bold,
                         color = SevaInk900,
                     )
@@ -369,7 +364,7 @@ private fun UserRow(
                     )
                 }
                 Text(
-                    text = listOfNotNull(row.email, row.phone).joinToString(" · ").ifBlank { "no contact" },
+                    text = userRowContactLine(row.email, row.phone),
                     color = SevaInk500,
                     fontSize = 12.sp,
                 )
@@ -389,7 +384,7 @@ private fun UserRow(
             // they're inspecting.
             if (row.failedIntegrityCount > 0) {
                 Pill(
-                    text = "⚠ ${row.failedIntegrityCount} integrity",
+                    text = userRowIntegrityPillText(row.failedIntegrityCount),
                     kind = PillKind.Danger,
                 )
             }
@@ -399,7 +394,6 @@ private fun UserRow(
 
 @Composable
 private fun RoleChip(role: String?) {
-    val label = role ?: "unknown"
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
@@ -407,11 +401,93 @@ private fun RoleChip(role: String?) {
             .padding(horizontal = 10.dp, vertical = 3.dp),
     ) {
         Text(
-            text = label.replace('_', ' '),
+            text = roleChipLabel(role),
             color = SevaInk700,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
         )
     }
 }
+
+/**
+ * Avatar initial on the founder Users row: first character of the
+ * fullName, falling back to the first character of email, falling
+ * back to "?".
+ *
+ * Critical pin: uppercase via uppercaseChar() — pin so a lowercase
+ * variant doesn't surface a stylistic mismatch with the bold-coloured
+ * avatar circle. The "?" fallback is intentional (not a blank circle)
+ * so the founder can still tap into a fully-empty backfill row.
+ */
+internal fun userAvatarInitial(fullName: String?, email: String?): String =
+    fullName?.firstOrNull()?.uppercaseChar()?.toString()
+        ?: email?.firstOrNull()?.uppercaseChar()?.toString()
+        ?: "?"
+
+/**
+ * Display-name chain on the founder Users row.
+ *
+ * Falls through: fullName (if non-blank) → email → phone → synthetic
+ * "User · ${userId.take(8)}".
+ *
+ * Pin take(8) — the same 8-char prefix the founder uses elsewhere to
+ * cross-reference the user_id column in Supabase. A drift to take(6)
+ * would silently break the lookup workflow.
+ *
+ * Pin the U+00B7 middle-dot separator on the synthetic case — the
+ * project-wide convention.
+ */
+internal fun userDisplayName(
+    fullName: String?,
+    email: String?,
+    phone: String?,
+    userId: String,
+): String =
+    fullName?.takeIf { it.isNotBlank() }
+        ?: email
+        ?: phone
+        ?: "User · ${userId.take(8)}"
+
+/**
+ * Contact subline on the founder Users row: "email · phone" with
+ * U+00B7 middle-dot, falling back to **lowercase** "no contact" when
+ * both are absent.
+ *
+ * Critical pin: this is LOWERCASE "no contact" — the sibling
+ * [buyerKycContactLine] uses **uppercase** "No contact". The Users
+ * row is denser typography (12sp) and the lowercase variant reads
+ * better; the buyer-KYC card has more breathing room and uses Title
+ * case. A refactor that unified them would surface here.
+ */
+internal fun userRowContactLine(email: String?, phone: String?): String =
+    listOfNotNull(email, phone).joinToString(" · ").ifBlank { "no contact" }
+
+/**
+ * Role chip label on the founder Users row.
+ *
+ * Wire stores `engineer`, `hospital_admin`, `hospital_finance`,
+ * `founder` etc. We replace underscores with spaces and surface null
+ * as lowercase "unknown".
+ *
+ * Pin lowercase fallback — the chip's typography is lowercase across
+ * all roles; a "Unknown" capital-U would clash visually with the
+ * surrounding "engineer", "hospital admin" chips.
+ */
+internal fun roleChipLabel(role: String?): String =
+    (role ?: "unknown").replace('_', ' ')
+
+/**
+ * Danger pill text on the founder Users row for the device-integrity
+ * counter: "⚠ N integrity" with the U+26A0 warning sign.
+ *
+ * Pin the U+26A0 glyph — a refactor to ASCII "!" or text "Warning"
+ * would lose the visual urgency cue and clash with the sibling
+ * Payments-queue badge (r351) that uses the same glyph for the
+ * cross-surface invariant.
+ *
+ * The unit "integrity" is always singular (no plural "integrities") —
+ * pin so a refactor that added pluralisation surfaces here.
+ */
+internal fun userRowIntegrityPillText(failedIntegrityCount: Int): String =
+    "⚠ $failedIntegrityCount integrity"
 
