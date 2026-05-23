@@ -77,7 +77,7 @@ class ChatViewModel @Inject constructor(
         val relatedJobNumber: String? = null,
     ) {
         val title: String
-            get() = counterpart?.displayName ?: "Chat"
+            get() = chatTopBarTitle(counterpart?.displayName)
         val canSend: Boolean
             get() = draft.trim().isNotEmpty() && !sending && selfUserId != null && !counterpartBlocked
         val canSubmitEdit: Boolean
@@ -447,4 +447,24 @@ class ChatViewModel @Inject constructor(
         const val TYPING_BROADCAST_MIN_INTERVAL_MS = 2_000L
     }
 }
+
+/**
+ * Top-bar title on the single-thread chat screen.
+ *
+ * Counterpart display name when available; falls back to "Chat" when
+ * the counterpart profile didn't load.
+ *
+ * Critical pin: this is "Chat" not "Conversation". Sibling helper
+ * [conversationRowTitle] uses "Conversation" — pin the asymmetry so
+ * a unifying refactor doesn't slip in:
+ *   - ChatScreen is the thread VIEW; "Chat" reads as the activity.
+ *   - ConversationsScreen list rows label inbox entries; "Conversation"
+ *     reads as the noun for the inbox item.
+ *
+ * A refactor that swapped them would surface "Conversation" on the
+ * single-thread top bar (which reads as a list noun mid-thread) or
+ * "Chat" on the list (which reads as a verb in the inbox).
+ */
+internal fun chatTopBarTitle(counterpartDisplayName: String?): String =
+    counterpartDisplayName ?: "Chat"
 
