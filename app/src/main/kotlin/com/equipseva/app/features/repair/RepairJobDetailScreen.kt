@@ -1504,16 +1504,11 @@ private fun LocationCard(
     val hasAddressOnFile = !job.siteLocation.isNullOrBlank()
     val canShowAddress = hasAddressOnFile &&
         (isHospital || (isEngineer && job.isAssignedToEngineer))
-    val placeholderCopy = when {
-        canShowAddress -> "No map pin saved for this job"
-        !hasAddressOnFile -> "No address on file yet"
-        // Engineers don't "accept" jobs — they bid; hospitals accept the
-        // bid. Old copy framed the workflow from the wrong direction and
-        // confused engineers who saw "accept the job" without an
-        // accept button.
-        isEngineer -> "Address hidden until the hospital accepts your bid"
-        else -> "Address hidden until a bid is accepted"
-    }
+    val placeholderCopy = locationCardPlaceholderCopy(
+        canShowAddress = canShowAddress,
+        hasAddressOnFile = hasAddressOnFile,
+        isEngineer = isEngineer,
+    )
 
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         // Render a real map when we have coords; fall back to the placeholder
@@ -2765,3 +2760,34 @@ internal fun bidCardEtaText(etaHours: Int?): String =
  */
 internal fun bidCardDistanceLabel(distanceKm: Double?): String? =
     distanceKm?.let { "· ${"%.1f".format(java.util.Locale.US, it)} km away" }
+
+/**
+ * Placeholder copy on the RepairJobDetail location card when we
+ * can't render a map.
+ *
+ * 4-state decision tree:
+ *   1. canShowAddress (the address IS visible to this viewer) → "No
+ *      map pin saved for this job" (the address text exists but lat/lng
+ *      doesn't — this is a legacy backfill case)
+ *   2. !hasAddressOnFile → "No address on file yet" (no data anywhere)
+ *   3. isEngineer (address exists but engineer can't see it) →
+ *      "Address hidden until the hospital accepts your bid" — pin
+ *      "hospital accepts your bid" framing because engineers DON'T
+ *      "accept" jobs; they bid. Hospitals accept.
+ *   4. else (hospital viewing a job where address is hidden) →
+ *      generic "Address hidden until a bid is accepted"
+ *
+ * Critical regression target: the engineer-facing copy mentions "your
+ * bid" because old phrasing said "accept the job" — engineers got
+ * confused looking for an accept button that didn't exist.
+ */
+internal fun locationCardPlaceholderCopy(
+    canShowAddress: Boolean,
+    hasAddressOnFile: Boolean,
+    isEngineer: Boolean,
+): String = when {
+    canShowAddress -> "No map pin saved for this job"
+    !hasAddressOnFile -> "No address on file yet"
+    isEngineer -> "Address hidden until the hospital accepts your bid"
+    else -> "Address hidden until a bid is accepted"
+}
