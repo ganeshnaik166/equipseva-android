@@ -33,20 +33,38 @@ class CrashReporter @Inject constructor() {
         Sentry.setUser(userId?.let { io.sentry.protocol.User().apply { id = it } })
     }
 
-    private fun wrapScrubbed(t: Throwable): Throwable {
-        val scrubbedMessage = CrashDataScrubber.scrub(t.message)
-        if (scrubbedMessage == t.message) return t
-        // Preserve the original class + stack trace while swapping in a scrubbed message.
-        // Crashlytics uses the message via toString(); Sentry reads the class + message.
-        return ScrubbedException(t::class.java.name, scrubbedMessage, t)
-    }
+    private fun wrapScrubbed(t: Throwable): Throwable = wrapScrubbedThrowable(t)
+}
 
-    /** Carrier exception whose message has been scrubbed. The original is kept as `cause`. */
-    class ScrubbedException(
-        private val originalType: String,
-        override val message: String?,
-        cause: Throwable,
-    ) : RuntimeException(message, cause) {
-        override fun toString(): String = "$originalType: ${message.orEmpty()}"
-    }
+/** Carrier exception whose message has been scrubbed. The original is kept as `cause`. */
+class ScrubbedException(
+    private val originalType: String,
+    override val message: String?,
+    cause: Throwable,
+) : RuntimeException(message, cause) {
+    override fun toString(): String = "$originalType: ${message.orEmpty()}"
+}
+
+/**
+ * Decides whether [t] needs scrubbing before it can ride into the
+ * Crashlytics / Sentry dashboard.
+ *
+ *  * If [CrashDataScrubber.scrub] left the message unchanged → return [t]
+ *    as-is. Preserving the original Throwable identity (class +
+ *    stack trace) makes the dashboard cluster the exception with
+ *    sibling reports of the same kind.
+ *  * If the scrubber redacted anything → wrap in a [ScrubbedException]
+ *    whose [ScrubbedException.toString] surfaces the ORIGINAL class
+ *    name + the SCRUBBED message. Without the wrapper, Crashlytics'
+ *    default toString would print the original (PII-bearing) message.
+ *
+ * Pure / pinable so the redaction-aware identity decision survives
+ * any future refactor of [CrashReporter].
+ */
+internal fun wrapScrubbedThrowable(t: Throwable): Throwable {
+    val scrubbedMessage = CrashDataScrubber.scrub(t.message)
+    if (scrubbedMessage == t.message) return t
+    // Preserve the original class + stack trace while swapping in a scrubbed message.
+    // Crashlytics uses the message via toString(); Sentry reads the class + message.
+    return ScrubbedException(t::class.java.name, scrubbedMessage, t)
 }
