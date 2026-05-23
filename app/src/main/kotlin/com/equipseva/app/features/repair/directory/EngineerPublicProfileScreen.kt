@@ -741,10 +741,8 @@ private fun ProfileBody(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         InlineStars(rating = p.ratingAvg, count = p.totalJobs)
-                        Pill(
-                            text = if (p.isAvailable) "Available" else "Busy",
-                            kind = if (p.isAvailable) PillKind.Success else PillKind.Warn,
-                        )
+                        val (availText, availKind) = engineerAvailabilityPill(p.isAvailable)
+                        Pill(text = availText, kind = availKind)
                     }
                 }
             }
@@ -1288,3 +1286,29 @@ internal fun haversineKm(
         kotlin.math.sin(dLng / 2).let { it * it }
     return 2 * r * kotlin.math.asin(kotlin.math.sqrt(a))
 }
+
+/**
+ * Availability pill on the engineer public profile.
+ *
+ *   - isAvailable == true → "Available" + Success (green)
+ *   - isAvailable == false → "Busy" + Warn (amber)
+ *
+ * Pin the "Busy" + Warn pairing — a refactor to "Busy" + Danger
+ * (red) would over-escalate; the engineer being busy is normal,
+ * not an alarm signal. A refactor to "Unavailable" would erase
+ * the temporary-vs-permanent distinction (engineers can flip the
+ * toggle back to available in their profile settings).
+ *
+ * The hospital uses this pill to decide whether to message the
+ * engineer NOW or schedule for later — pin so the colour scheme
+ * stays consistent with the rest-of-app green-Success / amber-Warn
+ * conventions.
+ */
+internal fun engineerAvailabilityPill(
+    isAvailable: Boolean,
+): Pair<String, com.equipseva.app.designsystem.components.PillKind> =
+    if (isAvailable) {
+        "Available" to com.equipseva.app.designsystem.components.PillKind.Success
+    } else {
+        "Busy" to com.equipseva.app.designsystem.components.PillKind.Warn
+    }
