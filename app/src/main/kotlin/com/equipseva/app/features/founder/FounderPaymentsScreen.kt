@@ -228,14 +228,13 @@ private fun PaymentRow(
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,
         )
-        val rzpShort = row.razorpayOrderId?.takeLast(8)
         // Round 375 — relative "Nh ago" surfaces freshness so founder
         // can sort triage by recency without parsing raw timestamps.
         val createdRel = row.createdAt?.let { com.equipseva.app.core.util.relativeLabel(it) }
-        val metaLine = listOfNotNull(
-            rzpShort?.let { "rzp …$it" },
-            createdRel?.let { "$it ago" },
-        ).joinToString(" · ")
+        val metaLine = paymentRowMetaLine(
+            razorpayOrderId = row.razorpayOrderId,
+            relativeCreatedAgo = createdRel,
+        )
         if (metaLine.isNotBlank()) {
             Text(metaLine, color = SevaInk500, fontSize = 12.sp)
         }
@@ -342,4 +341,35 @@ internal fun paymentStatusChipTextAndKind(status: String?): Pair<String, PillKin
         else -> PillKind.Neutral
     }
     return s.uppercase() to kind
+}
+
+/**
+ * Meta-line on the founder payments row: "rzp …LAST8 · Nh ago".
+ *
+ * Composes the Razorpay order-id slug (with U+2026 ellipsis + last
+ * 8 chars) and the relative "ago" timestamp. Either or both can be
+ * absent; returns blank when both are.
+ *
+ * Pin the U+2026 ellipsis-then-suffix shape "…ABCDEFGH" — the
+ * ellipsis communicates this is a truncated id (founders who need
+ * the full id can copy from the invoice URL). A refactor to ASCII
+ * "..." would inflate the line width on a tight 12sp subline.
+ *
+ * Pin the "rzp" prefix lowercase — load-bearing source-system tag
+ * that lets the founder identify Razorpay-routed payments at a
+ * glance (distinct from Stripe/UPI-direct flows even though those
+ * aren't shipped yet).
+ *
+ * Pin the takeLast(8) — Razorpay order IDs share a common prefix
+ * "order_" + entropic suffix; takeLast keeps the unique part.
+ */
+internal fun paymentRowMetaLine(
+    razorpayOrderId: String?,
+    relativeCreatedAgo: String?,
+): String {
+    val rzpShort = razorpayOrderId?.takeLast(8)
+    return listOfNotNull(
+        rzpShort?.let { "rzp …$it" },
+        relativeCreatedAgo?.let { "$it ago" },
+    ).joinToString(" · ")
 }
