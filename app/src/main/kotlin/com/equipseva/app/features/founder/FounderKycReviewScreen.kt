@@ -319,7 +319,7 @@ private fun ReviewBody(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = engineer.fullName.firstOrNull()?.uppercaseChar()?.toString() ?: "E",
+                        text = kycReviewAvatarInitial(engineer.fullName),
                         color = Color.White,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
@@ -365,7 +365,7 @@ private fun ReviewBody(
                     Row(modifier = Modifier.fillMaxWidth()) {
                         Text("Experience", color = SevaInk500, modifier = Modifier.width(120.dp))
                         Text(
-                            text = if (it == 1) "1 year" else "$it years",
+                            text = experienceYearsLabel(it),
                             color = SevaInk900,
                             fontWeight = FontWeight.Medium,
                         )
@@ -469,4 +469,28 @@ private fun DocTile(
         )
     }
 }
+
+/**
+ * Avatar initial on the founder KYC-review hero card.
+ *
+ * First letter of fullName, uppercased, falling back to "E" (for
+ * "Engineer"). Distinct from the founder Users row's "?" fallback —
+ * pin so a refactor that unified them doesn't change the surface-
+ * specific signal ("E" is more informative because this screen is
+ * always reviewing an engineer, whereas Users could be any role).
+ */
+internal fun kycReviewAvatarInitial(fullName: String): String =
+    fullName.firstOrNull()?.uppercaseChar()?.toString() ?: "E"
+
+/**
+ * Experience-years label on the founder KYC-review coverage section.
+ *
+ * Singular/plural split — `1 year` (no 's'), everything else `N years`.
+ *
+ * Pin singular `== 1` exact-match — a refactor to `<= 1` would
+ * surface "0 year" on the defensive 0-input case (which the wire
+ * shouldn't allow but the helper should stay total).
+ */
+internal fun experienceYearsLabel(years: Int): String =
+    if (years == 1) "1 year" else "$years years"
 
