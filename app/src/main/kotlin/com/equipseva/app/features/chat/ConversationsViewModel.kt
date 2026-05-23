@@ -40,8 +40,8 @@ class ConversationsViewModel @Inject constructor(
         val conversation: ChatConversation,
         val counterpart: Profile?,
     ) {
-        val title: String get() = counterpart?.displayName ?: "Conversation"
-        val preview: String get() = conversation.lastMessage?.takeIf { it.isNotBlank() } ?: "No messages yet"
+        val title: String get() = conversationRowTitle(counterpart?.displayName)
+        val preview: String get() = conversationRowPreview(conversation.lastMessage)
     }
 
     data class UiState(
@@ -159,4 +159,32 @@ class ConversationsViewModel @Inject constructor(
         const val REFRESH_TIMEOUT_MS = 3_000L
     }
 }
+
+/**
+ * Title shown on a conversation list row.
+ *
+ * Counterpart display name when available; falls back to the literal
+ * "Conversation" when the counterpart profile didn't load (network
+ * miss, deleted profile, etc.).
+ *
+ * Pin "Conversation" literal — singular noun, Title-cased. A refactor
+ * to "Unknown" / "?" would erase the affordance signal (the user
+ * still sees a meaningful row label and can tap into the thread).
+ */
+internal fun conversationRowTitle(counterpartDisplayName: String?): String =
+    counterpartDisplayName ?: "Conversation"
+
+/**
+ * Preview text shown on a conversation list row.
+ *
+ * Last message content when non-blank; falls back to "No messages
+ * yet" (NOT "No content" or empty) so the row reads as deliberately
+ * fresh rather than broken.
+ *
+ * Pin the takeIf-isNotBlank gate — a whitespace-only lastMessage
+ * (would never appear from a real chat send, but pin defensively)
+ * falls through to the fresh-row copy.
+ */
+internal fun conversationRowPreview(lastMessage: String?): String =
+    lastMessage?.takeIf { it.isNotBlank() } ?: "No messages yet"
 
