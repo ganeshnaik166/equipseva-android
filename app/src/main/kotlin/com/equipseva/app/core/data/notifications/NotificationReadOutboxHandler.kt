@@ -40,10 +40,9 @@ class NotificationReadOutboxHandler @Inject constructor(
         if (owner != null) {
             val current = authRepository.sessionState.first()
             val uid = (current as? AuthSession.SignedIn)?.userId
-            if (uid != owner) {
-                return OutboxKindHandler.Outcome.GiveUp(
-                    "Cross-user notif read drop (queued=$owner, current=$uid)",
-                )
+            val dropReason = notificationReadOwnerGateReason(owner, uid)
+            if (dropReason != null) {
+                return OutboxKindHandler.Outcome.GiveUp(dropReason)
             }
         }
         // Round 437 — bound the RPC like the chat / bid / job-status
@@ -78,3 +77,24 @@ data class NotificationReadPayload(
     // decode. New writes always set it; absence triggers RLS-only fallback.
     val userId: String? = null,
 )
+
+/**
+ * Cross-account gate for the queued mark-read drain. Returns null when
+ * the entry is safe to drain (legacy null-owner row, or owner matches
+ * the currently-signed-in user) and a give-up reason string otherwise.
+ *
+ * Pinned semantics:
+ *   * null queued owner → null (legacy row, RLS-only fallback).
+ *   * null currentUserId AND non-null owner → cross-user drop (signed
+ *     out / different state — never silently downgrade to "no gate").
+ *   * mismatch → cross-user drop with both ids in the reason for the
+ *     ops log.
+ */
+internal fun notificationReadOwnerGateReason(
+    queuedOwner: String?,
+    currentUserId: String?,
+): String? = when {
+    queuedOwner == null -> null
+    queuedOwner == currentUserId -> null
+    else -> "Cross-user notif read drop (queued=$queuedOwner, current=$currentUserId)"
+}
