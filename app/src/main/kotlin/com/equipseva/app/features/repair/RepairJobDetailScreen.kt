@@ -685,12 +685,13 @@ private fun EngineerResponseSheet(
                 minLines = 3,
                 maxLines = 6,
             )
+            val canSubmit = canSubmitEngineerResponse(response, submitting)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
-                    .background(if (response.trim().length >= 10 && !submitting) SevaGreen700 else SevaInk300)
-                    .clickable(enabled = response.trim().length >= 10 && !submitting) {
+                    .background(if (canSubmit) SevaGreen700 else SevaInk300)
+                    .clickable(enabled = canSubmit) {
                         onSubmit(response.trim())
                     }
                     .padding(vertical = 12.dp),
@@ -2791,3 +2792,21 @@ internal fun locationCardPlaceholderCopy(
     isEngineer -> "Address hidden until the hospital accepts your bid"
     else -> "Address hidden until a bid is accepted"
 }
+
+/**
+ * Submit gate on the engineer dispute-response sheet.
+ *
+ * Requires:
+ *   1. response (trimmed) is at least 10 characters
+ *   2. NOT currently submitting (prevents double-tap)
+ *
+ * Pin the 10-char minimum — load-bearing because admin needs
+ * substantive context to decide release vs refund. A "yes" or "ok"
+ * response would be useless evidence. A refactor that relaxed the
+ * floor to >= 1 would let trivial responses through.
+ *
+ * Pin .trim().length (not just .length) — pure-whitespace responses
+ * shouldn't enable submit even if they hit the char count.
+ */
+internal fun canSubmitEngineerResponse(response: String, submitting: Boolean): Boolean =
+    response.trim().length >= 10 && !submitting
