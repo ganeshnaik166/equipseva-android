@@ -108,7 +108,7 @@ fun FounderCashFlagHistoryScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Cash-flag history",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let { "$it responses · last 365d" },
+                subtitle = cashFlagHistorySubtitle(state.rows.size),
                 onBack = onBack,
             )
             // Round 410 — pull-to-refresh. Matches r378-r400 pattern.
@@ -247,3 +247,21 @@ internal fun cashFlagRowHospitalLabel(hospitalName: String?): String =
  */
 internal fun cashFlagRespondedAtLabel(rawIso: String): String =
     rawIso.take(16).replace('T', ' ')
+
+/**
+ * Subtitle on the founder Cash-Flag History top bar.
+ *
+ * Returns null on empty list. Otherwise reads "N responses · last 365d".
+ *
+ * Critical pin: the "365d" rolling window — distinct from the 30d
+ * windows on other founder queues (escrow resolved, AMC expiring).
+ * Cash-flag history queries the full year because suspensions stay
+ * relevant beyond the immediate triage window.
+ *
+ * Pin "responses" noun — distinct from "flags" (which counts
+ * server-side cash_flags rows). A response is a survey reply
+ * (asked_cash / no_cash / declined); the cash-flag suspension
+ * trigger counts asked_cash responses specifically.
+ */
+internal fun cashFlagHistorySubtitle(rowCount: Int): String? =
+    if (rowCount > 0) "$rowCount responses · last 365d" else null
