@@ -79,10 +79,18 @@ class ChatViewModel @Inject constructor(
         val title: String
             get() = chatTopBarTitle(counterpart?.displayName)
         val canSend: Boolean
-            get() = draft.trim().isNotEmpty() && !sending && selfUserId != null && !counterpartBlocked
+            get() = canSendChatMessage(
+                draft = draft,
+                sending = sending,
+                hasSelfUserId = selfUserId != null,
+                counterpartBlocked = counterpartBlocked,
+            )
         val canSubmitEdit: Boolean
-            get() = editingMessageId != null && editDraft.trim().isNotEmpty() &&
-                editDraft.length <= 4000 && !editing
+            get() = canSubmitChatEdit(
+                editingMessageId = editingMessageId,
+                editDraft = editDraft,
+                editing = editing,
+            )
     }
 
     sealed interface Effect {
@@ -467,4 +475,52 @@ class ChatViewModel @Inject constructor(
  */
 internal fun chatTopBarTitle(counterpartDisplayName: String?): String =
     counterpartDisplayName ?: "Chat"
+
+/**
+ * Gate for the chat send button.
+ *
+ * Send is enabled when ALL of:
+ *   1. draft (after trim) is non-empty
+ *   2. NOT currently sending (prevents double-tap during in-flight)
+ *   3. self user id is known (caller has authenticated)
+ *   4. counterpart is NOT blocked (mutual-block gate; the user blocked
+ *      the engineer OR the engineer blocked the user)
+ *
+ * Pin all four conditions — a refactor that dropped any one would
+ * silently unlock a problematic state:
+ *   - drop trim → blank-whitespace messages get sent
+ *   - drop sending → double-tap races a duplicate insert
+ *   - drop self user id → null subject crashes the insert
+ *   - drop block check → harassment continues past block (this is a
+ *     trust-and-safety regression target).
+ */
+internal fun canSendChatMessage(
+    draft: String,
+    sending: Boolean,
+    hasSelfUserId: Boolean,
+    counterpartBlocked: Boolean,
+): Boolean = draft.trim().isNotEmpty() && !sending && hasSelfUserId && !counterpartBlocked
+
+/**
+ * Gate for the chat edit-save button.
+ *
+ * Edit save is enabled when ALL of:
+ *   1. editingMessageId is non-null (caller has entered edit mode)
+ *   2. editDraft (after trim) is non-empty (no blank-whitespace edits)
+ *   3. editDraft length <= 4000 chars (server-side message_length cap)
+ *   4. NOT currently editing (prevents double-tap)
+ *
+ * Pin the 4000-char cap — must match the server-side messages.length
+ * CHECK constraint. A drift here would either reject valid edits
+ * client-side (irritating) or surface a server-side error message
+ * mid-action (confusing).
+ */
+internal fun canSubmitChatEdit(
+    editingMessageId: String?,
+    editDraft: String,
+    editing: Boolean,
+): Boolean = editingMessageId != null &&
+    editDraft.trim().isNotEmpty() &&
+    editDraft.length <= 4000 &&
+    !editing
 
