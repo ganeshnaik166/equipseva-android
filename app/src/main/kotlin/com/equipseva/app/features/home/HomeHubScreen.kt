@@ -447,7 +447,7 @@ private fun SpotAuditSheetBody(
             label = if (submitting) "Submitting…" else "Submit",
             primary = true,
             onClick = {
-                if (rating in 1..5 && !submitting) {
+                if (canSubmitSpotAudit(rating, submitting)) {
                     onSubmit(rating, feedback.trim().takeIf { it.isNotBlank() })
                 }
             },
@@ -1229,6 +1229,20 @@ internal fun spotAuditQuestionBody(
     val engineerLabel = engineerName ?: "the engineer"
     return "Job $jobLabel with $engineerLabel just wrapped. Rate the work."
 }
+
+/**
+ * Submit gate on the spot-audit rating sheet.
+ *
+ * Requires:
+ *   1. rating in 1..5 (inclusive — both bounds; 0 = "no rating
+ *      picked yet", 6+ = impossible)
+ *   2. NOT currently submitting
+ *
+ * Pin the 1..5 range — server CHECK constraint on spot_audit_responses
+ * matches; widening would surface server errors mid-action.
+ */
+internal fun canSubmitSpotAudit(rating: Int, submitting: Boolean): Boolean =
+    rating in 1..5 && !submitting
 
 /**
  * Role-aware empty-state copy for the Home hub's "Recent activity"
