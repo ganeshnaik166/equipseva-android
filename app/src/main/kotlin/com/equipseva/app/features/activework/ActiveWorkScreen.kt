@@ -65,12 +65,10 @@ fun ActiveWorkScreen(
             // Subtitle reads "X in progress · Y done" so the screen doesn't
             // miscount completed rows as "in progress" (the previous wording
             // was wrong — combined.size counted completed too).
-            val subtitle = when {
-                combined.isEmpty() -> null
-                state.completedJobs.isEmpty() -> "${state.activeJobs.size} in progress"
-                state.activeJobs.isEmpty() -> "${state.completedJobs.size} completed"
-                else -> "${state.activeJobs.size} in progress · ${state.completedJobs.size} done"
-            }
+            val subtitle = activeWorkSubtitle(
+                activeCount = state.activeJobs.size,
+                completedCount = state.completedJobs.size,
+            )
             EsTopBar(
                 title = "Active work",
                 subtitle = subtitle,
@@ -159,3 +157,28 @@ internal fun queuedStatusChangePillText(count: Int): String =
     } else {
         "$count status changes queued — will sync when back online"
     }
+
+/**
+ * Subtitle on the engineer Active-Work top bar.
+ *
+ * 4-state composition based on which list has rows:
+ *   - both empty → null (top bar stays clean on cold load)
+ *   - only active rows → "N in progress"
+ *   - only completed rows → "N completed"
+ *   - both → "X in progress · Y done"
+ *
+ * Critical regression target — the previous behaviour used
+ * `combined.size` for the "in progress" count which miscounted
+ * completed rows as in-progress. Pin the per-bucket counts.
+ *
+ * Pin the asymmetric "completed" vs "done" wording — single-bucket
+ * uses the formal "completed" (matches the wire status name); the
+ * combined form uses the shorter "done" so the subtitle fits on
+ * one line.
+ */
+internal fun activeWorkSubtitle(activeCount: Int, completedCount: Int): String? = when {
+    activeCount <= 0 && completedCount <= 0 -> null
+    completedCount <= 0 -> "$activeCount in progress"
+    activeCount <= 0 -> "$completedCount completed"
+    else -> "$activeCount in progress · $completedCount done"
+}
