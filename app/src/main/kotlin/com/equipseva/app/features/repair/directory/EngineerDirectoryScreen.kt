@@ -531,7 +531,7 @@ private fun FilterSheet(
                 // Nearest is offered always but greyed out + disabled
                 // when we have no coords — clearer than hiding it.
                 EsChip(
-                    text = if (resolvingLocation && !hasLocation) "Nearest…" else "Nearest",
+                    text = nearestSortChipLabel(resolvingLocation, hasLocation),
                     active = sortMode == DirectorySortMode.Nearest && hasLocation,
                     onClick = {
                         if (hasLocation) onSortPick(DirectorySortMode.Nearest)
@@ -795,6 +795,26 @@ internal fun formatDirectoryRowLocationLine(
 internal fun emptyEngineersSubtitle(filtersActive: Boolean): String =
     if (filtersActive) "Try a wider district or fewer filters"
     else "No verified engineers in your area yet"
+
+/**
+ * Label for the "Nearest" sort chip on the engineer-directory filter
+ * sheet.
+ *
+ * Reads "Nearest…" (U+2026 ellipsis) while we're still resolving the
+ * device location AND we don't yet have any coords; reads "Nearest"
+ * otherwise. The ellipsis is the visual cue that the chip will become
+ * enabled shortly — distinct from a permanently-disabled label.
+ *
+ * Pin the U+2026 single-codepoint ellipsis — a refactor to "..."
+ * (three dots) would diverge from the rest of the app's loading-state
+ * conventions.
+ *
+ * Pin the AND gate — resolvingLocation alone isn't enough (could have
+ * stale coords + a refresh in flight); we only show the ellipsis
+ * variant when we genuinely have no usable location yet.
+ */
+internal fun nearestSortChipLabel(resolvingLocation: Boolean, hasLocation: Boolean): String =
+    if (resolvingLocation && !hasLocation) "Nearest…" else "Nearest"
 
 // InlineStars promoted to a shared component so the new
 // EngineerRatingCard + ReviewItem render the same glyph without a fork.
