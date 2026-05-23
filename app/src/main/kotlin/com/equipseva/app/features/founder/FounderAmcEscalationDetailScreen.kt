@@ -343,15 +343,10 @@ private fun RotationRow(row: AmcRepository.AmcRotationRow) {
                     Text(row.engineerCity, color = SevaInk500, fontSize = 11.sp)
                 }
             }
-            if (row.isPrimary) {
-                Pill(text = "Primary", kind = PillKind.Info)
-            } else {
-                Pill(text = "#${row.priority}", kind = PillKind.Default)
-            }
-            Pill(
-                text = if (row.isAvailable) "Available" else "Unavailable",
-                kind = if (row.isAvailable) PillKind.Success else PillKind.Warn,
-            )
+            val (priorityText, priorityKind) = rotationPriorityPill(row.isPrimary, row.priority)
+            Pill(text = priorityText, kind = priorityKind)
+            val (availText, availKind) = rotationAvailabilityPill(row.isAvailable)
+            Pill(text = availText, kind = availKind)
         }
         if (!row.active) {
             Text("Inactive", color = SevaInk500, fontSize = 11.sp)
@@ -398,3 +393,54 @@ internal fun escalationDetailResolvedPillTextAndKind(
  */
 internal fun escalationDetailRotationHeader(rotationCount: Int): String =
     "Engineer rotation ($rotationCount)"
+
+/**
+ * Priority pill on a rotation row.
+ *
+ *   - isPrimary true → "Primary" + Info (the primary engineer is
+ *     the FIRST call; Info colour to anchor importance without
+ *     escalating to Warn/Danger)
+ *   - isPrimary false → "#N" + Default (the fallback engineer's
+ *     priority order; Default colour because they're backup)
+ *
+ * Pin the literal "Primary" word — load-bearing across the AMC
+ * surfaces (also surfaces on engineerRolePillLabel). A refactor to
+ * "Lead" / "Main" would diverge from cross-surface vocabulary.
+ *
+ * Pin "#N" form (with the U+0023 hash prefix) — distinct numeric
+ * priority signal. A bare "N" would read as a count, not a rank.
+ */
+internal fun rotationPriorityPill(
+    isPrimary: Boolean,
+    priority: Int,
+): Pair<String, PillKind> =
+    if (isPrimary) {
+        "Primary" to PillKind.Info
+    } else {
+        "#$priority" to PillKind.Default
+    }
+
+/**
+ * Availability pill on a rotation row.
+ *
+ *   - isAvailable true → "Available" + Success
+ *   - isAvailable false → "Unavailable" + Warn
+ *
+ * Critical pin: "Unavailable" maps to Warn (NOT Danger). The
+ * unavailable state is operational reality (engineer is busy on
+ * another job), not an alarm — but it's important enough to be
+ * non-Default. Warn (amber) is the right escalation tier.
+ *
+ * Note: distinct from [engineerAvailabilityPill] which uses
+ * "Busy" not "Unavailable". The rotation context is administrative
+ * (founder reviewing the pool); the engineer profile is hospital-
+ * facing where "Busy" is friendlier.
+ */
+internal fun rotationAvailabilityPill(
+    isAvailable: Boolean,
+): Pair<String, PillKind> =
+    if (isAvailable) {
+        "Available" to PillKind.Success
+    } else {
+        "Unavailable" to PillKind.Warn
+    }
