@@ -1088,7 +1088,7 @@ private fun RoleEditorSheet(
                 // would land the user on an empty / fallback screen. Mirror
                 // the gating from RoleSelectScreen: render but disabled with
                 // a "Soon" pill.
-                val v1Active = role == UserRole.HOSPITAL || role == UserRole.ENGINEER
+                val v1Active = isV1ActiveRole(role)
                 RoleOption(
                     role = role,
                     selected = role == selected,
@@ -1389,3 +1389,18 @@ internal fun profileHeroInitials(displayName: String): String =
         .map { it.first().uppercaseChar() }
         .joinToString("")
         .ifBlank { "U" }
+
+/**
+ * v1 launch gating — true when the role has a shipped Home hub.
+ *
+ * HOSPITAL + ENGINEER ship with full hubs in v1. SUPPLIER /
+ * MANUFACTURER / LOGISTICS are marketplace roles that need their own
+ * home hubs + dashboards which haven't shipped — switching to one
+ * would land the user on an empty / fallback screen.
+ *
+ * Pin so a refactor that flipped any of the marketplace roles to
+ * `true` without shipping the hub would surface here as a deliberate
+ * change.
+ */
+internal fun isV1ActiveRole(role: UserRole): Boolean =
+    role == UserRole.HOSPITAL || role == UserRole.ENGINEER
