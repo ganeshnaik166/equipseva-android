@@ -600,7 +600,7 @@ fun FounderPartsOutliersScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Parts-cost outliers",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let { "$it >5x category avg" },
+                subtitle = partsOutliersSubtitle(state.rows.size),
                 onBack = onBack,
             )
             QueueBox(
@@ -1042,3 +1042,20 @@ internal fun partsOutlierPartiesLine(engineerName: String?, hospitalName: String
  */
 internal fun escrowDisputeAmountHeldLine(amountRupees: Double): String =
     "${formatRupees(amountRupees)} held"
+
+/**
+ * Subtitle on the founder Parts-Cost-Outliers top bar.
+ *
+ * Returns null on empty list. Otherwise reads "N >5x category avg"
+ * — the "5x" is the LITERAL threshold the server-side outlier query
+ * uses (charges > 5× the category average). Pin so a refactor that
+ * relaxed to 4x or tightened to 6x without updating the server-side
+ * threshold would surface here as a mismatch.
+ *
+ * Pin the ">5x" form (ASCII `>` + lowercase `x`) — distinct from the
+ * row-level pill text which uses "%.1f×" with the U+00D7 sign and
+ * decimal precision. The subtitle uses the bare integer threshold
+ * because it describes the cohort, not an individual row.
+ */
+internal fun partsOutliersSubtitle(rowCount: Int): String? =
+    if (rowCount > 0) "$rowCount >5x category avg" else null
