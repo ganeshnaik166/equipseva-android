@@ -137,7 +137,7 @@ fun FounderReportsQueueScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Content reports",
-                subtitle = if (state.rows.isNotEmpty()) "${state.rows.size} open" else null,
+                subtitle = simpleQueueCountSubtitle(state.rows.size, "open"),
                 onBack = onBack,
             )
             // Round 399 — pull-to-refresh.
