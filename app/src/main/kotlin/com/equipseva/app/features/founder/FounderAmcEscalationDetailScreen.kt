@@ -217,10 +217,11 @@ private fun EscalationDetailBody(
                             )
                         }
                     }
-                    Pill(
-                        text = if (detail.resolvedAt != null || resolved) "Resolved" else "Open",
-                        kind = if (detail.resolvedAt != null || resolved) PillKind.Success else PillKind.Danger,
+                    val (pillText, pillKind) = escalationDetailResolvedPillTextAndKind(
+                        resolvedAt = detail.resolvedAt,
+                        locallyResolved = resolved,
                     )
+                    Pill(text = pillText, kind = pillKind)
                 }
                 if (!detail.notes.isNullOrBlank()) {
                     Text(detail.notes, color = SevaInk700, fontSize = 13.sp)
@@ -251,7 +252,7 @@ private fun EscalationDetailBody(
         }
         item("rotation_header") {
             Text(
-                text = "Engineer rotation (${rotation.size})",
+                text = escalationDetailRotationHeader(rotation.size),
                 color = SevaInk700,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -357,3 +358,43 @@ private fun RotationRow(row: AmcRepository.AmcRotationRow) {
         }
     }
 }
+
+/**
+ * "Resolved" / "Open" pill on the AMC-escalation detail screen.
+ *
+ * Critical region: the OR-gate on TWO conditions —
+ *   1. `resolvedAt != null` (server-confirmed resolution)
+ *   2. `locallyResolved == true` (optimistic UI state after the
+ *      founder taps "Mark resolved" but before the server write
+ *      round-trips and refreshes detail.resolvedAt)
+ *
+ * Either condition alone is sufficient to flip the pill to
+ * Resolved/Success. Pin so a refactor that dropped the local-flag
+ * branch would leave the pill reading "Open" for ~500ms after the
+ * tap (network round-trip), which feels like the action failed and
+ * could prompt double-taps.
+ *
+ * "Open" → Danger (red) is intentional — open escalations are
+ * load-bearing for the founder's queue, NOT a Warn (amber) signal.
+ */
+internal fun escalationDetailResolvedPillTextAndKind(
+    resolvedAt: String?,
+    locallyResolved: Boolean,
+): Pair<String, PillKind> =
+    if (resolvedAt != null || locallyResolved) {
+        "Resolved" to PillKind.Success
+    } else {
+        "Open" to PillKind.Danger
+    }
+
+/**
+ * Section header on the AMC-escalation detail rotation list:
+ * "Engineer rotation (N)" with the count in parens.
+ *
+ * Pin the literal "Engineer rotation" phrasing (NOT "Rotation",
+ * NOT "Engineers in rotation") and the parenthesized count format
+ * (NOT " · N", NOT ": N"). The parens-count is the founder's
+ * standard list-header signature across screens.
+ */
+internal fun escalationDetailRotationHeader(rotationCount: Int): String =
+    "Engineer rotation ($rotationCount)"
