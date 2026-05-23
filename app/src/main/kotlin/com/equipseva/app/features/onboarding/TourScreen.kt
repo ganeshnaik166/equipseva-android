@@ -185,7 +185,7 @@ fun TourScreen(
                 }
             }
             EsBtn(
-                text = if (step < pages.lastIndex) "Next" else "Get started",
+                text = tourCtaLabel(step, pages.size),
                 onClick = {
                     if (step < pages.lastIndex) step += 1 else finish()
                 },
@@ -196,4 +196,20 @@ fun TourScreen(
         }
     }
 }
+
+/**
+ * CTA label on the onboarding tour: "Next" on every page EXCEPT the
+ * last, where it becomes "Get started" to signal the transition
+ * from passive learning to active app use.
+ *
+ * Critical pin: the boundary is `step == totalPages - 1` (zero-indexed
+ * last page). A refactor to `step > totalPages` (exclusive) would
+ * never show "Get started" because the step counter caps at lastIndex.
+ *
+ * Pin the literal "Get started" — a refactor to "Done" or "Continue"
+ * would lose the activation signal. "Get started" implies the tour
+ * was preamble; "Done" implies the app concluded.
+ */
+internal fun tourCtaLabel(step: Int, totalPages: Int): String =
+    if (step < totalPages - 1) "Next" else "Get started"
 
