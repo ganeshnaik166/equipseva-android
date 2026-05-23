@@ -35,12 +35,14 @@ class SignUpViewModel @Inject constructor(
         val passwordError: String? = null,
         val form: FormUiState = FormUiState(),
     ) {
-        val canSubmit: Boolean get() = !form.submitting &&
-            fullName.trim().length >= 2 &&
-            fullName.any { it.isLetter() } &&
-            Validators.emailIsValid(email) &&
-            Validators.passwordIsStrong(password) &&
-            role != null
+        val canSubmit: Boolean
+            get() = canSubmitSignUp(
+                submitting = form.submitting,
+                fullName = fullName,
+                email = email,
+                password = password,
+                hasRole = role != null,
+            )
     }
 
     private val _state = MutableStateFlow(UiState())
@@ -208,3 +210,39 @@ internal fun validateSignUp(
         roleMissing = role == null,
     )
 }
+
+/**
+ * Submit-button gate on the sign-up form.
+ *
+ * Enabled when ALL of:
+ *   1. NOT submitting
+ *   2. fullName (after trim) is at least 2 chars
+ *   3. fullName contains at least one letter (rejects emoji-only /
+ *      punctuation-only names — postgres stores them and they
+ *      surface as garbage in engineer-directory cards)
+ *   4. email passes [Validators.emailIsValid]
+ *   5. password passes [Validators.passwordIsStrong]
+ *   6. role has been picked
+ *
+ * Pin all six conditions — the letter-check on fullName is a
+ * regression target: signup used to accept "@#$%" or pure-emoji
+ * names which then leaked into the directory.
+ *
+ * This gate is the OUTER signup permission — distinct from
+ * [validateSignUp] which produces per-field error labels. The outer
+ * gate stays silent when the form is incomplete; the validator
+ * surfaces errors only after the user types into a field and moves
+ * on.
+ */
+internal fun canSubmitSignUp(
+    submitting: Boolean,
+    fullName: String,
+    email: String,
+    password: String,
+    hasRole: Boolean,
+): Boolean = !submitting &&
+    fullName.trim().length >= 2 &&
+    fullName.any { it.isLetter() } &&
+    Validators.emailIsValid(email) &&
+    Validators.passwordIsStrong(password) &&
+    hasRole
