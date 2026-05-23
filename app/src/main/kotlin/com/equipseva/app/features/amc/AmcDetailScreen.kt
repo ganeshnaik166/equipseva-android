@@ -993,10 +993,7 @@ private fun SlaBreachCard(b: AmcRepository.AmcSlaBreach) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             val severity = amcSeverityLabel(b.severity)
-            Pill(
-                text = severity,
-                kind = if (b.severity == "emergency") PillKind.Danger else PillKind.Warn,
-            )
+            Pill(text = severity, kind = amcSeverityPillKind(b.severity))
             Text(
                 amcBreachTypeLabel(b.breachType),
                 color = SevaInk900,
@@ -1309,3 +1306,18 @@ internal fun autoPayHaltedPillText(status: String): String = when (status) {
  */
 internal fun slaBreachCreditPillText(creditIssuedRupees: Double): String =
     "Credit ${formatRupees(creditIssuedRupees)}"
+
+/**
+ * Pill colour for an AMC SLA-breach severity.
+ *
+ *   - "emergency" → Danger (red — emergency-visit SLA breaches are
+ *     the most urgent because the equipment is presumably keeping
+ *     someone alive)
+ *   - anything else (including "standard") → Warn (amber)
+ *
+ * Pin the exact "emergency" wire string match. A refactor to case-
+ * insensitive or partial-match would risk mis-categorising future
+ * server-side severity codes.
+ */
+internal fun amcSeverityPillKind(severity: String?): PillKind =
+    if (severity == "emergency") PillKind.Danger else PillKind.Warn
