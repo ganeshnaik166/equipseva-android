@@ -805,12 +805,7 @@ private fun ProfileHero(
     onPickAvatar: () -> Unit,
     onEdit: () -> Unit,
 ) {
-    val initials = displayName
-        .split(' ', limit = 2)
-        .filter { it.isNotBlank() }
-        .map { it.first().uppercaseChar() }
-        .joinToString("")
-        .ifBlank { "U" }
+    val initials = profileHeroInitials(displayName)
     // Use UserRole.displayName so the Profile hero pill matches the
     // AccountTypeSection title + role-editor sheet ("Hospital admin",
     // "Biomedical engineer"). Round 12 unified the rest; the hero
@@ -1371,3 +1366,26 @@ internal fun accountTypeSectionCopy(role: UserRole?): Pair<String, String> {
     }
     return title to subtitle
 }
+
+/**
+ * Initials shown on the Profile hero avatar.
+ *
+ * Distinct from [com.equipseva.app.core.util.initialsOf]:
+ *   - This helper uses "U" as the fallback (for "User"); initialsOf
+ *     uses "?". The Profile hero is the user's OWN screen — "U" is
+ *     a sensible default for an unnamed self-record. "?" would read
+ *     as "we don't know who you are", which is wrong.
+ *   - This helper uses Char-split + first(); initialsOf uses String-
+ *     split + firstOrNull(). Behaviour is equivalent (filter +
+ *     isNotBlank guards the first() call).
+ *
+ * Pin both deviations so a refactor that "unified" with initialsOf
+ * (changing the fallback or trimming behaviour) doesn't slip in.
+ */
+internal fun profileHeroInitials(displayName: String): String =
+    displayName
+        .split(' ', limit = 2)
+        .filter { it.isNotBlank() }
+        .map { it.first().uppercaseChar() }
+        .joinToString("")
+        .ifBlank { "U" }
