@@ -105,9 +105,7 @@ fun EngineerAmcVisitsScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "AMC visits",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let {
-                    "$it ${if (it == 1) "visit" else "visits"}"
-                },
+                subtitle = engineerAmcVisitsSubtitle(state.rows.size),
                 onBack = onBack,
             )
             // Round 390 — pull-to-refresh.
@@ -266,4 +264,19 @@ internal fun pillForStatus(status: String): PillKind = when (status.lowercase())
     "en_route", "assigned" -> PillKind.Info
     "cancelled" -> PillKind.Default
     else -> PillKind.Warn
+}
+
+/**
+ * Subtitle on the engineer AMC-visits top bar.
+ *
+ *   - 0 rows → null (cold-load top bar stays clean)
+ *   - 1 row → "1 visit" (singular)
+ *   - N rows → "N visits" (plural)
+ *
+ * Pin singular/plural split — never "1 visits".
+ */
+internal fun engineerAmcVisitsSubtitle(rowCount: Int): String? = when {
+    rowCount <= 0 -> null
+    rowCount == 1 -> "1 visit"
+    else -> "$rowCount visits"
 }
