@@ -89,7 +89,7 @@ fun RepeatBookingNudge(
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "$engineerName is ${"%.1f".format(java.util.Locale.US, distanceKm)} km away",
+                    text = repeatBookingNudgeTitle(engineerName, distanceKm),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = SevaInk900,
@@ -227,3 +227,24 @@ internal fun engineerCardLocationLine(city: String?, distanceKm: Double?): Strin
     )
     return if (parts.isEmpty()) null else parts.joinToString(" · ")
 }
+
+/**
+ * Title on the repeat-booking nudge banner.
+ *
+ * Format: "$engineerName is X.Y km away"
+ *
+ * Critical pin: Locale.US on the %.1f format — hi-IN would render
+ * "Asha Rao is 3,2 km away" with comma-decimal that mis-reads as
+ * "3 to 2 km" or a list.
+ *
+ * Pin the "is N km away" form — frames the engineer as the subject
+ * (which is correct because the banner is suggesting alternatives
+ * BECAUSE this engineer is far). A refactor to "Engineer X · Y km
+ * away" would lose the subject-verb sentence shape.
+ *
+ * Pin %.1f one decimal — distinct from the engineerCardLocationLine
+ * which uses %.1f km (compact "Nkm" form). The nudge banner is more
+ * descriptive ("is X.Y km away") so the spacing differs.
+ */
+internal fun repeatBookingNudgeTitle(engineerName: String, distanceKm: Double): String =
+    "$engineerName is ${"%.1f".format(java.util.Locale.US, distanceKm)} km away"
