@@ -530,7 +530,7 @@ private fun SlaCreditsCard(
     summary: com.equipseva.app.core.data.amc.AmcRepository.HospitalSlaCreditSummary,
     onClick: () -> Unit,
 ) {
-    val rupeesLabel = formatRupees(summary.totalCreditRupees)
+    val title = slaCreditsCardTitle(summary.totalCreditRupees)
     val sub = slaCreditsCardSubtitle(summary.breachCount)
     Row(
         modifier = androidx.compose.ui.Modifier
@@ -566,7 +566,7 @@ private fun SlaCreditsCard(
         Column(modifier = androidx.compose.ui.Modifier.weight(1f)) {
             Text(
                 // formatRupees already includes the ₹ prefix.
-                text = "$rupeesLabel credited for SLA misses",
+                text = title,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = SevaInk900,
@@ -1166,6 +1166,21 @@ internal fun slaCreditsCardSubtitle(breachCount: Int): String =
     } else {
         "$breachCount SLA breaches in the last 30 days. Tap to review."
     }
+
+/**
+ * Title on the home SLA-credits card: "₹X credited for SLA misses".
+ *
+ * Pin the trailing "for SLA misses" — load-bearing context that
+ * tells the hospital this is COMPENSATION owed by the engineer
+ * (via the pool ledger), NOT a charge against them. A refactor that
+ * dropped the "for SLA misses" suffix would leave "₹X credited"
+ * ambiguous — "credited TO whom, BY whom"?
+ *
+ * Note: formatRupees already includes the ₹ prefix; this helper
+ * composes the suffix only.
+ */
+internal fun slaCreditsCardTitle(totalCreditRupees: Double): String =
+    "${formatRupees(totalCreditRupees)} credited for SLA misses"
 
 /**
  * Compose the cash-survey question body for the bottom-sheet on
