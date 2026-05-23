@@ -13,7 +13,19 @@
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
-            <certificates src="user" />
         </trust-anchors>
     </base-config>
+    <!--
+        Nesting the user-CA anchor inside <debug-overrides> tells the
+        framework it MUST only activate when android:debuggable=true.
+        Defense-in-depth on top of the src/debug variant scoping (which
+        already keeps this file out of release builds) so a build-config
+        slip-up that included this file in release still wouldn't ship
+        user-CA trust to end users.
+    -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
 </network-security-config>

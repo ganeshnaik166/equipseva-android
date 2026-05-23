@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -213,7 +214,11 @@ private fun EsToggle(on: Boolean, onClick: () -> Unit) {
     ) {
         Box(
             modifier = Modifier
-                .offset(x = thumbX, y = 3.dp)
+                // Lambda offset overload — thumbX is animateDpAsState, so the
+                // non-lambda overload would recompose the entire Box subtree
+                // every 16ms while the switch animates. The lambda variant
+                // only re-runs the layout phase.
+                .offset { IntOffset(thumbX.roundToPx(), 3.dp.roundToPx()) }
                 .size(20.dp)
                 .clip(CircleShape)
                 .background(Color.White),

@@ -3,7 +3,6 @@ package com.equipseva.app.core.push
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.os.Build
 import androidx.core.content.getSystemService
 
 object NotificationChannels {
@@ -13,7 +12,8 @@ object NotificationChannels {
     const val ACCOUNT = "account"
 
     fun register(context: Context) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        // NotificationChannel was added in API 26 (O); app minSdk = 26 so
+        // no version guard needed — the framework class is always present.
         val nm = context.getSystemService<NotificationManager>() ?: return
         // "orders" was a marketplace-era channel; the marketplace shipped
         // off in v1. Delete the legacy channel so it stops appearing in
