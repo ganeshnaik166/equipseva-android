@@ -180,11 +180,11 @@ fun KycScreen(
             // wizard counter — the wizard isn't visible to them so showing
             // "Step 1 of 2" alongside a fully-checked status stepper read
             // as a contradiction.
-            val subtitle = if (state.verificationStatus == VerificationStatus.Verified) {
-                "Verified"
-            } else {
-                "Step ${state.currentStep.ordinal + 1} of ${com.equipseva.app.features.kyc.KycStep.entries.size}"
-            }
+            val subtitle = kycScreenSubtitle(
+                verificationStatus = state.verificationStatus,
+                currentStepOrdinal = state.currentStep.ordinal,
+                totalSteps = com.equipseva.app.features.kyc.KycStep.entries.size,
+            )
             com.equipseva.app.designsystem.components.EsTopBar(
                 title = "Verification (KYC)",
                 subtitle = subtitle,
@@ -1311,3 +1311,27 @@ internal fun flaggedDocsLabel(rejectedDocTypes: List<String>): String? =
             }
         }
         .ifBlank { null }
+
+/**
+ * Subtitle on the KYC screen top bar.
+ *
+ *   - Verified → "Verified" (no wizard counter)
+ *   - Otherwise → "Step N of TOTAL"
+ *
+ * Critical pin: the Verified branch SHORT-CIRCUITS the wizard counter.
+ * The previous behaviour surfaced "Step 1 of 2" alongside a fully-
+ * checked status stepper which read as a contradiction. A refactor
+ * that always showed the counter would re-introduce this regression.
+ *
+ * Pin the "Step N of M" wording — load-bearing wizard cadence anchor.
+ */
+internal fun kycScreenSubtitle(
+    verificationStatus: com.equipseva.app.core.data.engineers.VerificationStatus?,
+    currentStepOrdinal: Int,
+    totalSteps: Int,
+): String =
+    if (verificationStatus == com.equipseva.app.core.data.engineers.VerificationStatus.Verified) {
+        "Verified"
+    } else {
+        "Step ${currentStepOrdinal + 1} of $totalSteps"
+    }
