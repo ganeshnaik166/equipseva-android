@@ -304,7 +304,7 @@ private fun ContractCard(
         ) {
             Pill(text = prettyFrequency(item.visitFrequency), kind = PillKind.Neutral)
             Text(
-                text = "${item.visitsCompleted} / ${item.visitsPerYear} visits",
+                text = contractVisitsLabel(item.visitsCompleted, item.visitsPerYear),
                 color = SevaInk700,
                 fontSize = 12.sp,
             )
@@ -320,16 +320,11 @@ private fun ContractCard(
             && com.equipseva.app.core.util.isWithinDays(item.endDate, 30)
         ) {
             val n = com.equipseva.app.core.util.daysUntil(item.endDate)
-            val label = when {
-                n == null -> "Expires ${prettyDate(item.endDate)}"
-                n <= 0L -> "Expires today"
-                n == 1L -> "Expires in 1 day"
-                else -> "Expires in $n days"
-            }
-            Pill(
-                text = label,
-                kind = if (n != null && n <= 7L) PillKind.Danger else PillKind.Warn,
+            val (label, kind) = contractExpiryPillTextAndKind(
+                daysUntilEnd = n,
+                prettyEndDate = prettyDate(item.endDate),
             )
+            Pill(text = label, kind = kind)
         }
         if (!item.nextVisitAt.isNullOrBlank()) {
             Text(
@@ -379,3 +374,50 @@ internal fun prettyFrequency(f: String): String = when (f.lowercase()) {
 // Both founder + amc surfaces share the single implementation.
 internal fun prettyDate(iso: String): String =
     com.equipseva.app.core.util.prettyDate(iso)
+
+/**
+ * Visits subline on the hospital's maintenance-contracts card:
+ * "N / M visits".
+ *
+ * Sibling of [com.equipseva.app.features.founder.pausedAmcVisitsLine]
+ * but with surface-specific phrasing — hospital says "visits" while
+ * founder says "per year". Pin the asymmetry so a refactor that
+ * unified them doesn't swap the noun on either surface.
+ */
+internal fun contractVisitsLabel(visitsCompleted: Int, visitsPerYear: Int): String =
+    "$visitsCompleted / $visitsPerYear visits"
+
+/**
+ * Expiry pill text + colour kind on the hospital's maintenance-
+ * contracts card.
+ *
+ * Decision tree (daysUntilEnd):
+ *   - null (unparseable) → "Expires $prettyEndDate" + Warn
+ *   - <= 0 → "Expires today" + Danger
+ *   - == 1 → "Expires in 1 day" (singular) + Danger
+ *   - <= 7 → "Expires in N days" + Danger (boundary INCLUSIVE)
+ *   - > 7 → "Expires in N days" + Warn (still within the 30d
+ *     near-expiry window the caller gates on)
+ *
+ * Critical cross-surface invariant: the 7-day INCLUSIVE Danger
+ * boundary mirrors [com.equipseva.app.features.founder.expiringAmcPillTextAndKind].
+ * The hospital + founder MUST agree on the urgency cue for the
+ * same contract (r353 cross-surface invariant). A refactor that
+ * relaxed either side to <= 6 would silently desynchronise them.
+ *
+ * Pin the singular "1 day" branch — a regression that always
+ * appended "days" would surface "1 days" on the most-urgent row.
+ */
+internal fun contractExpiryPillTextAndKind(
+    daysUntilEnd: Long?,
+    prettyEndDate: String,
+): Pair<String, PillKind> {
+    val text = when {
+        daysUntilEnd == null -> "Expires $prettyEndDate"
+        daysUntilEnd <= 0L -> "Expires today"
+        daysUntilEnd == 1L -> "Expires in 1 day"
+        else -> "Expires in $daysUntilEnd days"
+    }
+    val kind = if (daysUntilEnd != null && daysUntilEnd <= 7L) PillKind.Danger else PillKind.Warn
+    return text to kind
+}
