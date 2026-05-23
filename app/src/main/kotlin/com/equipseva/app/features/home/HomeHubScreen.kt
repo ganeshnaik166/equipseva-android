@@ -659,7 +659,7 @@ private fun GreetingCard(
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = if (role == UserRole.ENGINEER) "Ready for work today?" else "What needs fixing today?",
+                text = greetingHeroQuestion(role),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
@@ -1067,6 +1067,31 @@ internal fun greetingForHour(hour: Int): String = when {
     hour < 17 -> "Good afternoon"
     else -> "Good evening"
 }
+
+/**
+ * Role-aware hero question on the home greeting card.
+ *
+ *   - ENGINEER → "Ready for work today?" (an availability prompt;
+ *     the engineer's mental model is "should I take a job today?")
+ *   - HOSPITAL (and any non-engineer / null role) → "What needs
+ *     fixing today?" (a service-need prompt; the hospital's mental
+ *     model is "I have broken equipment").
+ *
+ * Pin the question marks — both lines end with '?'. A refactor that
+ * dropped the '?' would soften the call-to-action and disrupt the
+ * card's conversational tone.
+ *
+ * Pin the default-to-hospital branch — null role (cold-load before
+ * the role resolves) falls to the hospital question, which is the
+ * majority-case copy. A refactor that returned blank on null would
+ * leave the hero card looking unfinished during the brief load window.
+ */
+internal fun greetingHeroQuestion(role: UserRole?): String =
+    if (role == UserRole.ENGINEER) {
+        "Ready for work today?"
+    } else {
+        "What needs fixing today?"
+    }
 
 private fun relativeTime(at: Instant?): String =
     if (at == null) "" else relativeTimeFromMinutes(Duration.between(at, Instant.now()).toMinutes())
