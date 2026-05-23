@@ -116,17 +116,11 @@ fun FounderIntegrityScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Integrity flags",
-                subtitle = when {
-                    // Round 360 — when arrived via Payments-row tap-through,
-                    // show whose history we're filtered to. Buyer name first,
-                    // event count second.
-                    !state.filterUserName.isNullOrBlank() ->
-                        "${state.filterUserName} · ${state.rows.size} events"
-                    state.filterUserId != null ->
-                        "Filtered · ${state.rows.size} events"
-                    state.rows.isNotEmpty() -> "${state.rows.size} events"
-                    else -> null
-                },
+                subtitle = integritySubtitle(
+                    filterUserName = state.filterUserName,
+                    filterUserId = state.filterUserId,
+                    rowCount = state.rows.size,
+                ),
                 onBack = onBack,
             )
             // Round 381 — pull-to-refresh. Matches r378-r380 pattern.
@@ -279,4 +273,32 @@ internal fun verdictChipText(label: String, value: String?): String {
  */
 internal fun integrityPassFailPillTextAndKind(pass: Boolean): Pair<String, PillKind> =
     if (pass) "PASS" to PillKind.Success else "FAIL" to PillKind.Danger
+
+/**
+ * Subtitle on the founder Integrity-flags top bar.
+ *
+ * Three-state with filter precedence:
+ *   1. filterUserName non-blank → "$name · $rows events" (named filter
+ *      — arrived via Payments-row tap-through with both id + name in
+ *      the route params)
+ *   2. filterUserId non-null → "Filtered · $rows events" (id-only
+ *      filter — name didn't resolve, but we know the filter is active)
+ *   3. rows non-empty → "$rows events" (unfiltered list)
+ *   4. empty → null (top bar stays clean)
+ *
+ * Pin the filter-name precedence — a refactor that flipped order
+ * (id-first) would show "Filtered" even when we have a name. Pin
+ * "events" noun (NOT "flags" / "attestations") — load-bearing
+ * cross-surface vocabulary anchor.
+ */
+internal fun integritySubtitle(
+    filterUserName: String?,
+    filterUserId: String?,
+    rowCount: Int,
+): String? = when {
+    !filterUserName.isNullOrBlank() -> "$filterUserName · $rowCount events"
+    filterUserId != null -> "Filtered · $rowCount events"
+    rowCount > 0 -> "$rowCount events"
+    else -> null
+}
 
