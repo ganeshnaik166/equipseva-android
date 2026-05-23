@@ -39,14 +39,38 @@ updates:
           - "minor"
           - "patch"
     ignore:
-      # AGP + KSP need a coordinated toolchain upgrade — handled by
-      # hand alongside Hilt + Compose compiler bumps.
+      # Toolchain libs — each minor bump can require a coordinated
+      # change to gradle-wrapper.properties / proguard-rules / the
+      # Kotlin / Compose compiler. Handled by hand via a spike PR.
+      # First attempt (Dependabot opened #938 with AGP 8.7 → 8.13 +
+      # Kotlin 2.1 → 2.3) failed CI because Gradle wrapper wasn't
+      # touched. Block BOTH semver-major AND semver-minor so the
+      # weekly sweep stops re-opening these. Patch bumps still flow
+      # so security-critical fixes for the toolchain itself land.
       - dependency-name: "com.android.application"
-        update-types: ["version-update:semver-major"]
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "com.android.library"
-        update-types: ["version-update:semver-major"]
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "com.google.devtools.ksp"
-        update-types: ["version-update:semver-major"]
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "org.jetbrains.kotlin.android"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "org.jetbrains.kotlin.jvm"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "org.jetbrains.kotlin.plugin.compose"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "org.jetbrains.kotlin.plugin.serialization"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # Hilt's KSP processor must match the Hilt artifact; pin both.
+      - dependency-name: "com.google.dagger:hilt-android"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "com.google.dagger:hilt-android-compiler"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "com.google.dagger.hilt.android"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # Compose BOM minors carry Compose compiler coordination.
+      - dependency-name: "androidx.compose:compose-bom"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
