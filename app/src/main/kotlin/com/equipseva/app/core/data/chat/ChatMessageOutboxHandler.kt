@@ -43,10 +43,9 @@ class ChatMessageOutboxHandler @Inject constructor(
             ?: return OutboxKindHandler.Outcome.Retry(
                 IllegalStateException("No auth session — deferring chat drain"),
             )
-        if (currentUid != payload.senderUserId) {
-            return OutboxKindHandler.Outcome.GiveUp(
-                "Sender mismatch: queued as ${payload.senderUserId}, current auth is $currentUid",
-            )
+        val mismatch = chatMessageSenderMismatchReason(payload.senderUserId, currentUid)
+        if (mismatch != null) {
+            return OutboxKindHandler.Outcome.GiveUp(mismatch)
         }
 
         // Bound the send to 15s. A flaky link can hang the supabase-kt
@@ -83,3 +82,27 @@ data class ChatMessagePayload(
     val body: String,
     val attachments: List<String> = emptyList(),
 )
+
+/**
+ * Shared-device gate for the chat-message drain. Returns null when the
+ * payload-embedded sender matches the currently-signed-in user and a
+ * give-up reason string otherwise. Pure / non-suspend so the policy can
+ * be exercised without standing up the supabase client.
+ *
+ * Pinned semantics:
+ *   * Identity match → null (allow).
+ *   * Mismatch → reason string with both ids embedded for the ops log.
+ *   * Case-sensitive comparison — UUIDs are normalised lowercase on the
+ *     wire, but pin so a refactor that uppercases either side doesn't
+ *     silently start dropping its own messages.
+ *   * Both empty strings count as a match (defensive — should never
+ *     happen, but pin total shape rather than NPE).
+ */
+internal fun chatMessageSenderMismatchReason(
+    senderUserId: String,
+    currentUserId: String,
+): String? = if (senderUserId == currentUserId) {
+    null
+} else {
+    "Sender mismatch: queued as $senderUserId, current auth is $currentUserId"
+}
