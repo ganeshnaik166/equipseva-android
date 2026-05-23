@@ -635,12 +635,13 @@ private fun EscrowDisputeSheet(
                 minLines = 3,
                 maxLines = 6,
             )
+            val canOpen = canSubmitEngineerResponse(reason, submitting)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
-                    .background(if (reason.trim().length >= 10 && !submitting) SevaDanger500 else SevaInk300)
-                    .clickable(enabled = reason.trim().length >= 10 && !submitting) {
+                    .background(if (canOpen) SevaDanger500 else SevaInk300)
+                    .clickable(enabled = canOpen) {
                         onSubmit(reason.trim())
                     }
                     .padding(vertical = 12.dp),
