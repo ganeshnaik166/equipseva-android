@@ -1014,7 +1014,7 @@ private fun SlaBreachCard(b: AmcRepository.AmcSlaBreach) {
         )
         if (b.creditIssuedRupees > 0) {
             Pill(
-                text = "Credit ${formatRupees(b.creditIssuedRupees)}",
+                text = slaBreachCreditPillText(b.creditIssuedRupees),
                 kind = PillKind.Lime,
             )
         }
@@ -1294,3 +1294,18 @@ internal fun autoPayHaltedPillText(status: String): String = when (status) {
     "completed" -> "Completed"
     else -> "Expired"
 }
+
+/**
+ * Credit pill text on the AMC SLA-breach card: "Credit ₹X".
+ *
+ * Pin the leading "Credit " prefix — load-bearing context that this
+ * is COMPENSATION owed to the hospital (deducted from the engineer's
+ * pool share via the SLA-breach trigger). A refactor that surfaced
+ * the bare amount would lose the direction-of-payment signal.
+ *
+ * Caller gates on > 0 to render the pill; pin the helper stays
+ * total so a refactor that always-renders surfaces the literal
+ * "Credit ₹0" instead of silently hiding.
+ */
+internal fun slaBreachCreditPillText(creditIssuedRupees: Double): String =
+    "Credit ${formatRupees(creditIssuedRupees)}"
