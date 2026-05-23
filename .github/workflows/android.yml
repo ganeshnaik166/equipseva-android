@@ -81,6 +81,31 @@ jobs:
       - name: Grant gradlew execute
         run: chmod +x ./gradlew
 
+      # Run the 2,400+ pure-JUnit / Robolectric tests before the
+      # assembleDebug + assembleRelease build steps. Most of the
+      # branch's recent commits are test pins for regression targets
+      # (T&S cross-user gates, server CHECK mirrors, glyph codepoints,
+      # locale stability) — if any of them fail, the PR must block
+      # before R8 even runs.
+      - name: testDebugUnitTest
+        run: ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace
+
+      # Android lint — gates on UnrememberedMutableState (Compose state
+      # alloc bugs), AcceptsUserCertificates (release-build cert trust),
+      # and the rest of the warning matrix. A previous PR shipped 3
+      # unremembered MarkerState allocations that lint flagged as errors;
+      # without this step they'd have ridden into main unnoticed.
+      - name: lintDebug
+        run: ./gradlew :app:lintDebug --no-daemon --stacktrace
+
+      - name: Upload lint report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-debug.html
+          if-no-files-found: warn
+
       - name: assembleDebug
         run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
 

@@ -156,6 +156,16 @@ jobs:
       - name: Grant gradlew execute
         run: chmod +x ./gradlew
 
+      # Defense-in-depth: tag is only pushed after a green CI on main,
+      # but a failed test should NEVER produce a signed AAB. Re-run the
+      # 2,400+ unit tests + Android lint here so a broken commit can't
+      # be packaged for Play even if someone tags from a stale branch.
+      - name: testDebugUnitTest
+        run: ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace
+
+      - name: lintDebug
+        run: ./gradlew :app:lintDebug --no-daemon --stacktrace
+
       - name: Build signed AAB
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
