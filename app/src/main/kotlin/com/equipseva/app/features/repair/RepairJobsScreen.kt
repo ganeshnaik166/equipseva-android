@@ -138,11 +138,7 @@ fun RepairJobsScreen(
                 // openJobs reflects whatever the upstream radius filter
                 // returned, which is country-wide for null. Show the count
                 // honestly; the active radius lives on the map chip below.
-                subtitle = if (state.radiusKm == null) {
-                    "${openJobs.size} open · all radii"
-                } else {
-                    "${openJobs.size} open within ${state.radiusKm} km"
-                },
+                subtitle = repairJobsFeedSubtitle(openJobs.size, state.radiusKm),
                 right = {
                     Box(
                         modifier = Modifier
@@ -658,3 +654,25 @@ internal fun openStatCardLabel(radiusKm: Int?): String =
  */
 internal fun pendingBidsValue(pending: Int): String =
     if (pending > 0) pending.toString() else "—"
+
+/**
+ * Top-bar subtitle on the engineer Available-Jobs feed.
+ *
+ *   - radiusKm == null → "N open · all radii"
+ *   - radiusKm != null → "N open within Nkm"
+ *
+ * Critical pin: the radius-null branch says "all radii" (NOT "all
+ * areas" or "everywhere"). The plural "radii" mirrors the radius-
+ * filter chip vocabulary on the same screen — pin so a refactor
+ * doesn't drift one term and create vocabulary mismatch within the
+ * single surface.
+ *
+ * The "within Nkm" form (no space between N and km) matches the
+ * radius-chip text on the same screen — pin both for consistency.
+ */
+internal fun repairJobsFeedSubtitle(openCount: Int, radiusKm: Int?): String =
+    if (radiusKm == null) {
+        "$openCount open · all radii"
+    } else {
+        "$openCount open within $radiusKm km"
+    }
