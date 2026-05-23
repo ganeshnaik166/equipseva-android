@@ -185,7 +185,7 @@ fun FounderDashboardScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Admin dashboard",
-                subtitle = state.founderEmail?.let { "Founder · $it" } ?: "Founder",
+                subtitle = founderDashboardSubtitle(state.founderEmail),
                 onBack = onBack,
             )
             // Round 378 — pull-to-refresh on the founder dashboard.
@@ -881,3 +881,22 @@ private fun TopEngineerRow(
  */
 internal fun topEngineerJobsReleasedLabel(jobsCompleted: Long): String =
     "$jobsCompleted job${if (jobsCompleted == 1L) "" else "s"} released"
+
+/**
+ * Subtitle on the founder admin dashboard top bar.
+ *
+ *   - email non-null → "Founder · $email" (the founder's identity
+ *     surfaced explicitly, useful when the same device has signed in
+ *     as different founders historically).
+ *   - email null → bare "Founder" (cold-load before session resolves).
+ *
+ * Pin the "Founder" prefix in both branches — load-bearing role
+ * confirmation on the highest-privilege surface. A refactor that
+ * dropped the prefix on the email branch (just "$email") would lose
+ * the role-confirmation signal that distinguishes this admin
+ * dashboard from a regular profile screen.
+ *
+ * Pin the U+00B7 middle-dot separator.
+ */
+internal fun founderDashboardSubtitle(founderEmail: String?): String =
+    founderEmail?.let { "Founder · $it" } ?: "Founder"
