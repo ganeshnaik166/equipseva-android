@@ -14,8 +14,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -91,6 +93,12 @@ fun DeleteAccountSheet(
                 isError = passwordError != null,
                 supportingText = passwordError?.let { { Text(it) } },
                 visualTransformation = PasswordVisualTransformation(),
+                // KeyboardType.Password disables predictive text on the
+                // soft keyboard. Without this, Android adds the typed
+                // password to the per-user dictionary and a subsequent
+                // typo elsewhere can suggest the real password as a
+                // completion — a documented PII-leak class.
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 enabled = !deleting,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
