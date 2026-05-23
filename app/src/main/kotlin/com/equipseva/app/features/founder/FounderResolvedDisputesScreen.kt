@@ -195,8 +195,10 @@ private fun ResolvedRow(
         }
         row.resolvedAt?.let {
             Text(
-                "Resolved: ${prettyDateTime(it)}" +
-                    (row.resolvedByName?.let { n -> " · $n" } ?: ""),
+                resolvedDisputeResolvedLine(
+                    prettyResolvedAt = prettyDateTime(it),
+                    resolvedByName = row.resolvedByName,
+                ),
                 color = SevaInk500,
                 fontSize = 11.sp,
             )
@@ -265,3 +267,21 @@ internal fun resolvedDisputePartiesLine(hospitalName: String?, engineerName: Str
  */
 internal fun resolvedDisputesSubtitle(rowCount: Int): String? =
     if (rowCount > 0) "$rowCount in last 30 days" else null
+
+/**
+ * Resolved-by line on the founder resolved-dispute row.
+ *
+ * Format: "Resolved: $prettyDate" with optional "· $name" suffix
+ * when the resolvedByName is non-null.
+ *
+ * Pin the U+00B7 middle-dot separator on the name suffix. Pin that
+ * a null resolvedByName drops the suffix entirely (no naked trailing
+ * dot). The resolvedByName tracks WHICH founder admin actioned the
+ * dispute — load-bearing audit-trail context but optional because
+ * legacy resolutions predate the founder_user_id stamp.
+ */
+internal fun resolvedDisputeResolvedLine(
+    prettyResolvedAt: String,
+    resolvedByName: String?,
+): String = "Resolved: $prettyResolvedAt" +
+    (resolvedByName?.let { " · $it" } ?: "")
