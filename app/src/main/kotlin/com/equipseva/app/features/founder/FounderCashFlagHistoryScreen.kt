@@ -108,7 +108,7 @@ fun FounderCashFlagHistoryScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Cash-flag history",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let { "$it responses · last 365d" },
+                subtitle = cashFlagHistorySubtitle(state.rows.size),
                 onBack = onBack,
             )
             // Round 410 — pull-to-refresh. Matches r378-r400 pattern.
@@ -148,12 +148,7 @@ fun FounderCashFlagHistoryScreen(
 
 @Composable
 private fun CashFlagRow(row: FounderRepository.CashFlagHistoryRow) {
-    val (pillText, pillKind) = when (row.response) {
-        "asked_cash" -> "Cash asked" to PillKind.Danger
-        "no_cash"    -> "No cash" to PillKind.Success
-        "declined"   -> "Declined" to PillKind.Default
-        else         -> row.response to PillKind.Default
-    }
+    val (pillText, pillKind) = cashFlagResponsePillTextAndKind(row.response)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -166,13 +161,13 @@ private fun CashFlagRow(row: FounderRepository.CashFlagHistoryRow) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = row.jobNumber ?: "RPR-${row.repairJobId.take(6)}",
+                    text = cashFlagRowTitle(row.jobNumber, row.repairJobId),
                     color = SevaInk900,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                 )
                 Text(
-                    text = row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital",
+                    text = cashFlagRowHospitalLabel(row.hospitalName),
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
@@ -181,10 +176,92 @@ private fun CashFlagRow(row: FounderRepository.CashFlagHistoryRow) {
             Pill(text = pillText, kind = pillKind)
         }
         row.respondedAt?.let {
-            Text("Responded: ${it.take(16).replace('T', ' ')}", color = SevaInk500, fontSize = 11.sp)
+            Text("Responded: ${cashFlagRespondedAtLabel(it)}", color = SevaInk500, fontSize = 11.sp)
         }
         row.completedAt?.let {
             Text("Job completed: ${prettyDate(it)}", color = SevaInk500, fontSize = 11.sp)
         }
     }
 }
+
+/**
+ * Pill text + colour kind for a cash-flag-history row.
+ *
+ * Wire CHECK constraint enum: `asked_cash`, `no_cash`, `declined`.
+ *
+ * Critical regression target:
+ *   - `asked_cash` → "Cash asked" + Danger (the load-bearing
+ *     flag — engineer admitted to soliciting cash; founder uses
+ *     this to make the suspension call).
+ *   - `no_cash` → "No cash" + Success (clean response).
+ *   - `declined` → "Declined" + Default (engineer didn't answer
+ *     the survey; neutral colour, not Warn — pin so a refactor
+ *     that escalated this to Warn surfaces).
+ *   - unknown → raw wire string + Default (forward-compat for a
+ *     new CHECK enum value).
+ *
+ * Pin the EXACT wire strings (`asked_cash`, not `asked-cash` or
+ * `askedCash`) so a server-side rename surfaces here rather than
+ * silently downgrading every row to the unknown branch.
+ */
+internal fun cashFlagResponsePillTextAndKind(response: String): Pair<String, PillKind> =
+    when (response) {
+        "asked_cash" -> "Cash asked" to PillKind.Danger
+        "no_cash"    -> "No cash" to PillKind.Success
+        "declined"   -> "Declined" to PillKind.Default
+        else         -> response to PillKind.Default
+    }
+
+/**
+ * Title for a cash-flag-history row: prefer the server jobNumber,
+ * fall back to "RPR-${first 6 chars of repairJobId}". Sibling of
+ * the other founder queue row titles (escrow / parts / resolved /
+ * outliers).
+ */
+internal fun cashFlagRowTitle(jobNumber: String?, repairJobId: String): String =
+    jobNumber ?: "RPR-${repairJobId.take(6)}"
+
+/**
+ * Hospital-name fallback for a cash-flag-history row. Mirrors the
+ * other founder queues — null/blank surfaces "Hospital".
+ */
+internal fun cashFlagRowHospitalLabel(hospitalName: String?): String =
+    hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"
+
+/**
+ * Responded-at timestamp label on the cash-flag-history row.
+ *
+ * Truncates to the first 16 chars of the ISO-8601 timestamp (drops
+ * seconds + timezone, leaving "YYYY-MM-DDTHH:MM") and swaps the
+ * ISO 'T' separator for a space → "YYYY-MM-DD HH:MM".
+ *
+ * Pin take(16) — load-bearing because longer ISO strings ("…:30Z",
+ * "…:30+05:30") get visually noisy in the row's tight 11sp subline.
+ * A drift to take(19) would leak the seconds; take(10) would lose
+ * the time-of-day. Both would change how the founder cross-references
+ * timestamps with audit logs.
+ *
+ * Pin the T→space swap — pin so a refactor that kept the raw ISO
+ * shape doesn't slip in (the 'T' is a programmer convention, not
+ * something the founder should see in the UI).
+ */
+internal fun cashFlagRespondedAtLabel(rawIso: String): String =
+    rawIso.take(16).replace('T', ' ')
+
+/**
+ * Subtitle on the founder Cash-Flag History top bar.
+ *
+ * Returns null on empty list. Otherwise reads "N responses · last 365d".
+ *
+ * Critical pin: the "365d" rolling window — distinct from the 30d
+ * windows on other founder queues (escrow resolved, AMC expiring).
+ * Cash-flag history queries the full year because suspensions stay
+ * relevant beyond the immediate triage window.
+ *
+ * Pin "responses" noun — distinct from "flags" (which counts
+ * server-side cash_flags rows). A response is a survey reply
+ * (asked_cash / no_cash / declined); the cash-flag suspension
+ * trigger counts asked_cash responses specifically.
+ */
+internal fun cashFlagHistorySubtitle(rowCount: Int): String? =
+    if (rowCount > 0) "$rowCount responses · last 365d" else null

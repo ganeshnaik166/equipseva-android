@@ -85,18 +85,19 @@ class ChangeEmailViewModel @Inject constructor(
         val current = _state.value
         if (current.submitting) return
 
-        val password = current.currentPassword
-        val trimmed = current.newEmail.trim()
-        val passwordError = if (password.isBlank()) "Enter your current password" else null
-        val emailError = when {
-            trimmed.isBlank() -> "Enter your new email"
-            !Validators.emailIsValid(trimmed) -> "Enter a valid email address"
-            else -> null
-        }
-        if (passwordError != null || emailError != null) {
-            _state.update { it.copy(passwordError = passwordError, emailError = emailError) }
+        val errors = validateChangeEmail(current.currentPassword, current.newEmail)
+        if (errors.hasAny) {
+            _state.update {
+                it.copy(
+                    passwordError = errors.passwordError,
+                    emailError = errors.emailError,
+                )
+            }
             return
         }
+
+        val password = current.currentPassword
+        val trimmed = current.newEmail.trim()
 
         _state.update { it.copy(submitting = true, errorMessage = null) }
         viewModelScope.launch {
@@ -133,4 +134,35 @@ class ChangeEmailViewModel @Inject constructor(
             )
         }
     }
+}
+
+/**
+ * Inline-validation errors for the change-email form. Two fields,
+ * each surfaced separately as field-level error copy.
+ */
+internal data class ChangeEmailErrors(
+    val passwordError: String?,
+    val emailError: String?,
+) {
+    val hasAny: Boolean get() = passwordError != null || emailError != null
+}
+
+/**
+ * Pure form-validation for [ChangeEmailViewModel]. Extracted so the
+ * gate can be exercised without the VM's auth/profile-repository
+ * scaffolding.
+ */
+internal fun validateChangeEmail(
+    currentPassword: String,
+    newEmail: String,
+): ChangeEmailErrors {
+    val passwordError =
+        if (currentPassword.isBlank()) "Enter your current password" else null
+    val trimmed = newEmail.trim()
+    val emailError = when {
+        trimmed.isBlank() -> "Enter your new email"
+        !Validators.emailIsValid(trimmed) -> "Enter a valid email address"
+        else -> null
+    }
+    return ChangeEmailErrors(passwordError = passwordError, emailError = emailError)
 }

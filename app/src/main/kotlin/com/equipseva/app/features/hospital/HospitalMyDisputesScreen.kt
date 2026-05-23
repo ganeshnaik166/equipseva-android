@@ -110,19 +110,14 @@ fun HospitalMyDisputesScreen(
     // recomposition (PullToRefresh state ticks, scroll, realtime). Keyed
     // on state.rows so the cached value invalidates when the list itself
     // changes. Mirror of the r387 fix on EngineerMyDisputes.
-    val openCount = androidx.compose.runtime.remember(state.rows) {
-        state.rows.count { it.status == "in_dispute" }
-    }
-    val resolvedCount = androidx.compose.runtime.remember(state.rows) {
-        state.rows.size - state.rows.count { it.status == "in_dispute" }
+    val subtitle = androidx.compose.runtime.remember(state.rows) {
+        hospitalDisputesSubtitle(state.rows)
     }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Your disputes",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let {
-                    "$openCount open · $resolvedCount resolved · last 12 months"
-                },
+                subtitle = subtitle,
                 onBack = onBack,
             )
             // Round 387 — pull-to-refresh.
@@ -167,17 +162,7 @@ private fun DisputeRow(
     row: RepairJobEscrowRepository.HospitalDisputeRow,
     onClick: () -> Unit,
 ) {
-    val (pillText, pillKind) = when {
-        row.status == "in_dispute" -> "Under review" to PillKind.Danger
-        // "Released to engineer" was previously rendered with PillKind.Warn
-        // (yellow) which reads as "in progress" — but for the hospital this
-        // is a closed, unfavourable outcome (funds went to engineer). Render
-        // it neutral instead so it doesn't compete with the green "Refunded
-        // to you" success row in the same list.
-        row.outcome == "release" -> "Released to engineer" to PillKind.Default
-        row.outcome == "refund" -> "Refunded to you" to PillKind.Success
-        else -> row.status.replaceFirstChar { it.uppercase() } to PillKind.Default
-    }
+    val (pillText, pillKind) = hospitalDisputePillTextAndKind(row.status, row.outcome)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -191,19 +176,13 @@ private fun DisputeRow(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    row.jobNumber ?: "RPR-${row.repairJobId.take(6)}",
+                    hospitalDisputeRowTitle(row.jobNumber, row.repairJobId),
                     color = SevaInk900,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                 )
                 Text(
-                    // The "(unnamed)" fallback read as a missing-data
-                    // bug to hospital users. If the join didn't surface
-                    // the engineer's display name (rare but happens
-                    // with new accounts), the row category — "Engineer"
-                    // — communicates the same thing without sounding
-                    // like a dev placeholder.
-                    "${formatRupees(row.amountRupees)} · ${row.engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"}",
+                    hospitalDisputeAmountAndEngineerLine(row.amountRupees, row.engineerName),
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
@@ -224,4 +203,78 @@ private fun DisputeRow(
             Text("Resolved: ${prettyDate(it)}", color = SevaInk500, fontSize = 11.sp)
         }
     }
+}
+
+/**
+ * "N open · M resolved · last 12 months" subtitle on the hospital
+ * disputes screen. Null when the list is empty so the top-bar doesn't
+ * render a phantom "0 open · 0 resolved" line on cold-load. Extracted
+ * so the open/resolved split + the empty-list short-circuit are
+ * unit-testable without the Compose runtime.
+ *
+ * Status semantics: "in_dispute" = open; anything else (released /
+ * refunded / resolved / future-status) counts as resolved.
+ */
+internal fun hospitalDisputesSubtitle(
+    rows: List<com.equipseva.app.core.data.escrow.RepairJobEscrowRepository.HospitalDisputeRow>,
+): String? {
+    if (rows.isEmpty()) return null
+    val open = rows.count { it.status == "in_dispute" }
+    val resolved = rows.size - open
+    return "$open open · $resolved resolved · last 12 months"
+}
+
+/**
+ * Pill text + colour kind for the hospital's dispute row.
+ *
+ * Critical region: role-aware copy AND a deliberate
+ * Default-not-Warn choice on the "release" outcome.
+ *
+ *   1. status == "in_dispute" → "Under review" + Danger (same
+ *      wire string as the engineer-side; same status priority).
+ *   2. outcome == "release" → "Released to engineer" + **Default**.
+ *      Was Warn previously but Warn (amber) read as "in progress";
+ *      for the hospital, release is a closed, unfavourable outcome
+ *      and shouldn't compete visually with the green "Refunded
+ *      to you" success row in the same list. Pin Default here so
+ *      a refactor that "harmonises" with the engineer's Success
+ *      mapping (where release IS the good outcome for them)
+ *      doesn't bleed across roles.
+ *   3. outcome == "refund" → "Refunded to you" + Success. Pin
+ *      "you" — the hospital-facing string. The engineer's view
+ *      uses "Refunded to hospital" for the same wire data.
+ *   4. fallback → status capitalised + Default.
+ */
+internal fun hospitalDisputePillTextAndKind(
+    status: String,
+    outcome: String?,
+): Pair<String, PillKind> = when {
+    status == "in_dispute" -> "Under review" to PillKind.Danger
+    outcome == "release" -> "Released to engineer" to PillKind.Default
+    outcome == "refund" -> "Refunded to you" to PillKind.Success
+    else -> status.replaceFirstChar { it.uppercase() } to PillKind.Default
+}
+
+/**
+ * Title on the hospital's dispute row: prefer the server jobNumber,
+ * fall back to "RPR-${first 6 chars of repairJobId}". Sibling of all
+ * the other dispute / escrow titles across surfaces.
+ */
+internal fun hospitalDisputeRowTitle(jobNumber: String?, repairJobId: String): String =
+    jobNumber ?: "RPR-${repairJobId.take(6)}"
+
+/**
+ * Subtitle on the hospital's dispute row: "₹X · Engineer".
+ *
+ * Critical pin: the "(unnamed)" fallback was deliberately collapsed
+ * to "Engineer" (mirror rounds 37 + 53). To the hospital user, a
+ * null engineer name reads as a missing-data bug, not as a useful
+ * fallback. Pin so a refactor doesn't slip in.
+ */
+internal fun hospitalDisputeAmountAndEngineerLine(
+    amountRupees: Double,
+    engineerName: String?,
+): String {
+    val eng = engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"
+    return "${formatRupees(amountRupees)} · $eng"
 }

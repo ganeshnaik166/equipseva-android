@@ -508,18 +508,13 @@ private fun EngineerSuspensionBanner(
             )
         }
         Text(
-            text = suspension.reason
-                ?: run {
-                    val n = suspension.flagCount90d
-                    val flagPhrase = if (n == 1) "1 hospital cash-payment flag" else "$n hospital cash-payment flags"
-                    "$flagPhrase in the last 90 days. EquipSeva paused your availability while we review."
-                },
+            text = engineerSuspensionReason(suspension.reason, suspension.flagCount90d),
             fontSize = 12.sp,
             color = com.equipseva.app.designsystem.theme.SevaInk700,
         )
         suspension.suspendedAt?.let {
             Text(
-                text = "Paused: ${it.take(19).replace('T', ' ')}",
+                text = "Paused: ${formatSuspensionTimestamp(it)}",
                 fontSize = 11.sp,
                 color = com.equipseva.app.designsystem.theme.SevaInk500,
             )
@@ -534,19 +529,7 @@ private fun EngineerSuspensionBanner(
 
 @Composable
 private fun AccountTypeSection(role: UserRole?, onEditRole: () -> Unit) {
-    // role can legitimately be null while the profile is mid-fetch — in
-    // that case we want a neutral label, not a misleading "Hospital admin"
-    // (which used to appear because the old `else` branch swallowed null
-    // and ENGINEER-not-equal cases together). Per-role labels now come
-    // from UserRole.displayName so the role-editor sheet + snackbar +
-    // this title all stay in sync.
-    val title = role?.displayName ?: "Loading…"
-    val subtitle = when (role) {
-        UserRole.ENGINEER -> "You bid on and complete repair jobs"
-        UserRole.HOSPITAL -> "You book engineers for repairs"
-        null -> ""
-        else -> role.description
-    }
+    val (title, subtitle) = accountTypeSectionCopy(role)
     Text(
         text = "Account type",
         fontSize = 18.sp,
@@ -700,14 +683,7 @@ private fun buildProfileSections(
 
     val business = mutableListOf<SettingsRow>().apply {
         if (isEngineer) {
-            val (kycLabel, kycTone) = when (engineerStatus) {
-                null -> "Start" to StatusTone.Warn
-                VerificationStatus.Pending ->
-                    if (engineerKycSubmitted) "In review" to StatusTone.Info
-                    else "Draft" to StatusTone.Warn
-                VerificationStatus.Verified -> "Verified" to StatusTone.Success
-                VerificationStatus.Rejected -> "Rejected" to StatusTone.Danger
-            }
+            val (kycLabel, kycTone) = kycRowLabelAndTone(engineerStatus, engineerKycSubmitted)
             add(SettingsRow(
                 icon = Icons.Outlined.Shield,
                 label = "Verification (KYC)",
@@ -797,6 +773,26 @@ private fun buildProfileSections(
     }
 }
 
+/**
+ * Verification-row label + tone shown next to "Verification (KYC)" on
+ * the engineer Profile. The four-way map encodes the canonical KYC
+ * lifecycle, with the extra Draft-vs-In-review distinction for
+ * Pending: server-side the engineer is in a single "pending" bucket,
+ * but the client splits it so the row reflects whether the engineer
+ * has actually finished uploading the three required docs.
+ */
+internal fun kycRowLabelAndTone(
+    engineerStatus: VerificationStatus?,
+    engineerKycSubmitted: Boolean,
+): Pair<String, StatusTone> = when (engineerStatus) {
+    null -> "Start" to StatusTone.Warn
+    VerificationStatus.Pending ->
+        if (engineerKycSubmitted) "In review" to StatusTone.Info
+        else "Draft" to StatusTone.Warn
+    VerificationStatus.Verified -> "Verified" to StatusTone.Success
+    VerificationStatus.Rejected -> "Rejected" to StatusTone.Danger
+}
+
 @Composable
 private fun ProfileHero(
     displayName: String,
@@ -809,12 +805,7 @@ private fun ProfileHero(
     onPickAvatar: () -> Unit,
     onEdit: () -> Unit,
 ) {
-    val initials = displayName
-        .split(' ', limit = 2)
-        .filter { it.isNotBlank() }
-        .map { it.first().uppercaseChar() }
-        .joinToString("")
-        .ifBlank { "U" }
+    val initials = profileHeroInitials(displayName)
     // Use UserRole.displayName so the Profile hero pill matches the
     // AccountTypeSection title + role-editor sheet ("Hospital admin",
     // "Biomedical engineer"). Round 12 unified the rest; the hero
@@ -1097,7 +1088,7 @@ private fun RoleEditorSheet(
                 // would land the user on an empty / fallback screen. Mirror
                 // the gating from RoleSelectScreen: render but disabled with
                 // a "Soon" pill.
-                val v1Active = role == UserRole.HOSPITAL || role == UserRole.ENGINEER
+                val v1Active = isV1ActiveRole(role)
                 RoleOption(
                     role = role,
                     selected = role == selected,
@@ -1321,3 +1312,95 @@ private fun shareExportFile(context: Context, absolutePath: String) {
     }
     context.startActivity(chooser)
 }
+
+/**
+ * User-facing reason copy on the engineer-suspension banner.
+ * Server-provided [explicitReason] wins; otherwise compose a generic
+ * line referencing the flag count in the last 90 days.
+ *
+ * Singular/plural split: 1 flag → "1 hospital cash-payment flag",
+ * 2+ → "N hospital cash-payment flags". Pin so a regression to
+ * always-interpolated count doesn't surface "1 flags" on the most
+ * common one-strike case.
+ */
+internal fun engineerSuspensionReason(explicitReason: String?, flagCount90d: Int): String {
+    if (explicitReason != null) return explicitReason
+    val flagPhrase = if (flagCount90d == 1) {
+        "1 hospital cash-payment flag"
+    } else {
+        "$flagCount90d hospital cash-payment flags"
+    }
+    return "$flagPhrase in the last 90 days. EquipSeva paused your availability while we review."
+}
+
+/**
+ * Trim an ISO-8601 timestamp to "YYYY-MM-DD HH:MM:SS" for the
+ * "Paused: …" line on the suspension banner. Replaces the ISO 'T'
+ * separator with a space so the line reads naturally rather than
+ * forcing a context switch back to machine-readable shape.
+ *
+ * Inputs shorter than 19 chars take whatever's there (defensive —
+ * a server-side rename to a shorter format would still render).
+ */
+internal fun formatSuspensionTimestamp(iso: String): String =
+    iso.take(19).replace('T', ' ')
+
+/**
+ * Account-type section copy on the Profile screen. Role can legitimately
+ * be null while the profile is mid-fetch — render a neutral "Loading…"
+ * title in that case, NOT a misleading "Hospital admin" fallback (a
+ * previous regression collapsed null + ENGINEER-not-equal into the same
+ * branch). Per-role title comes from [UserRole.displayName] so the
+ * role-editor sheet + snackbar + this section all stay in sync.
+ *
+ * Engineer/Hospital get hand-written first-person subtitles ("You bid
+ * on…", "You book…"); other roles fall back to [UserRole.description].
+ */
+internal fun accountTypeSectionCopy(role: UserRole?): Pair<String, String> {
+    val title = role?.displayName ?: "Loading…"
+    val subtitle = when (role) {
+        UserRole.ENGINEER -> "You bid on and complete repair jobs"
+        UserRole.HOSPITAL -> "You book engineers for repairs"
+        null -> ""
+        else -> role.description
+    }
+    return title to subtitle
+}
+
+/**
+ * Initials shown on the Profile hero avatar.
+ *
+ * Distinct from [com.equipseva.app.core.util.initialsOf]:
+ *   - This helper uses "U" as the fallback (for "User"); initialsOf
+ *     uses "?". The Profile hero is the user's OWN screen — "U" is
+ *     a sensible default for an unnamed self-record. "?" would read
+ *     as "we don't know who you are", which is wrong.
+ *   - This helper uses Char-split + first(); initialsOf uses String-
+ *     split + firstOrNull(). Behaviour is equivalent (filter +
+ *     isNotBlank guards the first() call).
+ *
+ * Pin both deviations so a refactor that "unified" with initialsOf
+ * (changing the fallback or trimming behaviour) doesn't slip in.
+ */
+internal fun profileHeroInitials(displayName: String): String =
+    displayName
+        .split(' ', limit = 2)
+        .filter { it.isNotBlank() }
+        .map { it.first().uppercaseChar() }
+        .joinToString("")
+        .ifBlank { "U" }
+
+/**
+ * v1 launch gating — true when the role has a shipped Home hub.
+ *
+ * HOSPITAL + ENGINEER ship with full hubs in v1. SUPPLIER /
+ * MANUFACTURER / LOGISTICS are marketplace roles that need their own
+ * home hubs + dashboards which haven't shipped — switching to one
+ * would land the user on an empty / fallback screen.
+ *
+ * Pin so a refactor that flipped any of the marketplace roles to
+ * `true` without shipping the hub would surface here as a deliberate
+ * change.
+ */
+internal fun isV1ActiveRole(role: UserRole): Boolean =
+    role == UserRole.HOSPITAL || role == UserRole.ENGINEER

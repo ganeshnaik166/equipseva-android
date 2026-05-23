@@ -87,12 +87,7 @@ class AddPhoneViewModel @Inject constructor(
 
     fun onSave() {
         val phone = _state.value.phone.trim()
-        // E.164 floor: '+' + country code (1-3) + national number (4-14) =
-        // 8-18 chars. The previous '< 10' floor accepted '+12345678' (9
-        // chars) which silently routed SMS/WhatsApp to the wrong number.
-        // 11 covers India ('+91' + 10) plus the global minimum where it
-        // matters.
-        if (!phone.startsWith("+") || phone.length < 11) {
+        if (!isPhoneE164Routable(phone)) {
             _state.update { it.copy(error = "Enter the number in international format, e.g. +919999999999") }
             return
         }
@@ -162,9 +157,10 @@ fun AddPhoneScreen(
                 // Surface a hint while the user is mid-typing so the
                 // greyed-out Save button isn't a mystery. supportingText
                 // priorities: server / save error > length-hint > silent.
-                val lengthHint = if (state.error == null && state.phone.length in 4..10) {
-                    "Enter 10 digits after +91"
-                } else null
+                val lengthHint = addPhoneLengthHint(
+                    hasError = state.error != null,
+                    phoneLength = state.phone.length,
+                )
                 OutlinedTextField(
                     value = state.phone,
                     onValueChange = viewModel::onPhoneChange,
@@ -198,3 +194,38 @@ fun AddPhoneScreen(
         }
     }
 }
+
+/**
+ * True when [phone] looks like an E.164-routable phone number: starts
+ * with '+' and is at least 11 chars total. The 11-char floor covers
+ * India ('+91' + 10) plus the global minimum that matters in practice.
+ *
+ * The previous `< 10` floor accepted "+12345678" (9 chars), which
+ * silently routed SMS/WhatsApp dispatches to the wrong number on
+ * carriers that strip a leading country code. Pin so a future relax
+ * is reviewed.
+ */
+internal fun isPhoneE164Routable(phone: String): Boolean =
+    phone.startsWith("+") && phone.length >= 11
+
+/**
+ * Length-hint supportingText on the Add-Phone screen.
+ *
+ * Priority: server / save error > length-hint > silent.
+ *
+ * Surfaces "Enter 10 digits after +91" while the user is mid-typing
+ * (phone length 4..10 inclusive) so the greyed-out Save button isn't
+ * a mystery. Suppressed when:
+ *   - hasError = true (server error takes precedence — show that
+ *     in supportingText instead).
+ *   - phoneLength < 4 (too early; the user is still typing the +91
+ *     prefix).
+ *   - phoneLength >= 11 (Save will fire, no hint needed).
+ *
+ * Pin the 4..10 window — a refactor that widened to 0..10 would
+ * surface the hint on a blank field (noisy), and narrowing to 6..10
+ * would skip the hint right after the user typed the country code
+ * (defeating its purpose).
+ */
+internal fun addPhoneLengthHint(hasError: Boolean, phoneLength: Int): String? =
+    if (!hasError && phoneLength in 4..10) "Enter 10 digits after +91" else null

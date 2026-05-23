@@ -235,11 +235,7 @@ fun MaintenanceContractsScreen(
                     state.items.isEmpty() -> EmptyStateView(
                         icon = Icons.Outlined.CalendarMonth,
                         title = "No maintenance contracts yet",
-                        subtitle = if (state.role == UserRole.ENGINEER) {
-                            "Contracts where a hospital adds you as primary or fallback engineer will appear here."
-                        } else {
-                            "Set up monthly maintenance with a verified engineer for predictable preventive care."
-                        },
+                        subtitle = maintenanceContractsEmptySubtitle(state.role),
                         ctaLabel = if (state.role == UserRole.HOSPITAL) "Browse engineers" else null,
                         onCta = if (state.role == UserRole.HOSPITAL) onBrowseEngineers else null,
                     )
@@ -304,7 +300,7 @@ private fun ContractCard(
         ) {
             Pill(text = prettyFrequency(item.visitFrequency), kind = PillKind.Neutral)
             Text(
-                text = "${item.visitsCompleted} / ${item.visitsPerYear} visits",
+                text = contractVisitsLabel(item.visitsCompleted, item.visitsPerYear),
                 color = SevaInk700,
                 fontSize = 12.sp,
             )
@@ -320,16 +316,11 @@ private fun ContractCard(
             && com.equipseva.app.core.util.isWithinDays(item.endDate, 30)
         ) {
             val n = com.equipseva.app.core.util.daysUntil(item.endDate)
-            val label = when {
-                n == null -> "Expires ${prettyDate(item.endDate)}"
-                n <= 0L -> "Expires today"
-                n == 1L -> "Expires in 1 day"
-                else -> "Expires in $n days"
-            }
-            Pill(
-                text = label,
-                kind = if (n != null && n <= 7L) PillKind.Danger else PillKind.Warn,
+            val (label, kind) = contractExpiryPillTextAndKind(
+                daysUntilEnd = n,
+                prettyEndDate = prettyDate(item.endDate),
             )
+            Pill(text = label, kind = kind)
         }
         if (!item.nextVisitAt.isNullOrBlank()) {
             Text(
@@ -343,7 +334,21 @@ private fun ContractCard(
 
 @Composable
 internal fun StatusPillFor(status: String) {
-    val (label, kind) = when (status.lowercase()) {
+    val (label, kind) = amcStatusLabelAndKind(status)
+    Pill(text = label, kind = kind)
+}
+
+/**
+ * Pure mapping behind [StatusPillFor]: maps an AMC contract status
+ * key (`active`, `paused`, `expired`, `cancelled`, `renewal_failed`)
+ * to user-facing copy + a [PillKind] tone.
+ *
+ * The case-insensitive comparison lets a future server-side write
+ * use mixed-case without crashing the card — pin so a tightening
+ * doesn't slip past review.
+ */
+internal fun amcStatusLabelAndKind(status: String): Pair<String, PillKind> =
+    when (status.lowercase()) {
         "active" -> "Active" to PillKind.Success
         "paused" -> "Paused" to PillKind.Danger
         "expired" -> "Expired" to PillKind.Neutral
@@ -351,8 +356,6 @@ internal fun StatusPillFor(status: String) {
         "renewal_failed" -> "Renewal failed" to PillKind.Danger
         else -> status.replaceFirstChar { it.uppercase() } to PillKind.Neutral
     }
-    Pill(text = label, kind = kind)
-}
 
 internal fun prettyFrequency(f: String): String = when (f.lowercase()) {
     "weekly" -> "Weekly"
@@ -367,3 +370,72 @@ internal fun prettyFrequency(f: String): String = when (f.lowercase()) {
 // Both founder + amc surfaces share the single implementation.
 internal fun prettyDate(iso: String): String =
     com.equipseva.app.core.util.prettyDate(iso)
+
+/**
+ * Visits subline on the hospital's maintenance-contracts card:
+ * "N / M visits".
+ *
+ * Sibling of [com.equipseva.app.features.founder.pausedAmcVisitsLine]
+ * but with surface-specific phrasing — hospital says "visits" while
+ * founder says "per year". Pin the asymmetry so a refactor that
+ * unified them doesn't swap the noun on either surface.
+ */
+internal fun contractVisitsLabel(visitsCompleted: Int, visitsPerYear: Int): String =
+    "$visitsCompleted / $visitsPerYear visits"
+
+/**
+ * Expiry pill text + colour kind on the hospital's maintenance-
+ * contracts card.
+ *
+ * Decision tree (daysUntilEnd):
+ *   - null (unparseable) → "Expires $prettyEndDate" + Warn
+ *   - <= 0 → "Expires today" + Danger
+ *   - == 1 → "Expires in 1 day" (singular) + Danger
+ *   - <= 7 → "Expires in N days" + Danger (boundary INCLUSIVE)
+ *   - > 7 → "Expires in N days" + Warn (still within the 30d
+ *     near-expiry window the caller gates on)
+ *
+ * Critical cross-surface invariant: the 7-day INCLUSIVE Danger
+ * boundary mirrors [com.equipseva.app.features.founder.expiringAmcPillTextAndKind].
+ * The hospital + founder MUST agree on the urgency cue for the
+ * same contract (r353 cross-surface invariant). A refactor that
+ * relaxed either side to <= 6 would silently desynchronise them.
+ *
+ * Pin the singular "1 day" branch — a regression that always
+ * appended "days" would surface "1 days" on the most-urgent row.
+ */
+/**
+ * Empty-state subtitle on the maintenance contracts screen.
+ *
+ * Role-aware copy:
+ *   - ENGINEER → passive "will appear here" framing (hospitals
+ *     initiate the contract; engineer waits)
+ *   - HOSPITAL or null → active call-to-action framing (the
+ *     hospital is the one who sets up the contract)
+ *
+ * Pin both copies — the role-aware framing reflects who has
+ * agency in the contract-setup flow. A refactor that surfaced
+ * the engineer-facing copy on the hospital side would imply the
+ * hospital is waiting for someone else, which is wrong (they're
+ * the initiator).
+ */
+internal fun maintenanceContractsEmptySubtitle(role: UserRole?): String =
+    if (role == UserRole.ENGINEER) {
+        "Contracts where a hospital adds you as primary or fallback engineer will appear here."
+    } else {
+        "Set up monthly maintenance with a verified engineer for predictable preventive care."
+    }
+
+internal fun contractExpiryPillTextAndKind(
+    daysUntilEnd: Long?,
+    prettyEndDate: String,
+): Pair<String, PillKind> {
+    val text = when {
+        daysUntilEnd == null -> "Expires $prettyEndDate"
+        daysUntilEnd <= 0L -> "Expires today"
+        daysUntilEnd == 1L -> "Expires in 1 day"
+        else -> "Expires in $daysUntilEnd days"
+    }
+    val kind = if (daysUntilEnd != null && daysUntilEnd <= 7L) PillKind.Danger else PillKind.Warn
+    return text to kind
+}

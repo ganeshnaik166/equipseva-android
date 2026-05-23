@@ -122,11 +122,9 @@ fun MyBidsScreen(
                     state.loading && state.rows.isEmpty() -> ListSkeleton(rows = 8)
                     visibleRows.isEmpty() -> EmptyStateView(
                         icon = Icons.Outlined.Gavel,
-                        title = "No ${activeFilter.displayName.lowercase()} bids",
-                        subtitle = if (activeFilter == RepairBidStatus.Pending)
-                            "Place a bid on an open repair job and it shows up here. Hospitals usually pick within an hour."
-                        else "Switch tabs to see other bid states.",
-                        ctaLabel = if (activeFilter == RepairBidStatus.Pending) "Browse open jobs" else null,
+                        title = myBidsEmptyTitle(activeFilter),
+                        subtitle = myBidsEmptySubtitle(activeFilter),
+                        ctaLabel = myBidsEmptyCtaLabel(activeFilter),
                         onCta = if (activeFilter == RepairBidStatus.Pending) onBrowseJobs else null,
                     )
                     else -> LazyColumn(
@@ -168,18 +166,12 @@ private fun BidRowCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = row.job?.equipmentLabel ?: row.job?.title ?: "Repair job",
+                text = bidRowEquipmentTitle(row.job?.equipmentLabel, row.job?.title),
                 style = EsType.Body.copy(fontWeight = FontWeight.SemiBold),
                 color = SevaInk900,
                 modifier = Modifier.weight(1f),
             )
-            val pillKind = when (row.bid.status) {
-                RepairBidStatus.Accepted -> PillKind.Success
-                RepairBidStatus.Rejected -> PillKind.Danger
-                RepairBidStatus.Withdrawn -> PillKind.Neutral
-                else -> PillKind.Info
-            }
-            Pill(text = row.bid.status.displayName, kind = pillKind)
+            Pill(text = row.bid.status.displayName, kind = bidStatusPillKind(row.bid.status))
         }
         row.job?.siteLocation?.takeIf { it.isNotBlank() }?.let {
             Text(
@@ -230,10 +222,109 @@ private fun QueuedBidPill(count: Int) {
             modifier = Modifier.size(16.dp),
         )
         Text(
-            text = if (count == 1) "1 bid queued — will submit when back online"
-            else "$count bids queued — will submit when back online",
+            text = queuedBidPillText(count),
             style = EsType.Caption,
             color = SevaInk900,
         )
     }
 }
+
+/**
+ * Bid-card pill colour for each bid status. Pinned to keep the
+ * MyBids list visually consistent with the rest of the app (Accepted
+ * = green Success, Rejected = red Danger). Pending and Unknown share
+ * Info so an in-flight bid + a legacy row both read as "still
+ * resolving".
+ */
+internal fun bidStatusPillKind(status: RepairBidStatus): PillKind = when (status) {
+    RepairBidStatus.Accepted -> PillKind.Success
+    RepairBidStatus.Rejected -> PillKind.Danger
+    RepairBidStatus.Withdrawn -> PillKind.Neutral
+    else -> PillKind.Info
+}
+
+/**
+ * Title on the engineer's My-Bids row.
+ *
+ * Multi-fallback chain: equipmentLabel → job title → "Repair job".
+ *
+ * Pin the chain — equipmentLabel ("Ultrasound machine") is more
+ * specific than the hospital's freeform title ("Repair needed
+ * urgently") and reads better at-a-glance on the row. A refactor
+ * that flipped the order would surface the freeform title on top
+ * even when the structured field was populated.
+ *
+ * Final "Repair job" fallback is generic but tap-targetable — pin
+ * so backfill rows with neither field still render an addressable
+ * row instead of empty whitespace.
+ */
+internal fun bidRowEquipmentTitle(
+    equipmentLabel: String?,
+    jobTitle: String?,
+): String = equipmentLabel ?: jobTitle ?: "Repair job"
+
+/**
+ * Banner text on the queued-bid pill (offline submit queue).
+ *
+ * Critical region: singular/plural split AND the U+2014 em-dash
+ * separator that visually anchors the explanatory clause.
+ *
+ *   - count == 1 → "1 bid queued — will submit when back online"
+ *   - count != 1 → "N bids queued — will submit when back online"
+ *
+ * Pin the literal "will submit when back online" — a refactor to
+ * "will be sent when online" or similar would change the verb tense
+ * + voice and could mislead the engineer about the submit semantics
+ * (the queue is fire-and-forget, not store-and-forward with retry).
+ */
+internal fun queuedBidPillText(count: Int): String =
+    if (count == 1) {
+        "1 bid queued — will submit when back online"
+    } else {
+        "$count bids queued — will submit when back online"
+    }
+
+/**
+ * Empty-state title on the My-Bids screen.
+ *
+ * "No {filter.displayName lowercase} bids" — e.g. "No pending bids",
+ * "No accepted bids".
+ *
+ * Pin lowercase displayName — flows as a noun inside the sentence
+ * "No X bids". A refactor that surfaced the raw Title-cased
+ * displayName would read as "No Pending bids" (capital P mid-line).
+ */
+internal fun myBidsEmptyTitle(filter: RepairBidStatus): String =
+    "No ${filter.displayName.lowercase()} bids"
+
+/**
+ * Empty-state subtitle on the My-Bids screen.
+ *
+ * Pending filter gets the action-prompt copy explaining the funnel
+ * ("Place a bid on an open repair job and it shows up here.
+ * Hospitals usually pick within an hour."). Other filters get the
+ * generic tab-switch nudge.
+ *
+ * Critical pin: the Pending-specific copy includes the "within an
+ * hour" expectation-setter — load-bearing trust signal. A refactor
+ * that surfaced the generic nudge on Pending would lose the
+ * concrete hospital-response cadence.
+ */
+internal fun myBidsEmptySubtitle(filter: RepairBidStatus): String =
+    if (filter == RepairBidStatus.Pending) {
+        "Place a bid on an open repair job and it shows up here. Hospitals usually pick within an hour."
+    } else {
+        "Switch tabs to see other bid states."
+    }
+
+/**
+ * Empty-state CTA label on the My-Bids screen.
+ *
+ * Pending → "Browse open jobs"; other filters → null (no CTA).
+ *
+ * Pin null-on-non-Pending — the other tabs are filter views; a
+ * "Browse" CTA there would lead the engineer away from the queue
+ * they're looking at without solving the empty problem.
+ */
+internal fun myBidsEmptyCtaLabel(filter: RepairBidStatus): String? =
+    if (filter == RepairBidStatus.Pending) "Browse open jobs" else null

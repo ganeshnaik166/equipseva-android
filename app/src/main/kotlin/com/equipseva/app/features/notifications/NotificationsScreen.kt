@@ -224,13 +224,13 @@ private fun NotificationRow(
             KindIcon(kind = notification.kind, data = notification.data)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = notification.title.ifBlank { notification.body },
+                    text = notificationRowTitleText(notification.title, notification.body),
                     fontSize = 13.sp,
                     fontWeight = if (notification.isUnread) FontWeight.SemiBold else FontWeight.Normal,
                     color = SevaInk900,
                     lineHeight = (13 * 1.4f).sp,
                 )
-                if (notification.body.isNotBlank() && notification.title.isNotBlank()) {
+                if (notificationRowShouldShowBody(notification.title, notification.body)) {
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = notification.body,
@@ -283,56 +283,27 @@ private fun KindIcon(kind: String?, data: Map<String, String> = emptyMap()) {
 private fun iconForKind(
     kind: String?,
     data: Map<String, String> = emptyMap(),
-): Pair<ImageVector, Color> = when (kind) {
-    // Money / commerce kinds — green ₹.
-    "repair_bid_new",
-    "repair_bid_accepted",
-    "repair_bid_rejected",
-    "cost_revision_proposed",
-    "cost_revision_approved",
-    "cost_revision_rejected" -> Icons.Filled.CurrencyRupee to SevaGreen700
-    // Chat.
-    "chat_message_new" -> Icons.AutoMirrored.Filled.Chat to SevaGreen700
-    // KYC.
-    "kyc_status_changed" -> Icons.Filled.Shield to SevaInfo500
-    // Repair-job lifecycle alerts.
-    "repair_job_cancelled" -> Icons.Filled.Bolt to SevaDanger500
-    // Rating prompts.
-    "rate_engineer", "rate_hospital" -> Icons.Filled.Star to SevaWarning500
-    // PR-D31 commission tier upgrade celebration — green star.
-    "commission_tier_upgraded" -> Icons.Filled.Star to SevaGreen700
-    // Warranty (PR-D9 / PR-D12).
-    "warranty_covered", "warranty_fee_waived" -> Icons.Filled.Verified to SevaGreen700
-    // AMC (PR-C series).
-    "amc_loyal_pair_nudge",
-    "amc_visit_assigned",
-    "amc_visit_engineer_assigned",
-    "amc_visit_engineer_changed",
-    "amc_visit_pending_assignment" -> Icons.Filled.Build to SevaInfo500
-    // Round 331 — escalate icon tint by stage. Round 326 cadence
-    // attaches data["stage"] = "1" | "2" | "3". Stage 3 (1-day window)
-    // gets the Danger tint so it visually stands apart from earlier
-    // reminders in a backed-up inbox.
-    "amc_renewal_due" -> Icons.Filled.Build to (
-        when (data["stage"]) {
-            "3" -> SevaDanger500
-            else -> SevaWarning500
-        }
-    )
-    "amc_sla_breach",
-    "amc_admin_escalation_raised" -> Icons.Filled.Build to SevaDanger500
-    // Cash survey + auto-suspend (PR-D1 / PR-D11).
-    "cash_survey" -> Icons.AutoMirrored.Filled.HelpOutline to SevaWarning500
-    // Spot-audit invitation (PR-D43).
-    "spot_audit_invited" -> Icons.Filled.Star to SevaInfo500
-    "engineer_auto_suspended",
-    "admin_engineer_auto_suspended" -> Icons.Outlined.Block to SevaDanger500
-    // Escrow disputes (PR-D22 + PR-D28).
-    "escrow_dispute_opened",
-    "admin_escrow_dispute_opened" -> Icons.Filled.Gavel to SevaDanger500
-    "escrow_dispute_resolved" -> Icons.Filled.Gavel to SevaGreen700
-    // Generic notification fallback.
-    else -> Icons.Filled.Bolt to SevaGreen700
+): Pair<ImageVector, Color> {
+    val style = notificationIconStyle(kind, data)
+    val icon = when (style.shape) {
+        NotificationIconShape.Rupee -> Icons.Filled.CurrencyRupee
+        NotificationIconShape.Chat -> Icons.AutoMirrored.Filled.Chat
+        NotificationIconShape.Shield -> Icons.Filled.Shield
+        NotificationIconShape.Bolt -> Icons.Filled.Bolt
+        NotificationIconShape.Star -> Icons.Filled.Star
+        NotificationIconShape.Verified -> Icons.Filled.Verified
+        NotificationIconShape.Build -> Icons.Filled.Build
+        NotificationIconShape.HelpOutline -> Icons.AutoMirrored.Filled.HelpOutline
+        NotificationIconShape.Block -> Icons.Outlined.Block
+        NotificationIconShape.Gavel -> Icons.Filled.Gavel
+    }
+    val tint = when (style.tone) {
+        NotificationIconTone.GreenPositive -> SevaGreen700
+        NotificationIconTone.InfoBlue -> SevaInfo500
+        NotificationIconTone.WarnAmber -> SevaWarning500
+        NotificationIconTone.DangerRed -> SevaDanger500
+    }
+    return icon to tint
 }
 
 private fun groupByDay(rows: List<Notification>): List<Pair<String, List<Notification>>> {
@@ -341,7 +312,19 @@ private fun groupByDay(rows: List<Notification>): List<Pair<String, List<Notific
     // ZoneId the device happens to be on (some carrier-flashed Realme
     // units default to UTC, which would shift grouping by 5.5 hours).
     val zone = ZoneId.of("Asia/Kolkata")
-    val today = LocalDate.now(zone)
+    return groupByDayAt(rows, LocalDate.now(zone), zone)
+}
+
+/**
+ * Pure form of [groupByDay] — exposed for tests so the "Today /
+ * Yesterday / Last week / Earlier" bucketing can be exercised without
+ * binding to wall-clock now.
+ */
+internal fun groupByDayAt(
+    rows: List<Notification>,
+    today: LocalDate,
+    zone: ZoneId,
+): List<Pair<String, List<Notification>>> {
     val groups = linkedMapOf<String, MutableList<Notification>>()
     rows.forEach { n ->
         val sent = n.sentAt ?: Instant.EPOCH
@@ -358,3 +341,131 @@ private fun groupByDay(rows: List<Notification>): List<Pair<String, List<Notific
     return groups.map { it.key to it.value }
 }
 
+/**
+ * Abstract icon shapes used in the notifications inbox. Mapped to a
+ * concrete Material icon in the composable; pinned at the abstract
+ * level so the kind→icon contract is testable without standing up
+ * the Compose runtime.
+ */
+internal enum class NotificationIconShape {
+    Rupee, Chat, Shield, Bolt, Star, Verified, Build, HelpOutline, Block, Gavel,
+}
+
+/** Tone bucket used for the icon tint colour. */
+internal enum class NotificationIconTone {
+    GreenPositive,  // money won, chat received, warranty / commission tier good news
+    InfoBlue,       // KYC status, AMC visit assignments, spot audit
+    WarnAmber,      // rating prompts, cash survey, AMC renewal stages 1-2
+    DangerRed,      // job cancellation, SLA breach, dispute opened, auto-suspend
+}
+
+internal data class NotificationIconStyle(
+    val shape: NotificationIconShape,
+    val tone: NotificationIconTone,
+)
+
+/**
+ * Pure resolver for the inbox notification-row icon style. The
+ * composable [iconForKind] maps this back to Material icons + theme
+ * colours; tests exercise the abstract pairing so the kind→bucket
+ * routing is pinned independent of the Compose runtime.
+ *
+ * AMC renewal escalates by `data["stage"]` — stage "3" is the 1-day
+ * window and gets the Danger tint so it stands apart from earlier
+ * reminders in a backed-up inbox.
+ */
+internal fun notificationIconStyle(
+    kind: String?,
+    data: Map<String, String> = emptyMap(),
+): NotificationIconStyle = when (kind) {
+    "repair_bid_new",
+    "repair_bid_accepted",
+    "repair_bid_rejected",
+    "cost_revision_proposed",
+    "cost_revision_approved",
+    "cost_revision_rejected" -> NotificationIconStyle(
+        NotificationIconShape.Rupee, NotificationIconTone.GreenPositive,
+    )
+    "chat_message_new" -> NotificationIconStyle(
+        NotificationIconShape.Chat, NotificationIconTone.GreenPositive,
+    )
+    "kyc_status_changed" -> NotificationIconStyle(
+        NotificationIconShape.Shield, NotificationIconTone.InfoBlue,
+    )
+    "repair_job_cancelled" -> NotificationIconStyle(
+        NotificationIconShape.Bolt, NotificationIconTone.DangerRed,
+    )
+    "rate_engineer", "rate_hospital" -> NotificationIconStyle(
+        NotificationIconShape.Star, NotificationIconTone.WarnAmber,
+    )
+    "commission_tier_upgraded" -> NotificationIconStyle(
+        NotificationIconShape.Star, NotificationIconTone.GreenPositive,
+    )
+    "warranty_covered", "warranty_fee_waived" -> NotificationIconStyle(
+        NotificationIconShape.Verified, NotificationIconTone.GreenPositive,
+    )
+    "amc_loyal_pair_nudge",
+    "amc_visit_assigned",
+    "amc_visit_engineer_assigned",
+    "amc_visit_engineer_changed",
+    "amc_visit_pending_assignment" -> NotificationIconStyle(
+        NotificationIconShape.Build, NotificationIconTone.InfoBlue,
+    )
+    "amc_renewal_due" -> NotificationIconStyle(
+        NotificationIconShape.Build,
+        if (data["stage"] == "3") NotificationIconTone.DangerRed
+        else NotificationIconTone.WarnAmber,
+    )
+    "amc_sla_breach",
+    "amc_admin_escalation_raised" -> NotificationIconStyle(
+        NotificationIconShape.Build, NotificationIconTone.DangerRed,
+    )
+    "cash_survey" -> NotificationIconStyle(
+        NotificationIconShape.HelpOutline, NotificationIconTone.WarnAmber,
+    )
+    "spot_audit_invited" -> NotificationIconStyle(
+        NotificationIconShape.Star, NotificationIconTone.InfoBlue,
+    )
+    "engineer_auto_suspended",
+    "admin_engineer_auto_suspended" -> NotificationIconStyle(
+        NotificationIconShape.Block, NotificationIconTone.DangerRed,
+    )
+    "escrow_dispute_opened",
+    "admin_escrow_dispute_opened" -> NotificationIconStyle(
+        NotificationIconShape.Gavel, NotificationIconTone.DangerRed,
+    )
+    "escrow_dispute_resolved" -> NotificationIconStyle(
+        NotificationIconShape.Gavel, NotificationIconTone.GreenPositive,
+    )
+    else -> NotificationIconStyle(
+        NotificationIconShape.Bolt, NotificationIconTone.GreenPositive,
+    )
+}
+
+/**
+ * Title text on a notification row.
+ *
+ * Prefer the structured title; if blank (legacy server-side rows
+ * with only body content), promote the body up into the title slot
+ * so the row still surfaces readable text in the primary position.
+ *
+ * Pin the ifBlank gate — a refactor to `?:` (null-only) would leak
+ * a whitespace-only title onto the row and the body would not be
+ * promoted, leaving the row visually broken.
+ */
+internal fun notificationRowTitleText(title: String, body: String): String =
+    title.ifBlank { body }
+
+/**
+ * Gate for rendering the body subline on a notification row.
+ *
+ * Show the body only when BOTH title and body are non-blank — i.e.
+ * when the body was NOT just promoted up into the title slot.
+ * Otherwise the row would double-print: title slot shows the body
+ * AND a separate body subline ALSO shows the body.
+ *
+ * Pin the AND condition — a refactor to OR (either non-blank) would
+ * surface the body even when the title slot already contains it.
+ */
+internal fun notificationRowShouldShowBody(title: String, body: String): Boolean =
+    title.isNotBlank() && body.isNotBlank()

@@ -175,7 +175,7 @@ fun FounderBuyerKycQueueScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Buyer KYC queue",
-                subtitle = if (state.rows.isNotEmpty()) "${state.rows.size} pending" else null,
+                subtitle = simpleQueueCountSubtitle(state.rows.size, "pending"),
                 onBack = onBack,
             )
             // Round 399 — pull-to-refresh.
@@ -300,7 +300,7 @@ private fun BuyerKycRowCard(
             Pill(text = prettyDocType(row.docType), kind = PillKind.Default)
         }
         Text(
-            listOfNotNull(row.email, row.phone).joinToString(" · ").ifBlank { "No contact" },
+            buyerKycContactLine(row.email, row.phone),
             color = SevaInk500, fontSize = 12.sp,
         )
         if (!row.gstNumber.isNullOrBlank()) {
@@ -336,7 +336,23 @@ private fun BuyerKycRowCard(
     }
 }
 
-private fun prettyDocType(key: String): String = when (key) {
+/**
+ * Contact line on the founder buyer-KYC review card.
+ *
+ * Composes the available email and phone into "email · phone" using
+ * the U+00B7 middle-dot separator. Critical pin: when BOTH are null
+ * or blank, falls back to "No contact" — a backfill row with no
+ * contact data still reads as actionable rather than an empty line
+ * that breaks the card's visual hierarchy.
+ *
+ * Pin the listOfNotNull + ifBlank double-fold: a refactor to plain
+ * `joinToString` on a non-null list would surface "null · null" or
+ * an empty string instead of "No contact".
+ */
+internal fun buyerKycContactLine(email: String?, phone: String?): String =
+    listOfNotNull(email, phone).joinToString(" · ").ifBlank { "No contact" }
+
+internal fun prettyDocType(key: String): String = when (key) {
     "shop_registration" -> "Shop Reg"
     "gst" -> "GST"
     "drug_license" -> "Drug Lic"

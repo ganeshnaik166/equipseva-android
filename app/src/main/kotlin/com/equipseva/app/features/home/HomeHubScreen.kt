@@ -292,17 +292,7 @@ fun HomeHubScreen(
                         .border(1.dp, BorderDefault, RoundedCornerShape(12.dp)),
                 ) {
                     if (state.recent.isEmpty()) {
-                        // Round 393 — role-aware empty copy so the placeholder
-                        // points users at the next action instead of just
-                        // stating the obvious.
-                        val empty = when (role) {
-                            UserRole.HOSPITAL ->
-                                "No bookings yet. Tap \"Book a repair engineer\" above to post your first job."
-                            UserRole.ENGINEER ->
-                                "No activity yet. Tap the Jobs tab to find open repair jobs you can bid on."
-                            else ->
-                                "Your bookings, bids, and messages will appear here."
-                        }
+                        val empty = homeRecentEmptyCopy(role)
                         Text(
                             text = empty,
                             color = SevaInk500,
@@ -406,7 +396,11 @@ private fun SpotAuditSheetBody(
             color = SevaInk900,
         )
         Text(
-            text = "Job ${invitation.jobNumber ?: "RPR-${invitation.repairJobId.take(6)}"} with ${invitation.engineerName ?: "the engineer"} just wrapped. Rate the work.",
+            text = spotAuditQuestionBody(
+                jobNumber = invitation.jobNumber,
+                repairJobId = invitation.repairJobId,
+                engineerName = invitation.engineerName,
+            ),
             style = EsType.Body,
             color = SevaInk700,
         )
@@ -453,7 +447,7 @@ private fun SpotAuditSheetBody(
             label = if (submitting) "Submitting…" else "Submit",
             primary = true,
             onClick = {
-                if (rating in 1..5 && !submitting) {
+                if (canSubmitSpotAudit(rating, submitting)) {
                     onSubmit(rating, feedback.trim().takeIf { it.isNotBlank() })
                 }
             },
@@ -479,7 +473,7 @@ private fun CashSurveySheetBody(
             color = SevaInk900,
         )
         Text(
-            text = "Job ${survey.jobNumber} with ${survey.engineerName} just wrapped. Did the engineer ask for any payment outside the app?",
+            text = cashSurveyQuestionBody(survey.jobNumber, survey.engineerName),
             style = EsType.Body,
             color = SevaInk700,
         )
@@ -536,15 +530,8 @@ private fun SlaCreditsCard(
     summary: com.equipseva.app.core.data.amc.AmcRepository.HospitalSlaCreditSummary,
     onClick: () -> Unit,
 ) {
-    // formatRupees applies Indian grouping (₹1,23,456) + the rupee sign;
-    // the prior "%,.0f" format used the default Locale which falls back
-    // to US grouping (₹123,456) and lost the leading ₹ glyph too.
-    val rupeesLabel = formatRupees(summary.totalCreditRupees)
-    val sub = if (summary.breachCount == 1) {
-        "1 SLA breach in the last 30 days. Tap to review."
-    } else {
-        "${summary.breachCount} SLA breaches in the last 30 days. Tap to review."
-    }
+    val title = slaCreditsCardTitle(summary.totalCreditRupees)
+    val sub = slaCreditsCardSubtitle(summary.breachCount)
     Row(
         modifier = androidx.compose.ui.Modifier
             .padding(horizontal = 16.dp)
@@ -579,7 +566,7 @@ private fun SlaCreditsCard(
         Column(modifier = androidx.compose.ui.Modifier.weight(1f)) {
             Text(
                 // formatRupees already includes the ₹ prefix.
-                text = "$rupeesLabel credited for SLA misses",
+                text = title,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = SevaInk900,
@@ -676,7 +663,7 @@ private fun GreetingCard(
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = if (role == UserRole.ENGINEER) "Ready for work today?" else "What needs fixing today?",
+                text = greetingHeroQuestion(role),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
@@ -715,16 +702,9 @@ private fun KycBanner(status: VerificationStatus?, onClick: () -> Unit) {
     val pending = status == VerificationStatus.Pending
     val bg = if (pending) SevaInfo50 else SevaWarning50
     val tint = if (pending) SevaInfo500 else SevaWarning500
-    val title = when (status) {
-        VerificationStatus.Pending -> "KYC under review"
-        VerificationStatus.Rejected -> "KYC needs another try"
-        else -> "Become a verified engineer"
-    }
-    val sub = when (status) {
-        VerificationStatus.Pending -> "Usually 24h. We'll notify you."
-        VerificationStatus.Rejected -> "Re-submit the missing docs to enter the queue."
-        else -> "Submit KYC to start bidding on jobs."
-    }
+    val copy = homeKycBannerCopy(status)
+    val title = copy.title
+    val sub = copy.subtitle
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -801,6 +781,7 @@ private fun PhoneMissingBanner(onClick: () -> Unit) {
 
 @Composable
 private fun PendingAmcPaymentBanner(count: Int) {
+    val title = pendingAmcPaymentBannerTitle(count)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -818,8 +799,7 @@ private fun PendingAmcPaymentBanner(count: Int) {
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                if (count == 1) "Payment may still be in progress"
-                else "$count payments may still be in progress",
+                title,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = SevaInk900,
@@ -834,6 +814,18 @@ private fun PendingAmcPaymentBanner(count: Int) {
         }
     }
 }
+
+/**
+ * Title copy for the pending AMC-payment banner. Singular vs plural
+ * split — pin the explicit "1 payment" → unsigned "Payment may still
+ * be in progress" so the count doesn't read as "1 payments".
+ *
+ * Count of 0 shouldn't reach the banner (caller gates), but pin a
+ * sensible fallback to the plural shape so the helper is total.
+ */
+internal fun pendingAmcPaymentBannerTitle(count: Int): String =
+    if (count == 1) "Payment may still be in progress"
+    else "$count payments may still be in progress"
 
 private enum class TileAccent { Default, Admin }
 
@@ -1025,13 +1017,10 @@ private fun RecommendedEngineerCard(
                     color = SevaInk900,
                     maxLines = 1,
                 )
-                val parts = listOfNotNull(
-                    row.city,
-                    row.distanceKm?.let { "${"%.1f".format(java.util.Locale.ENGLISH, it)} km" },
-                )
-                if (parts.isNotEmpty()) {
+                val cityDistance = recommendedEngineerCityDistanceLine(row.city, row.distanceKm)
+                if (cityDistance != null) {
                     Text(
-                        text = parts.joinToString(" · "),
+                        text = cityDistance,
                         fontSize = 11.sp,
                         color = SevaInk500,
                         maxLines = 1,
@@ -1067,24 +1056,225 @@ private fun RecommendedEngineerCard(
     }
 }
 
-private fun greetingForNow(): String {
-    val h = java.time.LocalTime.now().hour
-    return when {
-        h < 12 -> "Good morning"
-        h < 17 -> "Good afternoon"
-        else -> "Good evening"
-    }
+private fun greetingForNow(): String = greetingForHour(java.time.LocalTime.now().hour)
+
+/**
+ * Pure form of [greetingForNow]. The screen calls this with
+ * `LocalTime.now().hour`; tests can pass an arbitrary hour to exercise
+ * the three buckets without resetting the system clock.
+ */
+internal fun greetingForHour(hour: Int): String = when {
+    hour < 12 -> "Good morning"
+    hour < 17 -> "Good afternoon"
+    else -> "Good evening"
 }
 
-private fun relativeTime(at: Instant?): String {
-    if (at == null) return ""
-    val d = Duration.between(at, Instant.now())
-    val mins = d.toMinutes()
-    return when {
-        mins < 1 -> "just now"
-        mins < 60 -> "${mins}m ago"
-        mins < 60 * 24 -> "${mins / 60}h ago"
-        else -> "${mins / (60 * 24)}d ago"
+/**
+ * Role-aware hero question on the home greeting card.
+ *
+ *   - ENGINEER → "Ready for work today?" (an availability prompt;
+ *     the engineer's mental model is "should I take a job today?")
+ *   - HOSPITAL (and any non-engineer / null role) → "What needs
+ *     fixing today?" (a service-need prompt; the hospital's mental
+ *     model is "I have broken equipment").
+ *
+ * Pin the question marks — both lines end with '?'. A refactor that
+ * dropped the '?' would soften the call-to-action and disrupt the
+ * card's conversational tone.
+ *
+ * Pin the default-to-hospital branch — null role (cold-load before
+ * the role resolves) falls to the hospital question, which is the
+ * majority-case copy. A refactor that returned blank on null would
+ * leave the hero card looking unfinished during the brief load window.
+ */
+internal fun greetingHeroQuestion(role: UserRole?): String =
+    if (role == UserRole.ENGINEER) {
+        "Ready for work today?"
+    } else {
+        "What needs fixing today?"
     }
+
+/**
+ * City + distance subline on the recommended-engineer carousel card.
+ *
+ * Composes the optional city + distance ("%.1f km") into "City · X.Y km"
+ * via U+00B7 middle-dot. Returns null when BOTH inputs are absent so the
+ * caller can omit the Text entirely (avoiding an empty subline that
+ * would break the card's vertical rhythm).
+ *
+ * Critical pin:
+ *   - Locale.ENGLISH formatter — Hindi-locale would render "3,2 km".
+ *     Note: this helper uses ENGLISH, not US — same decimal point but
+ *     ENGLISH is the broader fallback.
+ *   - "%.1f km" with one decimal — pin so a drift to "%.0f km" loses
+ *     sub-km precision (an engineer 0.4km away suddenly reads "0 km").
+ *   - The bare "km" suffix (no space before, NOT " km" without
+ *     decimal precision adjustment).
+ *
+ * Null-only inputs collapse to null (caller hides row); city-only or
+ * distance-only renders that single field.
+ */
+internal fun recommendedEngineerCityDistanceLine(
+    city: String?,
+    distanceKm: Double?,
+): String? {
+    val parts = listOfNotNull(
+        city,
+        distanceKm?.let { "${"%.1f".format(java.util.Locale.ENGLISH, it)} km" },
+    )
+    return if (parts.isEmpty()) null else parts.joinToString(" · ")
 }
 
+private fun relativeTime(at: Instant?): String =
+    if (at == null) "" else relativeTimeFromMinutes(Duration.between(at, Instant.now()).toMinutes())
+
+/**
+ * Pure form of [relativeTime]. Bucketed copy that the home dashboard
+ * uses for "X ago" labels.
+ */
+internal fun relativeTimeFromMinutes(mins: Long): String = when {
+    mins < 1 -> "just now"
+    mins < 60 -> "${mins}m ago"
+    mins < 60 * 24 -> "${mins / 60}h ago"
+    else -> "${mins / (60 * 24)}d ago"
+}
+
+/**
+ * Title + subtitle copy for the home-screen KYC banner. Three states:
+ *
+ *   * Pending — engineer has submitted, awaiting review.
+ *   * Rejected — admin flagged docs; engineer needs to re-upload.
+ *   * Null / Unknown / pre-engineer — the "become an engineer"
+ *     onboarding nudge (verified status is terminal, so it doesn't
+ *     surface the banner; the screen renders nothing in that case).
+ *
+ * Extracted so the per-state copy is unit-testable without the
+ * Compose runtime that wraps the colors + click handler.
+ */
+internal data class HomeKycBannerCopy(val title: String, val subtitle: String)
+
+/**
+ * SLA-credits card subtitle on Home: "N SLA breach(es) in the last
+ * 30 days. Tap to review." Singular/plural split on the breach count.
+ *
+ * Pin so a regression to always-"breaches" doesn't surface "1
+ * breaches" on the most common single-breach case.
+ */
+internal fun slaCreditsCardSubtitle(breachCount: Int): String =
+    if (breachCount == 1) {
+        "1 SLA breach in the last 30 days. Tap to review."
+    } else {
+        "$breachCount SLA breaches in the last 30 days. Tap to review."
+    }
+
+/**
+ * Title on the home SLA-credits card: "₹X credited for SLA misses".
+ *
+ * Pin the trailing "for SLA misses" — load-bearing context that
+ * tells the hospital this is COMPENSATION owed by the engineer
+ * (via the pool ledger), NOT a charge against them. A refactor that
+ * dropped the "for SLA misses" suffix would leave "₹X credited"
+ * ambiguous — "credited TO whom, BY whom"?
+ *
+ * Note: formatRupees already includes the ₹ prefix; this helper
+ * composes the suffix only.
+ */
+internal fun slaCreditsCardTitle(totalCreditRupees: Double): String =
+    "${formatRupees(totalCreditRupees)} credited for SLA misses"
+
+/**
+ * Compose the cash-survey question body for the bottom-sheet on
+ * HomeHub. Embeds the public job number + engineer name so the user
+ * has unambiguous context about which visit they're rating.
+ *
+ *   "Job RPR-00027 with Ravi Kumar just wrapped. Did the engineer
+ *    ask for any payment outside the app?"
+ *
+ * Pinned regions:
+ *   * Both interpolations are caller-supplied + non-null on this
+ *     code path (the parent survey null-check happens upstream), so
+ *     the helper trusts inputs.
+ *   * Question phrasing pinned word-for-word — this is the
+ *     trust-and-safety signal the founder uses to investigate
+ *     cash-flag patterns; the wording was reviewed by product.
+ */
+internal fun cashSurveyQuestionBody(jobNumber: String, engineerName: String): String =
+    "Job $jobNumber with $engineerName just wrapped. " +
+        "Did the engineer ask for any payment outside the app?"
+
+/**
+ * Question prompt on the spot-audit sheet.
+ *
+ * Sibling of [cashSurveyQuestionBody] — both surface a freshly-completed
+ * job's job number + engineer name and ask the hospital a quality
+ * question. Critical pin: the FALLBACK strings distinguish the two:
+ *
+ *   - jobNumber → "RPR-${take(6)}" when null (same convention as the
+ *     founder queue rows).
+ *   - engineerName → "the engineer" (lowercase, definite article) when
+ *     null. Sibling cashSurveyQuestionBody requires both fields
+ *     non-null (the cash-survey caller gates upstream); this helper
+ *     stays total because the spot-audit caller doesn't.
+ *
+ * Pin the literal "just wrapped" and "Rate the work." — concise prose
+ * that doesn't pre-bias the answer (vs "Rate the quality" which
+ * suggests there might be a quality issue).
+ */
+internal fun spotAuditQuestionBody(
+    jobNumber: String?,
+    repairJobId: String,
+    engineerName: String?,
+): String {
+    val jobLabel = jobNumber ?: "RPR-${repairJobId.take(6)}"
+    val engineerLabel = engineerName ?: "the engineer"
+    return "Job $jobLabel with $engineerLabel just wrapped. Rate the work."
+}
+
+/**
+ * Submit gate on the spot-audit rating sheet.
+ *
+ * Requires:
+ *   1. rating in 1..5 (inclusive — both bounds; 0 = "no rating
+ *      picked yet", 6+ = impossible)
+ *   2. NOT currently submitting
+ *
+ * Pin the 1..5 range — server CHECK constraint on spot_audit_responses
+ * matches; widening would surface server errors mid-action.
+ */
+internal fun canSubmitSpotAudit(rating: Int, submitting: Boolean): Boolean =
+    rating in 1..5 && !submitting
+
+/**
+ * Role-aware empty-state copy for the Home hub's "Recent activity"
+ * section. Each role points the user at their next concrete action
+ * (Hospital → post a job; Engineer → find open jobs; everyone else
+ * → generic "stuff appears here").
+ *
+ * Pinned regression: a previous version showed the same generic
+ * "Your bookings, bids, and messages will appear here." for all
+ * three roles. That stated the obvious without telling the user how
+ * to get unstuck — role-aware copy points at the next CTA.
+ */
+internal fun homeRecentEmptyCopy(role: UserRole?): String = when (role) {
+    UserRole.HOSPITAL ->
+        "No bookings yet. Tap \"Book a repair engineer\" above to post your first job."
+    UserRole.ENGINEER ->
+        "No activity yet. Tap the Jobs tab to find open repair jobs you can bid on."
+    else ->
+        "Your bookings, bids, and messages will appear here."
+}
+
+internal fun homeKycBannerCopy(status: VerificationStatus?): HomeKycBannerCopy = when (status) {
+    VerificationStatus.Pending -> HomeKycBannerCopy(
+        title = "KYC under review",
+        subtitle = "Usually 24h. We'll notify you.",
+    )
+    VerificationStatus.Rejected -> HomeKycBannerCopy(
+        title = "KYC needs another try",
+        subtitle = "Re-submit the missing docs to enter the queue.",
+    )
+    else -> HomeKycBannerCopy(
+        title = "Become a verified engineer",
+        subtitle = "Submit KYC to start bidding on jobs.",
+    )
+}

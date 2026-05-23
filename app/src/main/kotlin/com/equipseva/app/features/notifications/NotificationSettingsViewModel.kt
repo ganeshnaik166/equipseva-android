@@ -70,39 +70,45 @@ class NotificationSettingsViewModel @Inject constructor(
         viewModelScope.launch { userPrefs.setQuietHoursWindow(startMin, endMin) }
     }
 
-    // "Order updates" deliberately omitted — v1 has no orders / cart /
-    // checkout (marketplace deferred to v2 per project_v1_monetization_free.md).
-    // Showing the toggle would let users mute a category that never fires.
     private fun buildCategories(
         muted: Set<String>,
         role: UserRole?,
-    ): List<PushCategoryToggle> {
-        // Hospital users don't bid on jobs — they post bookings and watch
-        // engineers respond. Same FCM channel, different reading frame.
-        val (jobsLabel, jobsDescription) = if (role == UserRole.HOSPITAL) {
-            "Booking updates" to "Bids received, engineer assigned, dispute updates"
-        } else {
-            "Available jobs" to "New repair jobs and bid responses"
-        }
-        return listOf(
-            PushCategoryToggle(
-                channelId = NotificationChannels.JOBS,
-                label = jobsLabel,
-                description = jobsDescription,
-                muted = NotificationChannels.JOBS in muted,
-            ),
-            PushCategoryToggle(
-                channelId = NotificationChannels.CHAT,
-                label = "Chat messages",
-                description = "Direct messages with hospitals and engineers",
-                muted = NotificationChannels.CHAT in muted,
-            ),
-            PushCategoryToggle(
-                channelId = NotificationChannels.ACCOUNT,
-                label = "Account & security",
-                description = "Verification, KYC, security alerts",
-                muted = NotificationChannels.ACCOUNT in muted,
-            ),
-        )
+    ): List<PushCategoryToggle> =
+        com.equipseva.app.features.notifications.buildCategories(muted, role)
+}
+
+// "Order updates" deliberately omitted — v1 has no orders / cart /
+// checkout (marketplace deferred to v2 per project_v1_monetization_free.md).
+// Showing the toggle would let users mute a category that never fires.
+internal fun buildCategories(
+    muted: Set<String>,
+    role: UserRole?,
+): List<PushCategoryToggle> {
+    // Hospital users don't bid on jobs — they post bookings and watch
+    // engineers respond. Same FCM channel, different reading frame.
+    val (jobsLabel, jobsDescription) = if (role == UserRole.HOSPITAL) {
+        "Booking updates" to "Bids received, engineer assigned, dispute updates"
+    } else {
+        "Available jobs" to "New repair jobs and bid responses"
     }
+    return listOf(
+        PushCategoryToggle(
+            channelId = NotificationChannels.JOBS,
+            label = jobsLabel,
+            description = jobsDescription,
+            muted = NotificationChannels.JOBS in muted,
+        ),
+        PushCategoryToggle(
+            channelId = NotificationChannels.CHAT,
+            label = "Chat messages",
+            description = "Direct messages with hospitals and engineers",
+            muted = NotificationChannels.CHAT in muted,
+        ),
+        PushCategoryToggle(
+            channelId = NotificationChannels.ACCOUNT,
+            label = "Account & security",
+            description = "Verification, KYC, security alerts",
+            muted = NotificationChannels.ACCOUNT in muted,
+        ),
+    )
 }

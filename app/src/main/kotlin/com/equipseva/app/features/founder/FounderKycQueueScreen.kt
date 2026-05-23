@@ -184,7 +184,7 @@ fun FounderKycQueueScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "KYC queue",
-                subtitle = if (state.rows.isNotEmpty()) "${state.rows.size} pending" else null,
+                subtitle = simpleQueueCountSubtitle(state.rows.size, "pending"),
                 onBack = onBack,
             )
             // Round 399 — pull-to-refresh.
@@ -330,12 +330,12 @@ private fun EngineerRow(
             }
             Pill(text = "Review", kind = PillKind.Warn)
         }
-        val locationLine = listOfNotNull(row.city, row.state).joinToString(", ").ifBlank { null }
-        val metaLine = listOfNotNull(
-            row.experienceYears?.let { "$it yrs exp" },
-            row.serviceRadiusKm?.let { "${it}km radius" },
-            locationLine,
-        ).joinToString(" · ")
+        val metaLine = engineerKycRowMetaLine(
+            experienceYears = row.experienceYears,
+            serviceRadiusKm = row.serviceRadiusKm,
+            city = row.city,
+            state = row.state,
+        )
         if (metaLine.isNotBlank()) {
             Text(metaLine, color = SevaInk700, fontSize = 13.sp)
         }
@@ -375,3 +375,39 @@ private fun EngineerRow(
     }
 }
 
+/**
+ * Engineer KYC-queue row meta-line: compact summary of experience,
+ * service radius, and location.
+ *
+ * Composes up to three parts with U+00B7 middle-dot separator:
+ *   - "N yrs exp" when experience is known
+ *   - "Nkm radius" when service radius is known
+ *   - "City, State" / "City" / "State" when either is non-blank
+ *
+ * Returns blank when all three sections are absent. Caller gates on
+ * isNotBlank() to skip rendering the Text entirely.
+ *
+ * Pin the truncation phrasing:
+ *   - "yrs exp" (NOT "years experience", NOT "yoe", NOT "yrs") —
+ *     reads as a noun + qualifier in 7 chars while staying meaningful.
+ *   - "km radius" (NO space between km and radius? actually there is
+ *     a space — pin) — "Nkm radius" is the compact form; refactor to
+ *     "N km radius" with leading space would widen the row.
+ *
+ * Pin the part order: experience → radius → location. The order
+ * roughly aligns with founder triage priority (years of experience
+ * is the strongest filter signal, location is contextual).
+ */
+internal fun engineerKycRowMetaLine(
+    experienceYears: Int?,
+    serviceRadiusKm: Int?,
+    city: String?,
+    state: String?,
+): String {
+    val locationLine = listOfNotNull(city, state).joinToString(", ").ifBlank { null }
+    return listOfNotNull(
+        experienceYears?.let { "$it yrs exp" },
+        serviceRadiusKm?.let { "${it}km radius" },
+        locationLine,
+    ).joinToString(" · ")
+}

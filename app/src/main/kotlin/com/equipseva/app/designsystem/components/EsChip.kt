@@ -35,10 +35,10 @@ import com.equipseva.app.designsystem.theme.BorderDefault
 @Composable
 fun EsChip(
     text: String,
+    modifier: Modifier = Modifier,
     active: Boolean = false,
     onClick: (() -> Unit)? = null,
     leading: (@Composable () -> Unit)? = null,
-    modifier: Modifier = Modifier,
     contentDescription: String? = null,
 ) {
     val bg = if (active) SevaGreen50 else PaperDefault

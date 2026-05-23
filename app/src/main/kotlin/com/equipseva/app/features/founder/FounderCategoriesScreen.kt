@@ -456,14 +456,40 @@ private fun CategoryRowCard(
                 Text(row.displayName, color = SevaInk900, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
                 val statusColor = if (row.isActive) SevaGreen700 else SevaInk500
                 Text(
-                    if (row.isActive) "Active" else "Disabled",
+                    categoryActiveLabel(row.isActive),
                     color = statusColor,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                 )
             }
             Text("key: ${row.key}", color = SevaInk500, fontSize = 12.sp)
-            Text("scope: ${row.scope} · order: ${row.sortOrder}", color = SevaInk700, fontSize = 12.sp)
+            Text(categoryScopeOrderLine(row.scope, row.sortOrder), color = SevaInk700, fontSize = 12.sp)
         }
     }
 }
+
+/**
+ * Status label on the founder categories row.
+ *
+ * Active → "Active"; isActive == false → "Disabled" (NOT "Inactive").
+ *
+ * Pin "Disabled" — load-bearing distinction from "Inactive". The
+ * categories screen lets the founder toggle off a category to STOP
+ * it appearing in new dropdowns; existing references stay intact.
+ * "Disabled" communicates that intent (the founder turned it off);
+ * "Inactive" would imply it's gone dormant on its own.
+ */
+internal fun categoryActiveLabel(isActive: Boolean): String =
+    if (isActive) "Active" else "Disabled"
+
+/**
+ * Scope + sort-order subline on the founder categories row.
+ *
+ * Format: "scope: $s · order: $n" with U+00B7 middle-dot separator.
+ *
+ * Pin the lowercase labels ("scope" / "order") — the row already has
+ * a Title-cased displayName above, and these are technical hint
+ * labels that should not compete visually with the primary label.
+ */
+internal fun categoryScopeOrderLine(scope: String, sortOrder: Int): String =
+    "scope: $scope · order: $sortOrder"

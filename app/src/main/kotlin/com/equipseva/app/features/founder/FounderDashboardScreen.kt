@@ -185,7 +185,7 @@ fun FounderDashboardScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Admin dashboard",
-                subtitle = state.founderEmail?.let { "Founder · $it" } ?: "Founder",
+                subtitle = founderDashboardSubtitle(state.founderEmail),
                 onBack = onBack,
             )
             // Round 378 — pull-to-refresh on the founder dashboard.
@@ -332,7 +332,7 @@ private fun FounderHero(jobsToday: Int?) {
                 color = Color.White.copy(alpha = 0.65f),
             )
             Text(
-                text = (jobsToday ?: 0).toString(),
+                text = founderHeroJobsValue(jobsToday),
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.56).sp,
@@ -856,7 +856,7 @@ private fun TopEngineerRow(
                 color = SevaInk900,
             )
             Text(
-                text = "${row.jobsCompleted} job${if (row.jobsCompleted == 1L) "" else "s"} released",
+                text = topEngineerJobsReleasedLabel(row.jobsCompleted),
                 fontSize = 12.sp,
                 color = SevaInk500,
             )
@@ -869,3 +869,50 @@ private fun TopEngineerRow(
         )
     }
 }
+
+/**
+ * Top-engineer row subtitle on the founder dashboard's leaderboard.
+ *
+ *   * 1 job → "1 job released"
+ *   * N jobs → "N jobs released"
+ *
+ * Pin so a regression to always-"jobs" would surface "1 jobs" on
+ * an engineer who just hit their first release.
+ */
+internal fun topEngineerJobsReleasedLabel(jobsCompleted: Long): String =
+    "$jobsCompleted job${if (jobsCompleted == 1L) "" else "s"} released"
+
+/**
+ * Subtitle on the founder admin dashboard top bar.
+ *
+ *   - email non-null → "Founder · $email" (the founder's identity
+ *     surfaced explicitly, useful when the same device has signed in
+ *     as different founders historically).
+ *   - email null → bare "Founder" (cold-load before session resolves).
+ *
+ * Pin the "Founder" prefix in both branches — load-bearing role
+ * confirmation on the highest-privilege surface. A refactor that
+ * dropped the prefix on the email branch (just "$email") would lose
+ * the role-confirmation signal that distinguishes this admin
+ * dashboard from a regular profile screen.
+ *
+ * Pin the U+00B7 middle-dot separator.
+ */
+internal fun founderDashboardSubtitle(founderEmail: String?): String =
+    founderEmail?.let { "Founder · $it" } ?: "Founder"
+
+/**
+ * Hero "Jobs posted today" value on the founder admin dashboard.
+ *
+ * Null jobsToday (cold load, network miss) defaults to 0 — the hero
+ * surfaces "0" rather than blank or "—" so the layout doesn't shift
+ * when the real number arrives.
+ *
+ * Critical pin: null is conflated with actual zero. This is a
+ * deliberate UX trade-off — the hero needs a stable visual silhouette
+ * and a brief flash of 0 → real-value reads as "starting from zero"
+ * rather than "broken". Pin documents the trade-off so a refactor
+ * that introduced a "—" placeholder surfaces here.
+ */
+internal fun founderHeroJobsValue(jobsToday: Int?): String =
+    (jobsToday ?: 0).toString()

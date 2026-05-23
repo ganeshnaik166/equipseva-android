@@ -109,10 +109,7 @@ fun FounderSpotAuditsScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Spot-audit responses",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let { count ->
-                    val avg = avgRating?.let { "%.1f".format(java.util.Locale.US, it) } ?: "—"
-                    "$count in last 30 days · avg $avg/5"
-                },
+                subtitle = spotAuditsSubtitle(state.rows.size, avgRating),
                 onBack = onBack,
             )
             // Round 410 — pull-to-refresh. Matches r378-r400 pattern.
@@ -190,4 +187,29 @@ private fun AuditRow(row: FounderRepository.SpotAuditResponseRow) {
             Text("Responded: ${prettyDateTime(it)}", color = SevaInk500, fontSize = 11.sp)
         }
     }
+}
+
+/**
+ * Subtitle on the founder Spot-Audit Responses top bar.
+ *
+ * Returns null on empty list. Otherwise reads:
+ *   "$rowCount in last 30 days · avg X.Y/5"
+ * with the average rating formatted to 1 decimal (Locale.US) when
+ * available, falling back to "—" when no rating data exists yet.
+ *
+ * Critical pin: Locale.US on the rating format — a hi-IN device
+ * would render "4,8/5" otherwise.
+ *
+ * Pin the "/5" denominator — load-bearing context (the rating scale
+ * is 1–5, NOT 0–10 or 1–10). A refactor that dropped /5 would leave
+ * "avg 4.8" ambiguous.
+ *
+ * Pin the em-dash fallback (U+2014) — distinct from the "0.0/5"
+ * surface a refactor might prefer; "—/5" communicates "no data yet"
+ * vs "0.0/5" which would read as "everyone hates us".
+ */
+internal fun spotAuditsSubtitle(rowCount: Int, avgRating: Double?): String? {
+    if (rowCount <= 0) return null
+    val avg = avgRating?.let { "%.1f".format(java.util.Locale.US, it) } ?: "—"
+    return "$rowCount in last 30 days · avg $avg/5"
 }

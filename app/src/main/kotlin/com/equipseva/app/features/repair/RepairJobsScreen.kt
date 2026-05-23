@@ -80,8 +80,8 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.maps.android.compose.rememberMarkerState
 import com.equipseva.app.features.repair.components.EngineerJobCard
 import androidx.compose.material.icons.outlined.Build
 
@@ -138,11 +138,7 @@ fun RepairJobsScreen(
                 // openJobs reflects whatever the upstream radius filter
                 // returned, which is country-wide for null. Show the count
                 // honestly; the active radius lives on the map chip below.
-                subtitle = if (state.radiusKm == null) {
-                    "${openJobs.size} open · all radii"
-                } else {
-                    "${openJobs.size} open within ${state.radiusKm} km"
-                },
+                subtitle = repairJobsFeedSubtitle(openJobs.size, state.radiusKm),
                 right = {
                     Box(
                         modifier = Modifier
@@ -286,17 +282,13 @@ private fun StatStrip(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         StatCard(
-            // "Nearby" lied when the user picked All radius — the count
-            // is whatever the radius filter returned, including country-
-            // wide. Switch label with the active radius so the number is
-            // never decoupled from the filter that produced it.
-            label = if (radiusKm == null) "Open" else "Within ${radiusKm} km",
+            label = openStatCardLabel(radiusKm),
             value = openCount.toString(),
             modifier = Modifier.weight(1f),
         )
         StatCard(
             label = "Pending bids",
-            value = if (pending > 0) pending.toString() else "—",
+            value = pendingBidsValue(pending),
             valueColor = SevaWarning500,
             modifier = Modifier.weight(1f),
         )
@@ -512,8 +504,12 @@ private fun MapPreviewBox(
                             fillColor = SevaGreen700.copy(alpha = 0.06f),
                         )
                     }
+                    val youMarkerState = rememberMarkerState(
+                        key = "you-$baseLat-$baseLng",
+                        position = LatLng(baseLat, baseLng),
+                    )
                     Marker(
-                        state = MarkerState(LatLng(baseLat, baseLng)),
+                        state = youMarkerState,
                         title = "You",
                         icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN),
                     )
@@ -525,8 +521,12 @@ private fun MapPreviewBox(
                 )
                 jobs.take(3).forEachIndexed { idx, job ->
                     val coord = jobCoords[job.id] ?: return@forEachIndexed
+                    val jobMarkerState = rememberMarkerState(
+                        key = "job-${job.id}",
+                        position = LatLng(coord.first, coord.second),
+                    )
                     Marker(
-                        state = MarkerState(LatLng(coord.first, coord.second)),
+                        state = jobMarkerState,
                         title = job.title,
                         snippet = distanceByJobId[job.id]?.let { "%.1f km away".format(java.util.Locale.US, it) },
                         icon = BitmapDescriptorFactory.defaultMarker(pinHues[idx % pinHues.size]),
@@ -590,10 +590,7 @@ private fun InitialShimmerList() {
 
 @Composable
 private fun EmptyFeedState(radiusKm: Int?) {
-    // "No jobs in this radius / Try widening" lied when the user
-    // already had All radii selected — there's no wider option, and
-    // the count reflects every open job in the country. Conditional
-    // copy so the empty state matches the active filter.
+    val copy = emptyFeedStateCopy(radiusKm)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -601,21 +598,89 @@ private fun EmptyFeedState(radiusKm: Int?) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = if (radiusKm == null) "No open jobs right now" else "No jobs in this radius",
+            text = copy.title,
             style = EsType.Body.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
             color = SevaInk700,
             textAlign = TextAlign.Center,
         )
         Box(modifier = Modifier.height(4.dp))
         Text(
-            text = if (radiusKm == null) {
-                "Pull to refresh — new requests show up the moment hospitals post."
-            } else {
-                "Try widening the radius filter, or pick All to see every open job."
-            },
+            text = copy.subtitle,
             style = EsType.Caption.copy(fontSize = 12.sp),
             color = SevaInk500,
             textAlign = TextAlign.Center,
         )
     }
 }
+
+/**
+ * Title + subtitle copy for the engineer feed's empty state, split
+ * by whether the user is on All-radius (no wider filter to suggest)
+ * or a numeric radius (can be widened).
+ *
+ * Pinned regression: the old "Try widening / No jobs in this radius"
+ * copy lied when the user already had All radii selected — there's
+ * no wider option, and the count reflects every open job in the
+ * country.
+ */
+internal data class EmptyFeedStateCopy(val title: String, val subtitle: String)
+
+internal fun emptyFeedStateCopy(radiusKm: Int?): EmptyFeedStateCopy =
+    if (radiusKm == null) {
+        EmptyFeedStateCopy(
+            title = "No open jobs right now",
+            subtitle = "Pull to refresh — new requests show up the moment hospitals post.",
+        )
+    } else {
+        EmptyFeedStateCopy(
+            title = "No jobs in this radius",
+            subtitle = "Try widening the radius filter, or pick All to see every open job.",
+        )
+    }
+
+/**
+ * Label for the open-jobs stat card on the engineer's repair feed.
+ *
+ * Switches with the active radius filter so the number is never
+ * decoupled from the filter that produced it:
+ *
+ *   * radiusKm null (All radius) → "Open" (count is country-wide)
+ *   * radiusKm N → "Within N km" (count matches the radius)
+ *
+ * Pinned regression: an older version always read "Nearby", which
+ * lied to the user when they picked All radius — the count became
+ * "Nearby: 47" for jobs across the whole country.
+ */
+internal fun openStatCardLabel(radiusKm: Int?): String =
+    if (radiusKm == null) "Open" else "Within ${radiusKm} km"
+
+/**
+ * Value cell on the pending-bids stat card. Zero renders as the
+ * em-dash placeholder (U+2014) rather than a literal "0" — the
+ * em-dash reads as "no active bids yet" rather than the misleading
+ * "you have 0 pending bids" framing.
+ */
+internal fun pendingBidsValue(pending: Int): String =
+    if (pending > 0) pending.toString() else "—"
+
+/**
+ * Top-bar subtitle on the engineer Available-Jobs feed.
+ *
+ *   - radiusKm == null → "N open · all radii"
+ *   - radiusKm != null → "N open within Nkm"
+ *
+ * Critical pin: the radius-null branch says "all radii" (NOT "all
+ * areas" or "everywhere"). The plural "radii" mirrors the radius-
+ * filter chip vocabulary on the same screen — pin so a refactor
+ * doesn't drift one term and create vocabulary mismatch within the
+ * single surface.
+ *
+ * The "within Nkm" form (no space between N and km) matches the
+ * radius-chip text on the same screen — pin both for consistency.
+ */
+internal fun repairJobsFeedSubtitle(openCount: Int, radiusKm: Int?): String =
+    if (radiusKm == null) {
+        "$openCount open · all radii"
+    } else {
+        "$openCount open within $radiusKm km"
+    }

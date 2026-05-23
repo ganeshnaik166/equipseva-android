@@ -25,10 +25,10 @@ import androidx.compose.ui.unit.dp
 fun EmptyStateView(
     icon: ImageVector,
     title: String,
+    modifier: Modifier = Modifier,
     subtitle: String? = null,
     ctaLabel: String? = null,
     onCta: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier

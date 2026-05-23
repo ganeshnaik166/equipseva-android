@@ -106,19 +106,14 @@ fun EngineerMyDisputesScreen(
     // list scroll, retry button click, status flow tick) over the same
     // rows list. Keyed on state.rows so the cached value invalidates
     // when the underlying data actually changes.
-    val openCount = androidx.compose.runtime.remember(state.rows) {
-        state.rows.count { it.status == "in_dispute" }
-    }
-    val wonCount = androidx.compose.runtime.remember(state.rows) {
-        state.rows.count { it.outcome == "release" }
+    val subtitle = androidx.compose.runtime.remember(state.rows) {
+        engineerDisputesSubtitle(state.rows)
     }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Disputes received",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let {
-                    "$openCount open · $wonCount released to you · last 12 months"
-                },
+                subtitle = subtitle,
                 onBack = onBack,
             )
             // Round 387 — pull-to-refresh. Matches r378-r382 pattern.
@@ -163,13 +158,7 @@ private fun DisputeRow(
     row: RepairJobEscrowRepository.EngineerDisputeRow,
     onClick: () -> Unit,
 ) {
-    val (pillText, pillKind) = when {
-        row.status == "in_dispute" -> "Under review" to PillKind.Danger
-        // Engineer's "won" = funds released to engineer.
-        row.outcome == "release" -> "Released to you" to PillKind.Success
-        row.outcome == "refund" -> "Refunded to hospital" to PillKind.Warn
-        else -> row.status.replaceFirstChar { it.uppercase() } to PillKind.Default
-    }
+    val (pillText, pillKind) = engineerDisputePillTextAndKind(row.status, row.outcome)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -183,17 +172,13 @@ private fun DisputeRow(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    row.jobNumber ?: "RPR-${row.repairJobId.take(6)}",
+                    engineerDisputeRowTitle(row.jobNumber, row.repairJobId),
                     color = SevaInk900,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                 )
                 Text(
-                    // Mirror rounds 37 + 53: "(unnamed hospital)" reads
-                    // as a missing-data bug to engineers, not as a
-                    // fallback. Collapse blank/null names to the row
-                    // category — "Hospital".
-                    "${formatRupees(row.amountRupees)} · ${row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"}",
+                    engineerDisputeAmountAndHospitalLine(row.amountRupees, row.hospitalName),
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
@@ -222,4 +207,80 @@ private fun DisputeRow(
             Text("Resolved: ${prettyDate(it)}", color = SevaInk500, fontSize = 11.sp)
         }
     }
+}
+
+/**
+ * "N open · M released to you · last 12 months" subtitle on the
+ * engineer disputes screen. Distinct from
+ * [com.equipseva.app.features.hospital.hospitalDisputesSubtitle] —
+ * engineers care about how many disputes RELEASED the escrow to
+ * them (outcome == "release"), not the broader "resolved" bucket
+ * (which also covers refunds against them).
+ *
+ * Null when the list is empty so the top-bar stays clean on
+ * cold-load.
+ */
+internal fun engineerDisputesSubtitle(
+    rows: List<com.equipseva.app.core.data.escrow.RepairJobEscrowRepository.EngineerDisputeRow>,
+): String? {
+    if (rows.isEmpty()) return null
+    val open = rows.count { it.status == "in_dispute" }
+    val won = rows.count { it.outcome == "release" }
+    return "$open open · $won released to you · last 12 months"
+}
+
+/**
+ * Pill text + colour kind for the engineer's dispute row.
+ *
+ * Critical region: role-aware copy. The engineer's view says
+ * "Released to you" / "Refunded to hospital" — the SAME wire data
+ * the hospital view renders as "Released to engineer" / "Refunded
+ * to you". A refactor that unified the strings across roles would
+ * leak third-person grammar onto the engineer's own row.
+ *
+ * Priority order:
+ *   1. status == "in_dispute" → "Under review" + Danger (open).
+ *      Wins even when an outcome has been provisionally written.
+ *   2. outcome == "release" → "Released to you" + Success.
+ *   3. outcome == "refund" → "Refunded to hospital" + Warn.
+ *      (Warn — refund is the bad outcome for the engineer.)
+ *   4. fallback → status with first letter capitalised + Default.
+ *
+ * Pin the status-wins-over-outcome priority — a refactor that
+ * reversed the gate would surface the resolved outcome before the
+ * server-side "in_dispute" guard cleared, leading to a misleading
+ * row state during the resolution window.
+ */
+internal fun engineerDisputePillTextAndKind(
+    status: String,
+    outcome: String?,
+): Pair<String, PillKind> = when {
+    status == "in_dispute" -> "Under review" to PillKind.Danger
+    outcome == "release" -> "Released to you" to PillKind.Success
+    outcome == "refund" -> "Refunded to hospital" to PillKind.Warn
+    else -> status.replaceFirstChar { it.uppercase() } to PillKind.Default
+}
+
+/**
+ * Title on the engineer's dispute row: prefer server jobNumber, fall
+ * back to "RPR-${first 6 chars of repairJobId}". Sibling of other
+ * dispute / escrow row titles across surfaces.
+ */
+internal fun engineerDisputeRowTitle(jobNumber: String?, repairJobId: String): String =
+    jobNumber ?: "RPR-${repairJobId.take(6)}"
+
+/**
+ * Subtitle on the engineer's dispute row: "₹X · Hospital".
+ *
+ * Critical pin: the "(unnamed hospital)" fallback was deliberately
+ * collapsed to "Hospital" (mirror rounds 37 + 53). To the engineer,
+ * a null hospital name reads as a missing-data bug, not as a useful
+ * fallback. Pin so the role label survives a refactor.
+ */
+internal fun engineerDisputeAmountAndHospitalLine(
+    amountRupees: Double,
+    hospitalName: String?,
+): String {
+    val hos = hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"
+    return "${formatRupees(amountRupees)} · $hos"
 }

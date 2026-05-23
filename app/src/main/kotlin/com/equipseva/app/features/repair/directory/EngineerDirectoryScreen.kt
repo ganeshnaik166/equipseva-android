@@ -295,10 +295,7 @@ fun EngineerDirectoryScreen(
                 // "Near All Telangana" reads awkwardly when the user
                 // hasn't picked a district — "near" implies proximity
                 // to a point, not a whole state. Phrase as scope instead.
-                subtitle = if (state.district == "All Telangana")
-                    "${visibleRows.size} verified · across Telangana"
-                else
-                    "${visibleRows.size} verified · near ${state.district}",
+                subtitle = engineerDirectorySubtitle(visibleRows.size, state.district),
                 onBack = onBack,
             )
             // Sticky search + district chip strip — paper bg, padding 8/16/4
@@ -488,7 +485,7 @@ private fun EmptyEngineers(
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            if (filtersActive) "Try a wider district or fewer filters" else "No verified engineers in your area yet",
+            emptyEngineersSubtitle(filtersActive),
             color = SevaInk500,
             fontSize = 12.sp,
         )
@@ -531,7 +528,7 @@ private fun FilterSheet(
                 // Nearest is offered always but greyed out + disabled
                 // when we have no coords — clearer than hiding it.
                 EsChip(
-                    text = if (resolvingLocation && !hasLocation) "Nearest…" else "Nearest",
+                    text = nearestSortChipLabel(resolvingLocation, hasLocation),
                     active = sortMode == DirectorySortMode.Nearest && hasLocation,
                     onClick = {
                         if (hasLocation) onSortPick(DirectorySortMode.Nearest)
@@ -623,14 +620,14 @@ private fun EngCard(
                 InlineVerifiedBadge(small = true)
             }
             Spacer(Modifier.height(2.dp))
-            val locParts = listOfNotNull(
-                row.city,
-                row.distanceKm?.let { "${"%.1f".format(java.util.Locale.US, it)} km" },
-                row.hourlyRate?.let { "${formatRupees(it)}/hr" },
+            val locLine = formatDirectoryRowLocationLine(
+                city = row.city,
+                distanceKm = row.distanceKm,
+                hourlyRate = row.hourlyRate,
             )
-            if (locParts.isNotEmpty()) {
+            if (locLine != null) {
                 Text(
-                    locParts.joinToString(" · "),
+                    locLine,
                     color = SevaInk500,
                     fontSize = 12.sp,
                 )
@@ -751,6 +748,92 @@ internal fun InlineVerifiedBadge(small: Boolean = false) {
         )
     }
 }
+
+/**
+ * Compose the city · distance · rate line on a directory-row card.
+ *
+ * Three optional parts joined by " · ":
+ *   * city — blank/null omitted
+ *   * distanceKm — null omitted; else "N.N km" formatted under
+ *     Locale.US so a Hindi-locale device doesn't surface "3,2"
+ *   * hourlyRate — null omitted; else "₹N/hr"
+ *
+ * Returns null on all-empty so the caller doesn't render an empty
+ * Text.
+ *
+ * Spaced "km" suffix (vs the no-space variant on the home-card
+ * recommended carousel) is intentional — directory rows have more
+ * horizontal room.
+ */
+internal fun formatDirectoryRowLocationLine(
+    city: String?,
+    distanceKm: Double?,
+    hourlyRate: Double?,
+): String? {
+    val parts = listOfNotNull(
+        city?.takeIf { it.isNotBlank() },
+        distanceKm?.let { "${"%.1f".format(java.util.Locale.US, it)} km" },
+        hourlyRate?.let { "${com.equipseva.app.core.util.formatRupees(it)}/hr" },
+    )
+    return if (parts.isEmpty()) null else parts.joinToString(" · ")
+}
+
+/**
+ * Subtitle copy for the engineer-directory empty state. Two branches:
+ *
+ *   * filtersActive=true → "Try a wider district or fewer filters"
+ *     (actionable — user has a reset button to undo)
+ *   * filtersActive=false → "No verified engineers in your area yet"
+ *     (passive — no engineers signed up nearby; no user action helps)
+ *
+ * The screen reads filtersActive from the directory's filter state
+ * (district != "All Telangana", or specialization != null, etc.).
+ */
+internal fun emptyEngineersSubtitle(filtersActive: Boolean): String =
+    if (filtersActive) "Try a wider district or fewer filters"
+    else "No verified engineers in your area yet"
+
+/**
+ * Label for the "Nearest" sort chip on the engineer-directory filter
+ * sheet.
+ *
+ * Reads "Nearest…" (U+2026 ellipsis) while we're still resolving the
+ * device location AND we don't yet have any coords; reads "Nearest"
+ * otherwise. The ellipsis is the visual cue that the chip will become
+ * enabled shortly — distinct from a permanently-disabled label.
+ *
+ * Pin the U+2026 single-codepoint ellipsis — a refactor to "..."
+ * (three dots) would diverge from the rest of the app's loading-state
+ * conventions.
+ *
+ * Pin the AND gate — resolvingLocation alone isn't enough (could have
+ * stale coords + a refresh in flight); we only show the ellipsis
+ * variant when we genuinely have no usable location yet.
+ */
+internal fun nearestSortChipLabel(resolvingLocation: Boolean, hasLocation: Boolean): String =
+    if (resolvingLocation && !hasLocation) "Nearest…" else "Nearest"
+
+/**
+ * Top-bar subtitle on the engineer directory screen.
+ *
+ *   - district == "All Telangana" → "$count verified · across Telangana"
+ *   - else → "$count verified · near $district"
+ *
+ * Critical pin: the "All Telangana" → "across Telangana" branch.
+ * "Near All Telangana" reads awkwardly because "near" implies
+ * proximity to a point, not a whole state. The "across" alternative
+ * frames the count as a scope, not a distance.
+ *
+ * Pin the literal "All Telangana" sentinel — matches the dropdown's
+ * default item label. A refactor to "All districts" would silently
+ * switch to the "near" branch for the wrong UX.
+ */
+internal fun engineerDirectorySubtitle(visibleCount: Int, district: String): String =
+    if (district == "All Telangana") {
+        "$visibleCount verified · across Telangana"
+    } else {
+        "$visibleCount verified · near $district"
+    }
 
 // InlineStars promoted to a shared component so the new
 // EngineerRatingCard + ReviewItem render the same glyph without a fork.

@@ -194,7 +194,7 @@ private fun ConversationRow(
 
 @Composable
 private fun UnreadBadge(count: Int) {
-    val label = if (count > 99) "99+" else count.toString()
+    val label = unreadBadgeLabel(count)
     Box(
         modifier = Modifier
             .size(18.dp)
@@ -232,10 +232,29 @@ private fun QueuedPill(count: Int) {
             modifier = Modifier.size(16.dp),
         )
         Text(
-            text = if (count == 1) "1 message queued — will send when back online"
-            else "$count messages queued — will send when back online",
+            text = queuedChatMessagePillText(count),
             style = EsType.Caption,
             color = SevaInk900,
         )
     }
 }
+
+/**
+ * Label on the conversation row unread badge.
+ *
+ *   - count > 99 → "99+" (caps the badge at a 3-char width)
+ *   - count <= 99 → count as decimal string
+ *
+ * Pin the "99+" sentinel — the badge has a fixed 18dp circle; an
+ * uncapped count would inflate to 4+ digits and either clip the
+ * badge or push it into the timestamp slot. The "+" indicates
+ * "more than" without revealing the exact backlog (which is
+ * intentionally vague — a hospital with 247 unread messages
+ * shouldn't feel paralysed by the number).
+ *
+ * Pin the 99 boundary exactly — 99 shows as "99"; 100 flips to
+ * "99+". A refactor to >=99 (inclusive 99 = "99+") would lose one
+ * usable count tier.
+ */
+internal fun unreadBadgeLabel(count: Int): String =
+    if (count > 99) "99+" else count.toString()

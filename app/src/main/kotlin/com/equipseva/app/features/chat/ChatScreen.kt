@@ -318,8 +318,7 @@ private fun QueuedPill(count: Int) {
             modifier = Modifier.size(16.dp),
         )
         Text(
-            text = if (count == 1) "1 message queued — will send when back online"
-            else "$count messages queued — will send when back online",
+            text = queuedChatMessagePillText(count),
             fontSize = 12.sp,
             color = SevaInk900,
         )
@@ -718,22 +717,24 @@ private val timeFormatter = DateTimeFormatter.ofPattern("h:mm a", java.util.Loca
 private val dayHeaderFormatter = DateTimeFormatter.ofPattern("dd MMM", java.util.Locale.ENGLISH)
     .withZone(IST_ZONE)
 
-private fun formatTime(iso: String?): String? =
+internal fun formatTime(iso: String?): String? =
     iso?.let { runCatching { timeFormatter.format(Instant.parse(it)) }.getOrNull() }
 
 // Group key by local date so the day-separator only appears at boundaries.
 // Falls back to "unknown" when a timestamp is unparseable; DaySeparator
 // short-circuits on a blank label so unparseable buckets render no header.
-private fun dayKey(iso: String?): String =
+internal fun dayKey(iso: String?): String =
     iso?.let {
         runCatching { Instant.parse(it).atZone(IST_ZONE).toLocalDate().toString() }
             .getOrNull()
     } ?: "unknown"
 
-private fun dayLabel(key: String): String {
+private fun dayLabel(key: String): String = dayLabelAt(key, LocalDate.now(IST_ZONE))
+
+/** Pure variant of [dayLabel] used by tests. */
+internal fun dayLabelAt(key: String, today: LocalDate): String {
     if (key == "unknown") return ""
     val date = runCatching { LocalDate.parse(key) }.getOrNull() ?: return ""
-    val today = LocalDate.now(IST_ZONE)
     return when (date) {
         today -> "Today"
         today.minusDays(1) -> "Yesterday"
@@ -741,11 +742,58 @@ private fun dayLabel(key: String): String {
     }
 }
 
-private fun String.isImageUrl(): Boolean {
-    val lower = substringBefore('?').lowercase()
+private fun String.isImageUrl(): Boolean = isImageUrlExtension(this)
+
+/**
+ * True when [url]'s path (anything before the query string) ends in
+ * one of the six image extensions the chat composer accepts. Used by
+ * the attachment renderer to decide between AsyncImage vs the generic
+ * file-pill. Extracted top-level so the case-folding + query-strip
+ * logic can be unit-tested without the surrounding row composable.
+ */
+internal fun isImageUrlExtension(url: String): Boolean {
+    val lower = url.substringBefore('?').lowercase()
     return lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") ||
         lower.endsWith(".webp") || lower.endsWith(".gif") || lower.endsWith(".heic")
 }
+
+/**
+ * Banner text on the queued-chat-message pill (offline send queue).
+ *
+ * Critical region: singular/plural split AND the U+2014 em-dash
+ * separator. Sibling of [com.equipseva.app.features.mybids.queuedBidPillText]
+ * but with chat-specific vocabulary ("message" / "send" instead of
+ * "bid" / "submit"). Pin the cross-surface vocabulary asymmetry —
+ * a refactor that unified them via a parametric helper would risk
+ * mixing "bid send" / "message submit" prose on either surface.
+ *
+ *   - count == 1 → "1 message queued — will send when back online"
+ *   - count != 1 → "N messages queued — will send when back online"
+ */
+internal fun queuedChatMessagePillText(count: Int): String =
+    if (count == 1) {
+        "1 message queued — will send when back online"
+    } else {
+        "$count messages queued — will send when back online"
+    }
+
+/**
+ * Label on the job-context strip above the chat thread.
+ *
+ *   - jobNumber non-blank → use as-is (e.g. "RPR-2026-00041")
+ *   - jobNumber null/blank → "RJ-${jobId.take(8)}" fallback
+ *
+ * Pin the "RJ-" prefix (NOT "RPR-") on the fallback — distinguishes
+ * the chat-context-only label from the canonical jobNumber form so
+ * users / founders inspecting screenshots can tell whether they're
+ * looking at the real number or the in-flight chat fallback.
+ *
+ * Pin take(8) — the 8-char prefix matches the founder's other
+ * id-prefix conventions (userDisplayName, contract slugs, etc.) so
+ * cross-referencing in Supabase Studio stays consistent.
+ */
+internal fun jobContextStripLabel(jobNumber: String?, jobId: String): String =
+    jobNumber?.takeIf { it.isNotBlank() } ?: "RJ-${jobId.take(8)}"
 
 @Composable
 private fun JobContextStrip(jobId: String, jobNumber: String?, onClick: () -> Unit) {
@@ -770,7 +818,7 @@ private fun JobContextStrip(jobId: String, jobNumber: String?, onClick: () -> Un
             // suffix to that label.
             // Real job_number when resolved; truncated UUID otherwise so the
             // strip is never blank during the fetch window.
-            val label = jobNumber?.takeIf { it.isNotBlank() } ?: "RJ-${jobId.take(8)}"
+            val label = jobContextStripLabel(jobNumber, jobId)
             Row(
                 modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically,

@@ -117,18 +117,15 @@ class ChatRepository @Inject constructor(
         message: String,
         attachments: List<String> = emptyList(),
     ): Result<ChatMessage> = runCatching {
-        // Server CHECK (round286) caps chat_messages.message at 4000.
-        // ChatViewModel already clamps the draft; mirror at the repo
-        // boundary so outbox replays / scripts hit the same gate.
-        val cappedMessage = message.take(4000)
-        val dto = client.from(MESSAGES_TABLE).insert(
-            MessageInsertDto(
-                conversationId = conversationId,
-                senderUserId = senderUserId,
-                message = cappedMessage,
-                attachments = attachments.ifEmpty { null },
-            ),
-        ) { select() }.decodeSingle<MessageDto>()
+        val payload = buildMessageInsert(
+            conversationId = conversationId,
+            senderUserId = senderUserId,
+            message = message,
+            attachments = attachments,
+        )
+        val cappedMessage = payload.message
+        val dto = client.from(MESSAGES_TABLE).insert(payload) { select() }
+            .decodeSingle<MessageDto>()
 
         runCatching {
             client.from(CONVERSATIONS_TABLE).update({
@@ -177,11 +174,7 @@ class ChatRepository @Inject constructor(
         }.decodeList<ConversationDto>().firstOrNull()
 
         val dto = existing ?: client.from(CONVERSATIONS_TABLE).insert(
-            ConversationInsertDto(
-                participantUserIds = participantUserIds,
-                relatedEntityType = "repair_job",
-                relatedEntityId = jobId,
-            ),
+            buildRepairJobConversationInsert(participantUserIds, jobId),
         ) { select() }.decodeSingle<ConversationDto>()
 
         dto.toDomain()
@@ -216,15 +209,11 @@ class ChatRepository @Inject constructor(
         }.decodeList<ConversationDto>()
 
         val match = mine.firstOrNull { dto ->
-            dto.participantUserIds?.toSet() == setOf(selfUserId, peerUserId)
+            matchesDirectParticipants(dto.participantUserIds, selfUserId, peerUserId)
         }
 
         val dto = match ?: client.from(CONVERSATIONS_TABLE).insert(
-            ConversationInsertDto(
-                participantUserIds = listOf(selfUserId, peerUserId),
-                relatedEntityType = "direct",
-                relatedEntityId = null,
-            ),
+            buildDirectConversationInsert(selfUserId, peerUserId),
         ) { select() }.decodeSingle<ConversationDto>()
 
         dto.toDomain()
@@ -363,15 +352,11 @@ class ChatRepository @Inject constructor(
         val lastSeen = mutableMapOf<String, Long>()
         var emitted: Set<String> = emptySet()
 
-        fun recompute(): Set<String> {
-            val now = System.currentTimeMillis()
-            val iter = lastSeen.entries.iterator()
-            while (iter.hasNext()) {
-                val (_, ts) = iter.next()
-                if (now - ts > TYPING_TTL_MS) iter.remove()
-            }
-            return lastSeen.keys.toSet()
-        }
+        fun recompute(): Set<String> = pruneAndSnapshotTyping(
+            lastSeen = lastSeen,
+            nowMs = System.currentTimeMillis(),
+            ttlMs = TYPING_TTL_MS,
+        )
 
         fun maybeEmit() {
             val next = recompute()
@@ -486,3 +471,99 @@ class ChatRepository @Inject constructor(
         const val TYPING_TICK_MS = 1_000L
     }
 }
+
+/**
+ * In-place prune of [lastSeen] (a userId → epoch-ms last-seen map)
+ * removing entries whose timestamp is older than [ttlMs]; returns
+ * the remaining userId set.
+ *
+ * Used by the chat typing-indicator stream — a user counts as
+ * "typing" while we've heard from them within the TTL, and we
+ * re-snapshot the surviving set after each tick / incoming frame.
+ *
+ * Pinned semantics:
+ *   * STRICTLY greater than ttlMs is the cutoff — entries exactly
+ *     ttlMs old stay alive (a typist whose last frame just hit the
+ *     TTL boundary stays visible until the next tick).
+ *   * Empty input returns empty (no allocation surprises).
+ *   * Mutates the map in place — caller observes the side effect.
+ */
+internal fun pruneAndSnapshotTyping(
+    lastSeen: MutableMap<String, Long>,
+    nowMs: Long,
+    ttlMs: Long,
+): Set<String> {
+    val iter = lastSeen.entries.iterator()
+    while (iter.hasNext()) {
+        val (_, ts) = iter.next()
+        if (nowMs - ts > ttlMs) iter.remove()
+    }
+    return lastSeen.keys.toSet()
+}
+
+/**
+ * Compose a [ConversationInsertDto] for a repair-job-tied chat. The
+ * `related_entity_type` literal is wire-frozen ("repair_job") so the
+ * de-dupe query later finds the row; pin so a refactor that renamed
+ * the literal doesn't silently break the de-dupe.
+ */
+internal fun buildRepairJobConversationInsert(
+    participantUserIds: List<String>,
+    jobId: String,
+): ConversationInsertDto = ConversationInsertDto(
+    participantUserIds = participantUserIds,
+    relatedEntityType = "repair_job",
+    relatedEntityId = jobId,
+)
+
+/**
+ * Compose a [ConversationInsertDto] for a direct (peer-to-peer) chat
+ * not tied to any repair job. `relatedEntityType` is "direct";
+ * `relatedEntityId` is null since there's no entity to link.
+ */
+internal fun buildDirectConversationInsert(
+    selfUserId: String,
+    peerUserId: String,
+): ConversationInsertDto = ConversationInsertDto(
+    participantUserIds = listOf(selfUserId, peerUserId),
+    relatedEntityType = "direct",
+    relatedEntityId = null,
+)
+
+/**
+ * Compose a [MessageInsertDto] for the chat-send path. Caps the
+ * message body at 4000 chars to match the server CHECK on
+ * chat_messages.message — the ChatViewModel UI already clamps drafts,
+ * but the outbox replay path goes through a different code path so
+ * mirror the gate at the repo boundary too.
+ *
+ * Empty attachment lists fold to null so the DTO doesn't carry an
+ * empty `attachments: []` array on every text-only message.
+ */
+internal fun buildMessageInsert(
+    conversationId: String,
+    senderUserId: String,
+    message: String,
+    attachments: List<String> = emptyList(),
+): MessageInsertDto = MessageInsertDto(
+    conversationId = conversationId,
+    senderUserId = senderUserId,
+    message = message.take(4000),
+    attachments = attachments.ifEmpty { null },
+)
+
+/**
+ * True when [participantUserIds] is exactly the pair `{self, peer}`.
+ * Set-equality so the de-dupe matches regardless of insertion order in
+ * the participant_user_ids array. A regression that compared lists
+ * order-sensitively would let a duplicate "direct" conversation slip
+ * past the de-dupe and surface two threads to the same pair.
+ *
+ * Null participant list is treated as no match (legacy conversation
+ * row that pre-dates the column being non-null).
+ */
+internal fun matchesDirectParticipants(
+    participantUserIds: List<String>?,
+    selfUserId: String,
+    peerUserId: String,
+): Boolean = participantUserIds?.toSet() == setOf(selfUserId, peerUserId)

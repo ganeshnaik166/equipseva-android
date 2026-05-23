@@ -237,16 +237,7 @@ class EngineerPublicProfileViewModel @Inject constructor(
 
     private fun haversineKm(
         lat1: Double, lng1: Double, lat2: Double, lng2: Double,
-    ): Double {
-        val r = 6371.0
-        val dLat = Math.toRadians(lat2 - lat1)
-        val dLng = Math.toRadians(lng2 - lng1)
-        val a = kotlin.math.sin(dLat / 2).let { it * it } +
-            kotlin.math.cos(Math.toRadians(lat1)) *
-            kotlin.math.cos(Math.toRadians(lat2)) *
-            kotlin.math.sin(dLng / 2).let { it * it }
-        return 2 * r * kotlin.math.asin(kotlin.math.sqrt(a))
-    }
+    ): Double = com.equipseva.app.features.repair.directory.haversineKm(lat1, lng1, lat2, lng2)
 
     /**
      * Resolve role + most-recent active job between viewer and this
@@ -739,10 +730,7 @@ private fun ProfileBody(
                         )
                         InlineVerifiedBadge(small = false)
                     }
-                    val locLine = listOfNotNull(
-                        p.city?.takeIf { it.isNotBlank() },
-                        p.state?.takeIf { it.isNotBlank() },
-                    ).joinToString(", ")
+                    val locLine = formatCityStateLine(p.city, p.state)
                     if (locLine.isNotBlank()) {
                         Spacer(Modifier.height(4.dp))
                         Text(locLine, color = SevaInk500, fontSize = 12.sp)
@@ -753,10 +741,8 @@ private fun ProfileBody(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         InlineStars(rating = p.ratingAvg, count = p.totalJobs)
-                        Pill(
-                            text = if (p.isAvailable) "Available" else "Busy",
-                            kind = if (p.isAvailable) PillKind.Success else PillKind.Warn,
-                        )
+                        val (availText, availKind) = engineerAvailabilityPill(p.isAvailable)
+                        Pill(text = availText, kind = availKind)
                     }
                 }
             }
@@ -768,7 +754,7 @@ private fun ProfileBody(
                 Stat(
                     modifier = Modifier.weight(1f),
                     label = "Hourly",
-                    value = p.hourlyRate?.let { formatRupees(it) } ?: "—",
+                    value = formatHourlyRateOrDash(p.hourlyRate),
                     color = SevaInk900,
                 )
                 Stat(
@@ -780,10 +766,7 @@ private fun ProfileBody(
                 Stat(
                     modifier = Modifier.weight(1f),
                     label = "Completion",
-                    value = run {
-                        val pct = if (p.completionRate <= 1.0) p.completionRate * 100 else p.completionRate
-                        "${pct.toInt()}%"
-                    },
+                    value = formatCompletionRatePct(p.completionRate),
                     color = SevaGreen700,
                 )
             }
@@ -1049,7 +1032,11 @@ private fun ReviewsSection(
             ) {
                 categorySummary.forEach { sum ->
                     EsChip(
-                        text = "${prettyKey(sum.equipmentCategory)} · ${sum.reviewCount} · ${"%.1f".format(java.util.Locale.US, sum.ratingAvg)}★",
+                        text = categoryRatingChipText(
+                            categoryKey = sum.equipmentCategory,
+                            reviewCount = sum.reviewCount,
+                            ratingAvg = sum.ratingAvg,
+                        ),
                         active = false,
                     )
                 }
@@ -1084,7 +1071,7 @@ private fun ReviewItem(r: EngineerDirectoryRepository.EngineerReview) {
     val whenLabel: String = remember(r.completedAtIso) {
         com.equipseva.app.core.util.relativeLabel(r.completedAtIso).orEmpty()
     }
-    val cityLabel = r.hospitalCity?.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty()
+    val whenAndCityLabel = formatReviewWhenAndCity(whenLabel, r.hospitalCity)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1103,7 +1090,7 @@ private fun ReviewItem(r: EngineerDirectoryRepository.EngineerReview) {
             // wrapper that hides the count chip when 0. Falls back to the
             // shared component for the star + number.
             Text(
-                text = whenLabel + cityLabel,
+                text = whenAndCityLabel,
                 color = SevaInk500,
                 fontSize = 11.sp,
             )
@@ -1194,3 +1181,134 @@ private fun ChipFlowNeutral(items: List<String>) {
         }
     }
 }
+
+/**
+ * "City, State" header line on the engineer public profile. Both
+ * fields blank → empty (caller hides the line). Either alone passes
+ * through without separator. Pin so a refactor doesn't surface
+ * ", State" or "City," fragments.
+ */
+internal fun formatCityStateLine(city: String?, state: String?): String =
+    listOfNotNull(
+        city?.takeIf { it.isNotBlank() },
+        state?.takeIf { it.isNotBlank() },
+    ).joinToString(", ")
+
+/**
+ * Hourly-rate stat-card value: rupee-formatted, or em-dash (U+2014)
+ * when null. Pin so a refactor to "Not set" / "—" ASCII / "₹0" doesn't
+ * drift — the em-dash glyph signals "data unavailable", not "engineer
+ * works for free".
+ */
+internal fun formatHourlyRateOrDash(hourlyRate: Double?): String =
+    hourlyRate?.let { com.equipseva.app.core.util.formatRupees(it) } ?: "—"
+
+/**
+ * Format an engineer's completion-rate column as a "%" string on the
+ * public-profile stat strip.
+ *
+ * Tolerates both wire shapes:
+ *   * 0..1 fraction (e.g. 0.97 → "97%")
+ *   * 0..100 percentage (e.g. 97.0 → "97%")
+ *
+ * Pinned regression: the column type drifted between fraction and
+ * percentage during the v1 migrations; pin so a future server-side
+ * normalisation doesn't accidentally surface "0%" (treating 97 as
+ * 0.97 and dropping the int conversion) or "9700%" (treating 0.97
+ * as 0.97 percent and multiplying twice).
+ *
+ * Heuristic: values ≤ 1.0 are fractions (multiplied by 100), values
+ * > 1.0 are already percentages.
+ */
+internal fun formatCompletionRatePct(completionRate: Double): String {
+    val pct = if (completionRate <= 1.0) completionRate * 100 else completionRate
+    return "${pct.toInt()}%"
+}
+
+/**
+ * Compose the per-category rating chip text shown on
+ * EngineerPublicProfile's review summary band:
+ *
+ *   "Imaging · 7 · 4.8★"
+ *
+ *   * `categoryKey` is the snake_case wire key — title-cased via
+ *     prettyKey
+ *   * `reviewCount` interpolates verbatim (caller filters out
+ *     zero-count rows)
+ *   * `ratingAvg` formatted to 1 decimal place under Locale.US so
+ *     a Hindi-locale device doesn't surface "4,8" (Devanagari /
+ *     comma-decimal) which reads as "4 to 8" or a list.
+ *
+ * Middle-dot separator pinned (U+00B7) — same character as the
+ * adjacent review-item "when · city" line.
+ */
+internal fun categoryRatingChipText(
+    categoryKey: String,
+    reviewCount: Int,
+    ratingAvg: Double,
+): String =
+    "${com.equipseva.app.core.util.prettyKey(categoryKey)} · " +
+        "$reviewCount · " +
+        "${"%.1f".format(java.util.Locale.US, ratingAvg)}★"
+
+/**
+ * Compose the "when · city" line on an engineer-review item.
+ *
+ *   * Both present → "3 days ago · Bengaluru"
+ *   * Only when → "3 days ago"
+ *   * Only city → " · Bengaluru" (leading separator — defensive; the
+ *     UI always supplies a non-empty whenLabel from relativeLabel)
+ *   * Both blank → ""
+ *
+ * The middle-dot separator (U+00B7) and the surrounding spaces match
+ * the chat row's last-seen line so the two surfaces feel cohesive.
+ */
+internal fun formatReviewWhenAndCity(whenLabel: String, hospitalCity: String?): String {
+    val cityLabel = hospitalCity?.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty()
+    return whenLabel + cityLabel
+}
+
+/**
+ * Great-circle distance between two lat/lng pairs in km. Earth radius
+ * 6371 km. Pure helper — extracted top-level so the
+ * EngineerPublicProfileScreen / RepeatBookingNudge distance gate can
+ * be unit-tested without standing up the surrounding VM.
+ */
+internal fun haversineKm(
+    lat1: Double, lng1: Double, lat2: Double, lng2: Double,
+): Double {
+    val r = 6371.0
+    val dLat = Math.toRadians(lat2 - lat1)
+    val dLng = Math.toRadians(lng2 - lng1)
+    val a = kotlin.math.sin(dLat / 2).let { it * it } +
+        kotlin.math.cos(Math.toRadians(lat1)) *
+        kotlin.math.cos(Math.toRadians(lat2)) *
+        kotlin.math.sin(dLng / 2).let { it * it }
+    return 2 * r * kotlin.math.asin(kotlin.math.sqrt(a))
+}
+
+/**
+ * Availability pill on the engineer public profile.
+ *
+ *   - isAvailable == true → "Available" + Success (green)
+ *   - isAvailable == false → "Busy" + Warn (amber)
+ *
+ * Pin the "Busy" + Warn pairing — a refactor to "Busy" + Danger
+ * (red) would over-escalate; the engineer being busy is normal,
+ * not an alarm signal. A refactor to "Unavailable" would erase
+ * the temporary-vs-permanent distinction (engineers can flip the
+ * toggle back to available in their profile settings).
+ *
+ * The hospital uses this pill to decide whether to message the
+ * engineer NOW or schedule for later — pin so the colour scheme
+ * stays consistent with the rest-of-app green-Success / amber-Warn
+ * conventions.
+ */
+internal fun engineerAvailabilityPill(
+    isAvailable: Boolean,
+): Pair<String, com.equipseva.app.designsystem.components.PillKind> =
+    if (isAvailable) {
+        "Available" to com.equipseva.app.designsystem.components.PillKind.Success
+    } else {
+        "Busy" to com.equipseva.app.designsystem.components.PillKind.Warn
+    }

@@ -137,7 +137,7 @@ fun FounderReportsQueueScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Content reports",
-                subtitle = if (state.rows.isNotEmpty()) "${state.rows.size} open" else null,
+                subtitle = simpleQueueCountSubtitle(state.rows.size, "open"),
                 onBack = onBack,
             )
             // Round 399 — pull-to-refresh.
@@ -218,7 +218,7 @@ private fun ReportRow(
             Pill(text = "Open", kind = PillKind.Danger)
         }
         Text(
-            "Reporter: ${row.reporterName ?: row.reporterUserId.take(8)}",
+            "Reporter: ${reportRowReporterDisplay(row.reporterName, row.reporterUserId)}",
             color = SevaInk500,
             fontSize = 12.sp,
         )
@@ -226,7 +226,7 @@ private fun ReportRow(
         // the row stays scannable. Founders who need the exact id can copy
         // it from the action handler / detail page.
         Text(
-            "Target: ${row.targetId.takeLast(8)}",
+            "Target: ${reportRowTargetIdSlug(row.targetId)}",
             color = SevaInk500,
             fontSize = 11.sp,
         )
@@ -296,3 +296,35 @@ private fun ReportRow(
     }
 }
 
+/**
+ * Reporter display on the founder reports queue row.
+ *
+ * Prefer the joined display name; fall back to the FIRST 8 chars of
+ * the userId when the join didn't resolve a name (legacy report rows
+ * predating the joined-name backfill, or hard-deleted users).
+ *
+ * Pin take(8) on the userId — matches the founder's other 8-char ID
+ * prefix patterns (e.g. userDisplayName, contractId slugs) so a
+ * founder copying the prefix into Supabase Studio gets a consistent
+ * lookup key.
+ *
+ * Note: this differs from [reportRowTargetIdSlug] which uses
+ * takeLast(8) — pin both so a refactor that unified the prefix
+ * vs suffix choice surfaces. The reporter "prefix" matches user ID
+ * convention; the target uses "last 8" because target IDs are
+ * heterogeneous (job IDs, message IDs, etc.) and the last 8 are
+ * more entropic.
+ */
+internal fun reportRowReporterDisplay(reporterName: String?, reporterUserId: String): String =
+    reporterName ?: reporterUserId.take(8)
+
+/**
+ * Target-id short slug on the founder reports queue row.
+ *
+ * Returns the LAST 8 characters of the heterogeneous target_id (could
+ * be a job_id, message_id, etc.). Last-8 is more entropic than first-8
+ * across mixed UUID-like spaces — pin so a refactor to take(8) doesn't
+ * silently shift the slug to the more-prefix-collision-prone side.
+ */
+internal fun reportRowTargetIdSlug(targetId: String): String =
+    targetId.takeLast(8)

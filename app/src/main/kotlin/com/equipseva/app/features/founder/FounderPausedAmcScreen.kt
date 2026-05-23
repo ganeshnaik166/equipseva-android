@@ -99,7 +99,7 @@ fun FounderPausedAmcScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Paused AMCs",
-                subtitle = if (state.rows.isNotEmpty()) "${state.rows.size} silent service stop${if (state.rows.size == 1) "" else "s"}" else null,
+                subtitle = pausedAmcSubtitle(state.rows.size),
                 onBack = onBack,
             )
             // Round 382 — pull-to-refresh.
@@ -167,12 +167,16 @@ private fun PausedRow(
             Text("Engineer: $it", color = SevaInk700, fontSize = 13.sp)
         }
         Text(
-            text = "Term ${prettyDate(row.startDate)} → ${prettyDate(row.endDate)} · ${formatRupees(row.monthlyFeeRupees)} / month",
+            text = pausedAmcTermLine(
+                prettyStartDate = prettyDate(row.startDate),
+                prettyEndDate = prettyDate(row.endDate),
+                monthlyFeeRupees = row.monthlyFeeRupees,
+            ),
             color = SevaInk500,
             fontSize = 12.sp,
         )
         Text(
-            text = "Visits: ${row.visitsCompleted} / ${row.visitsPerYear} per year",
+            text = pausedAmcVisitsLine(row.visitsCompleted, row.visitsPerYear),
             color = SevaInk500,
             fontSize = 12.sp,
         )
@@ -181,4 +185,52 @@ private fun PausedRow(
             if (rel != null) Text("Paused $rel ago", color = SevaInk500, fontSize = 11.sp)
         }
     }
+}
+
+/**
+ * Term subline on the paused-AMC row: "Term X → Y · ₹Z / month"
+ * with U+2192 arrow between dates and U+00B7 middle-dot before fee.
+ *
+ * Pin both glyphs (NOT "-" or "to" between dates, NOT "•" or "-"
+ * before fee) and the literal " / month" suffix (NOT "/month",
+ * NOT "monthly").
+ */
+internal fun pausedAmcTermLine(
+    prettyStartDate: String,
+    prettyEndDate: String,
+    monthlyFeeRupees: Double,
+): String =
+    "Term $prettyStartDate → $prettyEndDate · ${formatRupees(monthlyFeeRupees)} / month"
+
+/**
+ * Visits subline on the paused-AMC row: "Visits: N / M per year".
+ *
+ * Pin the trailing " per year" — load-bearing context the founder
+ * uses to size the SLA-credits owed during the pause. A drift to
+ * just "Visits: N / M" would lose the cadence anchor and could be
+ * mis-read as "N completed, M remaining" instead of "N done out
+ * of M annual quota".
+ */
+internal fun pausedAmcVisitsLine(visitsCompleted: Int, visitsPerYear: Int): String =
+    "Visits: $visitsCompleted / $visitsPerYear per year"
+
+/**
+ * Subtitle on the founder Paused-AMCs top bar.
+ *
+ * Returns null when the list is empty. Otherwise reads "N silent
+ * service stop(s)" with proper singular/plural split.
+ *
+ * Critical pin: "silent service stop" phrasing — load-bearing
+ * because it distinguishes from a regular AMC pause (which is
+ * explicit). A "silent stop" is when payments / visits taper off
+ * without the hospital formally pausing the contract. A refactor to
+ * "paused contracts" would erase the silent-vs-explicit distinction.
+ *
+ * Pin the singular/plural split — "1 silent service stop" (no 's')
+ * vs "N silent service stops".
+ */
+internal fun pausedAmcSubtitle(rowCount: Int): String? {
+    if (rowCount <= 0) return null
+    val noun = if (rowCount == 1) "silent service stop" else "silent service stops"
+    return "$rowCount $noun"
 }

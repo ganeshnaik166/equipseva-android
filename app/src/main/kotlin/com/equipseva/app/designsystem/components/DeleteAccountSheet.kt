@@ -14,8 +14,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -91,6 +93,12 @@ fun DeleteAccountSheet(
                 isError = passwordError != null,
                 supportingText = passwordError?.let { { Text(it) } },
                 visualTransformation = PasswordVisualTransformation(),
+                // KeyboardType.Password disables predictive text on the
+                // soft keyboard. Without this, Android adds the typed
+                // password to the per-user dictionary and a subsequent
+                // typo elsewhere can suggest the real password as a
+                // completion — a documented PII-leak class.
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 enabled = !deleting,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -121,10 +129,25 @@ fun DeleteAccountSheet(
                     // Require a non-blank password before the Confirm
                     // is tappable. The VM still validates server-side
                     // so an empty value can't slip through stale state.
-                    disabled = deleting || password.isBlank(),
+                    disabled = !canConfirmDeleteAccount(password, deleting),
                     modifier = Modifier.weight(1f),
                 )
             }
         }
     }
 }
+
+/**
+ * Confirm-button gate on the delete-account sheet.
+ *
+ * Enabled when password is non-blank AND not currently deleting.
+ *
+ * Critical pin: requires non-blank password (re-auth gate). Without
+ * proof of the current password an attacker with momentary access
+ * to an unlocked device could hard-delete the legitimate owner's
+ * account — the RPC runs purely on auth.uid with no other server-
+ * side gate. A refactor that dropped the password check would
+ * surface as a security regression.
+ */
+internal fun canConfirmDeleteAccount(password: String, deleting: Boolean): Boolean =
+    password.isNotBlank() && !deleting

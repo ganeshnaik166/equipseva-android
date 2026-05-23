@@ -50,9 +50,9 @@ private fun colorsFor(kind: PillKind): PillColors = when (kind) {
 @Composable
 fun Pill(
     text: String,
+    modifier: Modifier = Modifier,
     kind: PillKind = PillKind.Default,
     leading: (@Composable () -> Unit)? = null,
-    modifier: Modifier = Modifier,
 ) {
     val c = colorsFor(kind)
     Row(

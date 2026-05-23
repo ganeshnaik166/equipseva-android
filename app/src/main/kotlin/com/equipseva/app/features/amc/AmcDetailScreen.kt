@@ -583,7 +583,7 @@ private fun OverviewTab(
                 }
                 if (state.engineerView != null && !state.viewerIsHospital) {
                     Pill(
-                        text = if (state.engineerView.isPrimary) "Primary engineer" else "Fallback engineer",
+                        text = engineerRolePillLabel(state.engineerView.isPrimary),
                         kind = PillKind.Default,
                     )
                 }
@@ -818,13 +818,7 @@ private fun AutoPaySection(
                     )
                 }
                 "halted", "cancelled", "completed", "expired" -> {
-                    val pillText = when (status) {
-                        "halted" -> "Halted"
-                        "cancelled" -> "Cancelled"
-                        "completed" -> "Completed"
-                        else -> "Expired"
-                    }
-                    Pill(text = pillText, kind = PillKind.Default)
+                    Pill(text = autoPayHaltedPillText(status), kind = PillKind.Default)
                     sub.lastFailureReason?.takeIf { it.isNotBlank() }?.let { reason ->
                         Text(
                             "Last issue: $reason",
@@ -851,15 +845,10 @@ private fun AutoPaySection(
 
 @Composable
 private fun PoolLedgerRow(row: AmcRepository.PoolLedgerRow) {
-    val isCredit = row.ledgerKind == "credit" || row.ledgerKind == "refund"
+    val isCredit = isPoolLedgerCredit(row.ledgerKind)
     val sign = if (isCredit) "+" else "−"
     val color = if (isCredit) SevaGreen700 else SevaDanger500
-    val label = when (row.ledgerKind) {
-        "credit" -> if (row.sourceBreachId != null) "SLA credit" else "Top-up"
-        "debit" -> "Visit fair share"
-        "refund" -> "Refund"
-        else -> row.ledgerKind.replaceFirstChar { it.uppercase() }
-    }
+    val label = poolLedgerLabel(row.ledgerKind, row.sourceBreachId)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -946,7 +935,7 @@ private fun VisitRow(v: AmcRepository.AmcVisitRow) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                "Visit #${v.amcVisitNumber ?: '-'} · ${v.jobNumber ?: ""}".trim(),
+                amcVisitHeaderLine(v.amcVisitNumber, v.jobNumber),
                 color = SevaInk900,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -1003,30 +992,26 @@ private fun SlaBreachCard(b: AmcRepository.AmcSlaBreach) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Pill(
-                text = if (b.severity == "emergency") "Emergency" else "Standard",
-                kind = if (b.severity == "emergency") PillKind.Danger else PillKind.Warn,
+            val severity = amcSeverityLabel(b.severity)
+            Pill(text = severity, kind = amcSeverityPillKind(b.severity))
+            Text(
+                amcBreachTypeLabel(b.breachType),
+                color = SevaInk900,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
             )
-            val typeLabel = when (b.breachType) {
-                "response_time" -> "Response time"
-                "no_show" -> "No-show"
-                "quality" -> "Quality"
-                else -> b.breachType
-            }
-            Text(typeLabel, color = SevaInk900, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         }
         if (!b.visitCode.isNullOrBlank()) {
             Text("Visit ${b.visitCode}", color = SevaInk500, fontSize = 12.sp)
         }
         Text(
-            "Expected within ${b.expectedWithinHours}h" +
-                (b.actualHours?.let { " · actual ${"%.1f".format(java.util.Locale.US, it)}h" } ?: ""),
+            amcBreachWindowLine(b.expectedWithinHours, b.actualHours),
             color = SevaInk700,
             fontSize = 12.sp,
         )
         if (b.creditIssuedRupees > 0) {
             Pill(
-                text = "Credit ${formatRupees(b.creditIssuedRupees)}",
+                text = slaBreachCreditPillText(b.creditIssuedRupees),
                 kind = PillKind.Lime,
             )
         }
@@ -1182,3 +1167,157 @@ private fun CategoryFlow(items: List<String>) {
     }
 }
 
+/**
+ * User-facing copy for an AMC SLA breach severity. The wire enum
+ * carries `emergency` or anything else; the latter folds to
+ * "Standard" so the pill renders consistently.
+ */
+internal fun amcSeverityLabel(severity: String?): String =
+    if (severity == "emergency") "Emergency" else "Standard"
+
+/**
+ * Label for an AMC SLA breach type. Three known wire values:
+ *   * response_time → "Response time" (visit not started within SLA)
+ *   * no_show → "No-show" (engineer never arrived)
+ *   * quality → "Quality" (post-visit hospital complaint)
+ *
+ * Unknown values pass through verbatim so a future server-side
+ * breach type still surfaces (just untranslated) until the client
+ * catches up.
+ */
+internal fun amcBreachTypeLabel(breachType: String): String = when (breachType) {
+    "response_time" -> "Response time"
+    "no_show" -> "No-show"
+    "quality" -> "Quality"
+    else -> breachType
+}
+
+/**
+ * "Expected within Xh · actual Yh" line on the SLA breach card.
+ * Drops the "actual" segment when [actualHours] is null (the breach
+ * is still mid-flight); `actual` formatted with `Locale.US` "%.1f"
+ * so a comma-decimal device locale doesn't render "5,2h" (would
+ * read as a list of hours).
+ */
+internal fun amcBreachWindowLine(
+    expectedWithinHours: Int,
+    actualHours: Double?,
+): String = "Expected within ${expectedWithinHours}h" +
+    (actualHours?.let { " · actual ${"%.1f".format(java.util.Locale.US, it)}h" } ?: "")
+
+/**
+ * Header copy for a single AMC visit row: "Visit #N · RPR-NNNN".
+ * Falls back to "-" for a missing visit number (legacy rows from
+ * before the auto-numbering column landed); job number folds out
+ * gracefully so a null / blank jobNumber renders "Visit #3" without
+ * the dangling " · " separator. Pre-extraction code used a
+ * `.trim()` which only stripped whitespace and left the trailing
+ * middle-dot; the helper now drops the separator branch cleanly.
+ */
+internal fun amcVisitHeaderLine(
+    amcVisitNumber: Int?,
+    jobNumber: String?,
+): String {
+    val n = amcVisitNumber?.toString() ?: "-"
+    val job = jobNumber?.takeIf { it.isNotBlank() }
+    return if (job != null) "Visit #$n · $job" else "Visit #$n"
+}
+
+/**
+ * True when a pool-ledger entry is a credit (Top-up or Refund). The
+ * AMC payment pool nets credits (hospital top-ups / SLA breach
+ * refunds) against debits (per-visit fair-share withdrawals); the row
+ * card colour-codes accordingly.
+ */
+internal fun isPoolLedgerCredit(ledgerKind: String): Boolean =
+    ledgerKind == "credit" || ledgerKind == "refund"
+
+/**
+ * User-facing label for a pool-ledger row. `credit` entries split
+ * by source: a credit with a [sourceBreachId] is an automated SLA
+ * credit; otherwise it's a hospital top-up. `debit` is always
+ * "Visit fair share"; `refund` is "Refund". Unknown wire values fall
+ * back to a first-letter-capitalised echo so the row still shows
+ * something readable.
+ */
+internal fun poolLedgerLabel(
+    ledgerKind: String,
+    sourceBreachId: String?,
+): String = when (ledgerKind) {
+    "credit" -> if (sourceBreachId != null) "SLA credit" else "Top-up"
+    "debit" -> "Visit fair share"
+    "refund" -> "Refund"
+    else -> ledgerKind.replaceFirstChar { it.uppercase() }
+}
+
+/**
+ * Engineer role pill label on the AMC-detail overview tab, shown
+ * only when an engineer is viewing their own contract.
+ *
+ * isPrimary = true → "Primary engineer"
+ * isPrimary = false → "Fallback engineer"
+ *
+ * Pin the literal strings — these are role-aware semantics the
+ * engineer uses to understand whether they're the lead on the
+ * contract or a backup that only gets called when the primary
+ * declines. A refactor to "Lead engineer" / "Backup engineer"
+ * would change the engineer's mental model of their rotation
+ * status.
+ */
+internal fun engineerRolePillLabel(isPrimary: Boolean): String =
+    if (isPrimary) "Primary engineer" else "Fallback engineer"
+
+/**
+ * Pill label for the halted-bucket subscription statuses on the
+ * auto-pay section.
+ *
+ * Wire statuses in this bucket: "halted", "cancelled", "completed",
+ * "expired". Each maps to a Title-cased display label. Unknown
+ * statuses fall through to "Expired" — defensive fallback that
+ * leaves room for future server-side enum additions.
+ *
+ * Pin the literal mappings — these match the Razorpay subscription
+ * lifecycle vocabulary, which is what the hospital sees in their
+ * bank statement too. A refactor that changed "Halted" to "Paused"
+ * would diverge from the bank-side terminology and confuse
+ * reconciliation.
+ *
+ * Note: "halted" and "cancelled" use the same Default pill colour
+ * but distinct labels — pin so a refactor doesn't collapse them.
+ */
+internal fun autoPayHaltedPillText(status: String): String = when (status) {
+    "halted" -> "Halted"
+    "cancelled" -> "Cancelled"
+    "completed" -> "Completed"
+    else -> "Expired"
+}
+
+/**
+ * Credit pill text on the AMC SLA-breach card: "Credit ₹X".
+ *
+ * Pin the leading "Credit " prefix — load-bearing context that this
+ * is COMPENSATION owed to the hospital (deducted from the engineer's
+ * pool share via the SLA-breach trigger). A refactor that surfaced
+ * the bare amount would lose the direction-of-payment signal.
+ *
+ * Caller gates on > 0 to render the pill; pin the helper stays
+ * total so a refactor that always-renders surfaces the literal
+ * "Credit ₹0" instead of silently hiding.
+ */
+internal fun slaBreachCreditPillText(creditIssuedRupees: Double): String =
+    "Credit ${formatRupees(creditIssuedRupees)}"
+
+/**
+ * Pill colour for an AMC SLA-breach severity.
+ *
+ *   - "emergency" → Danger (red — emergency-visit SLA breaches are
+ *     the most urgent because the equipment is presumably keeping
+ *     someone alive)
+ *   - anything else (including "standard") → Warn (amber)
+ *
+ * Pin the exact "emergency" wire string match. A refactor to case-
+ * insensitive or partial-match would risk mis-categorising future
+ * server-side severity codes.
+ */
+internal fun amcSeverityPillKind(severity: String?): PillKind =
+    if (severity == "emergency") PillKind.Danger else PillKind.Warn

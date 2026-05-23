@@ -105,9 +105,7 @@ fun EngineerAmcVisitsScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "AMC visits",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let {
-                    "$it ${if (it == 1) "visit" else "visits"}"
-                },
+                subtitle = engineerAmcVisitsSubtitle(state.rows.size),
                 onBack = onBack,
             )
             // Round 390 — pull-to-refresh.
@@ -171,28 +169,20 @@ private fun VisitRow(
                     fontSize = 14.sp,
                 )
                 Text(
-                    // The "(unnamed hospital)" fallback read as a
-                    // missing-data bug to engineers seeing the row.
-                    // Mirrors round 37: collapse blank/null names to
-                    // the row category — "Hospital" — instead of a
-                    // dev-placeholder string.
-                    row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital",
+                    amcVisitHospitalName(row.hospitalName),
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                 )
             }
             Pill(
-                text = row.status.replace('_', ' ').replaceFirstChar { it.uppercase() },
+                text = amcVisitStatusLabel(row.status),
                 kind = pillForStatus(row.status),
             )
         }
         if (row.visitNumber != null) {
-            val equipmentSuffix = row.equipmentType
-                ?.let { " · ${it.replace('_', ' ').replaceFirstChar { c -> c.uppercase() }}" }
-                ?: ""
             Text(
-                "Visit #${row.visitNumber}$equipmentSuffix",
+                amcVisitNumberLine(row.visitNumber!!, row.equipmentType),
                 color = SevaInk500,
                 fontSize = 11.sp,
             )
@@ -205,17 +195,88 @@ private fun VisitRow(
         }
         if (row.breachCount > 0) {
             Pill(
-                text = "${row.breachCount} open SLA breach${if (row.breachCount == 1) "" else "es"}",
+                text = amcVisitBreachCountLabel(row.breachCount),
                 kind = PillKind.Danger,
             )
         }
     }
 }
 
-private fun pillForStatus(status: String): PillKind = when (status.lowercase()) {
+/**
+ * User-facing hospital name on an AMC-visit row. Blank / null
+ * collapses to the generic "Hospital" rather than the previous
+ * "(unnamed hospital)" placeholder that read as a missing-data bug
+ * to engineers. Pin so a regression to a dev-placeholder surfaces.
+ */
+internal fun amcVisitHospitalName(hospitalName: String?): String =
+    hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"
+
+/**
+ * Pretty-print a wire status string for the visit-row Pill: replace
+ * underscores with spaces and capitalise the first letter. So
+ * "in_progress" → "In progress", "en_route" → "En route".
+ *
+ * Only the first letter is capitalised — subsequent words stay
+ * lowercase. Pin so a refactor to title-case ("In Progress") doesn't
+ * desync from the StatusPill copy on the repair-job-detail screen.
+ */
+internal fun amcVisitStatusLabel(wireStatus: String): String =
+    wireStatus.replace('_', ' ').replaceFirstChar { it.uppercase() }
+
+/**
+ * Visit-row second-line copy. Composes "Visit #N" with an optional
+ * equipment-type suffix.
+ *
+ *   * visit + equipment → "Visit #3 · Imaging radiology"
+ *   * visit only → "Visit #3"
+ *
+ * Equipment is pretty-printed the same way as the status pill
+ * (underscore → space, first-letter capitalise).
+ *
+ * Middle-dot separator (U+00B7) matches the engineer-card location
+ * line for visual consistency.
+ */
+internal fun amcVisitNumberLine(visitNumber: Int, equipmentType: String?): String {
+    val equipmentSuffix = equipmentType
+        ?.takeIf { it.isNotBlank() }
+        ?.let { " · ${it.replace('_', ' ').replaceFirstChar { c -> c.uppercase() }}" }
+        ?: ""
+    return "Visit #$visitNumber$equipmentSuffix"
+}
+
+/**
+ * Singular/plural pluralisation for the AMC-visit SLA-breach-count
+ * pill on the engineer-visits row. 1 → "1 open SLA breach", 2+ →
+ * "N open SLA breaches".
+ *
+ * Pinned regression: a refactor to always-interpolated string would
+ * surface "1 open SLA breaches" on the most common single-breach
+ * case.
+ */
+internal fun amcVisitBreachCountLabel(breachCount: Int): String {
+    val suffix = if (breachCount == 1) "" else "es"
+    return "$breachCount open SLA breach$suffix"
+}
+
+internal fun pillForStatus(status: String): PillKind = when (status.lowercase()) {
     "completed" -> PillKind.Success
     "in_progress" -> PillKind.Info
     "en_route", "assigned" -> PillKind.Info
     "cancelled" -> PillKind.Default
     else -> PillKind.Warn
+}
+
+/**
+ * Subtitle on the engineer AMC-visits top bar.
+ *
+ *   - 0 rows → null (cold-load top bar stays clean)
+ *   - 1 row → "1 visit" (singular)
+ *   - N rows → "N visits" (plural)
+ *
+ * Pin singular/plural split — never "1 visits".
+ */
+internal fun engineerAmcVisitsSubtitle(rowCount: Int): String? = when {
+    rowCount <= 0 -> null
+    rowCount == 1 -> "1 visit"
+    else -> "$rowCount visits"
 }

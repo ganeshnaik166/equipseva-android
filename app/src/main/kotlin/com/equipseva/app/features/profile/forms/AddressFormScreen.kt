@@ -157,17 +157,7 @@ class AddressFormViewModel @Inject constructor(
             val resolved = locationFetcher.reverseGeocode(coords)
             _state.update { st ->
                 val current = st.form
-                val filledFields = buildList {
-                    if (!resolved?.line1.isNullOrBlank() && current.line1.isBlank()) add("line 1")
-                    if (!resolved?.city.isNullOrBlank() && current.city.isBlank()) add("city")
-                    if (!resolved?.state.isNullOrBlank() && current.state.isBlank()) add("state")
-                    if (!resolved?.pincode.isNullOrBlank() && current.pincode.isBlank()) add("pincode")
-                }
-                val info = when {
-                    filledFields.isNotEmpty() -> "Filled ${filledFields.joinToString()} from your GPS pin."
-                    resolved != null -> "Saved your GPS pin — fill the address fields manually."
-                    else -> "Saved your GPS pin (couldn't read a street address here)."
-                }
+                val info = locationFillInfo(current, resolved)
                 // Only fill BLANK fields — never overwrite text the user
                 // already typed. The geocoder is best-effort; preserving
                 // user input matters more than freshness.
@@ -193,17 +183,9 @@ class AddressFormViewModel @Inject constructor(
 
     fun save() {
         val f = _state.value.form
-        if (f.fullName.isBlank() || f.phone.isBlank() || f.line1.isBlank()
-            || f.city.isBlank() || f.state.isBlank() || f.pincode.isBlank()) {
-            _state.update { it.copy(error = "Name, phone, line 1, city, state, pincode are required.") }
-            return
-        }
-        // India-only flow (city / state cascade is hard-coded to Indian
-        // states), so the pincode is exactly 6 digits. The earlier 4..10
-        // window let through international formats that the rest of the
-        // form can't actually deliver to.
-        if (f.pincode.length != 6 || !f.pincode.all { it in '0'..'9' }) {
-            _state.update { it.copy(error = "Pincode must be 6 digits.") }
+        val err = validateAddressForm(f)
+        if (err != null) {
+            _state.update { it.copy(error = err) }
             return
         }
         _state.update { it.copy(saving = true, error = null) }
@@ -471,4 +453,58 @@ private fun FormField(
             onDone = { onImeAction?.invoke() },
         ),
     )
+}
+
+/**
+ * Resolves the "Filled X from your GPS pin" transient feedback copy.
+ * Picks the most-specific copy in this order:
+ *
+ *   1) If the reverse-geocoder filled at least one previously-blank
+ *      field, list those fields ("Filled line 1, city from your GPS
+ *      pin.").
+ *   2) If the geocoder returned something but every field was
+ *      already typed, fall back to "Saved your GPS pin — fill the
+ *      address fields manually." so the user knows the pin landed.
+ *   3) If the geocoder returned nothing, surface the third copy so
+ *      the user understands geocoding failed but the pin still
+ *      saved.
+ *
+ * Pure helper extracted so the three-way precedence + the blank-only
+ * fill semantics can be unit-tested without the LocationFetcher.
+ */
+internal fun locationFillInfo(
+    current: AddressFormViewModel.Form,
+    resolved: LocationFetcher.Resolved?,
+): String {
+    val filledFields = buildList {
+        if (!resolved?.line1.isNullOrBlank() && current.line1.isBlank()) add("line 1")
+        if (!resolved?.city.isNullOrBlank() && current.city.isBlank()) add("city")
+        if (!resolved?.state.isNullOrBlank() && current.state.isBlank()) add("state")
+        if (!resolved?.pincode.isNullOrBlank() && current.pincode.isBlank()) add("pincode")
+    }
+    return when {
+        filledFields.isNotEmpty() -> "Filled ${filledFields.joinToString()} from your GPS pin."
+        resolved != null -> "Saved your GPS pin — fill the address fields manually."
+        else -> "Saved your GPS pin (couldn't read a street address here)."
+    }
+}
+
+/**
+ * Pure form-validation for the user address form. Returns null on
+ * success; a user-facing one-line error message otherwise. India-only:
+ * the pincode is exactly 6 ASCII digits.
+ *
+ * Extracted so the validation can be exercised without the
+ * AddressRepository / LocationFetcher scaffolding around the VM.
+ */
+internal fun validateAddressForm(f: AddressFormViewModel.Form): String? {
+    if (f.fullName.isBlank() || f.phone.isBlank() || f.line1.isBlank() ||
+        f.city.isBlank() || f.state.isBlank() || f.pincode.isBlank()
+    ) {
+        return "Name, phone, line 1, city, state, pincode are required."
+    }
+    if (f.pincode.length != 6 || !f.pincode.all { it in '0'..'9' }) {
+        return "Pincode must be 6 digits."
+    }
+    return null
 }

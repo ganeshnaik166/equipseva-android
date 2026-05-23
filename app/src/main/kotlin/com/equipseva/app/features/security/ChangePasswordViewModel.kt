@@ -85,27 +85,16 @@ class ChangePasswordViewModel @Inject constructor(
         val current = _state.value
         if (current.submitting) return
 
-        val currentPwd = current.currentPassword
-        val newPwd = current.newPassword
-        val confirmPwd = current.confirmPassword
+        val errors = validateChangePassword(
+            currentPassword = current.currentPassword,
+            newPassword = current.newPassword,
+            confirmPassword = current.confirmPassword,
+        )
+        val currentError = errors.currentPasswordError
+        val newError = errors.newPasswordError
+        val confirmError = errors.confirmPasswordError
 
-        val currentError = if (currentPwd.isBlank()) "Enter your current password" else null
-        // Mirror the SignUp policy via shared Validators.passwordWeakness so
-        // a user can't set a password on this screen that signup would have
-        // rejected. Earlier code only checked length, letting through
-        // "aaaaaaaa" / "12345678".
-        val newError = when {
-            newPwd.isBlank() -> "Enter a new password"
-            newPwd == currentPwd -> "Choose a password different from your current one"
-            else -> com.equipseva.app.core.util.Validators.passwordWeakness(newPwd)
-        }
-        val confirmError = when {
-            confirmPwd.isBlank() -> "Re-enter your new password"
-            confirmPwd != newPwd -> "Passwords don't match"
-            else -> null
-        }
-
-        if (currentError != null || newError != null || confirmError != null) {
+        if (errors.hasAny) {
             _state.update {
                 it.copy(
                     currentPasswordError = currentError,
@@ -116,6 +105,8 @@ class ChangePasswordViewModel @Inject constructor(
             return
         }
 
+        val currentPwd = current.currentPassword
+        val newPwd = current.newPassword
         _state.update { it.copy(submitting = true, errorMessage = null) }
         viewModelScope.launch {
             authRepository.updatePassword(currentPwd, newPwd).fold(
@@ -144,4 +135,49 @@ class ChangePasswordViewModel @Inject constructor(
         }
     }
 
+}
+
+/**
+ * Inline-validation errors for the change-password form. The
+ * three fields are surfaced separately as field-level error copy.
+ */
+internal data class ChangePasswordErrors(
+    val currentPasswordError: String?,
+    val newPasswordError: String?,
+    val confirmPasswordError: String?,
+) {
+    val hasAny: Boolean
+        get() = currentPasswordError != null ||
+            newPasswordError != null ||
+            confirmPasswordError != null
+}
+
+/**
+ * Pure form-validation for [ChangePasswordViewModel]. Extracted so the
+ * gate can be unit-tested without standing up the auth-repository
+ * scaffolding. Shared password-strength policy with sign-up (via
+ * [com.equipseva.app.core.util.Validators.passwordWeakness]) so a user
+ * can't set a password here that signup would have rejected.
+ */
+internal fun validateChangePassword(
+    currentPassword: String,
+    newPassword: String,
+    confirmPassword: String,
+): ChangePasswordErrors {
+    val currentError = if (currentPassword.isBlank()) "Enter your current password" else null
+    val newError = when {
+        newPassword.isBlank() -> "Enter a new password"
+        newPassword == currentPassword -> "Choose a password different from your current one"
+        else -> com.equipseva.app.core.util.Validators.passwordWeakness(newPassword)
+    }
+    val confirmError = when {
+        confirmPassword.isBlank() -> "Re-enter your new password"
+        confirmPassword != newPassword -> "Passwords don't match"
+        else -> null
+    }
+    return ChangePasswordErrors(
+        currentPasswordError = currentError,
+        newPasswordError = newError,
+        confirmPasswordError = confirmError,
+    )
 }

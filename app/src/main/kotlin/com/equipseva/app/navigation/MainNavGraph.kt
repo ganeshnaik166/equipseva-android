@@ -59,40 +59,55 @@ import kotlinx.coroutines.launch
 //   • Anonymous / unknown role → engineer 4-tab default.
 private fun tabsForRole(
     role: com.equipseva.app.features.auth.UserRole?,
-): List<com.equipseva.app.designsystem.components.EsBottomNavItem> = when (role) {
-    com.equipseva.app.features.auth.UserRole.HOSPITAL -> listOf(
-        com.equipseva.app.designsystem.components.EsBottomNavItem(
-            Routes.HOME, "Home", Icons.Outlined.Home,
-        ),
-        com.equipseva.app.designsystem.components.EsBottomNavItem(
-            Routes.HOSPITAL_ACTIVE_JOBS, "Bookings", Icons.Outlined.WorkOutline,
-        ),
-        com.equipseva.app.designsystem.components.EsBottomNavItem(
-            Routes.PROFILE, "Profile", Icons.Outlined.Person,
-        ),
-    )
-    else -> listOf(
-        com.equipseva.app.designsystem.components.EsBottomNavItem(
-            Routes.HOME, "Home", Icons.Outlined.Home,
-        ),
-        com.equipseva.app.designsystem.components.EsBottomNavItem(
-            // Jobs tab opens the Engineer Jobs hub (Available jobs, My bids,
-            // Active work, Earnings, Edit profile tiles) per spec, not the
-            // raw repair feed. The hub itself navigates to REPAIR for the
-            // Available-jobs tile.
-            Routes.ENGINEER_JOBS_HUB, "Jobs", Icons.Outlined.Build,
-        ),
-        com.equipseva.app.designsystem.components.EsBottomNavItem(
-            Routes.EARNINGS, "Earnings", Icons.Outlined.CurrencyRupee,
-        ),
-        com.equipseva.app.designsystem.components.EsBottomNavItem(
-            Routes.PROFILE, "Profile", Icons.Outlined.Person,
-        ),
-    )
+): List<com.equipseva.app.designsystem.components.EsBottomNavItem> {
+    val routes = tabRoutesForRole(role)
+    return routes.map { route ->
+        when (route) {
+            Routes.HOME -> com.equipseva.app.designsystem.components.EsBottomNavItem(
+                Routes.HOME, "Home", Icons.Outlined.Home,
+            )
+            Routes.HOSPITAL_ACTIVE_JOBS -> com.equipseva.app.designsystem.components.EsBottomNavItem(
+                Routes.HOSPITAL_ACTIVE_JOBS, "Bookings", Icons.Outlined.WorkOutline,
+            )
+            Routes.ENGINEER_JOBS_HUB -> com.equipseva.app.designsystem.components.EsBottomNavItem(
+                Routes.ENGINEER_JOBS_HUB, "Jobs", Icons.Outlined.Build,
+            )
+            Routes.EARNINGS -> com.equipseva.app.designsystem.components.EsBottomNavItem(
+                Routes.EARNINGS, "Earnings", Icons.Outlined.CurrencyRupee,
+            )
+            Routes.PROFILE -> com.equipseva.app.designsystem.components.EsBottomNavItem(
+                Routes.PROFILE, "Profile", Icons.Outlined.Person,
+            )
+            else -> error("tabRoutesForRole returned unknown route: $route")
+        }
+    }
+}
+
+/**
+ * Pure form of [tabsForRole]: returns the ordered list of route
+ * strings the bottom-nav exposes for each role. Extracted so the
+ * per-role tab arrangement can be tested without the Compose
+ * ImageVector dependencies on the full EsBottomNavItem.
+ *
+ *   * Hospital → Home / Bookings / Profile (3 tabs)
+ *   * Engineer (and other / null roles) → Home / Jobs / Earnings /
+ *     Profile (4 tabs)
+ *
+ * The Jobs tab routes to ENGINEER_JOBS_HUB (the chooser landing), not
+ * the raw REPAIR feed — pinned because the hub itself routes into the
+ * feed via the "Available jobs" tile.
+ */
+internal fun tabRoutesForRole(
+    role: com.equipseva.app.features.auth.UserRole?,
+): List<String> = when (role) {
+    com.equipseva.app.features.auth.UserRole.HOSPITAL ->
+        listOf(Routes.HOME, Routes.HOSPITAL_ACTIVE_JOBS, Routes.PROFILE)
+    else ->
+        listOf(Routes.HOME, Routes.ENGINEER_JOBS_HUB, Routes.EARNINGS, Routes.PROFILE)
 }
 
 /** Routes that take over the screen and should hide the bottom navigation bar. */
-private val fullScreenRoutePrefixes = listOf(
+internal val fullScreenRoutePrefixes = listOf(
     Routes.REPAIR_DETAIL,
     Routes.ENGINEER_DIRECTORY,
     Routes.ENGINEER_PUBLIC_PROFILE,
@@ -205,8 +220,7 @@ fun MainNavGraph(
         }
     }
 
-    val isFullScreenRoute = currentRoute != null &&
-        fullScreenRoutePrefixes.any { currentRoute.startsWith(it) }
+    val isFullScreenRoute = isFullScreenRoute(currentRoute)
 
     val activeRoleKey by deepLinkHost.activeRole.collectAsStateWithLifecycle(initialValue = null)
     val activeRole = activeRoleKey?.let { com.equipseva.app.features.auth.UserRole.fromKey(it) }
@@ -1002,12 +1016,40 @@ private fun routeNotificationDeepLink(
     navController: androidx.navigation.NavHostController,
     showSnackbar: (String) -> Unit,
 ) {
-    val trimmed = link.trim().ifBlank { return }
+    val target = resolveNotificationDeepLink(link)
+    if (target == null) {
+        if (link.isNotBlank()) showSnackbar("Couldn't open that link")
+        return
+    }
+    navController.navigate(target)
+}
+
+/**
+ * Pure resolver: maps a deep-link string (app://, equipseva://, or a
+ * bare top-level route) to a NavGraph route, or null if the link is
+ * blank/unparseable. Extracted to keep the side-effecting NavController
+ * wrapper thin and the link parsing testable.
+ */
+/**
+ * True when [route] is a destination that should take over the
+ * screen and hide the bottom navigation bar. Pure helper extracted so
+ * the route → bottom-bar visibility decision can be unit-tested
+ * without standing up a NavController. Match semantics are prefix —
+ * sub-routes (e.g. `repair/detail/<id>`) inherit the parent's
+ * full-screen flag.
+ */
+internal fun isFullScreenRoute(route: String?): Boolean {
+    if (route == null) return false
+    return fullScreenRoutePrefixes.any { route.startsWith(it) }
+}
+
+internal fun resolveNotificationDeepLink(link: String): String? {
+    val trimmed = link.trim().ifBlank { return null }
 
     val uuidRegex =
         Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
-    val target = when {
+    return when {
         trimmed.startsWith("app://") || trimmed.startsWith("equipseva://") -> {
             val rest = trimmed.substringAfter("://")
             val parts = rest.split('/').filter { it.isNotBlank() }
@@ -1030,10 +1072,4 @@ private fun routeNotificationDeepLink(
         ) -> trimmed
         else -> null
     }
-
-    if (target == null) {
-        showSnackbar("Couldn't open that link")
-        return
-    }
-    navController.navigate(target)
 }

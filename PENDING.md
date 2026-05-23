@@ -4,6 +4,16 @@ What's still missing / stubbed / non-functional. Updated 2026-04-30 after PRs #2
 
 **Quick status (2026-04-30):** Code is shippable. Legal URLs live. Drafts ready for every Play Console form. Real remaining work = 3 design assets + user paste-into-Play-Console + one device E2E test + post-upload SHA-256 swap.
 
+**Test-coverage backfill (2026-05-20 / 2026-05-21).** The v1-test gap from PR #255 is closed across four stacked / parallel PRs:
+
+- **PR #925** `chore/v1-security-polish-sweep` — wave-1 unit-test backfill (63 → 316 tests). Load-bearing wire contracts + DTO mappers + validators + KYC stepper.
+- **PR #926** `test/wave-2-additional-coverage` — wave-2 (316 → 844 tests). 11 parallel sub-agents + 1 sweep covered every ViewModel's pure derivation, Supabase-repo helpers, founder dashboard / queues, design-system pills + stepper, RepairJobCard, cost-revision banner + delta, AuthError + Postgrest error classifiers, chat realtime, storage validators, photo-upload outbox, KYC, engineer directory, IndiaLocations catalog, DashboardCommon compact ₹ formatter. ~40 small main-source extractions, all behavior-preserving.
+- **PR #927** `chore/consolidate-helpers` — dedupe pass (844 → 859). Shared `storageObjectFilename` + `avatarInitial` replace near-duplicate per-feature helpers.
+- **PR #928** `test/robolectric-hilt-infra` — Robolectric 4.14.1 + Hilt-android-testing wired into the JVM unit-test classpath. Closes the "once Hilt test infra lands…" TODO from PR #255's SmokeFlowTest. Three phases: Robolectric setup, `HiltTestApplication` graph-boot, first repository test (`UserPrefs` injected through real Hilt graph).
+- **PR follow-up to #928** (branch `test/fake-supabase-binding`, not yet pushed) — `TestSupabaseModule` swaps the prod `SupabaseModule` via `@TestInstallIn` so JVM tests can boot the full graph with a relaxed MockK `SupabaseClient` (`RepairJobRepository` injects against it cleanly). Plus the first Compose UI test on Robolectric (`StatusPillUiTest`) — `createComposeRule` + `onNodeWithText` assertions for four `RepairJobStatus` labels.
+
+Total: ~810 new unit tests + Robolectric/Hilt/Compose UI test infrastructure in place. Every PR is `:app:testDebugUnitTest` + `:app:assembleDebug` green. Reviewer should walk the stack in order: #925 → #926 → #927, then #928, then the fake-supabase follow-up.
+
 Legend: 🔴 blocker · 🟠 needs attention · 🟡 nice-to-have · ⚪ beyond v1
 
 ---

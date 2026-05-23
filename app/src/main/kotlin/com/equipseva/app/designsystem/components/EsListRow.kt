@@ -26,12 +26,12 @@ import com.equipseva.app.designsystem.theme.SevaInk900
 @Composable
 fun EsListRow(
     title: String,
+    modifier: Modifier = Modifier,
     subtitle: String? = null,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
     danger: Boolean = false,
-    modifier: Modifier = Modifier,
 ) {
     val titleColor = if (danger) SevaDanger500 else SevaInk900
     Row(

@@ -165,7 +165,7 @@ class RepairJobDetailViewModel @Inject constructor(
     ) {
         /** Hide the report CTA when the viewer posted the job. */
         val canReport: Boolean
-            get() = job != null && viewerRole != ViewerRole.Hospital
+            get() = canReportRepairJob(jobIsLoaded = job != null, viewerRole = viewerRole)
     }
 
     private val jobId: String =
@@ -345,12 +345,9 @@ class RepairJobDetailViewModel @Inject constructor(
 
     fun submitBid(amountRupees: Double, etaHours: Int?, note: String?) {
         if (_state.value.placingBid) return
-        if (!amountRupees.isFinite() || amountRupees !in 1.0..10_000_000.0) {
-            viewModelScope.launch { _messages.emit("Enter a bid between ₹1 and ₹1 crore") }
-            return
-        }
-        if (etaHours != null && etaHours !in 1..720) {
-            viewModelScope.launch { _messages.emit("ETA must be 1\u2013720 hours") }
+        val validationError = validateBidInput(amountRupees, etaHours)
+        if (validationError != null) {
+            viewModelScope.launch { _messages.emit(validationError) }
             return
         }
         val hadPending = _state.value.ownBid?.status == RepairBidStatus.Pending
@@ -1115,26 +1112,92 @@ class RepairJobDetailViewModel @Inject constructor(
         selfEngineerRowId: String?,
         selfProfileRole: String?,
         selfActiveRole: String?,
-    ): ViewerRole {
-        if (job == null || selfId.isNullOrBlank()) return ViewerRole.Other
-        return when {
-            selfId == job.hospitalUserId -> ViewerRole.Hospital
-            // Three signals counted as "user is an engineer", in order of
-            // server-side trust:
-            //   1. engineers row exists (fully onboarded, KYC complete)
-            //   2. profiles.role == 'engineer' (signed up via role tile #225)
-            //   3. UserPrefs.activeRole == 'engineer' (currently in Engineer
-            //      Hub on this device — Hub can switch persona without
-            //      writing to the auth profile)
-            // 1 lets them actually bid server-side; 2 and 3 let them at
-            // least see the Place bid CTA so they discover the next-step
-            // prompt. RLS surfaces a clear error if they tap Submit without
-            // an engineers row.
-            !selfEngineerRowId.isNullOrBlank() -> ViewerRole.Engineer
-            selfProfileRole == "engineer" -> ViewerRole.Engineer
-            selfActiveRole == "engineer" -> ViewerRole.Engineer
-            else -> ViewerRole.Other
-        }
-    }
+    ): ViewerRole = com.equipseva.app.features.repair.resolveViewerRole(
+        hospitalUserId = job?.hospitalUserId,
+        selfId = selfId,
+        selfEngineerRowId = selfEngineerRowId,
+        selfProfileRole = selfProfileRole,
+        selfActiveRole = selfActiveRole,
+    )
 
 }
+
+/**
+ * Pure resolver — given the four signals the VM has about the viewer
+ * (their own auth id, their engineers-row id, their profile role,
+ * their device-local active role) plus the job's hospital user id,
+ * decide which [RepairJobDetailViewModel.ViewerRole] bucket they fall
+ * into.
+ *
+ * Order matters:
+ *   1) blank selfId or null hospitalUserId → Other (loading state).
+ *   2) selfId == hospitalUserId → Hospital (the poster sees Hospital
+ *      copy regardless of any engineer flags).
+ *   3) Three signals count as Engineer in descending server-side
+ *      trust: engineers row exists, profile.role=engineer, active
+ *      role=engineer. The first lets them actually bid; the others
+ *      let them at least see the Place bid CTA.
+ *   4) Everyone else → Other.
+ */
+internal fun resolveViewerRole(
+    hospitalUserId: String?,
+    selfId: String?,
+    selfEngineerRowId: String?,
+    selfProfileRole: String?,
+    selfActiveRole: String?,
+): RepairJobDetailViewModel.ViewerRole {
+    if (hospitalUserId == null || selfId.isNullOrBlank()) {
+        return RepairJobDetailViewModel.ViewerRole.Other
+    }
+    return when {
+        selfId == hospitalUserId -> RepairJobDetailViewModel.ViewerRole.Hospital
+        !selfEngineerRowId.isNullOrBlank() -> RepairJobDetailViewModel.ViewerRole.Engineer
+        selfProfileRole == "engineer" -> RepairJobDetailViewModel.ViewerRole.Engineer
+        selfActiveRole == "engineer" -> RepairJobDetailViewModel.ViewerRole.Engineer
+        else -> RepairJobDetailViewModel.ViewerRole.Other
+    }
+}
+
+/**
+ * Validates a freshly-submitted bid before it reaches the network.
+ * Returns the user-visible error message when invalid, or null when
+ * the inputs pass the gate. Pinned ranges:
+ *
+ *   * amount: finite, [1, 10_000_000] rupees (cap at 1 crore so a
+ *     misplaced decimal point on the engineer side surfaces a fast
+ *     "too big" toast instead of a server-side 422).
+ *   * eta: optional; when present, must be 1..720 hours (30 days).
+ *
+ * Extracted from RepairJobDetailViewModel.submitBid so the boundary
+ * cases can be unit-tested without driving the VM through Hilt.
+ */
+internal fun validateBidInput(amountRupees: Double, etaHours: Int?): String? {
+    if (!amountRupees.isFinite() || amountRupees !in 1.0..10_000_000.0) {
+        return "Enter a bid between ₹1 and ₹1 crore"
+    }
+    if (etaHours != null && etaHours !in 1..720) {
+        return "ETA must be 1–720 hours"
+    }
+    return null
+}
+
+/**
+ * Report-CTA visibility gate on the repair-job detail screen.
+ *
+ *   - jobIsLoaded must be true (no point showing report on a
+ *     blank screen)
+ *   - viewerRole must NOT be Hospital (the hospital posted the job;
+ *     they shouldn't be able to report their own posting — that
+ *     would create false-positive moderation queue entries)
+ *
+ * Engineer and Other roles can both report — engineers reporting a
+ * job they've considered; other-role viewers (e.g. founder browsing)
+ * still get the CTA because they might be doing manual moderation.
+ *
+ * Pin the inequality `!=` not `==` — a refactor that flipped the
+ * comparison would let hospitals report their own jobs.
+ */
+internal fun canReportRepairJob(
+    jobIsLoaded: Boolean,
+    viewerRole: RepairJobDetailViewModel.ViewerRole,
+): Boolean = jobIsLoaded && viewerRole != RepairJobDetailViewModel.ViewerRole.Hospital

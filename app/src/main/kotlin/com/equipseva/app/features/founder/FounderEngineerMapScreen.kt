@@ -302,14 +302,37 @@ private fun ZoneRow(
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                text = if (row.sampleLat != null && row.sampleLng != null) {
-                    "Avg pin: ${"%.4f".format(java.util.Locale.US, row.sampleLat)}, ${"%.4f".format(java.util.Locale.US, row.sampleLng)}"
-                } else {
-                    "No coordinates pinned"
-                },
+                text = zoneRowSampleCoordinateLine(row.sampleLat, row.sampleLng),
                 fontSize = 11.sp,
                 color = SevaInk500,
             )
         }
     }
 }
+
+/**
+ * Sample-coordinate caption on the founder engineer-zone row.
+ *
+ * "Avg pin: LAT, LNG" with Locale.US-stable 4-decimal precision when
+ * BOTH coords are present; falls back to "No coordinates pinned"
+ * when EITHER is null.
+ *
+ * Critical regions:
+ *   - Locale.US — hi-IN / German would render "17,3850, 78,4567"
+ *     (commas as decimals + comma separator becomes ambiguous).
+ *   - %.4f precision — distinct from formatSavedServiceLocation's
+ *     %.5f. 4 decimals ≈ 11m, sufficient for a district-level
+ *     averaged pin where the engineer's actual location is one
+ *     of many; %.5f would suggest false precision on an average
+ *     coordinate.
+ *   - "Avg pin:" prefix — load-bearing context ("Pin:" would
+ *     imply this is the engineer's actual pin, not the district
+ *     average).
+ *   - "No coordinates pinned" fallback — clearer than "—" or "N/A".
+ */
+internal fun zoneRowSampleCoordinateLine(sampleLat: Double?, sampleLng: Double?): String =
+    if (sampleLat != null && sampleLng != null) {
+        "Avg pin: ${"%.4f".format(java.util.Locale.US, sampleLat)}, ${"%.4f".format(java.util.Locale.US, sampleLng)}"
+    } else {
+        "No coordinates pinned"
+    }

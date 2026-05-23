@@ -121,7 +121,7 @@ fun FounderEscrowDisputeDetailScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Escrow timeline",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let { if (it == 1) "1 event" else "$it events" },
+                subtitle = escrowTimelineSubtitle(state.rows.size),
                 onBack = onBack,
             )
             // Round 416 — pull-to-refresh. Admin reviewing a dispute timeline
@@ -210,7 +210,7 @@ private fun EscrowEventRow(row: FounderRepository.EscrowEventRow) {
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                text = row.eventKind.replace('_', ' ').replaceFirstChar { it.uppercase() },
+                text = escrowEventKindLabel(row.eventKind),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = SevaInk900,
@@ -218,14 +218,14 @@ private fun EscrowEventRow(row: FounderRepository.EscrowEventRow) {
             row.occurredAt?.let {
                 Text("Occurred: ${prettyDateTime(it)}", color = SevaInk500, fontSize = 11.sp)
             }
-            if (!row.actorName.isNullOrBlank() && row.actorName != "(system)") {
-                Text("Actor: ${row.actorName}", color = SevaInk500, fontSize = 11.sp)
-            } else if (row.actorUserId == null) {
-                Text("Actor: system", color = SevaInk500, fontSize = 11.sp)
+            val actorLabel = escrowEventActorLine(row.actorName, row.actorUserId)
+            if (actorLabel != null) {
+                Text(actorLabel, color = SevaInk500, fontSize = 11.sp)
             }
-            row.payload?.toString()?.takeIf { it.isNotBlank() && it != "{}" }?.let {
+            val payloadText = escrowEventPayloadDisplay(row.payload?.toString())
+            if (payloadText != null) {
                 Text(
-                    text = it,
+                    text = payloadText,
                     color = SevaInk700,
                     fontSize = 11.sp,
                 )
@@ -303,9 +303,98 @@ private fun TrackPartyRow(
             fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
         )
         Text(
-            text = "$filed total · $won $wonLabel · $lost lost · $open open",
+            text = trackPartyStatsLine(filed, won, wonLabel, lost, open),
             color = SevaInk700,
             fontSize = 12.sp,
         )
     }
+}
+
+/**
+ * Event-kind label on the founder escrow-dispute timeline.
+ *
+ * Server stores snake_case event kinds (`created`, `release_scheduled`,
+ * `dispute_resolved`, …); render as Title-cased prose with underscores
+ * → spaces and first-letter capitalised.
+ *
+ * Pin so a refactor to a lookup table doesn't accidentally drop the
+ * underscore→space step (would surface "Dispute_resolved").
+ */
+internal fun escrowEventKindLabel(eventKind: String): String =
+    eventKind.replace('_', ' ').replaceFirstChar { it.uppercase() }
+
+/**
+ * Actor line on the founder escrow-dispute timeline event row.
+ *
+ * 3-state decision tree:
+ *   1. actorName non-blank AND not "(system)" placeholder → "Actor: $name"
+ *   2. actorName is blank OR is "(system)" → if actorUserId is null,
+ *      surface "Actor: system" (the explicit system-actor label).
+ *      Otherwise return null (don't show actor at all — there IS a
+ *      user but the name didn't resolve, so showing "Actor: (system)"
+ *      or "Actor:" would be misleading).
+ *
+ * Pin the "(system)" placeholder check — this is a server-side
+ * sentinel that mustn't leak to the UI. Pin the actorUserId-null
+ * gate too — a non-null userId without a resolved name is a join
+ * miss, not a system event.
+ */
+internal fun escrowEventActorLine(actorName: String?, actorUserId: String?): String? = when {
+    !actorName.isNullOrBlank() && actorName != "(system)" -> "Actor: $actorName"
+    actorUserId == null -> "Actor: system"
+    else -> null
+}
+
+/**
+ * Payload display on the founder escrow-dispute timeline event row.
+ *
+ * Returns null when the payload is null, blank, or the JSON-empty
+ * "{}" sentinel. Otherwise returns the payload string verbatim for
+ * direct rendering.
+ *
+ * Critical pin: the "{}" filter — JSONB columns surface "{}" for
+ * events with no extra data, and rendering that as a literal in the
+ * UI would be visual noise.
+ */
+internal fun escrowEventPayloadDisplay(payloadText: String?): String? =
+    payloadText?.takeIf { it.isNotBlank() && it != "{}" }
+
+/**
+ * Dispute track-record stats line on the founder dispute detail.
+ *
+ * Format: "N total · M wonLabel · K lost · L open" with U+00B7
+ * separators between the four stats.
+ *
+ * Critical pin: `wonLabel` is parameterised because the hospital
+ * "wins" on refund (filed → refund) while the engineer "wins" on
+ * release (filed → release). Caller passes "refunded" or "won" or
+ * "released" depending on the party. Pin the param so a unifying
+ * refactor doesn't hard-code one side's vocabulary.
+ *
+ * Pin the literal " total" suffix on the first stat (NOT "filed",
+ * NOT just the bare number) — load-bearing context that anchors the
+ * other three as a breakdown.
+ */
+internal fun trackPartyStatsLine(
+    filed: Int,
+    won: Int,
+    wonLabel: String,
+    lost: Int,
+    open: Int,
+): String = "$filed total · $won $wonLabel · $lost lost · $open open"
+
+/**
+ * Top-bar subtitle on the escrow-dispute timeline screen.
+ *
+ *   - 0 events → null (top bar stays clean on cold-load)
+ *   - 1 event → "1 event" (singular)
+ *   - 2+ events → "N events" (plural)
+ *
+ * Pin the singular/plural split at exactly 1 — a refactor to a
+ * blanket "N event(s)" would erode polish on the most common case.
+ */
+internal fun escrowTimelineSubtitle(eventCount: Int): String? = when {
+    eventCount <= 0 -> null
+    eventCount == 1 -> "1 event"
+    else -> "$eventCount events"
 }

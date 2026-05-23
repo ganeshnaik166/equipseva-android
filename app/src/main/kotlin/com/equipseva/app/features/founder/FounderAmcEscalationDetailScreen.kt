@@ -217,10 +217,11 @@ private fun EscalationDetailBody(
                             )
                         }
                     }
-                    Pill(
-                        text = if (detail.resolvedAt != null || resolved) "Resolved" else "Open",
-                        kind = if (detail.resolvedAt != null || resolved) PillKind.Success else PillKind.Danger,
+                    val (pillText, pillKind) = escalationDetailResolvedPillTextAndKind(
+                        resolvedAt = detail.resolvedAt,
+                        locallyResolved = resolved,
                     )
+                    Pill(text = pillText, kind = pillKind)
                 }
                 if (!detail.notes.isNullOrBlank()) {
                     Text(detail.notes, color = SevaInk700, fontSize = 13.sp)
@@ -251,7 +252,7 @@ private fun EscalationDetailBody(
         }
         item("rotation_header") {
             Text(
-                text = "Engineer rotation (${rotation.size})",
+                text = escalationDetailRotationHeader(rotation.size),
                 color = SevaInk700,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -342,18 +343,104 @@ private fun RotationRow(row: AmcRepository.AmcRotationRow) {
                     Text(row.engineerCity, color = SevaInk500, fontSize = 11.sp)
                 }
             }
-            if (row.isPrimary) {
-                Pill(text = "Primary", kind = PillKind.Info)
-            } else {
-                Pill(text = "#${row.priority}", kind = PillKind.Default)
-            }
-            Pill(
-                text = if (row.isAvailable) "Available" else "Unavailable",
-                kind = if (row.isAvailable) PillKind.Success else PillKind.Warn,
-            )
+            val (priorityText, priorityKind) = rotationPriorityPill(row.isPrimary, row.priority)
+            Pill(text = priorityText, kind = priorityKind)
+            val (availText, availKind) = rotationAvailabilityPill(row.isAvailable)
+            Pill(text = availText, kind = availKind)
         }
         if (!row.active) {
             Text("Inactive", color = SevaInk500, fontSize = 11.sp)
         }
     }
 }
+
+/**
+ * "Resolved" / "Open" pill on the AMC-escalation detail screen.
+ *
+ * Critical region: the OR-gate on TWO conditions —
+ *   1. `resolvedAt != null` (server-confirmed resolution)
+ *   2. `locallyResolved == true` (optimistic UI state after the
+ *      founder taps "Mark resolved" but before the server write
+ *      round-trips and refreshes detail.resolvedAt)
+ *
+ * Either condition alone is sufficient to flip the pill to
+ * Resolved/Success. Pin so a refactor that dropped the local-flag
+ * branch would leave the pill reading "Open" for ~500ms after the
+ * tap (network round-trip), which feels like the action failed and
+ * could prompt double-taps.
+ *
+ * "Open" → Danger (red) is intentional — open escalations are
+ * load-bearing for the founder's queue, NOT a Warn (amber) signal.
+ */
+internal fun escalationDetailResolvedPillTextAndKind(
+    resolvedAt: String?,
+    locallyResolved: Boolean,
+): Pair<String, PillKind> =
+    if (resolvedAt != null || locallyResolved) {
+        "Resolved" to PillKind.Success
+    } else {
+        "Open" to PillKind.Danger
+    }
+
+/**
+ * Section header on the AMC-escalation detail rotation list:
+ * "Engineer rotation (N)" with the count in parens.
+ *
+ * Pin the literal "Engineer rotation" phrasing (NOT "Rotation",
+ * NOT "Engineers in rotation") and the parenthesized count format
+ * (NOT " · N", NOT ": N"). The parens-count is the founder's
+ * standard list-header signature across screens.
+ */
+internal fun escalationDetailRotationHeader(rotationCount: Int): String =
+    "Engineer rotation ($rotationCount)"
+
+/**
+ * Priority pill on a rotation row.
+ *
+ *   - isPrimary true → "Primary" + Info (the primary engineer is
+ *     the FIRST call; Info colour to anchor importance without
+ *     escalating to Warn/Danger)
+ *   - isPrimary false → "#N" + Default (the fallback engineer's
+ *     priority order; Default colour because they're backup)
+ *
+ * Pin the literal "Primary" word — load-bearing across the AMC
+ * surfaces (also surfaces on engineerRolePillLabel). A refactor to
+ * "Lead" / "Main" would diverge from cross-surface vocabulary.
+ *
+ * Pin "#N" form (with the U+0023 hash prefix) — distinct numeric
+ * priority signal. A bare "N" would read as a count, not a rank.
+ */
+internal fun rotationPriorityPill(
+    isPrimary: Boolean,
+    priority: Int,
+): Pair<String, PillKind> =
+    if (isPrimary) {
+        "Primary" to PillKind.Info
+    } else {
+        "#$priority" to PillKind.Default
+    }
+
+/**
+ * Availability pill on a rotation row.
+ *
+ *   - isAvailable true → "Available" + Success
+ *   - isAvailable false → "Unavailable" + Warn
+ *
+ * Critical pin: "Unavailable" maps to Warn (NOT Danger). The
+ * unavailable state is operational reality (engineer is busy on
+ * another job), not an alarm — but it's important enough to be
+ * non-Default. Warn (amber) is the right escalation tier.
+ *
+ * Note: distinct from [engineerAvailabilityPill] which uses
+ * "Busy" not "Unavailable". The rotation context is administrative
+ * (founder reviewing the pool); the engineer profile is hospital-
+ * facing where "Busy" is friendlier.
+ */
+internal fun rotationAvailabilityPill(
+    isAvailable: Boolean,
+): Pair<String, PillKind> =
+    if (isAvailable) {
+        "Available" to PillKind.Success
+    } else {
+        "Unavailable" to PillKind.Warn
+    }

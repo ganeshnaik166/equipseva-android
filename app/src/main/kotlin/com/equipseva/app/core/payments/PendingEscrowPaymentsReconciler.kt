@@ -53,19 +53,37 @@ class PendingEscrowPaymentsReconciler @Inject constructor(
             // transient network blip. Network failure → leave the marker.
             val result = escrowRepository.fetchByJob(repairJobId)
             if (result.isFailure) continue
-            when (result.getOrNull()?.status) {
-                "held", "released", "refunded", "in_dispute", null -> {
-                    // Terminal / post-pending / row-gone — clear the marker.
-                    try {
-                        store.remove(repairJobId)
-                    } catch (ce: CancellationException) {
-                        throw ce
-                    } catch (_: Throwable) {
-                        // Best-effort; lingering marker is recovered on next cold-start.
-                    }
+            if (shouldClearEscrowMarker(result.getOrNull()?.status)) {
+                try {
+                    store.remove(repairJobId)
+                } catch (ce: CancellationException) {
+                    throw ce
+                } catch (_: Throwable) {
+                    // Best-effort; lingering marker is recovered on next cold-start.
                 }
-                else -> Unit // still 'pending' — keep for the UI banner.
             }
         }
     }
+}
+
+/**
+ * True when the reconciler should clear the in-flight escrow marker
+ * for a repair job, based on the server-side `status` returned by
+ * get_repair_job_escrow.
+ *
+ *   * "held", "released", "refunded", "in_dispute" — terminal or
+ *     post-pending, the verify-payment edge function fired. Clear.
+ *   * null (row missing — RLS denied, escrow never created) — clear,
+ *     we can't act on what we can't see.
+ *   * "pending" — keep the marker. The hospital paid but the verify
+ *     call never completed (process death); they need to retry.
+ *   * Unknown status — keep, defense against a future status the
+ *     reconciler doesn't recognise (forward-compat for v2).
+ *
+ * Pinned semantics so a future relax that auto-cleared "pending"
+ * would surface in review.
+ */
+internal fun shouldClearEscrowMarker(status: String?): Boolean = when (status) {
+    "held", "released", "refunded", "in_dispute", null -> true
+    else -> false  // "pending" + any unknown future status — keep the marker
 }

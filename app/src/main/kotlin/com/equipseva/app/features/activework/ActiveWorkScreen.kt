@@ -65,12 +65,10 @@ fun ActiveWorkScreen(
             // Subtitle reads "X in progress · Y done" so the screen doesn't
             // miscount completed rows as "in progress" (the previous wording
             // was wrong — combined.size counted completed too).
-            val subtitle = when {
-                combined.isEmpty() -> null
-                state.completedJobs.isEmpty() -> "${state.activeJobs.size} in progress"
-                state.activeJobs.isEmpty() -> "${state.completedJobs.size} completed"
-                else -> "${state.activeJobs.size} in progress · ${state.completedJobs.size} done"
-            }
+            val subtitle = activeWorkSubtitle(
+                activeCount = state.activeJobs.size,
+                completedCount = state.completedJobs.size,
+            )
             EsTopBar(
                 title = "Active work",
                 subtitle = subtitle,
@@ -129,10 +127,58 @@ private fun QueuedStatusPill(count: Int) {
             modifier = Modifier.size(16.dp),
         )
         Text(
-            text = if (count == 1) "1 status change queued — will sync when back online"
-            else "$count status changes queued — will sync when back online",
+            text = queuedStatusChangePillText(count),
             style = EsType.Caption,
             color = SevaInk900,
         )
     }
+}
+
+/**
+ * Banner text on the queued-status-change pill (offline sync queue).
+ *
+ * Critical region: singular/plural split AND the U+2014 em-dash
+ * separator. Cross-surface invariant: this is the THIRD queue pill
+ * in the app — the offline-queue verb varies by surface:
+ *   - mybids: "bid queued — will submit when back online"
+ *   - chat:   "message queued — will send when back online"
+ *   - here:   "status change queued — will sync when back online"
+ *
+ * Pin the "will sync" verb — status changes are bi-directional with
+ * the server (the row may have updated remotely too), so "sync" is
+ * semantically correct over "submit" / "send".
+ *
+ * Singular: "1 status change" — note the singular form drops the 's'
+ * on "change" (not "1 status changes").
+ */
+internal fun queuedStatusChangePillText(count: Int): String =
+    if (count == 1) {
+        "1 status change queued — will sync when back online"
+    } else {
+        "$count status changes queued — will sync when back online"
+    }
+
+/**
+ * Subtitle on the engineer Active-Work top bar.
+ *
+ * 4-state composition based on which list has rows:
+ *   - both empty → null (top bar stays clean on cold load)
+ *   - only active rows → "N in progress"
+ *   - only completed rows → "N completed"
+ *   - both → "X in progress · Y done"
+ *
+ * Critical regression target — the previous behaviour used
+ * `combined.size` for the "in progress" count which miscounted
+ * completed rows as in-progress. Pin the per-bucket counts.
+ *
+ * Pin the asymmetric "completed" vs "done" wording — single-bucket
+ * uses the formal "completed" (matches the wire status name); the
+ * combined form uses the shorter "done" so the subtitle fits on
+ * one line.
+ */
+internal fun activeWorkSubtitle(activeCount: Int, completedCount: Int): String? = when {
+    activeCount <= 0 && completedCount <= 0 -> null
+    completedCount <= 0 -> "$activeCount in progress"
+    activeCount <= 0 -> "$completedCount completed"
+    else -> "$activeCount in progress · $completedCount done"
 }

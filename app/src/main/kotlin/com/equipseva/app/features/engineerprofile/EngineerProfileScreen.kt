@@ -59,12 +59,12 @@ import com.equipseva.app.designsystem.theme.SevaWarning50
 // Source of truth: RepairEquipmentCategory.entries (already mirrors
 // pg_enum). Chip text uses .displayName; selection state stores
 // .storageKey so save sends valid enum values.
-private val SPEC_CATALOG: List<String> =
+internal val SPEC_CATALOG: List<String> =
     com.equipseva.app.core.data.repair.RepairEquipmentCategory.entries
         .map { it.storageKey }
         .filter { it != "other" }
 
-private fun specDisplayName(storageKey: String): String =
+internal fun specDisplayName(storageKey: String): String =
     com.equipseva.app.core.data.repair.RepairEquipmentCategory
         .fromKey(storageKey).displayName
 
@@ -150,15 +150,13 @@ private fun EngineerProfileForm(
     ) {
         // Bio (multiline)
         val bioLen = state.bio.trim().length
-        val bioShort = bioLen < BIO_MIN_LEN
         EsField(
             value = state.bio,
             onChange = onBioChange,
             label = "Bio",
             type = EsFieldType.Multiline,
-            hint = if (bioShort) "$bioLen/$BIO_MIN_LEN characters — ${BIO_MIN_LEN - bioLen} more to go"
-            else "$bioLen characters. Hospitals see this on your profile.",
-            error = if (bioShort && state.bio.isNotEmpty()) "Bio must be at least $BIO_MIN_LEN characters" else null,
+            hint = bioHintLine(bioLen, BIO_MIN_LEN),
+            error = bioErrorLine(bioLen, state.bio.isNotEmpty(), BIO_MIN_LEN),
             enabled = !state.saving,
         )
 
@@ -303,3 +301,46 @@ private fun AvailabilityButton(
         )
     }
 }
+
+/**
+ * Bio character-count hint on the engineer-profile form.
+ *
+ * Two branches:
+ *   - bioLen < minLen → "N/M characters — K more to go" (U+2014
+ *     em-dash separator + remaining count). Pin the "K more to go"
+ *     phrasing — the engineer-facing instruction frames the work
+ *     remaining, not the deficit.
+ *   - bioLen >= minLen → "N characters. Hospitals see this on your
+ *     profile." (the why — load-bearing motivation for filling out
+ *     a proper bio).
+ *
+ * Pin both branches verbatim — a refactor that removed the period
+ * after "characters" in the long-form branch (just "N characters
+ * Hospitals see…") would reduce readability.
+ */
+internal fun bioHintLine(bioLen: Int, minLen: Int): String =
+    if (bioLen < minLen) {
+        "$bioLen/$minLen characters — ${minLen - bioLen} more to go"
+    } else {
+        "$bioLen characters. Hospitals see this on your profile."
+    }
+
+/**
+ * Bio error line on the engineer-profile form.
+ *
+ * Returns null when there's no error to show. Critical gate: error
+ * surfaces ONLY when BOTH conditions hold:
+ *   1. bioLen < minLen (the bio is too short)
+ *   2. bioNonEmpty (the field has SOMETHING in it)
+ *
+ * Pin condition 2 — pin so an empty field stays clean (no error
+ * before the engineer has even typed). The hint communicates the
+ * minimum requirement; the error only fires once they've started
+ * typing and are below the threshold.
+ *
+ * Pin the literal "Bio must be at least N characters" — a refactor
+ * to "Bio is too short" would lose the actionable threshold.
+ */
+internal fun bioErrorLine(bioLen: Int, bioNonEmpty: Boolean, minLen: Int): String? =
+    if (bioLen < minLen && bioNonEmpty) "Bio must be at least $minLen characters" else null
+

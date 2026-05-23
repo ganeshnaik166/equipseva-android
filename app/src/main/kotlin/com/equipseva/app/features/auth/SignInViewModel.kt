@@ -58,10 +58,11 @@ class SignInViewModel @Inject constructor(
         val current = _state.value
         if (current.form.submitting) return
 
-        val emailError = if (Validators.emailIsValid(current.email)) null else "Enter a valid email"
-        val passwordError = if (current.password.isNotBlank()) null else "Password is required"
-        if (emailError != null || passwordError != null) {
-            _state.update { it.copy(emailError = emailError, passwordError = passwordError) }
+        val errors = validateSignIn(current.email, current.password)
+        if (errors.hasAny) {
+            _state.update {
+                it.copy(emailError = errors.emailError, passwordError = errors.passwordError)
+            }
             return
         }
 
@@ -123,3 +124,26 @@ class SignInViewModel @Inject constructor(
     }
 
 }
+
+/**
+ * Inline-validation errors for the sign-in form. `hasAny` is the
+ * "block submit" gate; the two fields are surfaced separately as
+ * field-level error copy.
+ */
+internal data class SignInErrors(
+    val emailError: String?,
+    val passwordError: String?,
+) {
+    val hasAny: Boolean get() = emailError != null || passwordError != null
+}
+
+/**
+ * Pure form-validation for the sign-in screen. Extracted so the gate
+ * can be exercised without the VM's authRepository / GoogleSignInClient
+ * scaffolding.
+ */
+internal fun validateSignIn(email: String, password: String): SignInErrors =
+    SignInErrors(
+        emailError = if (Validators.emailIsValid(email)) null else "Enter a valid email",
+        passwordError = if (password.isNotBlank()) null else "Password is required",
+    )

@@ -65,9 +65,10 @@ fun CostRevisionBanner(
                 color = BANNER_INK,
             )
             Text(
-                text = "${formatRupees(revision.originalAmountRupees)} → " +
-                    formatRupees(revision.revisedAmountRupees) +
-                    ". Tap to review.",
+                text = costRevisionBannerSubtitle(
+                    revision.originalAmountRupees,
+                    revision.revisedAmountRupees,
+                ),
                 fontSize = 12.sp,
                 color = BANNER_INK,
             )
@@ -80,3 +81,15 @@ fun CostRevisionBanner(
 private val BANNER_BG = Color(0xFFFFF8E1)
 private val BANNER_BORDER = Color(0xFFF5C518)
 private val BANNER_INK = Color(0xFF7A4F01)
+
+/**
+ * Subtitle copy on the cost-revision banner: "₹original → ₹revised.
+ * Tap to review." Extracted so the rupee-grouping + arrow glyph
+ * (U+2192 RIGHTWARDS ARROW, not ASCII "->") can be unit-tested
+ * without the Compose runtime.
+ */
+internal fun costRevisionBannerSubtitle(
+    originalRupees: Double,
+    revisedRupees: Double,
+): String =
+    "${formatRupees(originalRupees)} → ${formatRupees(revisedRupees)}. Tap to review."

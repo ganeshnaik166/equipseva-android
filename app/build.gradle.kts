@@ -162,6 +162,16 @@ android {
         buildConfig = true
     }
 
+    testOptions {
+        // Robolectric needs merged AAR resources on the unit-test classpath
+        // to resolve drawables / strings / themes from inside JVM tests.
+        // Cheap when no Robolectric test runs (gradle only assembles the
+        // resources when the test source-set actually depends on them).
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
+
     packaging {
         resources {
             excludes += setOf(
@@ -275,6 +285,24 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
+    // Robolectric — JVM Android-simulator for unit tests that need a
+    // Context (DataStore, NotificationManager, etc.) without an emulator.
+    // Slow per test (~1-3s) so use sparingly; keep the bulk of tests
+    // pure-JUnit.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.runner)
+    // Hilt test infra — HiltTestApplication + HiltAndroidRule so JVM
+    // tests can boot the real Hilt graph with @TestInstallIn modules
+    // replacing the prod ones (e.g. swap SupabaseClient for a fake).
+    testImplementation(libs.hilt.android.testing)
+    kspTest(libs.hilt.compiler)
+    // Compose UI testing on JVM via Robolectric. `ui-test-junit4` provides
+    // createComposeRule + assertions; `ui-test-manifest` ships the empty
+    // ComponentActivity the createAndroidComposeRule variant needs.
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

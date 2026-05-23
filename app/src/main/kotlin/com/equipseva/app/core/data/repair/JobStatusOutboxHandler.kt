@@ -40,22 +40,9 @@ class JobStatusOutboxHandler @Inject constructor(
             ?: return OutboxKindHandler.Outcome.Retry(
                 IllegalStateException("No auth session — deferring status update"),
             )
-        val queuedUid = payload.actorUserId
-        // Tighten the back-compat allowance: weeks after the owner gate
-        // landed, any null actor still in the queue is stale. Dropping
-        // (GiveUp) is safer than draining under whichever user happens
-        // to be signed in at the time — a sign-out → sign-in-as-someone-
-        // else cycle would otherwise let the new user complete the old
-        // user's job status flip.
-        if (queuedUid == null) {
-            return OutboxKindHandler.Outcome.GiveUp(
-                "Missing actorUserId on legacy payload — refusing to drain",
-            )
-        }
-        if (queuedUid != currentUid) {
-            return OutboxKindHandler.Outcome.GiveUp(
-                "Actor mismatch: queued as $queuedUid, current auth is $currentUid",
-            )
+        val dropReason = jobStatusActorGateReason(payload.actorUserId, currentUid)
+        if (dropReason != null) {
+            return OutboxKindHandler.Outcome.GiveUp(dropReason)
         }
         // Bound the status update to 20s. The complete_repair_job RPC
         // does post-completion bookkeeping (escrow + AMC ledger + reviews
@@ -99,3 +86,29 @@ data class JobStatusPayload(
     // value for any other target status.
     val cancellationReason: String? = null,
 )
+
+/**
+ * Shared-device gate for the queued job-status-change drain. STRICT
+ * policy — a null queued actor on a legacy payload is dropped rather
+ * than draining under whichever user happens to be signed in at the
+ * time. A sign-out → sign-in-as-someone-else cycle would otherwise
+ * let the new user complete the old user's job status flip.
+ *
+ * Pinned semantics (CRITICAL — the strict policy is the T&S target;
+ * do NOT unify with [RepairBidOutboxHandler] / [NotificationReadOutbox]
+ * which fall through on null queued ids):
+ *   * null queued actor → drop with "Missing actorUserId on legacy
+ *     payload — refusing to drain". Wire-frozen reason string for ops
+ *     log filters.
+ *   * match → null (allow).
+ *   * mismatch → "Actor mismatch: queued as X, current auth is Y".
+ */
+internal fun jobStatusActorGateReason(
+    queuedActorUserId: String?,
+    currentUserId: String,
+): String? = when {
+    queuedActorUserId == null ->
+        "Missing actorUserId on legacy payload — refusing to drain"
+    queuedActorUserId == currentUserId -> null
+    else -> "Actor mismatch: queued as $queuedActorUserId, current auth is $currentUserId"
+}

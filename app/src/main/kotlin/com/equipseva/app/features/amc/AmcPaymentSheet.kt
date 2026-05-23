@@ -116,7 +116,7 @@ class AmcPaymentViewModel @Inject constructor(
                     amountPaise = order.amountPaise,
                     currency = order.currency,
                     name = "EquipSeva AMC",
-                    description = "$months month${if (months == 1) "" else "s"} for $engineerName",
+                    description = amcPaymentRazorpayDescription(months, engineerName),
                     prefillEmail = email,
                     prefillContact = null,
                     razorpayOrderId = order.razorpayOrderId,
@@ -320,4 +320,29 @@ fun AmcPaymentSheet(
             Spacer(Modifier.height(8.dp))
         }
     }
+}
+
+/**
+ * Razorpay description string surfaced in the Razorpay checkout UI
+ * and the hospital's payment history.
+ *
+ * Format: "N month[s] for $engineerName" with singular/plural split.
+ *
+ * Critical pins:
+ *   - Singular at months == 1 → "1 month for ${name}" (no 's'). A
+ *     "1 months" surface in the Razorpay UI would erode trust in the
+ *     payment flow — this is the most-visible string at the highest-
+ *     stakes moment in the funnel.
+ *   - "for ${engineerName}" — load-bearing context the hospital uses
+ *     to confirm WHO they're paying. A refactor to omit the name
+ *     would make the description ambiguous on hospitals with multiple
+ *     active AMC contracts.
+ *
+ * Also pinned: the engineerName is taken VERBATIM (no truncate, no
+ * isBlank fallback). The caller is responsible for passing a
+ * sensible name string.
+ */
+internal fun amcPaymentRazorpayDescription(months: Int, engineerName: String): String {
+    val noun = if (months == 1) "month" else "months"
+    return "$months $noun for $engineerName"
 }

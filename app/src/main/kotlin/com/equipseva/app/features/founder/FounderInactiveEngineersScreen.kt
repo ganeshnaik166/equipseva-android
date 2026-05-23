@@ -98,7 +98,7 @@ fun FounderInactiveEngineersScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Inactive engineers",
-                subtitle = if (state.rows.isNotEmpty()) "${state.rows.size} verified · 0 jobs in 30d" else null,
+                subtitle = inactiveEngineersSubtitle(state.rows.size),
                 onBack = onBack,
             )
             // Round 382 — pull-to-refresh.
@@ -166,31 +166,130 @@ private fun InactiveEngineerRow(
             val lastReleasedDays = row.lastReleasedAt?.let { iso ->
                 com.equipseva.app.core.util.daysUntil(iso)?.let { -it }
             }
-            val (label, kind) = when {
-                lastReleasedDays == null -> "Never shipped" to PillKind.Danger
-                lastReleasedDays >= 90L -> "${lastReleasedDays}d quiet" to PillKind.Danger
-                else -> "${lastReleasedDays}d quiet" to PillKind.Warn
-            }
+            val (label, kind) = inactiveEngineerActivityPill(lastReleasedDays)
             Pill(text = label, kind = kind)
         }
-        val locationLine = listOfNotNull(row.city, row.state).joinToString(", ").ifBlank { null }
+        val locationLine = inactiveEngineerLocationLine(row.city, row.state)
         locationLine?.let {
             Text(it, color = SevaInk700, fontSize = 13.sp)
         }
         if (row.specializations.isNotEmpty()) {
             Text(
-                text = row.specializations.take(3).joinToString(" · "),
+                text = inactiveEngineerSpecializationsPreview(row.specializations),
                 color = SevaInk500,
                 fontSize = 12.sp,
             )
         }
-        val contactLine = listOfNotNull(row.email, row.phone).joinToString(" · ")
+        val contactLine = inactiveEngineerContactLine(row.email, row.phone)
         if (contactLine.isNotBlank()) {
             Text(contactLine, color = SevaInk500, fontSize = 12.sp)
         }
         val verifiedRel = row.verifiedAt?.let { relativeLabel(it) }
-        verifiedRel?.let {
-            Text("Verified ${prettyDate(row.verifiedAt!!)} · $it ago", color = SevaInk500, fontSize = 11.sp)
+        verifiedRel?.let { rel ->
+            Text(
+                inactiveEngineerVerifiedLine(
+                    prettyVerifiedDate = prettyDate(row.verifiedAt!!),
+                    relativeAgoLabel = rel,
+                ),
+                color = SevaInk500,
+                fontSize = 11.sp,
+            )
         }
     }
 }
+
+/**
+ * Activity pill on the inactive-engineer row.
+ *
+ * Decision tree (lastReleasedDays = days since the engineer's last
+ * job release, computed by the caller):
+ *   - null → "Never shipped" + Danger (loudest signal — engineer
+ *     verified but never released any job).
+ *   - >= 90 → "${N}d quiet" + Danger (long-quiet; the founder's
+ *     reactivation list focuses here).
+ *   - otherwise (< 90) → "${N}d quiet" + Warn (recently quiet —
+ *     might still bounce back without intervention).
+ *
+ * Critical pin: the 90-day boundary is INCLUSIVE for Danger. Mirror
+ * of the 7-day AMC-expiry boundary pattern — pin so a refactor that
+ * relaxed to > 90 (exclusive) would silently soften the queue.
+ *
+ * Pin the "Never shipped" literal — a refactor to "No jobs yet" or
+ * "Inactive" would lose the load-bearing distinction (never-shipped
+ * is structurally different from gone-quiet).
+ */
+internal fun inactiveEngineerActivityPill(lastReleasedDays: Long?): Pair<String, PillKind> =
+    when {
+        lastReleasedDays == null -> "Never shipped" to PillKind.Danger
+        lastReleasedDays >= 90L -> "${lastReleasedDays}d quiet" to PillKind.Danger
+        else -> "${lastReleasedDays}d quiet" to PillKind.Warn
+    }
+
+/**
+ * Location subline on the inactive-engineer row: "City, State"
+ * with comma-space separator.
+ *
+ * Returns null when BOTH inputs are absent/blank so the caller can
+ * skip rendering the Text entirely.
+ *
+ * Pin the ", " separator — load-bearing distinction from the
+ * surrounding " · " separators on other sublines.
+ */
+internal fun inactiveEngineerLocationLine(city: String?, state: String?): String? =
+    listOfNotNull(city, state).joinToString(", ").ifBlank { null }
+
+/**
+ * Specializations preview on the inactive-engineer row.
+ *
+ * Joins up to the first 3 specializations with " · " (U+00B7) as
+ * separator. Pin take(3) — the row is visually tight and showing
+ * all specs would push to multi-line and break the row rhythm.
+ * A drift to take(2) or take(5) would shift the visual balance.
+ */
+internal fun inactiveEngineerSpecializationsPreview(specializations: List<String>): String =
+    specializations.take(3).joinToString(" · ")
+
+/**
+ * Contact line on the inactive-engineer row.
+ *
+ * Sibling of [userRowContactLine] but with NO fallback string —
+ * caller gates on isNotBlank() to skip rendering. Pin the absence
+ * of fallback so a refactor that unified with userRowContactLine's
+ * "no contact" fallback would surface here (the founder reactivation
+ * surface uses an explicit gate instead).
+ */
+internal fun inactiveEngineerContactLine(email: String?, phone: String?): String =
+    listOfNotNull(email, phone).joinToString(" · ")
+
+/**
+ * Verified-when line on the inactive-engineer row: "Verified $date · $rel ago".
+ *
+ * Composes the formatted verification date with the bare relative
+ * label suffixed by " ago". Pin the dual date-and-relative format —
+ * the founder uses the absolute date to spot KYC backlog cohorts
+ * and the relative cue ("3 months ago") to grok cadence at a glance.
+ * A refactor that surfaced only one would lose information density
+ * on the row.
+ *
+ * Pin the literal "Verified " prefix and " ago" suffix.
+ */
+internal fun inactiveEngineerVerifiedLine(
+    prettyVerifiedDate: String,
+    relativeAgoLabel: String,
+): String = "Verified $prettyVerifiedDate · $relativeAgoLabel ago"
+
+/**
+ * Subtitle on the founder Inactive-Engineers top bar.
+ *
+ * Returns null when the list is empty so the top-bar stays clean on
+ * cold-load. Otherwise reads "N verified · 0 jobs in 30d" — the
+ * "0 jobs in 30d" clause is the LITERAL constant (NOT computed from
+ * the rows), because the query filters in exactly that condition.
+ *
+ * Pin the literal "0 jobs in 30d" — a refactor that tried to
+ * compute it from the rows would surface the same value but couple
+ * the screen to a stat that's already implicit in the query's
+ * existence. Pin so the surface stays decoupled.
+ */
+internal fun inactiveEngineersSubtitle(rowCount: Int): String? =
+    if (rowCount > 0) "$rowCount verified · 0 jobs in 30d" else null

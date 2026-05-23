@@ -52,24 +52,15 @@ class SupabaseRepairBidRepository @Inject constructor(
         etaHours: Int?,
         note: String?,
     ): Result<RepairBid> = runCatching {
-        require(amountRupees.isFinite() && amountRupees in 1.0..MAX_BID_RUPEES) {
-            "Bid amount must be between ₹1 and ₹1 crore"
-        }
-        require(etaHours == null || etaHours in 1..MAX_ETA_HOURS) {
-            "ETA must be between 1 and $MAX_ETA_HOURS hours"
-        }
         val userId = requireNotNull(client.auth.currentUserOrNull()?.id) {
             "No authenticated user"
         }
-        // Server CHECK (round297) caps repair_job_bids.note at 1000.
-        // UI clamps at 500 (NOTE_MAX_LEN); repo cap catches non-UI callers
-        // before the round-trip hits 23514.
-        val payload = RepairBidInsertDto(
-            repairJobId = jobId,
+        val payload = buildRepairBidInsert(
+            jobId = jobId,
             engineerUserId = userId,
             amountRupees = amountRupees,
             etaHours = etaHours,
-            note = note?.take(1000)?.takeIf { it.isNotBlank() },
+            note = note,
         )
         client.from(TABLE).upsert(payload) {
             onConflict = "repair_job_id,engineer_user_id"
@@ -113,10 +104,45 @@ class SupabaseRepairBidRepository @Inject constructor(
 
     private companion object {
         const val TABLE = "repair_job_bids"
-        // ₹1 crore — server enforces the same upper bound; client guards
-        // so a slip-up doesn't round-trip an obviously wrong payload.
-        const val MAX_BID_RUPEES: Double = 10_000_000.0
-        // 30 days × 24h. Anything longer should be an AMC, not a one-shot bid.
-        const val MAX_ETA_HOURS: Int = 720
     }
+}
+
+// ₹1 crore — server enforces the same upper bound; client guards so a
+// slip-up doesn't round-trip an obviously wrong payload.
+internal const val MAX_BID_RUPEES: Double = 10_000_000.0
+// 30 days × 24h. Anything longer should be an AMC, not a one-shot bid.
+internal const val MAX_ETA_HOURS: Int = 720
+
+/**
+ * Compose a [RepairBidInsertDto] for the bid-placement upsert. The
+ * require() gates run on the caller's behalf so an invalid bid
+ * surfaces as IllegalArgumentException without burning a network
+ * round-trip. Extracted top-level so the gates + note-truncation
+ * semantics can be unit-tested without standing up Supabase.
+ *
+ *   * amount must be finite + within [1, ₹1 crore]
+ *   * etaHours, when present, must be within [1, 30 days × 24h]
+ *   * note is truncated to 1000 chars (server CHECK cap) and blank
+ *     notes fold to null so the row doesn't surface an empty bubble
+ */
+internal fun buildRepairBidInsert(
+    jobId: String,
+    engineerUserId: String,
+    amountRupees: Double,
+    etaHours: Int?,
+    note: String?,
+): RepairBidInsertDto {
+    require(amountRupees.isFinite() && amountRupees in 1.0..MAX_BID_RUPEES) {
+        "Bid amount must be between ₹1 and ₹1 crore"
+    }
+    require(etaHours == null || etaHours in 1..MAX_ETA_HOURS) {
+        "ETA must be between 1 and $MAX_ETA_HOURS hours"
+    }
+    return RepairBidInsertDto(
+        repairJobId = jobId,
+        engineerUserId = engineerUserId,
+        amountRupees = amountRupees,
+        etaHours = etaHours,
+        note = note?.take(1000)?.takeIf { it.isNotBlank() },
+    )
 }

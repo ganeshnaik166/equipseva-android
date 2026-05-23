@@ -495,18 +495,11 @@ private fun JobBody(
         // through the normal flow (Cancelled / Disputed). Without this,
         // the stepper sits at "Requested" forever on cancelled jobs
         // and gives no visual signal that the job is closed.
-        when (job.status) {
-            RepairJobStatus.Cancelled -> TerminalStatusBanner(
-                title = "Job cancelled",
-                subtitle = job.cancellationReason?.takeIf { it.isNotBlank() }
-                    ?.let { "Reason: $it" }
-                    ?: "No further action needed.",
-            )
-            RepairJobStatus.Disputed -> TerminalStatusBanner(
-                title = "Job in dispute",
-                subtitle = "Our team will reach out once a decision is made.",
-            )
-            else -> StatusStepperRow(currentStatus = job.status)
+        val terminal = terminalStatusBannerCopy(job.status, job.cancellationReason)
+        if (terminal != null) {
+            TerminalStatusBanner(title = terminal.title, subtitle = terminal.subtitle)
+        } else {
+            StatusStepperRow(currentStatus = job.status)
         }
 
         // PR-D9 + PR-D12 — 30-day warranty banner. Server stamped this
@@ -642,12 +635,13 @@ private fun EscrowDisputeSheet(
                 minLines = 3,
                 maxLines = 6,
             )
+            val canOpen = canSubmitEngineerResponse(reason, submitting)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
-                    .background(if (reason.trim().length >= 10 && !submitting) SevaDanger500 else SevaInk300)
-                    .clickable(enabled = reason.trim().length >= 10 && !submitting) {
+                    .background(if (canOpen) SevaDanger500 else SevaInk300)
+                    .clickable(enabled = canOpen) {
                         onSubmit(reason.trim())
                     }
                     .padding(vertical = 12.dp),
@@ -692,12 +686,13 @@ private fun EngineerResponseSheet(
                 minLines = 3,
                 maxLines = 6,
             )
+            val canSubmit = canSubmitEngineerResponse(response, submitting)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
-                    .background(if (response.trim().length >= 10 && !submitting) SevaGreen700 else SevaInk300)
-                    .clickable(enabled = response.trim().length >= 10 && !submitting) {
+                    .background(if (canSubmit) SevaGreen700 else SevaInk300)
+                    .clickable(enabled = canSubmit) {
                         onSubmit(response.trim())
                     }
                     .padding(vertical = 12.dp),
@@ -726,39 +721,16 @@ private fun EscrowStatusCard(
     onOpenDispute: () -> Unit,
     onOpenEngineerResponse: () -> Unit,
 ) {
-    val (label, sub, accent) = when {
-        escrow.isPending -> Triple(
-            "Awaiting payment",
-            "Pay ${formatRupees(escrow.amountRupees)} into escrow to release the engineer to start work.",
-            WarnGold,
-        )
-        escrow.isHeld -> Triple(
-            "Funds in escrow",
-            "${formatRupees(escrow.amountRupees)} is held by EquipSeva. Auto-released to engineer 48h after completion.",
-            SevaGreen700,
-        )
-        escrow.isInDispute -> Triple(
-            "Dispute open",
-            "Our team is reviewing this escrow. Funds are paused until resolved.",
-            SevaDanger500,
-        )
-        escrow.isReleased -> Triple(
-            // Engineer reads the same card, so third-person "to engineer"
-            // is jarring on their view. Branch on viewer role.
-            if (isHospital) "Released to engineer" else "Released to you",
-            if (isHospital) {
-                "${formatRupees(escrow.amountRupees)} released. Settlement to engineer's bank account."
-            } else {
-                "${formatRupees(escrow.amountRupees)} released. Settlement to your bank account."
-            },
-            SevaGreen700,
-        )
-        escrow.isRefunded -> Triple(
-            "Refunded",
-            "${formatRupees(escrow.amountRupees)} refunded.",
-            SevaInk700,
-        )
-        else -> Triple("Escrow ${escrow.status}", "", SevaInk500)
+    val copy = escrowStatusCardCopy(escrow, isHospital)
+    val label = copy.label
+    val sub = copy.subtitle
+    val accent = when {
+        escrow.isPending -> WarnGold
+        escrow.isHeld -> SevaGreen700
+        escrow.isInDispute -> SevaDanger500
+        escrow.isReleased -> SevaGreen700
+        escrow.isRefunded -> SevaInk700
+        else -> SevaInk500
     }
     Column(
         modifier = Modifier
@@ -1040,8 +1012,8 @@ private fun HospitalBanner(siteName: String, siteCity: String?, urgency: com.equ
 }
 
 // --- Status stepper ---------------------------------------------------------
-private val StepLabels = listOf("Requested", "Assigned", "En route", "In progress", "Completed")
-private val StepStatuses = listOf(
+internal val StepLabels = listOf("Requested", "Assigned", "En route", "In progress", "Completed")
+internal val StepStatuses = listOf(
     RepairJobStatus.Requested,
     RepairJobStatus.Assigned,
     RepairJobStatus.EnRoute,
@@ -1049,9 +1021,18 @@ private val StepStatuses = listOf(
     RepairJobStatus.Completed,
 )
 
+/**
+ * Index of [currentStatus] in the [StepStatuses] timeline, or -1 when
+ * the status isn't part of the stepper at all (Cancelled, Disputed,
+ * Unknown). Extracted so the index-to-dot rendering logic can be
+ * unit-tested without the Compose runtime.
+ */
+internal fun statusStepIndex(currentStatus: RepairJobStatus): Int =
+    StepStatuses.indexOf(currentStatus).let { if (it < 0) -1 else it }
+
 @Composable
 private fun StatusStepperRow(currentStatus: RepairJobStatus) {
-    val currentIdx = StepStatuses.indexOf(currentStatus).let { if (it < 0) -1 else it }
+    val currentIdx = statusStepIndex(currentStatus)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1136,10 +1117,6 @@ private fun StepDot(done: Boolean, active: Boolean, number: Int) {
 // --- Equipment card ---------------------------------------------------------
 @Composable
 private fun EquipmentCard(job: RepairJob) {
-    val schedule = listOfNotNull(
-        job.scheduledDate?.takeIf { it.isNotBlank() },
-        job.scheduledTimeSlot?.takeIf { it.isNotBlank() },
-    ).joinToString(" ").ifBlank { "—" }
     Column(
         modifier = Modifier
             .padding(horizontal = 16.dp)
@@ -1149,13 +1126,13 @@ private fun EquipmentCard(job: RepairJob) {
             .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
             .padding(14.dp),
     ) {
-        EqRow("Brand", job.equipmentBrand?.takeIf { it.isNotBlank() } ?: "—")
+        EqRow("Brand", textOrDash(job.equipmentBrand))
         Spacer(Modifier.height(8.dp))
-        EqRow("Model", job.equipmentModel?.takeIf { it.isNotBlank() } ?: "—")
+        EqRow("Model", textOrDash(job.equipmentModel))
         Spacer(Modifier.height(8.dp))
         EqRow("Category", job.equipmentCategory.displayName)
         Spacer(Modifier.height(8.dp))
-        EqRow("Schedule", schedule)
+        EqRow("Schedule", equipmentScheduleLine(job.scheduledDate, job.scheduledTimeSlot))
     }
 }
 
@@ -1420,16 +1397,16 @@ private fun BidCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            val etaText = bid.etaHours?.let { "ETA: ${it}h" } ?: "ETA: —"
             Text(
-                text = etaText,
+                text = bidCardEtaText(bid.etaHours),
                 fontSize = 12.sp,
                 color = SevaInk600,
                 lineHeight = 17.sp,
             )
-            bid.distanceKm?.let { km ->
+            val distanceLabel = bidCardDistanceLabel(bid.distanceKm)
+            if (distanceLabel != null) {
                 Text(
-                    text = "· ${"%.1f".format(java.util.Locale.US, km)} km away",
+                    text = distanceLabel,
                     fontSize = 12.sp,
                     color = SevaInk500,
                 )
@@ -1485,10 +1462,7 @@ private fun YourBidCard(ownBid: RepairBid, onWithdraw: () -> Unit) {
             color = SevaInk500,
         )
         Text(
-            text = buildString {
-                append(formatRupees(ownBid.amountRupees))
-                ownBid.etaHours?.let { append(" · ETA ${it}h") }
-            },
+            text = ownBidAmountAndEtaLine(ownBid.amountRupees, ownBid.etaHours),
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
             color = SevaGreen900,
@@ -1532,16 +1506,11 @@ private fun LocationCard(
     val hasAddressOnFile = !job.siteLocation.isNullOrBlank()
     val canShowAddress = hasAddressOnFile &&
         (isHospital || (isEngineer && job.isAssignedToEngineer))
-    val placeholderCopy = when {
-        canShowAddress -> "No map pin saved for this job"
-        !hasAddressOnFile -> "No address on file yet"
-        // Engineers don't "accept" jobs — they bid; hospitals accept the
-        // bid. Old copy framed the workflow from the wrong direction and
-        // confused engineers who saw "accept the job" without an
-        // accept button.
-        isEngineer -> "Address hidden until the hospital accepts your bid"
-        else -> "Address hidden until a bid is accepted"
-    }
+    val placeholderCopy = locationCardPlaceholderCopy(
+        canShowAddress = canShowAddress,
+        hasAddressOnFile = hasAddressOnFile,
+        isEngineer = isEngineer,
+    )
 
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         // Render a real map when we have coords; fall back to the placeholder
@@ -1570,8 +1539,12 @@ private fun LocationCard(
                         rotationGesturesEnabled = false,
                     ),
                 ) {
+                    val markerState = com.google.maps.android.compose.rememberMarkerState(
+                        key = "site-${job.siteLatitude}-${job.siteLongitude}",
+                        position = target,
+                    )
                     com.google.maps.android.compose.Marker(
-                        state = com.google.maps.android.compose.MarkerState(position = target),
+                        state = markerState,
                         title = "Service site",
                     )
                 }
@@ -1922,9 +1895,9 @@ private fun BidComposerSheet(
     var etaFocused by rememberSaveable { mutableStateOf(false) }
 
     val parsedAmount = amount.toDoubleOrNull()
-    val amountValid = parsedAmount != null && parsedAmount > 0.0
+    val amountValid = bidComposerAmountValid(amount)
     val parsedEta = eta.trim().takeIf { it.isNotEmpty() }?.toIntOrNull()
-    val etaValid = eta.trim().isEmpty() || (parsedEta != null && parsedEta > 0)
+    val etaValid = bidComposerEtaValid(eta)
 
     val amountError by remember(amount, amountTouched) {
         derivedStateOf { amountTouched && !amountValid }
@@ -2606,7 +2579,17 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
     }
 }
 
-private fun initialsOf(name: String): String {
+private fun initialsOf(name: String): String = repairDetailInitials(name)
+
+/**
+ * Initials for a counterparty avatar on the repair-job detail screen.
+ * Differs from the canonical [com.equipseva.app.core.util.initialsOf]
+ * in one specific way: a single-token name uses the first TWO chars
+ * (so "Priyanka" → "Pr") rather than first-letter only ("P"). Pinned
+ * top-level so the divergence is unit-testable and a future merge
+ * with the canonical helper would have to be intentional.
+ */
+internal fun repairDetailInitials(name: String): String {
     val parts = name.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
     return when {
         parts.isEmpty() -> "?"
@@ -2619,3 +2602,256 @@ private val UriListSaver = androidx.compose.runtime.saveable.listSaver<List<Uri>
     save = { it.map(Uri::toString) },
     restore = { it.map(Uri::parse) },
 )
+
+/**
+ * Render a nullable / possibly-blank text field as either its
+ * content or the em-dash placeholder (U+2014). Pin so a refactor
+ * that swapped to ASCII "-" surfaces.
+ */
+internal fun textOrDash(value: String?): String =
+    value?.takeIf { it.isNotBlank() } ?: "—"
+
+/**
+ * Compose the schedule line on EquipmentCard's "Schedule" row.
+ *
+ *   * date + slot → "2026-05-22 morning"
+ *   * date only → "2026-05-22"
+ *   * slot only → "morning"
+ *   * neither / blank → "—"
+ *
+ * Joined with a single space; blank parts dropped. Pin so a refactor
+ * doesn't leave a trailing/leading space when one side is missing.
+ */
+internal fun equipmentScheduleLine(scheduledDate: String?, scheduledTimeSlot: String?): String =
+    listOfNotNull(
+        scheduledDate?.takeIf { it.isNotBlank() },
+        scheduledTimeSlot?.takeIf { it.isNotBlank() },
+    ).joinToString(" ").ifBlank { "—" }
+
+/**
+ * Banner copy for the terminal-status replacement of the status
+ * stepper. Returns null when the job is still progressing through
+ * the normal flow (the caller renders the stepper instead).
+ *
+ *   * Cancelled → "Job cancelled" + admin-provided reason (or generic
+ *     "No further action needed" if reason is null/blank).
+ *   * Disputed → "Job in dispute" + canned subtitle.
+ *   * Anything else → null.
+ *
+ * Pinned: the reason prefix is "Reason: " (with colon + space) — a
+ * refactor that dropped the prefix would surface the bare admin
+ * sentence as if it were the engineer's own copy.
+ */
+internal data class TerminalStatusCopy(val title: String, val subtitle: String)
+
+internal fun terminalStatusBannerCopy(
+    status: RepairJobStatus,
+    cancellationReason: String?,
+): TerminalStatusCopy? = when (status) {
+    RepairJobStatus.Cancelled -> TerminalStatusCopy(
+        title = "Job cancelled",
+        subtitle = cancellationReason?.takeIf { it.isNotBlank() }
+            ?.let { "Reason: $it" }
+            ?: "No further action needed.",
+    )
+    RepairJobStatus.Disputed -> TerminalStatusCopy(
+        title = "Job in dispute",
+        subtitle = "Our team will reach out once a decision is made.",
+    )
+    else -> null
+}
+
+/**
+ * Label + subtitle copy on the escrow status card on RepairJobDetail.
+ *
+ * Five user-visible states + a generic fallback for any future
+ * status that isn't yet wired. The Released state branches on
+ * [isHospital] — engineer reads the same card, so third-person
+ * "to engineer" is jarring on their view. Pin the role-aware split
+ * so a refactor doesn't lose it.
+ *
+ * Pinned regions:
+ *   * 48-hour auto-release callout on Held (a load-bearing UX promise)
+ *   * "to engineer" vs "to you" branching on Released
+ *   * Fallback "Escrow ${status}" surfaces an unknown server-side
+ *     state literally rather than crashing or showing blank
+ */
+internal data class EscrowStatusCopy(val label: String, val subtitle: String)
+
+internal fun escrowStatusCardCopy(
+    escrow: com.equipseva.app.core.data.escrow.RepairJobEscrowRepository.EscrowRow,
+    isHospital: Boolean,
+): EscrowStatusCopy = when {
+    escrow.isPending -> EscrowStatusCopy(
+        label = "Awaiting payment",
+        subtitle = "Pay ${com.equipseva.app.core.util.formatRupees(escrow.amountRupees)} " +
+            "into escrow to release the engineer to start work.",
+    )
+    escrow.isHeld -> EscrowStatusCopy(
+        label = "Funds in escrow",
+        subtitle = "${com.equipseva.app.core.util.formatRupees(escrow.amountRupees)} " +
+            "is held by EquipSeva. Auto-released to engineer 48h after completion.",
+    )
+    escrow.isInDispute -> EscrowStatusCopy(
+        label = "Dispute open",
+        subtitle = "Our team is reviewing this escrow. Funds are paused until resolved.",
+    )
+    escrow.isReleased -> EscrowStatusCopy(
+        label = if (isHospital) "Released to engineer" else "Released to you",
+        subtitle = if (isHospital) {
+            "${com.equipseva.app.core.util.formatRupees(escrow.amountRupees)} " +
+                "released. Settlement to engineer's bank account."
+        } else {
+            "${com.equipseva.app.core.util.formatRupees(escrow.amountRupees)} " +
+                "released. Settlement to your bank account."
+        },
+    )
+    escrow.isRefunded -> EscrowStatusCopy(
+        label = "Refunded",
+        subtitle = "${com.equipseva.app.core.util.formatRupees(escrow.amountRupees)} refunded.",
+    )
+    else -> EscrowStatusCopy(label = "Escrow ${escrow.status}", subtitle = "")
+}
+
+/**
+ * Amount + ETA hero line on the engineer's own-bid card.
+ *
+ * Format: "₹X" or "₹X · ETA Nh" when etaHours is non-null.
+ *
+ * Pin the U+00B7 middle-dot separator. Pin the "ETA Nh" form (no
+ * space between N and h) — matches the bid-list card's compact form
+ * so an engineer sees the same shape on both surfaces. A refactor to
+ * "ETA N hours" would inflate the line width on the hero typography.
+ *
+ * Pin: null etaHours drops the suffix entirely (NO trailing
+ * separator). A refactor that always appended " · ETA " would
+ * surface a naked trailing dot when ETA is null.
+ */
+internal fun ownBidAmountAndEtaLine(amountRupees: Double, etaHours: Int?): String =
+    buildString {
+        append(com.equipseva.app.core.util.formatRupees(amountRupees))
+        etaHours?.let { append(" · ETA ${it}h") }
+    }
+
+/**
+ * ETA text on a bid card (hospital's bid list view).
+ *
+ * "ETA: Nh" when etaHours is known; "ETA: —" (U+2014 em-dash) when
+ * null. The label always renders — hospitals scanning the bid list
+ * need to see "no ETA given" as an explicit signal, not as a missing
+ * field.
+ *
+ * Pin "ETA:" with colon-space (NOT just "ETA Nh" — colon-form
+ * distinguishes the bid-list compact-row format from the own-bid
+ * hero-card format which uses "ETA Nh" without colon).
+ *
+ * Pin U+2014 em-dash fallback — distinct from "TBD" / "Not given"
+ * which would inflate the row width.
+ */
+internal fun bidCardEtaText(etaHours: Int?): String =
+    etaHours?.let { "ETA: ${it}h" } ?: "ETA: —"
+
+/**
+ * Distance label on a bid card.
+ *
+ * "· X.Y km away" with U+00B7 leading separator + Locale.US-stable
+ * %.1f format + "km away" suffix. Returns null when distanceKm is
+ * null (engineer has no base coords OR job has no site coords) so
+ * the caller can hide the chip entirely.
+ *
+ * Critical pin: Locale.US — hi-IN would render "3,2 km away" which
+ * mis-reads. Pin "km away" suffix (not "km" alone) — disambiguates
+ * the distance from the engineer's listed service radius (which is
+ * also displayed in km elsewhere).
+ */
+internal fun bidCardDistanceLabel(distanceKm: Double?): String? =
+    distanceKm?.let { "· ${"%.1f".format(java.util.Locale.US, it)} km away" }
+
+/**
+ * Placeholder copy on the RepairJobDetail location card when we
+ * can't render a map.
+ *
+ * 4-state decision tree:
+ *   1. canShowAddress (the address IS visible to this viewer) → "No
+ *      map pin saved for this job" (the address text exists but lat/lng
+ *      doesn't — this is a legacy backfill case)
+ *   2. !hasAddressOnFile → "No address on file yet" (no data anywhere)
+ *   3. isEngineer (address exists but engineer can't see it) →
+ *      "Address hidden until the hospital accepts your bid" — pin
+ *      "hospital accepts your bid" framing because engineers DON'T
+ *      "accept" jobs; they bid. Hospitals accept.
+ *   4. else (hospital viewing a job where address is hidden) →
+ *      generic "Address hidden until a bid is accepted"
+ *
+ * Critical regression target: the engineer-facing copy mentions "your
+ * bid" because old phrasing said "accept the job" — engineers got
+ * confused looking for an accept button that didn't exist.
+ */
+internal fun locationCardPlaceholderCopy(
+    canShowAddress: Boolean,
+    hasAddressOnFile: Boolean,
+    isEngineer: Boolean,
+): String = when {
+    canShowAddress -> "No map pin saved for this job"
+    !hasAddressOnFile -> "No address on file yet"
+    isEngineer -> "Address hidden until the hospital accepts your bid"
+    else -> "Address hidden until a bid is accepted"
+}
+
+/**
+ * Submit gate on the engineer dispute-response sheet.
+ *
+ * Requires:
+ *   1. response (trimmed) is at least 10 characters
+ *   2. NOT currently submitting (prevents double-tap)
+ *
+ * Pin the 10-char minimum — load-bearing because admin needs
+ * substantive context to decide release vs refund. A "yes" or "ok"
+ * response would be useless evidence. A refactor that relaxed the
+ * floor to >= 1 would let trivial responses through.
+ *
+ * Pin .trim().length (not just .length) — pure-whitespace responses
+ * shouldn't enable submit even if they hit the char count.
+ */
+internal fun canSubmitEngineerResponse(response: String, submitting: Boolean): Boolean =
+    response.trim().length >= 10 && !submitting
+
+/**
+ * Amount-field validation gate on the bid composer sheet.
+ *
+ * True when the amount parses to a positive (> 0.0) Double.
+ *
+ * Pin strict > 0.0 (not >=) — a 0-rupee bid would be a free-job offer
+ * which the server-side CHECK rejects with `amount_must_be_positive`.
+ * Pin null-on-non-numeric — toDoubleOrNull returns null for input
+ * the user typed but hasn't completed yet.
+ *
+ * Note: the buildRepairBidInsert helper also enforces this server-
+ * side; this client gate is just for the UI affordance.
+ */
+internal fun bidComposerAmountValid(amount: String): Boolean {
+    val parsed = amount.toDoubleOrNull()
+    return parsed != null && parsed > 0.0
+}
+
+/**
+ * ETA-field validation gate on the bid composer sheet.
+ *
+ * True when EITHER:
+ *   - the ETA field is blank/empty (ETA is optional)
+ *   - OR the ETA parses to a positive (> 0) Int
+ *
+ * Pin the blank-as-valid branch — ETA is optional per the
+ * RepairBidInsert wire schema (etaHours: Int? = null). A refactor
+ * that required a value would silently break bids that don't
+ * specify an ETA.
+ *
+ * Pin > 0 strict — a 0-hour ETA would be meaningless. The
+ * buildRepairBidInsert helper also enforces this server-side.
+ */
+internal fun bidComposerEtaValid(eta: String): Boolean {
+    val trimmed = eta.trim()
+    if (trimmed.isEmpty()) return true
+    val parsed = trimmed.toIntOrNull()
+    return parsed != null && parsed > 0
+}

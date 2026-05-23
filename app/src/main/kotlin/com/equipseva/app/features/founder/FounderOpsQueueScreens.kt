@@ -157,7 +157,7 @@ fun FounderEscrowDisputesScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Escrow disputes",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let { "$it open" },
+                subtitle = simpleQueueCountSubtitle(state.rows.size, "open"),
                 onBack = onBack,
             )
             QueueBox(
@@ -197,13 +197,13 @@ private fun EscrowDisputeRow(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    row.jobNumber ?: "RPR-${row.repairJobId.take(6)}",
+                    escrowDisputeRowTitle(row.jobNumber, row.repairJobId),
                     color = SevaInk900,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                 )
                 Text(
-                    "${formatRupees(row.amountRupees)} held",
+                    escrowDisputeAmountHeldLine(row.amountRupees),
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
@@ -212,10 +212,7 @@ private fun EscrowDisputeRow(
             Pill(text = "Disputed", kind = PillKind.Danger)
         }
         Text(
-            // Mirror rounds 37 / 53 / 54 / 58: dev-placeholder "(unnamed)"
-            // reads as a data bug in the queue. Founder still has the
-            // jobNumber / repairJobId in the row above for triage.
-            "${row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"} → ${row.engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"}",
+            escrowDisputePartiesLine(row.hospitalName, row.engineerName),
             color = SevaInk500,
             fontSize = 12.sp,
         )
@@ -314,7 +311,7 @@ fun FounderAmcEscalationsScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "AMC escalations",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let { "$it open" },
+                subtitle = simpleQueueCountSubtitle(state.rows.size, "open"),
                 onBack = onBack,
             )
             QueueBox(
@@ -356,36 +353,26 @@ private fun AmcEscalationRow(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital",
+                    amcEscalationHospitalName(row.hospitalName),
                     color = SevaInk900,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                 )
                 Text(
-                    row.reason.replace('_', ' ').replaceFirstChar { it.uppercase() },
+                    amcEscalationReasonLabel(row.reason),
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                 )
             }
-            Pill(
-                text = if (row.reason == "rotation_exhausted") "Exhausted" else "Open",
-                kind = if (row.reason == "rotation_exhausted") PillKind.Danger else PillKind.Warn,
-            )
+            val (text, kind) = amcEscalationPillTextAndKind(row.reason)
+            Pill(text = text, kind = kind)
         }
-        if (row.visitNumber != null) {
-            Text(
-                "Visit #${row.visitNumber} · contract ${row.amcContractId.take(8)}",
-                color = SevaInk500,
-                fontSize = 11.sp,
-            )
-        } else {
-            Text(
-                "Contract ${row.amcContractId.take(8)}",
-                color = SevaInk500,
-                fontSize = 11.sp,
-            )
-        }
+        Text(
+            amcEscalationContextLine(row.visitNumber, row.amcContractId),
+            color = SevaInk500,
+            fontSize = 11.sp,
+        )
         if (!row.notes.isNullOrBlank()) {
             Text(row.notes, color = SevaInk700, fontSize = 13.sp)
         }
@@ -482,7 +469,7 @@ fun FounderCashSuspendedScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Cash-flag suspensions",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let { "$it suspended" },
+                subtitle = simpleQueueCountSubtitle(state.rows.size, "suspended"),
                 onBack = onBack,
             )
             QueueBox(
@@ -524,13 +511,13 @@ private fun CashSuspendedRow(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    row.fullName?.takeIf { it.isNotBlank() } ?: "Engineer",
+                    cashSuspendedRowName(row.fullName),
                     color = SevaInk900,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                 )
                 Text(
-                    "${row.flagCount90d} flags / 90d",
+                    cashSuspendedFlagCountLabel(row.flagCount90d),
                     color = SevaDanger500,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -613,7 +600,7 @@ fun FounderPartsOutliersScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Parts-cost outliers",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let { "$it >5x category avg" },
+                subtitle = partsOutliersSubtitle(state.rows.size),
                 onBack = onBack,
             )
             QueueBox(
@@ -643,27 +630,27 @@ private fun PartsOutlierRow(row: FounderRepository.PartsCostOutlier) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    row.jobNumber ?: "RPR-${row.repairJobId.take(6)}",
+                    partsOutlierRowTitle(row.jobNumber, row.repairJobId),
                     color = SevaInk900,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                 )
                 Text(
-                    row.equipmentType?.replace('_', ' ')?.replaceFirstChar { it.uppercase() } ?: "Unknown",
+                    partsOutlierEquipmentTypeLabel(row.equipmentType),
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                 )
             }
-            Pill(text = "${"%.1f".format(java.util.Locale.US, row.ratio)}×", kind = PillKind.Warn)
+            Pill(text = partsOutlierRatioPillText(row.ratio), kind = PillKind.Warn)
         }
         Text(
-            "Parts ${formatRupees(row.partsCost)} vs category avg ${formatRupees(row.categoryAvgParts)}",
+            partsOutlierComparisonLine(row.partsCost, row.categoryAvgParts),
             color = SevaInk700,
             fontSize = 13.sp,
         )
         Text(
-            "${row.engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"} → ${row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"}",
+            partsOutlierPartiesLine(row.engineerName, row.hospitalName),
             color = SevaInk500,
             fontSize = 12.sp,
         )
@@ -857,3 +844,240 @@ private fun OutcomeOption(
         }
     }
 }
+
+/**
+ * Title for an escrow-dispute row on the founder ops queue.
+ *
+ *   * Server-provided jobNumber → use as-is (preferred)
+ *   * Fallback → "RPR-${first 6 chars of repairJobId}" — pin the
+ *     6-char prefix so a future change is reviewed (must match the
+ *     UI's tap-target so a founder hunting for the row in another
+ *     queue gets a consistent identifier).
+ */
+internal fun escrowDisputeRowTitle(jobNumber: String?, repairJobId: String): String =
+    jobNumber ?: "RPR-${repairJobId.take(6)}"
+
+/**
+ * Hospital → engineer parties line on an escrow-dispute row.
+ * Mirrors the dev-placeholder safety check used elsewhere
+ * (cashSuspendedRowName / amcVisitHospitalName) — blank names fold
+ * to "Hospital" / "Engineer" generic labels so the founder doesn't
+ * see "(unnamed) → (unnamed)" on rows where the join failed.
+ *
+ * Unicode rightwards arrow (U+2192) pinned — pin so an ASCII "->"
+ * fragmentation doesn't surface.
+ */
+internal fun escrowDisputePartiesLine(hospitalName: String?, engineerName: String?): String {
+    val h = hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"
+    val e = engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"
+    return "$h → $e"
+}
+
+/**
+ * Display name for a cash-suspended engineer row on the founder
+ * ops queue. Blank/null → "Engineer" generic fallback. Mirrors the
+ * AMC-visit row's [amcVisitHospitalName] pattern — pin so the same
+ * dev-placeholder safety check applies on both surfaces.
+ */
+internal fun cashSuspendedRowName(fullName: String?): String =
+    fullName?.takeIf { it.isNotBlank() } ?: "Engineer"
+
+/**
+ * "N flags / 90d" subtitle on the cash-suspended row. Always plural
+ * "flags" — the suspension trigger requires 3+ flags in 90 days, so
+ * 1-flag rows shouldn't appear; if they do (race / manual flag
+ * removal), pluralisation is still correct because the window
+ * cadence reads as "flags per 90d" regardless of count.
+ *
+ * Pin so the unit "/ 90d" stays intact — load-bearing rolling-window
+ * context the founder uses to decide whether to clear.
+ */
+internal fun cashSuspendedFlagCountLabel(flagCount90d: Int): String =
+    "$flagCount90d flags / 90d"
+
+/**
+ * Hospital-name fallback on the founder's AMC-escalation row. Mirrors
+ * [cashSuspendedRowName] — null/blank reads as the role label so an
+ * incomplete row stays addressable. Pin so a backfill bug that lands a
+ * blank hospital name doesn't surface a naked "·" or a dev-placeholder
+ * on the founder's escalation triage queue.
+ */
+internal fun amcEscalationHospitalName(hospitalName: String?): String =
+    hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"
+
+/**
+ * Reason label on the AMC-escalation row. The wire stores
+ * `snake_case` reason codes (`rotation_exhausted`, `engineer_unavailable`,
+ * `parts_delayed`, …); we render them as Title-cased prose with
+ * underscores → spaces and first-letter capitalised.
+ *
+ * Pin so a refactor to a lookup table doesn't accidentally drop the
+ * underscore→space step (would surface "Rotation_exhausted") or skip
+ * the first-letter capitalisation (would surface "rotation exhausted",
+ * which reads as a sentence fragment in the row header).
+ */
+internal fun amcEscalationReasonLabel(reason: String): String =
+    reason.replace('_', ' ').replaceFirstChar { it.uppercase() }
+
+/**
+ * Pill text + colour kind for the AMC-escalation row.
+ *
+ * Critical region: `rotation_exhausted` is the ONLY reason that warrants
+ * the Danger pill — it means every engineer in the geographic pool has
+ * declined or already done their max visits, and the contract is now
+ * unstaffable without manual founder intervention. Every other reason
+ * is a Warn (recoverable: a different engineer can be assigned, parts
+ * can be sourced, etc.).
+ *
+ * Pin the exact wire string + the binary pill split so a refactor that
+ * renamed the wire code (e.g. to `pool_exhausted`) surfaces as a test
+ * failure rather than silently downgrading the urgency cue to Warn.
+ */
+internal fun amcEscalationPillTextAndKind(reason: String): Pair<String, PillKind> =
+    if (reason == "rotation_exhausted") {
+        "Exhausted" to PillKind.Danger
+    } else {
+        "Open" to PillKind.Warn
+    }
+
+/**
+ * Context subline on the AMC-escalation row: "Visit #N · contract XXXXXXXX"
+ * (or just "Contract XXXXXXXX" when the visit number is null — an
+ * escalation can be raised against a contract before any visits have
+ * been scheduled).
+ *
+ * Pin so the U+00B7 middle-dot separator survives, the contract-id
+ * `take(8)` truncation stays (load-bearing — the founder uses the
+ * 8-char prefix to cross-reference the AMC detail screen), and the
+ * null-visit branch keeps "Contract" with a capital C (the
+ * non-null branch already has "Visit #N ·" leading, so "contract" is
+ * lowercase there — a refactor that unified the casing would surface
+ * either as wrong on the no-visit row or wrong on the with-visit row).
+ */
+internal fun amcEscalationContextLine(visitNumber: Int?, amcContractId: String): String =
+    if (visitNumber != null) {
+        "Visit #$visitNumber · contract ${amcContractId.take(8)}"
+    } else {
+        "Contract ${amcContractId.take(8)}"
+    }
+
+/**
+ * Title on the parts-cost-outlier row: prefer the server-issued
+ * `jobNumber` (e.g. "RPR-2026-00041"), fall back to a synthetic
+ * "RPR-${first 6 chars of repairJobId}".
+ *
+ * Pin take(6) (not take(8) like the AMC contract case) — the outlier
+ * queue uses 6 because the matching server jobNumber suffix is also 6
+ * digits (year-prefixed). A refactor that unified the prefix length
+ * across queues would silently shift this and confuse the founder
+ * doing manual lookups.
+ */
+internal fun partsOutlierRowTitle(jobNumber: String?, repairJobId: String): String =
+    jobNumber ?: "RPR-${repairJobId.take(6)}"
+
+/**
+ * Equipment-type label on the parts-cost-outlier row. The wire stores
+ * enum codes like `mri_scanner`, `ct_scanner`, `xray` — we render them
+ * as Title-cased prose with underscores → spaces and first-letter
+ * capitalised. Null/blank reads as "Unknown".
+ *
+ * Pin the "Unknown" fallback so a row with a missing equipment type
+ * (legacy data) stays addressable rather than rendering as an empty
+ * row subtitle that breaks the row's visual hierarchy.
+ */
+internal fun partsOutlierEquipmentTypeLabel(equipmentType: String?): String =
+    equipmentType?.replace('_', ' ')?.replaceFirstChar { it.uppercase() } ?: "Unknown"
+
+/**
+ * Ratio pill text on the parts-cost-outlier row: "%.1fx" with the
+ * U+00D7 multiplication sign (NOT ASCII 'x').
+ *
+ * Critical region:
+ *   1. Locale.US — Hindi-locale would render "3,2×" (comma decimal)
+ *      and break the founder's number parsing intuition.
+ *   2. One decimal — pin so a refactor to %d (integer) doesn't lose
+ *      precision (the 5x threshold means most rows cluster in 5.0–8.0
+ *      and the .x digit is load-bearing for triage prioritisation).
+ *   3. U+00D7 — pin the proper multiplication sign survives.
+ */
+internal fun partsOutlierRatioPillText(ratio: Double): String =
+    "${"%.1f".format(java.util.Locale.US, ratio)}×"
+
+/**
+ * Comparison line on the parts-cost-outlier row:
+ * "Parts ₹X vs category avg ₹Y" with both values run through
+ * [formatRupees] (Indian-lakh grouping). Pin the literal "vs category
+ * avg" phrasing — a refactor that changed it to "Category avg ₹Y"
+ * would break the founder's mental model of which number is the
+ * outlier and which is the baseline.
+ */
+internal fun partsOutlierComparisonLine(partsCost: Double, categoryAvgParts: Double): String =
+    "Parts ${formatRupees(partsCost)} vs category avg ${formatRupees(categoryAvgParts)}"
+
+/**
+ * Parties line on the parts-cost-outlier row: "Engineer → Hospital"
+ * with the U+2192 rightwards arrow and null/blank fallbacks for
+ * either side.
+ *
+ * Pin so:
+ *   1. The U+2192 arrow (NOT "->" or "→ ") survives — visual symmetry
+ *      with the other founder ops-queue arrows.
+ *   2. The role labels ("Engineer", "Hospital") appear capitalised —
+ *      a backfill row missing both names still reads as
+ *      "Engineer → Hospital", not " → " or "engineer → hospital".
+ */
+internal fun partsOutlierPartiesLine(engineerName: String?, hospitalName: String?): String {
+    val eng = engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"
+    val hos = hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"
+    return "$eng → $hos"
+}
+
+/**
+ * Amount-held subline on the founder escrow-dispute row: "₹X held".
+ *
+ * Pin the trailing " held" — load-bearing escrow-state context. A
+ * dispute row says HELD (the money is locked pending resolution);
+ * a resolved row says RELEASED or REFUNDED elsewhere. A refactor
+ * that dropped the suffix would lose the state signal.
+ */
+internal fun escrowDisputeAmountHeldLine(amountRupees: Double): String =
+    "${formatRupees(amountRupees)} held"
+
+/**
+ * Subtitle on the founder Parts-Cost-Outliers top bar.
+ *
+ * Returns null on empty list. Otherwise reads "N >5x category avg"
+ * — the "5x" is the LITERAL threshold the server-side outlier query
+ * uses (charges > 5× the category average). Pin so a refactor that
+ * relaxed to 4x or tightened to 6x without updating the server-side
+ * threshold would surface here as a mismatch.
+ *
+ * Pin the ">5x" form (ASCII `>` + lowercase `x`) — distinct from the
+ * row-level pill text which uses "%.1f×" with the U+00D7 sign and
+ * decimal precision. The subtitle uses the bare integer threshold
+ * because it describes the cohort, not an individual row.
+ */
+internal fun partsOutliersSubtitle(rowCount: Int): String? =
+    if (rowCount > 0) "$rowCount >5x category avg" else null
+
+/**
+ * Shared subtitle helper for founder ops-queue tabs that use the
+ * pattern "$count $noun" (e.g. "5 open", "3 suspended").
+ *
+ *   - rowCount <= 0 → null (top bar stays clean on cold-load)
+ *   - rowCount > 0 → "$rowCount $noun"
+ *
+ * Callers pass the surface-specific status noun:
+ *   - Escrow disputes: "open"
+ *   - AMC escalations: "open"
+ *   - Cash-flag suspensions: "suspended"
+ *
+ * Pin the shared shape so a refactor that diverged one queue (e.g.
+ * "5 open · last 30d") would need to drop this helper rather than
+ * silently shift the format on the others.
+ *
+ * Pin plural-blind shape — singular "1 open" / "1 suspended" reads
+ * fine because the status is a state, not a count-noun.
+ */
+internal fun simpleQueueCountSubtitle(rowCount: Int, statusNoun: String): String? =
+    if (rowCount > 0) "$rowCount $statusNoun" else null

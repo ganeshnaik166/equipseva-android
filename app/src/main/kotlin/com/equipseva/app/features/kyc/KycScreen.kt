@@ -180,11 +180,11 @@ fun KycScreen(
             // wizard counter — the wizard isn't visible to them so showing
             // "Step 1 of 2" alongside a fully-checked status stepper read
             // as a contradiction.
-            val subtitle = if (state.verificationStatus == VerificationStatus.Verified) {
-                "Verified"
-            } else {
-                "Step ${state.currentStep.ordinal + 1} of ${com.equipseva.app.features.kyc.KycStep.entries.size}"
-            }
+            val subtitle = kycScreenSubtitle(
+                verificationStatus = state.verificationStatus,
+                currentStepOrdinal = state.currentStep.ordinal,
+                totalSteps = com.equipseva.app.features.kyc.KycStep.entries.size,
+            )
             com.equipseva.app.designsystem.components.EsTopBar(
                 title = "Verification (KYC)",
                 subtitle = subtitle,
@@ -670,12 +670,7 @@ private fun AadhaarSection(
     val aadhaarUploaded = !state.aadhaarDocPath.isNullOrBlank()
     val digits = state.aadhaarNumber
     val checksumOk = digits.length == 12 && AadhaarValidator.isValid(digits)
-    val hint = when {
-        digits.isEmpty() -> "12 digits, no spaces"
-        digits.length < 12 -> "${digits.length}/12 digits"
-        !checksumOk -> "Number doesn't pass the standard Aadhaar checksum"
-        else -> "Looks valid ✓"
-    }
+    val hint = aadhaarNumberHint(digits, checksumOk)
     val hintColor = when {
         digits.isEmpty() -> Ink500
         checksumOk -> Success
@@ -715,12 +710,7 @@ private fun PanSection(
     val panUploaded = !state.panDocPath.isNullOrBlank()
     val pan = state.panNumber
     val panOk = pan.length == 10 && PanValidator.isValid(pan)
-    val panHint = when {
-        pan.isEmpty() -> "10 chars: 5 letters, 4 digits, 1 letter (e.g. ABCDE1234F)"
-        pan.length < 10 -> "${pan.length}/10 chars"
-        !panOk -> "Format must be ABCDE1234F"
-        else -> "Looks valid ✓"
-    }
+    val panHint = panNumberHint(pan, panOk)
     val panHintColor = when {
         pan.isEmpty() -> Ink500
         panOk -> Success
@@ -910,39 +900,18 @@ private fun VerifiedSummaryCard(state: KycViewModel.UiState) {
 
 @Composable
 private fun StatusBanner(status: VerificationStatus, submitted: Boolean) {
-    val (bg, fg, label, subtitle, icon) = when (status) {
-        VerificationStatus.Verified -> BannerStyle(
-            bg = SuccessBg,
-            fg = Success,
-            label = "Verified",
-            subtitle = "You can accept jobs.",
-            icon = Icons.Filled.Verified,
-        )
-        VerificationStatus.Rejected -> BannerStyle(
-            bg = ErrorBg,
-            fg = ErrorRed,
-            label = "Rejected",
-            subtitle = "Re-upload the flagged documents.",
-            icon = Icons.Filled.Error,
-        )
+    val copy = kycStatusBannerCopy(status, submitted)
+    val (bg, fg, icon) = when (status) {
+        VerificationStatus.Verified -> Triple(SuccessBg, Success, Icons.Filled.Verified)
+        VerificationStatus.Rejected -> Triple(ErrorBg, ErrorRed, Icons.Filled.Error)
         VerificationStatus.Pending -> if (submitted) {
-            BannerStyle(
-                bg = InfoBg,
-                fg = Info,
-                label = "Submitted for review",
-                subtitle = "Typically reviewed within 4–24 hours.",
-                icon = Icons.Filled.HourglassTop,
-            )
+            Triple(InfoBg, Info, Icons.Filled.HourglassTop)
         } else {
-            BannerStyle(
-                bg = WarningBg,
-                fg = Warning,
-                label = "In progress",
-                subtitle = "Complete every step to submit for review.",
-                icon = Icons.Filled.HourglassTop,
-            )
+            Triple(WarningBg, Warning, Icons.Filled.HourglassTop)
         }
     }
+    val label = copy.label
+    val subtitle = copy.subtitle
 
     Row(
         modifier = Modifier
@@ -972,22 +941,50 @@ private data class BannerStyle(
     val icon: ImageVector,
 )
 
+/**
+ * Pure label/subtitle copy for the KYC status banner. Verified /
+ * Rejected map 1:1 to a fixed pair; Pending splits on whether the
+ * engineer has uploaded the three required docs (submitted) vs is
+ * still mid-flight on Step 2.
+ *
+ * Extracted so the copy → status mapping can be tested without the
+ * Compose runtime, since the screen-side composable wires icon + bg
+ * + fg colours which all need Material runtime.
+ */
+internal data class KycStatusBannerCopy(val label: String, val subtitle: String)
+
+internal fun kycStatusBannerCopy(
+    status: VerificationStatus,
+    submitted: Boolean,
+): KycStatusBannerCopy = when (status) {
+    VerificationStatus.Verified -> KycStatusBannerCopy(
+        label = "Verified",
+        subtitle = "You can accept jobs.",
+    )
+    VerificationStatus.Rejected -> KycStatusBannerCopy(
+        label = "Rejected",
+        subtitle = "Re-upload the flagged documents.",
+    )
+    VerificationStatus.Pending -> if (submitted) {
+        KycStatusBannerCopy(
+            label = "Submitted for review",
+            subtitle = "Typically reviewed within 4–24 hours.",
+        )
+    } else {
+        KycStatusBannerCopy(
+            label = "In progress",
+            subtitle = "Complete every step to submit for review.",
+        )
+    }
+}
+
 @Composable
 private fun ReuploadCta(
     notes: String?,
     rejectedDocTypes: List<String>,
     onClick: () -> Unit,
 ) {
-    val flaggedLabel = rejectedDocTypes
-        .joinToString { type ->
-            when (type) {
-                "aadhaar" -> "Aadhaar"
-                "pan" -> "PAN"
-                "cert" -> "certificate"
-                else -> type
-            }
-        }
-        .ifBlank { null }
+    val flaggedLabel = flaggedDocsLabel(rejectedDocTypes)
     Card(
         colors = CardDefaults.cardColors(containerColor = ErrorBg),
         shape = RoundedCornerShape(14.dp),
@@ -1165,12 +1162,10 @@ private fun StepperBottomBar(
     val isFirst = state.currentStep.isFirst
     val canSubmit = isLast && state.canAdvance && !state.saving
     val canNext = !isLast && state.canAdvance
-    val rejected = state.verificationStatus == VerificationStatus.Rejected
-    val nextLabel = when {
-        isLast && rejected -> "Re-submit for review"
-        isLast -> "Submit for review"
-        else -> "Next"
-    }
+    val nextLabel = stepperNextLabel(
+        isLast = isLast,
+        rejected = state.verificationStatus == VerificationStatus.Rejected,
+    )
 
     Row(
         modifier = Modifier
@@ -1246,3 +1241,97 @@ private fun queryDisplayName(context: android.content.Context, uri: Uri): String
         if (cursor.moveToFirst()) cursor.getString(0) else null
     }
 }
+
+/**
+ * Inline hint copy under the Aadhaar input field, driven by the
+ * sanitized digit count and the [AadhaarValidator] checksum result.
+ * Four states:
+ *   empty            -> "12 digits, no spaces"
+ *   short            -> "N/12 digits"
+ *   12 + bad checksum -> "Number doesn't pass the standard Aadhaar checksum"
+ *   12 + good checksum -> "Looks valid ✓"
+ */
+internal fun aadhaarNumberHint(digits: String, checksumOk: Boolean): String = when {
+    digits.isEmpty() -> "12 digits, no spaces"
+    digits.length < 12 -> "${digits.length}/12 digits"
+    !checksumOk -> "Number doesn't pass the standard Aadhaar checksum"
+    else -> "Looks valid ✓"
+}
+
+/**
+ * Inline hint copy under the PAN input field. Mirrors the
+ * Aadhaar helper's four-state shape with PAN-specific copy.
+ */
+internal fun panNumberHint(pan: String, panOk: Boolean): String = when {
+    pan.isEmpty() -> "10 chars: 5 letters, 4 digits, 1 letter (e.g. ABCDE1234F)"
+    pan.length < 10 -> "${pan.length}/10 chars"
+    !panOk -> "Format must be ABCDE1234F"
+    else -> "Looks valid ✓"
+}
+
+/**
+ * Primary CTA label on the KYC stepper bottom bar. Three branches:
+ *
+ *   * Mid-stepper (isLast=false) → "Next"
+ *   * Last step + initial submission → "Submit for review"
+ *   * Last step + previously-rejected resubmit → "Re-submit for
+ *     review" (signals the re-entry path so the engineer knows
+ *     they're not starting fresh)
+ *
+ * The "Re-submit" wording is the easy regression — without the
+ * rejected-state branch, a rejected engineer would see "Submit for
+ * review" as if it were their first time, when actually their
+ * previous row will be flipped back to pending.
+ */
+internal fun stepperNextLabel(isLast: Boolean, rejected: Boolean): String = when {
+    isLast && rejected -> "Re-submit for review"
+    isLast -> "Submit for review"
+    else -> "Next"
+}
+
+/**
+ * User-facing comma-joined list of flagged doc types for the re-upload
+ * CTA. Returns null when the admin used a global rejection (the
+ * server emits an empty list) so the caller can pick a different
+ * "all docs" copy variant.
+ *
+ *   * `aadhaar` → "Aadhaar"
+ *   * `pan` → "PAN"
+ *   * `cert` → "certificate" (lowercase — slots into a sentence)
+ *   * unknown → raw key (forward-compat for a future doc type)
+ */
+internal fun flaggedDocsLabel(rejectedDocTypes: List<String>): String? =
+    rejectedDocTypes
+        .joinToString { type ->
+            when (type) {
+                "aadhaar" -> "Aadhaar"
+                "pan" -> "PAN"
+                "cert" -> "certificate"
+                else -> type
+            }
+        }
+        .ifBlank { null }
+
+/**
+ * Subtitle on the KYC screen top bar.
+ *
+ *   - Verified → "Verified" (no wizard counter)
+ *   - Otherwise → "Step N of TOTAL"
+ *
+ * Critical pin: the Verified branch SHORT-CIRCUITS the wizard counter.
+ * The previous behaviour surfaced "Step 1 of 2" alongside a fully-
+ * checked status stepper which read as a contradiction. A refactor
+ * that always showed the counter would re-introduce this regression.
+ *
+ * Pin the "Step N of M" wording — load-bearing wizard cadence anchor.
+ */
+internal fun kycScreenSubtitle(
+    verificationStatus: com.equipseva.app.core.data.engineers.VerificationStatus?,
+    currentStepOrdinal: Int,
+    totalSteps: Int,
+): String =
+    if (verificationStatus == com.equipseva.app.core.data.engineers.VerificationStatus.Verified) {
+        "Verified"
+    } else {
+        "Step ${currentStepOrdinal + 1} of $totalSteps"
+    }

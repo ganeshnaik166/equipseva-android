@@ -89,7 +89,7 @@ fun RepeatBookingNudge(
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "$engineerName is ${"%.1f".format(java.util.Locale.US, distanceKm)} km away",
+                    text = repeatBookingNudgeTitle(engineerName, distanceKm),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = SevaInk900,
@@ -162,13 +162,10 @@ private fun AlternativeCard(
                     color = SevaInk900,
                     maxLines = 1,
                 )
-                val locParts = listOfNotNull(
-                    row.city,
-                    row.distanceKm?.let { "${"%.1f".format(java.util.Locale.US, it)}km" },
-                )
-                if (locParts.isNotEmpty()) {
+                val locLine = engineerCardLocationLine(row.city, row.distanceKm)
+                if (locLine != null) {
                     Text(
-                        text = locParts.joinToString(" · "),
+                        text = locLine,
                         fontSize = 10.sp,
                         color = SevaInk500,
                         maxLines = 1,
@@ -207,3 +204,47 @@ internal fun CarouselAvatar(initials: String, avatarUrl: String?, size: Int) {
         }
     }
 }
+
+/**
+ * Compose the city · distance line under an engineer's name on the
+ * RepeatBookingNudge alternative card / HomeHub recommended card.
+ *
+ *   * Both present → "Bengaluru · 3.2km"
+ *   * Only city → "Bengaluru"
+ *   * Only distance → "3.2km"
+ *   * Both null → null (caller hides the row)
+ *
+ * Returns null on the all-empty case so the caller doesn't render
+ * an empty Text() / extra Spacer.
+ *
+ * Distance is formatted under Locale.US to keep the decimal as "3.2"
+ * not "3,2" on Hindi-locale devices.
+ */
+internal fun engineerCardLocationLine(city: String?, distanceKm: Double?): String? {
+    val parts = listOfNotNull(
+        city?.takeIf { it.isNotBlank() },
+        distanceKm?.let { "${"%.1f".format(java.util.Locale.US, it)}km" },
+    )
+    return if (parts.isEmpty()) null else parts.joinToString(" · ")
+}
+
+/**
+ * Title on the repeat-booking nudge banner.
+ *
+ * Format: "$engineerName is X.Y km away"
+ *
+ * Critical pin: Locale.US on the %.1f format — hi-IN would render
+ * "Asha Rao is 3,2 km away" with comma-decimal that mis-reads as
+ * "3 to 2 km" or a list.
+ *
+ * Pin the "is N km away" form — frames the engineer as the subject
+ * (which is correct because the banner is suggesting alternatives
+ * BECAUSE this engineer is far). A refactor to "Engineer X · Y km
+ * away" would lose the subject-verb sentence shape.
+ *
+ * Pin %.1f one decimal — distinct from the engineerCardLocationLine
+ * which uses %.1f km (compact "Nkm" form). The nudge banner is more
+ * descriptive ("is X.Y km away") so the spacing differs.
+ */
+internal fun repeatBookingNudgeTitle(engineerName: String, distanceKm: Double): String =
+    "$engineerName is ${"%.1f".format(java.util.Locale.US, distanceKm)} km away"

@@ -106,7 +106,7 @@ fun EngineerActiveEscrowsScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Active escrows",
-                subtitle = state.rows.size.takeIf { it > 0 }?.let { "$it open" },
+                subtitle = activeEscrowsSubtitle(state.rows.size),
                 onBack = onBack,
             )
             // Round 389 — pull-to-refresh.
@@ -151,12 +151,7 @@ private fun ActiveEscrowRow(
     row: RepairJobEscrowRepository.ActiveEscrowRow,
     onClick: () -> Unit,
 ) {
-    val (pillText, pillKind) = when (row.status) {
-        "in_dispute" -> "Disputed" to PillKind.Danger
-        "held"       -> "Held" to PillKind.Success
-        "pending"    -> "Awaiting payment" to PillKind.Warn
-        else         -> row.status to PillKind.Default
-    }
+    val (pillText, pillKind) = activeEscrowStatusPill(row.status)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -223,4 +218,43 @@ private fun ActiveEscrowRow(
             )
         }
     }
+}
+
+/**
+ * Subtitle on the engineer active-escrows top bar.
+ *
+ * "$N open" when there are rows; null on empty. Pin null-on-empty so
+ * the cold-load top bar stays clean.
+ */
+internal fun activeEscrowsSubtitle(rowCount: Int): String? =
+    if (rowCount > 0) "$rowCount open" else null
+
+/**
+ * Status pill on the engineer active-escrow row.
+ *
+ * Wire status → (label, kind):
+ *   - "in_dispute" → "Disputed" + Danger
+ *   - "held" → "Held" + Success (engineer-facing: funds are SAFE in
+ *     escrow, just not paid out yet)
+ *   - "pending" → "Awaiting payment" + Warn (the hospital hasn't paid
+ *     yet; engineer should be aware but it's not a dispute)
+ *   - unknown → raw wire status + Default
+ *
+ * Critical pin: "held" + Success on the engineer side. Held = the
+ * hospital has paid, money is locked in escrow waiting for job
+ * completion. From the engineer's view this is GOOD (the cash is
+ * committed, just not released yet). A refactor that mapped "held"
+ * to Warn would surface the screen looking like every row is at-risk.
+ *
+ * This differs from the hospital-side escrow view which doesn't have
+ * the same Held/Success pairing — that surface uses different states
+ * (paid / pending) for the same wire data.
+ */
+internal fun activeEscrowStatusPill(
+    status: String,
+): Pair<String, com.equipseva.app.designsystem.components.PillKind> = when (status) {
+    "in_dispute" -> "Disputed" to com.equipseva.app.designsystem.components.PillKind.Danger
+    "held" -> "Held" to com.equipseva.app.designsystem.components.PillKind.Success
+    "pending" -> "Awaiting payment" to com.equipseva.app.designsystem.components.PillKind.Warn
+    else -> status to com.equipseva.app.designsystem.components.PillKind.Default
 }

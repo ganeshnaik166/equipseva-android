@@ -42,18 +42,7 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         val data = message.data
-        // Empty-string payloads (`data["channel"] = ""`) used to slip past
-        // the Elvis fallback and reach NotificationCompat.Builder, where
-        // Android silently drops the notification on API 26+. Treat empty
-        // OR unknown channel ids as ACCOUNT so a malformed server send
-        // still surfaces to the user instead of vanishing.
-        val rawChannel = data["channel"]?.takeIf { it.isNotBlank() }
-        val channel = when (rawChannel) {
-            NotificationChannels.JOBS,
-            NotificationChannels.CHAT,
-            NotificationChannels.ACCOUNT -> rawChannel
-            else -> NotificationChannels.ACCOUNT
-        }
+        val channel = resolvePushChannel(data["channel"])
         val category = data["category"]?.takeIf { it.isNotBlank() } ?: channel
 
         // Client-side per-category mute. Server-side send rules are a separate
@@ -84,15 +73,11 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
         // with an empty subtitle — useless to the user. Drop the push.
         val rawTitle = message.notification?.title ?: data["title"]
         val rawBody = message.notification?.body ?: data["body"]
-        if (rawTitle.isNullOrBlank() && rawBody.isNullOrBlank()) return
-        // Defense against malformed / oversized server payloads. Android
-        // truncates notification text on display, but the full string
-        // still rides in the Bundle attached to the PendingIntent — a
-        // 100KB title can push the bundle past the 1MB IPC ceiling and
-        // crash on notify(). Cap conservatively; real titles fit in 80
-        // chars and real bodies in 240.
-        val title = (rawTitle ?: getString(R.string.app_name)).take(MAX_TITLE_CHARS)
-        val body = rawBody.orEmpty().take(MAX_BODY_CHARS)
+        val (title, body) = resolvePushTitleAndBody(
+            rawTitle = rawTitle,
+            rawBody = rawBody,
+            fallbackTitle = getString(R.string.app_name),
+        ) ?: return
 
         // Resolve a deep-link route from the (kind, data) tuple the server
         // attached. Unknown / missing kinds fall through to MainActivity's
@@ -116,12 +101,7 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
         // Do-Not-Disturb rules can silently suppress posts that the
         // user has explicitly allowed by category (e.g. CATEGORY_MESSAGE
         // is in most DND allow-lists by default).
-        val notifCategory = when (channel) {
-            NotificationChannels.CHAT -> NotificationCompat.CATEGORY_MESSAGE
-            NotificationChannels.JOBS -> NotificationCompat.CATEGORY_SOCIAL
-            NotificationChannels.ACCOUNT -> NotificationCompat.CATEGORY_STATUS
-            else -> NotificationCompat.CATEGORY_RECOMMENDATION
-        }
+        val notifCategory = notificationCategoryFor(channel)
         val notification = NotificationCompat.Builder(this, channel)
             // Round 450 — ic_notification (white-on-transparent vector). The
             // previous mipmap.ic_launcher was the colored adaptive launcher
@@ -135,16 +115,7 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
             .setContentIntent(pendingIntent)
             .build()
 
-        // Stable notify id per (kind, conversationId) for chat pushes so
-        // a second message in the same thread replaces the previous push
-        // instead of stacking. Falls back to messageId.hashCode for any
-        // non-chat kind so existing collapse behaviour is unchanged.
-        val convoId = data["conversationId"] ?: data["conversation_id"]
-        val notifyId = if (data["kind"] == "chat_message" && convoId != null) {
-            ("chat:$convoId").hashCode()
-        } else {
-            message.messageId.hashCode()
-        }
+        val notifyId = resolveNotifyId(data["kind"], data, message.messageId)
         // POST_NOTIFICATIONS is a runtime permission on Android 13+
         // (TIRAMISU). When the user denies it, NotificationManager.notify
         // silently drops the post — but a SecurityException has been
@@ -165,10 +136,99 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
         super.onDestroy()
     }
 
-    private companion object {
-        // Cap title/body lengths so a malformed server payload can't
-        // push the notification Bundle past the 1MB IPC ceiling.
-        const val MAX_TITLE_CHARS = 200
-        const val MAX_BODY_CHARS = 1000
+}
+
+// Caps for push notification title/body lengths. Defends against
+// malformed server payloads — the full string rides in the Bundle
+// attached to the PendingIntent and a 100KB title can push the Bundle
+// past the 1MB IPC ceiling and crash on notify(). Conservative: real
+// titles fit in 80 chars and real bodies in 240.
+internal const val PUSH_TITLE_MAX_CHARS = 200
+internal const val PUSH_BODY_MAX_CHARS = 1000
+
+/**
+ * Resolves a push notification's [NotificationCompat] category from the
+ * resolved [channel]. The category hint matters for Do-Not-Disturb
+ * filtering — CATEGORY_MESSAGE is in most DND allow-lists by default,
+ * so chat pushes survive DND. Unknown channels fall through to
+ * CATEGORY_RECOMMENDATION so the cap fires no matter what
+ * [resolvePushChannel] folded an unrecognised value to.
+ */
+internal fun notificationCategoryFor(channel: String): String = when (channel) {
+    NotificationChannels.CHAT -> NotificationCompat.CATEGORY_MESSAGE
+    NotificationChannels.JOBS -> NotificationCompat.CATEGORY_SOCIAL
+    NotificationChannels.ACCOUNT -> NotificationCompat.CATEGORY_STATUS
+    else -> NotificationCompat.CATEGORY_RECOMMENDATION
+}
+
+/**
+ * Resolves the final title + body shown in the system notification, or
+ * null when both raw values are empty (drop the push — bare app name
+ * with an empty subtitle is useless to the user). Each side is capped
+ * at the configured max so a malformed server payload can't push the
+ * IPC Bundle past 1MB.
+ *
+ * Pinned semantics:
+ *   * Both null/blank → return null (caller drops the push).
+ *   * Title null → use [fallbackTitle] (app name).
+ *   * Title blank-but-non-null → keep the blank (don't fall back).
+ *     A blank title with a body still posts; the system fills in app
+ *     name automatically via the channel.
+ *   * Body null → empty string (notify accepts an empty contentText).
+ *   * Caps applied AFTER fallback so the fallback itself can be
+ *     longer than [maxTitleChars] without surprising the test.
+ */
+internal fun resolvePushTitleAndBody(
+    rawTitle: String?,
+    rawBody: String?,
+    fallbackTitle: String,
+    maxTitleChars: Int = PUSH_TITLE_MAX_CHARS,
+    maxBodyChars: Int = PUSH_BODY_MAX_CHARS,
+): Pair<String, String>? {
+    if (rawTitle.isNullOrBlank() && rawBody.isNullOrBlank()) return null
+    val title = (rawTitle ?: fallbackTitle).take(maxTitleChars)
+    val body = rawBody.orEmpty().take(maxBodyChars)
+    return title to body
+}
+
+/**
+ * Resolves an incoming push payload's `channel` to one of the three
+ * registered [NotificationChannels] ids. Empty-string and unknown
+ * channels fold to ACCOUNT so a malformed server send still surfaces
+ * to the user instead of vanishing (NotificationCompat silently drops
+ * posts with a blank/unknown channel on API 26+).
+ */
+internal fun resolvePushChannel(rawChannel: String?): String {
+    val nonBlank = rawChannel?.takeIf { it.isNotBlank() }
+    return when (nonBlank) {
+        NotificationChannels.JOBS,
+        NotificationChannels.CHAT,
+        NotificationChannels.ACCOUNT -> nonBlank
+        else -> NotificationChannels.ACCOUNT
+    }
+}
+
+/**
+ * Resolves the per-message notify-id used to post the system
+ * notification. Chat pushes collapse per `conversationId` so a
+ * second message in the same thread replaces the previous post
+ * instead of stacking; all other kinds use the FCM messageId so
+ * each push surfaces independently.
+ *
+ * Accepts both wire shapes for the conversation id: snake_case
+ * (`conversation_id`, post-PR #200) and camelCase (`conversationId`,
+ * legacy). Pin so a server-side rename doesn't silently lose the
+ * collapse behaviour.
+ */
+internal fun resolveNotifyId(
+    kind: String?,
+    data: Map<String, String>,
+    messageId: String?,
+): Int {
+    val convoId = data["conversationId"] ?: data["conversation_id"]
+    return if (kind == "chat_message" && convoId != null) {
+        ("chat:$convoId").hashCode()
+    } else {
+        messageId.hashCode()
     }
 }

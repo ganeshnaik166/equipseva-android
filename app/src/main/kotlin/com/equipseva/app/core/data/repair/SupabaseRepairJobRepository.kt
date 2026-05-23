@@ -196,23 +196,8 @@ class SupabaseRepairJobRepository @Inject constructor(
         stars: Int,
         review: String?,
     ): Result<RepairJob> = runCatching {
-        require(stars in 1..5) { "Rating must be 1..5" }
         val uid = requireNotNull(client.auth.currentUserOrNull()?.id) { "not signed in" }
-        // Cap review text at 1000 chars before sending. Unbounded text
-        // let a pasted blob bloat the engineers directory card's review
-        // preview and wedge the layout; 1000 is generous for a real
-        // free-form review.
-        val trimmedReview = review?.trim()?.take(1000)?.takeIf { it.isNotBlank() }
-        val patch = when (role) {
-            RatingRole.HospitalRatesEngineer -> RepairJobRatingPatchDto(
-                hospitalRating = stars,
-                hospitalReview = trimmedReview,
-            )
-            RatingRole.EngineerRatesHospital -> RepairJobRatingPatchDto(
-                engineerRating = stars,
-                engineerReview = trimmedReview,
-            )
-        }
+        val patch = buildRatingPatch(role, stars, review)
         // repair_jobs.engineer_id FKs to engineers.id (not auth.uid). Resolve the
         // engineer row for this user when the caller claims to be the engineer.
         val engineerRowId = if (role == RatingRole.EngineerRatesHospital) {
@@ -243,33 +228,97 @@ class SupabaseRepairJobRepository @Inject constructor(
     }
 
     override suspend fun create(draft: RepairJobDraft): Result<RepairJob> = runCatching {
-        val payload = RepairJobInsertDto(
-            hospitalUserId = draft.hospitalUserId,
-            hospitalOrgId = draft.hospitalOrgId?.takeIf { it.isNotBlank() },
-            equipmentType = draft.equipmentCategory.storageKey,
-            equipmentBrand = draft.equipmentBrand?.takeIf { it.isNotBlank() },
-            equipmentModel = draft.equipmentModel?.takeIf { it.isNotBlank() },
-            equipmentSerial = draft.equipmentSerial?.takeIf { it.isNotBlank() },
-            siteLocation = draft.siteLocation?.takeIf { it.isNotBlank() },
-            siteLatitude = draft.siteLatitude,
-            siteLongitude = draft.siteLongitude,
-            urgency = draft.urgency.storageKey.takeIf { it.isNotBlank() },
-            issueDescription = draft.issueDescription,
-            issuePhotos = draft.issuePhotos.takeIf { it.isNotEmpty() },
-            scheduledDate = draft.scheduledDate?.takeIf { it.isNotBlank() },
-            scheduledTimeSlot = draft.scheduledTimeSlot?.takeIf { it.isNotBlank() },
-            estimatedCost = draft.estimatedCostRupees?.takeIf { it > 0.0 },
-        )
+        val payload = buildRepairJobInsert(draft)
         client.from(TABLE).insert(payload) {
             select()
         }.decodeSingle<RepairJobDto>().toDomain()
     }
 
     private fun String.sanitizeForIlike(): String =
-        replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        com.equipseva.app.core.data.repair.sanitizeForIlike(this)
 
     private companion object {
         const val TABLE = "repair_jobs"
         val JOB_CODE_PATTERN = Regex("^RPR-\\d+$")
+    }
+}
+
+/**
+ * Escapes PostgREST ilike wildcards in a user-supplied search term.
+ * Backslash → `\\`, percent → `\%`, underscore → `\_`. Without this
+ * a user typing "100%" or "model_x" into the repair-feed search box
+ * would produce an over-broad query that matches every row (Postgres
+ * ilike treats `%` and `_` as wildcards by default; backslash needs
+ * doubling so the escape itself is escaped).
+ */
+internal fun sanitizeForIlike(input: String): String =
+    input.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+/**
+ * Normalises a free-form rating review string before sending to
+ * the server. Trims whitespace, caps at 1000 chars, and folds an
+ * all-whitespace input to null so the column stays NULL (not an
+ * empty string masquerading as a review). Pinned cap matches the
+ * server-side CHECK / directory-card preview budget — pre-cap,
+ * a pasted blob would bloat the engineer-directory review preview
+ * row and wedge the layout.
+ */
+internal fun normaliseRatingReview(review: String?): String? =
+    review?.trim()?.take(1000)?.takeIf { it.isNotBlank() }
+
+/**
+ * Compose the rating patch DTO from a (role, stars, review) tuple.
+ * Mirrors the wire shape of `repair_jobs.{hospital,engineer}_{rating,review}`
+ * — the patch sparsely writes only the role's side so the counterparty's
+ * rating isn't accidentally clobbered on the same row.
+ *
+ *   * Validates stars in [1, 5] (server CHECK matches)
+ *   * Review goes through [normaliseRatingReview] so blank inputs fold
+ *     to null (the column stays NULL, not an empty string).
+ */
+/**
+ * Compose a [RepairJobInsertDto] from a [RepairJobDraft]. Folds every
+ * blank string field to null and every empty collection to null so a
+ * partial draft (e.g. user didn't pick a scheduled date) doesn't write
+ * empty strings into columns that have a non-null default. Estimated
+ * cost ≤ 0 also folds to null — the UI lets users enter "0" as a
+ * skip, and writing that would surface as a phantom "₹0 estimate" on
+ * every engineer's bid card.
+ */
+internal fun buildRepairJobInsert(draft: RepairJobDraft): RepairJobInsertDto =
+    RepairJobInsertDto(
+        hospitalUserId = draft.hospitalUserId,
+        hospitalOrgId = draft.hospitalOrgId?.takeIf { it.isNotBlank() },
+        equipmentType = draft.equipmentCategory.storageKey,
+        equipmentBrand = draft.equipmentBrand?.takeIf { it.isNotBlank() },
+        equipmentModel = draft.equipmentModel?.takeIf { it.isNotBlank() },
+        equipmentSerial = draft.equipmentSerial?.takeIf { it.isNotBlank() },
+        siteLocation = draft.siteLocation?.takeIf { it.isNotBlank() },
+        siteLatitude = draft.siteLatitude,
+        siteLongitude = draft.siteLongitude,
+        urgency = draft.urgency.storageKey.takeIf { it.isNotBlank() },
+        issueDescription = draft.issueDescription,
+        issuePhotos = draft.issuePhotos.takeIf { it.isNotEmpty() },
+        scheduledDate = draft.scheduledDate?.takeIf { it.isNotBlank() },
+        scheduledTimeSlot = draft.scheduledTimeSlot?.takeIf { it.isNotBlank() },
+        estimatedCost = draft.estimatedCostRupees?.takeIf { it > 0.0 },
+    )
+
+internal fun buildRatingPatch(
+    role: RatingRole,
+    stars: Int,
+    review: String?,
+): RepairJobRatingPatchDto {
+    require(stars in 1..5) { "Rating must be 1..5" }
+    val trimmedReview = normaliseRatingReview(review)
+    return when (role) {
+        RatingRole.HospitalRatesEngineer -> RepairJobRatingPatchDto(
+            hospitalRating = stars,
+            hospitalReview = trimmedReview,
+        )
+        RatingRole.EngineerRatesHospital -> RepairJobRatingPatchDto(
+            engineerRating = stars,
+            engineerReview = trimmedReview,
+        )
     }
 }

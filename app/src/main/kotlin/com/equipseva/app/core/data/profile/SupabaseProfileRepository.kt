@@ -153,14 +153,14 @@ class SupabaseProfileRepository @Inject constructor(
     override suspend fun fetchDisplayNames(
         userIds: List<String>,
     ): Result<Map<String, String>> = runCatching {
-        val distinct = userIds.filter { it.isNotBlank() }.distinct()
+        val distinct = sanitiseUserIdList(userIds)
         if (distinct.isEmpty()) return@runCatching emptyMap()
         // RPC returns only id + full_name + avatar_url. Falls back to
         // "User" if the row's full_name is blank (we don't expose email
         // anymore so the previous `email.substringBefore('@')` fallback is
         // gone — slightly less personalised but no PII leak).
         fetchMinimal(distinct).mapValues { (_, dto) ->
-            dto.fullName?.takeIf { it.isNotBlank() } ?: "User"
+            profileDisplayNameFallback(dto.fullName)
         }
     }
 
@@ -192,3 +192,23 @@ class SupabaseProfileRepository @Inject constructor(
                 "email_verified,phone_verified"
     }
 }
+
+/**
+ * Drops blank ids and dedupes the list before it's fed to the
+ * `fetch_minimal_profiles` RPC. The repo accepts user-id collections
+ * from chat counterparts / job participants / search-result rows
+ * which can carry blanks or duplicates; pre-filtering here means the
+ * RPC parameter array stays lean and the post-filter `id == userId`
+ * comparisons downstream don't waste cycles on empty strings.
+ */
+internal fun sanitiseUserIdList(userIds: List<String>): List<String> =
+    userIds.filter { it.isNotBlank() }.distinct()
+
+/**
+ * Display name fallback for a profile row whose `full_name` is null or
+ * blank. The literal "User" is the safest non-PII placeholder; the
+ * previous email-localpart fallback was dropped because we no longer
+ * select `email` on the minimal RPC (PII reduction).
+ */
+internal fun profileDisplayNameFallback(fullName: String?): String =
+    fullName?.takeIf { it.isNotBlank() } ?: "User"

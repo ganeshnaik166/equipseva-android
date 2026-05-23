@@ -245,9 +245,7 @@ class KycViewModel @Inject constructor(
          * cross-surface chip that needs a single source of truth.
          */
         val kycSubmitted: Boolean
-            get() = !aadhaarDocPath.isNullOrBlank() &&
-                !panDocPath.isNullOrBlank() &&
-                certDocPaths.isNotEmpty()
+            get() = isKycSubmitted(aadhaarDocPath, panDocPath, certDocPaths)
     }
 
     sealed interface Effect {
@@ -588,20 +586,13 @@ class KycViewModel @Inject constructor(
     }
 
     fun onAadhaarNumberChange(value: String) {
-        // ASCII-only digits — AadhaarValidator's Verhoeff checksum
-        // assumes ASCII codepoints. Devanagari "१२३" passes
-        // Char.isDigit() but fails the digit-table lookup.
-        val digits = value.filter { it in '0'..'9' }.take(12)
+        val digits = sanitizeAadhaarInput(value)
         savedStateHandle[SavedKeys.AADHAAR] = digits
         _state.update { it.copy(aadhaarNumber = digits) }
     }
 
     fun onPanNumberChange(value: String) {
-        // PAN is exactly 10 ASCII chars: A-Z + 0-9. `isLetterOrDigit()` is
-        // Unicode-aware (would accept Devanagari "५" / Arabic "٥"), which
-        // passed the take(10) cap but failed server validation as silent
-        // "invalid PAN" later. Force ASCII A-Z / 0-9 only.
-        val cleaned = value.uppercase().filter { it in 'A'..'Z' || it in '0'..'9' }.take(10)
+        val cleaned = sanitizePanInput(value)
         savedStateHandle[SavedKeys.PAN] = cleaned
         _state.update { it.copy(panNumber = cleaned) }
     }
@@ -765,12 +756,8 @@ class KycViewModel @Inject constructor(
         }
     }
 
-    private fun docTypeLabel(type: String): String = when (type) {
-        EngineerCertificate.TYPE_AADHAAR -> "Aadhaar"
-        EngineerCertificate.TYPE_PAN -> "PAN"
-        EngineerCertificate.TYPE_CERT -> "certificate"
-        else -> type
-    }
+    private fun docTypeLabel(type: String): String =
+        com.equipseva.app.features.kyc.docTypeLabel(type)
 
     fun uploadAadhaarDoc(fileName: String, bytes: ByteArray, contentType: String?) {
         val uid = userId ?: return
@@ -1011,4 +998,56 @@ class KycViewModel @Inject constructor(
     }
 
 }
+
+/**
+ * User-facing label for an [EngineerCertificate] `type` value, used
+ * in upload-failure / acceptance copy ("Aadhaar uploaded", "PAN
+ * failed", etc.). Extracted top-level so the mapping can be unit-
+ * tested without standing up the full KycViewModel.
+ */
+internal fun docTypeLabel(type: String): String = when (type) {
+    EngineerCertificate.TYPE_AADHAAR -> "Aadhaar"
+    EngineerCertificate.TYPE_PAN -> "PAN"
+    EngineerCertificate.TYPE_CERT -> "certificate"
+    else -> type
+}
+
+/**
+ * Strip everything but ASCII digits from a user-typed Aadhaar number
+ * and cap at 12 chars. ASCII-only because [AadhaarValidator]'s
+ * Verhoeff checksum assumes ASCII codepoints — Devanagari "१२३"
+ * passes Char.isDigit() but fails the digit-table lookup later.
+ */
+internal fun sanitizeAadhaarInput(value: String): String =
+    value.filter { it in '0'..'9' }.take(12)
+
+/**
+ * Force a PAN input to exactly the wire shape — uppercase ASCII A-Z
+ * + 0-9, capped at 10 chars. Char.isLetterOrDigit() would accept
+ * Unicode digits like "५" / "٥" which silently fail server-side
+ * PAN validation.
+ */
+internal fun sanitizePanInput(value: String): String =
+    value.uppercase().filter { it in 'A'..'Z' || it in '0'..'9' }.take(10)
+
+/**
+ * KYC "submitted" gate — true once every required document has been
+ * uploaded to storage.
+ *
+ * Critical regression target: requires ALL THREE of aadhaarDocPath,
+ * panDocPath, AND a non-empty certDocPaths list. The previous
+ * `aadhaarVerified` proxy was misleading because Aadhaar can verify
+ * before PAN/cert exist, leaving the timeline + banner claiming
+ * "submitted" while the row was still mid-edit.
+ *
+ * Pin so a refactor that gated on any one OR two of the three would
+ * surface here.
+ */
+internal fun isKycSubmitted(
+    aadhaarDocPath: String?,
+    panDocPath: String?,
+    certDocPaths: List<String>,
+): Boolean = !aadhaarDocPath.isNullOrBlank() &&
+    !panDocPath.isNullOrBlank() &&
+    certDocPaths.isNotEmpty()
 

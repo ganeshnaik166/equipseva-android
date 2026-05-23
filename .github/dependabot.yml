@@ -1,0 +1,66 @@
+# Dependabot config — security + scheduled minor/patch updates.
+#
+# Why this exists: the repo had no automated dep tracking. Android
+# lint flagged 105 GradleDependency warnings in the current debug
+# build (outdated libs, including some with disclosed CVEs in
+# transitive deps). A weekly Dependabot sweep keeps the version
+# catalog from drifting further while staying out of the way during
+# the launch push by:
+#
+#   * Grouping minor + patch bumps into a single PR per ecosystem
+#     each week so the review tax stays low.
+#   * Leaving major bumps OUT of the group — they need a real human
+#     decision (AGP, Compose BOM, Hilt, supabase-kt are all in the
+#     "manual upgrade" bucket).
+#   * Skipping AGP + KSP since the toolchain upgrade involves
+#     coordinated changes elsewhere (proguard rules, Hilt KSP
+#     processor version, Compose compiler).
+#
+# Security alerts always open immediately regardless of schedule.
+
+version: 2
+
+updates:
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Kolkata"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "gradle"
+    groups:
+      minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      # AGP + KSP need a coordinated toolchain upgrade — handled by
+      # hand alongside Hilt + Compose compiler bumps.
+      - dependency-name: "com.android.application"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "com.android.library"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "com.google.devtools.ksp"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Kolkata"
+    labels:
+      - "dependencies"
+      - "ci"
+    groups:
+      actions:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"

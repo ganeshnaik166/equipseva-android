@@ -163,17 +163,10 @@ class CreateAmcWizardViewModel @Inject constructor(
         // first place. Same for SLA hours (must be positive, finite).
         val canProceed: Boolean
             get() = when (step) {
-                Step.Scope -> equipmentCategories.isNotEmpty()
-                Step.FrequencyFee -> {
-                    val fee = monthlyFeeRupees.trim().toDoubleOrNull()
-                    fee != null && fee > 0.0 && visitsPerYear > 0
-                }
-                Step.Sla -> {
-                    val std = responseTimeStandardHours.trim().toDoubleOrNull()
-                    val emerg = responseTimeEmergencyHours.trim().toDoubleOrNull()
-                    std != null && std > 0.0 && emerg != null && emerg > 0.0
-                }
-                Step.Engineer -> primaryEngineerId.isNotBlank()
+                Step.Scope -> canProceedScopeStep(equipmentCategories)
+                Step.FrequencyFee -> canProceedFrequencyFeeStep(monthlyFeeRupees, visitsPerYear)
+                Step.Sla -> canProceedSlaStep(responseTimeStandardHours, responseTimeEmergencyHours)
+                Step.Engineer -> canProceedEngineerStep(primaryEngineerId)
             }
     }
 
@@ -279,7 +272,7 @@ class CreateAmcWizardViewModel @Inject constructor(
         _state.update { it.copy(step = s) }
     }
     fun next() = _state.update {
-        val nextStep = next(it.step)
+        val nextStep = nextAmcWizardStep(it.step)
         savedStateHandle[SavedKeys.STEP] = nextStep.name
         it.copy(step = nextStep)
     }
@@ -289,19 +282,7 @@ class CreateAmcWizardViewModel @Inject constructor(
         it.copy(step = prev)
     }
 
-    private fun next(s: Step): Step = when (s) {
-        Step.Scope -> Step.FrequencyFee
-        Step.FrequencyFee -> Step.Sla
-        Step.Sla -> Step.Engineer
-        Step.Engineer -> Step.Engineer
-    }
-
-    private fun back(s: Step): Step = when (s) {
-        Step.Scope -> Step.Scope
-        Step.FrequencyFee -> Step.Scope
-        Step.Sla -> Step.FrequencyFee
-        Step.Engineer -> Step.Sla
-    }
+    private fun back(s: Step): Step = previousAmcWizardStep(s)
 
     fun toggleCategory(c: String) = _state.update { st ->
         val s = st.equipmentCategories.toMutableList()
@@ -476,13 +457,7 @@ class CreateAmcWizardViewModel @Inject constructor(
         }
     }
 
-    private fun derive(freq: String): Int = when (freq) {
-        "weekly" -> 52
-        "biweekly" -> 26
-        "monthly" -> 12
-        "quarterly" -> 4
-        else -> 12
-    }
+    private fun derive(freq: String): Int = visitsPerYearForFrequency(freq)
 
     /**
      * End-to-end Razorpay flow used by the wizard's first-month upfront
@@ -550,7 +525,7 @@ class CreateAmcWizardViewModel @Inject constructor(
 // the picker because AMC contracts always cover at least one known
 // equipment family — `other` would let a hospital create a contract
 // the engineer-rotation logic can't reason about.
-private val DEFAULT_CATEGORIES: List<String> =
+internal val DEFAULT_CATEGORIES: List<String> =
     com.equipseva.app.core.data.repair.RepairEquipmentCategory.entries
         .map { it.storageKey }
         .filter { it != "other" }
@@ -1010,9 +985,118 @@ private fun CategoryFlow(
     }
 }
 
-private fun stepLabel(s: CreateAmcWizardViewModel.Step): String = when (s) {
+/**
+ * Step forward navigation. The final step (Engineer) is a fixed
+ * point — calling next() from there leaves the wizard on the same
+ * step rather than wrapping around. Pinned so a "next from last"
+ * doesn't silently advance off the end.
+ */
+internal fun nextAmcWizardStep(
+    current: CreateAmcWizardViewModel.Step,
+): CreateAmcWizardViewModel.Step = when (current) {
+    CreateAmcWizardViewModel.Step.Scope -> CreateAmcWizardViewModel.Step.FrequencyFee
+    CreateAmcWizardViewModel.Step.FrequencyFee -> CreateAmcWizardViewModel.Step.Sla
+    CreateAmcWizardViewModel.Step.Sla -> CreateAmcWizardViewModel.Step.Engineer
+    CreateAmcWizardViewModel.Step.Engineer -> CreateAmcWizardViewModel.Step.Engineer
+}
+
+/**
+ * Step backward navigation. The first step (Scope) is a fixed
+ * point — calling back() from there stays on Scope rather than
+ * wrapping around or returning null.
+ */
+internal fun previousAmcWizardStep(
+    current: CreateAmcWizardViewModel.Step,
+): CreateAmcWizardViewModel.Step = when (current) {
+    CreateAmcWizardViewModel.Step.Scope -> CreateAmcWizardViewModel.Step.Scope
+    CreateAmcWizardViewModel.Step.FrequencyFee -> CreateAmcWizardViewModel.Step.Scope
+    CreateAmcWizardViewModel.Step.Sla -> CreateAmcWizardViewModel.Step.FrequencyFee
+    CreateAmcWizardViewModel.Step.Engineer -> CreateAmcWizardViewModel.Step.Sla
+}
+
+internal fun stepLabel(s: CreateAmcWizardViewModel.Step): String = when (s) {
     CreateAmcWizardViewModel.Step.Scope -> "Step 1 of 4 · Scope"
     CreateAmcWizardViewModel.Step.FrequencyFee -> "Step 2 of 4 · Frequency + Fee"
     CreateAmcWizardViewModel.Step.Sla -> "Step 3 of 4 · SLA"
     CreateAmcWizardViewModel.Step.Engineer -> "Step 4 of 4 · Engineer"
 }
+
+/**
+ * Maps an AMC visit-frequency key to the per-year visit count the
+ * wizard pre-fills onto the wizard's "visits per year" field. Unknown
+ * frequencies fall back to the monthly default (12) so a future
+ * server-side frequency option doesn't 0-out the form before the
+ * client knows about it.
+ *
+ * Pinned values:
+ *   * weekly → 52 (one per week)
+ *   * biweekly → 26 (every two weeks)
+ *   * monthly → 12 (twelve per year)
+ *   * quarterly → 4 (one per quarter)
+ *   * unknown → 12 (monthly fallback)
+ */
+internal fun visitsPerYearForFrequency(freq: String): Int = when (freq) {
+    "weekly" -> 52
+    "biweekly" -> 26
+    "monthly" -> 12
+    "quarterly" -> 4
+    else -> 12
+}
+
+/**
+ * Step 1 (Scope) Next-button gate on the AMC wizard.
+ *
+ * Requires at least one equipment category picked. Pin so a refactor
+ * that allowed empty-list passes would surface here — the server-side
+ * RPC requires a non-empty array.
+ */
+internal fun canProceedScopeStep(equipmentCategories: List<String>): Boolean =
+    equipmentCategories.isNotEmpty()
+
+/**
+ * Step 2 (Frequency + Fee) Next-button gate on the AMC wizard.
+ *
+ * Both monthly fee AND visits-per-year must be positive. The fee
+ * input is parsed from a String (user typed); visits-per-year is an
+ * Int driven by the cadence picker.
+ *
+ * Critical pin: monthly fee > 0.0 (strict, not >=) — Razorpay
+ * checkout with a zero fee fails with `amount_mismatch` and the
+ * wizard shouldn't pretend a "Pay first month" tap is valid in the
+ * first place. Same for blank or non-numeric input.
+ */
+internal fun canProceedFrequencyFeeStep(
+    monthlyFeeRupees: String,
+    visitsPerYear: Int,
+): Boolean {
+    val fee = monthlyFeeRupees.trim().toDoubleOrNull()
+    return fee != null && fee > 0.0 && visitsPerYear > 0
+}
+
+/**
+ * Step 3 (SLA) Next-button gate on the AMC wizard.
+ *
+ * Both standard AND emergency response-time hours must be positive
+ * finite Doubles. Pin > 0.0 strict — a 0-hour SLA would be
+ * meaningless and a negative-hour SLA would silently route every
+ * visit as breached.
+ */
+internal fun canProceedSlaStep(
+    responseTimeStandardHours: String,
+    responseTimeEmergencyHours: String,
+): Boolean {
+    val std = responseTimeStandardHours.trim().toDoubleOrNull()
+    val emerg = responseTimeEmergencyHours.trim().toDoubleOrNull()
+    return std != null && std > 0.0 && emerg != null && emerg > 0.0
+}
+
+/**
+ * Step 4 (Engineer) Next-button gate on the AMC wizard.
+ *
+ * Requires a non-blank primary engineer id. The wizard pre-fills
+ * this from the engineer-public-profile-launched-create flow, so
+ * users typically don't see this step gated — but pin defensively
+ * so a refactor that wiped the id mid-wizard surfaces here.
+ */
+internal fun canProceedEngineerStep(primaryEngineerId: String): Boolean =
+    primaryEngineerId.isNotBlank()
