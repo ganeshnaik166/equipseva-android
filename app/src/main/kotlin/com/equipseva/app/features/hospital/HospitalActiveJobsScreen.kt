@@ -305,14 +305,15 @@ private fun HospitalBookingCard(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            val schedule = listOfNotNull(job.scheduledDate, job.scheduledTimeSlot)
-                .joinToString(", ")
+            val schedule = hospitalBookingScheduleLine(job.scheduledDate, job.scheduledTimeSlot)
             // Schedule first if hospital picked one; else fall back to a
             // relative posted-at. If neither is available the whole left
             // section is hidden — earlier "—" placeholder read as a broken
             // metric, not as "data not applicable".
-            val leftLabel: String? = schedule.takeIf { it.isNotBlank() }
-                ?: job.createdAtInstant?.let { "Posted ${relativeLabel(it)} ago" }
+            val leftLabel: String? = hospitalBookingLeftLabel(
+                schedule = schedule,
+                postedRelative = job.createdAtInstant?.let { relativeLabel(it) },
+            )
             if (leftLabel != null) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -337,7 +338,7 @@ private fun HospitalBookingCard(
             // Only surface the relative posted-time on the right when the
             // left side is showing a real schedule — otherwise both columns
             // would print the same "1d ago" twice.
-            if (schedule.isNotBlank()) {
+            if (hospitalBookingShouldShowPostedOnRight(schedule)) {
                 job.createdAtInstant?.let { posted ->
                     Text(
                         text = "${relativeLabel(posted)} ago",
@@ -350,3 +351,51 @@ private fun HospitalBookingCard(
     }
 }
 
+/**
+ * Schedule line on the hospital's active-job card.
+ *
+ * Composes the optional scheduledDate + scheduledTimeSlot into a
+ * comma-separated string. Either or both null → returns blank.
+ *
+ * Pin the comma+space separator (not " · ", not " at ") — load-bearing
+ * because the caller checks `isNotBlank()` and a refactor that always
+ * produced a non-blank string (e.g. inserting "—" between fields)
+ * would silently flip the empty-schedule fallback path.
+ */
+internal fun hospitalBookingScheduleLine(
+    scheduledDate: String?,
+    scheduledTimeSlot: String?,
+): String =
+    listOfNotNull(scheduledDate, scheduledTimeSlot).joinToString(", ")
+
+/**
+ * Left-side label on the hospital's active-job card.
+ *
+ * Decision tree:
+ *   1. schedule non-blank → render it verbatim.
+ *   2. schedule blank but postedRelative present → "Posted ${rel} ago".
+ *   3. both empty → null (caller hides the entire row to avoid the
+ *      earlier "—" placeholder reading as a broken metric).
+ *
+ * Pin the literal "Posted " prefix and " ago" suffix — these wrap the
+ * relative label which is a bare quantity ("1d", "3h"). A refactor
+ * that returned just the relative label would read as a timestamp
+ * column rather than the post-time it actually is.
+ */
+internal fun hospitalBookingLeftLabel(
+    schedule: String,
+    postedRelative: String?,
+): String? = schedule.takeIf { it.isNotBlank() }
+    ?: postedRelative?.let { "Posted $it ago" }
+
+/**
+ * Right-column gate on the hospital's active-job card. Returns true
+ * only when the left side is showing a real schedule — preventing the
+ * "1d ago" relative timestamp from being printed on both columns when
+ * the left fell back to "Posted Nd ago".
+ *
+ * Pin so a refactor that allowed both columns to fire would surface
+ * here as a deliberate change rather than slip in.
+ */
+internal fun hospitalBookingShouldShowPostedOnRight(schedule: String): Boolean =
+    schedule.isNotBlank()
