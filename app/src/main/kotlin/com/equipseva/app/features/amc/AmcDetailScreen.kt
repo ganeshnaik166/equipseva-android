@@ -818,13 +818,7 @@ private fun AutoPaySection(
                     )
                 }
                 "halted", "cancelled", "completed", "expired" -> {
-                    val pillText = when (status) {
-                        "halted" -> "Halted"
-                        "cancelled" -> "Cancelled"
-                        "completed" -> "Completed"
-                        else -> "Expired"
-                    }
-                    Pill(text = pillText, kind = PillKind.Default)
+                    Pill(text = autoPayHaltedPillText(status), kind = PillKind.Default)
                     sub.lastFailureReason?.takeIf { it.isNotBlank() }?.let { reason ->
                         Text(
                             "Last issue: $reason",
@@ -1275,3 +1269,28 @@ internal fun poolLedgerLabel(
  */
 internal fun engineerRolePillLabel(isPrimary: Boolean): String =
     if (isPrimary) "Primary engineer" else "Fallback engineer"
+
+/**
+ * Pill label for the halted-bucket subscription statuses on the
+ * auto-pay section.
+ *
+ * Wire statuses in this bucket: "halted", "cancelled", "completed",
+ * "expired". Each maps to a Title-cased display label. Unknown
+ * statuses fall through to "Expired" — defensive fallback that
+ * leaves room for future server-side enum additions.
+ *
+ * Pin the literal mappings — these match the Razorpay subscription
+ * lifecycle vocabulary, which is what the hospital sees in their
+ * bank statement too. A refactor that changed "Halted" to "Paused"
+ * would diverge from the bank-side terminology and confuse
+ * reconciliation.
+ *
+ * Note: "halted" and "cancelled" use the same Default pill colour
+ * but distinct labels — pin so a refactor doesn't collapse them.
+ */
+internal fun autoPayHaltedPillText(status: String): String = when (status) {
+    "halted" -> "Halted"
+    "cancelled" -> "Cancelled"
+    "completed" -> "Completed"
+    else -> "Expired"
+}
