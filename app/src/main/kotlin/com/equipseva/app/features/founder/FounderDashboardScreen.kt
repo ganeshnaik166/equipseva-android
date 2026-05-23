@@ -332,7 +332,7 @@ private fun FounderHero(jobsToday: Int?) {
                 color = Color.White.copy(alpha = 0.65f),
             )
             Text(
-                text = (jobsToday ?: 0).toString(),
+                text = founderHeroJobsValue(jobsToday),
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.56).sp,
@@ -900,3 +900,19 @@ internal fun topEngineerJobsReleasedLabel(jobsCompleted: Long): String =
  */
 internal fun founderDashboardSubtitle(founderEmail: String?): String =
     founderEmail?.let { "Founder · $it" } ?: "Founder"
+
+/**
+ * Hero "Jobs posted today" value on the founder admin dashboard.
+ *
+ * Null jobsToday (cold load, network miss) defaults to 0 — the hero
+ * surfaces "0" rather than blank or "—" so the layout doesn't shift
+ * when the real number arrives.
+ *
+ * Critical pin: null is conflated with actual zero. This is a
+ * deliberate UX trade-off — the hero needs a stable visual silhouette
+ * and a brief flash of 0 → real-value reads as "starting from zero"
+ * rather than "broken". Pin documents the trade-off so a refactor
+ * that introduced a "—" placeholder surfaces here.
+ */
+internal fun founderHeroJobsValue(jobsToday: Int?): String =
+    (jobsToday ?: 0).toString()
