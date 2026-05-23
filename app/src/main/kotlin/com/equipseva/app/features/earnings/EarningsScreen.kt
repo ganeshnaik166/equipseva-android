@@ -398,8 +398,11 @@ private fun TransactionRow(
                 maxLines = 1,
             )
             val timestamp = if (paid) row.job?.completedAtInstant else row.bid.createdAtInstant
-            val timeLine = timestamp?.let { "${if (paid) "Paid" else "Quoted"} ${relativeLabel(it)} ago" }
-                ?: row.job?.status?.displayName ?: ""
+            val timeLine = transactionRowTimeLine(
+                paid = paid,
+                relativeAgoLabel = timestamp?.let { relativeLabel(it) },
+                statusDisplayName = row.job?.status?.displayName,
+            )
             Text(
                 text = timeLine,
                 fontSize = 11.sp,
@@ -424,11 +427,11 @@ private fun TransactionRow(
             // PR-D36: show actual payout (post-commission) when set.
             // Bid amount stays the source of truth for pending rows
             // (no payout populated yet) and legacy pre-trigger rows.
-            val displayAmount = if (paid) {
-                row.job?.engineerPayoutRupees ?: row.bid.amountRupees
-            } else {
-                row.bid.amountRupees
-            }
+            val displayAmount = transactionRowDisplayAmount(
+                paid = paid,
+                engineerPayoutRupees = row.job?.engineerPayoutRupees,
+                bidAmountRupees = row.bid.amountRupees,
+            )
             Text(
                 text = formatRupees(displayAmount),
                 fontSize = 14.sp,
@@ -543,9 +546,74 @@ private fun SelfRankCard(rank: com.equipseva.app.core.data.escrow.RepairJobEscro
             )
         }
         Text(
-            text = "${rank.jobsCompleted} job${if (rank.jobsCompleted == 1L) "" else "s"} · ${formatRupees(rank.revenueInr)}",
+            text = selfRankSubtitle(rank.jobsCompleted, rank.revenueInr),
             color = Color.White.copy(alpha = 0.9f),
             fontSize = 13.sp,
         )
     }
 }
+
+/**
+ * "Paid Nd ago" / "Quoted Nd ago" time line on the engineer's earnings
+ * transaction row.
+ *
+ * Decision tree:
+ *   1. relativeAgoLabel non-null → "{Paid|Quoted} ${rel} ago".
+ *   2. fall back to status display name (e.g. "Awaiting hospital").
+ *   3. both absent → empty string (row still renders but the time
+ *      line is invisible — the empty Text takes up zero vertical
+ *      space).
+ *
+ * Pin the {Paid/Quoted} verb split — Paid is past-completion;
+ * Quoted is bid-submitted-not-yet-resolved. A refactor that always
+ * said "Paid" on the past-tense branch (for pending bids that
+ * haven't actually been paid) would mislead the engineer.
+ */
+internal fun transactionRowTimeLine(
+    paid: Boolean,
+    relativeAgoLabel: String?,
+    statusDisplayName: String?,
+): String = relativeAgoLabel?.let { "${if (paid) "Paid" else "Quoted"} $it ago" }
+    ?: statusDisplayName
+    ?: ""
+
+/**
+ * Display amount on the engineer's earnings transaction row.
+ *
+ * On a paid row: the actual post-commission payout wins; fall back
+ * to the original bid amount when the payout hasn't been populated
+ * yet (legacy pre-trigger rows OR the brief window between
+ * status=completed and the payout-trigger write).
+ *
+ * On a pending row: bid amount is always the source of truth —
+ * the post-commission payout shouldn't be teased before it's
+ * actually realised.
+ *
+ * Pin the fallback chain — a refactor that always preferred payout
+ * (even on pending rows) would crash the engineer's expectations
+ * (they bid X, expect to see X until the resolution).
+ */
+internal fun transactionRowDisplayAmount(
+    paid: Boolean,
+    engineerPayoutRupees: Double?,
+    bidAmountRupees: Double,
+): Double = if (paid) {
+    engineerPayoutRupees ?: bidAmountRupees
+} else {
+    bidAmountRupees
+}
+
+/**
+ * Subtitle on the engineer self-rank card: "N job(s) · ₹X".
+ *
+ * Critical region: singular/plural split — `jobsCompleted == 1L`
+ * reads "1 job", everything else (including 0) reads "N jobs". Pin
+ * because the rank card is the engineer's only motivational surface
+ * and a "1 jobs" typo would undermine the polish that justifies the
+ * gradient + hero typography.
+ *
+ * Note the comparison uses `1L` (Long) — pin so a refactor to Int
+ * doesn't silently break the gate.
+ */
+internal fun selfRankSubtitle(jobsCompleted: Long, revenueInr: Double): String =
+    "$jobsCompleted job${if (jobsCompleted == 1L) "" else "s"} · ${formatRupees(revenueInr)}"
