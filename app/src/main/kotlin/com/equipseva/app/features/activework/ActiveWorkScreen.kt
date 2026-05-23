@@ -129,10 +129,33 @@ private fun QueuedStatusPill(count: Int) {
             modifier = Modifier.size(16.dp),
         )
         Text(
-            text = if (count == 1) "1 status change queued — will sync when back online"
-            else "$count status changes queued — will sync when back online",
+            text = queuedStatusChangePillText(count),
             style = EsType.Caption,
             color = SevaInk900,
         )
     }
 }
+
+/**
+ * Banner text on the queued-status-change pill (offline sync queue).
+ *
+ * Critical region: singular/plural split AND the U+2014 em-dash
+ * separator. Cross-surface invariant: this is the THIRD queue pill
+ * in the app — the offline-queue verb varies by surface:
+ *   - mybids: "bid queued — will submit when back online"
+ *   - chat:   "message queued — will send when back online"
+ *   - here:   "status change queued — will sync when back online"
+ *
+ * Pin the "will sync" verb — status changes are bi-directional with
+ * the server (the row may have updated remotely too), so "sync" is
+ * semantically correct over "submit" / "send".
+ *
+ * Singular: "1 status change" — note the singular form drops the 's'
+ * on "change" (not "1 status changes").
+ */
+internal fun queuedStatusChangePillText(count: Int): String =
+    if (count == 1) {
+        "1 status change queued — will sync when back online"
+    } else {
+        "$count status changes queued — will sync when back online"
+    }
