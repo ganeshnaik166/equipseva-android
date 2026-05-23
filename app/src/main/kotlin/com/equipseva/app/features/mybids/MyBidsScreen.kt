@@ -122,11 +122,9 @@ fun MyBidsScreen(
                     state.loading && state.rows.isEmpty() -> ListSkeleton(rows = 8)
                     visibleRows.isEmpty() -> EmptyStateView(
                         icon = Icons.Outlined.Gavel,
-                        title = "No ${activeFilter.displayName.lowercase()} bids",
-                        subtitle = if (activeFilter == RepairBidStatus.Pending)
-                            "Place a bid on an open repair job and it shows up here. Hospitals usually pick within an hour."
-                        else "Switch tabs to see other bid states.",
-                        ctaLabel = if (activeFilter == RepairBidStatus.Pending) "Browse open jobs" else null,
+                        title = myBidsEmptyTitle(activeFilter),
+                        subtitle = myBidsEmptySubtitle(activeFilter),
+                        ctaLabel = myBidsEmptyCtaLabel(activeFilter),
                         onCta = if (activeFilter == RepairBidStatus.Pending) onBrowseJobs else null,
                     )
                     else -> LazyColumn(
@@ -285,3 +283,48 @@ internal fun queuedBidPillText(count: Int): String =
     } else {
         "$count bids queued — will submit when back online"
     }
+
+/**
+ * Empty-state title on the My-Bids screen.
+ *
+ * "No {filter.displayName lowercase} bids" — e.g. "No pending bids",
+ * "No accepted bids".
+ *
+ * Pin lowercase displayName — flows as a noun inside the sentence
+ * "No X bids". A refactor that surfaced the raw Title-cased
+ * displayName would read as "No Pending bids" (capital P mid-line).
+ */
+internal fun myBidsEmptyTitle(filter: RepairBidStatus): String =
+    "No ${filter.displayName.lowercase()} bids"
+
+/**
+ * Empty-state subtitle on the My-Bids screen.
+ *
+ * Pending filter gets the action-prompt copy explaining the funnel
+ * ("Place a bid on an open repair job and it shows up here.
+ * Hospitals usually pick within an hour."). Other filters get the
+ * generic tab-switch nudge.
+ *
+ * Critical pin: the Pending-specific copy includes the "within an
+ * hour" expectation-setter — load-bearing trust signal. A refactor
+ * that surfaced the generic nudge on Pending would lose the
+ * concrete hospital-response cadence.
+ */
+internal fun myBidsEmptySubtitle(filter: RepairBidStatus): String =
+    if (filter == RepairBidStatus.Pending) {
+        "Place a bid on an open repair job and it shows up here. Hospitals usually pick within an hour."
+    } else {
+        "Switch tabs to see other bid states."
+    }
+
+/**
+ * Empty-state CTA label on the My-Bids screen.
+ *
+ * Pending → "Browse open jobs"; other filters → null (no CTA).
+ *
+ * Pin null-on-non-Pending — the other tabs are filter views; a
+ * "Browse" CTA there would lead the engineer away from the queue
+ * they're looking at without solving the empty problem.
+ */
+internal fun myBidsEmptyCtaLabel(filter: RepairBidStatus): String? =
+    if (filter == RepairBidStatus.Pending) "Browse open jobs" else null
