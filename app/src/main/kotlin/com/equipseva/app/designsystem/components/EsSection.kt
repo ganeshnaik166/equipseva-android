@@ -24,9 +24,9 @@ import com.equipseva.app.designsystem.theme.SevaInk900
 @Composable
 fun EsSection(
     title: String,
+    modifier: Modifier = Modifier,
     action: String? = null,
     onAction: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {

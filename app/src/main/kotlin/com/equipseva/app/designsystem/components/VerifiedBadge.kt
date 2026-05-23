@@ -23,7 +23,7 @@ import com.equipseva.app.designsystem.theme.SevaGreen700
 // Inline KYC trust badge. Small variant fits in a row of metadata; the
 // default sits next to the engineer name in profiles.
 @Composable
-fun VerifiedBadge(small: Boolean = false, modifier: Modifier = Modifier) {
+fun VerifiedBadge(modifier: Modifier = Modifier, small: Boolean = false) {
     val iconSize = if (small) 12.dp else 14.dp
     val padH = if (small) 6.dp else 8.dp
     val padV = if (small) 2.dp else 4.dp

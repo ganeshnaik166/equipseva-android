@@ -51,13 +51,13 @@ fun EsDropdown(
     value: String?,
     onValueChange: (String) -> Unit,
     options: List<String>,
+    modifier: Modifier = Modifier,
     label: String? = null,
     placeholder: String = "Select",
     hint: String? = null,
     error: String? = null,
     enabled: Boolean = true,
     searchable: Boolean = true,
-    modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
     var query by remember(value) { mutableStateOf("") }

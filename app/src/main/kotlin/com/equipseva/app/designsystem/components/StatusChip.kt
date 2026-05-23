@@ -36,9 +36,9 @@ enum class StatusTone { Neutral, Info, Warn, Success, Danger }
 @Composable
 fun StatusChip(
     label: String,
+    modifier: Modifier = Modifier,
     tone: StatusTone = StatusTone.Neutral,
     icon: ImageVector? = null,
-    modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
     val (bg: Color, fg: Color) = when (tone) {

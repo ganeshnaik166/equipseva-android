@@ -72,13 +72,13 @@ internal fun heightFor(size: EsBtnSize): Dp = when (size) {
 fun EsBtn(
     text: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     kind: EsBtnKind = EsBtnKind.Primary,
     size: EsBtnSize = EsBtnSize.Md,
     full: Boolean = false,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     disabled: Boolean = false,
-    modifier: Modifier = Modifier,
 ) {
     val v = visual(kind, disabled)
     val shape = RoundedCornerShape(EsRadius.Md)

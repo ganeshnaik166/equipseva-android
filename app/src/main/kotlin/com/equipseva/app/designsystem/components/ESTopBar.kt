@@ -76,11 +76,11 @@ fun ESBackTopBar(
 // optional back arrow (36dp), optional right-slot composable.
 @Composable
 fun EsTopBar(
+    modifier: Modifier = Modifier,
     title: String? = null,
     subtitle: String? = null,
     onBack: (() -> Unit)? = null,
     right: (@Composable () -> Unit)? = null,
-    modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier
