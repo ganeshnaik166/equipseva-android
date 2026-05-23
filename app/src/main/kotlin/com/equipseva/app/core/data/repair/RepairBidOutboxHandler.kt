@@ -37,11 +37,9 @@ class RepairBidOutboxHandler @Inject constructor(
         // engineerUserId may be null on rows enqueued before this field
         // was added — fall through to placeBid which still gates via
         // RLS on engineer_user_id. New rows carry the explicit id.
-        val queuedUid = payload.engineerUserId
-        if (queuedUid != null && queuedUid != currentUid) {
-            return OutboxKindHandler.Outcome.GiveUp(
-                "Engineer mismatch: queued as $queuedUid, current auth is $currentUid",
-            )
+        val dropReason = repairBidEngineerGateReason(payload.engineerUserId, currentUid)
+        if (dropReason != null) {
+            return OutboxKindHandler.Outcome.GiveUp(dropReason)
         }
         // Bound the bid placement to 15s. A flaky link can hang the
         // supabase-kt client indefinitely; without a cap the worker
@@ -79,3 +77,28 @@ data class RepairBidPayload(
     // owner-gate plumbing landed; new enqueues fill this in.
     val engineerUserId: String? = null,
 )
+
+/**
+ * Shared-device gate for the queued repair-bid drain. Lenient policy:
+ * a null queued engineer-user-id falls through to placeBid which is
+ * still gated server-side by RLS on engineer_user_id, so legacy rows
+ * enqueued before the owner-gate plumbing landed still drain.
+ *
+ * Pinned semantics (CRITICAL — the policy asymmetry across handlers IS
+ * the regression target; do not unify with [JobStatusOutboxHandler]'s
+ * strict gate which drops legacy null-actor rows):
+ *   * null queued engineer → null (lenient legacy fallthrough,
+ *     mirroring NotificationReadOutboxHandler).
+ *   * match → null (allow).
+ *   * mismatch → reason string with both ids for the ops log.
+ *   * "Engineer mismatch:" prefix wire-frozen so ops log filters keep
+ *     matching after a refactor.
+ */
+internal fun repairBidEngineerGateReason(
+    queuedEngineerUserId: String?,
+    currentUserId: String,
+): String? = when {
+    queuedEngineerUserId == null -> null
+    queuedEngineerUserId == currentUserId -> null
+    else -> "Engineer mismatch: queued as $queuedEngineerUserId, current auth is $currentUserId"
+}
