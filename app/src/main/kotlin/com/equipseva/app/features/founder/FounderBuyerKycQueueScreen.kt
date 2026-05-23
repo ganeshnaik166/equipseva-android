@@ -175,7 +175,7 @@ fun FounderBuyerKycQueueScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "Buyer KYC queue",
-                subtitle = if (state.rows.isNotEmpty()) "${state.rows.size} pending" else null,
+                subtitle = simpleQueueCountSubtitle(state.rows.size, "pending"),
                 onBack = onBack,
             )
             // Round 399 — pull-to-refresh.
