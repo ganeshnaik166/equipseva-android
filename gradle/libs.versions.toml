@@ -41,7 +41,7 @@ sqlcipher = "4.5.4"
 sqliteAndroidx = "2.4.0"
 securityCrypto = "1.1.0-alpha06"
 playIntegrity = "1.4.0"
-mapsCompose = "6.4.1"
+mapsCompose = "8.3.0"
 playServicesMaps = "19.0.0"
 playServicesLocation = "21.3.0"
 
