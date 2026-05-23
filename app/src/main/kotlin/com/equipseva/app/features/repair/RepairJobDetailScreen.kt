@@ -1395,16 +1395,16 @@ private fun BidCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            val etaText = bid.etaHours?.let { "ETA: ${it}h" } ?: "ETA: —"
             Text(
-                text = etaText,
+                text = bidCardEtaText(bid.etaHours),
                 fontSize = 12.sp,
                 color = SevaInk600,
                 lineHeight = 17.sp,
             )
-            bid.distanceKm?.let { km ->
+            val distanceLabel = bidCardDistanceLabel(bid.distanceKm)
+            if (distanceLabel != null) {
                 Text(
-                    text = "· ${"%.1f".format(java.util.Locale.US, km)} km away",
+                    text = distanceLabel,
                     fontSize = 12.sp,
                     color = SevaInk500,
                 )
@@ -2731,3 +2731,37 @@ internal fun ownBidAmountAndEtaLine(amountRupees: Double, etaHours: Int?): Strin
         append(com.equipseva.app.core.util.formatRupees(amountRupees))
         etaHours?.let { append(" · ETA ${it}h") }
     }
+
+/**
+ * ETA text on a bid card (hospital's bid list view).
+ *
+ * "ETA: Nh" when etaHours is known; "ETA: —" (U+2014 em-dash) when
+ * null. The label always renders — hospitals scanning the bid list
+ * need to see "no ETA given" as an explicit signal, not as a missing
+ * field.
+ *
+ * Pin "ETA:" with colon-space (NOT just "ETA Nh" — colon-form
+ * distinguishes the bid-list compact-row format from the own-bid
+ * hero-card format which uses "ETA Nh" without colon).
+ *
+ * Pin U+2014 em-dash fallback — distinct from "TBD" / "Not given"
+ * which would inflate the row width.
+ */
+internal fun bidCardEtaText(etaHours: Int?): String =
+    etaHours?.let { "ETA: ${it}h" } ?: "ETA: —"
+
+/**
+ * Distance label on a bid card.
+ *
+ * "· X.Y km away" with U+00B7 leading separator + Locale.US-stable
+ * %.1f format + "km away" suffix. Returns null when distanceKm is
+ * null (engineer has no base coords OR job has no site coords) so
+ * the caller can hide the chip entirely.
+ *
+ * Critical pin: Locale.US — hi-IN would render "3,2 km away" which
+ * mis-reads. Pin "km away" suffix (not "km" alone) — disambiguates
+ * the distance from the engineer's listed service radius (which is
+ * also displayed in km elsewhere).
+ */
+internal fun bidCardDistanceLabel(distanceKm: Double?): String? =
+    distanceKm?.let { "· ${"%.1f".format(java.util.Locale.US, it)} km away" }
