@@ -157,9 +157,10 @@ fun AddPhoneScreen(
                 // Surface a hint while the user is mid-typing so the
                 // greyed-out Save button isn't a mystery. supportingText
                 // priorities: server / save error > length-hint > silent.
-                val lengthHint = if (state.error == null && state.phone.length in 4..10) {
-                    "Enter 10 digits after +91"
-                } else null
+                val lengthHint = addPhoneLengthHint(
+                    hasError = state.error != null,
+                    phoneLength = state.phone.length,
+                )
                 OutlinedTextField(
                     value = state.phone,
                     onValueChange = viewModel::onPhoneChange,
@@ -206,3 +207,25 @@ fun AddPhoneScreen(
  */
 internal fun isPhoneE164Routable(phone: String): Boolean =
     phone.startsWith("+") && phone.length >= 11
+
+/**
+ * Length-hint supportingText on the Add-Phone screen.
+ *
+ * Priority: server / save error > length-hint > silent.
+ *
+ * Surfaces "Enter 10 digits after +91" while the user is mid-typing
+ * (phone length 4..10 inclusive) so the greyed-out Save button isn't
+ * a mystery. Suppressed when:
+ *   - hasError = true (server error takes precedence — show that
+ *     in supportingText instead).
+ *   - phoneLength < 4 (too early; the user is still typing the +91
+ *     prefix).
+ *   - phoneLength >= 11 (Save will fire, no hint needed).
+ *
+ * Pin the 4..10 window — a refactor that widened to 0..10 would
+ * surface the hint on a blank field (noisy), and narrowing to 6..10
+ * would skip the hint right after the user typed the country code
+ * (defeating its purpose).
+ */
+internal fun addPhoneLengthHint(hasError: Boolean, phoneLength: Int): String? =
+    if (!hasError && phoneLength in 4..10) "Enter 10 digits after +91" else null
