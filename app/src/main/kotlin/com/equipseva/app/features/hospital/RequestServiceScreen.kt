@@ -586,13 +586,7 @@ private fun StepWhen(
                 utcTimeMillis >= todayMillis
         },
     )
-    val customLabel = pickedDateMillis?.let {
-        val d = java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.of("Asia/Kolkata")).toLocalDate()
-        // Round 339 — pin to Locale.ENGLISH. Default Locale on Turkish
-        // devices corrupts the english month enum names via dotted-vs-
-        // dotless 'i' casing rules.
-        "Custom · ${d.dayOfMonth} ${d.month.name.lowercase(java.util.Locale.ENGLISH).replaceFirstChar { c -> c.uppercase(java.util.Locale.ENGLISH) }} ${d.year}"
-    } ?: "Pick a date"
+    val customLabel = customDateSlotLabelFromMillis(pickedDateMillis)
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -786,4 +780,49 @@ private fun WizardBottomBar(
             }
         }
     }
+}
+
+/**
+ * Custom date-slot label on the RequestService "When?" step.
+ *
+ * Format: "Custom · D MMMM YYYY" (e.g. "Custom · 23 May 2026"),
+ * falling back to "Pick a date" when no date is picked.
+ *
+ * Critical region: Locale.ENGLISH for both lowercase() AND
+ * replaceFirstChar uppercase() on the month name.
+ *
+ *   - WHY: Turkish-locale devices corrupt the English month enum
+ *     names via the dotted-vs-dotless 'i' casing rule. Default
+ *     locale calls would render "İ" instead of "I" in "JANUARY",
+ *     surfacing "Custom · 5 Ocak 2026" or similar mojibake. Pin
+ *     so a refactor that dropped one or both Locale args surfaces
+ *     here.
+ *
+ *   - The month name uses Java's enum NAME (uppercased English by
+ *     definition) then re-cased — this is more locale-stable than
+ *     calling Month.getDisplayName() which uses ICU and surfaces
+ *     localised month names.
+ *
+ * Zone is fixed to IST (Asia/Kolkata) — EquipSeva is India-only,
+ * and a traveling user would see day-shifted dates if we used the
+ * device default zone.
+ */
+internal fun customDateSlotLabelFromMillis(pickedDateMillis: Long?): String =
+    pickedDateMillis?.let {
+        val d = java.time.Instant.ofEpochMilli(it)
+            .atZone(java.time.ZoneId.of("Asia/Kolkata"))
+            .toLocalDate()
+        customDateSlotLabelForDate(d)
+    } ?: "Pick a date"
+
+/**
+ * Pure form of [customDateSlotLabelFromMillis] — takes an already-
+ * resolved LocalDate so tests can pass arbitrary dates without
+ * having to compute epoch millis with a specific zone.
+ */
+internal fun customDateSlotLabelForDate(date: java.time.LocalDate): String {
+    val month = date.month.name
+        .lowercase(java.util.Locale.ENGLISH)
+        .replaceFirstChar { c -> c.uppercase(java.util.Locale.ENGLISH) }
+    return "Custom · ${date.dayOfMonth} $month ${date.year}"
 }
