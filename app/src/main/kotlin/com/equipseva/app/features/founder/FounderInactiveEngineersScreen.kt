@@ -185,8 +185,15 @@ private fun InactiveEngineerRow(
             Text(contactLine, color = SevaInk500, fontSize = 12.sp)
         }
         val verifiedRel = row.verifiedAt?.let { relativeLabel(it) }
-        verifiedRel?.let {
-            Text("Verified ${prettyDate(row.verifiedAt!!)} · $it ago", color = SevaInk500, fontSize = 11.sp)
+        verifiedRel?.let { rel ->
+            Text(
+                inactiveEngineerVerifiedLine(
+                    prettyVerifiedDate = prettyDate(row.verifiedAt!!),
+                    relativeAgoLabel = rel,
+                ),
+                color = SevaInk500,
+                fontSize = 11.sp,
+            )
         }
     }
 }
@@ -253,3 +260,20 @@ internal fun inactiveEngineerSpecializationsPreview(specializations: List<String
  */
 internal fun inactiveEngineerContactLine(email: String?, phone: String?): String =
     listOfNotNull(email, phone).joinToString(" · ")
+
+/**
+ * Verified-when line on the inactive-engineer row: "Verified $date · $rel ago".
+ *
+ * Composes the formatted verification date with the bare relative
+ * label suffixed by " ago". Pin the dual date-and-relative format —
+ * the founder uses the absolute date to spot KYC backlog cohorts
+ * and the relative cue ("3 months ago") to grok cadence at a glance.
+ * A refactor that surfaced only one would lose information density
+ * on the row.
+ *
+ * Pin the literal "Verified " prefix and " ago" suffix.
+ */
+internal fun inactiveEngineerVerifiedLine(
+    prettyVerifiedDate: String,
+    relativeAgoLabel: String,
+): String = "Verified $prettyVerifiedDate · $relativeAgoLabel ago"
