@@ -1013,13 +1013,10 @@ private fun RecommendedEngineerCard(
                     color = SevaInk900,
                     maxLines = 1,
                 )
-                val parts = listOfNotNull(
-                    row.city,
-                    row.distanceKm?.let { "${"%.1f".format(java.util.Locale.ENGLISH, it)} km" },
-                )
-                if (parts.isNotEmpty()) {
+                val cityDistance = recommendedEngineerCityDistanceLine(row.city, row.distanceKm)
+                if (cityDistance != null) {
                     Text(
-                        text = parts.joinToString(" · "),
+                        text = cityDistance,
                         fontSize = 11.sp,
                         color = SevaInk500,
                         maxLines = 1,
@@ -1092,6 +1089,37 @@ internal fun greetingHeroQuestion(role: UserRole?): String =
     } else {
         "What needs fixing today?"
     }
+
+/**
+ * City + distance subline on the recommended-engineer carousel card.
+ *
+ * Composes the optional city + distance ("%.1f km") into "City · X.Y km"
+ * via U+00B7 middle-dot. Returns null when BOTH inputs are absent so the
+ * caller can omit the Text entirely (avoiding an empty subline that
+ * would break the card's vertical rhythm).
+ *
+ * Critical pin:
+ *   - Locale.ENGLISH formatter — Hindi-locale would render "3,2 km".
+ *     Note: this helper uses ENGLISH, not US — same decimal point but
+ *     ENGLISH is the broader fallback.
+ *   - "%.1f km" with one decimal — pin so a drift to "%.0f km" loses
+ *     sub-km precision (an engineer 0.4km away suddenly reads "0 km").
+ *   - The bare "km" suffix (no space before, NOT " km" without
+ *     decimal precision adjustment).
+ *
+ * Null-only inputs collapse to null (caller hides row); city-only or
+ * distance-only renders that single field.
+ */
+internal fun recommendedEngineerCityDistanceLine(
+    city: String?,
+    distanceKm: Double?,
+): String? {
+    val parts = listOfNotNull(
+        city,
+        distanceKm?.let { "${"%.1f".format(java.util.Locale.ENGLISH, it)} km" },
+    )
+    return if (parts.isEmpty()) null else parts.joinToString(" · ")
+}
 
 private fun relativeTime(at: Instant?): String =
     if (at == null) "" else relativeTimeFromMinutes(Duration.between(at, Instant.now()).toMinutes())
