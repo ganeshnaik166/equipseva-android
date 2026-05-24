@@ -5,6 +5,7 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import com.equipseva.app.core.util.BuildConfigValues
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -41,6 +42,13 @@ class GoogleSignInClient @Inject constructor(
         return requestExplicitPicker(activityContext, webClientId, rawNonce, hashedNonce)
     }
 
+    // CredentialManagerSignInWithGoogle is a false positive here:
+    // lint flags `GetSignInWithGoogleOption` use because it can't see
+    // the GoogleIdTokenCredential.TYPE_* references across function
+    // boundaries (they live in [isAcceptedGoogleIdCredentialType]
+    // below, which extractIdToken calls). Both legacy + SIWG token
+    // types are handled — see IsAcceptedGoogleIdCredentialTypeTest.
+    @Suppress("CredentialManagerSignInWithGoogle")
     private suspend fun requestExplicitPicker(
         activityContext: Context,
         webClientId: String,
@@ -59,6 +67,18 @@ class GoogleSignInClient @Inject constructor(
             extractIdToken(credential, rawNonce)
         } catch (cancelled: GetCredentialCancellationException) {
             GoogleSignInResult.Cancelled
+        } catch (noCredential: NoCredentialException) {
+            // User has no Google account saved on the device, or hasn't
+            // granted Credential Manager access to one. Generic
+            // "sign-in failed" is misleading — the fix is on the user's
+            // side (add a Google account). lint flags this branch
+            // specifically (CredentialManagerMisuse) because the parent
+            // GetCredentialException catch below would otherwise hide
+            // it behind a generic error toast.
+            GoogleSignInResult.Error(
+                "No Google account on this device. Add one in Settings → Passwords & accounts, then try again.",
+                noCredential,
+            )
         } catch (e: GetCredentialException) {
             GoogleSignInResult.Error(e.message ?: "Google sign-in failed.", e)
         }
