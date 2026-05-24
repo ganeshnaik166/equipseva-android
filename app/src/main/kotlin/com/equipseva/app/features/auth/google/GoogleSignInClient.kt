@@ -65,8 +65,22 @@ class GoogleSignInClient @Inject constructor(
     }
 
     private fun extractIdToken(credential: androidx.credentials.Credential, rawNonce: String): GoogleSignInResult {
+        // googleid 1.1+ ships TWO credential types depending on which
+        // identity provider answered the GetSignInWithGoogleOption
+        // request:
+        //   * TYPE_GOOGLE_ID_TOKEN_CREDENTIAL — legacy Google
+        //     identity (most common path today).
+        //   * TYPE_GOOGLE_ID_TOKEN_SIWG_CREDENTIAL — newer SIWG flow
+        //     issued by Credential Manager directly (rolling out
+        //     gradually; passkey-paired Google accounts already hit
+        //     this path on some devices).
+        //
+        // Accept either. The earlier version only checked the legacy
+        // type, which meant any user the Credential Manager routed
+        // through SIWG saw "Unexpected credential type" and couldn't
+        // sign in. lint flagged the gap as CredentialManagerSignInWithGoogle.
         if (credential !is androidx.credentials.CustomCredential ||
-            credential.type != GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+            !isAcceptedGoogleIdCredentialType(credential.type)
         ) {
             return GoogleSignInResult.Error("Unexpected credential type: ${credential.type}", null)
         }
@@ -90,6 +104,24 @@ class GoogleSignInClient @Inject constructor(
         return digest.joinToString("") { "%02x".format(it) }
     }
 }
+
+/**
+ * Whether [type] is a credential-type string this app accepts from a
+ * Credential Manager `GetSignInWithGoogleOption` response. Lifted out
+ * of [GoogleSignInClient.extractIdToken] so the legacy / SIWG pair
+ * can be pinned by a unit test — googleid 1.1+ may issue either
+ * `TYPE_GOOGLE_ID_TOKEN_CREDENTIAL` (legacy Google identity) or
+ * `TYPE_GOOGLE_ID_TOKEN_SIWG_CREDENTIAL` (newer SIWG flow) depending
+ * on how Credential Manager resolved the request.
+ *
+ * Pinned regression target: a previous version of the gate only
+ * accepted the legacy type, which surfaced "Unexpected credential
+ * type" for users routed through the SIWG path. A refactor that
+ * narrows back to a single type would re-introduce that auth break.
+ */
+internal fun isAcceptedGoogleIdCredentialType(type: String): Boolean =
+    type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL ||
+        type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_SIWG_CREDENTIAL
 
 sealed interface GoogleSignInResult {
     data class Token(val idToken: String, val rawNonce: String) : GoogleSignInResult
