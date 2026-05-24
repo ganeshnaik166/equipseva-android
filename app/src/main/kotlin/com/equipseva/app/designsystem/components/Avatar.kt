@@ -27,8 +27,8 @@ private val AvatarBrush = Brush.linearGradient(listOf(SevaGreen700, SevaGreen500
 @Composable
 fun Avatar(
     initials: String,
-    size: Dp = 40.dp,
     modifier: Modifier = Modifier,
+    size: Dp = 40.dp,
 ) {
     val fontSize = (size.value * 0.4f).sp
     Box(

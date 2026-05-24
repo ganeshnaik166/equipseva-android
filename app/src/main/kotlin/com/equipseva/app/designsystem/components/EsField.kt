@@ -33,6 +33,7 @@ enum class EsFieldType { Text, Password, Number, Email, Phone, Multiline }
 fun EsField(
     value: String,
     onChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
     label: String? = null,
     placeholder: String? = null,
     hint: String? = null,
@@ -49,7 +50,6 @@ fun EsField(
     // Enter instead of forcing a button tap. When null the keyboard
     // simply dismisses on Done (original behavior).
     onImeAction: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val keyboardType = when (type) {
