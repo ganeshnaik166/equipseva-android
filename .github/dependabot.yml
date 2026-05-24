@@ -61,15 +61,28 @@ updates:
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "org.jetbrains.kotlin.plugin.serialization"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
-      # Hilt's KSP processor must match the Hilt artifact; pin both.
-      - dependency-name: "com.google.dagger:hilt-android"
+      # Hilt — entire com.google.dagger:* family shares the `hilt`
+      # version variable in the catalog. Use a wildcard so the
+      # ignore catches hilt-android, hilt-android-compiler, AND
+      # hilt-android-testing (which a previous version of this rule
+      # missed; Dependabot opened #944 with hilt 2.53 → 2.59 in the
+      # minor-and-patch group, and CI failed: "Hilt Android Gradle
+      # plugin is only compatible with AGP 9.0.0 or higher (found
+      # 8.7.3)"). When AGP eventually bumps to 9.x, this rule comes
+      # off — but the AGP bump is itself blocked above.
+      - dependency-name: "com.google.dagger:*"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
-      - dependency-name: "com.google.dagger:hilt-android-compiler"
-        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # The Hilt Gradle plugin id (different from the artifact).
       - dependency-name: "com.google.dagger.hilt.android"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
       # Compose BOM minors carry Compose compiler coordination.
       - dependency-name: "androidx.compose:compose-bom"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # Lifecycle minors move in lockstep with the Compose BOM and
+      # the Kotlin compiler. lifecycle 2.8 → 2.10 was included in
+      # #944's group bump alongside the Hilt break; pin the lifecycle
+      # version variable too so the next sweep doesn't drift.
+      - dependency-name: "androidx.lifecycle:*"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
 
   - package-ecosystem: "github-actions"
