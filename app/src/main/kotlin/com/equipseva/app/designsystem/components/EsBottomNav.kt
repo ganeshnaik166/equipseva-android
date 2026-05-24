@@ -22,6 +22,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -74,7 +77,17 @@ fun EsBottomNav(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .clickable { onSelect(tab.route) }
+                    // Role.Tab + selected semantics so TalkBack
+                    // announces e.g. "Home, tab, selected" or
+                    // "Jobs, tab, not selected, double-tap to
+                    // activate". Without these, the bottom nav read
+                    // as a row of generic buttons and users couldn't
+                    // tell which destination was currently open. Bottom
+                    // nav is the primary cross-feature navigation so
+                    // this is the highest-traffic a11y target in the
+                    // app.
+                    .semantics { selected = active }
+                    .clickable(role = Role.Tab) { onSelect(tab.route) }
                     .padding(vertical = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,

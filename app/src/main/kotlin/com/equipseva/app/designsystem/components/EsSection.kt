@@ -12,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -51,7 +52,12 @@ fun EsSection(
                     fontWeight = FontWeight.SemiBold,
                     color = SevaGreen700,
                     modifier = Modifier
-                        .clickable(onClick = onAction)
+                        // Role.Button so TalkBack announces e.g.
+                        // "View all, button" instead of treating the
+                        // action label as static text. Common pattern
+                        // across the home + repair feeds where each
+                        // section has a "See more" trailing action.
+                        .clickable(onClick = onAction, role = Role.Button)
                         .padding(start = 8.dp),
                 )
             }
