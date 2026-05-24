@@ -58,6 +58,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -632,7 +633,17 @@ private fun ChatInputBar(
                 Box(
                     modifier = Modifier
                         .size(48.dp)
-                        .clickable(enabled = canSend, onClick = onSend),
+                        // Role.Button so TalkBack announces
+                        // "Send, button" (or "Send, disabled, button"
+                        // while canSend is false because no message
+                        // has been typed). Without the role, the
+                        // 48dp click target reads as a generic
+                        // tappable region.
+                        .clickable(
+                            enabled = canSend,
+                            onClick = onSend,
+                            role = Role.Button,
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
                     Box(

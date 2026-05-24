@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -50,7 +51,14 @@ fun EsChip(
             .clip(RoundedCornerShape(EsRadius.Pill))
             .background(bg)
             .border(1.dp, border, RoundedCornerShape(EsRadius.Pill))
-            .let { if (onClick != null) it.clickable(onClick = onClick) else it }
+            // Role.Button announces the verb to TalkBack
+            // ("double-tap to activate"); the .semantics block below
+            // adds the selected-state hint so the full announcement
+            // is "<label>, selected, button" or "<label>, button"
+            // depending on `active`. Without the role, TalkBack falls
+            // back to the generic clickable announcement and users
+            // can't tell EsChip apart from a passive label.
+            .let { if (onClick != null) it.clickable(onClick = onClick, role = Role.Button) else it }
             .semantics {
                 this.contentDescription = a11yLabel
                 this.selected = active

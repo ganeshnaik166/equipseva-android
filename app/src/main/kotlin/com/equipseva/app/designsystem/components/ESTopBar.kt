@@ -25,6 +25,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -100,7 +101,11 @@ fun EsTopBar(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .clickable(onClick = onBack),
+                    // Role.Button so TalkBack announces "Back, button"
+                    // instead of the generic clickable variant. The
+                    // back affordance is the most-used a11y target in
+                    // the app (every detail / settings screen has it).
+                    .clickable(onClick = onBack, role = Role.Button),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
