@@ -42,7 +42,7 @@ sqliteAndroidx = "2.4.0"
 securityCrypto = "1.1.0"
 playIntegrity = "1.4.0"
 mapsCompose = "6.4.1"
-playServicesMaps = "19.0.0"
+playServicesMaps = "20.0.0"
 playServicesLocation = "21.3.0"
 
 [libraries]
