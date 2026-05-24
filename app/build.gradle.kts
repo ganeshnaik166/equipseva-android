@@ -45,7 +45,11 @@ val hasReleaseKeystore: Boolean =
 
 android {
     namespace = "com.equipseva.app"
-    compileSdk = 35
+    // compileSdk = 36 lets the compiler see the Android 16 / API 36
+    // declarations. Required by androidx.core 1.18.0.
+    // targetSdk stays at 35 — opting in to Android 16 RUNTIME behavior
+    // changes is a separate decision.
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.equipseva.app"
