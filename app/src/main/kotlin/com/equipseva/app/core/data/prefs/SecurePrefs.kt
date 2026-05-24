@@ -3,6 +3,7 @@ package com.equipseva.app.core.data.prefs
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import dagger.Module
@@ -60,9 +61,9 @@ class SecurePrefs @Inject constructor(@ApplicationContext context: Context) {
     fun getString(key: String): String? = prefs.getString(key, null)
 
     fun putString(key: String, value: String?) {
-        prefs.edit().apply {
+        prefs.edit {
             if (value == null) remove(key) else putString(key, value)
-        }.apply()
+        }
     }
 
     fun stringFlow(key: String): Flow<String?> = callbackFlow {

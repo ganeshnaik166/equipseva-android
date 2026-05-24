@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import androidx.core.graphics.scale
 import android.net.Uri
 import androidx.exifinterface.media.ExifInterface
 import androidx.lifecycle.ViewModel
@@ -756,7 +757,7 @@ class ProfileViewModel @Inject constructor(
             val ratio = AVATAR_MAX_DIM_PX.toFloat() / maxEdge
             val targetW = (oriented.width * ratio).toInt().coerceAtLeast(1)
             val targetH = (oriented.height * ratio).toInt().coerceAtLeast(1)
-            Bitmap.createScaledBitmap(oriented, targetW, targetH, true)
+            oriented.scale(targetW, targetH)
                 .also { if (it !== oriented) oriented.recycle() }
         } else oriented
 

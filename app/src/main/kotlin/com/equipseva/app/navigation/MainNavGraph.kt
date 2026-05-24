@@ -1,5 +1,6 @@
 package com.equipseva.app.navigation
 
+import androidx.core.net.toUri
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.filterNotNull
@@ -521,7 +522,7 @@ fun MainNavGraph(
                         // ticketing system yet.
                         val ctx = navController.context
                         val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
-                            data = android.net.Uri.parse("mailto:support@equipseva.com")
+                            data = "mailto:support@equipseva.com".toUri()
                             putExtra(android.content.Intent.EXTRA_SUBJECT, "EquipSeva support request")
                         }
                         try {

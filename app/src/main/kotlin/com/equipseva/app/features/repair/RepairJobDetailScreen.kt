@@ -2,6 +2,7 @@ package com.equipseva.app.features.repair
 
 import android.content.Intent
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -162,7 +163,7 @@ fun RepairJobDetailScreen(
                 // Chrome / WebView render the HTML with photos and the
                 // user can use the print menu to save as PDF if needed.
                 is RepairJobDetailViewModel.Effect.OpenServiceReport -> {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(effect.url)).apply {
+                    val intent = Intent(Intent.ACTION_VIEW, effect.url.toUri()).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                     context.startActivity(intent)
@@ -1600,9 +1601,9 @@ private fun LocationCard(
                         val encoded = Uri.encode(job.siteLocation)
                         val uri = if (job.siteLatitude != null && job.siteLongitude != null) {
                             val label = Uri.encode("Service site")
-                            Uri.parse("geo:${job.siteLatitude},${job.siteLongitude}?q=${job.siteLatitude},${job.siteLongitude}($label)")
+                            "geo:${job.siteLatitude},${job.siteLongitude}?q=${job.siteLatitude},${job.siteLongitude}($label)".toUri()
                         } else {
-                            Uri.parse("geo:0,0?q=$encoded")
+                            "geo:0,0?q=$encoded".toUri()
                         }
                         val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
                         try {
@@ -1615,7 +1616,7 @@ private fun LocationCard(
                             }
                             val fallback = android.content.Intent(
                                 android.content.Intent.ACTION_VIEW,
-                                Uri.parse(fallbackUrl),
+                                fallbackUrl.toUri(),
                             )
                             try {
                                 context.startActivity(fallback)
