@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -42,6 +43,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -351,6 +354,16 @@ fun FounderCategoriesScreen(
                     onValueChange = { v -> viewModel.onDraftChange { it.copy(key = v.take(50)) } },
                     label = { Text("Key (snake_case)") },
                     enabled = draft.isNew && !state.saving,
+                    singleLine = true,
+                    // snake_case identifier — disable autocorrect and
+                    // first-letter capitalization so the soft keyboard
+                    // doesn't insert spaces or capitalise the leading
+                    // char, both of which would fail the server CHECK.
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Ascii,
+                        autoCorrect = false,
+                        capitalization = KeyboardCapitalization.None,
+                    ),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
@@ -385,6 +398,13 @@ fun FounderCategoriesScreen(
                     onValueChange = { v -> viewModel.onDraftChange { it.copy(sortOrder = v.filter { ch -> ch in '0'..'9' }) } },
                     label = { Text("Sort order") },
                     enabled = !state.saving,
+                    singleLine = true,
+                    // Numeric input — surface the number keyboard so
+                    // the user doesn't have to tap "?123" to find
+                    // digits. The .filter above strips non-digits but
+                    // a generic text keyboard makes the discoverability
+                    // worse than necessary.
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {

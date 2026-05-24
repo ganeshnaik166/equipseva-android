@@ -72,10 +72,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -1238,6 +1240,14 @@ private fun EditProfileSheet(
                 label = { Text("Full name") },
                 singleLine = true,
                 enabled = !saving,
+                // Full name is a proper noun — capitalize each word
+                // on the soft keyboard. Without this, the user has
+                // to manually shift each first letter, which is the
+                // most common typo path in India where most names
+                // are 2-3 capitalized words.
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Words,
+                ),
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
