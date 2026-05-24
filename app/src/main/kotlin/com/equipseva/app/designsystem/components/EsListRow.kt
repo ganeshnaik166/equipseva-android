@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.SevaDanger500
@@ -38,7 +39,19 @@ fun EsListRow(
         modifier = modifier
             .fillMaxWidth()
             .background(Color.White)
-            .let { if (onClick != null) it.clickable(onClick = onClick) else it }
+            .let {
+                if (onClick != null) {
+                    // Role.Button gives TalkBack the verb hint
+                    // ("double-tap to activate") instead of the
+                    // generic clickable-row announcement. EsListRow
+                    // is the workhorse for the Profile, Notification
+                    // inbox, KYC sections — adding the role here
+                    // ripples to every settings/list row in the app.
+                    it.clickable(onClick = onClick, role = Role.Button)
+                } else {
+                    it
+                }
+            }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),

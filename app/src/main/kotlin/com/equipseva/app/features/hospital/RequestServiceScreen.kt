@@ -44,6 +44,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -335,6 +336,11 @@ private fun StepEquipment(
         label = { Text("Brand") },
         placeholder = { Text("e.g. Siemens") },
         singleLine = true,
+        // Brand names are proper nouns ("Siemens", "GE Healthcare",
+        // "Philips") — capitalize each word on the soft keyboard.
+        keyboardOptions = KeyboardOptions(
+            capitalization = KeyboardCapitalization.Words,
+        ),
         modifier = Modifier.fillMaxWidth(),
     )
     OutlinedTextField(
@@ -343,6 +349,13 @@ private fun StepEquipment(
         label = { Text("Model") },
         placeholder = { Text("e.g. SOMATOM go.Up") },
         singleLine = true,
+        // Model names are also proper nouns. The default sentence-
+        // case keyboard would only capitalize the FIRST word, but
+        // models like "SOMATOM go.Up" have multiple capitalized
+        // tokens — Words gets each one.
+        keyboardOptions = KeyboardOptions(
+            capitalization = KeyboardCapitalization.Words,
+        ),
         modifier = Modifier.fillMaxWidth(),
     )
     OutlinedTextField(
@@ -351,6 +364,15 @@ private fun StepEquipment(
         label = { Text("Serial number (optional)") },
         placeholder = { Text("Usually behind the unit") },
         singleLine = true,
+        // Serials are almost always uppercase alphanumeric on the
+        // unit plate. Characters capitalization means every typed
+        // letter starts uppercase, matching the source format
+        // without manual shift.
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Ascii,
+            capitalization = KeyboardCapitalization.Characters,
+            autoCorrect = false,
+        ),
         modifier = Modifier.fillMaxWidth(),
     )
 }

@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.equipseva.app.designsystem.theme.EsRadius
@@ -89,7 +90,17 @@ fun EsBtn(
             .clip(shape)
             .background(v.bg)
             .let { if (v.border != null) it.border(1.dp, v.border, shape) else it }
-            .let { if (!disabled) it.clickable(onClick = onClick) else it }
+            // Use clickable's `enabled` flag instead of skipping the
+            // modifier entirely — a disabled button must still announce
+            // itself as a button to TalkBack ("Disabled, Button") so
+            // users know the affordance exists. Role.Button gives the
+            // a11y service the verb hint ("double-tap to activate") for
+            // every EsBtn callsite in the app at once.
+            .clickable(
+                enabled = !disabled,
+                onClick = onClick,
+                role = Role.Button,
+            )
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = if (full) Arrangement.Center else Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),

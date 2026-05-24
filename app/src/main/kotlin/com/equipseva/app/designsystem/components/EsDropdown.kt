@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -89,7 +90,14 @@ fun EsDropdown(
                         shape = RoundedCornerShape(EsRadius.Md),
                     )
                     .background(if (canExpand) androidx.compose.ui.graphics.Color.White else Paper2)
-                    .clickable(enabled = canExpand) { expanded = true }
+                    // Role.DropdownList tells TalkBack this opens a
+                    // list of choices ("Select Brand, drop-down list,
+                    // double-tap to open"). Without it the trigger
+                    // reads as a generic clickable and users can't
+                    // tell it apart from a passive label.
+                    .clickable(enabled = canExpand, role = Role.DropdownList) {
+                        expanded = true
+                    }
                     .padding(horizontal = 14.dp, vertical = 14.dp),
             ) {
                 Row(
