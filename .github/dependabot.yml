@@ -122,6 +122,23 @@ updates:
       # (seen on the closed androidx-hilt-1.3 spike).
       - dependency-name: "androidx.hilt:*"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # Kotlin Multiplatform third-party libs: supabase-kt 3.6.0, ktor
+      # 3.5.0, and coil 3.4.0 are compiled with Kotlin 2.3.0 binary
+      # metadata. Our project pins Kotlin 2.1.0, so adding these libs
+      # surfaces:
+      #   Module was compiled with an incompatible version of Kotlin.
+      #   The binary version of its metadata is 2.3.0, expected 2.1.0.
+      # First confirmed in the closed #969 (May 25 Monday sweep across
+      # supabase-kt-api, postgrest-kt-api, realtime-kt-api, auth-kt-api,
+      # functions-kt-api, storage-kt-api, ktor-client-*). These libs
+      # ratchet their compile-against Kotlin minor each release, so any
+      # semver-minor brings the wall back. Patch bumps still flow.
+      - dependency-name: "io.github.jan-tennert.supabase:*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "io.ktor:*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "io.coil-kt.coil3:*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
