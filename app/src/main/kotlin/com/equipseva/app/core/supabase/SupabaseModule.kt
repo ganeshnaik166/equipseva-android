@@ -1,9 +1,12 @@
 package com.equipseva.app.core.supabase
 
+import android.content.Context
+import com.equipseva.app.core.auth.EncryptedSessionManager
 import com.equipseva.app.core.util.BuildConfigValues
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
@@ -22,7 +25,7 @@ object SupabaseModule {
 
     @Provides
     @Singleton
-    fun provideSupabaseClient(): SupabaseClient = createSupabaseClient(
+    fun provideSupabaseClient(@ApplicationContext context: Context): SupabaseClient = createSupabaseClient(
         supabaseUrl = BuildConfigValues.supabaseUrl,
         supabaseKey = BuildConfigValues.supabaseAnonKey,
     ) {
@@ -38,7 +41,13 @@ object SupabaseModule {
                 isLenient = true
             },
         )
-        install(Auth)
+        install(Auth) {
+            // Override the default `SettingsSessionManager` (plain
+            // SharedPreferences on Android) with Keystore-backed
+            // EncryptedSharedPreferences. See EncryptedSessionManager
+            // for the storage scheme + the security-audit rationale.
+            sessionManager = EncryptedSessionManager(context)
+        }
         install(Postgrest)
         install(Realtime)
         install(Storage)
