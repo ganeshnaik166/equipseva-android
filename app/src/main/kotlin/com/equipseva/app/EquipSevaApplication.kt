@@ -99,9 +99,16 @@ class EquipSevaApplication : Application(), Configuration.Provider, SingletonIma
         if (BuildConfig.TAMPER_ENFORCE && sigVerdict == SignatureVerifier.Verdict.Tampered) {
             Log.e(TAG, "Tampered signature — refusing to start")
             // Hard-exit before any auth / network / repository code runs.
-            // The Supabase session is encrypted on disk; an attacker
-            // re-signing the APK would need to uninstall the genuine app
-            // first, wiping prefs — so no separate session-wipe needed.
+            // The Supabase session is encrypted at rest via the custom
+            // EncryptedSessionManager (Keystore-backed AES256/GCM); an
+            // attacker re-signing the APK would need to either:
+            //   1. install the new APK alongside the genuine one (different
+            //      package id) — the encrypted session in the genuine
+            //      app's sandbox isn't readable from the tampered package
+            //   2. uninstall the genuine app first, wiping prefs entirely
+            // Either way, no separate session-wipe is needed on tamper
+            // detection — the encryption + sandbox isolation already
+            // protect the tokens.
             android.os.Process.killProcess(android.os.Process.myPid())
             kotlin.system.exitProcess(0)
         }
