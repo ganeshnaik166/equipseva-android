@@ -84,6 +84,35 @@ updates:
       # version variable too so the next sweep doesn't drift.
       - dependency-name: "androidx.lifecycle:*"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # kotlinx-* libs are tied to the Kotlin COMPILER plugin version.
+      # serialization 1.11 + coroutines 1.11 on the runtime classpath
+      # break against compiler-plugin-generated code from Kotlin 2.1.0.
+      # First confirmed in the closed #944, repeated in #961 — both
+      # surfaced `AbstractMethodError` on Room's `FieldBundle$$serializer`
+      # at runtime. Patch bumps still flow.
+      - dependency-name: "org.jetbrains.kotlinx:kotlinx-serialization*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "org.jetbrains.kotlinx:kotlinx-coroutines*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # Room's annotation-processor generates code that depends on the
+      # kotlinx-serialization classpath. Room 2.8.x pulls in the broken
+      # serializer pair when serialization is bumped to 1.11. Pin Room
+      # along with the kotlinx-* libs.
+      - dependency-name: "androidx.room:*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # androidx.navigation minors are tied to lifecycle + Compose BOM.
+      # nav-compose 2.9.8 was bundled with the broken set in #961.
+      - dependency-name: "androidx.navigation:*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # activity-compose minors track the Compose BOM.
+      - dependency-name: "androidx.activity:*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # androidx.hilt:* (hilt-navigation-compose, hilt-work) follow main
+      # Hilt's KSP processor compatibility window. Pin so they don't
+      # bring in transitive androidx.concurrent strict-version conflicts
+      # (seen on the closed androidx-hilt-1.3 spike).
+      - dependency-name: "androidx.hilt:*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
