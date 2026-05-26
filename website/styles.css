@@ -449,7 +449,7 @@ h2{
   background:rgba(255,255,255,.04);border:1px solid var(--line);
   color:#fff;font:inherit;
 }
-.form input:focus,.form textarea:focus,.form select:focus{outline:0;border-color:rgba(0,211,192,.5)}
+.form input:focus,.form textarea:focus,.form select:focus{outline:2px solid rgba(0,211,192,.8);outline-offset:2px;border-color:rgba(0,211,192,.5)}
 .form textarea{min-height:120px;resize:vertical}
 
 /* ============ team / about ============ */
@@ -476,4 +476,22 @@ h2{
 @media (prefers-reduced-motion:reduce){
   .float{animation:none}
   .strip-track{animation:none}
+}
+
+/* ============ a11y: skip-to-content + keyboard focus ring ============ */
+.skip-link{
+  position:absolute;left:8px;top:8px;z-index:9999;
+  padding:10px 14px;border-radius:10px;
+  background:#0b1220;color:#fff;font-weight:600;text-decoration:none;
+  transform:translateY(-200%);transition:transform .15s ease;
+}
+.skip-link:focus,.skip-link:focus-visible{
+  transform:translateY(0);
+  outline:2px solid var(--teal);outline-offset:2px;
+}
+.nav-links a:focus-visible,.btn:focus-visible,.burger:focus-visible,
+.brand:focus-visible,.mobile-menu a:focus-visible,.foot a:focus-visible{
+  outline:2px solid var(--teal);
+  outline-offset:3px;
+  border-radius:4px;
 }
