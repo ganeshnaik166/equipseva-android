@@ -4,17 +4,27 @@ on:
   pull_request:
     paths:
       - 'docs/.well-known/assetlinks.json'
+      - 'docs/security/assetlinks.json'
+      - 'well-known/.well-known/assetlinks.json'
+      - 'website/.well-known/assetlinks.json'
+      - 'scripts/sync-assetlinks.sh'
       - '.github/workflows/check-assetlinks.yml'
   push:
     branches: [main]
     paths:
       - 'docs/.well-known/assetlinks.json'
+      - 'docs/security/assetlinks.json'
+      - 'well-known/.well-known/assetlinks.json'
+      - 'website/.well-known/assetlinks.json'
 
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
+      - name: All assetlinks mirrors stay byte-identical to canonical
+        run: ./scripts/sync-assetlinks.sh --check
 
       - name: Validate JSON shape and SHA-256 format
         run: |
