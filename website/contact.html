@@ -17,6 +17,7 @@
 </script>
 </head>
 <body>
+<a href="#top" class="skip-link">Skip to main content</a>
 <div class="scroll-progress" aria-hidden="true"><span></span></div>
 <header class="nav" id="nav">
   <a class="brand" href="index.html"><span class="brand-mark"><svg viewBox="0 0 32 32" width="28" height="28"><rect width="32" height="32" rx="8" fill="url(#g)"/><path d="M9 11h14v3.5h-5.25v9.5h-3.5v-9.5H9z" fill="#fff"/><defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#00d3c0"/><stop offset="1" stop-color="#0070f3"/></linearGradient></defs></svg></span><span class="brand-text">EquipSeva</span></a>
@@ -26,7 +27,7 @@
 </header>
 <nav class="mobile-menu"><a href="features.html">Features</a><a href="how-it-works.html">How it works</a><a href="for-hospitals.html">Hospitals</a><a href="for-engineers.html">Engineers</a><a href="pricing.html">Pricing</a><a href="blog/index.html">Blog</a><a href="about.html">About</a><a href="contact.html">Contact</a></nav>
 
-<main>
+<main id="top">
   <section class="page-hero">
     <div class="hero-bg" aria-hidden="true"><div class="blob b1"></div><div class="blob b2"></div><div class="grid-overlay"></div></div>
     <p class="crumbs split-up"><a href="index.html">Home</a> / Contact</p>
@@ -42,7 +43,7 @@
       <div class="trust-card reveal"><h3>Security &amp; press</h3><p><a href="mailto:security@equipseva.com" style="color:#00d3c0">security@equipseva.com</a></p></div>
     </div>
 
-    <form id="form" class="form reveal" onsubmit="event.preventDefault();this.querySelector('button').textContent='Sent ✓';this.querySelector('button').disabled=true;">
+    <form id="form" class="form reveal" novalidate>
       <div>
         <label for="role">I am a…</label>
         <select id="role" name="role" required>
@@ -59,8 +60,44 @@
       <div><label for="org">Organisation</label><input id="org" name="org" type="text" /></div>
       <div><label for="msg">How can we help?</label><textarea id="msg" name="msg" required></textarea></div>
       <button type="submit" class="btn btn-primary">Send message</button>
+      <p id="form-status" class="muted" role="status" aria-live="polite" style="font-size:13px;min-height:1.2em"></p>
       <p class="muted" style="font-size:13px">By submitting you agree to our <a href="privacy.html" style="color:#00d3c0">Privacy Policy</a>.</p>
     </form>
+    <script>
+      (function(){
+        var INBOX = {
+          'Hospital admin / procurement': 'sales@equipseva.com',
+          'Hospital chain group': 'sales@equipseva.com',
+          'Biomedical engineer': 'engineers@equipseva.com',
+          'Partner / supplier': 'sales@equipseva.com',
+          'Press / other': 'support@equipseva.com'
+        };
+        var form = document.getElementById('form');
+        var status = document.getElementById('form-status');
+        form.addEventListener('submit', function(e){
+          e.preventDefault();
+          if (!form.checkValidity()) { form.reportValidity(); return; }
+          var role = form.role.value;
+          var name = form.name.value.trim();
+          var email = form.email.value.trim();
+          var org = form.org.value.trim();
+          var msg = form.msg.value.trim();
+          var to = INBOX[role] || 'support@equipseva.com';
+          var subject = '[' + role + '] enquiry from ' + (name || 'EquipSeva website');
+          var body =
+            'Role: ' + role + '\n' +
+            'Name: ' + name + '\n' +
+            'Email: ' + email + '\n' +
+            (org ? 'Organisation: ' + org + '\n' : '') +
+            '\n' + msg + '\n';
+          var href = 'mailto:' + to +
+            '?subject=' + encodeURIComponent(subject) +
+            '&body=' + encodeURIComponent(body);
+          status.textContent = 'Opening your email app — finish by tapping Send. If nothing opens, email ' + to + ' directly.';
+          window.location.href = href;
+        });
+      })();
+    </script>
   </section>
 </main>
 
