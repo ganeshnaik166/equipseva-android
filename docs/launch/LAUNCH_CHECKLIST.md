@@ -87,7 +87,7 @@ If you'd rather use Zoho Mail Free or Google Workspace later (real mailboxes per
 - [ ] **Feature graphic** — 1024×500 PNG. Brand banner with tagline.
 - [ ] **8+ phone screenshots** — 1080×1920 (or 1920×1080). Suggested order in [STORE_LISTING.md](./STORE_LISTING.md#screenshots-need-design-output).
 
-Easiest path if no designer: use Figma's "Smart Animate" Play-Store templates + your real running app as source. A junior designer can do it in a day.
+Hand off [`DESIGNER_BRIEF.md`](./DESIGNER_BRIEF.md) to whoever designs the v1 visual assets — it consolidates icon, feature graphic, screenshots, OG card, brand palette, and the "v1 is service-only" context that older docs miss. A junior designer can do it in a day.
 
 ---
 
