@@ -158,3 +158,4 @@ app/src/main/kotlin/com/equipseva/app/
 ## Release
 
 Signed AAB is produced by `release-aab.yml` on `v*` tag push. Required repo secrets are listed at the top of that workflow. Upload the AAB attached to the GitHub Release to Play Console.
+
