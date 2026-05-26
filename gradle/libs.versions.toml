@@ -37,7 +37,7 @@ robolectric = "4.16.1"
 androidxTestCore = "1.7.0"
 androidxTestRunner = "1.7.0"
 razorpay = "1.6.41"
-sqlcipher = "4.5.4"
+sqlcipher = "4.6.1"
 sqliteAndroidx = "2.6.2"
 securityCrypto = "1.1.0"
 playIntegrity = "1.6.0"
@@ -119,8 +119,13 @@ sentry-android = { module = "io.sentry:sentry-android", version.ref = "sentry" }
 # Razorpay Standard Checkout (Android SDK)
 razorpay-checkout = { module = "com.razorpay:checkout", version.ref = "razorpay" }
 
-# SQLCipher for Room at-rest encryption
-sqlcipher-android = { module = "net.zetetic:android-database-sqlcipher", version.ref = "sqlcipher" }
+# SQLCipher for Room at-rest encryption.
+# Migrated from net.zetetic:android-database-sqlcipher 4.5.x (deprecated,
+# 4-KB-aligned native libs) to net.zetetic:sqlcipher-android 4.6.x. The
+# new artifact ships 16-KB-page-aligned arm64-v8a libs required for
+# future Android 15+ devices with 16-KB page sizes (already shipping on
+# Pixel 8+). Package change: `net.sqlcipher.database` → `net.zetetic.database.sqlcipher`.
+sqlcipher-android = { module = "net.zetetic:sqlcipher-android", version.ref = "sqlcipher" }
 androidx-sqlite = { module = "androidx.sqlite:sqlite", version.ref = "sqliteAndroidx" }
 
 # EncryptedSharedPreferences (Keystore-backed AEAD) for UserPrefs
