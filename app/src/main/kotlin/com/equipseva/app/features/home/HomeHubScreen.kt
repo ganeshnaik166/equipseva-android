@@ -38,6 +38,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
@@ -382,7 +383,7 @@ private fun SpotAuditSheetBody(
     submitting: Boolean,
     onSubmit: (rating: Int, feedback: String?) -> Unit,
 ) {
-    var rating by rememberSaveable { androidx.compose.runtime.mutableStateOf(0) }
+    var rating by rememberSaveable { mutableIntStateOf(0) }
     var feedback by rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
     Column(
         modifier = Modifier

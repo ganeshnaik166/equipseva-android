@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -197,7 +198,7 @@ fun AmcPaymentSheet(
     // process death — `remember` reset to `initialMonths` on every config
     // change, forcing a user to re-pick e.g. 6 if they had just selected
     // it before the orientation flip.
-    var months by rememberSaveable { mutableStateOf(initialMonths) }
+    var months by rememberSaveable { mutableIntStateOf(initialMonths) }
     val total = monthlyFeeRupees * months
 
     LaunchedEffect(state.error) {

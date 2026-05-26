@@ -49,6 +49,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -89,8 +90,8 @@ fun RequestServiceScreen(
     viewModel: RequestServiceViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var step by rememberSaveable { mutableStateOf(0) }
-    var selectedSlot by rememberSaveable { mutableStateOf(-1) }
+    var step by rememberSaveable { mutableIntStateOf(0) }
+    var selectedSlot by rememberSaveable { mutableIntStateOf(-1) }
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()

@@ -63,6 +63,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -2367,7 +2368,7 @@ private fun RateSheet(
         RepairJobDetailViewModel.ViewerRole.Engineer -> job.engineerRating
         RepairJobDetailViewModel.ViewerRole.Other -> null
     }
-    var rating by rememberSaveable(existing) { mutableStateOf(existing ?: 0) }
+    var rating by rememberSaveable(existing) { mutableIntStateOf(existing ?: 0) }
     var note by rememberSaveable { mutableStateOf("") }
     val labels = listOf("Poor", "Fair", "Good", "Great", "Excellent")
     val sheetTitle = when (viewerRole) {
