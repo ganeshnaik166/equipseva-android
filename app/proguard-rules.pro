@@ -29,9 +29,11 @@
 -keep class androidx.room.** { *; }
 
 # SQLCipher native bindings are JNI-linked; R8 full-mode will otherwise strip
-# the class that the .so resolves symbols against.
--keep class net.sqlcipher.** { *; }
--keep class net.sqlcipher.database.** { *; }
+# the class that the .so resolves symbols against. Migrated to the new
+# net.zetetic:sqlcipher-android artifact (4.6.x) for 16-KB-page-aligned
+# native libs; new package root is `net.zetetic.database.sqlcipher`.
+-keep class net.zetetic.database.** { *; }
+-keep class net.zetetic.database.sqlcipher.** { *; }
 
 # Anti-tamper runtime checks — called reflectively via the obfuscated
 # Application subclass, but keep the public API intact for clarity.
