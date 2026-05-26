@@ -10,25 +10,19 @@ Total wall-clock: ~30 minutes if Play Console is already set up.
 
 ## 1. Host `assetlinks.json` at `https://equipseva.com/.well-known/assetlinks.json`
 
-**Why:** the `/pay/return` deep link in `AndroidManifest.xml` declares
-`android:autoVerify="true"`. Without the file hosted, Android falls
-back to the chooser dialog and any rogue app declaring the same filter
-can race to harvest `order_id`. See `app-links-deployment.md` for full
-threat model.
+**Why:** `AndroidManifest.xml` declares `autoVerify="true"` on the App Link
+intent filter covering `/job/…`, `/chat/…`, `/engineer/…`, `/engineers`,
+and `/notifications` on `equipseva.com`. Without the assetlinks file hosted,
+Android falls back to the chooser dialog and any rogue app declaring the same
+filter can race the user's tap. See `app-links-deployment.md` for the full
+threat model and current path list.
 
-**Deploy:** the `well-known/` directory at the repo root is a tiny
-static site ready to push to Vercel / GitHub Pages / Cloudflare.
-
-```bash
-cd well-known
-npx vercel --prod
-# Link to or create a Vercel project, attach the apex domain
-# equipseva.com (or a subdomain you alias). vercel.json pins
-# Content-Type: application/json on the well-known path.
-```
-
-Or follow the GitHub Pages / Cloudflare Pages / existing-webserver
-options in `well-known/README.md`.
+**Deploy:** already live — GitHub Pages serves `docs/.well-known/assetlinks.json`
+at the required URL (Pages source = `main:/docs`). The `well-known/`
+directory at the repo root is an alternate-host plan kept as a fallback
+(Vercel / Cloudflare / standalone webserver instructions in
+`well-known/README.md`); `scripts/sync-assetlinks.sh` keeps it byte-
+identical to the served file.
 
 **Verify:**
 
@@ -154,13 +148,13 @@ EXPECTED_CERT_SHA256 = <UPLOAD_BASE64>,<PLAY_BASE64>
 The build's `localOrEnv("EXPECTED_CERT_SHA256")` picks up either path
 (`app/build.gradle.kts:55`).
 
-**Step 4 — add Play SHA-256 to `assetlinks.json`** (same value, but as
-colon-hex form, into the `sha256_cert_fingerprints` array in the
-canonical file `docs/.well-known/assetlinks.json`, then run
-`./scripts/sync-assetlinks.sh` to propagate to the three mirrors
-(`docs/security/`, `well-known/.well-known/`, `website/.well-known/`).
-The `Check assetlinks.json` CI workflow blocks any PR where the four
-copies drift.
+**Step 4 — add Play SHA-256 to `assetlinks.json`**. Same value as the
+upload-key entry, but in colon-hex form, appended to the
+`sha256_cert_fingerprints` array in the canonical file
+`docs/.well-known/assetlinks.json`. Then run `./scripts/sync-assetlinks.sh`
+to propagate to the three mirrors (`docs/security/`, `well-known/.well-known/`,
+`website/.well-known/`). The `Check assetlinks.json` CI workflow blocks any
+PR where the four copies drift.
 
 **Step 5 — flip enforcement** when ready (release build only):
 

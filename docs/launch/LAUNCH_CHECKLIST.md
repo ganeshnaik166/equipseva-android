@@ -38,7 +38,7 @@ The repo is wired to publish via **GitHub Pages** at `equipseva.com` (CNAME ship
 
 ### Why the assetlinks file matters
 
-App Link binding for the Razorpay payment-return deep link (`https://equipseva.com/pay/return`) requires the SHA-256 of the signing certificate to be served at `/.well-known/assetlinks.json`. The repo serves it from `docs/.well-known/assetlinks.json`. **After Step 7 of this runbook (post-first-Play-upload), update that file with the App-Signing SHA-256 from Play Console — see §7.**
+App Link bindings for the in-app deep links (`/job/…`, `/chat/…`, `/engineer/…`, `/engineers`, `/notifications` — see `AndroidManifest.xml` + `DeepLinkRouter.routeForParts`) require the SHA-256 of the signing certificate to be served at `/.well-known/assetlinks.json`. The repo serves it from `docs/.well-known/assetlinks.json`. **After Step 7 of this runbook (post-first-Play-upload), update that file with the App-Signing SHA-256 from Play Console — see §7.** Razorpay's payment return is handled in-process via `MainActivity.onPaymentSuccess` / `onPaymentError`; no web redirect is involved.
 
 ### Alternative hosts (if you'd rather not use Pages)
 
@@ -111,7 +111,8 @@ Easiest path if no designer: use Figma's "Smart Animate" Play-Store templates + 
 
 - [ ] Install the latest debug APK on a real Android device (not emulator).
 - [ ] Sign up as a hospital, place a spare-part order, complete payment via **Razorpay test mode**.
-- [ ] Confirm the `https://equipseva.com/pay/return?order_id=…` deep-link returns to the app and shows order status.
+- [ ] Confirm Razorpay payment success returns to the app via the in-process callback (`MainActivity.onPaymentSuccess`) and the success screen shows order status.
+- [ ] Confirm an App Link tap (e.g. notification → `https://equipseva.com/job/RPR-00001`) opens the job-detail screen directly without the chooser dialog.
 - [ ] Place a second order, cancel it, confirm refund status flows through Razorpay test dashboard.
 - [ ] Sign up as an engineer, complete KYC, bid on a job, confirm escrow + payout flow.
 
@@ -147,8 +148,10 @@ bash scripts/compute_signing_sha.sh --hex AB:CD:EF:01:23:...:FF
 #   base64    : K83v...        ← copy this into the GitHub secret
 
 # 2. Update docs/.well-known/assetlinks.json with the same SHA so the
-#    https://equipseva.com/pay/return App Link binds to the production APK.
+#    App Link paths (/job/, /chat/, /engineer/, /engineers, /notifications)
+#    bind to the Play-distributed APK. Then sync mirrors.
 bash scripts/update_assetlinks.sh AB:CD:EF:01:23:...:FF
+bash scripts/sync-assetlinks.sh
 
 # 3. Commit + push the assetlinks update.
 git add docs/.well-known/assetlinks.json
