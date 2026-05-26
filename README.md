@@ -10,7 +10,7 @@ The marketplace / parts-cart leg that lived in early Phase 1 has been retired �
 |---|---|
 | Language | Kotlin 2.x |
 | UI | Jetpack Compose + Material 3 |
-| Min / target / compile SDK | 26 / 35 / 35 |
+| Min / target / compile SDK | 26 / 35 / 36 |
 | Build | Gradle KTS + version catalog |
 | DI | Hilt + KSP |
 | Networking | Ktor (via supabase-kt) + OkHttp engine |
@@ -66,7 +66,7 @@ Bundle id: `com.equipseva.app` (release) / `com.equipseva.app.debug` (debug).
 
 ## Testing posture
 
-`./gradlew :app:testDebugUnitTest` runs the pure-JUnit / Robolectric suite — **2,400+ `@Test` methods across 280 test files**, covering every `internal fun` helper in `app/src/main` plus the outbox handler integration paths.
+`./gradlew :app:testDebugUnitTest` runs the pure-JUnit / Robolectric suite — **2,470+ `@Test` methods across 295 test files**, covering every `internal fun` helper in `app/src/main` plus the outbox handler integration paths.
 
 The codebase follows a **helper-extraction + behaviour-pinning** strategy: any non-trivial gate / formatter / classifier is lifted out of its Compose / ViewModel / Repository scaffold into an `internal fun` and pinned by tests that include regression targets (server CHECK mirrors, glyph codepoints, locale stability, Unicode middle-dot / em-dash / arrow positions, role-aware copy, Trust-and-Safety cross-user gates).
 
