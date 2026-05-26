@@ -41,10 +41,12 @@ curl -s 'https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.
 ```
 
 After the first AAB upload to Play (item 3 below), append the Play App
-Signing key SHA-256 to BOTH `well-known/assetlinks.json` AND
-`docs/security/assetlinks.json` under the `com.equipseva.app` target,
-re-deploy. Without that, Play-distributed installs fail App Link
-verification.
+Signing key SHA-256 to the canonical file `docs/.well-known/assetlinks.json`
+under the `com.equipseva.app` target, then run `./scripts/sync-assetlinks.sh`
+to sync the three repo mirrors (`docs/security/`, `well-known/`,
+`website/`). The CI check (`Check assetlinks.json`) refuses any merge
+where the mirrors have drifted. Without the Play SHA-256 in the live
+file, Play-distributed installs fail App Link verification.
 
 ---
 
@@ -153,9 +155,12 @@ The build's `localOrEnv("EXPECTED_CERT_SHA256")` picks up either path
 (`app/build.gradle.kts:55`).
 
 **Step 4 — add Play SHA-256 to `assetlinks.json`** (same value, but as
-colon-hex form, into the `sha256_cert_fingerprints` array in BOTH
-`well-known/assetlinks.json` and `docs/security/assetlinks.json`).
-Re-deploy `well-known/`.
+colon-hex form, into the `sha256_cert_fingerprints` array in the
+canonical file `docs/.well-known/assetlinks.json`, then run
+`./scripts/sync-assetlinks.sh` to propagate to the three mirrors
+(`docs/security/`, `well-known/.well-known/`, `website/.well-known/`).
+The `Check assetlinks.json` CI workflow blocks any PR where the four
+copies drift.
 
 **Step 5 — flip enforcement** when ready (release build only):
 
@@ -210,9 +215,10 @@ curl -X POST 'https://eyswaywvtartpvtoxtdr.supabase.co/functions/v1/ingest_openf
 - [x] `assetlinks.json` returns 200 with `application/json` at the
       well-known URL (live via GitHub Pages, Google verifier accepts
       both `com.equipseva.app` + `com.equipseva.app.debug`)
-- [ ] Add Play App Signing SHA-256 to `assetlinks.json` (BOTH
-      well-known/.well-known/assetlinks.json AND
-      docs/security/assetlinks.json) after first AAB upload
+- [ ] Add Play App Signing SHA-256 to the canonical file
+      `docs/.well-known/assetlinks.json` after first AAB upload,
+      then run `./scripts/sync-assetlinks.sh` to update the three
+      mirrors (CI enforces byte-equality on every PR)
 - [x] HIBP — DEFERRED for v1 (Pro-tier-only feature). Path forward
       documented above (upgrade OR client-side k-anonymity check).
 - [ ] `EXPECTED_CERT_SHA256` populated in `local.properties` AND CI
