@@ -16,6 +16,15 @@ Deletion: users can request deletion in-App (Profile → Privacy → Delete my a
 
 ## Data types collected
 
+### Location
+
+The App requests `ACCESS_FINE_LOCATION` + `ACCESS_COARSE_LOCATION`. Engineers set/share a service location (saved to the `engineers` table so hospitals can match + track the visit); hospitals attach a location to a repair job for dispatch; "engineers near you" uses device location to sort results. This data is sent off-device, so it is **Collected**.
+
+| Type | Collected | Shared | Required | Purposes |
+|---|---|---|---|---|
+| **Approximate location** | Yes | Shared with the counterparty on a job (hospital ↔ matched engineer) only | Optional | App functionality (engineer matching, "near you" sorting) |
+| **Precise location** | Yes | Shared with the counterparty on a job (hospital sees the matched engineer's location for live tracking; engineer sees the job location) | Required for engineers (must set a service location to receive jobs) / Optional when only browsing | App functionality (live engineer tracking, dispatch, on-site navigation) |
+
 ### Personal info
 
 | Type | Collected | Shared | Required | Purposes |
