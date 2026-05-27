@@ -116,17 +116,20 @@ fi
 
 # ── 3. release keystore present (when not in CI loose mode) ────────
 echo "[3/3] release keystore"
-KS_PROPS="$ROOT_DIR/keystore.properties"
+# Lives in the :app module dir — that's where app/build.gradle.kts reads it
+# (project.file("keystore.properties")) and where release-aab.yml writes it.
+KS_PROPS="$ROOT_DIR/app/keystore.properties"
 if [[ ! -f "$KS_PROPS" ]]; then
-  fail "keystore.properties missing — release build will fall back to debug signing (never publish that AAB)"
+  fail "app/keystore.properties missing — release build will fall back to debug signing (never publish that AAB)"
 else
   # storeFile lives in keystore.properties (it's the canonical Gradle
-  # convention), not local.properties — read from there first.
+  # convention), not local.properties — read from there first. Gradle
+  # resolves it via project.file(), i.e. relative to the app/ module dir.
   STORE_FILE="$(get_prop storeFile "$KS_PROPS" "$LOCAL_PROPS")"
   if [[ -z "$STORE_FILE" ]]; then
-    fail "keystore.properties present but storeFile= line is empty"
-  elif [[ ! -f "$ROOT_DIR/$STORE_FILE" && ! -f "$STORE_FILE" ]]; then
-    fail "keystore.properties references storeFile=$STORE_FILE but that file doesn't exist"
+    fail "app/keystore.properties present but storeFile= line is empty"
+  elif [[ ! -f "$ROOT_DIR/app/$STORE_FILE" && ! -f "$STORE_FILE" ]]; then
+    fail "app/keystore.properties references storeFile=$STORE_FILE but that file doesn't exist"
   else
     ok "release keystore present"
   fi
