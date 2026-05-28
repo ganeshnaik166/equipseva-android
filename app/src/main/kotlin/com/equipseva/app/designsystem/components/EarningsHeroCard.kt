@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.equipseva.app.designsystem.theme.BrandGreenDark
 import com.equipseva.app.designsystem.theme.Spacing
+import java.util.Locale
 
 // Gradient hero card for engineer earnings. Uses PremiumGradientSurfaceDark.
 @Composable
@@ -104,4 +105,4 @@ private fun EarningsSplit(
     }
 }
 
-private fun formatRupees(v: Double): String = String.format("%,.0f", v)
+private fun formatRupees(v: Double): String = String.format(Locale.ENGLISH, "%,.0f", v)
