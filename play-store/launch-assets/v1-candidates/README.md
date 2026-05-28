@@ -8,6 +8,8 @@ First-cut assets generated 2026-04-30 from the existing brand SVG (`~/Downloads/
 |---|---|---|
 | `icon-512x512.png` | High-res app icon master | Store listing → Graphics → App icon |
 | `feature-graphic-1024x500.png` | Feature graphic | Store listing → Graphics → Feature graphic |
+| `screenshots/01-welcome.png` | Cold-start welcome (logo + tagline + sign-in/create-account CTAs). 1080×2400 portrait. | Store listing → Graphics → Phone screenshots |
+| `screenshots/02-signin.png` | Sign-in form (empty, no PII). 1080×2400 portrait. | Store listing → Graphics → Phone screenshots |
 
 ## Specs
 
@@ -56,4 +58,4 @@ PY
 
 ## Still needed for v1 submission
 
-- **8 phone screenshots** — capture from emulator after #214 (round 2 design) merges. Suggested set per the v1 scope (Book Repair + Engineer Jobs only): welcome / role select / hospital home / engineer home / repair-job detail / engineer directory / KYC submitted / chat.
+The 2 captured screenshots (welcome + signin) meet Play's minimum-of-2 phone-screenshot requirement, so submission is unblocked. For a richer listing, capture additional screens from a signed-in device — suggested set per the v1 scope (Book Repair + Engineer Jobs only): role select / hospital home / engineer home / repair-job detail / engineer directory / KYC submitted / chat. Use `bash play-store/launch-assets/capture-screenshots.sh` (interactive helper).
