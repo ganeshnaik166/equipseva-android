@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import java.util.Locale
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
 import com.equipseva.app.designsystem.theme.Info
@@ -118,7 +119,7 @@ fun BidCard(
                     modifier = Modifier.size(14.dp),
                 )
                 Text(
-                    text = String.format("%.1f", rating),
+                    text = String.format(Locale.ENGLISH, "%.1f", rating),
                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
                     color = Ink700,
                 )
@@ -141,7 +142,7 @@ fun BidCard(
             }
         }
         Text(
-            text = "₹" + String.format("%,.0f", amountRupees),
+            text = "₹" + String.format(Locale.ENGLISH, "%,.0f", amountRupees),
             style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.SemiBold,
             ),
