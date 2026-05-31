@@ -664,6 +664,17 @@ fun MainNavGraph(
                     onShowMessage = showSnackbar,
                 )
             }
+            composable(Routes.HOSPITAL_ONBOARDING) {
+                // v0.2.0 mandatory onboarding for hospital admins (phone +
+                // state + district). On Done we pop the back stack so the
+                // user lands on whatever was below (Home, typically). When
+                // PR #1017 adds the auto-gate, this same pop semantics
+                // returns to Home cleanly after the save round-trips.
+                com.equipseva.app.features.onboarding.HospitalOnboardingScreen(
+                    onDone = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
+                )
+            }
             composable(
                 route = "${Routes.REQUEST_SENT}?jobId={jobId}&jobNumber={jobNumber}",
                 arguments = listOf(
