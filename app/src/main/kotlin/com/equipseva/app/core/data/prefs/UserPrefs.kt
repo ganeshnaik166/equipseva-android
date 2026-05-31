@@ -36,6 +36,7 @@ class UserPrefs @Inject constructor(
         val ACTIVE_ROLE = stringPreferencesKey("active_role")
         val THEME = stringPreferencesKey("theme")
         val ONBOARDING_DONE = stringPreferencesKey("onboarding_done")
+        val V2_ONBOARDING_COMPLETE = booleanPreferencesKey("v2_onboarding_complete")
         val MUTED_PUSH_CATEGORIES = stringSetPreferencesKey("muted_push_categories")
         val TOUR_SEEN = booleanPreferencesKey("tour_seen")
         val QUIET_HOURS_ENABLED = booleanPreferencesKey("quiet_hours_enabled")
@@ -105,6 +106,28 @@ class UserPrefs @Inject constructor(
     suspend fun markOnboardingDone() {
         securePrefs.putString(SecureKeys.ONBOARDING_DONE, "1")
         context.prefsStore.edit { it.remove(Keys.ONBOARDING_DONE) }
+    }
+
+    /**
+     * Sticky cache of the v0.2.0 onboarding completion state (phone +
+     * state + district). Set to true the first time the server says
+     * `hasCompletedV2Onboarding == true`; lets [SessionViewModel] take a
+     * fast-path to Ready on cold start without waiting for the profile
+     * fetch, so onboarded users don't see a fresh splash every launch.
+     *
+     * Sticky-by-design: never cleared except on sign-out (via
+     * [SignOutCleanup]). The server-side guard is the ground truth; a
+     * stale `true` here just means we briefly trust the cache, then the
+     * background fetch corrects course on the next foreground.
+     */
+    val v2OnboardingComplete: Flow<Boolean> =
+        context.prefsStore.data.map { it[Keys.V2_ONBOARDING_COMPLETE] == true }
+
+    suspend fun setV2OnboardingComplete(complete: Boolean) {
+        context.prefsStore.edit { prefs ->
+            if (complete) prefs[Keys.V2_ONBOARDING_COMPLETE] = true
+            else prefs.remove(Keys.V2_ONBOARDING_COMPLETE)
+        }
     }
 
     /**
