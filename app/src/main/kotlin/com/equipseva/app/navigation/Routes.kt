@@ -58,6 +58,12 @@ object Routes {
     const val REQUEST_SERVICE = "hospital/request_service"
     const val HOSPITAL_ACTIVE_JOBS = "hospital/active_jobs"
 
+    // v0.2.0 mandatory onboarding gate: phone + state + district capture
+    // for hospital admins immediately after sign-up / first launch. Soft
+    // redirect from HomeHub when `Profile.hasCompletedV2Onboarding` is
+    // false; full AppNavGraph-level gating lands in a follow-up.
+    const val HOSPITAL_ONBOARDING = "hospital/onboarding"
+
     // Confirmation landing after a successful repair-job submit. Optional
     // jobId + jobNumber query args drive the "View job" CTA + display copy.
     const val REQUEST_SENT = "hospital/request_sent"

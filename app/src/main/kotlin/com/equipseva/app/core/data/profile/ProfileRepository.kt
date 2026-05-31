@@ -24,6 +24,8 @@ interface ProfileRepository {
         phone: String? = null,
         email: String? = null,
         avatarUrl: String? = null,
+        state: String? = null,
+        district: String? = null,
     ): Result<Unit>
 
     /**
