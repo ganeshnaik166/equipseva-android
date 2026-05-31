@@ -30,7 +30,15 @@ data class Profile(
     val emailVerified: Boolean = false,
     /** True iff Supabase has confirmed the phone (auth.users.phone_confirmed_at). */
     val phoneVerified: Boolean = false,
+    /** Indian state (e.g. "Telangana"). Mandatory at hospital onboarding (v0.2.0). */
+    val state: String? = null,
+    /** District within state (e.g. "Hyderabad"). Mandatory at hospital onboarding (v0.2.0). */
+    val district: String? = null,
 ) {
+
+    /** True when the v0.2.0 onboarding gate is satisfied: phone + state + district set. */
+    val hasCompletedV2Onboarding: Boolean
+        get() = !phone.isNullOrBlank() && !state.isNullOrBlank() && !district.isNullOrBlank()
     val displayName: String
         get() = fullName?.takeIf { it.isNotBlank() }
             ?: email?.substringBefore('@')
@@ -82,5 +90,7 @@ internal fun ProfileDto.toDomain(): Profile {
         buyerKycStatus = buyerKycStatus ?: "unsubmitted",
         emailVerified = emailVerified,
         phoneVerified = phoneVerified,
+        state = state,
+        district = district,
     )
 }

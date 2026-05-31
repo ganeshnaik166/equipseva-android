@@ -115,6 +115,8 @@ class SupabaseProfileRepository @Inject constructor(
         phone: String?,
         email: String?,
         avatarUrl: String?,
+        state: String?,
+        district: String?,
     ): Result<Unit> = runCatching {
         // Defense-in-depth: reject calls that try to mutate someone else's
         // profile before the network round-trip. RLS would also block the
@@ -143,6 +145,11 @@ class SupabaseProfileRepository @Inject constructor(
                 if (phone != null) put("phone", JsonPrimitive(phone.take(20)))
                 if (email != null) put("email", JsonPrimitive(email))
                 if (avatarUrl != null) put("avatar_url", JsonPrimitive(avatarUrl))
+                // Round 419 — state + district: 64-char server-side CHECK from
+                // migration 20260531200000. Clamp at the repo boundary so a
+                // stale UI state doesn't surface a confusing 23514.
+                if (state != null) put("state", JsonPrimitive(state.take(64)))
+                if (district != null) put("district", JsonPrimitive(district.take(64)))
             },
         ) {
             filter { eq("id", userId) }

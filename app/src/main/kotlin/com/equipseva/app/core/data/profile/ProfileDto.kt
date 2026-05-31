@@ -24,6 +24,11 @@ data class ProfileDto(
     // without round-tripping the auth schema on every load.
     @SerialName("email_verified") val emailVerified: Boolean = false,
     @SerialName("phone_verified") val phoneVerified: Boolean = false,
+    // Onboarding-gate fields (round 419 / v0.2.0). Captured mandatorily on
+    // first sign-up via HospitalOnboardingScreen so the directory + matching
+    // can sort by geography. Nullable for legacy rows pre-v0.2.0.
+    val state: String? = null,
+    val district: String? = null,
     val organizations: OrganizationSummaryDto? = null,
 )
 
