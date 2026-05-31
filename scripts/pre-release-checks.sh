@@ -26,7 +26,7 @@ UPLOAD_PACKAGE="com.equipseva.app"
 # EXPECTED_CERT_SHA256 must reference the same upload key. If you ever
 # rotate the upload key, update this constant + the assetlinks file +
 # every CI secret in lockstep.
-UPLOAD_KEY_SHA_HEX="92:B9:05:A8:19:7D:0C:54:E2:91:8B:27:75:DD:9A:F8:C9:A6:F5:13:8F:8C:59:17:77:80:FD:DF:67:A2:D1:C1"
+UPLOAD_KEY_SHA_HEX="26:7D:10:8D:5A:5D:97:C9:2E:29:78:FE:FC:9C:57:30:60:FC:93:21:6E:B8:0A:4C:01:58:16:58:FC:3E:0F:D0"
 
 red() { printf "\033[31m%s\033[0m\n" "$*"; }
 green() { printf "\033[32m%s\033[0m\n" "$*"; }
@@ -77,8 +77,8 @@ echo "[1/3] EXPECTED_CERT_SHA256 (anti-repackaging guard)"
 EXP_SHA="$(get_prop EXPECTED_CERT_SHA256)"
 if [[ -z "$EXP_SHA" ]]; then
   fail "EXPECTED_CERT_SHA256 not set in local.properties or env. SignatureVerifier silently skips when empty — release builds would ship without anti-repackaging enforcement."
-elif [[ ! "$EXP_SHA" =~ ^[A-Za-z0-9+/]+=*$ ]]; then
-  fail "EXPECTED_CERT_SHA256 set but doesn't look like base64. Use: 'keytool -list -v ... | grep SHA256' then base64-encode the raw 32-byte digest (NOT the colon-hex)."
+elif [[ ! "$EXP_SHA" =~ ^[A-Za-z0-9+/]+=*(,[A-Za-z0-9+/]+=*)*$ ]]; then
+  fail "EXPECTED_CERT_SHA256 set but doesn't look like base64 (or comma-separated base64 list). Use: 'keytool -list -v ... | grep SHA256' then base64-encode the raw 32-byte digest (NOT the colon-hex). For multi-key: 'upload-b64,playsigning-b64'."
 elif [[ "${#EXP_SHA}" -lt 40 ]]; then
   fail "EXPECTED_CERT_SHA256 too short (got ${#EXP_SHA} chars; expected ~44 for a 32-byte digest)."
 else
