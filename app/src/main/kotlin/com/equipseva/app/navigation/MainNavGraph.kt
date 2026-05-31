@@ -667,10 +667,21 @@ fun MainNavGraph(
             composable(Routes.HOSPITAL_ONBOARDING) {
                 // v0.2.0 mandatory onboarding for hospital admins (phone +
                 // state + district). On Done we pop the back stack so the
-                // user lands on whatever was below (Home, typically). When
-                // PR #1017 adds the auto-gate, this same pop semantics
-                // returns to Home cleanly after the save round-trips.
+                // user lands on whatever was below (Home, typically). The
+                // PR #1017 AppNavGraph auto-gate also mounts this screen
+                // outside the main graph for cold-start; both entries
+                // share the same pop semantics.
                 com.equipseva.app.features.onboarding.HospitalOnboardingScreen(
+                    onDone = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
+                )
+            }
+            composable(Routes.ENGINEER_ONBOARDING) {
+                // Engineer counterpart — same shape, same nav semantics.
+                // After save, AppNavGraph's session-state gate hands the
+                // engineer back to Home where the existing KYC banner
+                // pushes them onward to verification.
+                com.equipseva.app.features.onboarding.EngineerOnboardingScreen(
                     onDone = { navController.popBackStack() },
                     onShowMessage = showSnackbar,
                 )

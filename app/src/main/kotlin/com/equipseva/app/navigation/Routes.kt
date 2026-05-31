@@ -59,10 +59,18 @@ object Routes {
     const val HOSPITAL_ACTIVE_JOBS = "hospital/active_jobs"
 
     // v0.2.0 mandatory onboarding gate: phone + state + district capture
-    // for hospital admins immediately after sign-up / first launch. Soft
-    // redirect from HomeHub when `Profile.hasCompletedV2Onboarding` is
-    // false; full AppNavGraph-level gating lands in a follow-up.
+    // for hospital admins immediately after sign-up / first launch.
+    // AppNavGraph-level gating dispatches to this route from
+    // [SessionState.NeedsOnboarding] outside MainNavGraph so Home never
+    // flashes; the screen also remains mounted in MainNavGraph for the
+    // existing soft-redirect / Profile "Edit basic info" entry.
     const val HOSPITAL_ONBOARDING = "hospital/onboarding"
+
+    // v0.2.0 engineer-side counterpart. Same shape (phone + state +
+    // district), but a successful save routes onward to [KYC] instead
+    // of Home — verified engineers are the ones that actually appear
+    // in the public directory.
+    const val ENGINEER_ONBOARDING = "engineer/onboarding"
 
     // Confirmation landing after a successful repair-job submit. Optional
     // jobId + jobNumber query args drive the "View job" CTA + display copy.
