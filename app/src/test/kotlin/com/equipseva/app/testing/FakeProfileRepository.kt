@@ -30,6 +30,8 @@ class FakeProfileRepository : ProfileRepository {
         val phone: String?,
         val email: String?,
         val avatarUrl: String?,
+        val state: String? = null,
+        val district: String? = null,
     )
 
     val fetchByIdCalls = mutableListOf<String>()
@@ -67,8 +69,10 @@ class FakeProfileRepository : ProfileRepository {
         phone: String?,
         email: String?,
         avatarUrl: String?,
+        state: String?,
+        district: String?,
     ): Result<Unit> {
-        updateBasicInfoCalls += UpdateBasicInfoCall(userId, fullName, phone, email, avatarUrl)
+        updateBasicInfoCalls += UpdateBasicInfoCall(userId, fullName, phone, email, avatarUrl, state, district)
         return updateBasicInfoResult ?: Result.success(Unit)
     }
 
