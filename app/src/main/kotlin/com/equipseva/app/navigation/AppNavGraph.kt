@@ -228,16 +228,15 @@ private fun OnboardingHostInline(
         onDone()
     }
     when (role) {
-        com.equipseva.app.features.auth.UserRole.HOSPITAL.storageKey ->
-            com.equipseva.app.features.onboarding.HospitalOnboardingScreen(
+        com.equipseva.app.features.auth.UserRole.ENGINEER.storageKey ->
+            com.equipseva.app.features.onboarding.EngineerOnboardingScreen(
                 onDone = handleDone,
                 onShowMessage = showSnackbar,
             )
-        // Engineer onboarding lands in PR #1018. Until then engineers
-        // never enter NeedsOnboarding (their KYC flow already captures
-        // phone, and state/district will be filled by the upcoming
-        // engineer-specific screen). If we somehow get here, fall back
-        // to the hospital screen rather than mounting a blank surface.
+        // Hospital path (default). Other roles (founder / buyer) shouldn't
+        // hit this surface today because the v2 fields aren't required
+        // for them, but if they do we fall back to the hospital screen
+        // rather than mounting a blank surface.
         else ->
             com.equipseva.app.features.onboarding.HospitalOnboardingScreen(
                 onDone = handleDone,

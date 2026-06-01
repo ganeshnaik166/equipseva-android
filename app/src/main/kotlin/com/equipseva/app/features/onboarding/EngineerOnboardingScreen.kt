@@ -50,23 +50,31 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * v0.2.0 mandatory onboarding for hospital admins. Captures the three
- * fields the directory + matching can't operate without — phone (Exotel
- * call-masking), state, district — in one shot right after sign-up so
- * the user doesn't have to scavenge them out of Profile screens later.
+ * v0.2.0 mandatory onboarding for biomedical engineers. Same shape as
+ * [HospitalOnboardingScreen] — phone + state + district — but the
+ * success path routes the engineer onward to KYC instead of straight to
+ * Home. Until KYC is verified the engineer is invisible in the public
+ * directory; without KYC their onboarding isn't really "done", so the
+ * gate keeps pushing them along that path.
  *
- * Soft-gated from HomeHub today: hospital users with
- * `Profile.hasCompletedV2Onboarding == false` are redirected here on
- * first arrival at HOME. A follow-up promotes the gate to the
- * SessionViewModel destination machine so they never see HOME flash.
+ * Why a dedicated screen instead of reusing HospitalOnboardingScreen:
+ *   - The CTA copy + next-step semantics differ ("Continue" → Home for
+ *     hospital, "Save and start KYC" → KYC for engineer).
+ *   - Hospital onboarding emits [Effect.Done] = navigate Home; engineer
+ *     emits [Effect.ContinueToKyc] = navigate KYC. Wiring this off a
+ *     single screen with branching effects would couple both flows to
+ *     each other and harden the assumption that the inputs are
+ *     identical — a brittle bet given engineer-only fields will
+ *     accrete here (eg. base coords, primary specialization).
  *
- * Persistence: a single `ProfileRepository.updateBasicInfo` call that
- * writes phone + state + district atomically. The server-side row CHECK
- * (round 419) caps state/district at 64 chars; we mirror that clamp at
- * the repo boundary so a stale UI state can never surface 23514.
+ * Persistence mirrors hospital onboarding: a single
+ * `ProfileRepository.updateBasicInfo` call writes phone + state +
+ * district atomically. Server-side row CHECK clamps to 64 chars; the
+ * repo boundary mirrors the clamp so a stale UI state can't surface
+ * 23514.
  */
 @HiltViewModel
-class HospitalOnboardingViewModel @Inject constructor(
+class EngineerOnboardingViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
 ) : ViewModel() {
@@ -106,10 +114,6 @@ class HospitalOnboardingViewModel @Inject constructor(
         _state.update {
             it.copy(
                 state = value,
-                // Clear district whenever state changes — the previous
-                // district may not exist in the new state's list, and
-                // even if it happens to share a name (e.g. "Hyderabad"
-                // exists nowhere else) re-picking is one tap.
                 district = "",
                 districtOptions = districts,
                 error = null,
@@ -149,18 +153,18 @@ class HospitalOnboardingViewModel @Inject constructor(
 }
 
 @Composable
-fun HospitalOnboardingScreen(
+fun EngineerOnboardingScreen(
     onDone: () -> Unit,
     onShowMessage: (String) -> Unit,
-    viewModel: HospitalOnboardingViewModel = hiltViewModel(),
+    viewModel: EngineerOnboardingViewModel = hiltViewModel(),
 ) {
     val s by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { e ->
             when (e) {
-                is HospitalOnboardingViewModel.Effect.ShowMessage -> onShowMessage(e.text)
-                HospitalOnboardingViewModel.Effect.Done -> onDone()
+                is EngineerOnboardingViewModel.Effect.ShowMessage -> onShowMessage(e.text)
+                EngineerOnboardingViewModel.Effect.Done -> onDone()
             }
         }
     }
@@ -174,14 +178,15 @@ fun HospitalOnboardingScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                "Welcome to EquipSeva",
+                "Welcome, engineer",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = SevaInk900,
             )
             Text(
-                "A few quick details so engineers can reach you and we can match jobs near you. " +
-                    "You can change these anytime in Profile.",
+                "Tell us how hospitals can reach you and the area you service. " +
+                    "Right after this you'll complete KYC — verified engineers " +
+                    "appear in the public directory and start receiving jobs.",
                 fontSize = 14.sp,
                 color = SevaInk500,
             )
@@ -234,4 +239,3 @@ fun HospitalOnboardingScreen(
         }
     }
 }
-
