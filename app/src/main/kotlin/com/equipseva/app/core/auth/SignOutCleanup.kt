@@ -41,6 +41,10 @@ class SignOutCleanup @Inject constructor(
         runCatching { photoUploadStash.clearAll() }
         runCatching { userPrefs.setLastScreen(null) }
         runCatching { userPrefs.clearActiveRole() }
+        // v2 onboarding cache is per-user device state. Without a reset
+        // the next account inherits the previous user's "already
+        // onboarded" sticky flag and skips the mandatory gate.
+        runCatching { userPrefs.setV2OnboardingComplete(false) }
         // Notification prefs are device-resident user state. Without
         // a reset the next account inherits the previous user's mute
         // categories + quiet-hours window, silently swallowing pushes

@@ -114,10 +114,15 @@ private fun RootHost(
     val sessionState by sessionViewModel.state.collectAsStateWithLifecycle()
 
     // Cold-start gate: signed-out users land on Welcome, signed-in users
-    // land on Home. Captured once at first composition (after the Splash
-    // resolved Loading) so the NavHost's startDestination is stable.
+    // land on Home (or the v0.2.0 onboarding gate when phone+state+district
+    // aren't on the profile yet). Captured once at first composition so the
+    // NavHost's startDestination is stable.
     val coldStartRoute = remember {
-        if (sessionState is SessionState.SignedOut) Routes.AUTH_GRAPH else MAIN_HOST_ROUTE
+        when (sessionState) {
+            is SessionState.SignedOut -> Routes.AUTH_GRAPH
+            is SessionState.NeedsOnboarding -> ONBOARDING_HOST_ROUTE
+            else -> MAIN_HOST_ROUTE
+        }
     }
 
     val navigateToMain: () -> Unit = {
@@ -127,15 +132,33 @@ private fun RootHost(
         }
     }
 
-    // Sign-out redirect: when the session transitions authenticated → SignedOut
-    // while we're on MAIN_HOST_ROUTE, route the user to Welcome (AUTH_GRAPH).
+    val navigateToOnboarding: () -> Unit = {
+        navController.navigate(ONBOARDING_HOST_ROUTE) {
+            popUpTo(0) { inclusive = true }
+            launchSingleTop = true
+        }
+    }
+
+    // Sign-out redirect: when the session transitions authenticated →
+    // SignedOut while we're past Welcome, route back to AUTH_GRAPH. Also
+    // promote/demote between the onboarding host and the main host as
+    // [SessionState.NeedsOnboarding] ↔ [SessionState.Ready] transitions
+    // happen — covers the post-onboarding refresh as well as a profile
+    // server-side reset spotted on resume.
     val sawAuthenticated = remember { mutableStateOf(false) }
     LaunchedEffect(sessionState) {
-        when {
-            sessionState is SessionState.NeedsRole || sessionState is SessionState.Ready -> {
+        when (val s = sessionState) {
+            is SessionState.NeedsRole, is SessionState.Ready, is SessionState.NeedsOnboarding -> {
                 sawAuthenticated.value = true
+                if (s is SessionState.NeedsOnboarding) {
+                    val cur = navController.currentDestination?.route
+                    if (cur != ONBOARDING_HOST_ROUTE) navigateToOnboarding()
+                } else if (s is SessionState.Ready) {
+                    val cur = navController.currentDestination?.route
+                    if (cur == ONBOARDING_HOST_ROUTE) navigateToMain()
+                }
             }
-            sessionState is SessionState.SignedOut && sawAuthenticated.value -> {
+            is SessionState.SignedOut -> if (sawAuthenticated.value) {
                 sawAuthenticated.value = false
                 navController.navigate(Routes.AUTH_GRAPH) {
                     popUpTo(0) { inclusive = true }
@@ -157,6 +180,12 @@ private fun RootHost(
                 onAuthSuccess = { navigateToMain() },
             )
         }
+        composable(ONBOARDING_HOST_ROUTE) {
+            OnboardingHostInline(
+                showSnackbar = showSnackbar,
+                onDone = { navigateToMain() },
+            )
+        }
         composable(MAIN_HOST_ROUTE) {
             MainNavGraph(
                 showTour = showTour,
@@ -169,6 +198,53 @@ private fun RootHost(
 }
 
 private const val MAIN_HOST_ROUTE = "main_host"
+private const val ONBOARDING_HOST_ROUTE = "onboarding_host"
+
+/**
+ * v0.2.0 mandatory onboarding host. Mounted at the AppNavGraph level
+ * (not inside MainNavGraph) so Home never flashes for users who land
+ * here from [SessionState.NeedsOnboarding]. Dispatches to the right
+ * onboarding screen based on the active role; on a successful save the
+ * SessionViewModel re-resolves the profile and flips state to Ready,
+ * which AppNavGraph promotes to [MAIN_HOST_ROUTE].
+ */
+@Composable
+private fun OnboardingHostInline(
+    showSnackbar: (String) -> Unit,
+    onDone: () -> Unit,
+    sessionViewModel: SessionViewModel = hiltViewModel(),
+) {
+    val sessionState by sessionViewModel.state.collectAsStateWithLifecycle()
+    val role = (sessionState as? SessionState.NeedsOnboarding)?.role
+        ?: (sessionState as? SessionState.Ready)?.role
+    val handleDone: () -> Unit = {
+        // Refresh first; once the profile re-fetch resolves with
+        // hasCompletedV2Onboarding=true the session state flips to
+        // Ready and the AppNavGraph LaunchedEffect handles the
+        // navigation. The explicit onDone() is a belt-and-braces
+        // fallback for the rare case where the screen emits Done
+        // before the refresh propagates (e.g. test fakes).
+        sessionViewModel.refreshNow()
+        onDone()
+    }
+    when (role) {
+        com.equipseva.app.features.auth.UserRole.HOSPITAL.storageKey ->
+            com.equipseva.app.features.onboarding.HospitalOnboardingScreen(
+                onDone = handleDone,
+                onShowMessage = showSnackbar,
+            )
+        // Engineer onboarding lands in PR #1018. Until then engineers
+        // never enter NeedsOnboarding (their KYC flow already captures
+        // phone, and state/district will be filled by the upcoming
+        // engineer-specific screen). If we somehow get here, fall back
+        // to the hospital screen rather than mounting a blank surface.
+        else ->
+            com.equipseva.app.features.onboarding.HospitalOnboardingScreen(
+                onDone = handleDone,
+                onShowMessage = showSnackbar,
+            )
+    }
+}
 
 @Composable
 private fun AuthHostInline(
@@ -191,7 +267,8 @@ private fun AuthHostInline(
             return@LaunchedEffect
         }
         val authenticated = sessionState is SessionState.NeedsRole ||
-            sessionState is SessionState.Ready
+            sessionState is SessionState.Ready ||
+            sessionState is SessionState.NeedsOnboarding
         if (authenticated && sawSignedOut.value) {
             onAuthSuccess()
         }

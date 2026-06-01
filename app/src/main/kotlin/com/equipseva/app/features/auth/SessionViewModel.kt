@@ -82,6 +82,11 @@ class SessionViewModel @Inject constructor(
                 if (session is AuthSession.SignedOut) {
                     userPrefs.clearActiveRole()
                     bootstrapping.value = false
+                    // Reset in-memory onboarding state; SignOutCleanup
+                    // wipes the persisted sticky cache as well so the
+                    // next user signing in on this device doesn't
+                    // inherit the previous user's "onboarded" status.
+                    profileOnboardingV2Complete.value = null
                 }
             }
         }
@@ -114,19 +119,40 @@ class SessionViewModel @Inject constructor(
         initialValue = true, // assume seen until first emission so we don't flash the tour on splash
     )
 
+    /**
+     * v0.2.0 onboarding state for the signed-in user — null until the
+     * first profile fetch resolves. The combine treats null as "use the
+     * sticky [UserPrefs.v2OnboardingComplete] cache for the fast-path";
+     * once resolved, this flow is the ground truth.
+     */
+    private val profileOnboardingV2Complete = MutableStateFlow<Boolean?>(null)
+
     val state: StateFlow<SessionState> =
         combine(
             authRepository.sessionState,
             userPrefs.activeRole,
             bootstrapping,
-        ) { session, role, syncing ->
+            profileOnboardingV2Complete,
+            userPrefs.v2OnboardingComplete,
+        ) { session, role, syncing, fetchedOnboarding, cachedOnboarding ->
             when (session) {
                 is AuthSession.Unknown -> SessionState.Loading
                 is AuthSession.SignedOut -> SessionState.SignedOut
                 is AuthSession.SignedIn -> when {
-                    !role.isNullOrBlank() -> SessionState.Ready(session.userId, session.email, role)
-                    syncing -> SessionState.Loading
-                    else -> SessionState.NeedsRole(session.userId, session.email)
+                    role.isNullOrBlank() && syncing -> SessionState.Loading
+                    role.isNullOrBlank() -> SessionState.NeedsRole(session.userId, session.email)
+                    else -> {
+                        // Prefer the fresh server-side value over the cache.
+                        // The cache is sticky-true so it never demotes the
+                        // server's truth — it only short-circuits the splash
+                        // for users we've already seen onboarded.
+                        val onboarded = fetchedOnboarding ?: cachedOnboarding
+                        if (onboarded) {
+                            SessionState.Ready(session.userId, session.email, role)
+                        } else {
+                            SessionState.NeedsOnboarding(session.userId, session.email, role)
+                        }
+                    }
                 }
             }
         }.stateIn(
@@ -210,6 +236,18 @@ class SessionViewModel @Inject constructor(
             if (!confirmedRole.isNullOrBlank() && cached != confirmedRole) {
                 userPrefs.setActiveRole(confirmedRole)
             }
+            // v0.2.0 onboarding gate: surface phone + state + district
+            // completeness from the just-fetched profile. We also
+            // promote a true result into the sticky [UserPrefs] cache so
+            // the next cold start can fast-path past Loading without
+            // waiting for this network round-trip.
+            if (fetched != null) {
+                val onboarded = fetched.hasCompletedV2Onboarding
+                profileOnboardingV2Complete.value = onboarded
+                if (onboarded) {
+                    userPrefs.setV2OnboardingComplete(true)
+                }
+            }
         } finally {
             bootstrapping.value = false
         }
@@ -220,5 +258,20 @@ sealed interface SessionState {
     data object Loading : SessionState
     data object SignedOut : SessionState
     data class NeedsRole(val userId: String, val email: String?) : SessionState
+
+    /**
+     * v0.2.0 mandatory onboarding pending. Signed-in, role confirmed,
+     * but `profiles.hasCompletedV2Onboarding == false` (phone / state /
+     * district missing). AppNavGraph routes to ONBOARDING_HOST_ROUTE
+     * outside MainNavGraph so Home never flashes; the screen calls
+     * [SessionViewModel.refreshNow] after a successful save to flip
+     * back to [Ready] cleanly.
+     */
+    data class NeedsOnboarding(
+        val userId: String,
+        val email: String?,
+        val role: String,
+    ) : SessionState
+
     data class Ready(val userId: String, val email: String?, val role: String) : SessionState
 }
