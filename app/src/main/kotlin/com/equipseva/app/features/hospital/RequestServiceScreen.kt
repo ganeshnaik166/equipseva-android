@@ -68,7 +68,6 @@ import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.core.util.MIME_JPEG
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.ErrorBanner
-import com.equipseva.app.designsystem.components.HorizontalStepper
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
 import com.equipseva.app.designsystem.theme.BrandGreenDark
@@ -90,7 +89,11 @@ fun RequestServiceScreen(
     viewModel: RequestServiceViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var step by rememberSaveable { mutableIntStateOf(0) }
+    // v0.2.0 booking flow: single form, no wizard. The user lands here
+    // from the engineer card on the directory and submits the full
+    // request in one shot. `selectedSlot` is the only remaining
+    // multi-step legacy — kept because the When section uses tiles
+    // (one of 4 presets, or Custom + DatePicker) rather than free text.
     var selectedSlot by rememberSaveable { mutableIntStateOf(-1) }
 
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -172,41 +175,29 @@ fun RequestServiceScreen(
         }
     }
 
-    val stepLabels = listOf("Equipment", "Issue", "When", "Where")
-
-    // Mirror the PR #639 AmcWizard gating pattern: each step gates Next on
-    // its own minimum-valid input so the user can't reach Submit with a
-    // provably-bad form. The submit handler (onSubmit) already enforces
-    // issue+address again as a defense-in-depth, but without per-step
-    // gating the wizard let an empty Brand/Model job advance to Step 2.
-    val canProceed = when (step) {
-        0 -> state.brand.isNotBlank() && state.model.isNotBlank()
-        1 -> state.issue.trim().length >= 10
-        2 -> selectedSlot in 0..3 ||
-            (selectedSlot == 4 && state.pickedDateMillis != null)
-        else -> true
-    }
+    // Single derived flag — all four legacy step gates rolled into one
+    // so the bottom Submit can disable until the user has filled the
+    // minimum-valid payload. The submit handler still enforces
+    // issue+address as defense-in-depth on the way out.
+    val canSubmit = state.brand.isNotBlank() &&
+        state.model.isNotBlank() &&
+        state.issue.trim().length >= 10 &&
+        (selectedSlot in 0..3 || (selectedSlot == 4 && state.pickedDateMillis != null)) &&
+        !state.submitting &&
+        !state.uploadingPhoto
 
     Scaffold(
         topBar = {
             ESBackTopBar(
                 title = "Request service",
-                onBack = { if (step == 0) onBack() else step -= 1 },
+                onBack = onBack,
             )
         },
         bottomBar = {
-            WizardBottomBar(
-                step = step,
+            SubmitBar(
                 submitting = state.submitting,
-                // Block Next/Submit while a photo upload is mid-flight —
-                // otherwise the user can navigate past Step 1 before the
-                // upload completes and the resulting URL never lands in
-                // state.photos. The submitted job loses that photo with
-                // no error surfaced.
                 uploadingPhoto = state.uploadingPhoto,
-                canProceed = canProceed,
-                onBack = { if (step > 0) step -= 1 },
-                onNext = { if (step < stepLabels.lastIndex) step += 1 },
+                canSubmit = canSubmit,
                 onSubmit = { viewModel.onSubmit(selectedSlot) },
             )
         },
@@ -217,13 +208,15 @@ fun RequestServiceScreen(
                 .padding(inner)
                 .background(MaterialTheme.colorScheme.surface),
         ) {
-            Box(modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
-                HorizontalStepper(steps = stepLabels, current = step)
-            }
             ErrorBanner(
                 message = state.errorMessage,
-                modifier = Modifier.padding(horizontal = Spacing.lg),
+                modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
             )
+            // v0.2.0 booking flow: every field on one scrollable
+            // surface. The user picked an engineer on the previous
+            // screen; this page is everything they need to fill in
+            // before Submit. The section labels carry the visual
+            // load that the HorizontalStepper used to.
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -232,56 +225,107 @@ fun RequestServiceScreen(
                     .padding(bottom = Spacing.xl),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                when (step) {
-                    0 -> StepEquipment(
-                        category = state.category,
-                        brand = state.brand,
-                        model = state.model,
-                        serial = state.serial,
-                        onCategory = viewModel::onCategoryChange,
-                        onBrand = viewModel::onBrandChange,
-                        onModel = viewModel::onModelChange,
-                        onSerial = viewModel::onSerialChange,
-                    )
-                    1 -> StepIssue(
-                        issue = state.issue,
-                        issueError = state.issueError,
-                        urgency = state.urgency,
-                        photos = state.photos,
-                        uploadingPhoto = state.uploadingPhoto,
-                        onIssue = viewModel::onIssueChange,
-                        onUrgency = viewModel::onUrgencyChange,
-                        onTakePhoto = onRequestCamera,
-                        onPickFromGallery = {
-                            galleryLauncher.launch(
-                                PickVisualMediaRequest(
-                                    ActivityResultContracts.PickVisualMedia.ImageOnly,
-                                ),
-                            )
-                        },
-                        onRemovePhoto = viewModel::onRemovePhoto,
-                    )
-                    2 -> StepWhen(
-                        selectedSlot = selectedSlot,
-                        onSelectSlot = { selectedSlot = it },
-                        pickedDateMillis = state.pickedDateMillis,
-                        onPickedDateChange = viewModel::onPickedDateChange,
-                    )
-                    3 -> StepWhere(
-                        siteAddress = state.siteAddress,
-                        siteAddressError = state.siteAddressError,
-                        onSiteAddress = viewModel::onSiteAddressChange,
-                        siteLocation = state.siteLocation,
-                        onSiteLocation = viewModel::onSiteLocationChange,
-                        siteLatitude = state.siteLatitude,
-                        siteLongitude = state.siteLongitude,
-                        onSiteCoords = viewModel::onSiteCoordsChange,
-                        budget = state.budget,
-                        budgetError = state.budgetError,
-                        onBudget = viewModel::onBudgetChange,
-                    )
-                }
+                StepEquipment(
+                    category = state.category,
+                    brand = state.brand,
+                    model = state.model,
+                    serial = state.serial,
+                    onCategory = viewModel::onCategoryChange,
+                    onBrand = viewModel::onBrandChange,
+                    onModel = viewModel::onModelChange,
+                    onSerial = viewModel::onSerialChange,
+                )
+                SectionDivider()
+                StepIssue(
+                    issue = state.issue,
+                    issueError = state.issueError,
+                    urgency = state.urgency,
+                    photos = state.photos,
+                    uploadingPhoto = state.uploadingPhoto,
+                    onIssue = viewModel::onIssueChange,
+                    onUrgency = viewModel::onUrgencyChange,
+                    onTakePhoto = onRequestCamera,
+                    onPickFromGallery = {
+                        galleryLauncher.launch(
+                            PickVisualMediaRequest(
+                                ActivityResultContracts.PickVisualMedia.ImageOnly,
+                            ),
+                        )
+                    },
+                    onRemovePhoto = viewModel::onRemovePhoto,
+                )
+                SectionDivider()
+                StepWhen(
+                    selectedSlot = selectedSlot,
+                    onSelectSlot = { selectedSlot = it },
+                    pickedDateMillis = state.pickedDateMillis,
+                    onPickedDateChange = viewModel::onPickedDateChange,
+                )
+                SectionDivider()
+                StepWhere(
+                    siteAddress = state.siteAddress,
+                    siteAddressError = state.siteAddressError,
+                    onSiteAddress = viewModel::onSiteAddressChange,
+                    siteLocation = state.siteLocation,
+                    onSiteLocation = viewModel::onSiteLocationChange,
+                    siteLatitude = state.siteLatitude,
+                    siteLongitude = state.siteLongitude,
+                    onSiteCoords = viewModel::onSiteCoordsChange,
+                    budget = state.budget,
+                    budgetError = state.budgetError,
+                    onBudget = viewModel::onBudgetChange,
+                )
             }
+        }
+    }
+}
+
+@Composable
+private fun SectionDivider() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(Surface200)
+            .padding(vertical = Spacing.md),
+    )
+}
+
+@Composable
+private fun SubmitBar(
+    submitting: Boolean,
+    uploadingPhoto: Boolean,
+    canSubmit: Boolean,
+    onSubmit: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, Surface200)
+            .padding(Spacing.lg),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Button(
+            onClick = onSubmit,
+            enabled = canSubmit,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(Spacing.MinTouchTarget),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ),
+        ) {
+            Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(
+                when {
+                    submitting -> "Submitting…"
+                    uploadingPhoto -> "Uploading photo…"
+                    else -> "Submit request"
+                },
+            )
         }
     }
 }
@@ -752,56 +796,6 @@ private fun SlotTile(
             fontWeight = FontWeight.SemiBold,
             color = textColor,
         )
-    }
-}
-
-@Composable
-private fun WizardBottomBar(
-    step: Int,
-    submitting: Boolean,
-    uploadingPhoto: Boolean,
-    canProceed: Boolean,
-    onBack: () -> Unit,
-    onNext: () -> Unit,
-    onSubmit: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, Surface200)
-            .padding(Spacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (step > 0) {
-            OutlinedButton(
-                onClick = onBack,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(Spacing.MinTouchTarget),
-            ) { Text("Back") }
-        }
-        val isLast = step == 3
-        Button(
-            onClick = if (isLast) onSubmit else onNext,
-            enabled = !submitting && !uploadingPhoto && canProceed,
-            modifier = Modifier
-                .weight(1f)
-                .height(Spacing.MinTouchTarget),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-        ) {
-            if (isLast) {
-                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(if (submitting) "Submitting…" else "Submit request")
-            } else {
-                Text("Next")
-            }
-        }
     }
 }
 
