@@ -196,7 +196,7 @@ class SupabaseProfileRepository @Inject constructor(
         const val BASE_COLUMNS =
             "id,email,phone,full_name,avatar_url,role,roles,active_role,organization_id," +
                 "is_active,onboarding_completed,role_confirmed,buyer_kyc_status," +
-                "email_verified,phone_verified"
+                "email_verified,phone_verified,state,district"
     }
 }
 
