@@ -120,38 +120,12 @@ jobs:
         env:
           GS_B64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
         run: |
-          if [ -n "$GS_B64" ]; then
-            echo "$GS_B64" | base64 -d > app/google-services.json
-            echo "Real google-services.json written from secret."
-          else
-            echo "::warning::GOOGLE_SERVICES_JSON_BASE64 not set — seeding placeholder. FCM will not deliver."
-            cat > app/google-services.json <<'EOF'
-            {
-              "project_info": {
-                "project_number": "000000000000",
-                "project_id": "equipseva-ci-placeholder",
-                "storage_bucket": "equipseva-ci-placeholder.appspot.com"
-              },
-              "client": [
-                {
-                  "client_info": {
-                    "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
-                    "android_client_info": { "package_name": "com.equipseva.app" }
-                  },
-                  "api_key": [{ "current_key": "AIzaSyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }]
-                },
-                {
-                  "client_info": {
-                    "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
-                    "android_client_info": { "package_name": "com.equipseva.app.debug" }
-                  },
-                  "api_key": [{ "current_key": "AIzaSyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }]
-                }
-              ],
-              "configuration_version": "1"
-            }
-            EOF
+          if [ -z "$GS_B64" ]; then
+            echo "::error::GOOGLE_SERVICES_JSON_BASE64 secret missing — release AAB needs the real FCM config."
+            exit 1
           fi
+          echo "$GS_B64" | base64 -d > app/google-services.json
+          echo "Real google-services.json written from secret."
 
       - name: Grant gradlew execute
         run: chmod +x ./gradlew
