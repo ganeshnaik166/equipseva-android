@@ -1,0 +1,51 @@
+name: engineer-payouts-worker (every 5 min)
+
+# Round 424 — drains the engineer_payouts queue by POSTing to
+# `process-engineer-payouts` edge fn. The fn pulls queued rows, calls
+# RazorpayX Payouts API, and writes the result back. Webhook
+# `razorpayx-webhook` (separate URL configured in RazorpayX dashboard)
+# flips the row to processed when the money lands.
+#
+# Safe to run before RazorpayX is activated: the edge fn detects
+# missing RAZORPAYX_* env vars and returns {ok:true, configured:false,
+# processed:0} without touching anything.
+#
+# Required repo secrets:
+#   CRON_TICK_SECRET — shared secret matching the Supabase env var of
+#                      the same name. Auths the worker the same way
+#                      cron-tick-hourly does.
+
+on:
+  schedule:
+    # Every 5 minutes. RazorpayX UPI payouts settle in seconds; the
+    # tick interval just sets the upper bound on "engineer added their
+    # VPA but the previous queued row was still NULL-method-id" lag.
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: engineer-payouts-worker
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: POST process-engineer-payouts
+        env:
+          CRON_TICK_SECRET: ${{ secrets.CRON_TICK_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_TICK_SECRET}" ]; then
+            echo "::error::CRON_TICK_SECRET not configured."
+            exit 1
+          fi
+          URL="https://eyswaywvtartpvtoxtdr.supabase.co/functions/v1/process-engineer-payouts?limit=25"
+          curl --fail-with-body \
+               --silent --show-error \
+               --max-time 120 \
+               -X POST "$URL" \
+               -H "X-Cron-Secret: ${CRON_TICK_SECRET}" \
+               -H "Content-Type: application/json" \
+               -d '{}'
