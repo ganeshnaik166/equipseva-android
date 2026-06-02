@@ -177,6 +177,21 @@ BEGIN
   IF v_cur.status = 'cancelled' THEN
     RAISE EXCEPTION 'cannot mark a cancelled payout as paid' USING ERRCODE = '22023';
   END IF;
+  -- Adversarial-review finding #4 (critical): block mark-paid when the
+  -- RazorpayX worker has the row in-flight (status='processing'). If we
+  -- silently overwrote that, the founder's manual GPay would land
+  -- AND the RazorpayX webhook would arrive seconds later trying to flip
+  -- the same row → real risk of double-spend (₹9.30 paid twice) once
+  -- RazorpayX is activated. The founder must wait for the webhook
+  -- (success → status='processed' automatically) or reverse the
+  -- RazorpayX payout before manually overriding.
+  IF v_cur.status = 'processing' THEN
+    RAISE EXCEPTION
+      'payout in flight with RazorpayX (status=processing). Wait for '
+      'the webhook to settle or reverse the RazorpayX payout before '
+      'marking paid manually.'
+      USING ERRCODE = '22023';
+  END IF;
 
   UPDATE public.engineer_payouts
      SET status = 'processed',

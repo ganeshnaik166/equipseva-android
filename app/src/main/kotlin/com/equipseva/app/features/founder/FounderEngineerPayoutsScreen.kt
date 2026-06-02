@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -116,7 +118,12 @@ class FounderEngineerPayoutsViewModel @Inject constructor(
         val cancelReason: String = "",
     ) {
         val canMarkPaid: Boolean
-            get() = !sheetSaving && sheetPayout != null && (mode.isNotBlank())
+            // Adversarial-review finding #13 — require UTR for real-money
+            // marking-paid. UTR is the only forensic anchor when the
+            // engineer's earnings screen shows "Paid · UTR <utr>".
+            // Without UTR a typo'd mark-paid leaves no way to chase up.
+            get() = !sheetSaving && sheetPayout != null &&
+                mode.isNotBlank() && utr.trim().length >= 6
         val canCancel: Boolean
             get() = !sheetSaving && cancelReason.trim().length >= 5
     }
@@ -283,7 +290,19 @@ fun FounderEngineerPayoutsScreen(
                 }
                 else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(s.rows, key = { it.id }) { row ->
-                        PayoutAdminRow(row, onOpen = { viewModel.openMarkPaid(row) })
+                        // Adversarial-review finding #9/#12 — only
+                        // actionable statuses open the sheet. Tapping a
+                        // processed / cancelled row is a no-op (read-
+                        // only display); the founder isn't tempted to
+                        // submit a mark-paid that the RPC would silently
+                        // dedupe.
+                        val isActionable = row.status in setOf("queued", "failed")
+                        PayoutAdminRow(
+                            row = row,
+                            onOpen = if (isActionable) {
+                                { viewModel.openMarkPaid(row) }
+                            } else null,
+                        )
                     }
                 }
             }
@@ -368,13 +387,13 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
 @Composable
 private fun PayoutAdminRow(
     row: FounderRepository.AdminEngineerPayout,
-    onOpen: () -> Unit,
+    onOpen: (() -> Unit)?,
 ) {
     val amountRupees = row.amountPaise / 100.0
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onOpen)
+            .let { m -> if (onOpen != null) m.clickable(onClick = onOpen) else m }
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -437,6 +456,29 @@ private fun AdminStatusPill(status: String) {
 }
 
 @Composable
+private fun ModeChip(label: String, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(if (selected) SevaGreen50 else PaperDefault)
+            .border(
+                width = 1.dp,
+                color = if (selected) SevaGreen700 else BorderDefault,
+                shape = RoundedCornerShape(999.dp),
+            )
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+    ) {
+        Text(
+            label,
+            color = if (selected) SevaGreen700 else SevaInk500,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            fontSize = 13.sp,
+        )
+    }
+}
+
+@Composable
 private fun MarkPaidSheet(
     state: FounderEngineerPayoutsViewModel.UiState,
     onUtrChange: (String) -> Unit,
@@ -451,6 +493,11 @@ private fun MarkPaidSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            // Adversarial-review finding #16 — keep form fields above the
+            // keyboard + nav bar so the founder can see what they're
+            // about to submit.
+            .imePadding()
+            .navigationBarsPadding()
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -463,21 +510,27 @@ private fun MarkPaidSheet(
         OutlinedTextField(
             value = state.utr,
             onValueChange = onUtrChange,
-            label = { Text("UTR / Reference (optional but recommended)") },
+            label = { Text("UTR / Reference (required, min 6 chars)") },
             placeholder = { Text("e.g. 426012345678") },
             singleLine = true,
             enabled = !state.sheetSaving,
             modifier = Modifier.fillMaxWidth(),
         )
-        OutlinedTextField(
-            value = state.mode,
-            onValueChange = onModeChange,
-            label = { Text("Mode") },
-            placeholder = { Text("UPI / IMPS / NEFT / cash / other") },
-            singleLine = true,
-            enabled = !state.sheetSaving,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        // Adversarial-review finding #14 — mode as chips, not free text.
+        // Free text invited typos ("UPi") that downstream reports would
+        // bucket wrong (and silent mismatch with the engineer_payouts.mode
+        // CHECK constraint).
+        Text("Mode", fontSize = 13.sp, color = SevaInk500, fontWeight = FontWeight.Medium)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("UPI", "IMPS", "NEFT", "cash", "other").forEach { opt ->
+                ModeChip(
+                    label = opt,
+                    selected = state.mode == opt,
+                    enabled = !state.sheetSaving,
+                    onClick = { onModeChange(opt) },
+                )
+            }
+        }
         OutlinedTextField(
             value = state.notes,
             onValueChange = onNotesChange,
@@ -526,6 +579,9 @@ private fun CancelPayoutSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            // Same imePadding fix (#16) for the cancel sheet.
+            .imePadding()
+            .navigationBarsPadding()
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
