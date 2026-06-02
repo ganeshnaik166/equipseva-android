@@ -227,12 +227,22 @@ private fun OnboardingHostInline(
         sessionViewModel.refreshNow()
         onDone()
     }
+    val baseV2Done by sessionViewModel.profileBaseV2Done.collectAsStateWithLifecycle()
     when (role) {
         com.equipseva.app.features.auth.UserRole.ENGINEER.storageKey ->
-            com.equipseva.app.features.onboarding.EngineerOnboardingScreen(
-                onDone = handleDone,
-                onShowMessage = showSnackbar,
-            )
+            if (baseV2Done) {
+                // Step 2 — engineer cleared phone/state/district but
+                // still lacks UPI + bank payout methods (round 425).
+                com.equipseva.app.features.onboarding.EngineerPayoutOnboardingScreen(
+                    onDone = handleDone,
+                    onShowMessage = showSnackbar,
+                )
+            } else {
+                com.equipseva.app.features.onboarding.EngineerOnboardingScreen(
+                    onDone = handleDone,
+                    onShowMessage = showSnackbar,
+                )
+            }
         // Hospital path (default). Other roles (founder / buyer) shouldn't
         // hit this surface today because the v2 fields aren't required
         // for them, but if they do we fall back to the hospital screen

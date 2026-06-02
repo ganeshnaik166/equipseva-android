@@ -87,6 +87,7 @@ class SessionViewModel @Inject constructor(
                     // next user signing in on this device doesn't
                     // inherit the previous user's "onboarded" status.
                     profileOnboardingV2Complete.value = null
+                    _profileBaseV2Done.value = false
                 }
             }
         }
@@ -126,6 +127,19 @@ class SessionViewModel @Inject constructor(
      * once resolved, this flow is the ground truth.
      */
     private val profileOnboardingV2Complete = MutableStateFlow<Boolean?>(null)
+
+    /**
+     * Round 425 sub-step indicator. The v0.2.0 base fields (phone /
+     * state / district) being filled even when [profileOnboardingV2Complete]
+     * is false means the user has cleared step 1 (HospitalOnboardingScreen
+     * / EngineerOnboardingScreen) but failed the engineer-only payout-
+     * methods gate. The onboarding host reads this to decide which screen
+     * to mount for an engineer: false → step 1 (v0.2.0), true → step 2
+     * (payout). For hospitals this flag mirrors [profileOnboardingV2Complete]
+     * because the payout gate doesn't apply to them.
+     */
+    private val _profileBaseV2Done = MutableStateFlow(false)
+    val profileBaseV2Done: StateFlow<Boolean> = _profileBaseV2Done
 
     val state: StateFlow<SessionState> =
         combine(
@@ -247,6 +261,13 @@ class SessionViewModel @Inject constructor(
                 if (onboarded) {
                     userPrefs.setV2OnboardingComplete(true)
                 }
+                // Round 425 — surface whether the base v0.2.0 fields are
+                // filled separately from the payout-methods gate so the
+                // onboarding host can dispatch to step 1 vs step 2.
+                val baseDone = !fetched.phone.isNullOrBlank() &&
+                    !fetched.state.isNullOrBlank() &&
+                    !fetched.district.isNullOrBlank()
+                _profileBaseV2Done.value = baseDone
             }
         } finally {
             bootstrapping.value = false

@@ -39,7 +39,19 @@ class SupabaseProfileRepository @Inject constructor(
             }.decodeList<ProfileDto>().firstOrNull()?.toDomain()
         }.getOrNull()
 
-        if (full != null) return@runCatching full
+        if (full != null) {
+            // Round 425 engineer-payout gate. Fold the result of
+            // engineer_has_complete_payout_methods() into the profile
+            // so hasCompletedV2Onboarding can include it. Best-effort:
+            // if the RPC errors (transient network, transient policy)
+            // we leave the field null which the gate treats as "not
+            // blocked" — a subsequent fetch will reconcile.
+            val payoutComplete = runCatching {
+                client.postgrest.rpc(function = "engineer_has_complete_payout_methods")
+                    .decodeAs<Boolean>()
+            }.getOrNull()
+            return@runCatching full.copy(hasEngineerPayoutComplete = payoutComplete)
+        }
 
         // Fallback: cross-user lookup (chat counterpart, conversation peers)
         // hits the SECURITY DEFINER RPC that returns ONLY id+full_name+

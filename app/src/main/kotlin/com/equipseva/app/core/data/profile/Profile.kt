@@ -34,11 +34,38 @@ data class Profile(
     val state: String? = null,
     /** District within state (e.g. "Hyderabad"). Mandatory at hospital onboarding (v0.2.0). */
     val district: String? = null,
+    /**
+     * Round 425 gate. Engineers must have BOTH a UPI and a bank
+     * payout method on file before the app lets them past onboarding;
+     * without this, the auto-payout queue accrues NULL-method rows
+     * we can't drain and engineers go un-paid after release.
+     *
+     * Computed server-side via `engineer_has_complete_payout_methods()`
+     * and attached during profile fetch. Null = not loaded yet
+     * (treated as "not blocked" so cold-start doesn't flap into the
+     * onboarding screen before the RPC resolves); always true for
+     * non-engineers.
+     */
+    val hasEngineerPayoutComplete: Boolean? = null,
 ) {
 
-    /** True when the v0.2.0 onboarding gate is satisfied: phone + state + district set. */
+    /**
+     * True when the v0.2.0 onboarding gate is satisfied: phone + state +
+     * district set for everyone, AND for engineers, also has both a UPI
+     * and a bank payout method on file.
+     */
     val hasCompletedV2Onboarding: Boolean
-        get() = !phone.isNullOrBlank() && !state.isNullOrBlank() && !district.isNullOrBlank()
+        get() {
+            val baseDone = !phone.isNullOrBlank() && !state.isNullOrBlank() && !district.isNullOrBlank()
+            if (!baseDone) return false
+            // Engineer-only payout-method gate. Treat null (not yet
+            // fetched) as "complete" so cold-start doesn't briefly
+            // route engineers to onboarding before the RPC settles —
+            // a follow-up fetch will reconcile.
+            val activeKey = (activeRole ?: role)
+            if (activeKey != UserRole.ENGINEER) return true
+            return hasEngineerPayoutComplete != false
+        }
     val displayName: String
         get() = fullName?.takeIf { it.isNotBlank() }
             ?: email?.substringBefore('@')

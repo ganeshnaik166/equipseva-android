@@ -13,10 +13,13 @@ interface EngineerPayoutRepository {
     /** Read current default destination + VPA verification status. */
     suspend fun fetchCurrent(): Result<EngineerPayoutMethod?>
 
-    /** Save a UPI VPA as the engineer's default destination. */
+    /** Read ALL of the engineer's saved methods (one UPI + one bank max). */
+    suspend fun fetchAll(): Result<List<EngineerPayoutMethod>>
+
+    /** Save a UPI VPA as the engineer's UPI method (UPSERTs by kind). */
     suspend fun setUpi(vpa: String, holderName: String?): Result<Unit>
 
-    /** Save bank account fields as the engineer's default destination. */
+    /** Save bank account fields as the engineer's bank method (UPSERTs by kind). */
     suspend fun setBank(
         accountHolder: String,
         accountNumber: String,
@@ -43,6 +46,14 @@ class SupabaseEngineerPayoutRepository @Inject constructor(
             .decodeList<EngineerPayoutMethodDto>()
             .firstOrNull()
             ?.toDomain()
+    }
+
+    override suspend fun fetchAll(): Result<List<EngineerPayoutMethod>> = runCatching {
+        client.postgrest
+            .from(TABLE_METHODS)
+            .select()
+            .decodeList<EngineerPayoutMethodDto>()
+            .map { it.toDomain() }
     }
 
     override suspend fun setUpi(vpa: String, holderName: String?): Result<Unit> = runCatching {
