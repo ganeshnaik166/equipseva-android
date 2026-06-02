@@ -121,6 +121,10 @@ object Routes {
     // Per-role profile sub-screens. Real forms land per-role; this batch
     // ships placeholder shells so the Profile rows actually navigate.
     const val PROFILE_BANK_DETAILS = "profile/bank_details"
+    // Engineer payout method (UPI VPA or bank). Distinct from
+    // PROFILE_BANK_DETAILS (legacy stub form) — this writes to
+    // engineer_payout_methods + drives the auto-payout pipeline.
+    const val ENGINEER_PAYOUT_METHOD = "profile/engineer_payout_method"
     const val PROFILE_ADDRESSES = "profile/addresses"
     const val PROFILE_HOSPITAL_SETTINGS = "profile/hospital_settings"
     const val PROFILE_STOREFRONT = "profile/storefront"
