@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -86,7 +87,16 @@ fun EsBottomNav(
                     // nav is the primary cross-feature navigation so
                     // this is the highest-traffic a11y target in the
                     // app.
-                    .semantics { selected = active }
+                    .semantics {
+                        selected = active
+                        // Surface the unread count to TalkBack so a user
+                        // hearing "Notifications, tab, 3 unread, selected"
+                        // gets the same signal as a sighted user reading
+                        // the red badge over the icon.
+                        contentDescription = if ((tab.badge ?: 0) > 0)
+                            "${tab.label}, ${tab.badge} unread"
+                        else tab.label
+                    }
                     .clickable(role = Role.Tab) { onSelect(tab.route) }
                     .padding(vertical = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -106,10 +116,16 @@ fun EsBottomNav(
                             modifier = Modifier.size(22.dp),
                         )
                         if (tab.badge != null && tab.badge > 0) {
+                            // Bumped from 16dp / 9sp to 18dp / 11sp so the
+                            // unread count is readable for older users +
+                            // matches Material's recommended badge minimum
+                            // (~16-20dp). Below ~10dp height the digit
+                            // becomes pixel-noise on dense Vivo / Realme
+                            // displays.
                             Box(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    .size(16.dp)
+                                    .size(18.dp)
                                     .clip(CircleShape)
                                     .background(SevaDanger500),
                                 contentAlignment = Alignment.Center,
@@ -117,7 +133,7 @@ fun EsBottomNav(
                                 Text(
                                     text = tab.badge.toString(),
                                     color = Color.White,
-                                    fontSize = 9.sp,
+                                    fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                 )
                             }

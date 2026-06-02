@@ -20,6 +20,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -53,10 +59,25 @@ fun OtpDigitField(
                     val cleaned = new.filter { it.isDigit() }.take(length)
                     onValueChange(cleaned)
                 },
+                // The visual 6-box row above is decorative; the only
+                // tappable / typable element is this hidden BasicTextField.
+                // TalkBack needs an explicit content description + a
+                // stateDescription that announces typed/total digits, plus
+                // an error semantics signal so screen-reader users hear
+                // "code is incorrect" not just see red borders.
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
-                    .alpha(0f),
+                    .alpha(0f)
+                    .semantics {
+                        contentDescription = "One-time code, $length digits"
+                        stateDescription = "${value.length} of $length digits entered"
+                        // `error` is captured locally so the smart-cast
+                        // survives across the lambda boundary; without it
+                        // Kotlin can't prove non-null in the `error()` call.
+                        val errText = error
+                        if (errText != null) error(errText)
+                    },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                 singleLine = true,
                 cursorBrush = SolidColor(BrandGreen),
@@ -103,10 +124,17 @@ fun OtpDigitField(
         }
         if (error != null) {
             Spacer(Modifier.height(Spacing.xs))
+            // liveRegion = Polite so the screen reader announces the
+            // error the moment it appears without interrupting the user
+            // mid-typing. Without this, TalkBack users only learn the
+            // code was wrong on the next focus traversal.
             Text(
                 text = error,
                 style = MaterialTheme.typography.bodySmall,
                 color = ErrorRed,
+                modifier = Modifier.semantics {
+                    liveRegion = LiveRegionMode.Polite
+                },
             )
         }
     }
