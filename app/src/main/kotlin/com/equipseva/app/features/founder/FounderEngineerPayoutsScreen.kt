@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -46,6 +47,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
@@ -269,22 +271,46 @@ fun FounderEngineerPayoutsScreen(
                 selected = s.filter,
                 onSelect = viewModel::onFilterSelect,
             )
+            // (#18) Error banner with retry — promoted from a tiny
+            // line above the list to a proper banner with action so the
+            // founder can recover without leaving the screen.
             if (s.errorMessage != null) {
-                Text(
-                    s.errorMessage.orEmpty(),
-                    color = SevaDanger500,
-                    fontSize = 13.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(SevaWarning50)
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        s.errorMessage.orEmpty(),
+                        color = SevaDanger500,
+                        fontSize = 13.sp,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    EsBtn(
+                        text = "Retry",
+                        onClick = viewModel::onRefresh,
+                        kind = EsBtnKind.Secondary,
+                    )
+                }
             }
             when {
                 s.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
                 s.rows.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    // (#17) Mention the active filter so the founder
+                    // doesn't think every payout dropped — they're just
+                    // filtered out.
+                    val filterPhrase = when (s.filter) {
+                        FounderEngineerPayoutsViewModel.StatusFilter.All -> "across all statuses"
+                        else -> "in ${s.filter.label}"
+                    }
                     EmptyStateView(
                         icon = Icons.Outlined.Inbox,
-                        title = "No payouts here",
+                        title = "No payouts $filterPhrase",
                         subtitle = "Try a different filter or wait for the next escrow release.",
                     )
                 }
@@ -415,16 +441,38 @@ private fun PayoutAdminRow(
                     fontSize = 12.sp,
                     color = SevaInk500,
                 )
-                if (!row.failureReason.isNullOrBlank() && row.status == "failed") {
+                // (#20) Age stamp so the founder sees how stale a
+                // queued row is at a glance. Use processed_at for
+                // settled rows, queued_at otherwise.
+                val ageAnchor = row.processedAt ?: row.queuedAt
+                val ageLabel = relativeLabel(ageAnchor)
+                if (ageLabel != null) {
+                    val prefix = when (row.status) {
+                        "processed" -> "Paid"
+                        "cancelled" -> "Cancelled"
+                        else -> "Queued"
+                    }
                     Text(
-                        row.failureReason.orEmpty(),
+                        "$prefix $ageLabel",
                         fontSize = 12.sp,
-                        color = SevaDanger500,
+                        color = SevaInk500,
+                    )
+                }
+                // (#21) Show reason on BOTH failed and cancelled rows
+                // (cancelled writes the reason into failure_reason).
+                if (!row.failureReason.isNullOrBlank() &&
+                    (row.status == "failed" || row.status == "cancelled")) {
+                    val tone = if (row.status == "failed") SevaDanger500 else SevaInk500
+                    val tag = if (row.status == "failed") "Failed" else "Cancelled"
+                    Text(
+                        "$tag: ${row.failureReason}",
+                        fontSize = 12.sp,
+                        color = tone,
                     )
                 }
                 if (row.status == "processed" && !row.utr.isNullOrBlank()) {
                     Text(
-                        "Paid · UTR ${row.utr}",
+                        "UTR ${row.utr}",
                         fontSize = 12.sp,
                         color = SevaGreen700,
                     )
