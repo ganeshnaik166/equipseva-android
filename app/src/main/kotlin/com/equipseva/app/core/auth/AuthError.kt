@@ -13,7 +13,13 @@ sealed interface AuthError {
     val userMessage: String
 
     data object InvalidCredentials : AuthError {
-        override val userMessage = "Email or password is incorrect."
+        // Supabase masks the difference between "wrong password" and
+        // "no such email" to prevent user enumeration. Surface both
+        // recovery paths so a user with a typo in their email doesn't
+        // assume the platform forgot them and create a duplicate
+        // account, and a user who forgot their password still sees
+        // the reset path inline.
+        override val userMessage = "Email or password is wrong. Try Forgot password, or sign up if you don't have an account."
     }
     data object EmailNotConfirmed : AuthError {
         override val userMessage = "Confirm your email before signing in."

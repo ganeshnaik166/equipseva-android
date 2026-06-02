@@ -33,7 +33,7 @@ class AadhaarPanHintTest {
         // Length is 12 so the short-counter branch doesn't match;
         // checksumOk is false so the error wins.
         assertEquals(
-            "Number doesn't pass the standard Aadhaar checksum",
+            "Doesn't match a valid Aadhaar — please re-check the 12 digits on your card.",
             aadhaarNumberHint("123456789012", checksumOk = false),
         )
     }
@@ -51,7 +51,7 @@ class AadhaarPanHintTest {
         // still surface a meaningful state rather than crash.
         // length >= 12 falls through to the checksum branches.
         assertEquals(
-            "Number doesn't pass the standard Aadhaar checksum",
+            "Doesn't match a valid Aadhaar — please re-check the 12 digits on your card.",
             aadhaarNumberHint("1234567890123", checksumOk = false),
         )
     }

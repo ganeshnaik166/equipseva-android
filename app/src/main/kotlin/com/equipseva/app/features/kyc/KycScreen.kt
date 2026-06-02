@@ -1248,13 +1248,19 @@ private fun queryDisplayName(context: android.content.Context, uri: Uri): String
  * Four states:
  *   empty            -> "12 digits, no spaces"
  *   short            -> "N/12 digits"
- *   12 + bad checksum -> "Number doesn't pass the standard Aadhaar checksum"
+ *   12 + bad checksum -> jargon-free "doesn't match a valid Aadhaar" copy
  *   12 + good checksum -> "Looks valid ✓"
+ *
+ * Engineers don't know what a Verhoeff checksum is — surfacing the
+ * word "checksum" sent a non-trivial number of valid-but-mistyped
+ * users to support thinking the platform was broken. The new copy
+ * speaks to what the user can act on: re-read the 12 digits on the
+ * card.
  */
 internal fun aadhaarNumberHint(digits: String, checksumOk: Boolean): String = when {
     digits.isEmpty() -> "12 digits, no spaces"
     digits.length < 12 -> "${digits.length}/12 digits"
-    !checksumOk -> "Number doesn't pass the standard Aadhaar checksum"
+    !checksumOk -> "Doesn't match a valid Aadhaar — please re-check the 12 digits on your card."
     else -> "Looks valid ✓"
 }
 

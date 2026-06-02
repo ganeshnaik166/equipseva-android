@@ -286,7 +286,7 @@ fun HomeHubScreen(
                 if (state.isFounder) {
                     HomeTile(
                         icon = Icons.Filled.Shield,
-                        title = "Admin Dashboard",
+                        title = "Admin dashboard",
                         desc = "Founder tools — KYC queue, reports, payments",
                         onClick = onOpenFounder,
                         accent = TileAccent.Admin,
@@ -700,10 +700,15 @@ private fun GreetingCard(
                     // a load failure. Two real stats is honest; a third
                     // joins when there's a real number to put in it.
                     Stat("Pending bids", pendingBidsCount?.toString() ?: "—")
-                    Stat("Active", activeCount?.toString() ?: "—")
+                    // "Active" was overloaded with the StatusStepper's
+                    // "In progress" step on the job-detail screen — same
+                    // job rendered as "Active" on Home but "In progress"
+                    // on detail. Unify on "In progress" so the surface
+                    // copy matches the state-machine label everywhere.
+                    Stat("In progress", activeCount?.toString() ?: "—")
                 } else {
                     Stat("Open", openCount?.toString() ?: "—")
-                    Stat("Active", activeCount?.toString() ?: "—")
+                    Stat("In progress", activeCount?.toString() ?: "—")
                     Stat("Engineers", nearbyEngineersCount?.toString() ?: "—")
                 }
             }
