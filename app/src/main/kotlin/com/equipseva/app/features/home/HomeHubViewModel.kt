@@ -95,7 +95,30 @@ class HomeHubViewModel @Inject constructor(
         // 'pending'). UI surfaces a banner inviting the user to
         // contact support if their bank shows a charge.
         val pendingAmcPaymentsCount: Int = 0,
+        // Engineer-side directory visibility gate. Hospital's
+        // [EngineerDirectoryViewModel.filteredRows] requires both
+        // hourly_rate and at least one specialization on the engineer
+        // row; engineers without those are silently hidden from the
+        // directory despite having a verified KYC. We surface that
+        // hidden state as a banner on Home so the engineer knows what
+        // to fix. Stays [Unknown] for hospitals + pre-KYC engineers
+        // (the existing KYC banner already nags pre-KYC).
+        val directoryGate: DirectoryGate = DirectoryGate.Unknown,
     )
+
+    /**
+     * State machine for an engineer's directory visibility. Hospital's
+     * client-side filter (EngineerDirectoryScreen `isBookable`) drops
+     * any row where `hourly_rate IS NULL` or `specializations` is
+     * empty — even if the engineer is KYC-verified. Drives the
+     * Home-screen "you're invisible because X" banner.
+     */
+    enum class DirectoryGate {
+        Unknown, Visible, MissingRate, MissingSpecs, MissingBoth;
+
+        val isHidden: Boolean
+            get() = this == MissingRate || this == MissingSpecs || this == MissingBoth
+    }
 
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
@@ -208,7 +231,12 @@ class HomeHubViewModel @Inject constructor(
         if (_state.value.role == UserRole.ENGINEER) {
             engineerRepository.fetchByUserId(userId).onSuccess { eng ->
                 if (eng != null) {
-                    _state.update { it.copy(kycStatus = eng.verificationStatus) }
+                    _state.update {
+                        it.copy(
+                            kycStatus = eng.verificationStatus,
+                            directoryGate = computeDirectoryGate(eng),
+                        )
+                    }
                 }
             }
             // Engineer hero strip: pending bids + active assigned jobs.
@@ -383,4 +411,22 @@ class HomeHubViewModel @Inject constructor(
         _state.update { it.copy(pendingSpotAudit = null) }
     }
 
+    /**
+     * Derive the engineer's directory visibility from their engineers
+     * row. Mirrors the client-side `isBookable` filter in
+     * [com.equipseva.app.features.repair.directory.EngineerDirectoryViewModel]:
+     * hospitals hide engineers without an hourly rate or without at
+     * least one specialization, but the engineer has no signal that
+     * they're hidden. This computed state powers the Home banner.
+     */
+    private fun computeDirectoryGate(eng: com.equipseva.app.core.data.engineers.Engineer): DirectoryGate {
+        val rateMissing = eng.hourlyRate == null || eng.hourlyRate <= 0.0
+        val specsMissing = eng.specializations.isEmpty()
+        return when {
+            !rateMissing && !specsMissing -> DirectoryGate.Visible
+            rateMissing && specsMissing -> DirectoryGate.MissingBoth
+            rateMissing -> DirectoryGate.MissingRate
+            else -> DirectoryGate.MissingSpecs
+        }
+    }
 }

@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.CurrencyRupee
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.WorkOutline
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -102,6 +103,7 @@ fun HomeHubScreen(
     onOpenActiveWork: () -> Unit = {},
     onOpenEarnings: () -> Unit = {},
     onOpenEngineerProfile: (engineerId: String) -> Unit = {},
+    onOpenEngineerSelfProfile: () -> Unit = {},
     onOpenAmcContracts: () -> Unit = {},
     onShowMessage: (String) -> Unit = {},
     viewModel: HomeHubViewModel = hiltViewModel(),
@@ -144,6 +146,26 @@ fun HomeHubScreen(
             if (role == UserRole.ENGINEER && kyc != VerificationStatus.Verified) {
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                     KycBanner(status = kyc, onClick = onOpenKyc)
+                }
+            }
+
+            // Directory-visibility banner — engineer is KYC-verified but
+            // hospitals can't see them because the hospital-side filter
+            // (`isBookable` in EngineerDirectoryViewModel) drops rows
+            // without an hourly rate or specializations. Without this
+            // banner the engineer has no signal: they completed KYC,
+            // their profile says "Verified", yet they receive zero
+            // bookings forever. Only render when KYC has cleared so
+            // the engineer sees ONE nag at a time, not two stacked.
+            if (role == UserRole.ENGINEER &&
+                kyc == VerificationStatus.Verified &&
+                state.directoryGate.isHidden
+            ) {
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    DirectoryVisibilityBanner(
+                        gate = state.directoryGate,
+                        onClick = onOpenEngineerSelfProfile,
+                    )
                 }
             }
 
@@ -733,6 +755,67 @@ private fun KycBanner(status: VerificationStatus?, onClick: () -> Unit) {
             modifier = Modifier.size(16.dp),
         )
     }
+}
+
+@Composable
+private fun DirectoryVisibilityBanner(
+    gate: HomeHubViewModel.DirectoryGate,
+    onClick: () -> Unit,
+) {
+    val (title, sub) = directoryVisibilityCopy(gate) ?: return
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(SevaInfo50)
+            .clickable(
+                onClickLabel = "Complete your engineer profile",
+                role = androidx.compose.ui.semantics.Role.Button,
+                onClick = onClick,
+            )
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(
+            Icons.Outlined.Visibility,
+            contentDescription = null,
+            tint = SevaInfo500,
+            modifier = Modifier.size(20.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = SevaInk900)
+            Spacer(Modifier.height(2.dp))
+            Text(sub, fontSize = 11.sp, color = SevaInk600)
+        }
+        Icon(
+            Icons.Outlined.ChevronRight,
+            contentDescription = null,
+            tint = SevaInk400,
+            modifier = Modifier.size(16.dp),
+        )
+    }
+}
+
+/**
+ * Copy for the directory-visibility banner. Returns null for any gate
+ * state that shouldn't render a banner (Unknown / Visible) — keeps the
+ * caller a one-liner.
+ */
+internal fun directoryVisibilityCopy(
+    gate: HomeHubViewModel.DirectoryGate,
+): Pair<String, String>? = when (gate) {
+    HomeHubViewModel.DirectoryGate.MissingBoth ->
+        "You're not visible to hospitals yet" to
+            "Add your hourly rate and at least one specialization so hospitals can find and book you."
+    HomeHubViewModel.DirectoryGate.MissingRate ->
+        "Add your hourly rate to start getting bookings" to
+            "Hospitals filter by rate — your profile is hidden from the directory until you set one."
+    HomeHubViewModel.DirectoryGate.MissingSpecs ->
+        "Pick at least one specialization" to
+            "Hospitals search by equipment type — your profile won't appear until you select what you service."
+    HomeHubViewModel.DirectoryGate.Unknown,
+    HomeHubViewModel.DirectoryGate.Visible -> null
 }
 
 @Composable
