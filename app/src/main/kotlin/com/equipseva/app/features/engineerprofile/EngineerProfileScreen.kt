@@ -148,6 +148,17 @@ private fun EngineerProfileForm(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
+        // Visibility hint — when either of the two gates is unset
+        // (hourly rate, specialization), the engineer is hidden from
+        // the hospital directory. Reinforces the Home banner so the
+        // engineer knows exactly which fields unlock visibility once
+        // they land on this screen.
+        val rateIsSet = state.hourlyRate.toDoubleOrNull()?.let { it > 0.0 } == true
+        val specsIsSet = state.specializations.split(',').any { it.isNotBlank() }
+        if (!rateIsSet || !specsIsSet) {
+            DirectoryVisibilityHint(rateIsSet = rateIsSet, specsIsSet = specsIsSet)
+        }
+
         // Bio (multiline)
         val bioLen = state.bio.trim().length
         EsField(
@@ -268,6 +279,41 @@ private fun EngineerProfileForm(
         }
 
         ErrorBanner(message = state.errorMessage)
+    }
+}
+
+/**
+ * Top-of-form info row that closes the loop on the Home directory-
+ * visibility banner. Tells the engineer exactly which field(s) gate
+ * their visibility, reinforcing the banner copy they tapped from. Same
+ * gate logic as [com.equipseva.app.features.repair.directory.EngineerDirectoryViewModel]'s
+ * `isBookable` predicate.
+ */
+@Composable
+private fun DirectoryVisibilityHint(rateIsSet: Boolean, specsIsSet: Boolean) {
+    val message = when {
+        !rateIsSet && !specsIsSet ->
+            "Your profile is hidden from hospitals. Set an hourly rate and pick at least one specialization below to appear in the directory."
+        !rateIsSet ->
+            "Set an hourly rate below — hospitals don't see profiles without a rate."
+        else ->
+            "Pick at least one specialization below — hospitals search by equipment type and won't see profiles without one."
+    }
+    val shape = RoundedCornerShape(10.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(SevaWarning50)
+            .border(width = 1.dp, color = SevaWarning500, shape = shape)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = message,
+            fontSize = 12.sp,
+            color = SevaInk900,
+        )
     }
 }
 
