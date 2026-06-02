@@ -698,7 +698,7 @@ private fun buildProfileSections(
                 label = "Earnings",
                 onClick = onOpenEarnings,
             ))
-            add(SettingsRow(icon = Icons.Outlined.AccountBalance, label = "Bank details", onClick = onOpenBankDetails))
+            add(SettingsRow(icon = Icons.Outlined.AccountBalance, label = "Payout method", onClick = onOpenBankDetails))
             // Engineers want to see how hospitals see them — the public-
             // preview lambda was already plumbed from MainNavGraph but
             // never wired to a row. Only show when verified + we have

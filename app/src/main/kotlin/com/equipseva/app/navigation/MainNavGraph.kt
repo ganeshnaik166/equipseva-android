@@ -141,6 +141,7 @@ internal val fullScreenRoutePrefixes = listOf(
     Routes.FOUNDER_INACTIVE_ENGINEERS,
     Routes.FOUNDER_AMC_PAUSED,
     Routes.PROFILE_BANK_DETAILS,
+    Routes.ENGINEER_PAYOUT_METHOD,
     Routes.PROFILE_ADDRESSES,
     Routes.PROFILE_HOSPITAL_SETTINGS,
     Routes.PROFILE_STOREFRONT,
@@ -504,7 +505,13 @@ fun MainNavGraph(
                     onOpenAbout = { navController.navigate(Routes.ABOUT) },
                     onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                     onOpenFounderDashboard = { navController.navigate(Routes.FOUNDER_DASHBOARD) },
-                    onOpenBankDetails = { navController.navigate(Routes.PROFILE_BANK_DETAILS) },
+                    // Engineer "Payout method" row routes to the auto-payout
+                    // capture screen (round 423). The legacy
+                    // PROFILE_BANK_DETAILS stub stays registered for any
+                    // hospital-side callers but the engineer entry now
+                    // writes to engineer_payout_methods via the new
+                    // EngineerPayoutRepository.
+                    onOpenBankDetails = { navController.navigate(Routes.ENGINEER_PAYOUT_METHOD) },
                     onOpenAddresses = { navController.navigate(Routes.PROFILE_ADDRESSES) },
                     onOpenHospitalSettings = { navController.navigate(Routes.PROFILE_HOSPITAL_SETTINGS) },
                     onOpenAddPhone = { navController.navigate(Routes.ADD_PHONE) },
@@ -951,6 +958,12 @@ fun MainNavGraph(
             // forms inside flesh out per-role next.
             composable(Routes.PROFILE_BANK_DETAILS) {
                 com.equipseva.app.features.profile.forms.BankDetailsScreen(
+                    onBack = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
+                )
+            }
+            composable(Routes.ENGINEER_PAYOUT_METHOD) {
+                com.equipseva.app.features.payouts.EngineerPayoutMethodScreen(
                     onBack = { navController.popBackStack() },
                     onShowMessage = showSnackbar,
                 )
