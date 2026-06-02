@@ -140,6 +140,7 @@ internal val fullScreenRoutePrefixes = listOf(
     Routes.FOUNDER_AMC_EXPIRING,
     Routes.FOUNDER_INACTIVE_ENGINEERS,
     Routes.FOUNDER_AMC_PAUSED,
+    Routes.FOUNDER_ENGINEER_PAYOUTS,
     Routes.PROFILE_BANK_DETAILS,
     Routes.ENGINEER_PAYOUT_METHOD,
     Routes.PROFILE_ADDRESSES,
@@ -766,6 +767,7 @@ fun MainNavGraph(
                     onOpenPartsOutliers = { navController.navigate(Routes.FOUNDER_PARTS_OUTLIERS) },
                     onOpenResolvedDisputes = { navController.navigate(Routes.FOUNDER_RESOLVED_DISPUTES) },
                     onOpenSpotAudits = { navController.navigate(Routes.FOUNDER_SPOT_AUDITS) },
+                    onOpenEngineerPayouts = { navController.navigate(Routes.FOUNDER_ENGINEER_PAYOUTS) },
                     onOpenAmcExpiring = { navController.navigate(Routes.FOUNDER_AMC_EXPIRING) },
                     onOpenInactiveEngineers = { navController.navigate(Routes.FOUNDER_INACTIVE_ENGINEERS) },
                     onOpenAmcPaused = { navController.navigate(Routes.FOUNDER_AMC_PAUSED) },
@@ -781,6 +783,12 @@ fun MainNavGraph(
                     onOpenTimeline = { escrowId ->
                         navController.navigate(Routes.founderEscrowDisputeDetailRoute(escrowId))
                     },
+                )
+            }
+            composable(Routes.FOUNDER_ENGINEER_PAYOUTS) {
+                com.equipseva.app.features.founder.FounderEngineerPayoutsScreen(
+                    onBack = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
                 )
             }
             composable(Routes.FOUNDER_RESOLVED_DISPUTES) {

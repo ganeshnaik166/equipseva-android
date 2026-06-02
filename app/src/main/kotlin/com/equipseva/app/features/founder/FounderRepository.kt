@@ -761,4 +761,83 @@ class FounderRepository @Inject constructor(
         client.postgrest.rpc(function = "list_parts_cost_outliers")
             .decodeList<PartsCostOutlier>()
     }
+
+    /* --------- Round 428: founder admin force-pay engineer payouts -------- */
+
+    @Serializable
+    data class AdminEngineerPayout(
+        val id: String,
+        @SerialName("repair_job_id") val repairJobId: String,
+        @SerialName("job_number") val jobNumber: String,
+        @SerialName("engineer_user_id") val engineerUserId: String,
+        @SerialName("engineer_name") val engineerName: String? = null,
+        @SerialName("engineer_phone") val engineerPhone: String? = null,
+        @SerialName("amount_paise") val amountPaise: Long,
+        val status: String,
+        val mode: String? = null,
+        val utr: String? = null,
+        @SerialName("failure_reason") val failureReason: String? = null,
+        @SerialName("destination_label") val destinationLabel: String? = null,
+        val attempts: Int = 0,
+        @SerialName("queued_at") val queuedAt: String,
+        @SerialName("processed_at") val processedAt: String? = null,
+    )
+
+    /**
+     * p_status: null / "all" / "queued" / "processing" / "processed" /
+     * "failed" / "cancelled". The RPC sorts action-required statuses to
+     * the top.
+     */
+    suspend fun adminListEngineerPayouts(
+        statusFilter: String? = null,
+        limit: Int = 200,
+    ): Result<List<AdminEngineerPayout>> = runCatching {
+        client.postgrest.rpc(
+            function = "admin_list_engineer_payouts",
+            parameters = buildJsonObject {
+                if (statusFilter != null) {
+                    put("p_status", JsonPrimitive(statusFilter))
+                }
+                put("p_limit", JsonPrimitive(limit))
+            },
+        ).decodeList<AdminEngineerPayout>()
+    }
+
+    /**
+     * Record an out-of-band settlement (GPay / IMPS from a personal
+     * account) so the engineer's Earnings screen surfaces "Paid · UTR
+     * <utr>" instead of the stale "Will pay after next worker tick".
+     */
+    suspend fun adminMarkPayoutPaid(
+        payoutId: String,
+        utr: String?,
+        mode: String?,
+        notes: String?,
+    ): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "admin_mark_engineer_payout_paid",
+            parameters = buildJsonObject {
+                put("p_payout_id", JsonPrimitive(payoutId))
+                if (!utr.isNullOrBlank()) put("p_utr", JsonPrimitive(utr.trim()))
+                if (!mode.isNullOrBlank()) put("p_mode", JsonPrimitive(mode.trim()))
+                if (!notes.isNullOrBlank()) put("p_notes", JsonPrimitive(notes.trim()))
+            },
+        )
+        Unit
+    }
+
+    /** Void a queued / processing / failed row. Reason min 5 chars. */
+    suspend fun adminCancelPayout(
+        payoutId: String,
+        reason: String,
+    ): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "admin_cancel_engineer_payout",
+            parameters = buildJsonObject {
+                put("p_payout_id", JsonPrimitive(payoutId))
+                put("p_reason", JsonPrimitive(reason.trim()))
+            },
+        )
+        Unit
+    }
 }

@@ -167,6 +167,8 @@ fun FounderDashboardScreen(
     onOpenPartsOutliers: () -> Unit = {},
     onOpenResolvedDisputes: () -> Unit = {},
     onOpenSpotAudits: () -> Unit = {},
+    // Round 428 — manual force-pay queue for engineer_payouts.
+    onOpenEngineerPayouts: () -> Unit = {},
     // Round 364 — drill-down for r352 "Expiring 30d" KPI.
     onOpenAmcExpiring: () -> Unit = {},
     // Round 372 — drill-down for r371 "Inactive engineers" KPI.
@@ -289,6 +291,7 @@ fun FounderDashboardScreen(
                             onOpenPartsOutliers = onOpenPartsOutliers,
                             onOpenResolvedDisputes = onOpenResolvedDisputes,
                             onOpenSpotAudits = onOpenSpotAudits,
+                            onOpenEngineerPayouts = onOpenEngineerPayouts,
                         )
                     }
                 }
@@ -664,6 +667,7 @@ private fun QueuesCardAntiLeak(
     onOpenPartsOutliers: () -> Unit,
     onOpenResolvedDisputes: () -> Unit,
     onOpenSpotAudits: () -> Unit,
+    onOpenEngineerPayouts: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -724,6 +728,15 @@ private fun QueuesCardAntiLeak(
             subtitle = "1-in-20 random sweep",
             trailingPill = null,
             onClick = onOpenSpotAudits,
+            showDivider = true,
+        )
+        QueueRow(
+            icon = Icons.Outlined.CurrencyRupee,
+            iconTint = SevaGreen700,
+            title = "Engineer payouts",
+            subtitle = "Manually mark paid / cancel (pre-RazorpayX bridge)",
+            trailingPill = null,
+            onClick = onOpenEngineerPayouts,
             showDivider = false,
         )
     }
