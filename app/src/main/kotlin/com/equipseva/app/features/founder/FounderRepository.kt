@@ -826,6 +826,25 @@ class FounderRepository @Inject constructor(
         Unit
     }
 
+    @Serializable
+    data class EngineerPayoutsSummary(
+        @SerialName("queued_count") val queuedCount: Int,
+        @SerialName("queued_amount_paise") val queuedAmountPaise: Long,
+        @SerialName("processing_count") val processingCount: Int,
+        @SerialName("failed_count") val failedCount: Int,
+        @SerialName("failed_amount_paise") val failedAmountPaise: Long,
+        @SerialName("last_processed_at") val lastProcessedAt: String? = null,
+    ) {
+        val hasActionableWork: Boolean
+            get() = queuedCount > 0 || failedCount > 0
+    }
+
+    suspend fun fetchEngineerPayoutsSummary(): Result<EngineerPayoutsSummary?> = runCatching {
+        client.postgrest.rpc(function = "founder_engineer_payouts_summary")
+            .decodeList<EngineerPayoutsSummary>()
+            .firstOrNull()
+    }
+
     /** Void a queued / processing / failed row. Reason min 5 chars. */
     suspend fun adminCancelPayout(
         payoutId: String,
