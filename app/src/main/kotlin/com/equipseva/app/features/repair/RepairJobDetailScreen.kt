@@ -1967,8 +1967,14 @@ private fun BidComposerSheet(
                 value = eta,
                 // ASCII-only digits — same trap as the amount field.
                 onChange = { eta = it.filter { ch -> ch in '0'..'9' } },
-                label = "When can you arrive? (hours)",
+                // The old "When can you arrive? (hours)" was ambiguous —
+                // engineers couldn't tell if it meant clock-hour, travel
+                // time, or total job duration. Hospital-side rendering
+                // ("ETA Nh") suggests *travel time from now*, so make
+                // that explicit in both the label and the hint.
+                label = "Travel time to site (hours from now)",
                 placeholder = "e.g. 4",
+                hint = "How long until you arrive — don't include the repair itself.",
                 type = EsFieldType.Number,
                 error = if (etaError) "Enter hours as a positive whole number" else null,
                 modifier = Modifier.onFocusChanged { focusState ->
@@ -2234,6 +2240,17 @@ private fun CompletionProofSheet(
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = SevaInk900,
+            )
+            // Helper text — engineers were uploading random shots and
+            // dragging support questions about "did it submit?". State
+            // the count cap + the why (hospital NABH/JCI compliance
+            // archives consume these images) so the bar is clear before
+            // the picker opens.
+            Text(
+                text = "Capture 1–$maxPhotos photos of the equipment working after the repair. " +
+                    "Hospitals archive these for NABH / JCI compliance.",
+                fontSize = 12.sp,
+                color = SevaInk600,
             )
             Text(
                 text = "After-photos (required)",
