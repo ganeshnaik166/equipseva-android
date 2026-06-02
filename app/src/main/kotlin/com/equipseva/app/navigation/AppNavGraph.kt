@@ -127,14 +127,24 @@ private fun RootHost(
 
     val navigateToMain: () -> Unit = {
         navController.navigate(MAIN_HOST_ROUTE) {
-            popUpTo(0) { inclusive = true }
+            // popUpTo(graph.id) — same bug fix as navigateToOnboarding
+            // below. The legacy popUpTo(0) form silently no-ops since
+            // Compose Navigation 2.9.
+            popUpTo(navController.graph.id) { inclusive = true }
             launchSingleTop = true
         }
     }
 
     val navigateToOnboarding: () -> Unit = {
+        // popUpTo(0) silently no-ops on Compose Navigation 2.9+ (id 0
+        // doesn't match the root graph any more), so a delayed gate
+        // detection during a fresh sign-up would call navigate() but
+        // the prior MAIN_HOST_ROUTE entry stayed on the back stack and
+        // its composable kept rendering. Engineers landed on Home
+        // despite NeedsOnboarding firing. popUpTo(graph.id) clears
+        // the whole stack the way the symbolic id intends.
         navController.navigate(ONBOARDING_HOST_ROUTE) {
-            popUpTo(0) { inclusive = true }
+            popUpTo(navController.graph.id) { inclusive = true }
             launchSingleTop = true
         }
     }
@@ -161,7 +171,8 @@ private fun RootHost(
             is SessionState.SignedOut -> if (sawAuthenticated.value) {
                 sawAuthenticated.value = false
                 navController.navigate(Routes.AUTH_GRAPH) {
-                    popUpTo(0) { inclusive = true }
+                    // graph.id, not 0 — see comment on navigateToOnboarding.
+                    popUpTo(navController.graph.id) { inclusive = true }
                     launchSingleTop = true
                 }
             }
