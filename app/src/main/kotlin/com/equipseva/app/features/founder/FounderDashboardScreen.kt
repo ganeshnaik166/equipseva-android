@@ -52,7 +52,9 @@ import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaDanger50
 import com.equipseva.app.designsystem.theme.SevaDanger500
+import com.equipseva.app.designsystem.theme.SevaWarning50
 import com.equipseva.app.designsystem.theme.SevaGlowRaw
 import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaGreen900
@@ -87,6 +89,10 @@ class FounderDashboardViewModel @Inject constructor(
         val error: String? = null,
         val founderEmail: String? = null,
         val topEngineers: List<FounderRepository.TopEngineerRow> = emptyList(),
+        // Round 430 — engineer payouts queue summary surfaced as a
+        // hero tile when there's actionable work (queued or failed
+        // rows). Null while loading or on RPC failure; tile hides.
+        val payoutsSummary: FounderRepository.EngineerPayoutsSummary? = null,
     )
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
@@ -115,6 +121,11 @@ class FounderDashboardViewModel @Inject constructor(
             val leaderboardJob = launch {
                 repo.fetchTopEngineers(windowDays = 30, limit = 5)
                     .onSuccess { rows -> _state.update { it.copy(topEngineers = rows) } }
+            }
+            // Round 430 — payouts summary same fire-and-forget pattern.
+            launch {
+                repo.fetchEngineerPayoutsSummary()
+                    .onSuccess { sum -> _state.update { it.copy(payoutsSummary = sum) } }
             }
             repo.fetchDashboardStats()
                 .onSuccess { s ->
@@ -209,6 +220,18 @@ fun FounderDashboardScreen(
                 // payments-today field) which read as a missing value, not
                 // a placeholder; reframe around the field we actually have.
                 FounderHero(jobsToday = stats?.ordersToday)
+
+                // Round 430 — engineer payouts queue alert tile. Renders
+                // only when there's actionable work (queued / failed > 0)
+                // so the founder isn't reminded about an empty queue.
+                state.payoutsSummary?.takeIf { it.hasActionableWork }?.let { sum ->
+                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                        EngineerPayoutsSummaryTile(
+                            summary = sum,
+                            onClick = onOpenEngineerPayouts,
+                        )
+                    }
+                }
 
                 // KPI strip — 2 cards. The earlier 3rd "Users" card always
                 // showed "—" because admin_dashboard_stats RPC has no
@@ -929,3 +952,101 @@ internal fun founderDashboardSubtitle(founderEmail: String?): String =
  */
 internal fun founderHeroJobsValue(jobsToday: Int?): String =
     (jobsToday ?: 0).toString()
+
+/* ---------------- round 430 — engineer payouts summary tile -------------- */
+
+/**
+ * Compact alert card surfaced on the founder dashboard whenever the
+ * engineer_payouts queue holds rows that need attention. Goal: nudge
+ * the founder to open the round-428 admin screen without forcing them
+ * to remember to check it manually, especially during the pre-RazorpayX
+ * period where every queued row means an engineer is waiting for a
+ * manual GPay.
+ *
+ * Tone tiered by mix:
+ *   - any failed row → danger background (red)
+ *   - queued-only → warning background (amber)
+ *   - empty → tile doesn't render (gated on hasActionableWork upstream)
+ */
+@Composable
+private fun EngineerPayoutsSummaryTile(
+    summary: FounderRepository.EngineerPayoutsSummary,
+    onClick: () -> Unit,
+) {
+    val hasFailures = summary.failedCount > 0
+    val bg = if (hasFailures) SevaDanger50 else SevaWarning50
+    val accent = if (hasFailures) SevaDanger500 else SevaWarning500
+    val queuedRupees = summary.queuedAmountPaise / 100.0
+    val failedRupees = summary.failedAmountPaise / 100.0
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(bg)
+            .border(width = 1.dp, color = accent, shape = RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.CurrencyRupee,
+            contentDescription = null,
+            tint = accent,
+            modifier = Modifier.size(22.dp),
+        )
+        Spacer(Modifier.size(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                engineerPayoutsTileTitle(summary),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = SevaInk900,
+            )
+            Text(
+                engineerPayoutsTileSubtitle(summary, queuedRupees, failedRupees),
+                fontSize = 12.sp,
+                color = SevaInk500,
+            )
+        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+            contentDescription = "Open",
+            tint = accent,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+/**
+ * Title copy varies by mix so the founder doesn't read a generic
+ * "Engineer payouts" header and miss the urgency.
+ */
+internal fun engineerPayoutsTileTitle(
+    summary: FounderRepository.EngineerPayoutsSummary,
+): String = when {
+    summary.failedCount > 0 && summary.queuedCount > 0 ->
+        "${summary.failedCount} failed · ${summary.queuedCount} queued"
+    summary.failedCount > 0 -> "${summary.failedCount} payout${if (summary.failedCount == 1) "" else "s"} failed"
+    else -> "${summary.queuedCount} payout${if (summary.queuedCount == 1) "" else "s"} queued"
+}
+
+/**
+ * Subtitle highlights the unpaid ₹ so the founder sees the impact
+ * before tapping in. Hides the processing count when zero.
+ *
+ * We don't use formatRupees(double) — it rounds to integer rupees,
+ * which loses the per-paise precision we need to show ₹9.30 / ₹18.60
+ * accurately during the early demo period where amounts are small.
+ */
+internal fun engineerPayoutsTileSubtitle(
+    summary: FounderRepository.EngineerPayoutsSummary,
+    queuedRupees: Double,
+    failedRupees: Double,
+): String = buildList {
+    if (summary.queuedCount > 0) add("${formatPaiseAsRupees(queuedRupees)} queued")
+    if (summary.failedCount > 0) add("${formatPaiseAsRupees(failedRupees)} failed")
+    if (summary.processingCount > 0) add("${summary.processingCount} in flight")
+}.joinToString(" · ")
+
+internal fun formatPaiseAsRupees(rupees: Double): String =
+    java.util.Locale.ENGLISH.let { loc -> String.format(loc, "₹%.2f", rupees) }
