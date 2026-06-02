@@ -59,7 +59,7 @@ class TerminalStatusBannerCopyTest {
             cancellationReason = null,
         )
         assertEquals("Job in dispute", copy!!.title)
-        assertEquals("Our team will reach out once a decision is made.", copy.subtitle)
+        assertEquals("Add photos and context in the Escrow section below before admin decides. Both sides can respond.", copy.subtitle)
     }
 
     @Test fun `Disputed ignores cancellationReason (only used for Cancelled)`() {
@@ -69,7 +69,7 @@ class TerminalStatusBannerCopyTest {
             status = RepairJobStatus.Disputed,
             cancellationReason = "Hospital booked too late",
         )
-        assertEquals("Our team will reach out once a decision is made.", copy!!.subtitle)
+        assertEquals("Add photos and context in the Escrow section below before admin decides. Both sides can respond.", copy!!.subtitle)
         assertEquals(false, copy.subtitle.contains("Hospital"))
     }
 

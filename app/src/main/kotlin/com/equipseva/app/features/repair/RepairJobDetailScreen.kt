@@ -117,6 +117,8 @@ import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaGreen900
 import com.equipseva.app.designsystem.theme.SevaInfo50
 import com.equipseva.app.designsystem.theme.SevaInfo500
+import com.equipseva.app.designsystem.theme.SevaWarning50
+import com.equipseva.app.designsystem.theme.SevaWarning500
 import com.equipseva.app.designsystem.theme.SevaInk300
 import com.equipseva.app.designsystem.theme.SevaInk400
 import com.equipseva.app.designsystem.theme.SevaInk500
@@ -586,19 +588,42 @@ private fun JobBody(
         }
 
         // PR-D5: per-job escrow status + actions.
-        if (escrow != null) {
-            EsSection(title = "Escrow") {
-                EscrowStatusCard(
-                    escrow = escrow,
-                    isHospital = isHospital,
-                    isJobCompleted = job.status == RepairJobStatus.Completed,
-                    confirmingRelease = confirmingEscrowRelease,
-                    onPay = onPayEscrow,
-                    onConfirmRelease = onConfirmEscrowRelease,
-                    onOpenDispute = onOpenEscrowDispute,
-                    onOpenEngineerResponse = onOpenEngineerResponseSheet,
-                )
+        // PR #1033 restored the escrow-INSERT in accept_repair_bid;
+        // every assigned-or-later job should have an escrow row. The
+        // placeholder branch below is defensive: any future migration
+        // that drops the insert (or a partial-failure race) leaves
+        // the hospital staring at a job stuck at "Assigned" with no
+        // Pay button and no idea what to do. Surface the missing-
+        // escrow state explicitly + give the user a recovery path
+        // (pull-to-refresh / contact support) instead of an invisible
+        // dead-end.
+        val needsEscrow = job.status in setOf(
+            RepairJobStatus.Assigned,
+            RepairJobStatus.EnRoute,
+            RepairJobStatus.InProgress,
+            RepairJobStatus.Completed,
+        )
+        when {
+            escrow != null -> {
+                EsSection(title = "Escrow") {
+                    EscrowStatusCard(
+                        escrow = escrow,
+                        isHospital = isHospital,
+                        isJobCompleted = job.status == RepairJobStatus.Completed,
+                        confirmingRelease = confirmingEscrowRelease,
+                        onPay = onPayEscrow,
+                        onConfirmRelease = onConfirmEscrowRelease,
+                        onOpenDispute = onOpenEscrowDispute,
+                        onOpenEngineerResponse = onOpenEngineerResponseSheet,
+                    )
+                }
             }
+            needsEscrow -> {
+                EsSection(title = "Escrow") {
+                    EscrowMissingPlaceholderCard()
+                }
+            }
+            else -> Unit
         }
 
         // PR-D3: compliance audit-trail HTML report. Available to both
@@ -716,6 +741,40 @@ private fun EngineerResponseSheet(
             }
             Spacer(Modifier.height(8.dp))
         }
+    }
+}
+
+/**
+ * Defensive placeholder for a job that's logically past the
+ * accept-bid step but has NO escrow row to render. PR #1033 restored
+ * the per-job escrow INSERT in accept_repair_bid; this card protects
+ * against any future regression OR partial-failure race that leaves
+ * the row absent. Without it the hospital sees a job stuck at
+ * "Assigned" with no Pay button and no signal what to do.
+ */
+@Composable
+private fun EscrowMissingPlaceholderCard() {
+    val shape = RoundedCornerShape(12.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(SevaWarning50)
+            .border(width = 1.dp, color = SevaWarning500, shape = shape)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            "Escrow not set up yet",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = SevaInk900,
+        )
+        Text(
+            "Pull down to refresh. If this stays after a minute, contact support — your engineer can't be paid until the escrow row exists.",
+            fontSize = 12.sp,
+            color = SevaInk700,
+        )
     }
 }
 
@@ -2711,7 +2770,11 @@ internal fun terminalStatusBannerCopy(
     )
     RepairJobStatus.Disputed -> TerminalStatusCopy(
         title = "Job in dispute",
-        subtitle = "Our team will reach out once a decision is made.",
+        // Old copy ("Our team will reach out once a decision is made")
+        // left the engineer passive at the worst possible moment — they
+        // have one chance to add photos + context BEFORE admin decides.
+        // Point both sides at the Escrow section's "Respond" CTA below.
+        subtitle = "Add photos and context in the Escrow section below before admin decides. Both sides can respond.",
     )
     else -> null
 }
