@@ -172,6 +172,10 @@ object Routes {
     // v2.1 PR-D21 ops queues — surface admin RPCs that previously had no UI.
     const val FOUNDER_ESCROW_DISPUTES = "founder/escrow_disputes"
     const val FOUNDER_AMC_ESCALATIONS = "founder/amc_escalations"
+    // Round 428 — manual force-pay queue for the engineer_payouts table
+    // during the RazorpayX-less period and for edge-case post-activation
+    // overrides (refunds, fraud holds, dispute-driven cancellations).
+    const val FOUNDER_ENGINEER_PAYOUTS = "founder/engineer_payouts"
     const val FOUNDER_CASH_SUSPENDED = "founder/cash_suspended"
     const val FOUNDER_PARTS_OUTLIERS = "founder/parts_outliers"
 
