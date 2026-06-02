@@ -59,6 +59,7 @@ import com.equipseva.app.designsystem.theme.Paper2
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInk500
+import com.equipseva.app.designsystem.theme.SevaInk600
 import com.equipseva.app.designsystem.theme.SevaInk700
 import com.equipseva.app.designsystem.theme.SevaInk900
 
@@ -278,6 +279,25 @@ private fun HospitalBookingCard(
                     UrgencyPill(urgency = job.urgency)
                 }
             }
+        }
+
+        // Terminal-state subtitle — when the job is Cancelled (with a
+        // reason) or Disputed, the StatusPill alone is a dead-end.
+        // Surface the explanation inline so a hospital scrolling the
+        // Closed list can tell "engineer self-repaired" from "service
+        // area dispute" without opening the detail screen.
+        val terminal = com.equipseva.app.features.repair.terminalStatusBannerCopy(
+            status = job.status,
+            cancellationReason = job.cancellationReason,
+        )
+        if (terminal != null) {
+            Text(
+                text = terminal.subtitle,
+                style = EsType.Caption,
+                color = SevaInk600,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
 
         if (job.issueDescription.isNotBlank()) {

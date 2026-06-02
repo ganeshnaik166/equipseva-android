@@ -327,8 +327,15 @@ fun RepairJobDetailScreen(
     }
 
     if (cancelSheetOpen) {
+        // Plumb job status + escrow facts into the sheet so the warning
+        // copy adapts to the consequences of the cancellation (engineer
+        // en route? funds in escrow? both?). A bland one-liner on an
+        // already-assigned job with money held had hospitals second-
+        // guessing themselves and reading vague support questions.
         CancelSheet(
             updating = state.updatingStatus,
+            jobStatus = state.job?.status,
+            escrowHeldRupees = state.escrow?.takeIf { it.isHeld }?.amountRupees?.toInt(),
             onDismiss = { if (!state.updatingStatus) cancelSheetOpen = false },
             onConfirm = { reason ->
                 cancelSheetOpen = false
@@ -2474,15 +2481,25 @@ private fun RateSheet(
 @Composable
 private fun CancelSheet(
     updating: Boolean,
+    jobStatus: RepairJobStatus?,
+    escrowHeldRupees: Int?,
     onDismiss: () -> Unit,
     onConfirm: (String?) -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     // Reason is now plumbed through cancelJob → updateStatus → the new
     // repair_jobs.cancellation_reason column (PR #614 migration). Empty
-    // reason is allowed; UI shows it as "optional" so hospitals aren't
-    // gated on typing one for fast-cancels.
+    // reason is allowed for `requested` (no engineer to inform), but
+    // required once an engineer has been assigned / is en route / has
+    // started — they deserve to know why the job vanished.
     var reason by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
+    val isAssignedOrLater = jobStatus in setOf(
+        RepairJobStatus.Assigned,
+        RepairJobStatus.EnRoute,
+        RepairJobStatus.InProgress,
+    )
+    val reasonRequired = isAssignedOrLater
+    val reasonOk = !reasonRequired || reason.trim().length >= 10
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier
@@ -2496,16 +2513,35 @@ private fun CancelSheet(
                 fontWeight = FontWeight.Bold,
                 color = SevaInk900,
             )
+            // Status-aware warning. After accept_repair_bid the engineer
+            // may already be traveling — be honest about that. If money
+            // is in escrow, surface the refund expectation in the same
+            // breath so the hospital doesn't have to chase support.
             Text(
-                text = "This cannot be undone. The other party will be notified.",
+                text = when {
+                    isAssignedOrLater ->
+                        "The engineer may have already started travel — they'll be notified immediately."
+                    else ->
+                        "This cannot be undone. The other party will be notified."
+                },
                 fontSize = 13.sp,
                 color = SevaInk600,
             )
+            if (escrowHeldRupees != null) {
+                Text(
+                    text = "₹$escrowHeldRupees in escrow will be refunded to your account within 3 working days.",
+                    fontSize = 12.sp,
+                    color = SevaInk700,
+                )
+            }
             androidx.compose.material3.OutlinedTextField(
                 value = reason,
                 onValueChange = { reason = it.take(500) },
-                label = { Text("Reason (optional)") },
+                label = {
+                    Text(if (reasonRequired) "Reason (required, 10+ chars)" else "Reason (optional)")
+                },
                 placeholder = { Text("e.g. equipment self-repaired, schedule conflict…") },
+                isError = reasonRequired && reason.isNotEmpty() && !reasonOk,
                 minLines = 2,
                 maxLines = 5,
                 enabled = !updating,
@@ -2528,7 +2564,7 @@ private fun CancelSheet(
                     onClick = { onConfirm(reason.trim().ifBlank { null }) },
                     kind = EsBtnKind.Danger,
                     full = true,
-                    disabled = updating,
+                    disabled = updating || !reasonOk,
                     modifier = Modifier.weight(1f),
                 )
             }
