@@ -96,7 +96,12 @@ fun SignUpScreen(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "Free to join. Engineers complete a quick KYC after signing up.",
+                    // Hospital admins picking a role haven't agreed to be an
+                    // engineer yet — surfacing the "KYC" acronym above the
+                    // role tiles read as a hospital requirement and added
+                    // friction. The engineer-specific KYC note now lives
+                    // inside the engineer RoleTile subtitle below.
+                    text = "Free to join. Takes about a minute.",
                     fontSize = 13.sp,
                     color = SevaInk500,
                 )
@@ -161,7 +166,7 @@ fun SignUpScreen(
                 Spacer(Modifier.height(10.dp))
                 RoleTile(
                     title = "Biomedical engineer",
-                    subtitle = "Pick up local repair jobs and get paid",
+                    subtitle = "Pick up local repair jobs and get paid. Quick ID check after signup.",
                     selected = state.role == UserRole.ENGINEER,
                     enabled = !state.form.submitting,
                     onClick = { viewModel.onRoleChange(UserRole.ENGINEER) },
