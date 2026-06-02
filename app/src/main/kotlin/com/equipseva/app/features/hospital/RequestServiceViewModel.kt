@@ -147,6 +147,21 @@ class RequestServiceViewModel @Inject constructor(
                     val profile = profileRepository.fetchById(session.userId).getOrNull()
                     orgId = profile?.organizationId
                     hospitalPhone = profile?.phone?.takeIf { it.isNotBlank() }
+                    // v0.2.0 onboarding captures hospital state + district;
+                    // pre-fill the booking form's "Where" address line so
+                    // the user starts with their saved district/state and
+                    // edits to add a specific landmark, instead of typing
+                    // the city + state from scratch every booking. Only
+                    // applied when the user hasn't already typed something
+                    // (SavedStateHandle restore wins) and when both fields
+                    // are present on the profile.
+                    val state = profile?.state?.takeIf { it.isNotBlank() }
+                    val district = profile?.district?.takeIf { it.isNotBlank() }
+                    if (_state.value.siteAddress.isBlank() && state != null && district != null) {
+                        val seed = "$district, $state"
+                        savedStateHandle[SavedKeys.SITE_ADDRESS] = seed
+                        _state.update { it.copy(siteAddress = seed) }
+                    }
                 }
         }
     }
