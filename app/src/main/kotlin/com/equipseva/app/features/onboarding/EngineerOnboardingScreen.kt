@@ -192,10 +192,25 @@ fun EngineerOnboardingScreen(
             )
             Spacer(Modifier.height(4.dp))
 
+            // Inline phone validation: surface the reason Continue is
+            // disabled instead of leaving the user guessing.
+            val phoneInputError = s.phone.length >= 5 && !isPhoneE164Routable(s.phone)
             OutlinedTextField(
                 value = s.phone,
                 onValueChange = viewModel::onPhoneChange,
-                label = { Text("Phone (e.g. +919999999999)") },
+                label = { Text("Phone") },
+                placeholder = { Text("+91 98765 43210") },
+                supportingText = {
+                    if (phoneInputError) {
+                        Text(
+                            "Enter a valid 10-digit Indian mobile number.",
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                        )
+                    } else {
+                        Text("Hospitals reach you here when a job is assigned.")
+                    }
+                },
+                isError = phoneInputError,
                 singleLine = true,
                 enabled = !s.saving,
                 keyboardOptions = KeyboardOptions(
@@ -229,7 +244,9 @@ fun EngineerOnboardingScreen(
             Spacer(Modifier.height(12.dp))
 
             EsBtn(
-                text = if (s.saving) "Saving…" else "Continue",
+                // "Continue" hid that KYC is the next gate. Be honest about
+                // the next step so the engineer doesn't tap expecting Home.
+                text = if (s.saving) "Saving…" else "Save and start KYC",
                 onClick = viewModel::onSubmit,
                 kind = EsBtnKind.Primary,
                 size = EsBtnSize.Lg,

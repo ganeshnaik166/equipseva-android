@@ -187,10 +187,27 @@ fun HospitalOnboardingScreen(
             )
             Spacer(Modifier.height(4.dp))
 
+            // Show the validation reason inline once the user has typed
+            // enough that they're clearly past the +91 prefix — keeps the
+            // "Continue" disabled state self-explanatory instead of an
+            // unexplained grey button.
+            val phoneInputError = s.phone.length >= 5 && !isPhoneE164Routable(s.phone)
             OutlinedTextField(
                 value = s.phone,
                 onValueChange = viewModel::onPhoneChange,
-                label = { Text("Phone (e.g. +919999999999)") },
+                label = { Text("Phone") },
+                placeholder = { Text("+91 98765 43210") },
+                supportingText = {
+                    if (phoneInputError) {
+                        Text(
+                            "Enter a valid 10-digit Indian mobile number.",
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                        )
+                    } else {
+                        Text("We send job updates here. 10-digit Indian mobile.")
+                    }
+                },
+                isError = phoneInputError,
                 singleLine = true,
                 enabled = !s.saving,
                 keyboardOptions = KeyboardOptions(
