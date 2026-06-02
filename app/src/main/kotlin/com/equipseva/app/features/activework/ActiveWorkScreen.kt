@@ -44,6 +44,7 @@ import com.equipseva.app.features.repair.components.EngineerJobCard
 fun ActiveWorkScreen(
     onBack: () -> Unit,
     onJobClick: (String) -> Unit,
+    onBrowseOpenJobs: () -> Unit = {},
     viewModel: ActiveWorkViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -85,8 +86,14 @@ fun ActiveWorkScreen(
                     state.loading -> ListSkeleton(rows = 6)
                     combined.isEmpty() -> EmptyStateView(
                         icon = Icons.Outlined.Handyman,
-                        title = "No assigned jobs",
-                        subtitle = "Jobs you win from the feed will show up here.",
+                        title = "No jobs in progress",
+                        // Dead-end empty state nudged engineers to leave the
+                        // screen without ever finding the public feed. Add
+                        // the CTA so the "where do I get work?" question has
+                        // a 1-tap answer right here, not via the bottom-nav.
+                        subtitle = "Jobs you win from the feed land here.",
+                        ctaLabel = "Find open jobs",
+                        onCta = onBrowseOpenJobs,
                     )
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),

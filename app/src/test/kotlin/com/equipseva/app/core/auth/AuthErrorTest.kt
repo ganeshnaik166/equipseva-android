@@ -149,7 +149,7 @@ class AuthErrorTest {
         // The strings are user-facing and have been reviewed; a copy
         // change should be intentional, not accidental.
         assertEquals(
-            "Email or password is incorrect.",
+            "Email or password is wrong. Try Forgot password, or sign up if you don't have an account.",
             AuthError.InvalidCredentials.userMessage,
         )
         assertEquals(

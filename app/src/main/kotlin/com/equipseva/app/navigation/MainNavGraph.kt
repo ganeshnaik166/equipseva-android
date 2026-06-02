@@ -652,6 +652,11 @@ fun MainNavGraph(
                 ActiveWorkScreen(
                     onBack = { navController.popBackStack() },
                     onJobClick = { jobId -> navController.navigate(Routes.repairJobDetailRoute(jobId)) },
+                    onBrowseOpenJobs = {
+                        navController.navigate(Routes.ENGINEER_JOBS_HUB) {
+                            launchSingleTop = true
+                        }
+                    },
                 )
             }
             composable(Routes.REQUEST_SERVICE) {
