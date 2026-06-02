@@ -362,7 +362,7 @@ class KycViewModel @Inject constructor(
         val profile = profileRepository.fetchById(uid).getOrNull()
         engineerRepository.fetchByUserId(uid).fold(
             onSuccess = { engineer ->
-                hydrate(engineer)
+                hydrate(engineer, profile)
                 _state.update {
                     it.copy(
                         email = profile?.email,
@@ -516,7 +516,7 @@ class KycViewModel @Inject constructor(
         }
     }
 
-    private fun hydrate(engineer: Engineer?) {
+    private fun hydrate(engineer: Engineer?, profile: com.equipseva.app.core.data.profile.Profile? = null) {
         snapshotPersistedDocs(engineer)
         // Restored handle values take priority over server values for any
         // field the user might have typed mid-flow — process death must not
@@ -554,8 +554,24 @@ class KycViewModel @Inject constructor(
                 // + district=Chennai — a TN district stuck on a Karnataka
                 // pick. onServiceStateChange clears savedDistrict, but
                 // parsedDistrict can still resurrect a stale value here.
-                val chosenState = savedState ?: parsedState
-                val districtFinal = (savedDistrict ?: parsedDistrict)?.takeIf { d ->
+                //
+                // Pre-fill chain: SavedStateHandle (user typed
+                // mid-flow) → engineer.city parse (server-side ground
+                // truth) → profile.state/district (filled during
+                // v0.2.0 mandatory onboarding). New-signup engineers
+                // who just completed onboarding land on KYC step 1
+                // with state+district already chosen, instead of
+                // having to re-pick the same dropdowns they just
+                // filled on the Welcome screen.
+                val profileState = profile?.state?.takeIf { ps ->
+                    ps in com.equipseva.app.core.data.location.IndiaLocations.STATES
+                }
+                val profileDistrict = profile?.district?.takeIf { pd ->
+                    profileState != null &&
+                        pd in com.equipseva.app.core.data.location.IndiaLocations.districtsFor(profileState)
+                }
+                val chosenState = savedState ?: parsedState ?: profileState
+                val districtFinal = (savedDistrict ?: parsedDistrict ?: profileDistrict)?.takeIf { d ->
                     chosenState != null &&
                         d in com.equipseva.app.core.data.location.IndiaLocations.districtsFor(chosenState)
                 }
