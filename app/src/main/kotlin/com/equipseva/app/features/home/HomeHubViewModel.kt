@@ -411,22 +411,28 @@ class HomeHubViewModel @Inject constructor(
         _state.update { it.copy(pendingSpotAudit = null) }
     }
 
-    /**
-     * Derive the engineer's directory visibility from their engineers
-     * row. Mirrors the client-side `isBookable` filter in
-     * [com.equipseva.app.features.repair.directory.EngineerDirectoryViewModel]:
-     * hospitals hide engineers without an hourly rate or without at
-     * least one specialization, but the engineer has no signal that
-     * they're hidden. This computed state powers the Home banner.
-     */
-    private fun computeDirectoryGate(eng: com.equipseva.app.core.data.engineers.Engineer): DirectoryGate {
-        val rateMissing = eng.hourlyRate == null || eng.hourlyRate <= 0.0
-        val specsMissing = eng.specializations.isEmpty()
-        return when {
-            !rateMissing && !specsMissing -> DirectoryGate.Visible
-            rateMissing && specsMissing -> DirectoryGate.MissingBoth
-            rateMissing -> DirectoryGate.MissingRate
-            else -> DirectoryGate.MissingSpecs
-        }
+}
+
+/**
+ * Derive the engineer's directory visibility from their engineers
+ * row. Mirrors the client-side `isBookable` filter in
+ * [com.equipseva.app.features.repair.directory.EngineerDirectoryViewModel]:
+ * hospitals hide engineers without an hourly rate or without at
+ * least one specialization, but the engineer has no signal that
+ * they're hidden. This computed state powers the Home banner.
+ *
+ * Free function (not a member) so it stays pure + cheap to unit-test
+ * without spinning up the Hilt-injected ViewModel.
+ */
+internal fun computeDirectoryGate(
+    eng: com.equipseva.app.core.data.engineers.Engineer,
+): HomeHubViewModel.DirectoryGate {
+    val rateMissing = eng.hourlyRate == null || eng.hourlyRate <= 0.0
+    val specsMissing = eng.specializations.isEmpty()
+    return when {
+        !rateMissing && !specsMissing -> HomeHubViewModel.DirectoryGate.Visible
+        rateMissing && specsMissing -> HomeHubViewModel.DirectoryGate.MissingBoth
+        rateMissing -> HomeHubViewModel.DirectoryGate.MissingRate
+        else -> HomeHubViewModel.DirectoryGate.MissingSpecs
     }
 }
