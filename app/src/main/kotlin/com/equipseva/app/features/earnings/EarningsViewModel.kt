@@ -6,6 +6,8 @@ import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.amc.AmcRepository
 import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
+import com.equipseva.app.core.data.payouts.EngineerPayoutRepository
+import com.equipseva.app.core.data.payouts.EngineerPayoutRow
 import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairBidRepository
 import com.equipseva.app.core.data.repair.RepairBidStatus
@@ -30,6 +32,7 @@ class EarningsViewModel @Inject constructor(
     private val jobRepository: RepairJobRepository,
     private val escrowRepository: RepairJobEscrowRepository,
     private val amcRepository: AmcRepository,
+    private val payoutRepository: EngineerPayoutRepository,
 ) : ViewModel() {
 
     data class EarningRow(val bid: RepairBid, val job: RepairJob?)
@@ -50,6 +53,10 @@ class EarningsViewModel @Inject constructor(
         // Round 368 — engineer's own monthly rank + jobs + revenue. Null
         // while loading or on RPC failure; the card hides in either case.
         val selfRank: RepairJobEscrowRepository.EngineerSelfRank? = null,
+        // Round 427 — engineer-facing payout history (queued / processing /
+        // processed / failed rows from engineer_payouts). Empty list while
+        // loading or on RPC failure; the section just hides in either case.
+        val payouts: List<EngineerPayoutRow> = emptyList(),
         val errorMessage: String? = null,
     )
 
@@ -130,6 +137,15 @@ class EarningsViewModel @Inject constructor(
                                     amcPaidTotal = amc.sumOf { row -> row.engineerPayoutRupees },
                                 )
                             }
+                        }
+                    }
+                    // Round 427 — auto-payout history. Distinct from the
+                    // bid-level "Recent payouts" list above (which mirrors
+                    // job-completion transactions) — this is the real
+                    // money-transfer queue (engineer_payouts table).
+                    viewModelScope.launch {
+                        payoutRepository.listPayouts(limit = 50).onSuccess { rows ->
+                            _state.update { it.copy(payouts = rows) }
                         }
                     }
                 }

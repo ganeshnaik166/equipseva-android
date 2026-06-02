@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.core.data.payouts.EngineerPayoutRow
+import com.equipseva.app.core.data.payouts.PayoutStatus
 import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.prettyDateTime
@@ -193,6 +195,22 @@ fun EarningsScreen(
                                             rows = state.amcEarnings,
                                             onVisitClick = onJobClick,
                                         )
+                                    }
+                                }
+                            }
+                            // Round 427 — auto-transfer history (distinct
+                            // from the bid-level Recent payouts section
+                            // above). Surfaces engineer_payouts rows so
+                            // the engineer can see what's queued / paid /
+                            // failed against their UPI / bank.
+                            if (state.payouts.isNotEmpty()) {
+                                item("payout_transfers") {
+                                    EsSection(title = "Transfers to your account") {
+                                        Column {
+                                            state.payouts.forEach { p ->
+                                                PayoutTransferRow(p)
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -617,3 +635,86 @@ internal fun transactionRowDisplayAmount(
  */
 internal fun selfRankSubtitle(jobsCompleted: Long, revenueInr: Double): String =
     "$jobsCompleted job${if (jobsCompleted == 1L) "" else "s"} · ${formatRupees(revenueInr)}"
+
+/* ---------------------------- payout transfers ---------------------------- */
+
+@Composable
+private fun PayoutTransferRow(p: EngineerPayoutRow) {
+    val amountRupees = p.amountPaise / 100.0
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                p.jobNumber,
+                fontSize = 13.sp,
+                color = SevaInk500,
+                fontWeight = FontWeight.Medium,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                "₹${formatRupees(amountRupees)} → ${p.destinationLabel ?: "No payout method"}",
+                fontSize = 15.sp,
+                color = SevaInk900,
+                fontWeight = FontWeight.SemiBold,
+            )
+            val sub = payoutSubtitle(p)
+            if (sub != null) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    sub,
+                    fontSize = 12.sp,
+                    color = if (p.status == PayoutStatus.Failed) SevaDanger500 else SevaInk500,
+                )
+            }
+        }
+        PayoutStatusPill(p.status)
+    }
+}
+
+@Composable
+private fun PayoutStatusPill(status: PayoutStatus) {
+    val (label, bg, fg) = when (status) {
+        PayoutStatus.Queued -> Triple("Queued", SevaWarning50, SevaWarning500)
+        PayoutStatus.Processing -> Triple("Processing", SevaWarning50, SevaWarning500)
+        PayoutStatus.Processed -> Triple("Paid", SevaGreen50, SevaGreen700)
+        PayoutStatus.Failed -> Triple(
+            "Failed",
+            // Reuse danger-tinted background by re-tinting the green-50
+            // chip — we don't have a dedicated danger-50 token, and a
+            // solid danger background reads as an alert blocker rather
+            // than a status label.
+            SevaWarning50,
+            SevaDanger500,
+        )
+        PayoutStatus.Cancelled -> Triple("Cancelled", SevaWarning50, SevaInk500)
+    }
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(bg)
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+    ) {
+        Text(label, fontSize = 11.sp, color = fg, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+/**
+ * One-line context under each payout row. Goal: tell the engineer
+ * exactly what's happening with their ₹X right now — not a generic
+ * date string. Failed surfaces the RazorpayX reason (when present)
+ * so they can act (re-enter VPA, etc) without a support ping.
+ */
+internal fun payoutSubtitle(p: EngineerPayoutRow): String? = when (p.status) {
+    PayoutStatus.Queued -> "Will pay automatically after the next worker tick."
+    PayoutStatus.Processing -> "Sent to your bank — waiting for confirmation."
+    PayoutStatus.Processed -> {
+        val ref = p.utr?.let { "UTR $it" } ?: p.mode?.let { "via $it" }
+        if (ref != null) "Paid · $ref" else "Paid"
+    }
+    PayoutStatus.Failed -> p.failureReason?.let { "Failed — $it" } ?: "Failed — re-check your payout method."
+    PayoutStatus.Cancelled -> "Cancelled by admin."
+}
