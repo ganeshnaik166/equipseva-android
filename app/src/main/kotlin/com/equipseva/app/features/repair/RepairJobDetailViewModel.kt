@@ -64,6 +64,7 @@ class RepairJobDetailViewModel @Inject constructor(
     private val costRevisionRepository: com.equipseva.app.core.data.repair.CostRevisionRepository,
     private val serviceReportRepository: ServiceReportRepository,
     private val escrowRepository: RepairJobEscrowRepository,
+    private val payoutRepository: com.equipseva.app.core.data.payouts.EngineerPayoutRepository,
     private val json: Json,
 ) : ViewModel() {
 
@@ -127,6 +128,12 @@ class RepairJobDetailViewModel @Inject constructor(
         val generatingServiceReport: Boolean = false,
         // PR-D5 — per-job escrow row + in-flight action flags.
         val escrow: RepairJobEscrowRepository.EscrowRow? = null,
+        // Round 431 — engineer payout status for this job. Null until
+        // escrow released + the round-422 trigger fires; once present,
+        // both hospital and engineer see "₹9.30 paid via UPI · UTR
+        // REF123" so the platform's role in the money movement is
+        // legible to both sides (anti-disintermediation reinforcement).
+        val payoutStatus: com.equipseva.app.core.data.payouts.JobPayoutStatus? = null,
         val confirmingEscrowRelease: Boolean = false,
         val openingEscrowDispute: Boolean = false,
         val escrowDisputeSheetOpen: Boolean = false,
@@ -262,6 +269,20 @@ class RepairJobDetailViewModel @Inject constructor(
             escrowRepository.fetchByJob(jobId)
                 .onSuccess { row -> _state.update { it.copy(escrow = row) } }
                 .onFailure { err -> _messages.emit(err.toUserMessage()) }
+        }
+        // Round 431 — refresh the engineer-payout status alongside
+        // escrow. Both surface on the same screen; refresh together.
+        refreshPayoutStatus()
+    }
+
+    /** Round 431 — fetch the engineer payout row for this job. */
+    fun refreshPayoutStatus() {
+        viewModelScope.launch {
+            payoutRepository.fetchPayoutStatusForJob(jobId)
+                .onSuccess { status -> _state.update { it.copy(payoutStatus = status) } }
+                // Quiet on failure — the section just hides; the
+                // escrow card carries the user-visible "where's my
+                // money" signal pre-payout.
         }
     }
 
