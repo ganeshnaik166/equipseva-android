@@ -88,6 +88,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class FounderEngineerPayoutsViewModel @Inject constructor(
     private val repo: FounderRepository,
+    private val app: android.app.Application,
 ) : ViewModel() {
 
     enum class StatusFilter(val rpcParam: String?, val label: String) {
@@ -118,6 +119,8 @@ class FounderEngineerPayoutsViewModel @Inject constructor(
         val notes: String = "",
         // Cancel form.
         val cancelReason: String = "",
+        // Round 434 — CSV export in flight (disables the export button).
+        val exporting: Boolean = false,
     ) {
         val canMarkPaid: Boolean
             // Adversarial-review finding #13 — require UTR for real-money
@@ -132,6 +135,13 @@ class FounderEngineerPayoutsViewModel @Inject constructor(
 
     sealed interface Effect {
         data class ShowMessage(val text: String) : Effect
+        /**
+         * Round 434 — payouts CSV ready at the given absolute path
+         * inside the app's cache dir. The screen wraps it in a
+         * FileProvider URI and fires Intent.ACTION_SEND so the
+         * founder can ship it to email / Drive / their CA.
+         */
+        data class ShareCsv(val absolutePath: String) : Effect
     }
 
     private val _state = MutableStateFlow(UiState())
@@ -245,6 +255,96 @@ class FounderEngineerPayoutsViewModel @Inject constructor(
                 }
         }
     }
+
+    /**
+     * Round 434 — dump every payout row (across all statuses, not just
+     * the current filter — month-end accounting wants the full picture)
+     * to a CSV in the app's cache directory and emit Effect.ShareCsv
+     * so the screen wraps it in a FileProvider URI + chooser intent.
+     */
+    fun exportCsv() {
+        if (_state.value.exporting) return
+        _state.update { it.copy(exporting = true) }
+        viewModelScope.launch {
+            // Pull max-allowed window so the export is comprehensive.
+            // The 500-row cap on admin_list matches the RPC limit.
+            repo.adminListEngineerPayouts(statusFilter = "all", limit = 500)
+                .onSuccess { rows ->
+                    val csv = formatPayoutsCsv(rows)
+                    val filename = csvFilename(System.currentTimeMillis())
+                    val path = writeCsvToCache(app, filename, csv)
+                    _state.update { it.copy(exporting = false) }
+                    _effects.emit(Effect.ShareCsv(path))
+                }
+                .onFailure { e ->
+                    _state.update {
+                        it.copy(exporting = false, errorMessage = e.toUserMessage())
+                    }
+                }
+        }
+    }
+}
+
+/* ---------------------------- round 434: CSV ---------------------------- */
+
+internal fun formatPayoutsCsv(
+    rows: List<FounderRepository.AdminEngineerPayout>,
+): String {
+    val sb = StringBuilder()
+    sb.append("job_number,engineer_name,engineer_phone,amount_rupees,status,mode,utr,destination,queued_at,processed_at,failure_reason,attempts\n")
+    rows.forEach { r ->
+        val rupees = String.format(java.util.Locale.ENGLISH, "%.2f", r.amountPaise / 100.0)
+        sb.append(csvField(r.jobNumber)).append(',')
+        sb.append(csvField(r.engineerName)).append(',')
+        sb.append(csvField(r.engineerPhone)).append(',')
+        sb.append(rupees).append(',')
+        sb.append(csvField(r.status)).append(',')
+        sb.append(csvField(r.mode)).append(',')
+        sb.append(csvField(r.utr)).append(',')
+        sb.append(csvField(r.destinationLabel)).append(',')
+        sb.append(csvField(r.queuedAt)).append(',')
+        sb.append(csvField(r.processedAt)).append(',')
+        sb.append(csvField(r.failureReason)).append(',')
+        sb.append(r.attempts).append('\n')
+    }
+    return sb.toString()
+}
+
+/**
+ * RFC 4180-ish CSV field escape: wrap in double quotes when the
+ * value contains a comma, quote, newline, or carriage return. Inner
+ * quotes are doubled. Nulls render as empty (not the literal word
+ * "null") so importers don't surface "null" as a string value.
+ */
+internal fun csvField(value: String?): String {
+    if (value == null) return ""
+    val needsQuote = value.any { it == ',' || it == '"' || it == '\n' || it == '\r' }
+    if (!needsQuote) return value
+    val escaped = value.replace("\"", "\"\"")
+    return "\"$escaped\""
+}
+
+/**
+ * `engineer-payouts-2026-06-03.csv` — date-prefixed so multiple
+ * exports stack visibly in the share/save chooser. Uses UTC so the
+ * filename is stable across devices in different timezones (the row
+ * timestamps inside are also UTC per Postgres convention).
+ */
+internal fun csvFilename(nowMs: Long): String {
+    val fmt = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.ENGLISH)
+    fmt.timeZone = java.util.TimeZone.getTimeZone("UTC")
+    return "engineer-payouts-${fmt.format(java.util.Date(nowMs))}.csv"
+}
+
+private fun writeCsvToCache(
+    ctx: android.content.Context,
+    filename: String,
+    csv: String,
+): String {
+    val dir = java.io.File(ctx.cacheDir, "exports").apply { mkdirs() }
+    val file = java.io.File(dir, filename)
+    file.writeText(csv, Charsets.UTF_8)
+    return file.absolutePath
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -255,18 +355,31 @@ fun FounderEngineerPayoutsScreen(
     viewModel: FounderEngineerPayoutsViewModel = hiltViewModel(),
 ) {
     val s by viewModel.state.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { e ->
             when (e) {
                 is FounderEngineerPayoutsViewModel.Effect.ShowMessage -> onShowMessage(e.text)
+                is FounderEngineerPayoutsViewModel.Effect.ShareCsv -> shareCsvFile(context, e.absolutePath)
             }
         }
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
-            EsTopBar(title = "Engineer payouts", onBack = onBack)
+            EsTopBar(
+                title = "Engineer payouts",
+                onBack = onBack,
+                right = {
+                    androidx.compose.material3.TextButton(
+                        onClick = viewModel::exportCsv,
+                        enabled = !s.exporting && !s.loading,
+                    ) {
+                        Text(if (s.exporting) "Exporting…" else "Export CSV")
+                    }
+                },
+            )
             FilterChipsRow(
                 selected = s.filter,
                 onSelect = viewModel::onFilterSelect,
@@ -672,4 +785,23 @@ private fun CancelPayoutSheet(
         }
         Spacer(Modifier.height(8.dp))
     }
+}
+
+private fun shareCsvFile(context: android.content.Context, absolutePath: String) {
+    val file = java.io.File(absolutePath)
+    val uri = androidx.core.content.FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.fileprovider",
+        file,
+    )
+    val share = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+        type = "text/csv"
+        putExtra(android.content.Intent.EXTRA_STREAM, uri)
+        putExtra(android.content.Intent.EXTRA_SUBJECT, "EquipSeva engineer payouts export")
+        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    val chooser = android.content.Intent.createChooser(share, "Share payouts CSV").apply {
+        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    context.startActivity(chooser)
 }
