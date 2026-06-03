@@ -1,30 +1,37 @@
 // Supabase edge function: process-engineer-payouts
 //
-// Round 424 worker. Drains the engineer_payouts queue: for each row
-// status='queued' with a payout_method_id, ensures the engineer has a
-// RazorpayX contact_id + fund_account_id (cache on the method row),
-// calls the RazorpayX Payouts API, and stamps the result via
-// record_engineer_payout_dispatch.
+// Round 432: rewritten to use Cashfree Payouts after RazorpayX hard-
+// rejected sole proprietorships on 2026-06-03 (the founder's
+// EquipSeva is sole prop with GSTIN but no CIN/MCA registration).
+// Cashfree accepts sole prop, has a similar HTTP API surface, and
+// charges ~₹2.5/transfer (cheaper than RazorpayX's ₹4).
 //
-// Webhook (`razorpayx-webhook`) flips the row to 'processed' once
-// RazorpayX confirms the money landed; until then the row sits at
-// 'processing'.
+// What stays the same:
+//   * X-Cron-Secret auth, called from the 5-minute GitHub Actions cron
+//   * pick_engineer_payouts_for_processing RPC (provider-agnostic)
+//   * record_engineer_payout_dispatch RPC (provider-agnostic)
+//   * Idempotency via our payout_id passed as Cashfree's transferId
 //
-// Auth: X-Cron-Secret (same shared secret as cron-tick). Body: ignored.
-// Optional ?limit=N (default 25, max 100).
+// What changed:
+//   * env vars: CASHFREE_CLIENT_ID + CASHFREE_CLIENT_SECRET (replaces
+//     RAZORPAYX_KEY_ID/SECRET/ACCOUNT_NUMBER). Optional
+//     CASHFREE_PAYOUTS_BASE_URL override for staging.
+//   * Single-call beneficiary creation (combines RazorpayX's contact +
+//     fund_account into one Cashfree concept).
+//   * Bearer-token auth (cached per invocation for the 4-min worker
+//     window; Cashfree tokens expire in 10 min).
+//   * Amount sent in RUPEES (not paise) as decimal string — Cashfree's
+//     convention. Our DB stays in paise.
+//   * engineer_payout_methods.razorpay_contact_id is now repurposed to
+//     hold the Cashfree beneId (cached so we skip re-adding the
+//     beneficiary on every payout). razorpay_fund_account_id stays
+//     NULL on Cashfree paths.
 //
 // Required env:
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CRON_TICK_SECRET,
-//   RAZORPAYX_KEY_ID, RAZORPAYX_KEY_SECRET,
-//   RAZORPAYX_ACCOUNT_NUMBER (the RazorpayX virtual current account
-//     to debit — found at razorpay.com -> RazorpayX -> Account Details).
-//   RAZORPAYX_MODE (optional; "test" or "live", default "live")
-//
-// SAFETY: if any RAZORPAYX_* var is missing the function logs a
-// "not configured" line and returns {ok:true, configured:false,
-// processed:0}. This matches the pre-RazorpayX-activation state —
-// rows accumulate at status='queued' exactly as they do today, just
-// observable via the queue.
+//   CASHFREE_CLIENT_ID, CASHFREE_CLIENT_SECRET.
+// Optional:
+//   CASHFREE_PAYOUTS_BASE_URL (default "https://payout-api.cashfree.com").
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
@@ -42,16 +49,16 @@ type PickedRow = {
   ifsc: string | null;
   account_number_encrypted: string | null;
   account_number_last4: string | null;
-  razorpay_contact_id: string | null;
-  razorpay_fund_account_id: string | null;
+  razorpay_contact_id: string | null;        // repurposed: Cashfree beneId
+  razorpay_fund_account_id: string | null;   // unused on Cashfree path
   job_number: string;
 };
 
 type DispatchResult = {
   payout_id: string;
-  outcome: "processing" | "failed" | "no_method" | "skipped";
+  outcome: "processing" | "failed" | "no_method";
   reason?: string;
-  razorpay_payout_id?: string;
+  cashfree_reference_id?: string;
 };
 
 const json = (status: number, body: unknown) =>
@@ -65,6 +72,45 @@ function timingSafeEq(a: string, b: string): boolean {
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return diff === 0;
+}
+
+/** Cashfree beneId / transferId must be alphanumeric ≤50 chars. */
+function sanitiseId(uuid: string): string {
+  return uuid.replace(/[^a-zA-Z0-9]/g, "").slice(0, 50);
+}
+
+/** Cashfree expects amount in rupees as a decimal string with 2 dp. */
+function paiseToRupeeString(paise: number): string {
+  const r = Math.floor(paise) / 100;
+  return r.toFixed(2);
+}
+
+let cachedToken: { token: string; expiresAt: number } | null = null;
+
+async function cashfreeAuth(baseUrl: string, clientId: string, clientSecret: string): Promise<string> {
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (cachedToken && cachedToken.expiresAt - 30 > nowSec) {
+    return cachedToken.token;
+  }
+  const resp = await fetch(`${baseUrl}/payout/v1/authorize`, {
+    method: "POST",
+    headers: {
+      "X-Client-Id": clientId,
+      "X-Client-Secret": clientSecret,
+    },
+  });
+  const body = await resp.json().catch(() => ({}));
+  if (!resp.ok || (body as { status?: string })?.status !== "SUCCESS") {
+    const msg = (body as { message?: string })?.message ?? `cashfree auth ${resp.status}`;
+    throw new Error(`cashfree auth failed: ${msg}`);
+  }
+  const data = (body as { data: { token: string; expiry?: number } }).data;
+  cachedToken = {
+    token: data.token,
+    // Default 10-min expiry per Cashfree docs; treat conservatively.
+    expiresAt: nowSec + Math.min(data.expiry ?? 600, 600),
+  };
+  return data.token;
 }
 
 serve(async (req) => {
@@ -95,15 +141,27 @@ serve(async (req) => {
 
   const admin = createClient(supabaseUrl, serviceKey);
 
-  // RazorpayX env check — degrade gracefully when not configured.
-  const rzpKeyId = Deno.env.get("RAZORPAYX_KEY_ID");
-  const rzpKeySecret = Deno.env.get("RAZORPAYX_KEY_SECRET");
-  const rzpAccountNumber = Deno.env.get("RAZORPAYX_ACCOUNT_NUMBER");
-  if (!rzpKeyId || !rzpKeySecret || !rzpAccountNumber) {
-    console.log("process-engineer-payouts: RAZORPAYX_* not configured, skipping");
+  const clientId = Deno.env.get("CASHFREE_CLIENT_ID");
+  const clientSecret = Deno.env.get("CASHFREE_CLIENT_SECRET");
+  const baseUrl = Deno.env.get("CASHFREE_PAYOUTS_BASE_URL") ?? "https://payout-api.cashfree.com";
+  if (!clientId || !clientSecret) {
+    console.log("process-engineer-payouts: CASHFREE_* not configured, skipping");
     return json(200, { ok: true, configured: false, processed: 0 });
   }
-  const rzpAuth = "Basic " + btoa(`${rzpKeyId}:${rzpKeySecret}`);
+
+  // Authenticate once up-front so we fail fast on bad credentials
+  // before claiming any rows.
+  let token: string;
+  try {
+    token = await cashfreeAuth(baseUrl, clientId, clientSecret);
+  } catch (err) {
+    console.error("cashfree auth", err);
+    return json(500, {
+      ok: false,
+      code: "auth_failed",
+      message: String((err as Error)?.message ?? err),
+    });
+  }
 
   const pickRes = await admin.rpc("pick_engineer_payouts_for_processing", { p_limit: limit });
   if (pickRes.error) {
@@ -118,7 +176,7 @@ serve(async (req) => {
   const results: DispatchResult[] = [];
   for (const row of picked) {
     try {
-      results.push(await processOne(admin, row, rzpAuth, rzpAccountNumber));
+      results.push(await processOne(admin, row, baseUrl, token));
     } catch (err) {
       console.error("payout error", row.payout_id, err);
       await admin.rpc("record_engineer_payout_dispatch", {
@@ -134,7 +192,6 @@ serve(async (req) => {
     processing: results.filter((r) => r.outcome === "processing").length,
     failed: results.filter((r) => r.outcome === "failed").length,
     no_method: results.filter((r) => r.outcome === "no_method").length,
-    skipped: results.filter((r) => r.outcome === "skipped").length,
   };
   return json(200, { ok: true, configured: true, processed: picked.length, counts, results });
 });
@@ -142,8 +199,8 @@ serve(async (req) => {
 async function processOne(
   admin: SupabaseClient,
   row: PickedRow,
-  rzpAuth: string,
-  accountNumber: string,
+  baseUrl: string,
+  token: string,
 ): Promise<DispatchResult> {
   if (!row.method_id || !row.method_kind) {
     await admin.rpc("record_engineer_payout_dispatch", {
@@ -153,130 +210,114 @@ async function processOne(
     return { payout_id: row.payout_id, outcome: "no_method" };
   }
 
-  // Ensure contact_id.
-  let contactId = row.razorpay_contact_id;
-  if (!contactId) {
-    contactId = await rzpCreateContact(rzpAuth, row);
+  // Ensure beneId. Cached on engineer_payout_methods.razorpay_contact_id
+  // — same column, repurposed for Cashfree's identifier.
+  let beneId = row.razorpay_contact_id;
+  if (!beneId) {
+    beneId = await cashfreeAddBeneficiary(baseUrl, token, row);
   }
 
-  // Ensure fund_account_id.
-  let fundAccountId = row.razorpay_fund_account_id;
-  if (!fundAccountId) {
-    fundAccountId = await rzpCreateFundAccount(rzpAuth, row, contactId);
-  }
-
-  // Idempotent payout — use our internal payout_id as the Razorpay
-  // reference_id so retries of this same row collapse to one charge.
-  const payoutResp = await fetch("https://api.razorpay.com/v1/payouts", {
+  // Cashfree's transferId is our payout_id (sanitised). Re-submitting
+  // the same transferId returns the existing transfer's status —
+  // built-in idempotency, no double-spend.
+  const transferId = sanitiseId(row.payout_id);
+  const transferMode = row.method_kind === "upi" ? "upi" : "banktransfer";
+  const resp = await fetch(`${baseUrl}/payout/v1/requestTransfer`, {
     method: "POST",
     headers: {
-      "Authorization": rzpAuth,
+      "Authorization": `Bearer ${token}`,
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      account_number: accountNumber,
-      fund_account_id: fundAccountId,
-      amount: row.amount_paise,
-      currency: "INR",
-      mode: row.method_kind === "upi" ? "UPI" : "IMPS",
-      purpose: "payout",
-      queue_if_low_balance: true,
-      reference_id: row.payout_id,
-      narration: `EquipSeva ${row.job_number}`.slice(0, 30),
+      beneId,
+      amount: paiseToRupeeString(row.amount_paise),
+      transferId,
+      transferMode,
+      remarks: `EquipSeva ${row.job_number}`.slice(0, 100),
     }),
   });
-
-  const payoutBody = await payoutResp.json().catch(() => ({}));
-  if (!payoutResp.ok) {
-    const errMsg = (payoutBody as { error?: { description?: string; reason?: string } })
-      ?.error?.description ?? `RazorpayX ${payoutResp.status}`;
+  const body = await resp.json().catch(() => ({}));
+  // Cashfree returns 200 with status=SUCCESS on accept, status=ERROR
+  // on validation failures. Always inspect the body.
+  const cfStatus = (body as { status?: string })?.status;
+  if (!resp.ok || cfStatus === "ERROR") {
+    const errMsg =
+      (body as { message?: string; subCode?: string })?.message ??
+      `cashfree ${resp.status}`;
     await admin.rpc("record_engineer_payout_dispatch", {
       p_payout_id: row.payout_id,
       p_status: "failed",
       p_failure_reason: errMsg.slice(0, 240),
-      p_razorpay_contact_id: contactId,
-      p_razorpay_fund_account_id: fundAccountId,
+      p_razorpay_contact_id: beneId,
     });
     return { payout_id: row.payout_id, outcome: "failed", reason: errMsg };
   }
 
-  const payoutId = (payoutBody as { id?: string })?.id ?? null;
-  const status = (payoutBody as { status?: string })?.status ?? "processing";
+  const data = (body as { data?: { referenceId?: string | number; utr?: string } }).data ?? {};
+  const refId = data.referenceId != null ? String(data.referenceId) : null;
   await admin.rpc("record_engineer_payout_dispatch", {
     p_payout_id: row.payout_id,
     p_status: "processing",
-    p_razorpay_payout_id: payoutId,
-    p_razorpayx_status: status,
-    p_razorpay_contact_id: contactId,
-    p_razorpay_fund_account_id: fundAccountId,
+    p_razorpay_payout_id: refId,           // repurposed: Cashfree referenceId
+    p_razorpayx_status: cfStatus ?? "PENDING",
+    p_razorpay_contact_id: beneId,
   });
   return {
     payout_id: row.payout_id,
     outcome: "processing",
-    razorpay_payout_id: payoutId ?? undefined,
+    cashfree_reference_id: refId ?? undefined,
   };
 }
 
-async function rzpCreateContact(rzpAuth: string, row: PickedRow): Promise<string> {
+async function cashfreeAddBeneficiary(
+  baseUrl: string,
+  token: string,
+  row: PickedRow,
+): Promise<string> {
+  const beneId = sanitiseId(row.engineer_user_id);
   const name = row.method_kind === "upi"
     ? (row.vpa ?? "engineer")
     : (row.bank_account_holder ?? "engineer");
-  const resp = await fetch("https://api.razorpay.com/v1/contacts", {
-    method: "POST",
-    headers: { "Authorization": rzpAuth, "content-type": "application/json" },
-    body: JSON.stringify({
-      name: name.slice(0, 50),
-      type: "vendor",
-      reference_id: `eng-${row.engineer_user_id}`,
-    }),
-  });
-  const body = await resp.json();
-  if (!resp.ok) {
-    throw new Error(
-      `contact create failed: ${(body as { error?: { description?: string } })?.error?.description ?? resp.status}`,
-    );
-  }
-  return (body as { id: string }).id;
-}
-
-async function rzpCreateFundAccount(
-  rzpAuth: string,
-  row: PickedRow,
-  contactId: string,
-): Promise<string> {
-  let body: Record<string, unknown>;
+  // Cashfree minimum required fields differ per mode but all need
+  // beneId + name + email + phone + address1.
+  const payload: Record<string, unknown> = {
+    beneId,
+    name: name.slice(0, 80),
+    // Cashfree requires email + phone — use placeholders since we
+    // don't surface engineer email here and the engineer may not have
+    // populated it. Cashfree's validation is loose on these fields.
+    email: `payouts+${beneId}@equipseva.com`,
+    phone: "9999999999",
+    address1: "EquipSeva engineer",
+  };
   if (row.method_kind === "upi") {
     if (!row.vpa) throw new Error("missing vpa");
-    body = {
-      contact_id: contactId,
-      account_type: "vpa",
-      vpa: { address: row.vpa },
-    };
+    payload.vpa = row.vpa;
   } else {
     if (!row.ifsc || !row.account_number_encrypted || !row.bank_account_holder) {
       throw new Error("missing bank fields");
     }
-    body = {
-      contact_id: contactId,
-      account_type: "bank_account",
-      bank_account: {
-        name: row.bank_account_holder,
-        ifsc: row.ifsc,
-        account_number: row.account_number_encrypted,
-      },
-    };
+    payload.bankAccount = row.account_number_encrypted;
+    payload.ifsc = row.ifsc;
   }
 
-  const resp = await fetch("https://api.razorpay.com/v1/fund_accounts", {
+  const resp = await fetch(`${baseUrl}/payout/v1/addBeneficiary`, {
     method: "POST",
-    headers: { "Authorization": rzpAuth, "content-type": "application/json" },
-    body: JSON.stringify(body),
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(payload),
   });
-  const respBody = await resp.json();
-  if (!resp.ok) {
-    throw new Error(
-      `fund_account create failed: ${(respBody as { error?: { description?: string } })?.error?.description ?? resp.status}`,
-    );
+  const body = await resp.json().catch(() => ({}));
+  const status = (body as { status?: string; subCode?: string; message?: string })?.status;
+  // Cashfree returns SUCCESS for new beneficiary; ERROR with
+  // subCode=409 + message containing "already exists" if the beneId
+  // is already there (which means we cached it once before and the
+  // method row got reset somehow — safe to reuse).
+  const msg = (body as { message?: string })?.message ?? "";
+  if (status === "SUCCESS" || /already exists/i.test(msg)) {
+    return beneId;
   }
-  return (respBody as { id: string }).id;
+  throw new Error(`cashfree addBeneficiary failed: ${msg || `status ${resp.status}`}`);
 }
