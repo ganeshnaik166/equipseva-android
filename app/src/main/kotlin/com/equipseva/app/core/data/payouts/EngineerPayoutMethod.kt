@@ -36,3 +36,23 @@ data class EngineerPayoutRow(
     val queuedAt: String,
     val processedAt: String?,
 )
+
+/**
+ * Round 431. Per-job payout status. Returned to BOTH the hospital
+ * (who paid the escrow) and the engineer (who is owed) so both sides
+ * see the same forensic anchor — anti-disintermediation reinforcement
+ * (the engineer was paid through the platform, with a verifiable
+ * bank trail).
+ */
+data class JobPayoutStatus(
+    val id: String,
+    val amountPaise: Long,
+    val status: PayoutStatus,
+    val mode: String?,
+    val utr: String?,
+    val failureReason: String?,
+    val destinationLabel: String?,
+    val engineerName: String?,
+    val queuedAt: String,
+    val processedAt: String?,
+)

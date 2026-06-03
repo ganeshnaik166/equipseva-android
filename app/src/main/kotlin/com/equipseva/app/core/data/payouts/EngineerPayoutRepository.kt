@@ -29,6 +29,16 @@ interface EngineerPayoutRepository {
 
     /** List the engineer's payouts (enriched with job number + masked destination). */
     suspend fun listPayouts(limit: Int = 50): Result<List<EngineerPayoutRow>>
+
+    /**
+     * Fetch the payout status for a single repair job. Returns null
+     * when no payout row exists (escrow not released yet) OR the
+     * caller has no visibility into this job (not hospital owner, not
+     * engineer assigned, not founder). Used by the hospital/engineer
+     * repair-job-detail screen to surface "₹9.30 paid to engineer
+     * via UPI · UTR REF123" once the escrow releases.
+     */
+    suspend fun fetchPayoutStatusForJob(jobId: String): Result<JobPayoutStatus?>
 }
 
 @Singleton
@@ -111,6 +121,17 @@ class SupabaseEngineerPayoutRepository @Inject constructor(
             .map { it.toDomain() }
     }
 
+    override suspend fun fetchPayoutStatusForJob(jobId: String): Result<JobPayoutStatus?> = runCatching {
+        client.postgrest
+            .rpc(
+                function = "payout_status_for_job",
+                parameters = buildJsonObject { put("p_repair_job_id", JsonPrimitive(jobId)) },
+            )
+            .decodeList<JobPayoutStatusDto>()
+            .firstOrNull()
+            ?.toDomain()
+    }
+
     private companion object {
         const val TABLE_METHODS = "engineer_payout_methods"
     }
@@ -149,6 +170,40 @@ internal data class EngineerPayoutMethodDto(
             "invalid" -> PayoutMethodVerification.Invalid
             else -> PayoutMethodVerification.Unverified
         },
+    )
+}
+
+@Serializable
+internal data class JobPayoutStatusDto(
+    val id: String,
+    val amount_paise: Long,
+    val status: String,
+    val mode: String? = null,
+    val utr: String? = null,
+    val failure_reason: String? = null,
+    val destination_label: String? = null,
+    val engineer_name: String? = null,
+    val queued_at: String,
+    val processed_at: String? = null,
+) {
+    fun toDomain() = JobPayoutStatus(
+        id = id,
+        amountPaise = amount_paise,
+        status = when (status) {
+            "queued" -> PayoutStatus.Queued
+            "processing" -> PayoutStatus.Processing
+            "processed" -> PayoutStatus.Processed
+            "failed" -> PayoutStatus.Failed
+            "cancelled" -> PayoutStatus.Cancelled
+            else -> PayoutStatus.Queued
+        },
+        mode = mode,
+        utr = utr,
+        failureReason = failure_reason,
+        destinationLabel = destination_label,
+        engineerName = engineer_name,
+        queuedAt = queued_at,
+        processedAt = processed_at,
     )
 }
 

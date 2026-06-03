@@ -285,6 +285,7 @@ fun RepairJobDetailScreen(
                     issuePhotoSignedUrls = state.issuePhotoSignedUrls,
                     generatingServiceReport = state.generatingServiceReport,
                     escrow = state.escrow,
+                    payoutStatus = state.payoutStatus,
                     confirmingEscrowRelease = state.confirmingEscrowRelease,
                     onMessageEngineer = viewModel::openChatWithEngineer,
                     onMessageHospital = viewModel::openChatWithHospital,
@@ -477,6 +478,7 @@ private fun JobBody(
     issuePhotoSignedUrls: List<String>,
     generatingServiceReport: Boolean,
     escrow: com.equipseva.app.core.data.escrow.RepairJobEscrowRepository.EscrowRow?,
+    payoutStatus: com.equipseva.app.core.data.payouts.JobPayoutStatus?,
     confirmingEscrowRelease: Boolean,
     onMessageEngineer: () -> Unit,
     onMessageHospital: () -> Unit,
@@ -624,6 +626,17 @@ private fun JobBody(
                 }
             }
             else -> Unit
+        }
+
+        // Round 431 — engineer payout status. Surfaces once the
+        // escrow trigger has enqueued a row (i.e. escrow.status ==
+        // 'released'). Both hospital and engineer see it so the
+        // platform's role in the money movement is legible to both
+        // sides.
+        payoutStatus?.let { p ->
+            EsSection(title = "Engineer payout") {
+                EngineerPayoutStatusCard(p, isHospital = isHospital)
+            }
         }
 
         // PR-D3: compliance audit-trail HTML report. Available to both
@@ -2972,4 +2985,111 @@ internal fun bidComposerEtaValid(eta: String): Boolean {
     if (trimmed.isEmpty()) return true
     val parsed = trimmed.toIntOrNull()
     return parsed != null && parsed > 0
+}
+
+/* ------------------ round 431 — engineer payout status card ----------------- */
+
+@Composable
+private fun EngineerPayoutStatusCard(
+    p: com.equipseva.app.core.data.payouts.JobPayoutStatus,
+    isHospital: Boolean,
+) {
+    val rupees = p.amountPaise / 100.0
+    val accent = when (p.status) {
+        com.equipseva.app.core.data.payouts.PayoutStatus.Processed -> SevaGreen700
+        com.equipseva.app.core.data.payouts.PayoutStatus.Failed -> SevaDanger500
+        else -> SevaWarning500
+    }
+    val bg = when (p.status) {
+        com.equipseva.app.core.data.payouts.PayoutStatus.Processed -> SevaGreen50
+        else -> SevaWarning50
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(bg)
+            .border(width = 1.dp, color = accent, shape = RoundedCornerShape(12.dp))
+            .padding(14.dp),
+    ) {
+        Text(
+            engineerPayoutTitle(p, isHospital),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = SevaInk900,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "₹${String.format(java.util.Locale.ENGLISH, "%.2f", rupees)}",
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = SevaInk900,
+        )
+        val sub = engineerPayoutSubtitle(p, isHospital)
+        if (sub != null) {
+            Spacer(Modifier.height(4.dp))
+            Text(sub, fontSize = 13.sp, color = SevaInk500)
+        }
+        if (!p.utr.isNullOrBlank() && p.status == com.equipseva.app.core.data.payouts.PayoutStatus.Processed) {
+            Spacer(Modifier.height(2.dp))
+            Text(
+                "UTR ${p.utr}",
+                fontSize = 12.sp,
+                color = SevaGreen700,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+        if (!p.failureReason.isNullOrBlank() &&
+            (p.status == com.equipseva.app.core.data.payouts.PayoutStatus.Failed ||
+                p.status == com.equipseva.app.core.data.payouts.PayoutStatus.Cancelled)
+        ) {
+            Spacer(Modifier.height(2.dp))
+            Text(
+                p.failureReason.orEmpty(),
+                fontSize = 12.sp,
+                color = if (p.status == com.equipseva.app.core.data.payouts.PayoutStatus.Failed) SevaDanger500 else SevaInk500,
+            )
+        }
+    }
+}
+
+/**
+ * Hospital reads "Paid to engineer via UPI" — emphasises what THEY
+ * paid for. Engineer reads "Paid by EquipSeva" — emphasises what they
+ * received. Both anti-disintermediation framings.
+ */
+internal fun engineerPayoutTitle(
+    p: com.equipseva.app.core.data.payouts.JobPayoutStatus,
+    isHospital: Boolean,
+): String = when (p.status) {
+    com.equipseva.app.core.data.payouts.PayoutStatus.Queued ->
+        if (isHospital) "Engineer payout queued" else "Your payout is queued"
+    com.equipseva.app.core.data.payouts.PayoutStatus.Processing ->
+        if (isHospital) "Engineer payout in flight" else "Your payout is on its way"
+    com.equipseva.app.core.data.payouts.PayoutStatus.Processed ->
+        if (isHospital) "Paid to engineer" else "Paid to your account"
+    com.equipseva.app.core.data.payouts.PayoutStatus.Failed ->
+        if (isHospital) "Engineer payout failed" else "Your payout failed"
+    com.equipseva.app.core.data.payouts.PayoutStatus.Cancelled ->
+        "Payout cancelled"
+}
+
+internal fun engineerPayoutSubtitle(
+    p: com.equipseva.app.core.data.payouts.JobPayoutStatus,
+    isHospital: Boolean,
+): String? = when (p.status) {
+    com.equipseva.app.core.data.payouts.PayoutStatus.Queued ->
+        if (isHospital) "Will be transferred to ${p.engineerName ?: "the engineer"} shortly."
+        else "We'll transfer to ${p.destinationLabel ?: "your account"} on the next worker tick."
+    com.equipseva.app.core.data.payouts.PayoutStatus.Processing ->
+        if (isHospital) "Sent to ${p.destinationLabel ?: "engineer's account"} — awaiting bank confirmation."
+        else "Sent to ${p.destinationLabel ?: "your account"} — awaiting confirmation."
+    com.equipseva.app.core.data.payouts.PayoutStatus.Processed ->
+        if (isHospital) "${p.engineerName ?: "Engineer"} received via ${p.mode ?: "UPI"} to ${p.destinationLabel ?: "their account"}."
+        else "Received via ${p.mode ?: "UPI"} at ${p.destinationLabel ?: "your account"}."
+    com.equipseva.app.core.data.payouts.PayoutStatus.Failed ->
+        if (isHospital) "We'll retry automatically. No action needed from you."
+        else "Re-check your payout method — we'll retry on the next worker tick."
+    com.equipseva.app.core.data.payouts.PayoutStatus.Cancelled ->
+        if (isHospital) "Admin cancelled this payout." else "Admin cancelled. Reach out if unexpected."
 }
