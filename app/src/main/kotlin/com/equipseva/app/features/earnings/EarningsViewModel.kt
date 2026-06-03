@@ -79,88 +79,94 @@ class EarningsViewModel @Inject constructor(
             it.copy(loading = initial, refreshing = !initial, errorMessage = null)
         }
         viewModelScope.launch {
-            bidRepository.fetchMyBids()
-                .onSuccess { bids ->
-                    val accepted = bids.filter { it.status == RepairBidStatus.Accepted }
-                    val jobIds = accepted.map { it.repairJobId }.toSet()
-                    val jobsById = if (jobIds.isEmpty()) emptyMap()
-                    else jobRepository.fetchByIds(jobIds)
-                        .getOrElse { emptyList() }
-                        .associateBy { it.id }
+            // Round 436 — fire all 5 fetches in parallel and INDEPENDENT
+            // of each other. Pre-432 the 4 fire-and-forget child fetches
+            // were nested INSIDE bidRepository.fetchMyBids().onSuccess, so
+            // a transient bid-RPC error (network blip, RLS hiccup) silently
+            // wiped escrow/self-rank/AMC/payouts data from a previous
+            // successful load — the engineer's whole screen blanked out
+            // even though escrow + payouts are independent sources of
+            // truth. Each fetch now owns its own UiState slice and
+            // surfaces its own error scope.
+            val bid = launch { loadBidRows() }
+            val escrow = launch { loadEscrowSummary() }
+            val rank = launch { loadSelfRank() }
+            val amc = launch { loadAmcEarnings() }
+            val payouts = launch { loadPayouts() }
+            // Wait for ALL to settle before flipping loading/refreshing
+            // off so the pull-to-refresh indicator hides only when the
+            // screen has actually re-stabilised.
+            bid.join(); escrow.join(); rank.join(); amc.join(); payouts.join()
+            _state.update { it.copy(loading = false, refreshing = false) }
+        }
+    }
 
-                    val rows = accepted.map { EarningRow(it, jobsById[it.repairJobId]) }
-                    val split = computeEarningsSplit(rows)
-                    val resolved = split.resolvedRows
-                    val paid = split.paidTotal
-                    val pending = split.pendingTotal
+    private suspend fun loadBidRows() {
+        bidRepository.fetchMyBids()
+            .onSuccess { bids ->
+                val accepted = bids.filter { it.status == RepairBidStatus.Accepted }
+                val jobIds = accepted.map { it.repairJobId }.toSet()
+                val jobsById = if (jobIds.isEmpty()) emptyMap()
+                else jobRepository.fetchByIds(jobIds)
+                    .getOrElse { emptyList() }
+                    .associateBy { it.id }
 
-                    _state.update {
-                        UiState(
-                            loading = false,
-                            refreshing = false,
-                            paidTotal = paid,
-                            pendingTotal = pending,
-                            // Feed `resolved` (not the full `rows` list) so
-                            // the row count + totals stay aligned. The full
-                            // list included null-job orphans rendered as a
-                            // generic "Repair job" placeholder, inflating
-                            // the row count without contributing to the
-                            // paid/pending hero numbers.
-                            rows = resolved,
-                            escrowSummary = it.escrowSummary,
-                            errorMessage = null,
-                        )
-                    }
-                    // Fire-and-forget escrow summary alongside the bid pull —
-                    // failures here don't fail the screen; the card just stays
-                    // hidden if the RPC errors.
-                    viewModelScope.launch {
-                        escrowRepository.fetchEngineerSummary().onSuccess { sum ->
-                            _state.update { it.copy(escrowSummary = sum) }
-                        }
-                    }
-                    // Round 368 — self-rank fetch (auth.uid()-scoped).
-                    // Same fire-and-forget pattern; the card hides on
-                    // null. RPC returns a single row even if engineer
-                    // has 0 jobs in window (rank = null then).
-                    viewModelScope.launch {
-                        escrowRepository.fetchEngineerSelfRank(windowDays = 30)
-                            .onSuccess { rk -> _state.update { it.copy(selfRank = rk) } }
-                    }
-                    // Same fire-and-forget pattern for AMC visit payouts.
-                    // Quiet on errors: the section just stays hidden.
-                    viewModelScope.launch {
-                        amcRepository.listMyAmcEarnings().onSuccess { amc ->
-                            _state.update {
-                                it.copy(
-                                    amcEarnings = amc,
-                                    amcPaidTotal = amc.sumOf { row -> row.engineerPayoutRupees },
-                                )
-                            }
-                        }
-                    }
-                    // Round 427 — auto-payout history. Distinct from the
-                    // bid-level "Recent payouts" list above (which mirrors
-                    // job-completion transactions) — this is the real
-                    // money-transfer queue (engineer_payouts table).
-                    viewModelScope.launch {
-                        payoutRepository.listPayouts(limit = 50).onSuccess { rows ->
-                            _state.update { it.copy(payouts = rows) }
-                        }
-                    }
+                val rows = accepted.map { EarningRow(it, jobsById[it.repairJobId]) }
+                val split = computeEarningsSplit(rows)
+                _state.update {
+                    it.copy(
+                        paidTotal = split.paidTotal,
+                        pendingTotal = split.pendingTotal,
+                        // Feed `resolved` (not the full `rows` list) so the
+                        // row count + totals stay aligned. The full list
+                        // included null-job orphans rendered as a generic
+                        // "Repair job" placeholder, inflating the row count
+                        // without contributing to the paid/pending hero
+                        // numbers.
+                        rows = split.resolvedRows,
+                    )
                 }
-                .onFailure { ex ->
-                    _state.update {
-                        UiState(
-                            loading = false,
-                            refreshing = false,
-                            paidTotal = 0.0,
-                            pendingTotal = 0.0,
-                            rows = emptyList(),
-                            errorMessage = ex.toUserMessage(),
-                        )
-                    }
+            }
+            .onFailure { ex ->
+                // Only the bid-derived slice fails. Other sections
+                // remain populated. Error surfaces in the banner.
+                _state.update {
+                    it.copy(
+                        paidTotal = 0.0,
+                        pendingTotal = 0.0,
+                        rows = emptyList(),
+                        errorMessage = ex.toUserMessage(),
+                    )
                 }
+            }
+    }
+
+    private suspend fun loadEscrowSummary() {
+        escrowRepository.fetchEngineerSummary().onSuccess { sum ->
+            _state.update { it.copy(escrowSummary = sum) }
+        }
+        // Quiet on failure — card hides.
+    }
+
+    private suspend fun loadSelfRank() {
+        escrowRepository.fetchEngineerSelfRank(windowDays = 30)
+            .onSuccess { rk -> _state.update { it.copy(selfRank = rk) } }
+    }
+
+    private suspend fun loadAmcEarnings() {
+        amcRepository.listMyAmcEarnings().onSuccess { amc ->
+            _state.update {
+                it.copy(
+                    amcEarnings = amc,
+                    amcPaidTotal = amc.sumOf { row -> row.engineerPayoutRupees },
+                )
+            }
+        }
+    }
+
+    private suspend fun loadPayouts() {
+        payoutRepository.listPayouts(limit = 50).onSuccess { rows ->
+            _state.update { it.copy(payouts = rows) }
         }
     }
 }
