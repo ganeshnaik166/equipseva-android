@@ -139,6 +139,11 @@ fun RepairJobDetailScreen(
     onBack: () -> Unit,
     onShowMessage: (String) -> Unit,
     onOpenChat: (String) -> Unit,
+    // Round 437 fix #2 — engineer self-recovery path from a Failed
+    // payout shown on this screen. Defaults to no-op; the caller in
+    // MainNavGraph wires it to Routes.ENGINEER_PAYOUT_METHOD when
+    // navigating from the engineer hub.
+    onOpenPayoutMethod: () -> Unit = {},
     viewModel: RepairJobDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -296,6 +301,7 @@ fun RepairJobDetailScreen(
                     onConfirmEscrowRelease = viewModel::confirmEscrowRelease,
                     onOpenEscrowDispute = viewModel::openEscrowDisputeSheet,
                     onOpenEngineerResponseSheet = viewModel::openEngineerResponseSheet,
+                    onOpenPayoutMethod = onOpenPayoutMethod,
                 )
             }
         }
@@ -489,6 +495,7 @@ private fun JobBody(
     onConfirmEscrowRelease: () -> Unit,
     onOpenEscrowDispute: () -> Unit,
     onOpenEngineerResponseSheet: () -> Unit,
+    onOpenPayoutMethod: () -> Unit = {},
 ) {
     val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
     Column(
@@ -613,6 +620,16 @@ private fun JobBody(
                         isHospital = isHospital,
                         isJobCompleted = job.status == RepairJobStatus.Completed,
                         confirmingRelease = confirmingEscrowRelease,
+                        // Round 437 fix #5 — downgrade card copy
+                        // when escrow=released but the downstream
+                        // engineer payout has Failed / Cancelled,
+                        // so the card doesn't read "Released to
+                        // engineer" while the next card right below
+                        // says the engineer never actually got paid.
+                        payoutFailed = payoutStatus != null && (
+                            payoutStatus.status == com.equipseva.app.core.data.payouts.PayoutStatus.Failed ||
+                                payoutStatus.status == com.equipseva.app.core.data.payouts.PayoutStatus.Cancelled
+                        ),
                         onPay = onPayEscrow,
                         onConfirmRelease = onConfirmEscrowRelease,
                         onOpenDispute = onOpenEscrowDispute,
@@ -635,7 +652,15 @@ private fun JobBody(
         // sides.
         payoutStatus?.let { p ->
             EsSection(title = "Engineer payout") {
-                EngineerPayoutStatusCard(p, isHospital = isHospital)
+                EngineerPayoutStatusCard(
+                    p = p,
+                    isHospital = isHospital,
+                    // Round 437 fix #2 — engineer-side recovery CTA
+                    // when their own payout has failed. Hospital
+                    // can't fix the engineer's UPI so we don't
+                    // expose it to them.
+                    onOpenPayoutMethod = if (!isHospital) onOpenPayoutMethod else null,
+                )
             }
         }
 
@@ -797,18 +822,29 @@ private fun EscrowStatusCard(
     isHospital: Boolean,
     isJobCompleted: Boolean,
     confirmingRelease: Boolean,
+    // Round 437 fix #5 — true when the downstream engineer payout
+    // has flipped to Failed / Cancelled despite escrow.isReleased.
+    // Used to swap the misleading "Released to engineer" copy for
+    // a more accurate "Funds released — payout to engineer pending
+    // retry" reading. Defaults false so existing call sites
+    // (anywhere we don't yet know payout status) behave as before.
+    payoutFailed: Boolean = false,
     onPay: () -> Unit,
     onConfirmRelease: () -> Unit,
     onOpenDispute: () -> Unit,
     onOpenEngineerResponse: () -> Unit,
 ) {
-    val copy = escrowStatusCardCopy(escrow, isHospital)
+    val copy = escrowStatusCardCopy(escrow, isHospital, payoutFailed)
     val label = copy.label
     val sub = copy.subtitle
     val accent = when {
         escrow.isPending -> WarnGold
         escrow.isHeld -> SevaGreen700
         escrow.isInDispute -> SevaDanger500
+        // (#5) When the downstream payout failed, downgrade the
+        // escrow card's green to a warning tone so the visual
+        // doesn't contradict the copy.
+        escrow.isReleased && payoutFailed -> SevaWarning500
         escrow.isReleased -> SevaGreen700
         escrow.isRefunded -> SevaInk700
         else -> SevaInk500
@@ -2812,6 +2848,12 @@ internal data class EscrowStatusCopy(val label: String, val subtitle: String)
 internal fun escrowStatusCardCopy(
     escrow: com.equipseva.app.core.data.escrow.RepairJobEscrowRepository.EscrowRow,
     isHospital: Boolean,
+    // Round 437 fix #5 — true when escrow.isReleased is true on the
+    // server-side but the downstream engineer-payout row is Failed
+    // or Cancelled. Without this branch the card reads "Released to
+    // engineer" while the EngineerPayoutStatusCard right below shows
+    // "Payout failed" — contradictory.
+    payoutFailed: Boolean = false,
 ): EscrowStatusCopy = when {
     escrow.isPending -> EscrowStatusCopy(
         label = "Awaiting payment",
@@ -2826,6 +2868,12 @@ internal fun escrowStatusCardCopy(
     escrow.isInDispute -> EscrowStatusCopy(
         label = "Dispute open",
         subtitle = "Our team is reviewing this escrow. Funds are paused until resolved.",
+    )
+    escrow.isReleased && payoutFailed -> EscrowStatusCopy(
+        label = "Funds released — payout pending retry",
+        subtitle = "${com.equipseva.app.core.util.formatRupees(escrow.amountRupees)} " +
+            "left escrow but the bank transfer didn't go through. " +
+            "See payout section below for next steps.",
     )
     escrow.isReleased -> EscrowStatusCopy(
         label = if (isHospital) "Released to engineer" else "Released to you",
@@ -2993,6 +3041,11 @@ internal fun bidComposerEtaValid(eta: String): Boolean {
 private fun EngineerPayoutStatusCard(
     p: com.equipseva.app.core.data.payouts.JobPayoutStatus,
     isHospital: Boolean,
+    // Round 437 fix #2 — engineer-side recovery CTA when status=Failed.
+    // Hospital side passes null because they can't fix the engineer's
+    // UPI. Default null so existing callers (none beyond this file)
+    // get the no-CTA shape.
+    onOpenPayoutMethod: (() -> Unit)? = null,
 ) {
     val rupees = p.amountPaise / 100.0
     val accent = when (p.status) {
@@ -3048,6 +3101,19 @@ private fun EngineerPayoutStatusCard(
                 p.failureReason.orEmpty(),
                 fontSize = 12.sp,
                 color = if (p.status == com.equipseva.app.core.data.payouts.PayoutStatus.Failed) SevaDanger500 else SevaInk500,
+            )
+        }
+        // Round 437 fix #2 — engineer self-recovery affordance on
+        // Failed payout. Hospital side has onOpenPayoutMethod=null
+        // and therefore never sees this button.
+        if (onOpenPayoutMethod != null &&
+            p.status == com.equipseva.app.core.data.payouts.PayoutStatus.Failed
+        ) {
+            Spacer(Modifier.height(10.dp))
+            EsBtn(
+                text = "Update payout method",
+                onClick = onOpenPayoutMethod,
+                kind = EsBtnKind.Primary,
             )
         }
     }

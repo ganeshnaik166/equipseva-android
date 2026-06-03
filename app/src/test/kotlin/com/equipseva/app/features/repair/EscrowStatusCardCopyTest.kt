@@ -91,4 +91,39 @@ class EscrowStatusCardCopyTest {
         val copy = escrowStatusCardCopy(row("held"), isHospital = true)
         assertTrue(copy.subtitle.contains("to engineer"))
     }
+
+    /* --- round 437 fix #5: released + downstream payout failed --- */
+
+    @Test fun `released with payout failed downgrades label to pending retry`() {
+        val copy = escrowStatusCardCopy(row("released"), isHospital = true, payoutFailed = true)
+        // Must NOT read "Released to engineer" — that would contradict
+        // the EngineerPayoutStatusCard right below saying the bank
+        // transfer didn't go through.
+        assertEquals("Funds released — payout pending retry", copy.label)
+        assertTrue(copy.subtitle.contains("bank transfer didn't go through"))
+    }
+
+    @Test fun `released with payout failed reads same both sides`() {
+        // The downgrade copy is identical for hospital + engineer
+        // because both sides need to know the money's stuck.
+        val hospital = escrowStatusCardCopy(row("released"), isHospital = true, payoutFailed = true)
+        val engineer = escrowStatusCardCopy(row("released"), isHospital = false, payoutFailed = true)
+        assertEquals(hospital.label, engineer.label)
+        assertEquals(hospital.subtitle, engineer.subtitle)
+    }
+
+    @Test fun `released with payout NOT failed still reads role-aware`() {
+        val hospital = escrowStatusCardCopy(row("released"), isHospital = true, payoutFailed = false)
+        val engineer = escrowStatusCardCopy(row("released"), isHospital = false, payoutFailed = false)
+        assertEquals("Released to engineer", hospital.label)
+        assertEquals("Released to you", engineer.label)
+    }
+
+    @Test fun `held with payoutFailed=true ignores the flag (only released downgrades)`() {
+        // The downgrade only applies when escrow is released AND
+        // downstream payout failed. For other escrow states the flag
+        // is a no-op because no payout exists yet.
+        val copy = escrowStatusCardCopy(row("held"), isHospital = true, payoutFailed = true)
+        assertEquals("Funds in escrow", copy.label)
+    }
 }

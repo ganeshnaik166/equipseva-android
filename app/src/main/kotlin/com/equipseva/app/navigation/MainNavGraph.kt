@@ -367,6 +367,7 @@ fun MainNavGraph(
                     onBack = { navController.popBackStack() },
                     onShowMessage = showSnackbar,
                     onOpenChat = { id -> navController.navigate(Routes.chatRoute(id)) },
+                    onOpenPayoutMethod = { navController.navigate(Routes.ENGINEER_PAYOUT_METHOD) },
                 )
             }
             composable(Routes.ENGINEER_JOBS_HUB) {
