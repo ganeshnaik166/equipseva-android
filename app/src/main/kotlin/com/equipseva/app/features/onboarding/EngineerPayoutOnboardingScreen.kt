@@ -35,6 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.data.payouts.EngineerPayoutRepository
 import com.equipseva.app.core.data.payouts.PayoutMethodKind
 import com.equipseva.app.core.network.toUserMessage
@@ -84,6 +85,8 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class EngineerPayoutOnboardingViewModel @Inject constructor(
     private val payoutRepository: EngineerPayoutRepository,
+    // Round 435 fix #1 — escape hatch needs sign-out path.
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     data class UiState(
@@ -103,6 +106,9 @@ class EngineerPayoutOnboardingViewModel @Inject constructor(
         val bankError: String? = null,
         val saving: Boolean = false,
         val errorMessage: String? = null,
+        // Round 435 fix #1 — sign-out confirm dialog state.
+        val signOutConfirmOpen: Boolean = false,
+        val signingOut: Boolean = false,
     ) {
         val canSubmit: Boolean
             get() = !saving &&
@@ -223,6 +229,23 @@ class EngineerPayoutOnboardingViewModel @Inject constructor(
             _effects.emit(Effect.Done)
         }
     }
+
+    /* --- round 435 fix #1: sign-out escape hatch --- */
+    fun openSignOutConfirm() = _state.update { it.copy(signOutConfirmOpen = true) }
+    fun dismissSignOutConfirm() = _state.update { it.copy(signOutConfirmOpen = false) }
+    fun confirmSignOut() {
+        if (_state.value.signingOut) return
+        _state.update { it.copy(signingOut = true, signOutConfirmOpen = false) }
+        viewModelScope.launch {
+            authRepository.signOut()
+                .onFailure { e ->
+                    _state.update { it.copy(signingOut = false, errorMessage = e.toUserMessage()) }
+                }
+            // On success, SessionViewModel transitions to SignedOut +
+            // root nav re-routes to AuthHostInline. No explicit
+            // navigation needed here.
+        }
+    }
 }
 
 @Composable
@@ -242,14 +265,50 @@ fun EngineerPayoutOnboardingScreen(
         }
     }
 
+    // Round 435 fix #1 — sign-out confirm dialog. Mandatory != trapped.
+    if (s.signOutConfirmOpen) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = viewModel::dismissSignOutConfirm,
+            title = { Text("Sign out and finish later?") },
+            text = {
+                Text(
+                    "You'll need to add a UPI ID and bank account before " +
+                        "you can accept jobs. Sign back in any time to " +
+                        "continue.",
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = viewModel::confirmSignOut,
+                    enabled = !s.signingOut,
+                ) {
+                    Text(if (s.signingOut) "Signing out…" else "Sign out")
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = viewModel::dismissSignOutConfirm,
+                ) { Text("Stay here") }
+            },
+        )
+    }
+
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Round 435 fix #1 — top bar with back = sign-out path,
+            // so an engineer who picked the wrong role or doesn't
+            // have their bank passbook handy isn't trapped here.
+            com.equipseva.app.designsystem.components.EsTopBar(
+                title = "Add payout details",
+                onBack = viewModel::openSignOutConfirm,
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
             Text(
                 "Add payout details",
                 fontSize = 28.sp,
@@ -364,8 +423,9 @@ fun EngineerPayoutOnboardingScreen(
                 full = true,
                 disabled = !s.canSubmit,
             )
-        }
-    }
+            }  // inner scroll Column
+        }  // outer top-bar Column
+    }  // Surface
 }
 
 @Composable
