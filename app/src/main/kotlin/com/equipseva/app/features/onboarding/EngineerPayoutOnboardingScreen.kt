@@ -28,6 +28,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,6 +57,10 @@ import com.equipseva.app.designsystem.theme.SevaInk900
 import com.equipseva.app.features.payouts.EngineerPayoutMethodViewModel.Companion.accountNumberValid
 import com.equipseva.app.features.payouts.EngineerPayoutMethodViewModel.Companion.ifscValid
 import com.equipseva.app.features.payouts.EngineerPayoutMethodViewModel.Companion.vpaValid
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -109,6 +116,14 @@ class EngineerPayoutOnboardingViewModel @Inject constructor(
         // Round 435 fix #1 — sign-out confirm dialog state.
         val signOutConfirmOpen: Boolean = false,
         val signingOut: Boolean = false,
+        // Round 438 fix #11 — IFSC live lookup state.
+        val ifscLookupInFlight: Boolean = false,
+        val ifscResolved: ResolvedIfsc? = null,
+        val ifscLookupFailed: Boolean = false,
+        // Round 438 fix #10 — visible mismatch state on the re-type
+        // field as soon as it diverges from the primary, not only
+        // when the engineer taps Save.
+        val accountNumberMismatch: Boolean = false,
     ) {
         val canSubmit: Boolean
             get() = !saving &&
@@ -120,6 +135,20 @@ class EngineerPayoutOnboardingViewModel @Inject constructor(
                         bankAccountNumber == bankAccountNumberConfirm
                 ))
     }
+
+    /**
+     * Round 438 fix #11 — IFSC lookup result from
+     * https://ifsc.razorpay.com/<IFSC> (free, no-auth). Holds the
+     * fields we render under the IFSC input: bank name + branch +
+     * city. Other fields available from the API (district, state,
+     * MICR, ISO3166, contact) are dropped — they'd just clutter the
+     * compact confirmation line.
+     */
+    data class ResolvedIfsc(
+        val bank: String,
+        val branch: String,
+        val city: String,
+    )
 
     sealed interface Effect {
         data object Done : Effect
@@ -161,12 +190,113 @@ class EngineerPayoutOnboardingViewModel @Inject constructor(
         _state.update { it.copy(vpaHolder = v, errorMessage = null) }
     fun onBankAccountHolderChange(v: String) =
         _state.update { it.copy(bankAccountHolder = v, bankError = null, errorMessage = null) }
-    fun onBankIfscChange(v: String) =
-        _state.update { it.copy(bankIfsc = v.uppercase(), bankError = null, errorMessage = null) }
-    fun onBankAccountNumberChange(v: String) =
-        _state.update { it.copy(bankAccountNumber = v.filter { it.isDigit() }, bankError = null, errorMessage = null) }
-    fun onBankAccountNumberConfirmChange(v: String) =
-        _state.update { it.copy(bankAccountNumberConfirm = v.filter { it.isDigit() }, bankError = null, errorMessage = null) }
+    fun onBankIfscChange(v: String) {
+        val clean = v.uppercase().take(11)
+        _state.update {
+            it.copy(
+                bankIfsc = clean,
+                bankError = null,
+                errorMessage = null,
+                // Reset lookup state whenever the engineer edits the
+                // field. Avoids a stale "SBIN0001234 → State Bank of
+                // India, Hyderabad" confirmation hanging around after
+                // a backspace-and-edit.
+                ifscResolved = null,
+                ifscLookupFailed = false,
+            )
+        }
+        // Round 438 fix #11 — fire lookup once we have a fully-formed
+        // IFSC. The validator already enforces 4 letters + "0" + 6
+        // alnum, so this triggers exactly once per stable input.
+        if (ifscValid(clean)) {
+            fetchIfscLookup(clean)
+        }
+    }
+
+    fun onBankAccountNumberChange(v: String) {
+        val clean = v.filter { it.isDigit() }
+        _state.update {
+            it.copy(
+                bankAccountNumber = clean,
+                bankError = null,
+                errorMessage = null,
+                accountNumberMismatch = recomputeAccountMismatch(clean, it.bankAccountNumberConfirm),
+            )
+        }
+    }
+    fun onBankAccountNumberConfirmChange(v: String) {
+        val clean = v.filter { it.isDigit() }
+        _state.update {
+            it.copy(
+                bankAccountNumberConfirm = clean,
+                bankError = null,
+                errorMessage = null,
+                accountNumberMismatch = recomputeAccountMismatch(it.bankAccountNumber, clean),
+            )
+        }
+    }
+
+    /**
+     * Round 438 fix #10 — return true when both numbers are non-blank,
+     * the confirm field has reached at least the primary's length,
+     * AND they diverge. Returns false while the confirm is still
+     * shorter (user is mid-type) so we don't nag prematurely.
+     */
+    private fun recomputeAccountMismatch(primary: String, confirm: String): Boolean {
+        if (primary.isBlank() || confirm.isBlank()) return false
+        if (confirm.length < primary.length) return false
+        return primary != confirm
+    }
+
+    /**
+     * Round 438 fix #11 — public Razorpay IFSC API. Free, no auth,
+     * stable for years. Best-effort: on network or 404 we leave the
+     * field editable and the user proceeds; the server still
+     * validates the 11-char shape via the round-422 RPC.
+     */
+    private fun fetchIfscLookup(ifsc: String) {
+        _state.update { it.copy(ifscLookupInFlight = true, ifscLookupFailed = false) }
+        viewModelScope.launch {
+            val resolved = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching {
+                    val url = java.net.URL("https://ifsc.razorpay.com/$ifsc")
+                    val conn = url.openConnection() as java.net.HttpURLConnection
+                    conn.connectTimeout = 4000
+                    conn.readTimeout = 4000
+                    conn.requestMethod = "GET"
+                    if (conn.responseCode != 200) return@runCatching null
+                    val text = conn.inputStream.bufferedReader().use { it.readText() }
+                    val json = kotlinx.serialization.json.Json
+                        .parseToJsonElement(text)
+                        .jsonObject
+                    ResolvedIfsc(
+                        bank = json["BANK"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                        branch = json["BRANCH"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                        city = json["CITY"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                    )
+                }.getOrNull()
+            }
+            _state.update {
+                if (resolved != null && resolved.bank.isNotBlank()) {
+                    it.copy(
+                        ifscLookupInFlight = false,
+                        ifscResolved = resolved,
+                        ifscLookupFailed = false,
+                        // Auto-fill bank name so the engineer doesn't
+                        // hand-type "State Bank of India" after the
+                        // API just confirmed it.
+                        bankName = if (it.bankName.isBlank()) resolved.bank else it.bankName,
+                    )
+                } else {
+                    it.copy(
+                        ifscLookupInFlight = false,
+                        ifscResolved = null,
+                        ifscLookupFailed = true,
+                    )
+                }
+            }
+        }
+    }
     fun onBankNameChange(v: String) =
         _state.update { it.copy(bankName = v, errorMessage = null) }
 
@@ -377,6 +507,34 @@ fun EngineerPayoutOnboardingScreen(
                         hint = "Front of your cheque book or net-banking dashboard.",
                         enabled = !s.saving,
                     )
+                    // Round 438 fix #11 — IFSC live-lookup confirmation.
+                    when {
+                        s.ifscLookupInFlight -> {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                "Looking up bank…",
+                                fontSize = 12.sp,
+                                color = SevaInk500,
+                            )
+                        }
+                        s.ifscResolved != null -> {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                "✓ ${s.ifscResolved!!.bank} · ${s.ifscResolved!!.branch}, ${s.ifscResolved!!.city}",
+                                fontSize = 12.sp,
+                                color = SevaGreen700,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
+                        s.ifscLookupFailed -> {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                "Couldn't verify IFSC — double-check, then save anyway.",
+                                fontSize = 12.sp,
+                                color = SevaInk500,
+                            )
+                        }
+                    }
                     Spacer(Modifier.height(10.dp))
                     EsField(
                         value = s.bankAccountNumber,
@@ -393,6 +551,9 @@ fun EngineerPayoutOnboardingScreen(
                         label = "Re-type account number",
                         type = EsFieldType.Number,
                         enabled = !s.saving,
+                        // Round 438 fix #10 — inline error the moment the
+                        // re-type diverges, not just on Save tap.
+                        error = if (s.accountNumberMismatch) "Numbers don't match" else null,
                     )
                     Spacer(Modifier.height(10.dp))
                     EsField(
@@ -444,7 +605,20 @@ private fun SectionCard(
             .border(width = 1.dp, color = BorderDefault, shape = RoundedCornerShape(12.dp))
             .padding(14.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Round 438 fix #12 — semantically merge the row into one
+        // announcement so TalkBack reads e.g. "UPI section, completed"
+        // rather than three separate icon-with-no-label hits. Section
+        // title gets heading() semantics so a TalkBack user can hop
+        // between sections via the heading-jump gesture.
+        Row(
+            modifier = Modifier
+                .semantics(mergeDescendants = true) {
+                    heading()
+                    contentDescription = if (done) "$title section, completed" else "$title section, not yet completed"
+                },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             Icon(
                 imageVector = if (done) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
                 contentDescription = null,
