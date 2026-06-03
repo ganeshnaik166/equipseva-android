@@ -651,6 +651,7 @@ private fun MarkPaidSheet(
 ) {
     val p = state.sheetPayout ?: return
     val amountRupees = p.amountPaise / 100.0
+    val context = androidx.compose.ui.platform.LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -664,9 +665,22 @@ private fun MarkPaidSheet(
     ) {
         Text("Mark paid", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = SevaInk900)
         Text(
-            "${p.jobNumber} · ₹${formatRupees(amountRupees)} → ${p.engineerName ?: "engineer"} (${p.destinationLabel ?: "no method"})",
+            "${p.jobNumber} · ₹${formatRupees(amountRupees)} → ${p.engineerName ?: "engineer"}",
             fontSize = 13.sp,
             color = SevaInk500,
+        )
+        // Round 435 fix #7 — make the engineer's actual UPI/bank
+        // string visible + copyable + GPay-deeplinkable so the
+        // founder doesn't have to close the sheet, find the row's
+        // destination chip, copy from there, and reopen the sheet
+        // every time they settle a row.
+        DestinationActionRow(
+            destination = p.destinationLabel,
+            engineerName = p.engineerName,
+            engineerPhone = p.engineerPhone,
+            amountRupees = amountRupees,
+            jobNumber = p.jobNumber,
+            context = context,
         )
         OutlinedTextField(
             value = state.utr,
@@ -804,4 +818,115 @@ private fun shareCsvFile(context: android.content.Context, absolutePath: String)
         addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
     }
     context.startActivity(chooser)
+}
+
+/* ----- round 435 fix #7 — destination copy + GPay deeplink ----- */
+
+@Composable
+private fun DestinationActionRow(
+    destination: String?,
+    engineerName: String?,
+    engineerPhone: String?,
+    amountRupees: Double,
+    jobNumber: String,
+    context: android.content.Context,
+) {
+    if (destination.isNullOrBlank()) {
+        Text(
+            "No payout method on file — engineer must add one before payout.",
+            fontSize = 12.sp,
+            color = SevaDanger500,
+        )
+        return
+    }
+    val isUpi = looksLikeVpa(destination)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(SevaGreen50)
+            .border(width = 1.dp, color = BorderDefault, shape = RoundedCornerShape(10.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            if (isUpi) "UPI: $destination" else destination,
+            fontSize = 14.sp,
+            color = SevaInk900,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            EsBtn(
+                text = "Copy",
+                onClick = { copyToClipboard(context, destination, "EquipSeva destination") },
+                kind = EsBtnKind.Secondary,
+            )
+            if (isUpi) {
+                EsBtn(
+                    text = "Pay via UPI",
+                    onClick = {
+                        val uri = buildUpiDeeplink(destination, engineerName, amountRupees, jobNumber)
+                        openUpiIntent(context, uri)
+                    },
+                    kind = EsBtnKind.Primary,
+                )
+            }
+            if (!engineerPhone.isNullOrBlank()) {
+                EsBtn(
+                    text = "Call",
+                    onClick = { openTelIntent(context, engineerPhone) },
+                    kind = EsBtnKind.Secondary,
+                )
+            }
+        }
+    }
+}
+
+internal fun looksLikeVpa(s: String): Boolean =
+    s.matches(Regex("^[a-zA-Z0-9._-]+@[a-zA-Z]+\$"))
+
+/**
+ * UPI deeplink per NPCI spec: upi://pay?pa=<vpa>&pn=<name>&am=<amount>&cu=INR&tn=<note>
+ * GPay, PhonePe, Paytm all accept this. Amount as plain rupees decimal
+ * (no rounding) — the user can confirm before sending.
+ */
+internal fun buildUpiDeeplink(
+    vpa: String,
+    payeeName: String?,
+    amountRupees: Double,
+    jobNumber: String,
+): String {
+    val enc: (String) -> String = { java.net.URLEncoder.encode(it, "UTF-8") }
+    val amount = String.format(java.util.Locale.ENGLISH, "%.2f", amountRupees)
+    val name = enc(payeeName?.takeIf { it.isNotBlank() } ?: "EquipSeva engineer")
+    val note = enc("EquipSeva $jobNumber")
+    return "upi://pay?pa=${enc(vpa)}&pn=$name&am=$amount&cu=INR&tn=$note"
+}
+
+private fun copyToClipboard(context: android.content.Context, value: String, label: String) {
+    val clip = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+    clip.setPrimaryClip(android.content.ClipData.newPlainText(label, value))
+    android.widget.Toast.makeText(context, "Copied", android.widget.Toast.LENGTH_SHORT).show()
+}
+
+private fun openUpiIntent(context: android.content.Context, uri: String) {
+    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+        data = android.net.Uri.parse(uri)
+        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    runCatching { context.startActivity(intent) }.onFailure {
+        android.widget.Toast.makeText(
+            context,
+            "No UPI app installed",
+            android.widget.Toast.LENGTH_SHORT,
+        ).show()
+    }
+}
+
+private fun openTelIntent(context: android.content.Context, phone: String) {
+    val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
+        data = android.net.Uri.parse("tel:$phone")
+        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    runCatching { context.startActivity(intent) }
 }

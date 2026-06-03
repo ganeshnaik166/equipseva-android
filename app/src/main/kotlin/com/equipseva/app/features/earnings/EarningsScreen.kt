@@ -172,11 +172,48 @@ fun EarningsScreen(
                                 )
                             }
                         } else {
+                            // Round 435 fix #3 — reordered. Transfers
+                            // ("real money landing in the engineer's
+                            // bank") is the ground-truth ledger and now
+                            // surfaces ABOVE the bid-level "Completed
+                            // jobs" history. Renamed "Recent payouts"
+                            // → "Completed jobs" so the word "payout"
+                            // only refers to actual bank transfers and
+                            // engineers can't mis-read a green Completed
+                            // pill as confirmation that money landed.
+                            //
+                            // Round 435 fix #2 (a) — hoisted the "Bank
+                            // details" action onto the Transfers section
+                            // so engineers with a Failed transfer have
+                            // an entry point even when there are no
+                            // Completed-jobs rows to render.
+                            if (state.payouts.isNotEmpty()) {
+                                item("payout_transfers") {
+                                    EsSection(
+                                        title = "Transfers to your account",
+                                        action = "Payout method",
+                                        onAction = onBankDetails,
+                                    ) {
+                                        Column {
+                                            state.payouts.forEach { p ->
+                                                PayoutTransferRow(
+                                                    p = p,
+                                                    onFixMethod = if (p.status == PayoutStatus.Failed) onBankDetails else null,
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                             if (state.rows.isNotEmpty()) {
                                 item("history") {
                                     EsSection(
-                                        title = "Recent payouts",
-                                        action = "Bank details",
+                                        title = "Completed jobs",
+                                        // Always surface the Payout-method
+                                        // entry here too in case
+                                        // Transfers section didn't render
+                                        // (no engineer_payouts rows yet).
+                                        action = if (state.payouts.isEmpty()) "Payout method" else null,
                                         onAction = onBankDetails,
                                     ) {
                                         TransactionsList(
@@ -195,22 +232,6 @@ fun EarningsScreen(
                                             rows = state.amcEarnings,
                                             onVisitClick = onJobClick,
                                         )
-                                    }
-                                }
-                            }
-                            // Round 427 — auto-transfer history (distinct
-                            // from the bid-level Recent payouts section
-                            // above). Surfaces engineer_payouts rows so
-                            // the engineer can see what's queued / paid /
-                            // failed against their UPI / bank.
-                            if (state.payouts.isNotEmpty()) {
-                                item("payout_transfers") {
-                                    EsSection(title = "Transfers to your account") {
-                                        Column {
-                                            state.payouts.forEach { p ->
-                                                PayoutTransferRow(p)
-                                            }
-                                        }
                                     }
                                 }
                             }
@@ -639,11 +660,19 @@ internal fun selfRankSubtitle(jobsCompleted: Long, revenueInr: Double): String =
 /* ---------------------------- payout transfers ---------------------------- */
 
 @Composable
-private fun PayoutTransferRow(p: EngineerPayoutRow) {
+private fun PayoutTransferRow(
+    p: EngineerPayoutRow,
+    // Round 435 fix #2 — non-null when the row is in a state the
+    // engineer should be able to recover from (currently: Failed).
+    // Tap fires the same nav as the section action chip, going to
+    // the payout-method editor where they can fix the VPA.
+    onFixMethod: (() -> Unit)? = null,
+) {
     val amountRupees = p.amountPaise / 100.0
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .let { m -> if (onFixMethod != null) m.clickable(onClick = onFixMethod) else m }
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -668,6 +697,18 @@ private fun PayoutTransferRow(p: EngineerPayoutRow) {
                     sub,
                     fontSize = 12.sp,
                     color = if (p.status == PayoutStatus.Failed) SevaDanger500 else SevaInk500,
+                )
+            }
+            // Round 435 fix #2 — explicit affordance under the
+            // failure copy so the recovery path isn't hidden in a
+            // whole-row tap that doesn't look clickable.
+            if (onFixMethod != null) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Update payout method →",
+                    fontSize = 12.sp,
+                    color = SevaGreen700,
+                    fontWeight = FontWeight.SemiBold,
                 )
             }
         }
