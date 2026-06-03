@@ -2,12 +2,16 @@ name: engineer-payouts-worker (every 5 min)
 
 # Round 424 — drains the engineer_payouts queue by POSTing to
 # `process-engineer-payouts` edge fn. The fn pulls queued rows, calls
-# RazorpayX Payouts API, and writes the result back. Webhook
-# `razorpayx-webhook` (separate URL configured in RazorpayX dashboard)
-# flips the row to processed when the money lands.
+# the configured payout provider, and writes the result back. Webhook
+# `payouts-webhook` (separate URL configured in the provider's
+# dashboard) flips the row to processed when the money lands.
 #
-# Safe to run before RazorpayX is activated: the edge fn detects
-# missing RAZORPAYX_* env vars and returns {ok:true, configured:false,
+# Round 432 — provider switched from RazorpayX to Cashfree Payouts
+# after RazorpayX hard-rejected sole proprietorships. CASHFREE_*
+# env vars replace the old RAZORPAYX_* ones on the Supabase side.
+#
+# Safe to run before the provider is activated: the edge fn detects
+# missing CASHFREE_* env vars and returns {ok:true, configured:false,
 # processed:0} without touching anything.
 #
 # Required repo secrets:
