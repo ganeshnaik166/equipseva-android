@@ -446,12 +446,31 @@ fun EngineerPayoutOnboardingScreen(
                 color = SevaInk900,
             )
             Text(
-                "We need both UPI and a bank account on file before you can start " +
-                    "accepting jobs. When a hospital confirms a job, we auto-transfer " +
-                    "your share — UPI in seconds, bank as the backup if UPI ever fails.",
+                "We save both so your earnings can always reach you. " +
+                    "UPI is the fastest path; bank account is the fallback " +
+                    "if UPI ever fails. Both required before you can accept jobs.",
                 fontSize = 14.sp,
                 color = SevaInk500,
             )
+
+            // Round 439 fix #9 — explicit partial-save banner when one
+            // method already saved and the other isn't. Without this
+            // the engineer sees the saved section silently switch to
+            // green (round 425 SectionCard.done state) and the other
+            // section in an error state — same visual ambiguity as
+            // success. The banner names what just happened + what's
+            // left.
+            if (s.hasUpi && !s.hasBank) {
+                PartialSaveBanner(
+                    icon = Icons.Outlined.CheckCircle,
+                    text = "UPI saved · finish saving your bank account below.",
+                )
+            } else if (!s.hasUpi && s.hasBank) {
+                PartialSaveBanner(
+                    icon = Icons.Outlined.CheckCircle,
+                    text = "Bank saved · finish saving your UPI above.",
+                )
+            }
 
             Spacer(Modifier.height(4.dp))
 
@@ -587,6 +606,36 @@ fun EngineerPayoutOnboardingScreen(
             }  // inner scroll Column
         }  // outer top-bar Column
     }  // Surface
+}
+
+@Composable
+private fun PartialSaveBanner(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(SevaGreen50)
+            .border(width = 1.dp, color = SevaGreen700, shape = RoundedCornerShape(10.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = SevaGreen700,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            text = text,
+            fontSize = 13.sp,
+            color = SevaGreen700,
+            fontWeight = FontWeight.Medium,
+        )
+    }
 }
 
 @Composable
