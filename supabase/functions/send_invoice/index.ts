@@ -171,7 +171,24 @@ serve(async (req) => {
   }
 
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
-  const resendFrom = Deno.env.get("RESEND_FROM") ?? "onboarding@resend.dev";
+  // Round 447: warn loudly when RESEND_FROM is unset. Default lands on
+  // Resend's shared test sender `onboarding@resend.dev` which spam
+  // filters trash. Operator-facing log line so the misconfig surfaces
+  // in function logs (vs silently sending from sandbox in prod).
+  const resendFromExplicit = Deno.env.get("RESEND_FROM");
+  const resendFrom = resendFromExplicit ?? "onboarding@resend.dev";
+  if (resendApiKey && !resendFromExplicit) {
+    console.warn(
+      "send_invoice: RESEND_FROM unset; falling back to onboarding@resend.dev — DO NOT use in production",
+    );
+  }
+  if (!resendApiKey) {
+    // Round 447: previously silently skipped the Resend POST and
+    // returned `email_sent:false, email_error:null`, which looked like
+    // 'buyer just had no email' to the trigger. Now: log clearly so
+    // the operator sees the misconfig in function logs.
+    console.warn("send_invoice: RESEND_API_KEY unset; skipping email dispatch");
+  }
 
   let payload: { record?: { id?: string } };
   try {
@@ -254,6 +271,14 @@ serve(async (req) => {
 
   let emailSent = false;
   let emailError: string | null = null;
+  // Round 447: surface 'resend_unconfigured' in the response when the
+  // API key is missing AND the buyer has an email. Previously this case
+  // returned email_error: null which the trigger interpreted as 'no
+  // email on the buyer profile' (legitimate skip). Now distinguishes
+  // misconfig from missing-recipient.
+  if (!resendApiKey && buyer?.email) {
+    emailError = "resend_unconfigured";
+  }
   if (resendApiKey && buyer?.email) {
     try {
       // Cap Resend wait at 12s — usually responds in ~500ms. Without a

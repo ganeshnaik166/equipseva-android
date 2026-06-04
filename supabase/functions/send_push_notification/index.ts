@@ -53,6 +53,9 @@ interface ServiceAccount {
   client_email: string;
   private_key: string;
   token_uri?: string;
+  // Round 447: cross-check against FCM_PROJECT_ID env to catch
+  // staging↔prod cred mix-ups before they produce opaque 404s.
+  project_id?: string;
 }
 
 const json = (status: number, body: unknown) =>
@@ -281,6 +284,24 @@ serve(async (req) => {
   }
   if (!sa.client_email || !sa.private_key) {
     return json(500, { ok: false, code: "server_error", message: "service account incomplete" });
+  }
+  // Round 447: cross-check that FCM_PROJECT_ID env matches the service
+  // account's project_id. Mismatched config (e.g. SA from project A,
+  // FCM_PROJECT_ID points at project B from staging-prod copy-paste)
+  // produces opaque 404 NOT_FOUND / 403 PERMISSION_DENIED from FCM
+  // far downstream. Surface up front with a clear error.
+  if (sa.project_id && sa.project_id !== fcmProjectId) {
+    console.error(
+      "send_push_notification: FCM_PROJECT_ID",
+      fcmProjectId,
+      "!= service account project_id",
+      sa.project_id,
+    );
+    return json(500, {
+      ok: false,
+      code: "server_error",
+      message: "fcm project mismatch",
+    });
   }
 
   const admin = createClient(supabaseUrl, serviceKey);
