@@ -143,11 +143,25 @@ serve(async (req) => {
 
   const clientId = Deno.env.get("CASHFREE_CLIENT_ID");
   const clientSecret = Deno.env.get("CASHFREE_CLIENT_SECRET");
-  const baseUrl = Deno.env.get("CASHFREE_PAYOUTS_BASE_URL") ?? "https://payout-api.cashfree.com";
+  // Round 443: auto-pick the base URL from the credential shape so a
+  // half-configured deploy (test creds, prod URL default) doesn't
+  // dead-letter the entire payout queue. Cashfree test creds are
+  // tagged: client IDs start with "TEST", secrets contain "_test_".
+  // Hitting prod with test creds returns a generic 500
+  // "Internal Server Error" — opaque enough to look like Cashfree-side
+  // flakiness, which is exactly what bit us on 2026-06-01..2026-06-04.
+  // Explicit env override still wins so the user can pin a URL.
+  const isTestCreds =
+    (clientId ?? "").startsWith("TEST") ||
+    (clientSecret ?? "").includes("_test_");
+  const baseUrl =
+    Deno.env.get("CASHFREE_PAYOUTS_BASE_URL") ??
+    (isTestCreds ? "https://payout-gamma.cashfree.com" : "https://payout-api.cashfree.com");
   if (!clientId || !clientSecret) {
     console.log("process-engineer-payouts: CASHFREE_* not configured, skipping");
     return json(200, { ok: true, configured: false, processed: 0 });
   }
+  console.log(`process-engineer-payouts: using ${isTestCreds ? "SANDBOX" : "PROD"} baseUrl=${baseUrl}`);
 
   // Authenticate once up-front so we fail fast on bad credentials
   // before claiming any rows.
