@@ -561,6 +561,11 @@ private fun OverviewTab(
     val fee = state.hospital?.monthlyFeeRupees ?: state.engineerView?.monthlyFeeRupees ?: 0.0
     val visitsDone = state.hospital?.visitsCompleted ?: state.engineerView?.visitsCompleted ?: 0
     val visitsPerYr = state.hospital?.visitsPerYear ?: state.engineerView?.visitsPerYear ?: 12
+    // Round 447: visits_completed on the server is monotonic across all
+    // years the contract has lived. Showing "18 / 12 per year" on a
+    // long-running contract looks broken. Compute the current-year
+    // figure client-side: visits_completed mod visits_per_year.
+    val visitsDoneThisYear = if (visitsPerYr > 0) visitsDone % visitsPerYr else visitsDone
     val start = state.hospital?.startDate ?: state.engineerView?.startDate ?: ""
     val end = state.hospital?.endDate ?: state.engineerView?.endDate ?: ""
     val nextVisit = state.hospital?.nextVisitAt ?: state.engineerView?.nextVisitAt
@@ -589,7 +594,7 @@ private fun OverviewTab(
                 }
                 LabelRow("Frequency", prettyFrequency(freq))
                 LabelRow("Monthly fee", formatRupees(fee))
-                LabelRow("Visits", "$visitsDone / $visitsPerYr per year")
+                LabelRow("Visits", "$visitsDoneThisYear / $visitsPerYr this year")
                 LabelRow("Term", "${prettyDate(start)} → ${prettyDate(end)}")
                 if (!nextVisit.isNullOrBlank()) {
                     LabelRow("Next visit", prettyDate(nextVisit))
@@ -883,6 +888,9 @@ private fun PoolLedgerRow(row: AmcRepository.PoolLedgerRow) {
 private fun VisitsTab(state: AmcDetailViewModel.UiState) {
     val visitsDone = state.hospital?.visitsCompleted ?: state.engineerView?.visitsCompleted ?: 0
     val visitsPerYr = state.hospital?.visitsPerYear ?: state.engineerView?.visitsPerYear ?: 12
+    // Round 447: same modular-year fix as the Overview tab — server's
+    // visits_completed is monotonic, show current-year figure.
+    val visitsDoneThisYear = if (visitsPerYr > 0) visitsDone % visitsPerYr else visitsDone
     val freq = state.hospital?.visitFrequency ?: state.engineerView?.visitFrequency ?: ""
     val nextVisit = state.hospital?.nextVisitAt ?: state.engineerView?.nextVisitAt
     EsSection(title = "Cadence") {
@@ -891,7 +899,7 @@ private fun VisitsTab(state: AmcDetailViewModel.UiState) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             LabelRow("Frequency", prettyFrequency(freq))
-            LabelRow("Completed", "$visitsDone / $visitsPerYr")
+            LabelRow("Completed", "$visitsDoneThisYear / $visitsPerYr this year")
             if (!nextVisit.isNullOrBlank()) {
                 LabelRow("Next scheduled", prettyDate(nextVisit))
             }

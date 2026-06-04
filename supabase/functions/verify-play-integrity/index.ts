@@ -218,6 +218,20 @@ serve(async (req) => {
   if (!supabaseUrl || !anonKey || !serviceKey || !saJson || !packageName) {
     return bad("server_error", "edge function not configured", 500);
   }
+  // Round 447: log which package + SA project we're dispatching for so
+  // the next mystery 400 INVALID_ARGUMENT from Google has triage signal
+  // without round-tripping to function logs.
+  try {
+    const saProject = JSON.parse(saJson)?.project_id ?? "unparseable";
+    console.log(
+      "verify-play-integrity: dispatching package=", packageName,
+      "saProject=", saProject,
+    );
+  } catch {
+    // Don't fail the request just because the log line couldn't parse —
+    // the real SA-parse error surfaces downstream where the JWT is
+    // actually built.
+  }
 
   // Identity check uses an anon-key client carrying the caller's bearer
   // header so the JWT is decoded under the role it was issued for. We do
