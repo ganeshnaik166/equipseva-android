@@ -19,6 +19,10 @@ name: cron-tick (hourly)
 # Required repo secrets:
 #   CRON_TICK_SECRET — same value as the Supabase secret of the same
 #                       name (set via `supabase secrets set`)
+#   SUPABASE_ANON_KEY — passed as `Authorization: Bearer` to satisfy
+#                       the Supabase gateway's JWT-required default.
+#                       The function-level X-Cron-Secret check stays
+#                       the real auth gate. Anon key is already public.
 
 on:
   schedule:
@@ -42,10 +46,15 @@ jobs:
       - name: POST cron-tick ?slot=hourly
         env:
           CRON_TICK_SECRET: ${{ secrets.CRON_TICK_SECRET }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           set -euo pipefail
           if [ -z "${CRON_TICK_SECRET}" ]; then
             echo "::error::CRON_TICK_SECRET not configured. Add it under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          if [ -z "${SUPABASE_ANON_KEY}" ]; then
+            echo "::error::SUPABASE_ANON_KEY not configured. Add it under Settings → Secrets and variables → Actions."
             exit 1
           fi
           URL="https://eyswaywvtartpvtoxtdr.supabase.co/functions/v1/cron-tick?slot=hourly"
@@ -54,6 +63,7 @@ jobs:
                --silent --show-error \
                --max-time 60 \
                -X POST "$URL" \
+               -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
                -H "X-Cron-Secret: ${CRON_TICK_SECRET}" \
                -H "Content-Type: application/json" \
                -d '{}'

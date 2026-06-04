@@ -18,6 +18,12 @@ name: engineer-payouts-worker (every 5 min)
 #   CRON_TICK_SECRET — shared secret matching the Supabase env var of
 #                      the same name. Auths the worker the same way
 #                      cron-tick-hourly does.
+#   SUPABASE_ANON_KEY — passed as `Authorization: Bearer` to satisfy
+#                       the Supabase gateway's JWT-required default.
+#                       The function-level X-Cron-Secret check is the
+#                       real auth gate; this header just gets us past
+#                       the gateway. Anon key is already public (it's
+#                       embedded in the Android APK).
 
 on:
   schedule:
@@ -39,10 +45,15 @@ jobs:
       - name: POST process-engineer-payouts
         env:
           CRON_TICK_SECRET: ${{ secrets.CRON_TICK_SECRET }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           set -euo pipefail
           if [ -z "${CRON_TICK_SECRET}" ]; then
             echo "::error::CRON_TICK_SECRET not configured."
+            exit 1
+          fi
+          if [ -z "${SUPABASE_ANON_KEY}" ]; then
+            echo "::error::SUPABASE_ANON_KEY not configured."
             exit 1
           fi
           URL="https://eyswaywvtartpvtoxtdr.supabase.co/functions/v1/process-engineer-payouts?limit=25"
@@ -50,6 +61,7 @@ jobs:
                --silent --show-error \
                --max-time 120 \
                -X POST "$URL" \
+               -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
                -H "X-Cron-Secret: ${CRON_TICK_SECRET}" \
                -H "Content-Type: application/json" \
                -d '{}'
