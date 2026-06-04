@@ -560,6 +560,11 @@ REVOKE ALL ON FUNCTION public.re_rotate_on_engineer_unavailable() FROM PUBLIC;
 -- Android EscrowRow declares engineer_response + engineer_responded_at
 -- but the server RPC's RETURNS TABLE never SELECTs them. Hospital never
 -- sees engineer's dispute rebuttal.
+--
+-- Note: must DROP first because we're changing the RETURNS TABLE
+-- signature (11 → 13 cols). CREATE OR REPLACE rejects return-type
+-- changes with SQLSTATE 42P13.
+DROP FUNCTION IF EXISTS public.get_repair_job_escrow(uuid);
 
 CREATE OR REPLACE FUNCTION public.get_repair_job_escrow(p_repair_job_id uuid)
 RETURNS TABLE (
