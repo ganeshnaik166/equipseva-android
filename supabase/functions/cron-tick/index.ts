@@ -142,6 +142,15 @@ serve(async (req) => {
       if (error) throw error;
       return { rows: typeof data === "number" ? data : undefined };
     },
+    // Round 446 — sweep for AMC SLA response-time breaches on
+    // auto-created visits that never had a status UPDATE fire the
+    // existing trigger. Idempotent via the partial-unique index on
+    // amc_sla_breaches(amc_contract_id, visit_id, breach_type='response_time').
+    "amc-sla-sweep": async () => {
+      const { data, error } = await admin.rpc("sweep_amc_sla_unresponded_visits");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
     "amc-auto-renew": async () => {
       const { data, error } = await admin.rpc("auto_renew_expiring_amc_contracts");
       if (error) throw error;
@@ -202,7 +211,7 @@ serve(async (req) => {
     // hourly: time-sensitive ones — escrow auto-release, cost-revision
     // TTL expiry, AMC visit creation (so the visit lands within the
     // hour of next_visit_at, not next-day).
-    "hourly": ["escrow-release", "expire-cost-revisions", "amc-create-visits", "payouts-reaper"],
+    "hourly": ["escrow-release", "expire-cost-revisions", "amc-create-visits", "payouts-reaper", "amc-sla-sweep"],
     // daily: TTL purges off-peak + AMC auto-renewal sweep (end_date
     // is day-granular so one daily pass is plenty).
     "daily": [
