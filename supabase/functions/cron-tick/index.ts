@@ -39,6 +39,12 @@ type SlotResult = {
   ok: boolean;
   rows?: number;
   error?: string;
+  // PostgreSQL SQLSTATE code (5 chars, public per PG docs — e.g.
+  // 23502 = not_null_violation). Round 441: surfacing it lets the
+  // cron runbook diagnose slot failures without round-tripping to
+  // Supabase function logs. NOT sensitive — no message, no table
+  // names, no row data.
+  error_code?: string;
   duration_ms: number;
 };
 
@@ -217,15 +223,27 @@ serve(async (req) => {
       results.push({ slot: t, ok: true, rows: r.rows, duration_ms: Date.now() - start });
     } catch (e) {
       // Don't echo raw e.message — it can carry PostgREST hints,
-      // table names, SQLSTATE codes. The response body lands in
-      // GitHub Actions / cron-job.org logs (external surfaces).
-      // Log full detail server-side; surface only the slot name +
-      // a stable error code so the cron runbook still has signal.
+      // table names, row data. The response body lands in GitHub
+      // Actions / cron-job.org logs (external surfaces). Log full
+      // detail server-side; surface only the slot name, a stable
+      // error code, and the 5-char SQLSTATE (round 441) so the cron
+      // runbook can diagnose without round-tripping to dashboard logs.
       console.error(`cron-tick slot=${t} failed`, e);
+      // PostgrestError shape: { code: '23502', message: '...', details: '...', hint: '...' }
+      // Native Postgres exceptions thrown by supabase-js include `code`
+      // on the rejected response. Extract it defensively (no PII risk —
+      // SQLSTATE values are documented Postgres constants).
+      const sqlstate = (typeof (e as { code?: unknown })?.code === "string")
+        ? (e as { code: string }).code
+        : undefined;
+      // Only allow the canonical 5-char SQLSTATE form. Anything else
+      // (e.g., a custom string) gets dropped to keep the surface clean.
+      const safeCode = sqlstate && /^[0-9A-Z]{5}$/.test(sqlstate) ? sqlstate : undefined;
       results.push({
         slot: t,
         ok: false,
         error: "slot_failed",
+        error_code: safeCode,
         duration_ms: Date.now() - start,
       });
     }
