@@ -129,6 +129,19 @@ serve(async (req) => {
       if (error) throw error;
       return { rows: typeof data === "number" ? data : undefined };
     },
+    // Round 445 — reaper for engineer_payouts rows stuck in 'processing'.
+    // Worker crash mid-batch or Cashfree event drop leaves rows orphaned
+    // (no webhook ever arrives). Default: rows older than 30min get
+    // requeued; after 5 attempts they dead-letter to 'failed' so an
+    // operator surfaces them in the founder admin dashboard.
+    "payouts-reaper": async () => {
+      const { data, error } = await admin.rpc(
+        "requeue_stuck_engineer_payouts",
+        { p_max_age: "30 minutes", p_max_attempts: 5 },
+      );
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
     "amc-auto-renew": async () => {
       const { data, error } = await admin.rpc("auto_renew_expiring_amc_contracts");
       if (error) throw error;
@@ -189,7 +202,7 @@ serve(async (req) => {
     // hourly: time-sensitive ones — escrow auto-release, cost-revision
     // TTL expiry, AMC visit creation (so the visit lands within the
     // hour of next_visit_at, not next-day).
-    "hourly": ["escrow-release", "expire-cost-revisions", "amc-create-visits"],
+    "hourly": ["escrow-release", "expire-cost-revisions", "amc-create-visits", "payouts-reaper"],
     // daily: TTL purges off-peak + AMC auto-renewal sweep (end_date
     // is day-granular so one daily pass is plenty).
     "daily": [

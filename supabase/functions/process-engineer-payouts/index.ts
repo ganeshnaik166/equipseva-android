@@ -254,10 +254,48 @@ async function processOne(
   // Cashfree returns 200 with status=SUCCESS on accept, status=ERROR
   // on validation failures. Always inspect the body.
   const cfStatus = (body as { status?: string })?.status;
+  const data = (body as { data?: { referenceId?: string | number; utr?: string } }).data ?? {};
+  const refId = data.referenceId != null ? String(data.referenceId) : null;
   if (!resp.ok || cfStatus === "ERROR") {
     const errMsg =
       (body as { message?: string; subCode?: string })?.message ??
       `cashfree ${resp.status}`;
+    const subCode = (body as { subCode?: string })?.subCode ?? "";
+    // Round 445: Cashfree returns 200 + status=ERROR + subCode=409 +
+    // message containing 'already exists' / 'already in process' on
+    // re-submission of the same transferId — even when the original
+    // transfer succeeded. Treating that as a clean failure flips our
+    // row to 'failed' and loses the referenceId so the eventual
+    // TRANSFER_SUCCESS webhook can't find the row (it looks up by
+    // razorpay_payout_id). Money moved, our DB says failed, engineer
+    // chases the founder. Detect the duplicate signal and route to
+    // 'processing' (preserving any referenceId Cashfree returned on
+    // the error body) so the webhook can reconcile later.
+    const looksDuplicate =
+      subCode === "409" ||
+      /already.*exist/i.test(errMsg) ||
+      /already.*in.*process/i.test(errMsg) ||
+      /duplicate.*transfer/i.test(errMsg);
+    if (looksDuplicate) {
+      console.warn(
+        "process-engineer-payouts: duplicate transferId — routing to processing",
+        row.payout_id,
+        errMsg,
+      );
+      await admin.rpc("record_engineer_payout_dispatch", {
+        p_payout_id: row.payout_id,
+        p_status: "processing",
+        p_razorpay_payout_id: refId,
+        p_razorpayx_status: "DUPLICATE_REQUEUE",
+        p_razorpay_contact_id: beneId,
+      });
+      return {
+        payout_id: row.payout_id,
+        outcome: "processing",
+        cashfree_reference_id: refId ?? undefined,
+        duplicate_transfer: true,
+      };
+    }
     await admin.rpc("record_engineer_payout_dispatch", {
       p_payout_id: row.payout_id,
       p_status: "failed",
@@ -266,9 +304,6 @@ async function processOne(
     });
     return { payout_id: row.payout_id, outcome: "failed", reason: errMsg };
   }
-
-  const data = (body as { data?: { referenceId?: string | number; utr?: string } }).data ?? {};
-  const refId = data.referenceId != null ? String(data.referenceId) : null;
   await admin.rpc("record_engineer_payout_dispatch", {
     p_payout_id: row.payout_id,
     p_status: "processing",
