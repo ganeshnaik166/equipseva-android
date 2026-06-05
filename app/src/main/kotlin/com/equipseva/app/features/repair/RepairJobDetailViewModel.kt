@@ -22,6 +22,7 @@ import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobRepository
 import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
 import com.equipseva.app.core.data.repair.RepairJobStatus
+import com.equipseva.app.core.data.invoice.RepairInvoiceRepository
 import com.equipseva.app.core.data.servicereport.ServiceReportRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.storage.StorageRepository
@@ -63,6 +64,7 @@ class RepairJobDetailViewModel @Inject constructor(
     private val storageRepository: StorageRepository,
     private val costRevisionRepository: com.equipseva.app.core.data.repair.CostRevisionRepository,
     private val serviceReportRepository: ServiceReportRepository,
+    private val repairInvoiceRepository: RepairInvoiceRepository,
     private val escrowRepository: RepairJobEscrowRepository,
     private val payoutRepository: com.equipseva.app.core.data.payouts.EngineerPayoutRepository,
     private val json: Json,
@@ -73,6 +75,9 @@ class RepairJobDetailViewModel @Inject constructor(
         // PR-D3: open the freshly-generated service report HTML in the
         // user's browser. URL is a 30-day signed Supabase Storage URL.
         data class OpenServiceReport(val url: String) : Effect
+        // Round 449: same shape for the GST tax invoice. Hospital
+        // prints to PDF in browser for their accounting / ITC claim.
+        data class OpenInvoice(val url: String) : Effect
     }
 
     /**
@@ -126,6 +131,8 @@ class RepairJobDetailViewModel @Inject constructor(
         val submittingReport: Boolean = false,
         // PR-D3 — generate-service-report edge function call in flight.
         val generatingServiceReport: Boolean = false,
+        // Round 449 — generate-repair-invoice edge function call in flight.
+        val generatingInvoice: Boolean = false,
         // PR-D5 — per-job escrow row + in-flight action flags.
         val escrow: RepairJobEscrowRepository.EscrowRow? = null,
         // Round 431 — engineer payout status for this job. Null until
@@ -258,6 +265,36 @@ class RepairJobDetailViewModel @Inject constructor(
                 }
                 .onFailure { err ->
                     _state.update { it.copy(generatingServiceReport = false) }
+                    _messages.emit(err.toUserMessage())
+                }
+        }
+    }
+
+    /**
+     * Round 449 — download the GST tax invoice. Same shape as
+     * generateServiceReport but for the accounting surface: hospital
+     * (or founder) opens the URL in the browser and prints to PDF.
+     * Only available to completed jobs that have a paid escrow row —
+     * the gross amount comes from contracted_amount_rupees.
+     */
+    fun generateInvoice() {
+        val job = _state.value.job ?: return
+        if (job.status != RepairJobStatus.Completed) return
+        if (_state.value.generatingInvoice) return
+        _state.update { it.copy(generatingInvoice = true) }
+        viewModelScope.launch {
+            repairInvoiceRepository.generate(job.id)
+                .onSuccess { result ->
+                    _state.update { it.copy(generatingInvoice = false) }
+                    val url = result.invoiceUrl
+                    if (!url.isNullOrBlank()) {
+                        _effects.emit(Effect.OpenInvoice(url))
+                    } else {
+                        _messages.emit(result.message ?: "Couldn't generate invoice")
+                    }
+                }
+                .onFailure { err ->
+                    _state.update { it.copy(generatingInvoice = false) }
                     _messages.emit(err.toUserMessage())
                 }
         }
