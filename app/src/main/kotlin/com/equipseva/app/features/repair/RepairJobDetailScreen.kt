@@ -176,6 +176,14 @@ fun RepairJobDetailScreen(
                     }
                     context.startActivity(intent)
                 }
+                // Round 449: same browser-handoff for the GST tax
+                // invoice. Hospital uses the print menu to save as PDF.
+                is RepairJobDetailViewModel.Effect.OpenInvoice -> {
+                    val intent = Intent(Intent.ACTION_VIEW, effect.url.toUri()).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(intent)
+                }
             }
         }
     }
@@ -289,6 +297,7 @@ fun RepairJobDetailScreen(
                     afterPhotoSignedUrls = state.afterPhotoSignedUrls,
                     issuePhotoSignedUrls = state.issuePhotoSignedUrls,
                     generatingServiceReport = state.generatingServiceReport,
+                    generatingInvoice = state.generatingInvoice,
                     escrow = state.escrow,
                     payoutStatus = state.payoutStatus,
                     confirmingEscrowRelease = state.confirmingEscrowRelease,
@@ -297,6 +306,7 @@ fun RepairJobDetailScreen(
                     onAcceptBid = viewModel::acceptBid,
                     onWithdraw = { withdrawConfirmOpen = true },
                     onDownloadReport = viewModel::generateServiceReport,
+                    onDownloadInvoice = viewModel::generateInvoice,
                     onPayEscrow = viewModel::openEscrowPaymentSheet,
                     onConfirmEscrowRelease = viewModel::confirmEscrowRelease,
                     onOpenEscrowDispute = viewModel::openEscrowDisputeSheet,
@@ -483,6 +493,7 @@ private fun JobBody(
     afterPhotoSignedUrls: List<String>,
     issuePhotoSignedUrls: List<String>,
     generatingServiceReport: Boolean,
+    generatingInvoice: Boolean,
     escrow: com.equipseva.app.core.data.escrow.RepairJobEscrowRepository.EscrowRow?,
     payoutStatus: com.equipseva.app.core.data.payouts.JobPayoutStatus?,
     confirmingEscrowRelease: Boolean,
@@ -491,6 +502,7 @@ private fun JobBody(
     onAcceptBid: (String) -> Unit,
     onWithdraw: () -> Unit,
     onDownloadReport: () -> Unit,
+    onDownloadInvoice: () -> Unit,
     onPayEscrow: () -> Unit,
     onConfirmEscrowRelease: () -> Unit,
     onOpenEscrowDispute: () -> Unit,
@@ -674,9 +686,44 @@ private fun JobBody(
                     onDownload = onDownloadReport,
                 )
             }
+
+            // Round 449 — GST tax invoice. Available to both sides;
+            // hospitals download for their accounting / ITC claim,
+            // engineers / founder see the same surface for audit.
+            EsSection(title = "GST tax invoice") {
+                InvoiceDownloadCard(
+                    loading = generatingInvoice,
+                    onDownload = onDownloadInvoice,
+                )
+            }
         }
 
         Spacer(Modifier.height(20.dp))
+    }
+}
+
+@Composable
+private fun InvoiceDownloadCard(
+    loading: Boolean,
+    onDownload: () -> Unit,
+) {
+    androidx.compose.foundation.layout.Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = "GST tax invoice for your records and input-tax credit claim. " +
+                "Opens in your browser — use Print → Save as PDF.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        EsBtn(
+            text = if (loading) "Generating invoice…" else "Download GST invoice",
+            onClick = onDownload,
+            kind = EsBtnKind.Ghost,
+            loading = loading,
+        )
     }
 }
 
