@@ -163,20 +163,11 @@ serve(async (req) => {
   }
   console.log(`process-engineer-payouts: using ${isTestCreds ? "SANDBOX" : "PROD"} baseUrl=${baseUrl}`);
 
-  // Authenticate once up-front so we fail fast on bad credentials
-  // before claiming any rows.
-  let token: string;
-  try {
-    token = await cashfreeAuth(baseUrl, clientId, clientSecret);
-  } catch (err) {
-    console.error("cashfree auth", err);
-    return json(500, {
-      ok: false,
-      code: "auth_failed",
-      message: String((err as Error)?.message ?? err),
-    });
-  }
-
+  // Round 448: pick the queue FIRST. If nothing to do, return cleanly
+  // without hitting Cashfree — saves an auth round-trip every 5 min and
+  // keeps the cron green when the queue's idle (the typical state) even
+  // if Cashfree sandbox is misbehaving externally (which it does
+  // intermittently — see project_cashfree_sandbox_broken_2026_06_04).
   const pickRes = await admin.rpc("pick_engineer_payouts_for_processing", { p_limit: limit });
   if (pickRes.error) {
     console.error("pick rpc failed", pickRes.error);
@@ -185,6 +176,34 @@ serve(async (req) => {
   const picked: PickedRow[] = (pickRes.data as PickedRow[] | null) ?? [];
   if (picked.length === 0) {
     return json(200, { ok: true, configured: true, processed: 0 });
+  }
+
+  // Auth ONLY after we know there's work to do.
+  let token: string;
+  try {
+    token = await cashfreeAuth(baseUrl, clientId, clientSecret);
+  } catch (err) {
+    console.error("cashfree auth", err);
+    // Round 448: rows are claimed (status='processing') but we can't
+    // dispatch them. Revert directly to 'queued' so the next tick can
+    // retry without waiting on the round-445 reaper's 30min window.
+    // The reaper still owns the 'permanently stuck' case (worker crash
+    // mid-batch where this requeue itself doesn't run).
+    const ids = picked.map((r) => r.payout_id);
+    await admin
+      .from("engineer_payouts")
+      .update({
+        status: "queued",
+        razorpay_payout_id: null,
+        razorpayx_status: null,
+      })
+      .in("id", ids);
+    return json(503, {
+      ok: false,
+      code: "cashfree_unavailable",
+      message: "auth failed — picked rows requeued",
+      requeued: picked.length,
+    });
   }
 
   const results: DispatchResult[] = [];
