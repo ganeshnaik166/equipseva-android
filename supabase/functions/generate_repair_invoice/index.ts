@@ -357,9 +357,14 @@ serve(async (req) => {
     return bad("server_error", "invoice upload failed", 500);
   }
 
+  // Round 451: TTL dropped from 30 days → 15 minutes. Called from the
+  // Android app (RepairInvoiceRepository.generate); user opens URL
+  // immediately via Intent.ACTION_VIEW. Idempotent re-mint is one tap
+  // away. 30-day bearer-token URL bypassing RLS was a leak amplifier
+  // (the invoice carries hospital name, address, GSTIN, amounts).
   const { data: signed, error: signErr } = await admin.storage
     .from("invoices")
-    .createSignedUrl(path, 60 * 60 * 24 * 30);
+    .createSignedUrl(path, 60 * 15);
   if (signErr || !signed?.signedUrl) {
     console.error("generate_repair_invoice sign failed", signErr?.message ?? "");
     return bad("server_error", "invoice sign failed", 500);

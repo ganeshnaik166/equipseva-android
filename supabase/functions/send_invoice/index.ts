@@ -249,9 +249,16 @@ serve(async (req) => {
     return bad("server_error", "upload_failed", 500);
   }
 
+  // Round 451: TTL dropped from 30 days → 7 days. The invoice contains
+  // buyer name + phone + GSTIN + shipping address + amount; a 30-day
+  // bearer-token URL bypassing RLS was a leak amplifier. Can't drop to
+  // 15 min (sibling fns) because this URL ships in an email — buyer may
+  // open hours/days later. 7 days is a 4× blast-radius reduction while
+  // preserving the email-link UX. Buyer can also re-mint by re-opening
+  // the order in the app.
   const { data: signed, error: signErr } = await admin.storage
     .from("invoices")
-    .createSignedUrl(path, 60 * 60 * 24 * 30);
+    .createSignedUrl(path, 60 * 60 * 24 * 7);
 
   if (signErr || !signed?.signedUrl) {
     // The upload succeeded but the signed URL didn't materialise — without

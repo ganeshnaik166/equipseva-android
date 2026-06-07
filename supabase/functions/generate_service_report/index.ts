@@ -302,9 +302,14 @@ serve(async (req) => {
     return bad("server_error", "report upload failed", 500);
   }
 
+  // Round 451: TTL dropped from 30 days → 15 minutes. The report contains
+  // PHI-adjacent fields (equipment serial, diagnosis, before/after photos
+  // rendered into HTML); a 30-day bearer-token URL bypassing RLS was a
+  // leak amplifier (log forwarding, screen-share, email forward). Clients
+  // re-mint via this same fn on each open — idempotent + cheap.
   const { data: signed, error: signErr } = await admin.storage
     .from("service-reports")
-    .createSignedUrl(path, 60 * 60 * 24 * 30);
+    .createSignedUrl(path, 60 * 15);
 
   if (signErr || !signed?.signedUrl) {
     console.error("generate_service_report: sign failed", signErr?.message ?? "unknown");
