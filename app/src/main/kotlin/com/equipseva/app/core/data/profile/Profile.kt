@@ -35,6 +35,18 @@ data class Profile(
     /** District within state (e.g. "Hyderabad"). Mandatory at hospital onboarding (v0.2.0). */
     val district: String? = null,
     /**
+     * Round 449 — optional B2B GSTIN (15-char alphanumeric). Hospitals
+     * paste theirs so the GST invoice carries it; non-registered
+     * buyers leave null and the invoice renders "GSTIN not provided".
+     */
+    val gstin: String? = null,
+    /** Multi-line billing address used on the GST invoice header. */
+    val businessAddress: String? = null,
+    /** City for the billing address (free-form, no validation). */
+    val city: String? = null,
+    /** PIN code for the billing address (free-form, no validation). */
+    val pincode: String? = null,
+    /**
      * Round 425 gate. Engineers must have BOTH a UPI and a bank
      * payout method on file before the app lets them past onboarding;
      * without this, the auto-payout queue accrues NULL-method rows
@@ -119,5 +131,9 @@ internal fun ProfileDto.toDomain(): Profile {
         phoneVerified = phoneVerified,
         state = state,
         district = district,
+        gstin = gstin,
+        businessAddress = businessAddress,
+        city = city,
+        pincode = pincode,
     )
 }

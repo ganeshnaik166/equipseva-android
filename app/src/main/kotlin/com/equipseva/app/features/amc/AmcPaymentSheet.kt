@@ -77,6 +77,15 @@ class AmcPaymentViewModel @Inject constructor(
      * paid charge; false on cancellation or any failure (caller shows
      * a snackbar with [UiState.error] in that case).
      */
+    /**
+     * Round 453 — called by the sheet AFTER it has shown the error once
+     * so a subsequent recomposition (rotation, dark-mode toggle) doesn't
+     * re-fire the same stale toast.
+     */
+    fun consumeError() {
+        _state.update { if (it.error != null) it.copy(error = null) else it }
+    }
+
     suspend fun runCheckout(
         activity: Activity,
         amcContractId: String,
@@ -201,9 +210,16 @@ fun AmcPaymentSheet(
     var months by rememberSaveable { mutableIntStateOf(initialMonths) }
     val total = monthlyFeeRupees * months
 
+    // Round 453 fix: clear state.error to null AFTER showing it once so
+    // a rotation / dark-mode toggle while the sheet is still open
+    // doesn't re-fire the stale 'Payment cancelled' / 'Payment failed'
+    // toast the user already dismissed.
     LaunchedEffect(state.error) {
         state.error?.let {
-            if (it.isNotBlank()) onShowMessage(it)
+            if (it.isNotBlank()) {
+                onShowMessage(it)
+                viewModel.consumeError()
+            }
         }
     }
 

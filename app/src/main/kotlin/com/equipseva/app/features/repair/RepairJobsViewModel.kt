@@ -215,14 +215,23 @@ class RepairJobsViewModel @Inject constructor(
         _state.update { it.copy(loadingMore = true, errorMessage = null) }
         pageJob = viewModelScope.launch {
             val current = _state.value
+            // Round 453 fix: capture the query the request was launched
+            // for, so the post-update guard can drop the result if the
+            // user has typed something new in the meantime. pageJob.cancel
+            // is best-effort — if the network result already returned and
+            // the success branch is mid-flight, items would otherwise
+            // contaminate the new query's list (e.g. 'mri' page-2 rows
+            // appended to the 'xray' result).
+            val launchedForQuery = current.query
             repository.fetchOpenJobs(
                 page = page,
                 pageSize = PAGE_SIZE,
-                query = current.query,
+                query = launchedForQuery,
             ).fold(
                 onSuccess = { rows ->
                     _state.update {
-                        it.copy(
+                        if (it.query != launchedForQuery) it
+                        else it.copy(
                             items = it.items + rows,
                             loadingMore = false,
                             endReached = rows.size < PAGE_SIZE,
@@ -231,7 +240,8 @@ class RepairJobsViewModel @Inject constructor(
                 },
                 onFailure = { ex ->
                     _state.update {
-                        it.copy(
+                        if (it.query != launchedForQuery) it
+                        else it.copy(
                             loadingMore = false,
                             errorMessage = ex.toUserMessage(),
                         )
