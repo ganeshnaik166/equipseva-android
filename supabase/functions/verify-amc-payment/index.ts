@@ -162,6 +162,13 @@ serve(async (req) => {
   }
 
   // Idempotent happy path: already verified, return the existing ledger.
+  // Round 452 fix #7: if no ledger row exists (prior verify crashed
+  // between the status='paid' UPDATE and the apply_amc_pool_credit RPC),
+  // fall through and re-invoke the RPC. The RPC's own idempotency check
+  // no-ops on duplicate inserts so concurrent races stay safe. Before
+  // this fix, the hospital's payment was successful in Razorpay but the
+  // pool was never credited — contract stayed paused / unpaid, only
+  // recovery was manual ops via SQL.
   if (order.status === "paid") {
     const { data: existingLedger } = await admin
       .from("amc_payment_pool")
@@ -169,33 +176,42 @@ serve(async (req) => {
       .eq("source_payment_order_id", payment_order_id)
       .eq("ledger_kind", "credit")
       .maybeSingle();
-    const { data: latestContract } = await admin
-      .from("amc_contracts")
-      .select("status")
-      .eq("id", order.amc_contract_id)
-      .maybeSingle();
-    return json(200, {
-      ok: true,
+    if (existingLedger) {
+      const { data: latestContract } = await admin
+        .from("amc_contracts")
+        .select("status")
+        .eq("id", order.amc_contract_id)
+        .maybeSingle();
+      return json(200, {
+        ok: true,
+        payment_order_id,
+        ledger_id: existingLedger.id,
+        balance_after: existingLedger.balance_after,
+        contract_status: latestContract?.status ?? contract.status,
+        idempotent: true,
+      });
+    }
+    // status='paid' but no ledger row → prior crash mid-flow. Fall
+    // through to the RPC call below. Skip the UPDATE — already done.
+    console.warn(
+      "verify-amc-payment: order paid but no ledger row — retrying apply_amc_pool_credit",
       payment_order_id,
-      ledger_id: existingLedger?.id ?? null,
-      balance_after: existingLedger?.balance_after ?? null,
-      contract_status: latestContract?.status ?? contract.status,
-      idempotent: true,
-    });
-  }
-
-  // Mark order paid before applying credit so the SECDEF RPC sees it.
-  const { error: updErr } = await admin
-    .from("amc_payment_orders")
-    .update({
-      status: "paid",
-      razorpay_payment_id,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", payment_order_id);
-  if (updErr) {
-    console.error("verify-amc-payment order_update_failed", updErr);
-    return bad("server_error", "order_update_failed", 500);
+    );
+  } else {
+    // Standard path: order is still 'pending'. Mark paid first so the
+    // SECDEF RPC sees the right state.
+    const { error: updErr } = await admin
+      .from("amc_payment_orders")
+      .update({
+        status: "paid",
+        razorpay_payment_id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", payment_order_id);
+    if (updErr) {
+      console.error("verify-amc-payment order_update_failed", updErr);
+      return bad("server_error", "order_update_failed", 500);
+    }
   }
 
   const { data: ledgerId, error: rpcErr } = await admin.rpc(
