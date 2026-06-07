@@ -3,6 +3,8 @@ package com.equipseva.app.core.auth
 import com.equipseva.app.core.data.moderation.UserBlockRepository
 import com.equipseva.app.core.data.dao.OutboxDao
 import com.equipseva.app.core.data.prefs.UserPrefs
+import com.equipseva.app.core.payments.PendingAmcPaymentsStore
+import com.equipseva.app.core.payments.PendingEscrowPaymentsStore
 import com.equipseva.app.core.push.DeviceTokenRegistrar
 import com.equipseva.app.core.sync.OutboxScheduler
 import com.equipseva.app.core.sync.handlers.PhotoUploadStash
@@ -33,6 +35,13 @@ class SignOutCleanup @Inject constructor(
     private val userPrefs: UserPrefs,
     private val userBlockRepository: UserBlockRepository,
     private val supabaseClient: SupabaseClient,
+    // Round 460: pending-payment DataStores also hold per-user device
+    // state (Razorpay order ids the previous user opened and hasn't
+    // verified). Without a reset the next user on the same device
+    // sees ghost "Pending payment" banners for orders that belong to
+    // an account they never owned.
+    private val pendingEscrowPaymentsStore: PendingEscrowPaymentsStore,
+    private val pendingAmcPaymentsStore: PendingAmcPaymentsStore,
 ) {
     suspend fun wipeLocalUserState() {
         runCatching { deviceTokenRegistrar.revoke() }
@@ -55,6 +64,11 @@ class SignOutCleanup @Inject constructor(
         // blocked-id set in memory; clear so the next sign-in
         // doesn't see stale blocks until the first refresh().
         runCatching { userBlockRepository.clearCache() }
+        // Round 460: drop pending-payment DataStore entries so the
+        // next user on this device doesn't see ghost "Pending payment"
+        // banners for the previous user's Razorpay orders.
+        runCatching { pendingEscrowPaymentsStore.clearAll() }
+        runCatching { pendingAmcPaymentsStore.clearAll() }
         // Realtime channels live on the singleton supabase client.
         // Disconnect drops the websocket so any chat / notification /
         // cost-revision subscription tied to the previous user is

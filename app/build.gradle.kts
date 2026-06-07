@@ -130,8 +130,22 @@ android {
             // present locally. CI seeds an empty keystore.properties so the
             // release build still goes through R8 with default debug-signing;
             // those APKs are never published.
+            //
+            // Round 460: fail-loud if a release is being built without the
+            // keystore AND PRECHECK_LOOSE is not set. The prior comment
+            // ("never published") was a verbal contract — nothing in the
+            // build enforced it. CI release-aab.yml runs preReleaseCheck
+            // which catches the missing keystore; this is the
+            // belt-and-suspenders for local `./gradlew bundleRelease` that
+            // skipped that gate.
             if (hasReleaseKeystore) {
                 signingConfig = signingConfigs.getByName("release")
+            } else if (System.getenv("PRECHECK_LOOSE") != "1"
+                && gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }) {
+                throw GradleException(
+                    "refuse: release build without keystore. Add app/keystore.properties or " +
+                        "set PRECHECK_LOOSE=1 for CI builds that intentionally use debug signing."
+                )
             }
         }
     }

@@ -43,7 +43,6 @@ jobs:
           SUPABASE_URL=
           SUPABASE_ANON_KEY=
           SENTRY_DSN=
-          RAZORPAY_KEY=
           GOOGLE_WEB_CLIENT_ID=
           EXPECTED_CERT_SHA256=
           MAPS_API_KEY=
