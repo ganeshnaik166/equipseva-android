@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -94,7 +95,9 @@ fun TourScreen(
     onFinish: () -> Unit,
     viewModel: TourViewModel = hiltViewModel(),
 ) {
-    var step by remember { mutableIntStateOf(0) }
+    // Round 455 fix: rememberSaveable so rotation / process-death
+    // doesn't bounce the user back to page 1 of the multi-page tour.
+    var step by rememberSaveable { mutableIntStateOf(0) }
     val finish: () -> Unit = {
         viewModel.markSeen()
         onFinish()

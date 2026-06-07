@@ -152,17 +152,32 @@ serve(async (req) => {
     });
   }
 
-  const { error: updErr } = await admin
+  // Round 455 fix: chain payment_status='pending' onto the UPDATE +
+  // select the result so we detect concurrent state changes (admin
+  // refund flow, dispute admin path, double-tap from client). Mirrors
+  // verify-repair-job-payment's row-count check. Today bounded
+  // because there are no other writers, but the divergence from the
+  // hardened sibling is a latent footgun.
+  const { data: updRows, error: updErr } = await admin
     .from("spare_part_orders")
     .update({
       payment_status: "completed",
       order_status: "confirmed",
       payment_id: razorpay_payment_id,
     })
-    .eq("id", order_id);
+    .eq("id", order_id)
+    .eq("payment_status", "pending")
+    .select("id");
   if (updErr) {
     console.error("verify-razorpay-payment update_failed", updErr);
     return bad("server_error", "update_failed", 500);
+  }
+  if (!updRows || updRows.length === 0) {
+    // Row's payment_status changed under us between the read-check and
+    // the UPDATE — could be a concurrent verify (double-tap) or a
+    // future admin/refund path. Refuse to overwrite.
+    console.warn("verify-razorpay-payment race detected for", order_id);
+    return bad("conflict", "order state changed", 409);
   }
 
   return json(200, {
