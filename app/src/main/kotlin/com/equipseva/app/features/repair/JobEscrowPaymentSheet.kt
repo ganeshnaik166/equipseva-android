@@ -70,6 +70,14 @@ class JobEscrowPaymentViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
+    /**
+     * Round 453 — called by the sheet AFTER it has shown the error once
+     * so a subsequent recomposition doesn't re-fire the stale toast.
+     */
+    fun consumeError() {
+        _state.update { if (it.error != null) it.copy(error = null) else it }
+    }
+
     suspend fun runCheckout(
         activity: Activity,
         repairJobId: String,
@@ -176,9 +184,14 @@ fun JobEscrowPaymentSheet(
     val activity = context as? Activity
     val scope = rememberCoroutineScope()
 
+    // Round 453 fix: clear after showing so rotation doesn't re-fire
+    // the stale 'Payment cancelled' / 'Payment failed' toast.
     LaunchedEffect(state.error) {
         state.error?.let {
-            if (it.isNotBlank()) onShowMessage(it)
+            if (it.isNotBlank()) {
+                onShowMessage(it)
+                viewModel.consumeError()
+            }
         }
     }
 

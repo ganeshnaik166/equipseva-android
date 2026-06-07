@@ -18,8 +18,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
@@ -51,6 +49,11 @@ class ConversationsViewModel @Inject constructor(
         val queuedCount: Int = 0,
         val errorMessage: String? = null,
         val query: String = "",
+        // Round 453 fix: when the AuthSession lands on SignedOut (rather
+        // than SignedIn), surface a clear signal so the screen can show
+        // a sign-in prompt instead of spinning forever. The previous
+        // init.first() suspended indefinitely on SignedOut.
+        val isSignedOut: Boolean = false,
     ) {
         val displayedRows: List<Row>
             get() {
@@ -78,31 +81,51 @@ class ConversationsViewModel @Inject constructor(
     private var currentUserId: String? = null
 
     init {
+        // Round 453 fix: collect every AuthSession state, not just the
+        // first SignedIn. If the session is SignedOut (e.g. session
+        // expired between launch and tab open, or deep-linked from a
+        // stale notification), surface isSignedOut so the screen shows a
+        // sign-in prompt instead of spinning indefinitely.
         viewModelScope.launch {
-            val session = authRepository.sessionState
-                .filterIsInstance<AuthSession.SignedIn>()
-                .first()
-            currentUserId = session.userId
-            combine(
-                chatRepository.observeConversations(session.userId),
-                userBlockRepository.observeBlockedUserIds(),
-            ) { list, blocked ->
-                list.filter { convo ->
-                    val other = convo.counterpartId(session.userId)
-                    other == null || other !in blocked
-                }
-            }
-                .onEach { list ->
-                    buildRows(session.userId, list)
-                    // Data arrived — drop the refresh spinner if one was in flight.
-                    _state.update { if (it.refreshing) it.copy(refreshing = false) else it }
-                }
-                .catch { error ->
-                    _state.update {
-                        it.copy(loading = false, refreshing = false, errorMessage = error.toUserMessage())
+            authRepository.sessionState.collect { sess ->
+                when (sess) {
+                    is AuthSession.SignedIn -> {
+                        if (currentUserId == sess.userId) return@collect
+                        currentUserId = sess.userId
+                        _state.update {
+                            it.copy(loading = true, isSignedOut = false, errorMessage = null)
+                        }
+                        combine(
+                            chatRepository.observeConversations(sess.userId),
+                            userBlockRepository.observeBlockedUserIds(),
+                        ) { list, blocked ->
+                            list.filter { convo ->
+                                val other = convo.counterpartId(sess.userId)
+                                other == null || other !in blocked
+                            }
+                        }
+                            .onEach { list ->
+                                buildRows(sess.userId, list)
+                                _state.update { if (it.refreshing) it.copy(refreshing = false) else it }
+                            }
+                            .catch { error ->
+                                _state.update {
+                                    it.copy(loading = false, refreshing = false, errorMessage = error.toUserMessage())
+                                }
+                            }
+                            .launchIn(viewModelScope)
+                    }
+                    is AuthSession.SignedOut -> {
+                        currentUserId = null
+                        _state.update {
+                            it.copy(loading = false, refreshing = false, isSignedOut = true, rows = emptyList())
+                        }
+                    }
+                    is AuthSession.Unknown -> {
+                        // Boot still resolving — leave loading=true, no error.
                     }
                 }
-                .launchIn(viewModelScope)
+            }
         }
         outboxDao.observePendingCountByKind(OutboxKinds.CHAT_MESSAGE)
             .onEach { count -> _state.update { it.copy(queuedCount = count) } }

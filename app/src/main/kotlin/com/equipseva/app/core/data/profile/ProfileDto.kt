@@ -29,6 +29,15 @@ data class ProfileDto(
     // can sort by geography. Nullable for legacy rows pre-v0.2.0.
     val state: String? = null,
     val district: String? = null,
+    // Round 449 (GST invoice) → round 453 client wiring. Optional B2B
+    // fields hospitals fill in when they want a GSTIN on their invoice
+    // and an explicit billing address (otherwise the invoice falls back
+    // to "GSTIN not provided (unregistered buyer)" and uses the bare
+    // profile name as billing address).
+    val gstin: String? = null,
+    @SerialName("business_address") val businessAddress: String? = null,
+    val city: String? = null,
+    val pincode: String? = null,
     val organizations: OrganizationSummaryDto? = null,
 )
 
