@@ -624,12 +624,16 @@ private fun HomeTopBar(onNotifications: () -> Unit, hasUnread: Boolean) {
             color = SevaInk900,
             modifier = Modifier.weight(1f),
         )
+        // Round 461: bell wrapper is 48dp (Material/WCAG touch min),
+        // icon stays visually 20dp. contentDescription flips to
+        // include unread state so TalkBack announces "Open
+        // notifications, unread" instead of the bare label.
         Box(
             modifier = Modifier
-                .size(36.dp)
+                .size(48.dp)
                 .clip(CircleShape)
                 .clickable(
-                    onClickLabel = "Open notifications",
+                    onClickLabel = if (hasUnread) "Open notifications, unread" else "Open notifications",
                     role = androidx.compose.ui.semantics.Role.Button,
                     onClick = onNotifications,
                 ),
@@ -637,7 +641,7 @@ private fun HomeTopBar(onNotifications: () -> Unit, hasUnread: Boolean) {
         ) {
             Icon(
                 imageVector = Icons.Filled.Notifications,
-                contentDescription = "Notifications",
+                contentDescription = null, // covered by clickable label
                 tint = SevaInk700,
                 modifier = Modifier.size(20.dp),
             )

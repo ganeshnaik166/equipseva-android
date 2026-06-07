@@ -2,7 +2,7 @@ package com.equipseva.app.designsystem.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,10 +52,16 @@ fun PaymentMethodTile(
                 color = borderColor,
                 shape = MaterialTheme.shapes.medium,
             )
-            .clickable(
+            // Round 461: selectable + Role.RadioButton so TalkBack
+            // announces "Radio button, selected/not selected" instead
+            // of "Button". The visible custom radio dot stays
+            // unchanged; only the semantics change.
+            .selectable(
+                selected = selected,
+                onClick = onSelect,
+                role = androidx.compose.ui.semantics.Role.RadioButton,
                 interactionSource = source,
                 indication = null,
-                onClick = onSelect,
             )
             .tapScale(source)
             .padding(Spacing.md),

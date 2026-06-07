@@ -2,7 +2,7 @@ package com.equipseva.app.designsystem.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,10 +45,14 @@ fun DeliverySlotTile(
                 color = if (selected) BrandGreen else Surface200,
                 shape = shape,
             )
-            .clickable(
+            // Round 461: selectable + Role.RadioButton — TalkBack now
+            // announces slot selection state instead of "Button".
+            .selectable(
+                selected = selected,
+                onClick = onSelect,
+                role = androidx.compose.ui.semantics.Role.RadioButton,
                 interactionSource = source,
                 indication = null,
-                onClick = onSelect,
             )
             .tapScale(source)
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm),

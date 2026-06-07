@@ -16,6 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.equipseva.app.designsystem.theme.BrandGreen
@@ -50,11 +53,21 @@ fun StatusBanner(
         StatusBannerTone.Brand -> BrandGreen50 to BrandGreen
     }
     Row(
+        // Round 461: liveRegion announces newly-appearing banners.
+        // Danger/Warn use Assertive (interrupt other reads) — these
+        // are error states. Info/Success/Brand stay Polite — they're
+        // confirmations that can wait their turn.
         modifier = modifier
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.medium)
             .background(bg)
-            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+            .semantics {
+                liveRegion = when (tone) {
+                    StatusBannerTone.Danger, StatusBannerTone.Warn -> LiveRegionMode.Assertive
+                    else -> LiveRegionMode.Polite
+                }
+            },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
