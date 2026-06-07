@@ -335,6 +335,27 @@ async function processOne(
         duplicate_transfer: true,
       };
     }
+    // Round 466: distinguish Cashfree 5xx (their infra outage) from
+    // Cashfree 4xx-style ERROR (engineer's VPA/bank rejected). 5xx
+    // is retryable — flip back to queued + bump attempts so the next
+    // tick re-dispatches. 4xx stays terminal (engineer must fix
+    // their payout method). Before this fix, a 30-second Cashfree
+    // blip permanently killed every in-flight payout.
+    const is5xx = resp.status >= 500 && resp.status < 600;
+    if (is5xx) {
+      console.warn(
+        "process-engineer-payouts: Cashfree 5xx — requeuing for retry",
+        row.payout_id,
+        resp.status,
+      );
+      await admin.rpc("record_engineer_payout_dispatch", {
+        p_payout_id: row.payout_id,
+        p_status: "queued",
+        p_failure_reason: `Cashfree 5xx ${resp.status}: ${errMsg}`.slice(0, 240),
+        p_razorpay_contact_id: beneId,
+      });
+      return { payout_id: row.payout_id, outcome: "failed", reason: `5xx_retry: ${errMsg}` };
+    }
     await admin.rpc("record_engineer_payout_dispatch", {
       p_payout_id: row.payout_id,
       p_status: "failed",
