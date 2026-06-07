@@ -43,6 +43,7 @@ jobs:
     timeout-minutes: 4
     steps:
       - name: POST process-engineer-payouts
+        id: tick
         env:
           CRON_TICK_SECRET: ${{ secrets.CRON_TICK_SECRET }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
@@ -65,3 +66,47 @@ jobs:
                -H "X-Cron-Secret: ${CRON_TICK_SECRET}" \
                -H "Content-Type: application/json" \
                -d '{}'
+
+      # Round 466 — open / update a single sticky GitHub Issue when the
+      # payout worker fails. Memory: gateway 401 silently killed cron
+      # for weeks before founder noticed. This step is the canary.
+      # Only fires on cron-driven failures (manual workflow_dispatch
+      # runs are excluded so a deliberate test doesn't spam issues).
+      - name: Alert on cron failure
+        if: failure() && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = 'Engineer payouts worker is FAILING';
+            const body = [
+              `Latest scheduled run failed: ${context.runId}`,
+              `Run URL: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              `Time: ${new Date().toISOString()}`,
+              '',
+              'This is auto-posted by .github/workflows/engineer-payouts-worker.yml on a cron-driven failure.',
+              'Likely causes: rotated CRON_TICK_SECRET or SUPABASE_ANON_KEY, function unpublished, Cashfree outage propagating as 5xx the edge fn now retries (so it should self-heal).',
+              'Close this issue manually after fixing — next failure will re-open.',
+            ].join('\n');
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'payouts-cron-down',
+              per_page: 5,
+            });
+            if (issues.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['payouts-cron-down', 'bug', 'priority-critical'],
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues[0].number,
+                body: `Another failure at ${new Date().toISOString()} — run ${context.runId}`,
+              });
+            }
