@@ -236,10 +236,15 @@ serve(async (req) => {
   const auth = "Basic " + btoa(`${exotelKey}:${exotelToken}`);
   let exotelResp: Response;
   try {
-    // Cap Exotel wait at 10s — bridge connect typically lands in
-    // ~500ms but a hung upstream would otherwise tie up the function
-    // for the full 300s execution budget while the hospital stares
-    // at the connecting dialog.
+    // Round 462: combine the client-disconnect signal with the 10s
+    // timeout so a hospital that backgrounds the app mid-connect
+    // aborts the Exotel bridge before it dials (we don't bill for
+    // dial-but-immediate-hangup, but we do bill once Exotel accepts
+    // the API call). AbortSignal.any was deno-std-stable as of 2024.
+    const callSignal = AbortSignal.any([
+      req.signal,
+      AbortSignal.timeout(10_000),
+    ]);
     exotelResp = await fetch(exotelUrl, {
       method: "POST",
       headers: {
@@ -247,7 +252,7 @@ serve(async (req) => {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: form.toString(),
-      signal: AbortSignal.timeout(10_000),
+      signal: callSignal,
     });
   } catch (e) {
     // Don't surface raw network/Exotel error text to the client — it can echo

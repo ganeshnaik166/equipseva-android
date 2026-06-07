@@ -398,24 +398,33 @@ class ChatRepository @Inject constructor(
     /**
      * Fire-and-forget presence broadcast announcing the caller is typing. Debouncing is
      * the caller's responsibility — this is a pure send on the typing presence channel.
+     *
+     * Round 462 fix: previous implementation opened a fresh channel per call AND removed
+     * it on completion. That clobbered any concurrent observeTyping subscription on the
+     * same topic name (the realtime server-side bookkeeping flapped) and also leaked
+     * channel-creation cost on every keystroke. Now we cache one broadcast channel per
+     * conversation keyed on conversationId; subscribe once, broadcast many times. The
+     * cache lives for the SupabaseClient lifetime; sign-out tears down the realtime
+     * websocket (see SignOutCleanup) which cleans up any cached channels with it.
      */
+    private val typingChannels = mutableMapOf<String, io.github.jan.supabase.realtime.RealtimeChannel>()
+    private val typingChannelsLock = Any()
+
     suspend fun broadcastTyping(conversationId: String, selfUserId: String) {
-        // Caller is expected to throttle — we intentionally don't debounce here so the
-        // repo stays stateless per call. Errors are swallowed: a missed typing frame is
-        // not worth surfacing to the user. We also tear the channel back down once the
-        // broadcast lands; otherwise every keystroke would leak a Realtime channel
-        // until the websocket reconnect cleans them up.
         runCatching {
-            val channel = client.channel("chat:typing:$conversationId")
-            try {
-                channel.subscribe()
-                channel.broadcast(
-                    event = TYPING_EVENT,
-                    message = TypingPayload(userId = selfUserId, t = System.currentTimeMillis()),
-                )
-            } finally {
-                runCatching { client.realtime.removeChannel(channel) }
+            val channel = synchronized(typingChannelsLock) {
+                typingChannels.getOrPut(conversationId) {
+                    client.channel("chat:typing:$conversationId")
+                }
             }
+            // subscribe() is idempotent on supabase-kt — calling it twice on the same
+            // RealtimeChannel reuses the existing subscription. Safe to call here so a
+            // first-keystroke broadcast still works even if observeTyping is closed.
+            channel.subscribe()
+            channel.broadcast(
+                event = TYPING_EVENT,
+                message = TypingPayload(userId = selfUserId, t = System.currentTimeMillis()),
+            )
         }
     }
 

@@ -87,15 +87,24 @@ class ConversationsViewModel @Inject constructor(
         // stale notification), surface isSignedOut so the screen shows a
         // sign-in prompt instead of spinning indefinitely.
         viewModelScope.launch {
+            // Round 462: track + cancel the previous observe job so a
+            // user-switch on the same device tears down the prior
+            // user's subscription. Without this, signing out user A
+            // and in as user B left A's combine flow attached to
+            // viewModelScope — it kept emitting (against B's blocked
+            // user set + with A's userId in counterpartId() math) until
+            // the VM itself was cleared.
+            var observeJob: kotlinx.coroutines.Job? = null
             authRepository.sessionState.collect { sess ->
                 when (sess) {
                     is AuthSession.SignedIn -> {
                         if (currentUserId == sess.userId) return@collect
+                        observeJob?.cancel()
                         currentUserId = sess.userId
                         _state.update {
                             it.copy(loading = true, isSignedOut = false, errorMessage = null)
                         }
-                        combine(
+                        observeJob = combine(
                             chatRepository.observeConversations(sess.userId),
                             userBlockRepository.observeBlockedUserIds(),
                         ) { list, blocked ->
@@ -116,6 +125,8 @@ class ConversationsViewModel @Inject constructor(
                             .launchIn(viewModelScope)
                     }
                     is AuthSession.SignedOut -> {
+                        observeJob?.cancel()
+                        observeJob = null
                         currentUserId = null
                         _state.update {
                             it.copy(loading = false, refreshing = false, isSignedOut = true, rows = emptyList())

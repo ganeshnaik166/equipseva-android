@@ -206,8 +206,28 @@ serve(async (req) => {
     });
   }
 
+  // Round 462: respect caller-disconnect + cap the total in-flight
+  // time. Picked rows that don't get processed within the budget stay
+  // at 'processing' until the round 445 reaper rescues them on the
+  // next hourly tick. Without this, a 100-row pick on a degraded
+  // Cashfree connection could hold the edge fn open for many minutes
+  // past client disconnect, burning Edge minutes + blocking the next
+  // 5-min cron tick which uses `concurrency: cancel-in-progress: false`.
+  const startedAt = Date.now();
+  const TOTAL_BUDGET_MS = 4 * 60 * 1000; // 4 min, below Supabase Edge 5-min default
   const results: DispatchResult[] = [];
   for (const row of picked) {
+    if (req.signal.aborted) {
+      console.warn("process-engineer-payouts: client disconnected mid-batch");
+      break;
+    }
+    if (Date.now() - startedAt > TOTAL_BUDGET_MS) {
+      console.warn("process-engineer-payouts: total time budget exceeded mid-batch", {
+        processed: results.length,
+        remaining: picked.length - results.length,
+      });
+      break;
+    }
     try {
       results.push(await processOne(admin, row, baseUrl, token));
     } catch (err) {
