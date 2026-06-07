@@ -151,7 +151,7 @@ CREATE POLICY catalog_images_insert
     AND EXISTS (
       SELECT 1 FROM public.profiles
        WHERE id = auth.uid()
-         AND role IN ('supplier', 'parts_seller')
+         AND role = 'supplier'
     )
   );
 
@@ -167,7 +167,7 @@ CREATE POLICY catalog_images_update
     AND EXISTS (
       SELECT 1 FROM public.profiles
        WHERE id = auth.uid()
-         AND role IN ('supplier', 'parts_seller')
+         AND role = 'supplier'
     )
   )
   WITH CHECK (
@@ -177,7 +177,7 @@ CREATE POLICY catalog_images_update
     AND EXISTS (
       SELECT 1 FROM public.profiles
        WHERE id = auth.uid()
-         AND role IN ('supplier', 'parts_seller')
+         AND role = 'supplier'
     )
   );
 
