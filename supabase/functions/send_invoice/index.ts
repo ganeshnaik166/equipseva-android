@@ -79,10 +79,13 @@ function renderHtml(args: {
   buyerEmail: string;
   sellerName: string;
 }) {
+  // Round 459 fix: explicit IST timezone — Deno default is UTC,
+  // which renders an order placed at 02:00 IST as the prior day.
   const dateStr = new Date(args.order.created_at).toLocaleDateString("en-IN", {
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: "Asia/Kolkata",
   });
   const addrLine = [
     args.order.shipping_address,

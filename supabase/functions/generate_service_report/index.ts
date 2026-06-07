@@ -40,12 +40,16 @@ const formatRupee = (n: unknown) =>
 const formatDate = (iso: string | null | undefined) => {
   if (!iso) return "—";
   try {
+    // Round 459 fix: explicit IST timezone. Without it, Deno (Supabase
+    // Edge = UTC) renders the wall-clock UTC time with en-IN formatting,
+    // showing a job completed at 02:00 IST as "20:30" the previous day.
     return new Date(iso).toLocaleString("en-IN", {
       year: "numeric",
       month: "long",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: "Asia/Kolkata",
     });
   } catch {
     return iso ?? "—";
