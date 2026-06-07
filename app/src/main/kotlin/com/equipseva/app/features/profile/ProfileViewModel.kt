@@ -12,22 +12,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
-import io.github.jan.supabase.realtime.realtime
 import com.equipseva.app.core.auth.InvalidCurrentPasswordException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.firstOrNull
 import com.equipseva.app.core.data.account.SupabaseAccountDeletionRepository
 import com.equipseva.app.core.data.account.SupabaseDataExportRepository
-import com.equipseva.app.core.data.dao.OutboxDao
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.Profile
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
-import com.equipseva.app.core.push.DeviceTokenRegistrar
-import com.equipseva.app.core.sync.OutboxScheduler
-import com.equipseva.app.core.sync.handlers.PhotoUploadStash
 import com.equipseva.app.core.util.IMAGE_MIME_TYPES
 import com.equipseva.app.core.util.MIME_JPEG
 import com.equipseva.app.features.auth.UserRole
@@ -51,13 +46,12 @@ class ProfileViewModel @Inject constructor(
     private val userPrefs: UserPrefs,
     private val accountDeletionRepository: SupabaseAccountDeletionRepository,
     private val dataExportRepository: SupabaseDataExportRepository,
-    private val deviceTokenRegistrar: DeviceTokenRegistrar,
-    private val outboxDao: OutboxDao,
-    private val outboxScheduler: OutboxScheduler,
-    private val photoUploadStash: PhotoUploadStash,
     private val storageRepository: com.equipseva.app.core.storage.StorageRepository,
-    private val userBlockRepository: com.equipseva.app.core.data.moderation.UserBlockRepository,
-    private val supabaseClient: io.github.jan.supabase.SupabaseClient,
+    // Round 460: route account-delete + sign-out cleanup through the
+    // same SignOutCleanup the zombie-session path uses so
+    // v2OnboardingComplete, pending-payment DataStores, and any future
+    // device-state additions stay in lockstep across all three callers.
+    private val signOutCleanup: com.equipseva.app.core.auth.SignOutCleanup,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -556,24 +550,13 @@ class ProfileViewModel @Inject constructor(
                     }
                     _effects.emit(Effect.ShowMessage("Account deleted. Signing you out…"))
 
-                    // Best-effort device cleanup. Each step is wrapped so a
-                    // single failure (e.g. token revoke after auth.users was
-                    // deleted) doesn't block the sign-out below.
-                    runCatching { deviceTokenRegistrar.revoke() }
-                    runCatching { outboxDao.clearAll() }
-                    runCatching { outboxScheduler.cancelAll() }
-                    runCatching { photoUploadStash.clearAll() }
-                    runCatching { userPrefs.setLastScreen(null) }
-                    runCatching { userPrefs.clearActiveRole() }
-                    runCatching { userPrefs.setMutedPushCategories(emptySet()) }
-                    runCatching { userPrefs.setQuietHoursEnabled(false) }
-                    runCatching { userBlockRepository.clearCache() }
-                    runCatching {
-                        val rt = supabaseClient.realtime
-                        rt.subscriptions.values.toList().forEach { ch ->
-                            rt.removeChannel(ch)
-                        }
-                    }
+                    // Round 460: route through SignOutCleanup so this
+                    // path stays aligned with the zombie-session path.
+                    // Previously inlined and missed v2OnboardingComplete
+                    // + pending-payment stores, so the next user on the
+                    // same device skipped mandatory onboarding and saw
+                    // ghost pending-payment banners.
+                    runCatching { signOutCleanup.wipeLocalUserState() }
 
                     // Sign out wipes the local session even if the network
                     // call fails — the SDK clears the cached token unconditionally.
@@ -610,45 +593,11 @@ class ProfileViewModel @Inject constructor(
         if (_state.value.signingOut) return
         _state.update { it.copy(signingOut = true, signOutConfirmOpen = false) }
         viewModelScope.launch {
-            // Wipe device-resident user state BEFORE the auth call so the
-            // network-side token revoke still has a valid session, and so
-            // the next user signing in on this device can't see the
-            // previous user's queued outbox / photo stash. Each step is
-            // best-effort — sign-out should never block on a flaky DELETE.
-            runCatching { deviceTokenRegistrar.revoke() }
-            runCatching { outboxDao.clearAll() }
-            runCatching { outboxScheduler.cancelAll() }
-            runCatching { photoUploadStash.clearAll() }
-            runCatching { userPrefs.setLastScreen(null) }
-            // Wipe activeRole too — otherwise the next user signing in on
-            // the same device sees the previous user's Hub (hospital tabs
-            // for an engineer account, etc.). profile.role is the truth on
-            // first launch; activeRole gets re-set on Hub pick / first
-            // dispatch by SessionViewModel.
-            runCatching { userPrefs.clearActiveRole() }
-            // Notification prefs are device-resident user state. Without
-            // a reset the next account inherits the previous user's mute
-            // categories + quiet-hours window, silently swallowing pushes
-            // the new user explicitly enabled.
-            runCatching { userPrefs.setMutedPushCategories(emptySet()) }
-            runCatching { userPrefs.setQuietHoursEnabled(false) }
-            // @Singleton UserBlockRepository holds the previous user's
-            // blocked-id set in memory; clear so the next sign-in
-            // doesn't see stale blocks until the first refresh().
-            runCatching { userBlockRepository.clearCache() }
-            // Realtime channels live on the singleton supabase client.
-            // Disconnect drops the websocket so any chat / notification /
-            // cost-revision subscription tied to the previous user is
-            // torn down — without this the next user's first subscribe
-            // could collide with the previous one's awaitClose cleanup
-            // mid-flight (RLS still gates emissions, but processing
-            // phantom events wastes battery + can briefly leak counts).
-            runCatching {
-                val rt = supabaseClient.realtime
-                rt.subscriptions.values.toList().forEach { ch ->
-                    rt.removeChannel(ch)
-                }
-            }
+            // Round 460: route through SignOutCleanup (same path the
+            // zombie-session detector uses) so v2OnboardingComplete +
+            // pending-payment DataStores get reset uniformly. Inlined
+            // cleanup had silently diverged across the two callers.
+            runCatching { signOutCleanup.wipeLocalUserState() }
             authRepository.signOut()
                 .onFailure { error ->
                     _state.update { it.copy(signingOut = false) }
