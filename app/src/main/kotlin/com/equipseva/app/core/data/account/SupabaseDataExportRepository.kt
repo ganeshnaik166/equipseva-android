@@ -6,7 +6,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.Instant
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
@@ -23,9 +22,14 @@ class SupabaseDataExportRepository @Inject constructor(
         }
         withContext(Dispatchers.IO) {
             if (!targetDir.exists()) targetDir.mkdirs()
+            // Round 459 fix: stamp the export filename in IST so the
+            // user opens "equipseva-export-20260608-020000.json" and
+            // recognises 2026-06-08 02:00 IST instead of seeing the
+            // UTC offset (20:30 prior day) on a file they just
+            // generated.
             val stamp = DateTimeFormatter
                 .ofPattern("yyyyMMdd-HHmmss", Locale.US)
-                .withZone(ZoneOffset.UTC)
+                .withZone(java.time.ZoneId.of("Asia/Kolkata"))
                 .format(Instant.now())
             val file = File(targetDir, "equipseva-export-$stamp.json")
             file.writeText(json)

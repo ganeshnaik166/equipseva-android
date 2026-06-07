@@ -215,7 +215,7 @@ function renderHtml(p: InvoicePayload, s: SupplierEnv): string {
       }
       ${
         p.completed_at
-          ? `<p class="muted"><strong>Completed:</strong> ${esc(new Date(p.completed_at).toLocaleString("en-IN"))}</p>`
+          ? `<p class="muted"><strong>Completed:</strong> ${esc(new Date(p.completed_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }))}</p>`
           : ""
       }
     </div>
