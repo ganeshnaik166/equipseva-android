@@ -14,6 +14,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.equipseva.app.designsystem.theme.Spacing
@@ -27,10 +30,13 @@ fun OfflineBanner(
     message: String = "You're offline — changes will sync when you reconnect.",
 ) {
     Row(
+        // Round 461: liveRegion=Polite so TalkBack announces the
+        // banner when it appears on a connectivity drop.
         modifier = modifier
             .fillMaxWidth()
             .background(WarningBg)
-            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+            .semantics { liveRegion = LiveRegionMode.Polite },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {

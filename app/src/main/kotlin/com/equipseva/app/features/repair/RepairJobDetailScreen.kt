@@ -2293,21 +2293,35 @@ private fun CheckinSheet(
                                     .clip(RoundedCornerShape(10.dp)),
                                 contentScale = ContentScale.Crop,
                             )
-                            IconButton(
-                                onClick = { picked = picked - uri },
-                                enabled = !updating,
+                            // Round 461: 48dp hit area (Material/WCAG
+                            // touch min); visible chip stays 22dp via
+                            // the inner Box. Was a fat-finger nightmare.
+                            Box(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    .size(22.dp)
-                                    .padding(2.dp)
-                                    .background(Color.Black.copy(alpha = 0.55f), CircleShape),
+                                    .size(48.dp)
+                                    .clickable(
+                                        enabled = !updating,
+                                        onClickLabel = "Remove photo",
+                                        role = androidx.compose.ui.semantics.Role.Button,
+                                        onClick = { picked = picked - uri },
+                                    ),
+                                contentAlignment = Alignment.TopEnd,
                             ) {
-                                Icon(
-                                    Icons.Filled.Close,
-                                    contentDescription = "Remove",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(12.dp),
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(22.dp)
+                                        .padding(2.dp)
+                                        .background(Color.Black.copy(alpha = 0.55f), CircleShape),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Close,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(12.dp),
+                                    )
+                                }
                             }
                         } else if (i == picked.size) {
                             Icon(
@@ -2454,21 +2468,34 @@ private fun CompletionProofSheet(
                                     .clip(RoundedCornerShape(10.dp)),
                                 contentScale = ContentScale.Crop,
                             )
-                            IconButton(
-                                onClick = { picked = picked - uri },
-                                enabled = !submitting,
+                            // Round 461: 48dp touch min (same fix as
+                            // the update-status grid above).
+                            Box(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    .size(22.dp)
-                                    .padding(2.dp)
-                                    .background(Color.Black.copy(alpha = 0.55f), CircleShape),
+                                    .size(48.dp)
+                                    .clickable(
+                                        enabled = !submitting,
+                                        onClickLabel = "Remove photo",
+                                        role = androidx.compose.ui.semantics.Role.Button,
+                                        onClick = { picked = picked - uri },
+                                    ),
+                                contentAlignment = Alignment.TopEnd,
                             ) {
-                                Icon(
-                                    Icons.Filled.Close,
-                                    contentDescription = "Remove",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(12.dp),
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(22.dp)
+                                        .padding(2.dp)
+                                        .background(Color.Black.copy(alpha = 0.55f), CircleShape),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Close,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(12.dp),
+                                    )
+                                }
                             }
                         } else if (i == picked.size) {
                             Icon(

@@ -151,16 +151,21 @@ fun ProfileScreen(
             EsTopBar(
                 title = "Profile",
                 right = {
+                    // Round 461: 48dp touch min (icon stays 20dp).
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
-                            .clickable(onClick = onOpenNotifications),
+                            .clickable(
+                                onClickLabel = "Open notifications",
+                                role = androidx.compose.ui.semantics.Role.Button,
+                                onClick = onOpenNotifications,
+                            ),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Notifications,
-                            contentDescription = "Notifications",
+                            contentDescription = null,
                             tint = Ink700,
                             modifier = Modifier.size(20.dp),
                         )

@@ -10,6 +10,7 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -601,7 +602,13 @@ private fun SeverityTile(
         modifier = modifier
             .background(bg, RoundedCornerShape(12.dp))
             .border(1.5.dp, borderColor, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            // Round 461: selectable + Role.RadioButton; was plain
+            // clickable so TalkBack read "Button" with no selected state.
+            .selectable(
+                selected = selected,
+                onClick = onClick,
+                role = androidx.compose.ui.semantics.Role.RadioButton,
+            )
             .padding(14.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -786,7 +793,12 @@ private fun SlotTile(
         modifier = modifier
             .background(bg, RoundedCornerShape(12.dp))
             .border(1.5.dp, borderColor, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            // Round 461: selectable + Role.RadioButton for slot picker.
+            .selectable(
+                selected = selected,
+                onClick = onClick,
+                role = androidx.compose.ui.semantics.Role.RadioButton,
+            )
             .padding(12.dp),
         contentAlignment = Alignment.Center,
     ) {

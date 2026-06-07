@@ -38,6 +38,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -357,10 +359,16 @@ private fun UserRow(
                         color = SevaInk900,
                     )
                     Box(
+                        // Round 461: contentDescription so TalkBack +
+                        // color-blind users get the same signal as the
+                        // green/red dot.
                         modifier = Modifier
                             .size(8.dp)
                             .clip(CircleShape)
-                            .background(if (row.isActive) SevaGreen700 else SevaDanger500),
+                            .background(if (row.isActive) SevaGreen700 else SevaDanger500)
+                            .semantics {
+                                contentDescription = if (row.isActive) "Active account" else "Inactive account"
+                            },
                     )
                 }
                 Text(

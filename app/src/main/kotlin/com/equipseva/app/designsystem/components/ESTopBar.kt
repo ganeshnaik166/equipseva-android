@@ -125,6 +125,13 @@ fun EsTopBar(
             if (title != null) {
                 Text(
                     text = title,
+                    // Round 461: heading semantics so TalkBack rotor can
+                    // jump screen-to-screen by header. EsTopBar is used
+                    // by ~57 screens; without this every screen title
+                    // was reading as plain text. ESBackTopBar already
+                    // marked its title; this brings the no-back variant
+                    // into line.
+                    modifier = Modifier.semantics { heading() },
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.16).sp,

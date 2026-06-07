@@ -59,12 +59,17 @@ private fun visual(kind: EsBtnKind, disabled: Boolean): BtnVisual {
 /**
  * Pin the per-size button height. The values are exposed so the
  * 44dp Md default (matches Material 3's accessibility-minimum touch
- * target) and the 36dp Sm / 52dp Lg variants stay frozen — a
- * regression to <44dp on Md would silently degrade tap-target
+ * target) and the 44dp Sm / 52dp Lg variants stay frozen — a
+ * regression to <44dp on Md/Sm would silently degrade tap-target
  * accessibility across every primary CTA.
+ *
+ * Round 461: bumped Sm from 36dp → 44dp. 36dp was 12dp under WCAG /
+ * Material's 48dp recommendation; the only reason Sm was kept smaller
+ * was visual density, but the buttons are real interactive CTAs (not
+ * visual hints) so the smaller hit area was a real a11y defect.
  */
 internal fun heightFor(size: EsBtnSize): Dp = when (size) {
-    EsBtnSize.Sm -> 36.dp
+    EsBtnSize.Sm -> 44.dp
     EsBtnSize.Md -> 44.dp
     EsBtnSize.Lg -> 52.dp
 }
