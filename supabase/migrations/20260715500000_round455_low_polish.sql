@@ -70,17 +70,15 @@ CREATE POLICY chat_attachments_owner_select
       -- Owner of the folder (sender).
       (storage.foldername(name))[1] = auth.uid()::text
       -- OR a participant in a conversation that has a message
-      -- referencing this attachment path (chat_messages.message stores
-      -- the path inline by convention until a dedicated column ships).
+      -- referencing this attachment path. chat_conversations stores
+      -- participants as a uuid[] (participant_user_ids); use array
+      -- membership instead of two scalar columns.
       OR EXISTS (
         SELECT 1
           FROM public.chat_messages m
           JOIN public.chat_conversations c ON c.id = m.conversation_id
          WHERE m.message = storage.objects.name
-           AND (
-             c.party_a_user_id = auth.uid()
-             OR c.party_b_user_id = auth.uid()
-           )
+           AND auth.uid() = ANY(c.participant_user_ids)
       )
     )
   );
