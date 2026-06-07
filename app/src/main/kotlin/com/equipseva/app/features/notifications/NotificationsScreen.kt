@@ -408,8 +408,22 @@ internal fun notificationIconStyle(
     "amc_visit_assigned",
     "amc_visit_engineer_assigned",
     "amc_visit_engineer_changed",
-    "amc_visit_pending_assignment" -> NotificationIconStyle(
+    "amc_visit_pending_assignment",
+    // Round 455: round-446's reassigned-away push for the displaced
+    // engineer + round 454's reactivation push. Without the case here
+    // the inbox shows the generic fallback icon and no deep-link.
+    "amc_visit_unassigned",
+    "engineer_suspension_cleared" -> NotificationIconStyle(
         NotificationIconShape.Build, NotificationIconTone.InfoBlue,
+    )
+    // Round 455: round-433 payout-status pushes weren't registered
+    // either — they fell through to the generic default. Categorise
+    // them under the money-positive / money-warning tone.
+    "engineer_payout_processed" -> NotificationIconStyle(
+        NotificationIconShape.Verified, NotificationIconTone.GreenPositive,
+    )
+    "engineer_payout_failed" -> NotificationIconStyle(
+        NotificationIconShape.Block, NotificationIconTone.DangerRed,
     )
     "amc_renewal_due" -> NotificationIconStyle(
         NotificationIconShape.Build,

@@ -32,6 +32,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -171,8 +172,15 @@ fun FounderKycReviewScreen(
     val context = LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
+    // Round 455 fix: gate onBack with a Saveable navigated flag so a
+    // rotation between done=true and the back-navigation completing
+    // doesn't pop the stack twice.
+    var navigated by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(state.done) {
-        if (state.done) onBack()
+        if (state.done && !navigated) {
+            navigated = true
+            onBack()
+        }
     }
 
     val openDoc: (FounderRepository.PendingEngineer.DocRef) -> Unit = { doc ->

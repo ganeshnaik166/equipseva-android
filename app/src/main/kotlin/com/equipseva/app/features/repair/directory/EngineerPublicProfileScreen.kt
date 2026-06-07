@@ -343,10 +343,20 @@ class EngineerPublicProfileViewModel @Inject constructor(
             virtualCallRepository.requestCallSession(repairJobId)
                 .onSuccess { result ->
                     when (result) {
-                        is com.equipseva.app.core.data.calls.CallSessionResult.ClickToCall ->
+                        is com.equipseva.app.core.data.calls.CallSessionResult.ClickToCall -> {
                             _state.update {
                                 it.copy(callBusy = false, callConnectingMessage = result.message)
                             }
+                            // Round 455 fix: schedule auto-dismiss inside
+                            // viewModelScope so a rotation while the dialog
+                            // is up doesn't restart the 4s countdown
+                            // (previously LaunchedEffect(msg) re-launched
+                            // on every recomposition cycle).
+                            viewModelScope.launch {
+                                kotlinx.coroutines.delay(4000)
+                                _state.update { it.copy(callConnectingMessage = null) }
+                            }
+                        }
                         com.equipseva.app.core.data.calls.CallSessionResult.ProviderNotConfigured -> {
                             _state.update { it.copy(callBusy = false, callConnectingMessage = null) }
                             _effects.send(
@@ -535,14 +545,10 @@ fun EngineerPublicProfileScreen(
         }
     }
     state.callConnectingMessage?.let { msg ->
-        // Once the bridge POST returns 200 the user's phone is already
-        // ringing — hold the dialog ~4s so they can read the privacy
-        // copy, then auto-dismiss. Cancel button + onDismissRequest
-        // both call dismissCallConnecting() too.
-        LaunchedEffect(msg) {
-            delay(4000)
-            viewModel.dismissCallConnecting()
-        }
+        // Round 455 fix: auto-dismiss countdown moved into the VM at
+        // requestCall() time, so rotation doesn't restart the 4s timer.
+        // Cancel button + onDismissRequest still call
+        // dismissCallConnecting() to short-circuit the countdown early.
         CallConnectingDialog(
             message = msg,
             onCancel = { viewModel.dismissCallConnecting() },
