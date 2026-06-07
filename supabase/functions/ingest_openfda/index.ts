@@ -158,8 +158,24 @@ Deno.serve(async (req: Request) => {
   let upserted = 0;
   const brandCounts = new Map<string, { name: string; country?: string; count: number }>();
 
+  // Round 462: bound total time + honor client disconnect. Without
+  // these the function could loop until the Supabase Edge default
+  // 300s limit, burning compute on a request the operator has long
+  // since abandoned. 4 min budget leaves headroom for the post-loop
+  // brand-summary phase before the platform hard-kills the function.
+  const startedAt = Date.now();
+  const TOTAL_BUDGET_MS = 4 * 60 * 1000;
+
   while (pulled < maxRows) {
-    const resp = await fetch(OPENFDA_BASE + skip);
+    if (req.signal.aborted) {
+      console.warn("ingest_openfda: client disconnected at skip", skip);
+      break;
+    }
+    if (Date.now() - startedAt > TOTAL_BUDGET_MS) {
+      console.warn("ingest_openfda: total budget exceeded at skip", skip, "pulled", pulled);
+      break;
+    }
+    const resp = await fetch(OPENFDA_BASE + skip, { signal: req.signal });
     if (!resp.ok) {
       const text = await resp.text();
       return new Response(JSON.stringify({ error: 'openfda_failed', status: resp.status, body: text.slice(0, 400) }), {
