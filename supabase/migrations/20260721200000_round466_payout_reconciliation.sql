@@ -269,7 +269,7 @@ AS $$
   FROM public.engineer_payouts
   WHERE status = 'failed'
   GROUP BY 1
-  ORDER BY count_rows DESC;
+  ORDER BY 2 DESC;
 $$;
 
 REVOKE EXECUTE ON FUNCTION public.founder_payouts_dead_letter_summary() FROM PUBLIC, anon;
