@@ -2,24 +2,25 @@ package com.equipseva.app.designsystem.components
 
 import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Pins the per-size button height contract. The 44dp Md default is
- * the accessibility-minimum touch-target size (Material 3 + iOS HIG
- * agree on 44pt/44dp). A regression that shrunk Md below 44dp would
- * silently degrade tap accessibility on every primary CTA — keep it
- * frozen.
+ * Pins the per-size button height contract.
+ *
+ * Round 461: Sm was bumped from 36dp → 44dp to honor WCAG / Material 3
+ * touch-target minimum on every CTA, including the compact variant.
+ * After that change, Sm and Md collapse to the same 44dp floor —
+ * differentiation is via padding + font size, not height. Lg is the
+ * only variant taller than the floor.
  */
 class EsBtnHeightTest {
 
-    @Test fun `small variant is 36dp`() {
-        assertEquals(36.dp, heightFor(EsBtnSize.Sm))
+    @Test fun `small variant meets accessibility floor (44dp)`() {
+        assertEquals(44.dp, heightFor(EsBtnSize.Sm))
     }
 
     @Test fun `medium variant is 44dp (accessibility floor)`() {
-        // 44dp is the floor for an accessible touch target; pin so a
-        // future "compact" tweak doesn't slip past review.
         assertEquals(44.dp, heightFor(EsBtnSize.Md))
     }
 
@@ -27,15 +28,19 @@ class EsBtnHeightTest {
         assertEquals(52.dp, heightFor(EsBtnSize.Lg))
     }
 
-    @Test fun `every size produces a unique height (no duplicates)`() {
-        val heights = EsBtnSize.entries.map(::heightFor)
-        assertEquals(heights.size, heights.toSet().size)
+    @Test fun `every size meets the 44dp accessibility floor`() {
+        EsBtnSize.entries.forEach { size ->
+            assertTrue(
+                "$size below 44dp WCAG / Material touch-target floor",
+                heightFor(size).value >= 44f,
+            )
+        }
     }
 
-    @Test fun `sizes are strictly monotonically increasing`() {
-        // Sm < Md < Lg — pin so a future tweak that flips two doesn't
-        // silently confuse the visual hierarchy.
-        assertEquals(true, heightFor(EsBtnSize.Sm).value < heightFor(EsBtnSize.Md).value)
-        assertEquals(true, heightFor(EsBtnSize.Md).value < heightFor(EsBtnSize.Lg).value)
+    @Test fun `Lg is strictly taller than Md`() {
+        // After round 461, Sm == Md == 44dp (the a11y floor); only
+        // Lg is taller. Pin that single ordering invariant so a
+        // future tweak doesn't shrink Lg below Md.
+        assertTrue(heightFor(EsBtnSize.Lg).value > heightFor(EsBtnSize.Md).value)
     }
 }
