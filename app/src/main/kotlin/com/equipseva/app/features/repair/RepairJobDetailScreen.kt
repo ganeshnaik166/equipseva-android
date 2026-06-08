@@ -722,7 +722,7 @@ private fun InvoiceDownloadCard(
             text = if (loading) "Generating invoice…" else "Download GST invoice",
             onClick = onDownload,
             kind = EsBtnKind.Ghost,
-            loading = loading,
+            disabled = loading,
         )
     }
 }
