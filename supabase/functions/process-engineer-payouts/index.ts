@@ -316,22 +316,65 @@ async function processOne(
       /already.*in.*process/i.test(errMsg) ||
       /duplicate.*transfer/i.test(errMsg);
     if (looksDuplicate) {
+      // Round 468: when Cashfree's duplicate 409 omits referenceId in
+      // the error body (which it does inconsistently), fall back to
+      // GET /payout/v1/getTransferStatus/transferId/<id> to fetch the
+      // original transfer's referenceId. Without this fallback, the
+      // dispatch RPC would store razorpay_payout_id=NULL on the
+      // re-submission, so the eventual TRANSFER_SUCCESS webhook
+      // couldn't match — money moved, DB stayed stuck. Round 466
+      // preserved razorpay_payout_id on requeue but couldn't help if
+      // it was NULL to begin with.
+      let recoveredRefId = refId;
+      if (recoveredRefId == null) {
+        try {
+          const lookupResp = await fetch(
+            `${baseUrl}/payout/v1/getTransferStatus?transferId=${encodeURIComponent(transferId)}`,
+            {
+              method: "GET",
+              headers: { "Authorization": `Bearer ${token}` },
+              signal: AbortSignal.timeout(8_000),
+            },
+          );
+          const lookupBody = await lookupResp.json().catch(() => ({}));
+          const lookupData = (lookupBody as { data?: { transfer?: { referenceId?: string | number } } }).data ?? {};
+          const looked = lookupData.transfer?.referenceId;
+          if (looked != null) {
+            recoveredRefId = String(looked);
+            console.log(
+              "process-engineer-payouts: recovered referenceId via GET /getTransferStatus",
+              row.payout_id,
+              recoveredRefId,
+            );
+          } else {
+            console.warn(
+              "process-engineer-payouts: GET /getTransferStatus returned no referenceId either",
+              row.payout_id,
+              JSON.stringify(lookupBody).slice(0, 200),
+            );
+          }
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          console.warn("process-engineer-payouts: refId fallback threw", row.payout_id, msg);
+        }
+      }
       console.warn(
         "process-engineer-payouts: duplicate transferId — routing to processing",
         row.payout_id,
         errMsg,
+        `refId=${recoveredRefId ?? "null"}`,
       );
       await admin.rpc("record_engineer_payout_dispatch", {
         p_payout_id: row.payout_id,
         p_status: "processing",
-        p_razorpay_payout_id: refId,
+        p_razorpay_payout_id: recoveredRefId,
         p_razorpayx_status: "DUPLICATE_REQUEUE",
         p_razorpay_contact_id: beneId,
       });
       return {
         payout_id: row.payout_id,
         outcome: "processing",
-        cashfree_reference_id: refId ?? undefined,
+        cashfree_reference_id: recoveredRefId ?? undefined,
         duplicate_transfer: true,
       };
     }
@@ -383,7 +426,14 @@ async function cashfreeAddBeneficiary(
   token: string,
   row: PickedRow,
 ): Promise<string> {
-  const beneId = sanitiseId(row.engineer_user_id);
+  // Round 468: beneId is derived from the METHOD id, not the engineer_user_id.
+  // Old engineer-keyed derivation collided across multiple methods of the
+  // same engineer — Cashfree's beneId is permanently mapped to the FIRST
+  // registered VPA, so when an engineer rotated UPI/bank, all subsequent
+  // payouts continued going to the OLD destination. Method-keyed beneId
+  // gives each method its own Cashfree beneficiary entry.
+  if (!row.method_id) throw new Error("missing method_id (round 468 fix)");
+  const beneId = sanitiseId(row.method_id);
   const name = row.method_kind === "upi"
     ? (row.vpa ?? "engineer")
     : (row.bank_account_holder ?? "engineer");
