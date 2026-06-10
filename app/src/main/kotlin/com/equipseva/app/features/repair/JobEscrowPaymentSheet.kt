@@ -104,41 +104,43 @@ class JobEscrowPaymentViewModel @Inject constructor(
         // so [PendingEscrowPaymentsReconciler] can clear the marker on
         // next cold-start (or surface it as in-flight to the user) if
         // Android kills our process while Razorpay's checkout activity
-        // is foregrounded. Cleared in the `finally` regardless of
-        // outcome — Razorpay's three result branches each fall through.
+        // is foregrounded. Round 472: marker is now cleared ONLY on
+        // outcomes where we know no money is in flight (Cancelled /
+        // Failed / verify-success). On verify-failure we KEEP the
+        // marker so the reconciler can recover via server-side status
+        // — verify could have failed transiently while the Razorpay
+        // webhook is still en route and payment is captured.
         runCatching { pendingEscrowPaymentsStore.add(repairJobId) }
 
-        val result = try {
-            runCatching {
-                launcher.startPayment(
-                    activity = activity,
-                    amountPaise = order.amountPaise,
-                    currency = order.currency,
-                    name = "EquipSeva Escrow",
-                    description = "Hold ${engineerName}'s payment until job is complete",
-                    prefillEmail = email,
-                    prefillContact = null,
-                    razorpayOrderId = order.razorpayOrderId,
-                    keyId = order.keyId,
-                )
-            }.getOrElse {
-                _state.update { s -> s.copy(busy = false, error = it.toUserMessage()) }
-                return false
-            }
-        } finally {
-            // SDK returned cleanly — clear the recovery marker before
-            // verify so the home banner doesn't surface a stale
-            // "in-flight" pill. If verify itself crashes we re-add via
-            // reconciler on next cold-start.
-            runCatching { pendingEscrowPaymentsStore.remove(repairJobId) }
+        val result = runCatching {
+            launcher.startPayment(
+                activity = activity,
+                amountPaise = order.amountPaise,
+                currency = order.currency,
+                name = "EquipSeva Escrow",
+                description = "Hold ${engineerName}'s payment until job is complete",
+                prefillEmail = email,
+                prefillContact = null,
+                razorpayOrderId = order.razorpayOrderId,
+                keyId = order.keyId,
+            )
+        }.getOrElse {
+            _state.update { s -> s.copy(busy = false, error = it.toUserMessage()) }
+            return false
         }
 
         when (result) {
             is RazorpayCheckoutLauncher.RazorpayPaymentResult.Cancelled -> {
+                // User cancelled inside Razorpay — no money captured,
+                // safe to clear.
+                runCatching { pendingEscrowPaymentsStore.remove(repairJobId) }
                 _state.update { it.copy(busy = false, error = "Payment cancelled") }
                 return false
             }
             is RazorpayCheckoutLauncher.RazorpayPaymentResult.Failed -> {
+                // Razorpay reported failure — no money captured, safe
+                // to clear.
+                runCatching { pendingEscrowPaymentsStore.remove(repairJobId) }
                 _state.update { s ->
                     s.copy(
                         busy = false,
@@ -156,10 +158,16 @@ class JobEscrowPaymentViewModel @Inject constructor(
                 )
                 return verifyRes.fold(
                     onSuccess = {
+                        // Verify succeeded — server ledger reflects the
+                        // capture; safe to clear.
+                        runCatching { pendingEscrowPaymentsStore.remove(repairJobId) }
                         _state.update { it.copy(busy = false) }
                         true
                     },
                     onFailure = { e ->
+                        // Verify failed AFTER Razorpay reported Success
+                        // — payment likely captured server-side, leave
+                        // marker for reconciler to resolve.
                         _state.update { it.copy(busy = false, error = e.toUserMessage()) }
                         false
                     },

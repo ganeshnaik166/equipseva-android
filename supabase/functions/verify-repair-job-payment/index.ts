@@ -19,6 +19,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { razorpayServerVerify } from "../_shared/razorpay_server_verify.ts";
+import { recordVerifyEvent, VerifyOutcome } from "../_shared/payment_verify_telemetry.ts";
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -115,6 +116,35 @@ serve(async (req) => {
 
   const admin = createClient(supabaseUrl, serviceKey);
 
+  // Round 472 — telemetry helper. Fire-and-forget calls at every return
+  // path below the admin client creation so payment_verify_events has a
+  // queryable row per attempt + outcome. Stranded-payment risk lives in
+  // the post-server-verify branches; we log everything from here down.
+  const tel = (
+    outcome: VerifyOutcome,
+    extra: Partial<{
+      errorCode: string;
+      errorMessage: string;
+      signatureValid: boolean;
+      amountPaise: number;
+    }> = {},
+  ) => {
+    void recordVerifyEvent(admin, {
+      verifyFn: "verify-repair-job-payment",
+      orderKind: "repair_escrow",
+      outcome,
+      orderId: escrow_id,
+      razorpayOrderId: razorpay_order_id,
+      razorpayPaymentId: razorpay_payment_id,
+      signatureProvided: true,
+      signatureValid: extra.signatureValid ?? true,
+      amountPaise: extra.amountPaise ?? null,
+      errorCode: extra.errorCode ?? null,
+      errorMessage: extra.errorMessage ?? null,
+      userId,
+    });
+  };
+
   const { data: escrow, error: fetchErr } = await admin
     .from("repair_job_escrow")
     .select(
@@ -128,22 +158,29 @@ serve(async (req) => {
     // verdicts that map back to table internals. Same hardening pattern as
     // rounds 269-273 across the create-amc-payment / send_invoice / etc.
     console.error("verify-repair-job-payment: escrow fetch failed", fetchErr.message);
+    tel("server_error", { errorCode: "server_error", errorMessage: "escrow fetch failed" });
     return bad("server_error", "could not fetch escrow", 500);
   }
-  if (!escrow) return bad("escrow_not_found", "escrow row missing", 404);
+  if (!escrow) {
+    tel("order_not_found", { errorCode: "escrow_not_found" });
+    return bad("escrow_not_found", "escrow row missing", 404);
+  }
   if (escrow.hospital_user_id !== userId) {
+    tel("not_owner", { errorCode: "not_owner" });
     return bad("not_owner", "not the hospital on this escrow", 403);
   }
 
   // Replay-attack guard. Without this a valid signature on any other
   // pending escrow row by the same hospital would verify here.
   if (!escrow.razorpay_order_id) {
+    tel("invalid_signature", { errorCode: "invalid_signature", errorMessage: "not bound" });
     return bad(
       "invalid_signature",
       "escrow not bound to a razorpay order; call create-repair-job-payment-order first",
     );
   }
   if (escrow.razorpay_order_id !== razorpay_order_id) {
+    tel("invalid_signature", { errorCode: "invalid_signature", errorMessage: "order_id mismatch" });
     return bad("invalid_signature", "razorpay_order_id does not match the escrow binding");
   }
 
@@ -157,6 +194,7 @@ serve(async (req) => {
   const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID");
   if (!razorpayKeyId) {
     console.error("verify-repair-job-payment: RAZORPAY_KEY_ID env not set — cannot perform server-side verify");
+    tel("server_error", { errorCode: "server_error", errorMessage: "razorpay key id not configured" });
     return bad("server_error", "razorpay key id not configured", 500);
   }
   const expectedPaise = Math.round(Number(escrow.amount_rupees) * 100);
@@ -174,6 +212,11 @@ serve(async (req) => {
       serverVerify.code,
       serverVerify.message,
     );
+    tel("server_verify_failed", {
+      errorCode: "server_verify_failed",
+      errorMessage: serverVerify.code,
+      amountPaise: expectedPaise,
+    });
     return bad(
       "server_verify_failed",
       `payment did not match expected amount/order/status: ${serverVerify.code}`,
@@ -183,6 +226,7 @@ serve(async (req) => {
 
   // Idempotent: already paid for the same payment id.
   if (escrow.status === "held" && escrow.razorpay_payment_id === razorpay_payment_id) {
+    tel("idempotent_success", { amountPaise: expectedPaise });
     return json(200, {
       ok: true,
       escrow_id,
@@ -191,6 +235,7 @@ serve(async (req) => {
     });
   }
   if (escrow.status !== "pending") {
+    tel("escrow_not_pending", { errorCode: "escrow_not_pending", errorMessage: escrow.status, amountPaise: expectedPaise });
     return bad("escrow_not_pending", `escrow status is ${escrow.status}`);
   }
 
@@ -212,9 +257,11 @@ serve(async (req) => {
     .select("id");
   if (updErr) {
     console.error("verify-repair-job-payment: escrow update failed", updErr.message);
+    tel("server_error", { errorCode: "server_error", errorMessage: "update failed", amountPaise: expectedPaise });
     return bad("server_error", "could not update escrow", 500);
   }
   if (!updated || updated.length === 0) {
+    tel("status_race", { errorCode: "escrow_status_race", amountPaise: expectedPaise });
     return bad(
       "escrow_status_race",
       "escrow transitioned off pending before payment could be marked held; retry or check status",
@@ -232,6 +279,7 @@ serve(async (req) => {
     },
   });
 
+  tel("success", { amountPaise: expectedPaise });
   return json(200, {
     ok: true,
     escrow_id,
