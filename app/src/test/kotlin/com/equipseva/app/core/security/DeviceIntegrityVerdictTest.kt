@@ -59,9 +59,11 @@ class DeviceIntegrityVerdictTest {
             rooted = true,
             emulator = false,
             fridaDetected = true,
+            devOptionsEnabled = false,
+            usbDebuggingEnabled = false,
         )
         assertEquals(
-            "debugger=false rooted=true emulator=false frida=true",
+            "debugger=false rooted=true emulator=false frida=true devOptions=false usbDebug=false",
             v.toTag(),
         )
     }
@@ -73,7 +75,34 @@ class DeviceIntegrityVerdictTest {
         assertTrue("missing rooted", tag.contains("rooted="))
         assertTrue("missing emulator", tag.contains("emulator="))
         assertTrue("missing frida", tag.contains("frida="))
-        // Four signals + three separators → exactly three spaces.
-        assertEquals(3, tag.count { it == ' ' })
+        assertTrue("missing devOptions", tag.contains("devOptions="))
+        assertTrue("missing usbDebug", tag.contains("usbDebug="))
+        // Round 470: six signals + five separators → exactly five spaces.
+        assertEquals(5, tag.count { it == ' ' })
+    }
+
+    @Test fun `round 470 — devOptions or usbDebug also taint clean flag`() {
+        assertFalse(
+            "devOptions alone should taint",
+            DeviceIntegrityCheck.Verdict(
+                debuggerAttached = false,
+                rooted = false,
+                emulator = false,
+                fridaDetected = false,
+                devOptionsEnabled = true,
+                usbDebuggingEnabled = false,
+            ).clean,
+        )
+        assertFalse(
+            "usbDebug alone should taint",
+            DeviceIntegrityCheck.Verdict(
+                debuggerAttached = false,
+                rooted = false,
+                emulator = false,
+                fridaDetected = false,
+                devOptionsEnabled = false,
+                usbDebuggingEnabled = true,
+            ).clean,
+        )
     }
 }
