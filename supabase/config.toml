@@ -1,0 +1,31 @@
+# Supabase project config. Most settings are managed via the Supabase
+# dashboard; this file's only purpose right now is to control edge-fn
+# JWT-verification per function.
+
+project_id = "eyswaywvtartpvtoxtdr"
+
+# ---------------------------------------------------------------------
+# Edge function overrides
+# ---------------------------------------------------------------------
+# Webhook receivers don't carry Authorization headers — the upstream
+# provider signs the body with HMAC and we verify in-fn. Disable the
+# platform JWT gate so they can reach our code.
+
+[functions.razorpay-webhook]
+verify_jwt = false
+
+# payouts-webhook (Cashfree) — was disabled at deploy time via
+# --no-verify-jwt; pin it here so future deploys keep the setting.
+[functions.payouts-webhook]
+verify_jwt = false
+
+# Trigger-fired dispatchers (called via pg_net from inside the project,
+# but the URL itself is hit with a header secret — same JWT-off pattern).
+[functions.dispatch_repair_invoice]
+verify_jwt = false
+
+[functions.founder_invoice_digest]
+verify_jwt = false
+
+[functions.ingest_openfda]
+verify_jwt = false

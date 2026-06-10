@@ -80,6 +80,36 @@ SELECT cron.schedule(
 
 ---
 
+## 2.5. Razorpay incoming-payment webhook (round 471)
+
+**Status today:** Edge fn `razorpay-webhook` deployed + JWT gate off + idempotent RPCs (`record_razorpay_payment_captured`, `record_razorpay_refund`). Refuses to process events until `RAZORPAY_WEBHOOK_SECRET` is set. Once configured, every Razorpay payment.captured / payment.authorized / refund.processed event auto-reconciles to the matching escrow / spare order / AMC order — even if the client's verify-* call after the Razorpay sheet 5xx'd or the user crashed mid-flow.
+
+```bash
+# Step 1 — Razorpay dashboard → Settings → Webhooks → Create New
+#   URL: https://eyswaywvtartpvtoxtdr.functions.supabase.co/razorpay-webhook
+#   Events to subscribe (check these boxes):
+#     - payment.captured
+#     - payment.authorized
+#     - refund.created
+#     - refund.processed
+#   Secret: generate a strong one (treat like a password)
+
+# Step 2 — set the same secret in Supabase
+supabase secrets set RAZORPAY_WEBHOOK_SECRET="<same-value-as-razorpay-dashboard>"
+```
+
+**Verify it's live:**
+```bash
+# Trigger a test webhook from Razorpay dashboard ("Send Test Webhook" button)
+# Check the audit log:
+supabase db query --linked "SELECT razorpay_event_id, event_type, apply_outcome, received_at FROM public.razorpay_webhook_events ORDER BY received_at DESC LIMIT 5;"
+
+# Check for orphans (events that didn't match any intake row):
+supabase db query --linked "SELECT * FROM public.founder_razorpay_webhook_orphans();"
+```
+
+---
+
 ## 3. Cashfree real payouts (when Activation activates)
 
 **Status today:** "Activation in Process" per merchant.cashfree.com. KYC under review. Until approved, edge fn returns 503 + queue requeues (round 466 hardening). When approved:
