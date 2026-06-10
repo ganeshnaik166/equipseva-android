@@ -18,6 +18,7 @@
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { razorpayServerVerify } from "../_shared/razorpay_server_verify.ts";
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -117,7 +118,7 @@ serve(async (req) => {
   const { data: escrow, error: fetchErr } = await admin
     .from("repair_job_escrow")
     .select(
-      "id, repair_job_id, hospital_user_id, status, razorpay_order_id, razorpay_payment_id",
+      "id, repair_job_id, hospital_user_id, status, razorpay_order_id, razorpay_payment_id, amount_rupees",
     )
     .eq("id", escrow_id)
     .maybeSingle();
@@ -144,6 +145,40 @@ serve(async (req) => {
   }
   if (escrow.razorpay_order_id !== razorpay_order_id) {
     return bad("invalid_signature", "razorpay_order_id does not match the escrow binding");
+  }
+
+  // Round 469 — CRITICAL — server-side amount cross-check against Razorpay's
+  // own GET /v1/payments/{id} endpoint. HMAC only proves (order_id, payment_id)
+  // are real; it does NOT prove the amount paid matches what we expect. Without
+  // this call, an attacker who can mutate escrow.amount_rupees after binding
+  // (or who passes a payment_id from a smaller-amount order) gets escrow
+  // flipped to 'held' at the wrong amount. This is Razorpay's documented
+  // anti-tamper backstop.
+  const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID");
+  if (!razorpayKeyId) {
+    console.error("verify-repair-job-payment: RAZORPAY_KEY_ID env not set — cannot perform server-side verify");
+    return bad("server_error", "razorpay key id not configured", 500);
+  }
+  const expectedPaise = Math.round(Number(escrow.amount_rupees) * 100);
+  const serverVerify = await razorpayServerVerify({
+    keyId: razorpayKeyId,
+    keySecret: razorpaySecret,
+    razorpayPaymentId: razorpay_payment_id,
+    expectedOrderId: razorpay_order_id,
+    expectedAmountPaise: expectedPaise,
+  });
+  if (!serverVerify.ok) {
+    console.error(
+      "verify-repair-job-payment: server-side verify failed",
+      escrow_id,
+      serverVerify.code,
+      serverVerify.message,
+    );
+    return bad(
+      "server_verify_failed",
+      `payment did not match expected amount/order/status: ${serverVerify.code}`,
+      400,
+    );
   }
 
   // Idempotent: already paid for the same payment id.

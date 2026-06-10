@@ -22,6 +22,7 @@
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { razorpayServerVerify } from "../_shared/razorpay_server_verify.ts";
 
 type VerifyBody = {
   order_id?: string;
@@ -138,6 +139,40 @@ serve(async (req) => {
   }
   if (order.razorpay_order_id !== razorpay_order_id) {
     return bad("invalid_signature", "razorpay_order_id does not match the order binding");
+  }
+
+  // Round 469 — CRITICAL — server-side amount cross-check via Razorpay's own
+  // GET /v1/payments/{id}. Without this, an attacker can mutate spare_part_orders.items
+  // after binding razorpay_order_id (round 450's recompute trigger updates
+  // total_amount on items change), pay the OLD amount at Razorpay, and have
+  // us flip the order to completed at the NEW (inflated) total_amount.
+  // Round 469 migration also adds spare_part_orders_freeze_items_when_bound
+  // trigger as a parallel defense; this is the network-level backstop.
+  const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID");
+  if (!razorpayKeyId) {
+    console.error("verify-razorpay-payment: RAZORPAY_KEY_ID env not set");
+    return bad("server_error", "razorpay key id not configured", 500);
+  }
+  const expectedPaise = Math.round(Number(order.total_amount) * 100);
+  const serverVerify = await razorpayServerVerify({
+    keyId: razorpayKeyId,
+    keySecret: razorpaySecret,
+    razorpayPaymentId: razorpay_payment_id,
+    expectedOrderId: razorpay_order_id,
+    expectedAmountPaise: expectedPaise,
+  });
+  if (!serverVerify.ok) {
+    console.error(
+      "verify-razorpay-payment: server-side verify failed",
+      order_id,
+      serverVerify.code,
+      serverVerify.message,
+    );
+    return bad(
+      "server_verify_failed",
+      `payment did not match expected amount/order/status: ${serverVerify.code}`,
+      400,
+    );
   }
 
   // Idempotent: if already completed, return the current state.
