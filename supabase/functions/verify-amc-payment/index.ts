@@ -23,6 +23,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { razorpayServerVerify } from "../_shared/razorpay_server_verify.ts";
+import { recordVerifyEvent, VerifyOutcome } from "../_shared/payment_verify_telemetry.ts";
 
 type VerifyBody = {
   payment_order_id?: string;
@@ -123,6 +124,32 @@ serve(async (req) => {
   // the join through amc_contracts.hospital_user_id.
   const admin = createClient(supabaseUrl, serviceKey);
 
+  // Round 472 — telemetry helper. See verify-repair-job-payment for the
+  // pattern. Fire-and-forget; never blocks the response.
+  const tel = (
+    outcome: VerifyOutcome,
+    extra: Partial<{
+      errorCode: string;
+      errorMessage: string;
+      amountPaise: number;
+    }> = {},
+  ) => {
+    void recordVerifyEvent(admin, {
+      verifyFn: "verify-amc-payment",
+      orderKind: "amc",
+      outcome,
+      orderId: payment_order_id,
+      razorpayOrderId: razorpay_order_id,
+      razorpayPaymentId: razorpay_payment_id,
+      signatureProvided: true,
+      signatureValid: true,
+      amountPaise: extra.amountPaise ?? null,
+      errorCode: extra.errorCode ?? null,
+      errorMessage: extra.errorMessage ?? null,
+      userId,
+    });
+  };
+
   const { data: order, error: fetchErr } = await admin
     .from("amc_payment_orders")
     .select(
@@ -133,9 +160,13 @@ serve(async (req) => {
     .maybeSingle();
   if (fetchErr) {
     console.error("verify-amc-payment order_fetch_failed", fetchErr);
+    tel("server_error", { errorCode: "server_error", errorMessage: "order_fetch_failed" });
     return bad("server_error", "order_fetch_failed", 500);
   }
-  if (!order) return bad("order_not_found", "payment order missing", 404);
+  if (!order) {
+    tel("order_not_found", { errorCode: "order_not_found" });
+    return bad("order_not_found", "payment order missing", 404);
+  }
 
   // Supabase-js inlines the joined row as either an object or an
   // array depending on cardinality inference. Normalize to object.
@@ -145,6 +176,7 @@ serve(async (req) => {
     : ((order as { amc_contracts: { hospital_user_id: string; status: string } })
         .amc_contracts);
   if (!contract || contract.hospital_user_id !== userId) {
+    tel("not_owner", { errorCode: "not_owner" });
     return bad("not_owner", "not the hospital on this contract", 403);
   }
 
@@ -153,12 +185,14 @@ serve(async (req) => {
   // Without this, valid signatures from any other AMC top-up by the
   // same hospital would verify against this order id.
   if (!order.razorpay_order_id) {
+    tel("invalid_signature", { errorCode: "invalid_signature", errorMessage: "not bound" });
     return bad(
       "invalid_signature",
       "payment order is not bound to a razorpay order; call create-amc-payment-order first",
     );
   }
   if (order.razorpay_order_id !== razorpay_order_id) {
+    tel("invalid_signature", { errorCode: "invalid_signature", errorMessage: "order_id mismatch" });
     return bad("invalid_signature", "razorpay_order_id does not match the order binding");
   }
 
@@ -169,6 +203,7 @@ serve(async (req) => {
   const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID");
   if (!razorpayKeyId) {
     console.error("verify-amc-payment: RAZORPAY_KEY_ID env not set");
+    tel("server_error", { errorCode: "server_error", errorMessage: "razorpay key id not configured" });
     return bad("server_error", "razorpay key id not configured", 500);
   }
   const expectedPaise = Math.round(Number(order.amount_rupees) * 100);
@@ -186,6 +221,11 @@ serve(async (req) => {
       serverVerify.code,
       serverVerify.message,
     );
+    tel("server_verify_failed", {
+      errorCode: "server_verify_failed",
+      errorMessage: serverVerify.code,
+      amountPaise: expectedPaise,
+    });
     return bad(
       "server_verify_failed",
       `payment did not match expected amount/order/status: ${serverVerify.code}`,
@@ -214,6 +254,7 @@ serve(async (req) => {
         .select("status")
         .eq("id", order.amc_contract_id)
         .maybeSingle();
+      tel("idempotent_success", { amountPaise: expectedPaise });
       return json(200, {
         ok: true,
         payment_order_id,
@@ -242,6 +283,7 @@ serve(async (req) => {
       .eq("id", payment_order_id);
     if (updErr) {
       console.error("verify-amc-payment order_update_failed", updErr);
+      tel("server_error", { errorCode: "server_error", errorMessage: "order_update_failed", amountPaise: expectedPaise });
       return bad("server_error", "order_update_failed", 500);
     }
   }
@@ -254,6 +296,7 @@ serve(async (req) => {
     // Round 306 — don't echo raw postgres error; it can leak constraint
     // names + internal column hints. Same theme as rounds 269–273, 282, 293.
     console.error("verify-amc-payment apply_amc_pool_credit_failed", rpcErr);
+    tel("server_error", { errorCode: "server_error", errorMessage: "apply_amc_pool_credit_failed", amountPaise: expectedPaise });
     return bad("server_error", "apply_amc_pool_credit_failed", 500);
   }
 
@@ -270,6 +313,7 @@ serve(async (req) => {
     .eq("id", order.amc_contract_id)
     .maybeSingle();
 
+  tel("success", { amountPaise: expectedPaise });
   return json(200, {
     ok: true,
     payment_order_id,

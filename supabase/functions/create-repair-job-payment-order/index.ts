@@ -87,6 +87,35 @@ serve(async (req) => {
     return bad("escrow_not_pending", `escrow status is ${escrow.status}`);
   }
 
+  // Round 472: dedup — if the same escrow already has a bound
+  // razorpay_order_id from a recent (≤5min) call, reuse it. Without
+  // this, double-tap of the Pay button creates two Razorpay orders;
+  // user pays the orphan; verify rejects. Mirrors the pattern in
+  // create-amc-payment-order.
+  const dedupCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  if (escrow.razorpay_order_id) {
+    // We already bound an order earlier — confirm it's still recent
+    // enough to be safely reused (otherwise the upstream Razorpay
+    // order may have expired; let a fresh one issue).
+    const { data: existingRow } = await admin
+      .from("repair_job_escrow")
+      .select("updated_at")
+      .eq("id", escrow.id)
+      .gte("updated_at", dedupCutoff)
+      .maybeSingle();
+    if (existingRow) {
+      return json(200, {
+        ok: true,
+        escrow_id: escrow.id,
+        razorpay_order_id: escrow.razorpay_order_id,
+        amount_paise: Math.round(Number(escrow.amount_rupees) * 100),
+        currency: "INR",
+        key_id: rzpKeyId,
+        deduped: true,
+      });
+    }
+  }
+
   const amountRupees = Number(escrow.amount_rupees);
   if (!Number.isFinite(amountRupees) || amountRupees <= 0) {
     return bad("amount_mismatch", "escrow amount invalid");

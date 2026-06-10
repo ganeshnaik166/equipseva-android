@@ -23,6 +23,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { razorpayServerVerify } from "../_shared/razorpay_server_verify.ts";
+import { recordVerifyEvent, VerifyOutcome } from "../_shared/payment_verify_telemetry.ts";
 
 type VerifyBody = {
   order_id?: string;
@@ -115,6 +116,33 @@ serve(async (req) => {
 
   // service-role client bypasses RLS; we gate ownership ourselves.
   const admin = createClient(supabaseUrl, serviceKey);
+
+  // Round 472 — telemetry helper. See verify-repair-job-payment for the
+  // pattern. Fire-and-forget; never blocks the response.
+  const tel = (
+    outcome: VerifyOutcome,
+    extra: Partial<{
+      errorCode: string;
+      errorMessage: string;
+      amountPaise: number;
+    }> = {},
+  ) => {
+    void recordVerifyEvent(admin, {
+      verifyFn: "verify-razorpay-payment",
+      orderKind: "spare_part",
+      outcome,
+      orderId: order_id,
+      razorpayOrderId: razorpay_order_id,
+      razorpayPaymentId: razorpay_payment_id,
+      signatureProvided: true,
+      signatureValid: true,
+      amountPaise: extra.amountPaise ?? null,
+      errorCode: extra.errorCode ?? null,
+      errorMessage: extra.errorMessage ?? null,
+      userId,
+    });
+  };
+
   const { data: order, error: fetchErr } = await admin
     .from("spare_part_orders")
     .select("id, buyer_user_id, payment_status, order_status, total_amount, razorpay_order_id")
@@ -122,10 +150,17 @@ serve(async (req) => {
     .maybeSingle();
   if (fetchErr) {
     console.error("verify-razorpay-payment fetch_failed", fetchErr);
+    tel("server_error", { errorCode: "server_error", errorMessage: "fetch_failed" });
     return bad("server_error", "fetch_failed", 500);
   }
-  if (!order) return bad("order_not_found", "order missing", 404);
-  if (order.buyer_user_id !== userId) return bad("unauthenticated", "not owner", 403);
+  if (!order) {
+    tel("order_not_found", { errorCode: "order_not_found" });
+    return bad("order_not_found", "order missing", 404);
+  }
+  if (order.buyer_user_id !== userId) {
+    tel("not_owner", { errorCode: "not_owner" });
+    return bad("unauthenticated", "not owner", 403);
+  }
 
   // Require the client-submitted razorpay_order_id to match the one
   // create-razorpay-order persisted. Without this check, HMAC alone only
@@ -135,9 +170,11 @@ serve(async (req) => {
   // verify with (our_order=B, rzp_order=rzp_A, rzp_payment=rzp_pay_A,
   // signature=sig_A). HMAC passes, but the binding check fails.
   if (!order.razorpay_order_id) {
+    tel("invalid_signature", { errorCode: "invalid_signature", errorMessage: "not bound" });
     return bad("invalid_signature", "order is not bound to a razorpay order; call create-razorpay-order first");
   }
   if (order.razorpay_order_id !== razorpay_order_id) {
+    tel("invalid_signature", { errorCode: "invalid_signature", errorMessage: "order_id mismatch" });
     return bad("invalid_signature", "razorpay_order_id does not match the order binding");
   }
 
@@ -151,6 +188,7 @@ serve(async (req) => {
   const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID");
   if (!razorpayKeyId) {
     console.error("verify-razorpay-payment: RAZORPAY_KEY_ID env not set");
+    tel("server_error", { errorCode: "server_error", errorMessage: "razorpay key id not configured" });
     return bad("server_error", "razorpay key id not configured", 500);
   }
   const expectedPaise = Math.round(Number(order.total_amount) * 100);
@@ -168,6 +206,11 @@ serve(async (req) => {
       serverVerify.code,
       serverVerify.message,
     );
+    tel("server_verify_failed", {
+      errorCode: "server_verify_failed",
+      errorMessage: serverVerify.code,
+      amountPaise: expectedPaise,
+    });
     return bad(
       "server_verify_failed",
       `payment did not match expected amount/order/status: ${serverVerify.code}`,
@@ -177,6 +220,7 @@ serve(async (req) => {
 
   // Idempotent: if already completed, return the current state.
   if (order.payment_status === "completed") {
+    tel("idempotent_success", { amountPaise: expectedPaise });
     return json(200, {
       ok: true,
       order_id: order.id,
@@ -205,6 +249,7 @@ serve(async (req) => {
     .select("id");
   if (updErr) {
     console.error("verify-razorpay-payment update_failed", updErr);
+    tel("server_error", { errorCode: "server_error", errorMessage: "update_failed", amountPaise: expectedPaise });
     return bad("server_error", "update_failed", 500);
   }
   if (!updRows || updRows.length === 0) {
@@ -212,9 +257,11 @@ serve(async (req) => {
     // the UPDATE — could be a concurrent verify (double-tap) or a
     // future admin/refund path. Refuse to overwrite.
     console.warn("verify-razorpay-payment race detected for", order_id);
+    tel("status_race", { errorCode: "conflict", amountPaise: expectedPaise });
     return bad("conflict", "order state changed", 409);
   }
 
+  tel("success", { amountPaise: expectedPaise });
   return json(200, {
     ok: true,
     order_id,

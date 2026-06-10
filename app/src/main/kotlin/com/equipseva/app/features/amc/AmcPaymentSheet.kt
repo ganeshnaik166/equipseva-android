@@ -113,42 +113,49 @@ class AmcPaymentViewModel @Inject constructor(
 
         // Process-death recovery: persist the payment_order id so the
         // reconciler can notice if our process gets killed while the
-        // user is mid-payment in the UPI app. Clears in the `finally`
-        // regardless of outcome — Razorpay's three result branches
-        // each fall through this block.
+        // user is mid-payment in the UPI app. Round 472: marker is now
+        // cleared ONLY on outcomes where we know no money is in flight
+        // (Cancelled / Failed / verify-success). On verify-failure we
+        // KEEP the marker so PendingAmcPaymentsReconciler can recover
+        // on next cold-start — verify could have failed transiently
+        // while the Razorpay webhook is still en route + payment is
+        // captured server-side.
         runCatching { pendingPaymentsStore.add(order.paymentOrderId) }
 
-        // 3. Launch Razorpay Standard Checkout.
-        val result = try {
-            runCatching {
-                launcher.startPayment(
-                    activity = activity,
-                    amountPaise = order.amountPaise,
-                    currency = order.currency,
-                    name = "EquipSeva AMC",
-                    description = amcPaymentRazorpayDescription(months, engineerName),
-                    prefillEmail = email,
-                    prefillContact = null,
-                    razorpayOrderId = order.razorpayOrderId,
-                    keyId = order.keyId,
-                )
-            }.getOrElse {
-                _state.update { s -> s.copy(busy = false, error = it.toUserMessage()) }
-                return false
-            }
-        } finally {
-            // SDK returned cleanly — clear the recovery marker before
-            // verify so we don't surface a stale "in-flight" pill on
-            // the home screen.
-            runCatching { pendingPaymentsStore.remove(order.paymentOrderId) }
+        // 3. Launch Razorpay Standard Checkout. If the SDK itself
+        // throws BEFORE returning a result, we leave the marker so
+        // the reconciler can resolve based on server-side status —
+        // a thrown SDK exception doesn't prove the payment didn't
+        // capture.
+        val result = runCatching {
+            launcher.startPayment(
+                activity = activity,
+                amountPaise = order.amountPaise,
+                currency = order.currency,
+                name = "EquipSeva AMC",
+                description = amcPaymentRazorpayDescription(months, engineerName),
+                prefillEmail = email,
+                prefillContact = null,
+                razorpayOrderId = order.razorpayOrderId,
+                keyId = order.keyId,
+            )
+        }.getOrElse {
+            _state.update { s -> s.copy(busy = false, error = it.toUserMessage()) }
+            return false
         }
 
         when (result) {
             is RazorpayCheckoutLauncher.RazorpayPaymentResult.Cancelled -> {
+                // User cancelled inside Razorpay — no payment captured,
+                // safe to clear the in-flight marker.
+                runCatching { pendingPaymentsStore.remove(order.paymentOrderId) }
                 _state.update { it.copy(busy = false, error = "Payment cancelled") }
                 return false
             }
             is RazorpayCheckoutLauncher.RazorpayPaymentResult.Failed -> {
+                // Razorpay reported failure — no payment captured, safe
+                // to clear the in-flight marker.
+                runCatching { pendingPaymentsStore.remove(order.paymentOrderId) }
                 _state.update { s ->
                     s.copy(
                         busy = false,
@@ -167,10 +174,18 @@ class AmcPaymentViewModel @Inject constructor(
                 )
                 return verifyRes.fold(
                     onSuccess = {
+                        // Verify succeeded — payment is now reflected
+                        // on the server-side ledger; safe to clear.
+                        runCatching { pendingPaymentsStore.remove(order.paymentOrderId) }
                         _state.update { it.copy(busy = false) }
                         true
                     },
                     onFailure = { e ->
+                        // Verify failed AFTER Razorpay reported Success
+                        // — payment likely captured, server reconcile
+                        // is still pending. DO NOT clear the marker;
+                        // PendingAmcPaymentsReconciler will recover on
+                        // next cold-start once status flips paid/failed.
                         _state.update { it.copy(busy = false, error = e.toUserMessage()) }
                         false
                     },

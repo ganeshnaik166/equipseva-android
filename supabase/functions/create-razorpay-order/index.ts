@@ -71,7 +71,7 @@ serve(async (req) => {
   const admin = createClient(supabaseUrl, serviceKey);
   const { data: order, error: fetchErr } = await admin
     .from("spare_part_orders")
-    .select("id, buyer_user_id, total_amount, order_number, payment_status")
+    .select("id, buyer_user_id, total_amount, order_number, payment_status, razorpay_order_id, updated_at")
     .eq("id", orderId)
     .maybeSingle();
   if (fetchErr) {
@@ -82,6 +82,22 @@ serve(async (req) => {
   if (order.buyer_user_id !== userId) return bad("unauthenticated", "not owner", 403);
   if (order.payment_status === "completed") {
     return bad("bad_request", "order already paid");
+  }
+
+  // Round 472: dedup — if the same order already has a bound
+  // razorpay_order_id from a recent (≤5min) call, reuse it. Without
+  // this, double-tap of the Pay button creates two Razorpay orders;
+  // user pays the orphan; verify-razorpay-payment rejects. Mirrors the
+  // pattern in create-amc-payment-order + create-repair-job-payment-order.
+  const dedupCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  if (order.razorpay_order_id && order.updated_at && order.updated_at >= dedupCutoff) {
+    return json(200, {
+      ok: true,
+      razorpay_order_id: order.razorpay_order_id,
+      amount: Math.round(Number(order.total_amount) * 100),
+      currency: "INR",
+      deduped: true,
+    });
   }
 
   const amountPaise = Math.round(Number(order.total_amount) * 100);
