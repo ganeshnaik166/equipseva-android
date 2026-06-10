@@ -94,7 +94,7 @@ class EquipSevaApplication : Application(), Configuration.Provider, SingletonIma
         // runbook §5c) — flipping enforce before Play SHA is added would
         // hard-exit every Play-distributed install.
         val sigVerdict = SignatureVerifier.verify(this)
-        val devVerdict = DeviceIntegrityCheck.run()
+        val devVerdict = DeviceIntegrityCheck.run(this)
         Log.i(TAG, "Integrity boot: sig=$sigVerdict ${devVerdict.toTag()}")
         if (BuildConfig.TAMPER_ENFORCE && sigVerdict == SignatureVerifier.Verdict.Tampered) {
             Log.e(TAG, "Tampered signature — refusing to start")

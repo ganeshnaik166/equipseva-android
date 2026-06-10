@@ -1,7 +1,9 @@
 package com.equipseva.app.core.security
 
+import android.content.Context
 import android.os.Build
 import android.os.Debug
+import android.provider.Settings
 import android.util.Log
 import com.equipseva.app.BuildConfig
 import java.io.File
@@ -26,18 +28,56 @@ object DeviceIntegrityCheck {
         val rooted: Boolean,
         val emulator: Boolean,
         val fridaDetected: Boolean,
+        val devOptionsEnabled: Boolean = false,
+        val usbDebuggingEnabled: Boolean = false,
     ) {
         val clean: Boolean
-            get() = !debuggerAttached && !rooted && !emulator && !fridaDetected
+            get() = !debuggerAttached && !rooted && !emulator && !fridaDetected &&
+                !devOptionsEnabled && !usbDebuggingEnabled
+
+        /**
+         * Round 470: HARD blocker — refuse to render the app UI when set.
+         * USB debugging enabled is a strong MITM/instrumentation signal;
+         * Developer Options main toggle is a softer signal but commonly
+         * accompanies it. Either is enough to block on release builds.
+         * Debug builds skip — would prevent our own development.
+         */
+        val devModeBlocking: Boolean
+            get() = !BuildConfig.DEBUG && (devOptionsEnabled || usbDebuggingEnabled)
 
         fun toTag(): String = buildString {
             append("debugger=").append(debuggerAttached)
             append(" rooted=").append(rooted)
             append(" emulator=").append(emulator)
             append(" frida=").append(fridaDetected)
+            append(" devOptions=").append(devOptionsEnabled)
+            append(" usbDebug=").append(usbDebuggingEnabled)
         }
     }
 
+    /**
+     * Round 470: takes Context to probe device Settings (USB debugging +
+     * Developer Options). Callers should pass the application context.
+     * Backwards-compat [run] (no-arg) sets the dev-mode fields to false
+     * — only legacy call sites that haven't been migrated.
+     */
+    fun run(context: Context): Verdict {
+        val debugger = !BuildConfig.DEBUG && (Debug.isDebuggerConnected() || Debug.waitingForDebugger())
+        val verdict = Verdict(
+            debuggerAttached = debugger,
+            rooted = looksRooted(),
+            emulator = looksLikeEmulator(),
+            fridaDetected = looksLikeFrida(),
+            devOptionsEnabled = isDevOptionsEnabled(context),
+            usbDebuggingEnabled = isUsbDebuggingEnabled(context),
+        )
+        if (!verdict.clean) {
+            Log.w(TAG, "Device integrity: ${verdict.toTag()}")
+        }
+        return verdict
+    }
+
+    /** Backwards-compat shim — no Context, dev-mode fields default to false. */
     fun run(): Verdict {
         val debugger = !BuildConfig.DEBUG && (Debug.isDebuggerConnected() || Debug.waitingForDebugger())
         val verdict = Verdict(
@@ -51,6 +91,22 @@ object DeviceIntegrityCheck {
         }
         return verdict
     }
+
+    private fun isDevOptionsEnabled(context: Context): Boolean = runCatching {
+        Settings.Global.getInt(
+            context.contentResolver,
+            Settings.Global.DEVELOPMENT_SETTINGS_ENABLED,
+            0,
+        ) == 1
+    }.getOrDefault(false)
+
+    private fun isUsbDebuggingEnabled(context: Context): Boolean = runCatching {
+        Settings.Global.getInt(
+            context.contentResolver,
+            Settings.Global.ADB_ENABLED,
+            0,
+        ) == 1
+    }.getOrDefault(false)
 
     private fun looksRooted(): Boolean {
         val suspects = listOf(
