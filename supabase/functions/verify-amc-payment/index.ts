@@ -22,6 +22,7 @@
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { razorpayServerVerify } from "../_shared/razorpay_server_verify.ts";
 
 type VerifyBody = {
   payment_order_id?: string;
@@ -159,6 +160,37 @@ serve(async (req) => {
   }
   if (order.razorpay_order_id !== razorpay_order_id) {
     return bad("invalid_signature", "razorpay_order_id does not match the order binding");
+  }
+
+  // Round 469 — CRITICAL — server-side amount cross-check via Razorpay's own
+  // GET /v1/payments/{id}. amc_payment_orders.amount_rupees is set at order
+  // creation + locked (no recompute trigger), but a future change could weaken
+  // that — this is the network-level backstop.
+  const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID");
+  if (!razorpayKeyId) {
+    console.error("verify-amc-payment: RAZORPAY_KEY_ID env not set");
+    return bad("server_error", "razorpay key id not configured", 500);
+  }
+  const expectedPaise = Math.round(Number(order.amount_rupees) * 100);
+  const serverVerify = await razorpayServerVerify({
+    keyId: razorpayKeyId,
+    keySecret: razorpaySecret,
+    razorpayPaymentId: razorpay_payment_id,
+    expectedOrderId: razorpay_order_id,
+    expectedAmountPaise: expectedPaise,
+  });
+  if (!serverVerify.ok) {
+    console.error(
+      "verify-amc-payment: server-side verify failed",
+      payment_order_id,
+      serverVerify.code,
+      serverVerify.message,
+    );
+    return bad(
+      "server_verify_failed",
+      `payment did not match expected amount/order/status: ${serverVerify.code}`,
+      400,
+    );
   }
 
   // Idempotent happy path: already verified, return the existing ledger.
