@@ -624,7 +624,8 @@ private fun EngCard(
             val locLine = formatDirectoryRowLocationLine(
                 city = row.city,
                 distanceKm = row.distanceKm,
-                hourlyRate = row.hourlyRate,
+                typicalBidMin = row.typicalBidMin,
+                typicalBidMax = row.typicalBidMax,
             )
             if (locLine != null) {
                 Text(
@@ -753,13 +754,15 @@ internal fun InlineVerifiedBadge(small: Boolean = false) {
 }
 
 /**
- * Compose the city · distance · rate line on a directory-row card.
+ * Compose the city · distance · typical-bid line on a directory-row
+ * card.
  *
  * Three optional parts joined by " · ":
  *   * city — blank/null omitted
  *   * distanceKm — null omitted; else "N.N km" formatted under
  *     Locale.US so a Hindi-locale device doesn't surface "3,2"
- *   * hourlyRate — null omitted; else "₹N/hr"
+ *   * typical-bid range — null when either bound missing; else
+ *     "Typical bid: ₹min–₹max" via [formatBidRange]
  *
  * Returns null on all-empty so the caller doesn't render an empty
  * Text.
@@ -767,18 +770,47 @@ internal fun InlineVerifiedBadge(small: Boolean = false) {
  * Spaced "km" suffix (vs the no-space variant on the home-card
  * recommended carousel) is intentional — directory rows have more
  * horizontal room.
+ *
+ * Round 471 swap: hourlyRate → typicalBidMin/typicalBidMax. PM
+ * audit caught that "Hourly ₹1,800" misled hospitals who then bid
+ * ₹8,000 on a 2-hour job and felt overcharged. Bids are per-job on
+ * EquipSeva, so the card now surfaces the band the engineer
+ * actually quotes.
  */
 internal fun formatDirectoryRowLocationLine(
     city: String?,
     distanceKm: Double?,
-    hourlyRate: Double?,
+    typicalBidMin: Double?,
+    typicalBidMax: Double?,
 ): String? {
     val parts = listOfNotNull(
         city?.takeIf { it.isNotBlank() },
         distanceKm?.let { "${"%.1f".format(java.util.Locale.US, it)} km" },
-        hourlyRate?.let { "${com.equipseva.app.core.util.formatRupees(it)}/hr" },
+        formatBidRange(typicalBidMin, typicalBidMax),
     )
     return if (parts.isEmpty()) null else parts.joinToString(" · ")
+}
+
+/**
+ * Format the typical-bid range chip text on the directory-row card.
+ *
+ * Rules:
+ *   * Both bounds null OR both ≤ 0 → null (caller omits part)
+ *   * One bound null → null (incomplete band; omit rather than
+ *     surface a half-truth like "Typical bid: ₹4,000–")
+ *   * Both equal → "Typical bid: ₹X" (single price, en-dash drops)
+ *   * Both present and distinct → "Typical bid: ₹min–₹max"
+ *
+ * Uses an en-dash (U+2013) per typographic convention for numeric
+ * ranges. formatRupees applies Indian lakh grouping.
+ */
+internal fun formatBidRange(typicalBidMin: Double?, typicalBidMax: Double?): String? {
+    if (typicalBidMin == null || typicalBidMax == null) return null
+    if (typicalBidMin <= 0.0 && typicalBidMax <= 0.0) return null
+    val minStr = com.equipseva.app.core.util.formatRupees(typicalBidMin)
+    val maxStr = com.equipseva.app.core.util.formatRupees(typicalBidMax)
+    return if (typicalBidMin == typicalBidMax) "Typical bid: $minStr"
+    else "Typical bid: $minStr–$maxStr"
 }
 
 /**

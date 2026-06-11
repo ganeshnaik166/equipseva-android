@@ -50,6 +50,16 @@ class EngineerDirectoryRepository @Inject constructor(
         @SerialName("rating_avg") val ratingAvg: Double = 0.0,
         @SerialName("total_jobs") val totalJobs: Int = 0,
         @SerialName("hourly_rate") val hourlyRate: Double? = null,
+        // Typical bid range derived server-side from this engineer's
+        // recent completed jobs (last 5). Falls back to platform-wide
+        // average when engineer has <5 completed jobs. Replaces the
+        // misleading "Hourly ₹X" rendering on directory cards — bids
+        // are per-job, not per-hour, and the hourly figure confused
+        // first-time hospital buyers (e.g. ₹1800/hr label vs ₹8000
+        // bid on a 2-hour job). Null when server hasn't been
+        // upgraded with the new RPC columns; UI falls back gracefully.
+        @SerialName("typical_bid_min") val typicalBidMin: Double? = null,
+        @SerialName("typical_bid_max") val typicalBidMax: Double? = null,
         @SerialName("bio") val bio: String? = null,
         @SerialName("is_available") val isAvailable: Boolean = false,
         // Server-populated when caller passes lat/lng to search(). Null
@@ -137,6 +147,10 @@ class EngineerDirectoryRepository @Inject constructor(
         @SerialName("total_jobs") val totalJobs: Int = 0,
         @SerialName("completion_rate") val completionRate: Double = 0.0,
         @SerialName("hourly_rate") val hourlyRate: Double? = null,
+        // Typical bid range (last 5 completed jobs, or platform avg
+        // fallback). See [DirectoryRow.typicalBidMin] for rationale.
+        @SerialName("typical_bid_min") val typicalBidMin: Double? = null,
+        @SerialName("typical_bid_max") val typicalBidMax: Double? = null,
         @SerialName("bio") val bio: String? = null,
         @SerialName("is_available") val isAvailable: Boolean = false,
         @SerialName("base_latitude") val baseLatitude: Double? = null,
