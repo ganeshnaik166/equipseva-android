@@ -145,6 +145,12 @@ class RepairJobDetailViewModel @Inject constructor(
         val openingEscrowDispute: Boolean = false,
         val escrowDisputeSheetOpen: Boolean = false,
         val escrowPaymentSheetOpen: Boolean = false,
+        // v0.3.4 PR C — pre-checkout order summary sheet. Opens after
+        // hospital taps "Accept bid" so they can review engineer +
+        // scope + bid + GST + total + escrow assurance before the
+        // Razorpay sheet launches. Closes when they tap "Pay ₹X".
+        val orderSummarySheetOpen: Boolean = false,
+        val selectedBidForSummary: RepairBid? = null,
         // PR-D29 — engineer's response to a hospital's dispute.
         val engineerResponseSheetOpen: Boolean = false,
         val submittingEngineerResponse: Boolean = false,
@@ -325,6 +331,13 @@ class RepairJobDetailViewModel @Inject constructor(
 
     fun openEscrowPaymentSheet() = _state.update { it.copy(escrowPaymentSheetOpen = true) }
     fun closeEscrowPaymentSheet() = _state.update { it.copy(escrowPaymentSheetOpen = false) }
+    fun closeOrderSummarySheet() = _state.update {
+        it.copy(orderSummarySheetOpen = false, selectedBidForSummary = null)
+    }
+    fun proceedToPaymentFromSummary() {
+        _state.update { it.copy(orderSummarySheetOpen = false) }
+        openEscrowPaymentSheet()
+    }
     fun openEscrowDisputeSheet() = _state.update { it.copy(escrowDisputeSheetOpen = true) }
     fun closeEscrowDisputeSheet() = _state.update { it.copy(escrowDisputeSheetOpen = false) }
 
@@ -1012,17 +1025,25 @@ class RepairJobDetailViewModel @Inject constructor(
                     } else {
                         known
                     }
+                    // v0.3.4 PR C — find the accepted bid so we can render
+                    // the pre-checkout summary sheet (engineer + scope +
+                    // amount + GST + total) before Razorpay launches.
+                    val acceptedBid = refreshedBids.firstOrNull {
+                        it.status == RepairBidStatus.Accepted
+                    }
                     _state.update {
                         it.copy(
                             job = refreshedJob ?: it.job,
                             bids = refreshedBids,
                             acceptingBidId = null,
                             engineerNames = refreshedNames,
+                            orderSummarySheetOpen = acceptedBid != null,
+                            selectedBidForSummary = acceptedBid,
                         )
                     }
                     // accept_repair_bid trigger creates a pending escrow row;
-                    // pull it so the "Pay to escrow" CTA appears without
-                    // requiring a back-and-reopen.
+                    // pull it so the summary sheet (and later "Pay to escrow"
+                    // CTA) reflect the actual amount without a back-and-reopen.
                     refreshEscrow()
                     _messages.emit("Bid accepted — engineer notified")
                 },

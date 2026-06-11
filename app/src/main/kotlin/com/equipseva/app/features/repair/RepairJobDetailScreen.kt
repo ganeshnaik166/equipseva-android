@@ -412,6 +412,22 @@ fun RepairJobDetailScreen(
         )
     }
 
+    // v0.3.4 PR C — pre-checkout order summary sheet. Renders BEFORE
+    // the Razorpay sheet so the hospital can review engineer + scope
+    // + bid + GST + total + escrow assurance, then taps "Pay ₹X"
+    // (which closes this sheet and opens JobEscrowPaymentSheet).
+    if (state.orderSummarySheetOpen && state.job != null && state.selectedBidForSummary != null) {
+        val bid = state.selectedBidForSummary!!
+        val engineerName = state.engineerNames[bid.engineerUserId] ?: "the engineer"
+        OrderSummarySheet(
+            job = state.job!!,
+            bid = bid,
+            engineerName = engineerName,
+            onClose = viewModel::closeOrderSummarySheet,
+            onProceedToPayment = viewModel::proceedToPaymentFromSummary,
+        )
+    }
+
     // PR-D5: per-job escrow pay-in.
     val escrow = state.escrow
     if (state.escrowPaymentSheetOpen && state.job != null && escrow != null) {
