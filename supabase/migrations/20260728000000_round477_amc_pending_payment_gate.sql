@@ -294,22 +294,53 @@ AS $$
 DECLARE
   v_count int;
 BEGIN
-  -- Cancel pending_payment contracts older than 24h. Use the same
-  -- 'cancelled' status the explicit cancel_amc_contract sets — keeps
-  -- the state machine small. scope_text is annotated so the hospital
-  -- + ops can tell apart manual cancellations from reaper sweeps.
-  UPDATE public.amc_contracts
-     SET status = 'cancelled',
-         updated_at = now(),
-         scope_text = coalesce(scope_text, '') ||
-           E'\n[reaper: stranded in pending_payment for >24h; auto-cancelled by reap_stranded_pending_payment_amc_contracts]'
-   WHERE status = 'pending_payment'
-     AND created_at < (now() - interval '24 hours');
-
-  GET DIAGNOSTICS v_count = ROW_COUNT;
+  -- Cancel pending_payment contracts older than 24h + atomically
+  -- invalidate any pending amc_payment_orders tied to them.
+  --
+  -- Why atomic invalidation (CodeRabbit catch):
+  --   verify-amc-payment marks the order status='paid' BEFORE calling
+  --   apply_amc_pool_credit. Without this order-kill step, a hospital
+  --   could:
+  --     1. Create contract → status=pending_payment + payment order A pending
+  --     2. Close app before Razorpay returns
+  --     3. Reaper cancels the contract 24h later
+  --     4. Hospital re-opens the app, completes payment from a stale link
+  --     5. verify-amc-payment marks order A 'paid'
+  --     6. apply_amc_pool_credit rejects (contract cancelled)
+  --     7. Razorpay auto-refund (r473) recovers — works, but messy
+  --   Proactive order kill eliminates that inflight window: the
+  --   pre-Razorpay create-amc-payment-order check will reject if order
+  --   is already 'failed', so the user can't even start the Razorpay
+  --   sheet against a stranded order.
+  --
+  -- amc_payment_orders.status CHECK allows ('pending','paid','failed',
+  -- 'refunded') — 'cancelled' is NOT valid, so we use 'failed' as the
+  -- terminal label.
+  --
+  -- Single SQL statement via CTE ensures atomicity — no window where a
+  -- contract is cancelled but the order is still pending.
+  WITH cancelled AS (
+    UPDATE public.amc_contracts
+       SET status = 'cancelled',
+           updated_at = now(),
+           scope_text = coalesce(scope_text, '') ||
+             E'\n[reaper: stranded in pending_payment for >24h; auto-cancelled by reap_stranded_pending_payment_amc_contracts]'
+     WHERE status = 'pending_payment'
+       AND created_at < (now() - interval '24 hours')
+    RETURNING id
+  ),
+  killed_orders AS (
+    UPDATE public.amc_payment_orders
+       SET status = 'failed',
+           updated_at = now()
+     WHERE amc_contract_id IN (SELECT id FROM cancelled)
+       AND status = 'pending'
+    RETURNING id
+  )
+  SELECT count(*)::int INTO v_count FROM cancelled;
 
   IF v_count > 0 THEN
-    RAISE NOTICE 'reap_stranded_pending_payment_amc_contracts: cancelled % stranded contracts', v_count;
+    RAISE NOTICE 'reap_stranded_pending_payment_amc_contracts: cancelled % stranded contracts + invalidated tied pending orders', v_count;
   END IF;
 
   RETURN v_count;
