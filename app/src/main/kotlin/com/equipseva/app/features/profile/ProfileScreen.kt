@@ -70,6 +70,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.text.KeyboardOptions
@@ -129,6 +130,13 @@ fun ProfileScreen(
     SecureScreen()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
+    // FIX #10 — local Help & Support sheet state. The legacy
+    // `onOpenHelp` callback (mailto-direct from MainNavGraph) is
+    // overridden below so tapping "Help & support" opens the richer
+    // 5-action sheet instead of a bare email composer.
+    var helpSheetOpen by androidx.compose.runtime.saveable.rememberSaveable {
+        androidx.compose.runtime.mutableStateOf(false)
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
@@ -249,7 +257,9 @@ fun ProfileScreen(
                         onOpenChangeEmail = onOpenChangeEmail,
                         onOpenEarnings = onOpenEarnings,
                         onOpenMyRepairJobs = onOpenMyRepairJobs,
-                        onOpenHelp = onOpenHelp,
+                        // FIX #10 — route through the local sheet
+                        // instead of MainNavGraph's mailto-direct.
+                        onOpenHelp = { helpSheetOpen = true },
                         onOpenPublicPreview = onOpenPublicPreview,
                         onOpenMaintenanceContracts = onOpenMaintenanceContracts,
                         onOpenMyDisputes = onOpenMyDisputes,
@@ -259,6 +269,17 @@ fun ProfileScreen(
                 }
             }
         }
+    }
+
+    // FIX #10 — Help & Support escalation sheet. Hospital surfaces the
+    // same 5-action sheet here (Profile > Account > Help & support)
+    // that it does on Home and RepairJobDetail. Replaces the legacy
+    // bare-mailto path that gave the user no menu of options.
+    if (helpSheetOpen) {
+        com.equipseva.app.designsystem.components.HelpSupportSheet(
+            onClose = { helpSheetOpen = false },
+            onShowMessage = onShowMessage,
+        )
     }
 
     // Role-editor bottom sheet — opens from the Account-type card.

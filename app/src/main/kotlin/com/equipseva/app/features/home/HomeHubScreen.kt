@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.ChatBubbleOutline
@@ -40,6 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
@@ -65,6 +67,7 @@ import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.initialsOf
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.designsystem.components.EsSection
+import com.equipseva.app.designsystem.components.HelpSupportSheet
 import com.equipseva.app.designsystem.components.InlineStars
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
@@ -112,6 +115,11 @@ fun HomeHubScreen(
     val role = state.role
     val kyc = state.kycStatus
 
+    // FIX #10 — Help & Support sheet state. Lives at the screen level
+    // (not inside HomeTopBar) so the ModalBottomSheet renders on the
+    // correct compose subtree and survives recomposition of the top bar.
+    var helpSheetOpen by rememberSaveable { mutableStateOf(false) }
+
     // Skip the first ON_RESUME so the VM init refresh isn't doubled —
     // the hub is the cold-start landing screen for hospital users.
     com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.refreshNow() }
@@ -129,7 +137,11 @@ fun HomeHubScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
-            HomeTopBar(onNotifications = onOpenNotifications, hasUnread = state.recent.any { it.isUnread })
+            HomeTopBar(
+                onNotifications = onOpenNotifications,
+                hasUnread = state.recent.any { it.isUnread },
+                onOpenHelp = { helpSheetOpen = true },
+            )
 
             // Greeting card
             Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
@@ -377,6 +389,17 @@ fun HomeHubScreen(
             }
         }
 
+        // FIX #10 — Help & Support escalation sheet. Opens from the
+        // '?' icon in HomeTopBar; gives hospitals a visible in-app path
+        // to contact support (engineer no-show, negligent repair) so
+        // they don't escalate to WhatsApp / legal off-platform.
+        if (helpSheetOpen) {
+            HelpSupportSheet(
+                onClose = { helpSheetOpen = false },
+                onShowMessage = onShowMessage,
+            )
+        }
+
         // PR-D43: spot-audit invitation. 1-in-20 sample of completed
         // jobs, server-rate-limited to one open per hospital. Skip just
         // dismisses for this app open; sheet re-renders next foreground
@@ -601,7 +624,11 @@ private fun SlaCreditsCard(
 }
 
 @Composable
-private fun HomeTopBar(onNotifications: () -> Unit, hasUnread: Boolean) {
+private fun HomeTopBar(
+    onNotifications: () -> Unit,
+    hasUnread: Boolean,
+    onOpenHelp: () -> Unit = {},
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -625,6 +652,27 @@ private fun HomeTopBar(onNotifications: () -> Unit, hasUnread: Boolean) {
             color = SevaInk900,
             modifier = Modifier.weight(1f),
         )
+        // FIX #10 — Help icon (?) sits LEFT of the bell. 48dp wrapper
+        // matches the bell's WCAG touch zone. Icon stays visually 20dp
+        // so the two trailing icons read at the same weight.
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .clickable(
+                    onClickLabel = "Open help and support",
+                    role = androidx.compose.ui.semantics.Role.Button,
+                    onClick = onOpenHelp,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.HelpOutline,
+                contentDescription = null,
+                tint = SevaInk700,
+                modifier = Modifier.size(20.dp),
+            )
+        }
         // Round 461: bell wrapper is 48dp (Material/WCAG touch min),
         // icon stays visually 20dp. contentDescription flips to
         // include unread state so TalkBack announces "Open

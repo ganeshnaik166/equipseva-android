@@ -29,6 +29,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
@@ -101,6 +102,7 @@ import com.equipseva.app.designsystem.components.EsField
 import com.equipseva.app.designsystem.components.EsFieldType
 import com.equipseva.app.designsystem.components.EsSection
 import com.equipseva.app.designsystem.components.EsTopBar
+import com.equipseva.app.designsystem.components.HelpSupportSheet
 import com.equipseva.app.designsystem.components.ReportContentSheet
 import com.equipseva.app.designsystem.components.UrgencyPill
 import com.equipseva.app.designsystem.components.VerifiedBadge
@@ -151,6 +153,10 @@ fun RepairJobDetailScreen(
     var checkinSheetOpen by rememberSaveable { mutableStateOf(false) }
     var cancelSheetOpen by rememberSaveable { mutableStateOf(false) }
     var rateSheetOpen by rememberSaveable { mutableStateOf(false) }
+    // FIX #10 — Help & Support escalation sheet, opened from the '?'
+    // icon in the top bar. Passes jobNumber so the report-form mailto
+    // subject is pre-tagged with the public job ref.
+    var helpSheetOpen by rememberSaveable { mutableStateOf(false) }
 
     // Round 426 — re-fetch on return so new bids / status flips / cost-
     // revision outcomes that landed while the user was in chat or picker
@@ -196,35 +202,63 @@ fun RepairJobDetailScreen(
                 subtitle = state.job?.equipmentLabel,
                 onBack = onBack,
                 right = {
-                    if (state.canReport) {
-                        var menuOpen by rememberSaveable { mutableStateOf(false) }
-                        Box {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Transparent)
-                                    .clickable { menuOpen = true },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.MoreVert,
-                                    contentDescription = "More",
-                                    tint = SevaInk700,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = menuOpen,
-                                onDismissRequest = { menuOpen = false },
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("Report job") },
-                                    onClick = {
-                                        menuOpen = false
-                                        viewModel.onOpenReport()
-                                    },
-                                )
+                    // FIX #10: Help (?) icon + optional Report menu. Both
+                    // live in the EsTopBar `right` slot — the Row lets
+                    // them coexist when canReport=true, otherwise the
+                    // help icon stands alone.
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(Color.Transparent)
+                                .clickable(
+                                    onClickLabel = "Open help and support",
+                                    role = androidx.compose.ui.semantics.Role.Button,
+                                    onClick = { helpSheetOpen = true },
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.HelpOutline,
+                                contentDescription = null,
+                                tint = SevaInk700,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                        if (state.canReport) {
+                            var menuOpen by rememberSaveable { mutableStateOf(false) }
+                            Box {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.Transparent)
+                                        .clickable { menuOpen = true },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.MoreVert,
+                                        contentDescription = "More",
+                                        tint = SevaInk700,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = menuOpen,
+                                    onDismissRequest = { menuOpen = false },
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Report job") },
+                                        onClick = {
+                                            menuOpen = false
+                                            viewModel.onOpenReport()
+                                        },
+                                    )
+                                }
                             }
                         }
                     }
@@ -409,6 +443,18 @@ fun RepairJobDetailScreen(
             submitting = state.submittingReport,
             onDismiss = viewModel::onDismissReport,
             onSubmit = viewModel::onSubmitReport,
+        )
+    }
+
+    // FIX #10 — Help & Support sheet. repairJobNumber is plumbed in so
+    // 'Report engineer' / 'Report job issue' mailto subjects carry the
+    // public job ref (e.g. "Job issue — RPR-00027"), saving support
+    // from a round-trip asking which job the user means.
+    if (helpSheetOpen) {
+        HelpSupportSheet(
+            onClose = { helpSheetOpen = false },
+            onShowMessage = onShowMessage,
+            repairJobNumber = state.job?.jobNumber,
         )
     }
 
