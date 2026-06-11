@@ -135,8 +135,17 @@ class SignUpViewModel @Inject constructor(
                                 }
                                 .onFailure { crashReporter.report(it, "signup addRole") }
                             _state.update { it.copy(form = FormUiState()) }
-                            // Session will transition; AuthHostInline routes to Home.
-                            _effects.emit(AuthEffect.NavigateToHome)
+                            // v0.3.4 — Hospitals route through the post-signup
+                            // phone onboarding screen before Home (mandatory
+                            // phone for Exotel call masking). Engineers continue
+                            // straight to Home; their phone is collected as
+                            // part of the KYC flow.
+                            val effect = if (role == UserRole.HOSPITAL) {
+                                AuthEffect.NavigateToHospitalPhoneOnboarding
+                            } else {
+                                AuthEffect.NavigateToHome
+                            }
+                            _effects.emit(effect)
                         }
                         com.equipseva.app.core.auth.SignUpOutcome.NeedsEmailConfirmation -> {
                             // Supabase "Confirm email" is ON — no session yet.

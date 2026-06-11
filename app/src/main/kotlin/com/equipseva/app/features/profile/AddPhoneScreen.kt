@@ -116,6 +116,10 @@ class AddPhoneViewModel @Inject constructor(
 fun AddPhoneScreen(
     onBack: () -> Unit,
     onShowMessage: (String) -> Unit,
+    // v0.3.4 — title override for the post-signup hospital phone
+    // onboarding flow. null = default "Add phone number" (profile-edit
+    // entry); non-null = custom title for the onboarding wrapper.
+    titleOverride: String? = null,
     viewModel: AddPhoneViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -131,7 +135,7 @@ fun AddPhoneScreen(
 
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
-            EsTopBar(title = "Add phone number", onBack = onBack)
+            EsTopBar(title = titleOverride ?: "Add phone number", onBack = onBack)
             Column(
                 modifier = Modifier
                     .fillMaxSize()

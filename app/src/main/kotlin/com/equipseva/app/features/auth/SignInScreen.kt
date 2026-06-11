@@ -65,6 +65,9 @@ fun SignInScreen(
             when (effect) {
                 is AuthEffect.ShowMessage -> onShowMessage(effect.text)
                 AuthEffect.NavigateToHome -> Unit
+                // SignIn never emits this — only RoleSelect does, but the
+                // sealed-interface when() needs the branch to compile.
+                AuthEffect.NavigateToHospitalPhoneOnboarding -> Unit
             }
         }
     }
