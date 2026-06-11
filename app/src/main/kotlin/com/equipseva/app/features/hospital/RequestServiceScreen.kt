@@ -69,6 +69,9 @@ import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.core.util.MIME_JPEG
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.ErrorBanner
+import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.EsBtnKind
+import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
 import com.equipseva.app.designsystem.theme.BrandGreenDark
@@ -189,10 +192,21 @@ fun RequestServiceScreen(
 
     Scaffold(
         topBar = {
-            ESBackTopBar(
-                title = "Request service",
-                onBack = onBack,
-            )
+            Column {
+                ESBackTopBar(
+                    title = "Request service",
+                    onBack = onBack,
+                )
+                // Round 471 — draft recovery sticky bar. Shown when the
+                // ViewModel detected a saved draft from a prior session;
+                // tapping Keep restores all fields, Discard wipes it.
+                if (state.showDraftRecoveryBar) {
+                    DraftRecoveryBar(
+                        onKeep = viewModel::onKeepDraft,
+                        onDiscard = viewModel::onDiscardDraft,
+                    )
+                }
+            }
         },
         bottomBar = {
             SubmitBar(
@@ -278,6 +292,42 @@ fun RequestServiceScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun DraftRecoveryBar(
+    onKeep: () -> Unit,
+    onDiscard: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(BrandGreen50)
+            .border(0.5.dp, BrandGreen)
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "Resume your draft?",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = BrandGreenDark,
+            modifier = Modifier.weight(1f),
+        )
+        EsBtn(
+            text = "Keep",
+            onClick = onKeep,
+            kind = EsBtnKind.Primary,
+            size = EsBtnSize.Sm,
+        )
+        EsBtn(
+            text = "Discard",
+            onClick = onDiscard,
+            kind = EsBtnKind.Secondary,
+            size = EsBtnSize.Sm,
+        )
     }
 }
 
