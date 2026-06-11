@@ -114,10 +114,19 @@ English (en-IN) only at launch. Add Hindi (hi-IN) and Telugu (te-IN) post-launch
 
 ## App access
 
-- The full app is unlocked behind a sign-up and (for engineers/suppliers) KYC. For Play review, provide a test account through Play Console → App content → App access:
-  - Username: _[FILL IN — create a hospital test account]_
-  - Password: _[FILL IN]_
-  - Notes: "Hospital role; full marketplace + chat are accessible. Engineer flows require KYC — a separate engineer test account is provided below."
+- The full app is unlocked behind a sign-up and (for engineers/suppliers) KYC. For Play review, provide these test accounts through Play Console → App content → App access:
+
+  **Hospital reviewer account (primary):**
+  - Username: `play-review-hospital@equipseva.com`
+  - Password: `PlayReview2026!`
+  - Notes: "Hospital role; full marketplace, repair-job posting, AMC contracts, and chat are accessible. Engineer flows require KYC — use the engineer account below."
+
+  **Engineer reviewer account (KYC fast-path-approved):**
+  - Username: `play-review-engineer@equipseva.com`
+  - Password: `PlayReview2026!`
+  - Notes: "Engineer role with verification_status='verified' (KYC pre-approved for review). Can accept repair-job bids, manage earnings, and complete maintenance visits."
+
+  Both accounts are seeded in Supabase Auth. The engineer's `verification_status` is force-set to 'verified' so reviewers can exercise engineer flows without uploading real KYC docs.
 
 ---
 
