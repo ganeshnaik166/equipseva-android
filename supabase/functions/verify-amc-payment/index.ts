@@ -273,18 +273,43 @@ serve(async (req) => {
   } else {
     // Standard path: order is still 'pending'. Mark paid first so the
     // SECDEF RPC sees the right state.
-    const { error: updErr } = await admin
+    //
+    // Round 476 — audit-7 HIGH #2 — TOCTOU guard. Chain `.eq('status',
+    // 'pending')` onto the UPDATE and check rowcount. Without this
+    // guard a concurrent refund (`status='refunded'`) or failure
+    // (`status='failed'`) landing between the line 138 fetch and the
+    // UPDATE here would be silently overwritten back to `status='paid'`,
+    // breaking the state machine. Mirrors the spare_part_orders pattern
+    // shipped in round 455 + verify-repair-job-payment.
+    const { data: updRows, error: updErr } = await admin
       .from("amc_payment_orders")
       .update({
         status: "paid",
         razorpay_payment_id,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", payment_order_id);
+      .eq("id", payment_order_id)
+      .eq("status", "pending")
+      .select("id");
     if (updErr) {
       console.error("verify-amc-payment order_update_failed", updErr);
       tel("server_error", { errorCode: "server_error", errorMessage: "order_update_failed", amountPaise: expectedPaise });
       return bad("server_error", "order_update_failed", 500);
+    }
+    if (!updRows || updRows.length === 0) {
+      // Row's status changed under us between read-check (line 138)
+      // and this UPDATE. Could be: concurrent verify (double-tap;
+      // round 472 dedup catches this upstream in normal flow), admin
+      // refund path that flipped status='refunded', or webhook arriving
+      // first via razorpay-webhook (r471) which also calls
+      // record_razorpay_payment_captured. Refuse to overwrite.
+      console.warn("verify-amc-payment status_race detected for", payment_order_id);
+      tel("status_race", { errorCode: "order_status_race", amountPaise: expectedPaise });
+      return bad(
+        "order_status_race",
+        "order transitioned off pending before payment could be marked paid; retry or check status",
+        409,
+      );
     }
   }
 
