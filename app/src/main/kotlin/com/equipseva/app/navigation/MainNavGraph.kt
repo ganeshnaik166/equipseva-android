@@ -373,6 +373,13 @@ fun MainNavGraph(
                     onShowMessage = showSnackbar,
                     onOpenChat = { id -> navController.navigate(Routes.chatRoute(id)) },
                     onOpenPayoutMethod = { navController.navigate(Routes.ENGINEER_PAYOUT_METHOD) },
+                    // v0.3.5 fix #9 — Book-again CTA → start a fresh
+                    // booking with engineerId pre-filled in the route
+                    // query arg; RequestServiceViewModel picks it up
+                    // and hydrates the reassurance header.
+                    onBookAgain = { engineerId ->
+                        navController.navigate(Routes.requestServiceRoute(engineerId))
+                    },
                 )
             }
             composable(Routes.ENGINEER_JOBS_HUB) {
@@ -673,7 +680,20 @@ fun MainNavGraph(
                     },
                 )
             }
-            composable(Routes.REQUEST_SERVICE) {
+            // v0.3.5 fix #9 — REQUEST_SERVICE now accepts an optional
+            // engineerId query arg so the Book-again CTA can pre-fill
+            // the form with a chosen engineer. The bare route still
+            // works (other callsites pass null → no query string).
+            composable(
+                route = "${Routes.REQUEST_SERVICE}?${Routes.REQUEST_SERVICE_ARG_ENGINEER_ID}={${Routes.REQUEST_SERVICE_ARG_ENGINEER_ID}}",
+                arguments = listOf(
+                    navArgument(Routes.REQUEST_SERVICE_ARG_ENGINEER_ID) {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) {
                 RequestServiceScreen(
                     onBack = { navController.popBackStack() },
                     onSubmitted = { jobId, jobNumber ->

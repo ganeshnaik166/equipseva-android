@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.data.repair.RepairJobDraft
@@ -39,6 +40,7 @@ class RequestServiceViewModel @Inject constructor(
     private val storageRepository: StorageRepository,
     private val savedStateHandle: SavedStateHandle,
     private val draftStore: RequestServiceDraftStore,
+    private val engineerDirectoryRepository: EngineerDirectoryRepository,
 ) : ViewModel() {
 
     // Round 453 — process-death-safe draft state. Hospital booking is a
@@ -60,6 +62,12 @@ class RequestServiceViewModel @Inject constructor(
         const val ISSUE = "req.issue"
         const val BUDGET = "req.budget"
         const val PHOTOS = "req.photos"
+        // v0.3.5 fix #9 — engineerId carried as a query arg from the
+        // RepairJobDetailScreen Book-again CTA. Persisted in
+        // SavedStateHandle so a process kill doesn't lose the
+        // pre-fill (the reassurance header has to stay across a cold
+        // restart or the user is suddenly typing in a generic form).
+        const val ENGINEER_ID = "req.engineerId"
     }
 
     data class UiState(
@@ -86,6 +94,16 @@ class RequestServiceViewModel @Inject constructor(
         // saved draft is recovered from RequestServiceDraftStore. User
         // taps Keep (restore fields) or Discard (wipe + start fresh).
         val showDraftRecoveryBar: Boolean = false,
+        // v0.3.5 fix #9 — engineer re-booking. When the hospital taps
+        // "Book this engineer again" on a completed job detail, the
+        // nav route carries engineerId; this VM fetches the
+        // engineer_public_profile RPC to fill the reassurance header
+        // (name + rating + jobs done) so the user keeps confidence
+        // through the form. Null on a fresh open-from-Home booking.
+        val prefilledEngineerId: String? = null,
+        val prefilledEngineerName: String? = null,
+        val prefilledEngineerRating: Double? = null,
+        val prefilledEngineerJobCount: Int = 0,
     )
 
     sealed interface Effect {
@@ -117,6 +135,10 @@ class RequestServiceViewModel @Inject constructor(
             issue = savedStateHandle.get<String>(SavedKeys.ISSUE).orEmpty(),
             budget = savedStateHandle.get<String>(SavedKeys.BUDGET).orEmpty(),
             photos = savedStateHandle.get<Array<String>>(SavedKeys.PHOTOS)?.toList().orEmpty(),
+            // v0.3.5 fix #9 — re-hydrate engineerId from query arg or
+            // SavedStateHandle (nav-args land in the handle too).
+            prefilledEngineerId = savedStateHandle.get<String>(SavedKeys.ENGINEER_ID)
+                ?: savedStateHandle.get<String>("engineerId"),
         )
     }
 
@@ -134,6 +156,10 @@ class RequestServiceViewModel @Inject constructor(
         savedStateHandle.remove<String>(SavedKeys.ISSUE)
         savedStateHandle.remove<String>(SavedKeys.BUDGET)
         savedStateHandle.remove<Array<String>>(SavedKeys.PHOTOS)
+        // v0.3.5 fix #9 — engineer pre-fill is one-shot per booking.
+        // Don't carry it past submit so the next fresh open of the
+        // form (e.g. from Home → "Request a repair") starts clean.
+        savedStateHandle.remove<String>(SavedKeys.ENGINEER_ID)
     }
 
     private val effectChannel = kotlinx.coroutines.flow.MutableSharedFlow<Effect>(extraBufferCapacity = 4)
@@ -149,14 +175,29 @@ class RequestServiceViewModel @Inject constructor(
     private var hospitalPhone: String? = null
 
     init {
+        // v0.3.5 fix #9 — pin engineerId nav-arg into SavedKeys so a
+        // process kill mid-typing recovers correctly (the original
+        // nav-arg key only lives on the back-stack entry). Also kick
+        // off the engineer-profile fetch for the reassurance header.
+        val initialEngineerId = _state.value.prefilledEngineerId
+        if (!initialEngineerId.isNullOrBlank()) {
+            savedStateHandle[SavedKeys.ENGINEER_ID] = initialEngineerId
+            loadEngineerReassuranceData(initialEngineerId)
+        }
         // Round 471 — draft recovery. Check for an existing saved draft
         // before the user starts typing; if one exists, show the sticky
         // recovery bar so they can choose Keep / Discard. Runs once on
         // ViewModel construction (cold-start of the screen).
+        // v0.3.5 fix #9 — but suppress the recovery bar when we're in
+        // a re-booking flow. The user clicked "Book again" to start a
+        // fresh booking for THIS engineer; a stale unrelated draft from
+        // a prior session would only confuse them.
         viewModelScope.launch {
-            val existing = draftStore.loadDraft()
-            if (existing != null) {
-                _state.update { it.copy(showDraftRecoveryBar = true) }
+            if (initialEngineerId.isNullOrBlank()) {
+                val existing = draftStore.loadDraft()
+                if (existing != null) {
+                    _state.update { it.copy(showDraftRecoveryBar = true) }
+                }
             }
         }
         // Round 471 — auto-save every 10s of form-field activity. Debounce
@@ -342,6 +383,32 @@ class RequestServiceViewModel @Inject constructor(
             val nextPhotos = it.photos - path
             savedStateHandle[SavedKeys.PHOTOS] = nextPhotos.toTypedArray()
             it.copy(photos = nextPhotos)
+        }
+    }
+
+    /**
+     * v0.3.5 fix #9 — fetch the engineer's public profile so the
+     * reassurance header on the booking form shows their name +
+     * rating + total jobs. Same RPC the EngineerPublicProfileScreen
+     * uses, so a re-booking experience renders the same numbers the
+     * hospital just saw on the detail screen. Soft-fail: the header
+     * just stays hidden if the fetch errors, since the rest of the
+     * form is fully functional without it.
+     */
+    private fun loadEngineerReassuranceData(engineerId: String) {
+        viewModelScope.launch {
+            val profile = engineerDirectoryRepository
+                .fetchPublicProfile(engineerId)
+                .getOrNull()
+            if (profile != null) {
+                _state.update {
+                    it.copy(
+                        prefilledEngineerName = profile.fullName,
+                        prefilledEngineerRating = profile.ratingAvg,
+                        prefilledEngineerJobCount = profile.totalJobs,
+                    )
+                }
+            }
         }
     }
 
