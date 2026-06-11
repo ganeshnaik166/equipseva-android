@@ -6,6 +6,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.firstOrNull
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.CurrencyRupee
 import androidx.compose.material.icons.outlined.Home
@@ -53,8 +54,9 @@ import kotlinx.coroutines.launch
 
 // Round-3 nav restructure — bottom nav is now per-role, matching
 // `shared.jsx:BottomNav`:
-//   • Hospital → 3 tabs (Home / Bookings / Profile) with Bookings
-//     pointing straight at the active-jobs list (was a buried sub-screen).
+//   • Hospital → 4 tabs (Home / Bookings / Messages / Profile) with Bookings
+//     pointing straight at the active-jobs list (was a buried sub-screen),
+//     and Messages elevating from Home card + Profile row to a tab.
 //   • Engineer → 4 tabs (Home / Jobs / Earnings / Profile) — Earnings
 //     graduates from a Profile row to a top-level destination.
 //   • Anonymous / unknown role → engineer 4-tab default.
@@ -69,6 +71,9 @@ private fun tabsForRole(
             )
             Routes.HOSPITAL_ACTIVE_JOBS -> com.equipseva.app.designsystem.components.EsBottomNavItem(
                 Routes.HOSPITAL_ACTIVE_JOBS, "Bookings", Icons.Outlined.WorkOutline,
+            )
+            Routes.CONVERSATIONS -> com.equipseva.app.designsystem.components.EsBottomNavItem(
+                Routes.CONVERSATIONS, "Messages", Icons.AutoMirrored.Outlined.Chat,
             )
             Routes.ENGINEER_JOBS_HUB -> com.equipseva.app.designsystem.components.EsBottomNavItem(
                 Routes.ENGINEER_JOBS_HUB, "Jobs", Icons.Outlined.Build,
@@ -90,7 +95,7 @@ private fun tabsForRole(
  * per-role tab arrangement can be tested without the Compose
  * ImageVector dependencies on the full EsBottomNavItem.
  *
- *   * Hospital → Home / Bookings / Profile (3 tabs)
+ *   * Hospital → Home / Bookings / Messages / Profile (4 tabs)
  *   * Engineer (and other / null roles) → Home / Jobs / Earnings /
  *     Profile (4 tabs)
  *
@@ -102,7 +107,7 @@ internal fun tabRoutesForRole(
     role: com.equipseva.app.features.auth.UserRole?,
 ): List<String> = when (role) {
     com.equipseva.app.features.auth.UserRole.HOSPITAL ->
-        listOf(Routes.HOME, Routes.HOSPITAL_ACTIVE_JOBS, Routes.PROFILE)
+        listOf(Routes.HOME, Routes.HOSPITAL_ACTIVE_JOBS, Routes.CONVERSATIONS, Routes.PROFILE)
     else ->
         listOf(Routes.HOME, Routes.ENGINEER_JOBS_HUB, Routes.EARNINGS, Routes.PROFILE)
 }
@@ -116,7 +121,7 @@ internal val fullScreenRoutePrefixes = listOf(
     Routes.AMC_CONTRACT_DETAIL,
     Routes.CREATE_AMC,
     // ENGINEER_JOBS_HUB intentionally excluded — it's a bottom-nav tab, not a full-screen destination.
-    Routes.CONVERSATIONS,
+    // CONVERSATIONS intentionally excluded (v0.3.4) — now a hospital bottom-nav tab.
     Routes.CHAT_DETAIL,
     Routes.KYC,
     Routes.ABOUT,

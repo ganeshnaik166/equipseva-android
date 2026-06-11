@@ -67,6 +67,7 @@ import com.equipseva.app.designsystem.components.EsChip
 import com.equipseva.app.designsystem.components.InlineStars
 import com.equipseva.app.designsystem.components.EsField
 import com.equipseva.app.designsystem.components.EsTopBar
+import com.equipseva.app.designsystem.components.VerifiedBadgeWithInfo
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.Paper2
 import com.equipseva.app.designsystem.theme.PaperDefault
@@ -617,7 +618,7 @@ private fun EngCard(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
-                InlineVerifiedBadge(small = true)
+                VerifiedBadgeWithInfo(verifiedAt = row.verifiedAt, small = true)
             }
             Spacer(Modifier.height(2.dp))
             val locLine = formatDirectoryRowLocationLine(
@@ -730,6 +731,8 @@ internal fun AvatarBlock(
 
 @Composable
 internal fun InlineVerifiedBadge(small: Boolean = false) {
+    // DEPRECATED: Use VerifiedBadgeWithInfo instead for info sheet functionality.
+    // Kept for backward compatibility with any remaining callers.
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),

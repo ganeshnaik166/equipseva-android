@@ -139,6 +139,7 @@ fun HomeHubScreen(
                     activeCount = state.activeCount,
                     pendingBidsCount = state.pendingBidsCount,
                     nearbyEngineersCount = state.nearbyEngineersCount,
+                    hospitalHasPostedFirstJob = state.hospitalHasPostedFirstJob,
                 )
             }
 
@@ -218,6 +219,17 @@ fun HomeHubScreen(
                 Spacer(Modifier.height(4.dp))
             }
 
+            // Hospital onboarding CTA: first-time hospitals see a bold
+            // "Book your first repair" card before the standard tiles. After
+            // they post their first job, the stats row appears and this card
+            // is hidden.
+            if (role == UserRole.HOSPITAL && !state.hospitalHasPostedFirstJob) {
+                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    FirstJobCtaCard(onClick = onOpenBookRepair)
+                }
+                Spacer(Modifier.height(4.dp))
+            }
+
             // Tiles — role-aware per design (`screens-home.jsx:103-140`).
             Column(
                 modifier = Modifier
@@ -238,12 +250,7 @@ fun HomeHubScreen(
                         desc = "Track open and active repair jobs",
                         onClick = onOpenMyBookings,
                     )
-                    HomeTile(
-                        icon = Icons.AutoMirrored.Outlined.Chat,
-                        title = "Messages",
-                        desc = "Chat with engineers",
-                        onClick = onOpenMessages,
-                    )
+                    // Messages tile removed (v0.3.4) — now a bottom-nav tab.
                 } else {
                     val engVerified = kyc == VerificationStatus.Verified
                     HomeTile(
@@ -660,12 +667,49 @@ private fun HomeTopBar(onNotifications: () -> Unit, hasUnread: Boolean) {
 }
 
 @Composable
+private fun FirstJobCtaCard(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(SevaGreen50),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Filled.Build, contentDescription = null, tint = SevaGreen700, modifier = Modifier.size(24.dp))
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text("Book your first repair", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = SevaInk900)
+            Spacer(Modifier.height(4.dp))
+            Text("Find verified engineers near you", fontSize = 12.sp, color = SevaInk500, lineHeight = 16.sp)
+        }
+        Icon(
+            Icons.Outlined.ChevronRight,
+            contentDescription = null,
+            tint = SevaInk400,
+            modifier = Modifier.size(18.dp),
+        )
+    }
+}
+
+@Composable
 private fun GreetingCard(
     role: UserRole?,
     openCount: Int?,
     activeCount: Int?,
     pendingBidsCount: Int?,
     nearbyEngineersCount: Int?,
+    hospitalHasPostedFirstJob: Boolean = false,
 ) {
     val greeting = remember { greetingForNow() }
     Box(
@@ -696,24 +740,31 @@ private fun GreetingCard(
                 color = Color.White,
             )
             Spacer(Modifier.height(14.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                if (role == UserRole.ENGINEER) {
-                    // "Nearby" used to render here as a permanent "—" until
-                    // the radius RPC stream lands. Dropped — a stat that
-                    // never has a value just sits on the hero looking like
-                    // a load failure. Two real stats is honest; a third
-                    // joins when there's a real number to put in it.
-                    Stat("Pending bids", pendingBidsCount?.toString() ?: "—")
-                    // "Active" was overloaded with the StatusStepper's
-                    // "In progress" step on the job-detail screen — same
-                    // job rendered as "Active" on Home but "In progress"
-                    // on detail. Unify on "In progress" so the surface
-                    // copy matches the state-machine label everywhere.
-                    Stat("In progress", activeCount?.toString() ?: "—")
-                } else {
-                    Stat("Open", openCount?.toString() ?: "—")
-                    Stat("In progress", activeCount?.toString() ?: "—")
-                    Stat("Engineers", nearbyEngineersCount?.toString() ?: "—")
+            // Hospital onboarding: show stats row only after first job posted.
+            // First-time hospitals (no jobs yet) skip the stats and show the
+            // "Book your first repair" CTA instead, so the stats dashes
+            // don't clutter the hero.
+            val showStats = role != UserRole.HOSPITAL || hospitalHasPostedFirstJob
+            if (showStats) {
+                Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    if (role == UserRole.ENGINEER) {
+                        // "Nearby" used to render here as a permanent "—" until
+                        // the radius RPC stream lands. Dropped — a stat that
+                        // never has a value just sits on the hero looking like
+                        // a load failure. Two real stats is honest; a third
+                        // joins when there's a real number to put in it.
+                        Stat("Pending bids", pendingBidsCount?.toString() ?: "—")
+                        // "Active" was overloaded with the StatusStepper's
+                        // "In progress" step on the job-detail screen — same
+                        // job rendered as "Active" on Home but "In progress"
+                        // on detail. Unify on "In progress" so the surface
+                        // copy matches the state-machine label everywhere.
+                        Stat("In progress", activeCount?.toString() ?: "—")
+                    } else {
+                        Stat("Open", openCount?.toString() ?: "—")
+                        Stat("In progress", activeCount?.toString() ?: "—")
+                        Stat("Engineers", nearbyEngineersCount?.toString() ?: "—")
+                    }
                 }
             }
         }

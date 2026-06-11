@@ -8,14 +8,14 @@ import org.junit.Test
 /**
  * Pins the per-role bottom-nav tab arrangement:
  *
- *   * Hospital → 3 tabs: Home / Bookings / Profile
+ *   * Hospital → 4 tabs: Home / Bookings / Messages / Profile
  *   * Engineer (and every other / null role) → 4 tabs: Home / Jobs /
  *     Earnings / Profile
  *
  * Two regressions worth defending:
- *   1) The Hospital tab list MUST be 3 entries — 4 entries would
- *      surface the engineer "Earnings" tab to hospitals (no rows,
- *      empty state, leaks role intent).
+ *   1) The Hospital tab list MUST be 4 entries (Home / Bookings /
+ *      Messages / Profile) — Messages is a real tab, not relegated to
+ *      a Home card or Profile row. v0.3.4 ships this change.
  *   2) The Jobs tab routes to ENGINEER_JOBS_HUB (chooser landing),
  *      not REPAIR (raw feed). Hub then routes into the feed via the
  *      "Available jobs" tile. Pin so a refactor that "simplifies" by
@@ -23,10 +23,10 @@ import org.junit.Test
  */
 class TabRoutesForRoleTest {
 
-    @Test fun `Hospital role gets three tabs ending at Profile`() {
+    @Test fun `Hospital role gets four tabs with Messages before Profile`() {
         val tabs = tabRoutesForRole(UserRole.HOSPITAL)
         assertEquals(
-            listOf(Routes.HOME, Routes.HOSPITAL_ACTIVE_JOBS, Routes.PROFILE),
+            listOf(Routes.HOME, Routes.HOSPITAL_ACTIVE_JOBS, Routes.CONVERSATIONS, Routes.PROFILE),
             tabs,
         )
     }
@@ -87,8 +87,8 @@ class TabRoutesForRoleTest {
         }
     }
 
-    @Test fun `Hospital tab list is exactly 3 entries (no engineer Earnings leak)`() {
-        assertEquals(3, tabRoutesForRole(UserRole.HOSPITAL).size)
+    @Test fun `Hospital tab list is exactly 4 entries Home Bookings Messages Profile`() {
+        assertEquals(4, tabRoutesForRole(UserRole.HOSPITAL).size)
     }
 
     @Test fun `every role's tab list starts at HOME`() {
