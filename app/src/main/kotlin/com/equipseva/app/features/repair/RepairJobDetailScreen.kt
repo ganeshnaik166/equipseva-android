@@ -146,6 +146,13 @@ fun RepairJobDetailScreen(
     // MainNavGraph wires it to Routes.ENGINEER_PAYOUT_METHOD when
     // navigating from the engineer hub.
     onOpenPayoutMethod: () -> Unit = {},
+    // v0.3.5 fix #9 — Book-again CTA wiring. On a completed job, the
+    // hospital can tap "Book this engineer again" in the bottom bar
+    // to start a fresh booking form pre-filled with this engineer's
+    // id (route arg → RequestServiceViewModel.loadEngineerReassurance).
+    // Default no-op so existing callsites compile; MainNavGraph
+    // overrides with the actual navController.navigate call.
+    onBookAgain: (engineerId: String) -> Unit = {},
     viewModel: RepairJobDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -281,6 +288,7 @@ fun RepairJobDetailScreen(
                     onRate = { rateSheetOpen = true },
                     onCancel = { cancelSheetOpen = true },
                     onReviseQuote = viewModel::openReviseQuoteSheet,
+                    onBookAgain = onBookAgain,
                 )
             }
         },
@@ -1933,6 +1941,11 @@ private fun StickyBottomBar(
     onRate: () -> Unit,
     onCancel: () -> Unit,
     onReviseQuote: () -> Unit,
+    // v0.3.5 fix #9 — Book-again CTA, hospital-only, surfaces on
+    // Completed jobs once the hospital has rated the engineer (so
+    // it doesn't compete with the Rate prompt). engineerId is
+    // job.engineerId (engineers.id, what the directory uses).
+    onBookAgain: (engineerId: String) -> Unit = {},
 ) {
     val isEngineer = viewerRole == RepairJobDetailViewModel.ViewerRole.Engineer
     val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
@@ -1970,7 +1983,18 @@ private fun StickyBottomBar(
         else -> null
     }
 
-    if (primaryKind == null && !canCancel) return
+    // v0.3.5 fix #9 — hospital-side "Book this engineer again" CTA.
+    // Surfaces only on Completed jobs where:
+    //   * the viewer is the hospital (engineer wouldn't book themselves),
+    //   * a specific engineer was assigned (engineerId non-null — repeat
+    //     bookings need a target),
+    //   * the hospital has already rated the engineer — gating on rated
+    //     keeps the bottom bar a single primary CTA (Rate) until that's
+    //     done, then swaps the slot to the higher-LTV re-book action.
+    val showBookAgain = isHospital &&
+        job.status == RepairJobStatus.Completed &&
+        rated &&
+        job.engineerId != null
 
     Row(
         modifier = Modifier
@@ -2040,15 +2064,35 @@ private fun StickyBottomBar(
                 size = EsBtnSize.Lg,
                 modifier = Modifier.weight(1f),
             )
-            PrimaryCta.RatedDone -> EsBtn(
-                text = "Rated · Thanks!",
-                onClick = {},
-                kind = EsBtnKind.Secondary,
-                full = true,
-                size = EsBtnSize.Lg,
-                disabled = true,
-                modifier = Modifier.weight(1f),
-            )
+            PrimaryCta.RatedDone -> {
+                // v0.3.5 fix #9 — once the hospital has rated the engineer
+                // on a completed job, the bottom slot becomes a prominent
+                // "Book this engineer again" primary CTA. Repeat bookings
+                // are the highest-LTV path on this surface; the old
+                // disabled "Rated · Thanks!" pill wasted prime real
+                // estate. Engineers still see the disabled pill (no
+                // re-book affordance for the engineer side).
+                if (showBookAgain) {
+                    EsBtn(
+                        text = "★ Book this engineer again",
+                        onClick = { onBookAgain(job.engineerId!!) },
+                        kind = EsBtnKind.Primary,
+                        full = true,
+                        size = EsBtnSize.Lg,
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    EsBtn(
+                        text = "Rated · Thanks!",
+                        onClick = {},
+                        kind = EsBtnKind.Secondary,
+                        full = true,
+                        size = EsBtnSize.Lg,
+                        disabled = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
             null -> Unit
         }
         if (canCancel) {

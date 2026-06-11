@@ -56,6 +56,15 @@ object Routes {
 
     // Hospital-side sub-routes.
     const val REQUEST_SERVICE = "hospital/request_service"
+    // v0.3.5 fix #9 — optional engineerId pre-fill so the Book-again CTA on
+    // a completed RepairJobDetailScreen can route here with the engineer
+    // already locked in. Routes.kt builder appends a query arg only when
+    // non-null so the bare REQUEST_SERVICE route stays compatible with all
+    // existing callsites (home Hub, ActiveJobs, EngineerPublicProfile).
+    const val REQUEST_SERVICE_ARG_ENGINEER_ID = "engineerId"
+    fun requestServiceRoute(engineerId: String? = null): String =
+        if (engineerId.isNullOrBlank()) REQUEST_SERVICE
+        else "$REQUEST_SERVICE?$REQUEST_SERVICE_ARG_ENGINEER_ID=$engineerId"
     const val HOSPITAL_ACTIVE_JOBS = "hospital/active_jobs"
 
     // v0.2.0 mandatory onboarding gate: phone + state + district capture

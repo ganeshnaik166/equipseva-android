@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.PriorityHigh
 import androidx.compose.foundation.text.KeyboardOptions
@@ -57,6 +58,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -67,6 +69,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.core.util.MIME_JPEG
+import com.equipseva.app.designsystem.components.Avatar
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.EsBtn
@@ -240,6 +243,19 @@ fun RequestServiceScreen(
                     .padding(bottom = Spacing.xl),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
+                // v0.3.5 fix #9 — engineer reassurance header. Rendered
+                // only when the screen was opened from a Book-again CTA
+                // (engineerId was passed in the route + fetchPublicProfile
+                // resolved a name). Shows the chosen engineer's name,
+                // rating, and total completed jobs so the hospital keeps
+                // confidence through what is otherwise a generic form.
+                if (state.prefilledEngineerName != null) {
+                    EngineerReassuranceHeader(
+                        name = state.prefilledEngineerName!!,
+                        rating = state.prefilledEngineerRating,
+                        jobCount = state.prefilledEngineerJobCount,
+                    )
+                }
                 StepEquipment(
                     category = state.category,
                     brand = state.brand,
@@ -291,6 +307,61 @@ fun RequestServiceScreen(
                     onBudget = viewModel::onBudgetChange,
                 )
             }
+        }
+    }
+}
+
+/**
+ * v0.3.5 fix #9 — engineer reassurance header shown above the booking
+ * form when the screen was opened from a Book-again CTA. Star icon +
+ * avatar with initials + name + (rating ✕ jobs) summary. Sits inside
+ * the regular scroll surface (above StepEquipment) so it scrolls with
+ * the form rather than living in the top bar.
+ */
+@Composable
+private fun EngineerReassuranceHeader(
+    name: String,
+    rating: Double?,
+    jobCount: Int,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(BrandGreen50)
+            .border(1.dp, BrandGreen, RoundedCornerShape(12.dp))
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Star,
+            contentDescription = null,
+            tint = BrandGreenDark,
+            modifier = Modifier.size(20.dp),
+        )
+        val initials = name
+            .split(" ")
+            .mapNotNull { it.firstOrNull()?.toString() }
+            .joinToString("")
+            .ifBlank { "E" }
+        Avatar(initials = initials, size = 36.dp)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Booking $name",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Ink900,
+            )
+            val ratingLabel = rating?.takeIf { it > 0.0 }
+                ?.let { String.format("%.1f ★", it) }
+                ?: "New"
+            val jobsLabel = if (jobCount == 1) "1 job" else "$jobCount jobs"
+            Text(
+                text = "$ratingLabel · $jobsLabel",
+                fontSize = 12.sp,
+                color = Ink700,
+            )
         }
     }
 }
