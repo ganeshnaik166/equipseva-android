@@ -374,9 +374,12 @@ BEGIN
     PERFORM cron.unschedule(v_jobid);
   END IF;
 EXCEPTION
-  WHEN undefined_table OR undefined_function THEN
-    -- pg_cron extension not installed (local / test env). Skip silently.
-    RAISE NOTICE 'pg_cron not available — reaper not scheduled (local env)';
+  WHEN OTHERS THEN
+    -- pg_cron extension not installed on this Supabase project (it's a
+    -- Pro-tier opt-in). Skip silently — the reaper is scheduled out-of-
+    -- band via the .github/workflows/cron-tick-* GH Actions workflow
+    -- that POSTs to a tick endpoint hourly. See SETUP.md for wiring.
+    RAISE NOTICE 'pg_cron not available (%) — reaper job not registered; schedule via GH Actions cron-tick instead', SQLERRM;
 END $$;
 
 DO $$
@@ -387,6 +390,6 @@ BEGIN
     $cron$SELECT public.reap_stranded_pending_payment_amc_contracts()$cron$
   );
 EXCEPTION
-  WHEN undefined_table OR undefined_function THEN
-    RAISE NOTICE 'pg_cron not available — reaper not scheduled (local env)';
+  WHEN OTHERS THEN
+    RAISE NOTICE 'pg_cron not available (%) — reaper job not registered; schedule via GH Actions cron-tick instead', SQLERRM;
 END $$;
