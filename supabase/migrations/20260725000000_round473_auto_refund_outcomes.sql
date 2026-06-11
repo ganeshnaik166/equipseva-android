@@ -40,11 +40,17 @@ STABLE
 SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
+  -- Round 473: gate on is_founder() inside the SQL body so SECURITY
+  -- DEFINER + GRANT to authenticated does NOT leak Razorpay event/
+  -- payment identifiers to non-founder users. is_founder() returns
+  -- false → predicate fails → zero rows returned (no error, just
+  -- empty result, which is also the right shape for the ops UI).
   SELECT id, razorpay_event_id, event_type, razorpay_order_id,
          razorpay_payment_id, amount_paise, apply_outcome, apply_error,
          received_at
     FROM public.razorpay_webhook_events
-   WHERE received_at >= p_since
+   WHERE public.is_founder()
+     AND received_at >= p_since
      AND (applied = false
           OR apply_outcome IN (
             'no_matching_row',
@@ -86,11 +92,14 @@ STABLE
 SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
+  -- Round 473: is_founder() gate inside body — see comment on
+  -- founder_razorpay_webhook_orphans above for rationale.
   SELECT id, razorpay_event_id, razorpay_order_id,
          razorpay_payment_id, razorpay_refund_id, amount_paise,
          apply_outcome, received_at
     FROM public.razorpay_webhook_events
-   WHERE received_at >= p_since
+   WHERE public.is_founder()
+     AND received_at >= p_since
      AND apply_outcome IN (
        'auto_refund_issued',
        'auto_refund_already_refunded',

@@ -165,34 +165,45 @@ export async function attemptRazorpayRefund(args: {
     };
   }
 
+  // Razorpay's "already refunded" condition actually returns HTTP 400
+  // per their docs (not 422 as we'd assumed in the first cut). We
+  // detect it across both status codes because some endpoints + idempotency
+  // paths can route through 422 too. We prefer the machine-readable
+  // err.code and err.reason fields; description-substring is the
+  // fallback (Razorpay error.code is "BAD_REQUEST_ERROR" for this case,
+  // so the description is the actual signal — but we still try
+  // structured fields first to survive any future shape changes).
+  const err =
+    (parsed as {
+      error?: { code?: string; description?: string; reason?: string };
+    } | null)?.error ?? null;
+  const reason = (err?.reason ?? "").toLowerCase();
+  const description = (err?.description ?? "").toLowerCase();
+  const machineSignals =
+    reason.includes("already_refunded") ||
+    reason.includes("already_processed");
+  const descriptionSignals =
+    description.includes("already refunded") ||
+    description.includes("already been refunded") ||
+    description.includes("fully refunded");
+  const isAlreadyRefunded = machineSignals || descriptionSignals;
+
+  if ((res.status === 400 || res.status === 422) && isAlreadyRefunded) {
+    // Treat as success — money already returned. This is the
+    // idempotency path on duplicate webhook delivery.
+    return {
+      ok: true,
+      refundId: null,
+      outcome: "already_refunded",
+      httpStatus: res.status,
+      errorCode: err?.code ?? "ALREADY_REFUNDED",
+      errorMessage: err?.description ?? "payment already refunded",
+    };
+  }
+
   if (res.status === 422) {
-    // Inspect the error to distinguish already-refunded from other 422s.
-    // Razorpay returns these subcodes (observed in their docs):
-    //   - "Payment is already refunded"
-    //   - "Refund amount cannot be greater than the captured amount"
-    //   - "Payment is not in capture state"
-    const err =
-      (parsed as { error?: { code?: string; description?: string; reason?: string } } | null)
-        ?.error ?? null;
-    const description = (err?.description ?? "").toLowerCase();
-    const isAlreadyRefunded =
-      description.includes("already refunded") ||
-      description.includes("already been refunded") ||
-      description.includes("fully refunded");
-
-    if (isAlreadyRefunded) {
-      // Treat as success — money already returned. This is the
-      // idempotency path on duplicate webhook delivery.
-      return {
-        ok: true,
-        refundId: null,
-        outcome: "already_refunded",
-        httpStatus: 422,
-        errorCode: err?.code ?? "ALREADY_REFUNDED",
-        errorMessage: err?.description ?? "payment already refunded",
-      };
-    }
-
+    // Other 422s — refund amount > captured, payment not in capture
+    // state, etc. Not retryable.
     return {
       ok: false,
       refundId: null,
@@ -203,12 +214,10 @@ export async function attemptRazorpayRefund(args: {
     };
   }
 
-  // Other non-2xx (401, 5xx, etc.) — return as failure so caller can
-  // log + alert ops. Razorpay-webhook should return 200 to Razorpay
-  // anyway to avoid retry storm; it'll log the auto-refund failure
-  // separately for triage.
-  const err =
-    (parsed as { error?: { code?: string; description?: string } } | null)?.error ?? null;
+  // Other non-2xx (400 non-already-refunded, 401, 5xx, etc.) — return
+  // as failure so caller can log + alert ops. Razorpay-webhook should
+  // return 200 to Razorpay anyway to avoid retry storm; it'll log the
+  // auto-refund failure separately for triage.
   return {
     ok: false,
     refundId: null,

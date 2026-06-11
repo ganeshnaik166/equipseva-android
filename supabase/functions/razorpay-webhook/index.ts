@@ -214,6 +214,35 @@ serve(async (req) => {
             .maybeSingle(),
         ]);
 
+        // If any lookup hit a DB error, we don't know whether a
+        // cancelled row exists — refusing to refund would strand the
+        // payment; firing the refund without checking would risk
+        // double-refunding a valid in-flight order. Safer to record
+        // for ops triage + return 200 (so Razorpay doesn't retry into
+        // a refund storm) than to guess wrong.
+        const lookupError = escrowQ.error || spareQ.error || amcQ.error;
+        if (lookupError) {
+          console.error(
+            "razorpay-webhook: auto-refund intake lookup failed",
+            eventId,
+            paymentId,
+            lookupError.message,
+          );
+          await admin
+            .from("razorpay_webhook_events")
+            .update({
+              applied: false,
+              apply_outcome: "auto_refund_failed",
+              apply_error: `intake_lookup_failed:${lookupError.message}`.slice(0, 1000),
+            })
+            .eq("razorpay_event_id", eventId);
+          return json(200, {
+            ok: false,
+            code: "auto_refund_failed",
+            applied: data,
+          });
+        }
+
         const cancelledRow =
           escrowQ.data || spareQ.data || amcQ.data;
 
