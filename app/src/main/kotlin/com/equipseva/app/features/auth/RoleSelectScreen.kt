@@ -117,6 +117,10 @@ fun RoleSelectScreen(
             when (effect) {
                 is AuthEffect.ShowMessage -> onShowMessage(effect.text)
                 AuthEffect.NavigateToHome -> Unit
+                // v0.3.4 — host (AppNavGraph AuthHostInline) observes the
+                // session transition and routes via the auth graph; the
+                // RoleSelect screen itself doesn't navigate here.
+                AuthEffect.NavigateToHospitalPhoneOnboarding -> Unit
             }
         }
     }

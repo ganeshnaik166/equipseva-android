@@ -62,7 +62,15 @@ class RoleSelectViewModel @Inject constructor(
                 .onSuccess {
                     userPrefs.setActiveRole(role.storageKey)
                     _state.update { it.copy(form = FormUiState()) }
-                    _effects.emit(AuthEffect.NavigateToHome)
+                    // v0.3.4 — Hospitals collect phone after role select
+                    // (mandatory for call masking). Engineers proceed to
+                    // Home; their phone is part of the KYC flow.
+                    val effect = if (role == UserRole.HOSPITAL) {
+                        AuthEffect.NavigateToHospitalPhoneOnboarding
+                    } else {
+                        AuthEffect.NavigateToHome
+                    }
+                    _effects.emit(effect)
                 }
                 .onFailure { error ->
                     _state.update {

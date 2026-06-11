@@ -60,6 +60,11 @@ fun SignUpScreen(
     onShowMessage: (String) -> Unit,
     onBack: () -> Unit = {},
     onSignIn: () -> Unit = {},
+    // v0.3.4 — invoked when a hospital admin completes signup; routes
+    // into HOSPITAL_PHONE_ONBOARDING before the session-state observer
+    // can swap to the main graph. Engineers don't trigger this callback
+    // (their AuthEffect.NavigateToHome lets AuthHostInline route to Home).
+    onNavigateToPhoneOnboarding: () -> Unit = {},
     viewModel: SignUpViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -69,6 +74,8 @@ fun SignUpScreen(
             when (effect) {
                 is AuthEffect.ShowMessage -> onShowMessage(effect.text)
                 AuthEffect.NavigateToHome -> Unit
+                AuthEffect.NavigateToHospitalPhoneOnboarding ->
+                    onNavigateToPhoneOnboarding()
             }
         }
     }

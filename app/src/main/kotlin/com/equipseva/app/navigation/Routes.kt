@@ -72,6 +72,13 @@ object Routes {
     // in the public directory.
     const val ENGINEER_ONBOARDING = "engineer/onboarding"
 
+    // v0.3.4 — Post-signup phone collection for hospital admins. Hospitals
+    // pick their role in RoleSelectScreen, then collect phone here before
+    // Home loads. Phone is mandatory for Exotel call masking during jobs;
+    // collecting at signup-time avoids the silent-failure prone async
+    // banner on Home (engineer can't call, job dies).
+    const val HOSPITAL_PHONE_ONBOARDING = "hospital/phone_onboarding"
+
     // Confirmation landing after a successful repair-job submit. Optional
     // jobId + jobNumber query args drive the "View job" CTA + display copy.
     const val REQUEST_SENT = "hospital/request_sent"

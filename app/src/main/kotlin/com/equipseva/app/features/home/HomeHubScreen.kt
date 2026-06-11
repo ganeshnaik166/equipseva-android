@@ -170,17 +170,11 @@ fun HomeHubScreen(
                 }
             }
 
-            // Phone-missing banner — hospitals without a phone number
-            // can't be called by an engineer during a job. The
-            // "Required" badge in Profile is invisible to a user who
-            // never visits Profile, so surface it on Home too. Only
-            // for hospitals; engineers see the KYC banner instead
-            // which already covers phone-as-part-of-KYC.
-            if (role == UserRole.HOSPITAL && state.phoneMissing) {
-                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                    PhoneMissingBanner(onClick = onOpenAddPhone)
-                }
-            }
+            // v0.3.4 — phone collection moved to a dedicated post-signup
+            // gate (Routes.HOSPITAL_PHONE_ONBOARDING) after SignUp/RoleSelect,
+            // so hospitals always have a phone by the time they reach Home.
+            // PhoneMissingBanner removed; AddPhone is still reachable from
+            // the Profile screen for edit flows.
 
             // Razorpay process-death marker: any AMC payment whose
             // checkout activity didn't return cleanly AND whose

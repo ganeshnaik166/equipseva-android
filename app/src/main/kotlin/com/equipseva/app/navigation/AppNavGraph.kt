@@ -21,6 +21,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.equipseva.app.features.auth.SessionState
 import com.equipseva.app.features.auth.SessionViewModel
@@ -281,7 +282,8 @@ private fun AuthHostInline(
     // ProfileScreen's "Sign in" button would be bounced straight back to
     // Home before the Welcome screen ever rendered.
     val sawSignedOut = remember { mutableStateOf(false) }
-    LaunchedEffect(sessionState) {
+    val currentRoute by navController.currentBackStackEntryAsState()
+    LaunchedEffect(sessionState, currentRoute) {
         if (sessionState is SessionState.SignedOut) {
             sawSignedOut.value = true
             return@LaunchedEffect
@@ -289,7 +291,13 @@ private fun AuthHostInline(
         val authenticated = sessionState is SessionState.NeedsRole ||
             sessionState is SessionState.Ready ||
             sessionState is SessionState.NeedsOnboarding
-        if (authenticated && sawSignedOut.value) {
+        // v0.3.4 — block the swap to main while a hospital admin is on
+        // the post-signup phone collection screen. Without this, the
+        // session-state observer races SignUp → effect → navigate and
+        // swaps the host graph before the user can input their phone.
+        val onPhoneOnboarding = currentRoute?.destination?.route ==
+            Routes.HOSPITAL_PHONE_ONBOARDING
+        if (authenticated && sawSignedOut.value && !onPhoneOnboarding) {
             onAuthSuccess()
         }
     }

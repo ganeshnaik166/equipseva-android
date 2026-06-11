@@ -88,12 +88,9 @@ class HomeHubViewModel @Inject constructor(
         // PR-D34: aggregated AMC SLA credits issued to hospital in the
         // trailing 30-day window. Card renders only when total > 0.
         val recentSlaCredits: com.equipseva.app.core.data.amc.AmcRepository.HospitalSlaCreditSummary? = null,
-        // True when the signed-in profile has no phone number recorded.
-        // Drives the hospital-side AddPhone banner — engineers can't
-        // call the hospital during a job without it, and the badge
-        // tucked away in Profile is invisible to a user who never
-        // visits Profile.
-        val phoneMissing: Boolean = false,
+        // v0.3.4 — phoneMissing state removed; phone collection now lives
+        // in the post-signup HOSPITAL_PHONE_ONBOARDING gate so hospitals
+        // always have a phone by the time they reach Home.
         // Non-zero when a Razorpay AMC checkout was interrupted by
         // process death (entries the reconciler couldn't resolve on
         // cold-start because the server-side status was still
@@ -238,7 +235,6 @@ class HomeHubViewModel @Inject constructor(
                 it.copy(
                     isFounder = profile?.isFounder() == true,
                     role = fetchedRole ?: it.role,
-                    phoneMissing = profile?.phone.isNullOrBlank(),
                 )
             }
         }

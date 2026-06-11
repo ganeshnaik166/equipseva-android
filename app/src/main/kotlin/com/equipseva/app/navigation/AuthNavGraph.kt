@@ -45,10 +45,32 @@ fun NavGraphBuilder.authNavGraph(
                 onSignIn = {
                     navController.popBackStack(Routes.AUTH_SIGN_IN, inclusive = false)
                 },
+                // v0.3.4 — hospitals route into the phone-onboarding gate
+                // immediately after a successful signup so AppNavGraph's
+                // session observer doesn't swap to Home before phone capture.
+                onNavigateToPhoneOnboarding = {
+                    navController.navigate(Routes.HOSPITAL_PHONE_ONBOARDING) {
+                        launchSingleTop = true
+                    }
+                },
             )
         }
         composable(Routes.AUTH_FORGOT_PASSWORD) {
             ForgotPasswordScreen(onBack = { navController.popBackStack() })
+        }
+        // v0.3.4 — post-signup phone collection for hospitals. Entered
+        // after RoleSelectScreen when hospital role is selected; routes
+        // to main on successful save (AppNavGraph AuthHostInline observes
+        // the session transition and calls onAuthSuccess to swap graphs).
+        composable(Routes.HOSPITAL_PHONE_ONBOARDING) {
+            com.equipseva.app.features.onboarding.HospitalPhoneOnboardingScreen(
+                onDone = {
+                    // Pop the entire auth graph; AppNavGraph's session
+                    // transition observer will route us to the main graph.
+                    navController.popBackStack(Routes.AUTH_GRAPH, inclusive = true)
+                },
+                onShowMessage = showSnackbar,
+            )
         }
     }
 }
