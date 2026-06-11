@@ -21,52 +21,52 @@ EquipSeva: Hospital Equipment
 ## Short description (≤80 characters)
 
 ```
-Buy hospital spare parts, find biomedical engineers, and fix equipment fast.
+Book verified biomedical engineers for hospital equipment repair & maintenance.
 ```
 
-(77 characters)
+(79 characters)
 
 **Alternates:**
-- `India's marketplace for hospital equipment, parts, and repair engineers.` (73)
-- `Source spare parts. Book repair engineers. Fix hospital equipment in days.` (74)
+- `India's marketplace for hospital biomedical engineers — repair & AMC plans.` (74)
+- `Find biomedical engineers. Book repairs. Set up monthly maintenance.` (68)
+
+> Note (round 478): spare-parts marketplace copy removed — feature is on the v0.4 roadmap (DB schema exists, UI not yet shipped). Don't promise what doesn't ship.
 
 ---
 
 ## Full description (≤4000 characters)
 
 ```
-EquipSeva is India's marketplace for hospital equipment — parts, repairs, and trusted biomedical engineers in one app.
+EquipSeva is India's marketplace for hospital equipment repair — connecting you to verified biomedical engineers in one app.
 
-Whether you run a 30-bed nursing home or a multi-specialty hospital, downtime on a critical machine costs money and risks patients. EquipSeva connects you to verified suppliers, biomedical engineers, manufacturers, and logistics partners so a broken ventilator, ECG, ultrasound, or anaesthesia workstation gets back into service in days, not weeks.
+Whether you run a 30-bed nursing home or a multi-specialty hospital, downtime on a critical machine costs money and risks patients. EquipSeva connects you to verified biomedical engineers so a broken ventilator, ECG, ultrasound, or anaesthesia workstation gets back into service in days, not weeks.
 
 WHAT YOU CAN DO
 
 For Hospitals
-• Browse a curated marketplace of spare parts (filters, probes, sensors, batteries, boards, accessories) with photos, specs, and seller ratings.
-• Post a Request-for-Quote (RFQ) when you need a part you can't find on the shelf — receive bids from suppliers across India within hours.
-• Book a verified biomedical engineer for on-site or remote diagnostics. Compare bids by price, ETA, and rating.
-• Track every order with real-time status: Placed → Confirmed → Packed → Shipped → Delivered.
-• Pay securely with cards, UPI, net-banking, or wallets via Razorpay. Money is held in escrow on repair jobs and only released when you confirm completion.
-• Chat directly with sellers and engineers in-app — no off-platform contact-sharing required.
+• Book a verified biomedical engineer for on-site repair or diagnostics. Compare bids by price, ETA, and rating.
+• Set up monthly maintenance (AMC) contracts with engineers you trust — predictable preventive care without paperwork.
+• Track every repair with real-time status: Posted → Bids → Accepted → In progress → Completed.
+• Pay securely with cards, UPI, net-banking, or wallets via Razorpay. Money is held in escrow on every repair job and only released when you confirm completion.
+• Chat directly with engineers in-app — share equipment photos, confirm specs, get ETA updates without WhatsApp.
 
 For Engineers
 • Discover repair jobs near you and bid with your price + ETA.
 • Complete KYC once and get a verified badge that hospitals trust.
-• Get paid through escrow, with payouts released the moment the hospital confirms completion.
+• Take on monthly maintenance contracts for predictable income.
+• Get paid through escrow, with payouts released the moment the hospital confirms completion or 48 hours after job close.
 • Build a reputation through ratings and reviews.
-
-For Suppliers
-• List spare parts with photos, MRP, discount, OEM/genuine flags.
-• Respond to live RFQs from hospitals nationwide.
-• Manage stock alerts and orders from your Supplier dashboard.
 
 WHY EQUIPSEVA
 
-• Verified profiles. Engineers and suppliers complete KYC with government photo ID and a live selfie before they can transact.
-• Escrow-protected payments. You don't pay an engineer until the job is done.
+• Verified engineers. Every engineer completes KYC with government photo ID and a live selfie before hospitals see them.
+• Escrow-protected payments. Hospitals don't pay until the job is done.
 • Real-time chat. Negotiate, share photos, confirm specs without WhatsApp.
 • Push notifications you control. Mute by category, set quiet hours, and only get pinged for what matters.
 • Built for India. Razorpay payments, GST-aware invoicing, RBI-compliant refunds, DPDP-compliant data handling.
+
+COMING SOON
+• Spare-parts marketplace and supplier flows are on our roadmap and will arrive in a future update.
 
 PRIVACY AND SAFETY
 
@@ -77,7 +77,7 @@ PRIVACY AND SAFETY
 
 WHO WE'RE FOR
 
-Hospitals, nursing homes, diagnostic labs, biomedical engineers, equipment suppliers, OEM manufacturers, and medical-logistics partners across India. Sign-up is free; you only pay when you transact.
+Hospitals, nursing homes, diagnostic labs, and biomedical engineers across India. Sign-up is free; you only pay when you book a repair.
 
 QUESTIONS
 
