@@ -10,6 +10,8 @@ import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.data.repair.RepairJobDraft
 import com.equipseva.app.core.data.repair.RepairJobRepository
 import com.equipseva.app.core.data.repair.RepairJobUrgency
+import com.equipseva.app.core.data.repair.RequestServiceDraftStore
+import com.equipseva.app.core.data.repair.RequestServiceFormDraft
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.storage.StorageRepository
 import com.equipseva.app.core.util.timestampedName
@@ -17,9 +19,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
@@ -32,6 +38,7 @@ class RequestServiceViewModel @Inject constructor(
     private val jobRepository: RepairJobRepository,
     private val storageRepository: StorageRepository,
     private val savedStateHandle: SavedStateHandle,
+    private val draftStore: RequestServiceDraftStore,
 ) : ViewModel() {
 
     // Round 453 — process-death-safe draft state. Hospital booking is a
@@ -75,6 +82,10 @@ class RequestServiceViewModel @Inject constructor(
         val errorMessage: String? = null,
         val issueError: String? = null,
         val siteAddressError: String? = null,
+        // Round 471 — sticky bar shown at top of form when a previously
+        // saved draft is recovered from RequestServiceDraftStore. User
+        // taps Keep (restore fields) or Discard (wipe + start fresh).
+        val showDraftRecoveryBar: Boolean = false,
     )
 
     sealed interface Effect {
@@ -138,6 +149,38 @@ class RequestServiceViewModel @Inject constructor(
     private var hospitalPhone: String? = null
 
     init {
+        // Round 471 — draft recovery. Check for an existing saved draft
+        // before the user starts typing; if one exists, show the sticky
+        // recovery bar so they can choose Keep / Discard. Runs once on
+        // ViewModel construction (cold-start of the screen).
+        viewModelScope.launch {
+            val existing = draftStore.loadDraft()
+            if (existing != null) {
+                _state.update { it.copy(showDraftRecoveryBar = true) }
+            }
+        }
+        // Round 471 — auto-save every 10s of form-field activity. Debounce
+        // on the user-meaningful fields only (skip transient submitting /
+        // uploadingPhoto / error flags so they don't trigger spurious
+        // saves). This is defense-in-depth against true process kill —
+        // SavedStateHandle survives short-lived OS kills while the
+        // ViewModel is still warm, this DataStore survives cold-start
+        // hours / days later.
+        @OptIn(FlowPreview::class)
+        viewModelScope.launch {
+            _state
+                .map { it.draftSnapshot() }
+                .distinctUntilChanged()
+                .debounce(AUTO_SAVE_DEBOUNCE_MS)
+                .collect { snap ->
+                    // Skip empty-form snapshots — no point saving a draft
+                    // the user hasn't typed anything into. The recovery
+                    // bar would then appear on next launch for a blank
+                    // form, which is just annoying.
+                    if (snap.isEmpty()) return@collect
+                    draftStore.saveDraft(snap)
+                }
+        }
         viewModelScope.launch {
             authRepository.sessionState
                 .filterIsInstance<AuthSession.SignedIn>()
@@ -302,6 +345,68 @@ class RequestServiceViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Round 471 — "Keep" tap on draft-recovery bar. Loads the saved draft
+     * from DataStore, replays it into both SavedStateHandle (so a
+     * subsequent process death restores correctly) and the in-memory
+     * UiState, then dismisses the recovery bar.
+     */
+    fun onKeepDraft() {
+        viewModelScope.launch {
+            val draft = draftStore.loadDraft()
+            if (draft == null) {
+                // Draft expired / was cleared between bar-show and tap.
+                _state.update { it.copy(showDraftRecoveryBar = false) }
+                return@launch
+            }
+            val category = RepairEquipmentCategory.fromKey(draft.category)
+            val urgency = RepairJobUrgency.fromKey(draft.urgency)
+            savedStateHandle[SavedKeys.CATEGORY] = category.name
+            savedStateHandle[SavedKeys.URGENCY] = urgency.name
+            savedStateHandle[SavedKeys.BRAND] = draft.brand
+            savedStateHandle[SavedKeys.MODEL] = draft.model
+            savedStateHandle[SavedKeys.SERIAL] = draft.serial
+            savedStateHandle[SavedKeys.SITE_ADDRESS] = draft.siteAddress
+            savedStateHandle[SavedKeys.SITE_LOCATION] = draft.siteLocation
+            savedStateHandle[SavedKeys.PICKED_DATE] = draft.pickedDateMillis
+            savedStateHandle[SavedKeys.SITE_LAT] = draft.siteLatitude
+            savedStateHandle[SavedKeys.SITE_LNG] = draft.siteLongitude
+            savedStateHandle[SavedKeys.ISSUE] = draft.issue
+            savedStateHandle[SavedKeys.BUDGET] = draft.budget
+            savedStateHandle[SavedKeys.PHOTOS] = draft.photoUris.toTypedArray()
+            _state.update {
+                it.copy(
+                    category = category,
+                    urgency = urgency,
+                    brand = draft.brand,
+                    model = draft.model,
+                    serial = draft.serial,
+                    siteAddress = draft.siteAddress,
+                    siteLocation = draft.siteLocation,
+                    pickedDateMillis = draft.pickedDateMillis,
+                    siteLatitude = draft.siteLatitude,
+                    siteLongitude = draft.siteLongitude,
+                    issue = draft.issue,
+                    budget = draft.budget,
+                    photos = draft.photoUris,
+                    showDraftRecoveryBar = false,
+                )
+            }
+        }
+    }
+
+    /**
+     * Round 471 — "Discard" tap on draft-recovery bar. Wipes the stored
+     * draft and dismisses the bar; the form remains at its (already
+     * blank) initial state so the user starts fresh.
+     */
+    fun onDiscardDraft() {
+        viewModelScope.launch {
+            draftStore.clearDraft()
+            _state.update { it.copy(showDraftRecoveryBar = false) }
+        }
+    }
+
     fun onSubmit(selectedSlot: Int = -1) {
         val uid = userId
         if (uid == null) {
@@ -406,6 +511,10 @@ class RequestServiceViewModel @Inject constructor(
             jobRepository.create(draft)
                 .onSuccess { job ->
                     clearSavedDraft()
+                    // Round 471 — clear persistent draft on successful
+                    // submit so the user doesn't see a stale recovery
+                    // bar for a job they already created.
+                    draftStore.clearDraft()
                     _state.update { UiState() }
                     effectChannel.tryEmit(Effect.Submitted(jobId = job.id, jobNumber = job.jobNumber))
                 }
@@ -415,6 +524,52 @@ class RequestServiceViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Project [UiState] to a [RequestServiceFormDraft] for persistence.
+     * Strips transient flags (submitting, uploadingPhoto, error fields,
+     * showDraftRecoveryBar) so distinctUntilChanged() doesn't trip on
+     * those and trigger spurious auto-saves.
+     */
+    private fun UiState.draftSnapshot(): RequestServiceFormDraft = RequestServiceFormDraft(
+        category = category.storageKey,
+        urgency = urgency.storageKey,
+        brand = brand,
+        model = model,
+        serial = serial,
+        siteAddress = siteAddress,
+        siteLocation = siteLocation,
+        pickedDateMillis = pickedDateMillis,
+        siteLatitude = siteLatitude,
+        siteLongitude = siteLongitude,
+        issue = issue,
+        budget = budget,
+        photoUris = photos,
+    )
+
+    /**
+     * True when the draft is essentially blank (no user input). Used to
+     * skip persisting empty drafts which would otherwise pop a useless
+     * recovery prompt on next launch. Auto-prefilled siteAddress (from
+     * profile state/district) is not counted as user input here.
+     */
+    private fun RequestServiceFormDraft.isEmpty(): Boolean =
+        brand.isBlank() &&
+            model.isBlank() &&
+            serial.isBlank() &&
+            siteLocation.isBlank() &&
+            issue.isBlank() &&
+            budget.isBlank() &&
+            photoUris.isEmpty() &&
+            pickedDateMillis == null &&
+            siteLatitude == null &&
+            siteLongitude == null
+
+    private companion object {
+        // 10 seconds — matches the plan; long enough that we're not
+        // hammering DataStore on every keystroke, short enough that a
+        // process kill loses at most ~10s of typing.
+        const val AUTO_SAVE_DEBOUNCE_MS = 10_000L
+    }
 }
 
 /**
