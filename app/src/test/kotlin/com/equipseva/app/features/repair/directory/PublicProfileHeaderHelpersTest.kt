@@ -78,4 +78,53 @@ class PublicProfileHeaderHelpersTest {
         // rate as if it were missing.
         assertEquals("₹0", formatHourlyRateOrDash(0.0))
     }
+
+    // ---- formatTypicalBidRangeOrFallback (round 471 pricing clarity) ----
+
+    @Test fun `bid range both bounds shows en-dash separated rupees`() {
+        assertEquals(
+            "₹4,000–₹10,000",
+            formatTypicalBidRangeOrFallback(4000.0, 10000.0),
+        )
+    }
+
+    @Test fun `bid range equal bounds collapses to single price`() {
+        // Engineer with 5 identical jobs at ₹5,000 each. Pin so
+        // "₹5,000–₹5,000" doesn't leak as a duplicated value.
+        assertEquals("₹5,000", formatTypicalBidRangeOrFallback(5000.0, 5000.0))
+    }
+
+    @Test fun `bid range both null falls back to Bids vary`() {
+        // <5 jobs (or RPC not yet deployed) → positive fallback copy
+        // instead of em-dash "data unavailable" sigil. Hospitals need
+        // a positive signal ("varies, ask for a quote") here.
+        assertEquals("Bids vary", formatTypicalBidRangeOrFallback(null, null))
+    }
+
+    @Test fun `bid range one null bound falls back to Bids vary`() {
+        assertEquals("Bids vary", formatTypicalBidRangeOrFallback(4000.0, null))
+        assertEquals("Bids vary", formatTypicalBidRangeOrFallback(null, 10000.0))
+    }
+
+    @Test fun `bid range zero bound falls back to Bids vary`() {
+        // Zero is treated as "no real data" here (unlike
+        // formatHourlyRateOrDash which surfaces ₹0). Pin so a
+        // server-side default of 0.0 doesn't surface as "₹0–₹0".
+        assertEquals("Bids vary", formatTypicalBidRangeOrFallback(0.0, 10000.0))
+        assertEquals("Bids vary", formatTypicalBidRangeOrFallback(4000.0, 0.0))
+        assertEquals("Bids vary", formatTypicalBidRangeOrFallback(0.0, 0.0))
+    }
+
+    @Test fun `bid range uses Indian lakh grouping`() {
+        assertEquals(
+            "₹1,00,000–₹2,50,000",
+            formatTypicalBidRangeOrFallback(100000.0, 250000.0),
+        )
+    }
+
+    @Test fun `bid range separator is en-dash U+2013 not ASCII hyphen`() {
+        val out = formatTypicalBidRangeOrFallback(4000.0, 10000.0)
+        assertEquals(true, out.contains('–'))
+        assertEquals(false, out.contains('-'))
+    }
 }

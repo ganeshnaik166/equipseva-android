@@ -445,6 +445,8 @@ private val DUMMY_PUBLIC_PROFILES: Map<String, EngineerDirectoryRepository.Publi
         totalJobs = 142,
         completionRate = 98.0,
         hourlyRate = 1500.0,
+        typicalBidMin = 4000.0,
+        typicalBidMax = 12000.0,
         bio = "Independent biomedical engineer with 8 years experience servicing critical-care equipment across Nalgonda and Suryapet districts. Same-day onsite for ICU/OT equipment.",
         isAvailable = true,
         baseLatitude = null,
@@ -469,6 +471,8 @@ private val DUMMY_PUBLIC_PROFILES: Map<String, EngineerDirectoryRepository.Publi
         totalJobs = 67,
         completionRate = 100.0,
         hourlyRate = 1400.0,
+        typicalBidMin = 3500.0,
+        typicalBidMax = 9000.0,
         bio = "Specialist in OT and anaesthesia equipment. Certified by Drager. 6 years across multi-specialty hospitals in Nalgonda.",
         isAvailable = true,
         baseLatitude = null,
@@ -493,6 +497,8 @@ private val DUMMY_PUBLIC_PROFILES: Map<String, EngineerDirectoryRepository.Publi
         totalJobs = 203,
         completionRate = 96.0,
         hourlyRate = 1800.0,
+        typicalBidMin = 8000.0,
+        typicalBidMax = 25000.0,
         bio = "Senior imaging engineer — MRI/CT/ultrasound. 10 years across Telangana. Currently busy through next week.",
         isAvailable = false,
         baseLatitude = null,
@@ -517,6 +523,8 @@ private val DUMMY_PUBLIC_PROFILES: Map<String, EngineerDirectoryRepository.Publi
         totalJobs = 54,
         completionRate = 94.0,
         hourlyRate = 1200.0,
+        typicalBidMin = 3000.0,
+        typicalBidMax = 7500.0,
         bio = "Lab equipment specialist — centrifuges, analyzers, biochem. Covers Suryapet/Nalgonda.",
         isAvailable = true,
         baseLatitude = null,
@@ -760,8 +768,8 @@ private fun ProfileBody(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Stat(
                     modifier = Modifier.weight(1f),
-                    label = "Hourly",
-                    value = formatHourlyRateOrDash(p.hourlyRate),
+                    label = "Typical bid",
+                    value = formatTypicalBidRangeOrFallback(p.typicalBidMin, p.typicalBidMax),
                     color = SevaInk900,
                 )
                 Stat(
@@ -1209,6 +1217,43 @@ internal fun formatCityStateLine(city: String?, state: String?): String =
  */
 internal fun formatHourlyRateOrDash(hourlyRate: Double?): String =
     hourlyRate?.let { com.equipseva.app.core.util.formatRupees(it) } ?: "—"
+
+/**
+ * Typical-bid-range stat-card value on the engineer public profile.
+ *
+ * Replaces the old [formatHourlyRateOrDash] caller after the round
+ * 471 pricing-clarity swap. Hospitals were misreading "Hourly ₹1,800"
+ * as a multiplier on their job duration, then quoting ₹8,000 for a
+ * 2-hour job and feeling overcharged. Bid pricing is per-job here,
+ * so the stat card now surfaces the band the engineer actually
+ * quotes (server-side computed from last 5 completed jobs, or
+ * platform average when <5).
+ *
+ * Rules:
+ *   * Both bounds present AND > 0 → "₹min–₹max" (en-dash, Indian
+ *     lakh grouping). Single price ("₹X") when min == max.
+ *   * Otherwise → "Bids vary" — chosen over em-dash ("—") because
+ *     hospitals scanning the directory need a positive signal
+ *     ("varies, ask for a quote") rather than a missing-data sigil
+ *     that would read as "we have no idea what this costs".
+ *
+ * Kept [formatHourlyRateOrDash] in the file (now unused by
+ * ProfileBody) on purpose — its test suite pins formatting
+ * invariants, and removing the function would force a noisy
+ * test-file delete in a polish round.
+ */
+internal fun formatTypicalBidRangeOrFallback(
+    typicalBidMin: Double?,
+    typicalBidMax: Double?,
+): String = when {
+    typicalBidMin != null && typicalBidMax != null &&
+        typicalBidMin > 0.0 && typicalBidMax > 0.0 -> {
+        val minStr = com.equipseva.app.core.util.formatRupees(typicalBidMin)
+        val maxStr = com.equipseva.app.core.util.formatRupees(typicalBidMax)
+        if (typicalBidMin == typicalBidMax) minStr else "$minStr–$maxStr"
+    }
+    else -> "Bids vary"
+}
 
 /**
  * Format an engineer's completion-rate column as a "%" string on the
