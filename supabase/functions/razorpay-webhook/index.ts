@@ -30,6 +30,7 @@
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { attemptRazorpayRefund } from "../_shared/razorpay_refund.ts";
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -163,6 +164,163 @@ serve(async (req) => {
         console.error("razorpay-webhook: record_razorpay_payment_captured failed", eventId, error.message);
         return json(500, { ok: false, code: "rpc_failed", message: "logged for retry" });
       }
+
+      // Round 473 — verify-vs-cancel race auto-refund.
+      //
+      // If the RPC found no pending row to match (apply_outcome ===
+      // 'no_matching_row'), the order may have been cancelled locally
+      // between Razorpay capture and webhook delivery. Check all 3
+      // intake tables for a matching row in a terminal-cancelled state;
+      // if found, auto-refund.
+      //
+      // Idempotency:
+      //   - The RPC's UNIQUE on razorpay_event_id means a replayed
+      //     webhook with the same event id returns `data.replayed=true`
+      //     and `apply_outcome` is absent → this branch is naturally
+      //     skipped on replay.
+      //   - We pass eventId as Razorpay's X-Payment-Idempotency-Key so
+      //     even cross-event-id retries against the same payment hit
+      //     the SAME refund row on Razorpay's side instead of issuing
+      //     a duplicate.
+      //
+      // We NEVER return 5xx from the auto-refund path — Razorpay would
+      // retry the webhook and double-fire. Failures are logged + the
+      // webhook event audit row carries a triage outcome.
+      const outcome = (data as { apply_outcome?: string } | null)?.apply_outcome ?? "";
+      if (outcome === "no_matching_row") {
+        const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID");
+        const razorpayKeySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
+
+        // Check the 3 intake tables for a matching cancelled row.
+        // We use Promise.all because each is an independent point lookup.
+        const [escrowQ, spareQ, amcQ] = await Promise.all([
+          admin
+            .from("repair_job_escrow")
+            .select("id, status")
+            .eq("razorpay_order_id", orderId)
+            .in("status", ["cancelled", "refunded"])
+            .maybeSingle(),
+          admin
+            .from("spare_part_orders")
+            .select("id, payment_status, order_status")
+            .eq("razorpay_order_id", orderId)
+            .or("payment_status.eq.refunded,order_status.eq.cancelled")
+            .maybeSingle(),
+          admin
+            .from("amc_payment_orders")
+            .select("id, status")
+            .eq("razorpay_order_id", orderId)
+            .in("status", ["cancelled", "refunded"])
+            .maybeSingle(),
+        ]);
+
+        const cancelledRow =
+          escrowQ.data || spareQ.data || amcQ.data;
+
+        if (cancelledRow) {
+          if (!razorpayKeyId || !razorpayKeySecret) {
+            // Can't refund without creds; log + return 200 so Razorpay
+            // doesn't retry. Ops will see the orphan in
+            // founder_razorpay_webhook_orphans() and manually refund.
+            console.error(
+              "razorpay-webhook: auto-refund needed but Razorpay creds missing",
+              eventId,
+              paymentId,
+            );
+            await admin
+              .from("razorpay_webhook_events")
+              .update({
+                applied: false,
+                apply_outcome: "auto_refund_needed_no_creds",
+                apply_error: "RAZORPAY_KEY_ID/SECRET env not set",
+              })
+              .eq("razorpay_event_id", eventId);
+            return json(200, {
+              ok: false,
+              code: "auto_refund_needed_no_creds",
+              applied: data,
+            });
+          }
+
+          console.warn(
+            "razorpay-webhook: cancelled order detected, triggering auto-refund",
+            eventId,
+            orderId,
+            paymentId,
+            "amount",
+            amount,
+          );
+
+          const refundResult = await attemptRazorpayRefund({
+            paymentId,
+            amountPaise: amount,
+            keyId: razorpayKeyId,
+            keySecret: razorpayKeySecret,
+            idempotencyKey: eventId,
+          });
+
+          if (refundResult.ok) {
+            // Either fresh refund issued OR already-refunded (Razorpay
+            // 422 with already-refunded subcode → treated as success).
+            await admin
+              .from("razorpay_webhook_events")
+              .update({
+                applied: true,
+                apply_outcome:
+                  refundResult.outcome === "already_refunded"
+                    ? "auto_refund_already_refunded"
+                    : "auto_refund_issued",
+                razorpay_refund_id: refundResult.refundId,
+              })
+              .eq("razorpay_event_id", eventId);
+            return json(200, {
+              ok: true,
+              applied: data,
+              auto_refund: {
+                outcome: refundResult.outcome,
+                refund_id: refundResult.refundId,
+              },
+            });
+          }
+
+          // Refund attempt failed (non-2xx, non-422-already-refunded,
+          // or network error). Log for triage but STILL return 200 so
+          // Razorpay doesn't retry the webhook into a refund storm.
+          // Ops queries founder_razorpay_webhook_orphans() to find
+          // these and follow up manually.
+          console.error(
+            "razorpay-webhook: auto-refund attempt failed",
+            eventId,
+            paymentId,
+            refundResult.outcome,
+            refundResult.httpStatus,
+            refundResult.errorCode,
+            refundResult.errorMessage,
+          );
+          await admin
+            .from("razorpay_webhook_events")
+            .update({
+              applied: false,
+              apply_outcome: "auto_refund_failed",
+              apply_error: `${refundResult.outcome}:${refundResult.errorCode ?? "unknown"}:${refundResult.errorMessage ?? ""}`.slice(0, 1000),
+            })
+            .eq("razorpay_event_id", eventId);
+          return json(200, {
+            ok: false,
+            code: "auto_refund_failed",
+            applied: data,
+            auto_refund: {
+              outcome: refundResult.outcome,
+              http_status: refundResult.httpStatus,
+              error_code: refundResult.errorCode,
+            },
+          });
+        }
+        // no_matching_row but also no cancelled row found — could be
+        // a race where create-* hasn't committed yet, or a real orphan.
+        // Leave as-is; ops will see in founder_razorpay_webhook_orphans.
+      }
+
       return json(200, { ok: true, applied: data });
     }
 
