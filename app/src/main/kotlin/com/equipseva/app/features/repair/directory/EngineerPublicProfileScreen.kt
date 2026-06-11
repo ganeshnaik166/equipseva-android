@@ -57,6 +57,7 @@ import com.equipseva.app.designsystem.components.InlineStars
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
+import com.equipseva.app.designsystem.components.VerifiedBadgeWithInfo
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.Paper2
 import com.equipseva.app.designsystem.theme.Paper3
@@ -734,7 +735,7 @@ private fun ProfileBody(
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                         )
-                        InlineVerifiedBadge(small = false)
+                        VerifiedBadgeWithInfo(verifiedAt = p.verifiedAt, small = false)
                     }
                     val locLine = formatCityStateLine(p.city, p.state)
                     if (locLine.isNotBlank()) {

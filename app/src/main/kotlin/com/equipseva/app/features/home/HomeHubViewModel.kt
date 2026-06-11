@@ -67,6 +67,11 @@ class HomeHubViewModel @Inject constructor(
         val activeCount: Int? = null,
         val pendingBidsCount: Int? = null,
         val nearbyEngineersCount: Int? = null,
+        // Hospital onboarding gate: first-time users (no completed jobs)
+        // see the "Book your first repair" CTA instead of the stats row.
+        // Once true, stats row shows permanently. Read from userPrefs;
+        // refresh() sets it when a completed job is detected.
+        val hospitalHasPostedFirstJob: Boolean = false,
         // PR-B: hospital-only carousel of top-N engineers ranked by
         // server-side match_score (proximity + specialization + rating).
         // Empty until GPS resolves AND the RPC returns ≥1 row — caller
@@ -196,6 +201,15 @@ class HomeHubViewModel @Inject constructor(
                 _state.update { it.copy(pendingAmcPaymentsCount = ids.size) }
             }
         }
+        // Hospital first-job onboarding: observe the sticky flag set by
+        // refresh() when it detects a completed job. First-time hospitals
+        // (flag false) see the "Book your first repair" CTA; once they post
+        // their first job, the stats row appears permanently.
+        viewModelScope.launch {
+            userPrefs.observeHospitalPostedFirstJob().collect { hasPosted ->
+                _state.update { it.copy(hospitalHasPostedFirstJob = hasPosted) }
+            }
+        }
     }
 
     private suspend fun refresh(userId: String) {
@@ -270,6 +284,14 @@ class HomeHubViewModel @Inject constructor(
             }
             val engineers = engineerDirectoryRepository.search(limit = 200)
                 .getOrNull()?.size
+            // Cold-start onboarding: detect if any job exists (new hospital
+            // has never posted). Sticky flag: once true, stays true for the
+            // lifetime of the signed-in session. On next cold-start, it reads
+            // from userPrefs and the hero stats appear immediately.
+            val hasAnyJob = jobs.isNotEmpty()
+            if (hasAnyJob && !_state.value.hospitalHasPostedFirstJob) {
+                viewModelScope.launch { userPrefs.setHospitalPostedFirstJob() }
+            }
             _state.update {
                 it.copy(
                     openCount = open,

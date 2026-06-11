@@ -48,6 +48,11 @@ class UserPrefs @Inject constructor(
         // is a Routes.* string. Cleared when the user explicitly leaves the
         // restorable screen via Back / nav.
         val LAST_SCREEN = stringPreferencesKey("last_screen")
+        // Hospital user has posted their first repair job. Once true, the
+        // home-hub stats row appears permanently (previously hidden on cold-start
+        // with placeholder dashes). Set to true in refresh() after detecting
+        // any completed job from fetchByHospitalUser().
+        val HOSPITAL_POSTED_FIRST_JOB = booleanPreferencesKey("hospital_posted_first_job")
     }
 
     private object QuietHoursDefaults {
@@ -187,6 +192,22 @@ class UserPrefs @Inject constructor(
             prefs[Keys.QUIET_HOURS_START_MINUTES] = safeStart
             prefs[Keys.QUIET_HOURS_END_MINUTES] = safeEnd
         }
+    }
+
+    /**
+     * Hospital onboarding gate: first-time user has posted their first
+     * repair job. When true, home-hub stats row is visible; when false (new
+     * hospital), the stats show placeholder dashes and the "Book your first
+     * repair" CTA card appears instead. Sticky once true — never clears
+     * except on sign-out (via [SignOutCleanup]). The server-side truth is
+     * the job list; refresh() in HomeHubViewModel sets this flag when it
+     * detects any completed job.
+     */
+    fun observeHospitalPostedFirstJob(): Flow<Boolean> =
+        context.prefsStore.data.map { it[Keys.HOSPITAL_POSTED_FIRST_JOB] == true }
+
+    suspend fun setHospitalPostedFirstJob() {
+        context.prefsStore.edit { it[Keys.HOSPITAL_POSTED_FIRST_JOB] = true }
     }
 }
 

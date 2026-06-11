@@ -55,6 +55,9 @@ class EngineerDirectoryRepository @Inject constructor(
         // Server-populated when caller passes lat/lng to search(). Null
         // when caller didn't pass coords or engineer has no base coords.
         @SerialName("distance_km") val distanceKm: Double? = null,
+        // ISO-8601 timestamp when engineer completed KYC verification.
+        // Rendered on the info sheet as "Verified on <date>".
+        @SerialName("verified_at") val verifiedAt: String? = null,
         @Transient val completionPctOverride: Int? = null,
     )
 
@@ -139,6 +142,9 @@ class EngineerDirectoryRepository @Inject constructor(
         @SerialName("base_latitude") val baseLatitude: Double? = null,
         @SerialName("base_longitude") val baseLongitude: Double? = null,
         @SerialName("service_radius_km") val serviceRadiusKm: Int? = null,
+        // ISO-8601 timestamp when engineer completed KYC verification.
+        // Rendered on the info sheet as "Verified on <date>".
+        @SerialName("verified_at") val verifiedAt: String? = null,
     )
 
     suspend fun search(

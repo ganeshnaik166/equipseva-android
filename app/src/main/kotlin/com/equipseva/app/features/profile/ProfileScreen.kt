@@ -726,6 +726,7 @@ private fun buildProfileSections(
             add(SettingsRow(icon = Icons.Outlined.Apartment, label = "Hospital settings", onClick = onOpenHospitalSettings))
             // PR-D41 — hospital self-view of dispute filing history.
             add(SettingsRow(icon = Icons.Outlined.Gavel, label = "Your disputes", onClick = onOpenMyDisputes))
+            // Messages row removed (v0.3.4) — now a hospital bottom-nav tab.
         }
     }
 
