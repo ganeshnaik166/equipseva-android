@@ -55,6 +55,11 @@ class HomeHubViewModel @Inject constructor(
     private val amcRepository: com.equipseva.app.core.data.amc.AmcRepository,
     private val userPrefs: UserPrefs,
     private val pendingAmcPaymentsStore: com.equipseva.app.core.payments.PendingAmcPaymentsStore,
+    // Round 477 — payment-first AMC. The wizard now stashes a contract
+    // marker when create_amc_contract returns; we expose its first id
+    // to the home banner so the hospital can finish payment before the
+    // 24h server reaper cancels the contract.
+    private val pendingAmcContractsStore: com.equipseva.app.core.payments.PendingAmcContractsStore,
     private val app: Application,
 ) : ViewModel() {
     data class UiState(
@@ -97,6 +102,12 @@ class HomeHubViewModel @Inject constructor(
         // 'pending'). UI surfaces a banner inviting the user to
         // contact support if their bank shows a charge.
         val pendingAmcPaymentsCount: Int = 0,
+        // Round 477 — id of the most-recent AMC contract that's still in
+        // `pending_payment` server-side (i.e., never paid for its first
+        // month). Null when nothing is pending. Home renders a banner
+        // with "Complete payment" CTA → navigates to AMC detail, which
+        // re-uses the top-up sheet to drive Razorpay + verify.
+        val pendingAmcContractId: String? = null,
         // Engineer-side directory visibility gate. Hospital's
         // [EngineerDirectoryViewModel.filteredRows] requires both
         // hourly_rate and at least one specialization on the engineer
@@ -196,6 +207,16 @@ class HomeHubViewModel @Inject constructor(
         viewModelScope.launch {
             pendingAmcPaymentsStore.observe().collect { ids ->
                 _state.update { it.copy(pendingAmcPaymentsCount = ids.size) }
+            }
+        }
+        // Round 477 — contract-level pending markers. The set may be
+        // stale (server reaper may have already cancelled), so the
+        // detail screen reconciles + removes on first visit. The banner
+        // just surfaces the most-recent id so a single tap drives the
+        // hospital to finish payment.
+        viewModelScope.launch {
+            pendingAmcContractsStore.observe().collect { ids ->
+                _state.update { it.copy(pendingAmcContractId = ids.firstOrNull()) }
             }
         }
         // Hospital first-job onboarding: observe the sticky flag set by

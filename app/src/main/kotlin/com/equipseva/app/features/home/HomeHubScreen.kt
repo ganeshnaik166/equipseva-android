@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.Bolt
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.outlined.WorkOutline
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -108,6 +110,11 @@ fun HomeHubScreen(
     onOpenEngineerProfile: (engineerId: String) -> Unit = {},
     onOpenEngineerSelfProfile: () -> Unit = {},
     onOpenAmcContracts: () -> Unit = {},
+    // Round 477 — payment-first AMC. Banner tap routes here so the
+    // hospital can finish payment from the contract's detail screen.
+    // Null safety: caller may not wire this up yet; banner stays
+    // visible but tap becomes a no-op.
+    onOpenAmcContractDetail: (contractId: String) -> Unit = {},
     onShowMessage: (String) -> Unit = {},
     viewModel: HomeHubViewModel = hiltViewModel(),
 ) {
@@ -197,6 +204,21 @@ fun HomeHubScreen(
             if (role == UserRole.HOSPITAL && state.pendingAmcPaymentsCount > 0) {
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                     PendingAmcPaymentBanner(count = state.pendingAmcPaymentsCount)
+                }
+            }
+
+            // Round 477 — payment-first AMC. Surfaces a "Complete payment"
+            // CTA when the hospital created a contract but never finished
+            // its first month payment. Tap routes to detail where the
+            // Pay-now sheet re-runs createPaymentOrder + verifyPayment.
+            // Server reaper cancels stranded contracts after 24h; the
+            // banner gives the user that recovery window.
+            val pendingContractId = state.pendingAmcContractId
+            if (role == UserRole.HOSPITAL && !pendingContractId.isNullOrBlank()) {
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    PendingAmcContractBanner(
+                        onClick = { onOpenAmcContractDetail(pendingContractId) },
+                    )
                 }
             }
 
@@ -1012,6 +1034,54 @@ private fun PendingAmcPaymentBanner(count: Int) {
 internal fun pendingAmcPaymentBannerTitle(count: Int): String =
     if (count == 1) "Payment may still be in progress"
     else "$count payments may still be in progress"
+
+/**
+ * Round 477 — pending-contract banner. Distinct from
+ * [PendingAmcPaymentBanner] which is about *in-flight* payments
+ * (server-side status still 'pending'); this banner is for contracts
+ * the hospital created but never paid for AT ALL — server starts them
+ * in `pending_payment` and the 24h reaper cancels them.
+ */
+@Composable
+private fun PendingAmcContractBanner(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(SevaWarning50)
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(
+            Icons.Outlined.Warning,
+            contentDescription = null,
+            tint = SevaWarning500,
+            modifier = Modifier.size(20.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                "Complete AMC payment",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = SevaInk900,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                "Your new AMC contract will be cancelled in 24 hours if not paid. Tap to finish.",
+                fontSize = 11.sp,
+                color = SevaInk600,
+            )
+        }
+        Icon(
+            Icons.AutoMirrored.Outlined.ArrowForward,
+            contentDescription = null,
+            tint = SevaInk500,
+            modifier = Modifier.size(18.dp),
+        )
+    }
+}
 
 private enum class TileAccent { Default, Admin }
 

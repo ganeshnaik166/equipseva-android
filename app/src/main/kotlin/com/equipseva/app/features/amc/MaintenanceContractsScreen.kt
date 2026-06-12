@@ -349,6 +349,12 @@ internal fun StatusPillFor(status: String) {
  */
 internal fun amcStatusLabelAndKind(status: String): Pair<String, PillKind> =
     when (status.lowercase()) {
+        // Round 477 — `pending_payment` is the new initial state of a
+        // freshly-created contract; it sits between "the wizard saved
+        // it" and "the first month is paid + active". Reads as a
+        // recoverable warning (not Neutral) so the hospital doesn't
+        // mistake the contract for fully-live.
+        "pending_payment" -> "Pending payment" to PillKind.Warn
         "active" -> "Active" to PillKind.Success
         "paused" -> "Paused" to PillKind.Danger
         "expired" -> "Expired" to PillKind.Neutral

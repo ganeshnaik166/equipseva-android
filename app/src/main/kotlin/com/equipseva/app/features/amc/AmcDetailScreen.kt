@@ -64,7 +64,9 @@ import com.equipseva.app.designsystem.theme.SevaInk400
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk700
 import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.designsystem.theme.SevaWarning50
 import com.equipseva.app.designsystem.theme.SevaWarning500
+import com.equipseva.app.designsystem.theme.SevaWarning700
 import com.equipseva.app.features.auth.UserRole
 import com.equipseva.app.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -85,6 +87,11 @@ class AmcDetailViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val userPrefs: UserPrefs,
     private val chatRepository: com.equipseva.app.core.data.chat.ChatRepository,
+    // Round 477 — once the server has flipped a contract out of
+    // `pending_payment` (e.g., the hospital paid via this screen's
+    // Pay-now sheet) we clear the local marker so the Home banner
+    // disappears without a sign-out round-trip.
+    private val pendingContractsStore: com.equipseva.app.core.payments.PendingAmcContractsStore,
 ) : ViewModel() {
 
     private val contractId: String =
@@ -156,6 +163,15 @@ class AmcDetailViewModel @Inject constructor(
                     .onSuccess { rows ->
                         val match = rows.firstOrNull { it.id == contractId }
                         _state.update { it.copy(hospital = match) }
+                        // Round 477 — drop the pending-contract marker as
+                        // soon as the server reports a non-pending status
+                        // (active / paused / cancelled). The marker exists
+                        // only to power the Home banner; once the contract
+                        // moves out of `pending_payment` the banner has no
+                        // job to do.
+                        if (match != null && match.status != "pending_payment") {
+                            runCatching { pendingContractsStore.remove(match.id) }
+                        }
                     }
             } else {
                 repo.listForEngineer()
@@ -353,8 +369,22 @@ fun AmcDetailScreen(
                         // overdrawn" (exactly 0) and admin-paused contracts.
                         val pausedByServer = state.hospital?.status == "paused" ||
                             state.engineerView?.status == "paused"
-                        if (pausedByServer || (state.poolBalance ?: 0.0) <= 0.0) {
-                            PausedBanner()
+                        // Round 477 — contracts start in `pending_payment`
+                        // and are promoted to `active` only after the first
+                        // verified pool credit. While pending, surface a
+                        // hospital-only "Complete payment" banner that
+                        // re-opens the top-up sheet pre-filled with months=1.
+                        // We deliberately suppress the paused/empty-pool
+                        // banner below for the pending state since the user
+                        // already knows the contract hasn't started.
+                        val pendingPayment = state.hospital?.status == "pending_payment" ||
+                            state.engineerView?.status == "pending_payment"
+                        when {
+                            pendingPayment -> PendingPaymentBanner(
+                                isHospital = state.viewerIsHospital,
+                                onPayNow = { viewModel.openTopUp() },
+                            )
+                            pausedByServer || (state.poolBalance ?: 0.0) <= 0.0 -> PausedBanner()
                         }
                         TabsRow(
                             selected = state.tab,
@@ -416,8 +446,16 @@ fun AmcDetailScreen(
                                     state.hospital?.status in CANCELLED_STATES,
                             )
                             Box(modifier = Modifier.weight(1f)) {
+                                // Round 477 — relabel the primary CTA while
+                                // pending_payment: a freshly-created contract
+                                // hasn't paid for its first month yet, so
+                                // "Add months" misrepresents what the tap
+                                // actually does. The sheet itself is reused
+                                // (it just opens createPaymentOrder + Razorpay
+                                // with months=1).
+                                val isPending = state.hospital?.status in PENDING_PAYMENT_STATES
                                 EsBtn(
-                                    text = "Add months",
+                                    text = if (isPending) "Pay now" else "Add months",
                                     onClick = { viewModel.openTopUp() },
                                     kind = EsBtnKind.Primary,
                                     size = EsBtnSize.Lg,
@@ -489,7 +527,60 @@ fun AmcDetailScreen(
     }
 }
 
+// Round 477 — `pending_payment` is the new initial status; it precedes
+// `active` and unlike CANCELLED_STATES it is RECOVERABLE: pay within
+// 24h (server reaper window) and the contract auto-promotes to active.
+// Surface it everywhere status is rendered so the UX never lies that a
+// pending contract is live.
+private val PENDING_PAYMENT_STATES = setOf("pending_payment")
 private val CANCELLED_STATES = setOf("cancelled", "expired", "renewal_failed")
+
+@Composable
+private fun PendingPaymentBanner(isHospital: Boolean, onPayNow: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(SevaWarning50)
+            .padding(12.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Warning,
+                    contentDescription = null,
+                    tint = SevaWarning500,
+                    modifier = Modifier.width(18.dp),
+                )
+                Column {
+                    Text(
+                        "Payment required to activate this AMC",
+                        color = SevaWarning700,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        "Contract will be cancelled in 24 hours if not paid.",
+                        color = SevaInk700,
+                        fontSize = 12.sp,
+                    )
+                }
+            }
+            if (isHospital) {
+                EsBtn(
+                    text = "Pay now",
+                    onClick = onPayNow,
+                    kind = EsBtnKind.Primary,
+                    size = EsBtnSize.Sm,
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun PausedBanner() {

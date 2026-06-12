@@ -333,6 +333,9 @@ fun MainNavGraph(
                     },
                     onOpenEngineerSelfProfile = { navController.navigate(Routes.ENGINEER_PROFILE) },
                     onOpenAmcContracts = { navController.navigate(Routes.AMC_CONTRACTS_LIST) },
+                    onOpenAmcContractDetail = { contractId ->
+                        navController.navigate(Routes.amcContractDetailRoute(contractId))
+                    },
                     onShowMessage = showSnackbar,
                 )
             }

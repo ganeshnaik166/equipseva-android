@@ -48,6 +48,8 @@ import com.equipseva.app.core.data.amc.AmcRepository
 import com.equipseva.app.core.data.engineers.DirectorySortMode
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.payments.PendingAmcContractsStore
+import com.equipseva.app.core.payments.PendingAmcPaymentsStore
 import com.equipseva.app.core.payments.RazorpayCheckoutLauncher
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.firstOrNull
@@ -85,6 +87,14 @@ class CreateAmcWizardViewModel @Inject constructor(
     private val engineerRepo: EngineerDirectoryRepository,
     private val auth: AuthRepository,
     private val launcher: RazorpayCheckoutLauncher,
+    // Round 477 — payment-first AMC. The wizard now creates contracts in
+    // `pending_payment` state; they only promote to `active` after a
+    // verified pool credit. We track both the payment-order id (for
+    // process-death recovery — mirrors [AmcPaymentSheet]) AND the
+    // contract id (so the Home banner can nudge the user to finish
+    // payment before the 24h server reaper cancels the contract).
+    private val pendingPaymentsStore: PendingAmcPaymentsStore,
+    private val pendingContractsStore: PendingAmcContractsStore,
 ) : ViewModel() {
 
     private val primaryEngineerId: String =
@@ -430,10 +440,16 @@ class CreateAmcWizardViewModel @Inject constructor(
                 onSuccess = { newId ->
                     clearSavedDraft()
                     _state.update { it.copy(createdContractId = newId) }
-                    // Immediately fire first-month upfront. If the user
-                    // cancels Razorpay we still keep the contract — pool
-                    // is just at zero so the contract is paused on first
-                    // visit complete. Hospital can top up from detail.
+                    // Round 477 — record the pending-contract marker BEFORE
+                    // launching Razorpay. The contract is now created in
+                    // `pending_payment` state; if the user backs out before
+                    // verifyPayment succeeds, the Home banner uses this
+                    // marker to surface a "Complete AMC payment" CTA.
+                    // We clear the marker only on verified payment success
+                    // (contract is `active` server-side) — every other path
+                    // leaves it so the user (or the 24h server reaper) can
+                    // decide the contract's fate.
+                    runCatching { pendingContractsStore.add(newId) }
                     val ok = runCheckout(
                         activity = activity,
                         amcContractId = newId,
@@ -442,9 +458,13 @@ class CreateAmcWizardViewModel @Inject constructor(
                     )
                     _state.update { it.copy(submitting = false) }
                     if (ok) {
-                        onShowMessage("Contract created and first month paid.")
+                        runCatching { pendingContractsStore.remove(newId) }
+                        onShowMessage("AMC contract activated.")
                     } else {
-                        onShowMessage("Contract created. Top up to activate the pool.")
+                        onShowMessage(
+                            "Contract pending payment. Complete it from the AMC " +
+                                "detail screen or it will be cancelled in 24 hours.",
+                        )
                     }
                     onSuccess(newId)
                 },
@@ -479,6 +499,14 @@ class CreateAmcWizardViewModel @Inject constructor(
             .filterIsInstance<AuthSession.SignedIn>()
             .firstOrNull()
         val email = session?.email
+
+        // Round 477 — mirror the AmcPaymentSheet process-death pattern.
+        // Without the marker, a process kill while the user is in the
+        // UPI app leaves no client trace; the reconciler can't tell
+        // whether the payment captured server-side, so the user gets
+        // a stale "pay" CTA even though their money already moved.
+        runCatching { pendingPaymentsStore.add(order.paymentOrderId) }
+
         val result = runCatching {
             launcher.startPayment(
                 activity = activity,
@@ -491,17 +519,37 @@ class CreateAmcWizardViewModel @Inject constructor(
                 razorpayOrderId = order.razorpayOrderId,
                 keyId = order.keyId,
             )
-        }.getOrElse { return false }
+        }.getOrElse {
+            // SDK threw — payment may or may not have captured. Leave
+            // the marker for the reconciler to resolve on cold-start.
+            return false
+        }
         return when (result) {
-            is RazorpayCheckoutLauncher.RazorpayPaymentResult.Cancelled -> false
-            is RazorpayCheckoutLauncher.RazorpayPaymentResult.Failed -> false
+            is RazorpayCheckoutLauncher.RazorpayPaymentResult.Cancelled -> {
+                runCatching { pendingPaymentsStore.remove(order.paymentOrderId) }
+                false
+            }
+            is RazorpayCheckoutLauncher.RazorpayPaymentResult.Failed -> {
+                runCatching { pendingPaymentsStore.remove(order.paymentOrderId) }
+                false
+            }
             is RazorpayCheckoutLauncher.RazorpayPaymentResult.Success -> {
-                repo.verifyPayment(
+                val verifyRes = repo.verifyPayment(
                     paymentOrderId = order.paymentOrderId,
                     razorpayOrderId = result.razorpayOrderId.ifBlank { order.razorpayOrderId },
                     razorpayPaymentId = result.razorpayPaymentId,
                     razorpaySignature = result.razorpaySignature,
-                ).isSuccess
+                )
+                if (verifyRes.isSuccess) {
+                    runCatching { pendingPaymentsStore.remove(order.paymentOrderId) }
+                    true
+                } else {
+                    // Verify failed AFTER Razorpay reported Success —
+                    // payment likely captured; leave the marker so the
+                    // PendingAmcPaymentsReconciler can resolve on the
+                    // next cold-start via server-side order status.
+                    false
+                }
             }
         }
     }

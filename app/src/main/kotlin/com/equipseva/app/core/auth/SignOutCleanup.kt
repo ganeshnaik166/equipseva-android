@@ -3,6 +3,7 @@ package com.equipseva.app.core.auth
 import com.equipseva.app.core.data.moderation.UserBlockRepository
 import com.equipseva.app.core.data.dao.OutboxDao
 import com.equipseva.app.core.data.prefs.UserPrefs
+import com.equipseva.app.core.payments.PendingAmcContractsStore
 import com.equipseva.app.core.payments.PendingAmcPaymentsStore
 import com.equipseva.app.core.payments.PendingEscrowPaymentsStore
 import com.equipseva.app.core.push.DeviceTokenRegistrar
@@ -42,6 +43,10 @@ class SignOutCleanup @Inject constructor(
     // an account they never owned.
     private val pendingEscrowPaymentsStore: PendingEscrowPaymentsStore,
     private val pendingAmcPaymentsStore: PendingAmcPaymentsStore,
+    // Round 477: contract-level pending markers are wiped on sign-out so
+    // the next user doesn't see a previous user's stranded AMC contract
+    // appear as a "complete payment" banner on Home.
+    private val pendingAmcContractsStore: PendingAmcContractsStore,
 ) {
     suspend fun wipeLocalUserState() {
         runCatching { deviceTokenRegistrar.revoke() }
@@ -69,6 +74,7 @@ class SignOutCleanup @Inject constructor(
         // banners for the previous user's Razorpay orders.
         runCatching { pendingEscrowPaymentsStore.clearAll() }
         runCatching { pendingAmcPaymentsStore.clearAll() }
+        runCatching { pendingAmcContractsStore.clearAll() }
         // Realtime channels live on the singleton supabase client.
         // Disconnect drops the websocket so any chat / notification /
         // cost-revision subscription tied to the previous user is
