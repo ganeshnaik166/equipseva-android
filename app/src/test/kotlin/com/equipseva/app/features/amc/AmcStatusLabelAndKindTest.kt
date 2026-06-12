@@ -22,6 +22,25 @@ class AmcStatusLabelAndKindTest {
         assertEquals("Active" to PillKind.Success, amcStatusLabelAndKind("active"))
     }
 
+    @Test fun `pending_payment renders Warn — recoverable, not terminal`() {
+        // Round 477 — `pending_payment` is the new initial state of a
+        // freshly-created contract. Surfacing as Warn (not Neutral or
+        // Success) signals to the hospital that the contract isn't
+        // fully-live yet — they need to finish the first month payment
+        // within 24h before the server reaper cancels it.
+        assertEquals(
+            "Pending payment" to PillKind.Warn,
+            amcStatusLabelAndKind("pending_payment"),
+        )
+    }
+
+    @Test fun `pending_payment is case-insensitive`() {
+        assertEquals(
+            "Pending payment" to PillKind.Warn,
+            amcStatusLabelAndKind("PENDING_PAYMENT"),
+        )
+    }
+
     @Test fun `paused renders Danger (needs attention)`() {
         assertEquals("Paused" to PillKind.Danger, amcStatusLabelAndKind("paused"))
     }
