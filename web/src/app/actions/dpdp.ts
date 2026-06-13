@@ -18,7 +18,13 @@ export async function resolveGrievance(
     p_new_status: newStatus,
     p_resolution: resolution,
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    // r529 (audit-12 LOW) — log raw error server-side, return generic
+    // message to client so we don't leak RPC internals through an
+    // already-authenticated channel.
+    console.error("founder_resolve_grievance failed:", error);
+    return { ok: false, error: "Could not resolve grievance. Check server logs." };
+  }
   revalidatePath("/dpdp");
   return { ok: true };
 }
