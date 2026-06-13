@@ -38,6 +38,9 @@ export async function TopBar() {
               <Link href="/refunds" className="hover:text-[var(--color-fg)]">
                 Refunds
               </Link>
+              <Link href="/amc" className="hover:text-[var(--color-fg)]">
+                AMC
+              </Link>
               <Link href="/dpdp" className="hover:text-[var(--color-fg)]">
                 DPDP
               </Link>
