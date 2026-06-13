@@ -22,6 +22,18 @@ type RzpRow = {
   received_at: string;
 };
 
+type PayoutWebhookRow = {
+  id: string;
+  razorpay_payout_id: string;
+  event_kind: string;
+  utr: string | null;
+  mode: string | null;
+  failure_reason: string | null;
+  applied: boolean;
+  apply_outcome: string | null;
+  received_at: string;
+};
+
 export default async function WebhooksPage({
   searchParams,
 }: {
@@ -46,9 +58,21 @@ export default async function WebhooksPage({
     query = query.not("apply_error", "is", null);
   }
 
-  const { data, error } = await query;
-  if (error) throw new Error(`razorpay_webhook_events: ${error.message}`);
-  const rows = (data ?? []) as RzpRow[];
+  const [rzpRes, payoutsRes] = await Promise.all([
+    query,
+    supabase
+      .from("payouts_webhook_events")
+      .select(
+        "id, razorpay_payout_id, event_kind, utr, mode, failure_reason, applied, apply_outcome, received_at",
+      )
+      .order("received_at", { ascending: false })
+      .limit(50),
+  ]);
+  if (rzpRes.error) throw new Error(`razorpay_webhook_events: ${rzpRes.error.message}`);
+  const rows = (rzpRes.data ?? []) as RzpRow[];
+  // Payout webhook events table is best-effort; if RLS or table missing,
+  // degrade gracefully.
+  const payoutEvents = (payoutsRes.error ? [] : (payoutsRes.data ?? [])) as PayoutWebhookRow[];
 
   // Top-of-page KPIs (over the full result set returned).
   const totalApplied = rows.filter((r) => r.applied).length;
@@ -206,6 +230,66 @@ export default async function WebhooksPage({
             : "No events match this filter."
         }
       />
+
+      <section className="pt-4">
+        <h2 className="mb-2 text-sm font-semibold">
+          Cashfree payout webhook events{" "}
+          <span className="text-[var(--color-muted)]">(last 50)</span>
+        </h2>
+        <p className="mb-2 text-xs text-[var(--color-muted)]">
+          Outgoing payout lifecycle events from Cashfree (r445). Dedup key is
+          (razorpay_payout_id, event_kind) so a replayed event no-ops.
+        </p>
+        <DataTable
+          columns={
+            [
+              {
+                key: "when",
+                header: "Received",
+                render: (r: PayoutWebhookRow) => (
+                  <span title={r.received_at}>{formatRelativeTime(r.received_at)}</span>
+                ),
+              },
+              { key: "kind", header: "Event", render: (r) => <code className="text-xs">{r.event_kind}</code> },
+              {
+                key: "payout",
+                header: "Payout id",
+                render: (r) => (
+                  <code className="text-xs" title={r.razorpay_payout_id}>
+                    {shortId(r.razorpay_payout_id)}
+                  </code>
+                ),
+              },
+              { key: "utr", header: "UTR", render: (r) => <code className="text-xs">{r.utr ?? "—"}</code> },
+              { key: "mode", header: "Mode", render: (r) => r.mode ?? "—" },
+              {
+                key: "fail",
+                header: "Failure reason",
+                render: (r) => (
+                  <span className="text-xs text-[var(--color-danger)]">{r.failure_reason ?? ""}</span>
+                ),
+              },
+              {
+                key: "applied",
+                header: "Applied",
+                render: (r) =>
+                  r.applied ? (
+                    <span className="rounded bg-green-100 px-1.5 py-0.5 text-xs text-[var(--color-ok)]">
+                      {r.apply_outcome ?? "applied"}
+                    </span>
+                  ) : (
+                    <span className="rounded bg-yellow-100 px-1.5 py-0.5 text-xs text-[var(--color-warn)]">
+                      pending
+                    </span>
+                  ),
+              },
+            ] as Column<PayoutWebhookRow>[]
+          }
+          rows={payoutEvents}
+          rowKey={(r) => r.id}
+          emptyMessage="No Cashfree payout webhook events received yet."
+        />
+      </section>
     </div>
   );
 }
