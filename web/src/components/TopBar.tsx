@@ -16,15 +16,30 @@ export async function TopBar() {
             EquipSeva Founder Console
           </Link>
           {user && (
-            <nav className="flex items-center gap-4 text-sm text-[var(--color-muted)]">
+            <nav className="flex flex-wrap items-center gap-4 text-sm text-[var(--color-muted)]">
               <Link href="/dashboard" className="hover:text-[var(--color-fg)]">
                 Dashboard
+              </Link>
+              <Link href="/ops" className="hover:text-[var(--color-fg)]">
+                Ops
               </Link>
               <Link href="/disputes" className="hover:text-[var(--color-fg)]">
                 Disputes
               </Link>
               <Link href="/risk" className="hover:text-[var(--color-fg)]">
                 Risk
+              </Link>
+              <Link href="/reconciliation" className="hover:text-[var(--color-fg)]">
+                Recon
+              </Link>
+              <Link href="/finance" className="hover:text-[var(--color-fg)]">
+                Finance
+              </Link>
+              <Link href="/kyc" className="hover:text-[var(--color-fg)]">
+                KYC
+              </Link>
+              <Link href="/funnel" className="hover:text-[var(--color-fg)]">
+                Funnel
               </Link>
             </nav>
           )}

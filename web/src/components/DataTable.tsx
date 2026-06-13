@@ -16,7 +16,7 @@ export function DataTable<T>({
   columns: Column<T>[];
   rows: T[];
   emptyMessage?: string;
-  rowKey: (row: T) => string;
+  rowKey: (row: T, index: number) => string;
 }) {
   if (rows.length === 0) {
     return (
@@ -38,8 +38,8 @@ export function DataTable<T>({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={rowKey(row)} className="border-b border-[var(--color-border)] last:border-0">
+          {rows.map((row, i) => (
+            <tr key={rowKey(row, i)} className="border-b border-[var(--color-border)] last:border-0">
               {columns.map((c) => (
                 <td key={c.key} className="px-3 py-2 align-top">
                   {c.render(row)}
