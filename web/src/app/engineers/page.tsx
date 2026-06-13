@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireFounder } from "@/lib/auth/requireFounder";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { DataTable, type Column } from "@/components/DataTable";
@@ -34,7 +35,18 @@ export default async function EngineersPage() {
       render: (_r, i) => <span className="text-xs text-[var(--color-muted)]">{i + 1}</span>,
       width: "40px",
     },
-    { key: "email", header: "Engineer", render: (r) => r.engineer_email ?? "—" },
+    {
+      key: "email",
+      header: "Engineer",
+      render: (r) => (
+        <Link
+          href={`/engineers/${r.engineer_user_id}`}
+          className="text-[var(--color-accent)] hover:underline"
+        >
+          {r.engineer_email ?? r.engineer_user_id.slice(0, 8)}
+        </Link>
+      ),
+    },
     {
       key: "first",
       header: "First active",
