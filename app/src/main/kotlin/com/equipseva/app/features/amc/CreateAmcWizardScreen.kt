@@ -514,6 +514,13 @@ class CreateAmcWizardViewModel @Inject constructor(
         // whether the payment captured server-side, so the user gets
         // a stale "pay" CTA even though their money already moved.
         runCatching { pendingPaymentsStore.add(order.paymentOrderId) }
+        // r516 (v0.4 P5 #10) — funnel ping immediately before handing the
+        // user to the Razorpay sheet. We never want to miss "initiated"
+        // even if the user backs out of the SDK or the device dies.
+        analytics.track(
+            com.equipseva.app.core.data.analytics.AnalyticsEvent.AMC_PAYMENT_INITIATED,
+            mapOf("amount_paise" to order.amountPaise, "months" to months),
+        )
 
         val result = runCatching {
             launcher.startPayment(
@@ -550,6 +557,8 @@ class CreateAmcWizardViewModel @Inject constructor(
                 )
                 if (verifyRes.isSuccess) {
                     runCatching { pendingPaymentsStore.remove(order.paymentOrderId) }
+                    // r516 (v0.4 P5 #10) — server-confirmed contract activation.
+                    analytics.track(com.equipseva.app.core.data.analytics.AnalyticsEvent.AMC_CONTRACT_ACTIVE)
                     true
                 } else {
                     // Verify failed AFTER Razorpay reported Success —

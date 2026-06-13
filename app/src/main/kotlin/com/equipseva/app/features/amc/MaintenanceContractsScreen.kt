@@ -85,6 +85,7 @@ class MaintenanceContractsViewModel @Inject constructor(
     private val repo: AmcRepository,
     private val userPrefs: UserPrefs,
     private val auth: AuthRepository,
+    private val analytics: com.equipseva.app.core.data.analytics.AnalyticsClient,
 ) : ViewModel() {
 
     data class UiState(
@@ -100,6 +101,8 @@ class MaintenanceContractsViewModel @Inject constructor(
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     init {
+        // r516 (v0.4 P5 #10) — funnel ping when hospital opens AMC list.
+        analytics.track(com.equipseva.app.core.data.analytics.AnalyticsEvent.AMC_PLANS_VIEWED)
         refresh(initial = true)
     }
 

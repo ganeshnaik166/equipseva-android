@@ -176,6 +176,11 @@ class RequestServiceViewModel @Inject constructor(
     private var hospitalPhone: String? = null
 
     init {
+        // r516 (v0.4 P5 #10) — funnel ping when hospital opens the
+        // request-service wizard. job_post_submitted already fires in
+        // create().onSuccess; this captures the "started but maybe didn't
+        // submit" cohort for drop-off analysis.
+        analytics.track(com.equipseva.app.core.data.analytics.AnalyticsEvent.JOB_POST_STARTED)
         // v0.3.5 fix #9 — pin engineerId nav-arg into SavedKeys so a
         // process kill mid-typing recovers correctly (the original
         // nav-arg key only lives on the back-stack entry). Also kick

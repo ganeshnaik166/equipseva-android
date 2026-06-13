@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.data.analytics.AnalyticsClient
+import com.equipseva.app.core.data.analytics.AnalyticsEvent
 import com.equipseva.app.core.data.engineers.Engineer
 import com.equipseva.app.core.data.engineers.EngineerCertificate
 import com.equipseva.app.core.data.engineers.EngineerRepository
@@ -40,6 +42,7 @@ class KycViewModel @Inject constructor(
     private val userPrefs: com.equipseva.app.core.data.prefs.UserPrefs,
     private val storageRepository: StorageRepository,
     private val savedStateHandle: SavedStateHandle,
+    private val analytics: AnalyticsClient,
 ) : ViewModel() {
 
     // Snapshot of doc paths that were already persisted server-side at
@@ -334,12 +337,19 @@ class KycViewModel @Inject constructor(
             // pre-decision.
             engineerRepository.fetchByUserId(uid).onSuccess { engineer ->
                 if (engineer != null) {
+                    val prevStatus = _state.value.verificationStatus
                     _state.update {
                         it.copy(
                             verificationStatus = engineer.verificationStatus,
                             verificationNotes = engineer.verificationNotes,
                             rejectedDocTypes = engineer.rejectedDocTypes,
                         )
+                    }
+                    // r516 (v0.4 P5 #10) — fire once on the client-observed transition.
+                    if (prevStatus != VerificationStatus.Verified &&
+                        engineer.verificationStatus == VerificationStatus.Verified
+                    ) {
+                        analytics.track(AnalyticsEvent.ENGINEER_KYC_VERIFIED)
                     }
                 }
             }
