@@ -1,6 +1,7 @@
 import { requireFounder } from "@/lib/auth/requireFounder";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { DataTable, type Column } from "@/components/DataTable";
+import { FunnelBars, type FunnelDatum } from "@/components/charts/FunnelBars";
 import { formatNumber, formatPct } from "@/lib/format";
 
 export const metadata = { title: "Funnel — EquipSeva Founder Console" };
@@ -86,12 +87,17 @@ export default async function FunnelPage() {
                 {f.error.message}
               </div>
             ) : (
-              <DataTable
-                columns={funnelCols}
-                rows={rows}
-                rowKey={(r) => `${f.key}-${r.ordinal}`}
-                emptyMessage="No events recorded yet — funnel will fill in as r513/r516 events fire from clients."
-              />
+              <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+                <div className="rounded border border-[var(--color-border)] bg-white p-3">
+                  <FunnelBars data={rows as FunnelDatum[]} />
+                </div>
+                <DataTable
+                  columns={funnelCols}
+                  rows={rows}
+                  rowKey={(r) => `${f.key}-${r.ordinal}`}
+                  emptyMessage="No events recorded yet — funnel will fill in as r513/r516 events fire from clients."
+                />
+              </div>
             )}
           </section>
         );
