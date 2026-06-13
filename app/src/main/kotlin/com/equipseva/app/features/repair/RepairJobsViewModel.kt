@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.data.analytics.AnalyticsClient
+import com.equipseva.app.core.data.analytics.AnalyticsEvent
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.repair.RepairBidRepository
@@ -39,6 +41,7 @@ class RepairJobsViewModel @Inject constructor(
     private val bidRepository: RepairBidRepository,
     private val engineerRepository: EngineerRepository,
     private val authRepository: AuthRepository,
+    private val analytics: AnalyticsClient,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RepairJobsUiState())
@@ -48,6 +51,8 @@ class RepairJobsViewModel @Inject constructor(
     private var pageJob: Job? = null
 
     init {
+        // r516 (v0.4 P5 #10) — funnel ping when engineer/hospital opens job feed.
+        analytics.track(AnalyticsEvent.JOB_FEED_VIEWED)
         refresh()
         loadEngineerBase()
 

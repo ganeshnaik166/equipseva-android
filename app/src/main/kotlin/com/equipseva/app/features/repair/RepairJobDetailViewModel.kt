@@ -4,6 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
+import com.equipseva.app.core.data.analytics.AnalyticsClient
+import com.equipseva.app.core.data.analytics.AnalyticsEvent
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.chat.ChatRepository
 import com.equipseva.app.core.data.dao.OutboxDao
@@ -68,6 +70,7 @@ class RepairJobDetailViewModel @Inject constructor(
     private val escrowRepository: RepairJobEscrowRepository,
     private val payoutRepository: com.equipseva.app.core.data.payouts.EngineerPayoutRepository,
     private val json: Json,
+    private val analytics: AnalyticsClient,
 ) : ViewModel() {
 
     sealed interface Effect {
@@ -467,6 +470,10 @@ class RepairJobDetailViewModel @Inject constructor(
                             placingBid = false,
                         )
                     }
+                    analytics.track(
+                        AnalyticsEvent.JOB_BID_SUBMITTED,
+                        mapOf("amount_rupees" to amountRupees),
+                    )
                     _messages.emit(if (hadPending) "Bid updated" else "Bid submitted")
                 },
                 onFailure = { ex ->
@@ -1045,6 +1052,7 @@ class RepairJobDetailViewModel @Inject constructor(
                     // pull it so the summary sheet (and later "Pay to escrow"
                     // CTA) reflect the actual amount without a back-and-reopen.
                     refreshEscrow()
+                    analytics.track(AnalyticsEvent.JOB_BID_ACCEPTED)
                     _messages.emit("Bid accepted — engineer notified")
                 },
                 onFailure = { ex ->
