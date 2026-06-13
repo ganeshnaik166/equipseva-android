@@ -29,17 +29,32 @@ export async function TopBar() {
               <Link href="/risk" className="hover:text-[var(--color-fg)]">
                 Risk
               </Link>
+              <Link href="/refunds" className="hover:text-[var(--color-fg)]">
+                Refunds
+              </Link>
+              <Link href="/dpdp" className="hover:text-[var(--color-fg)]">
+                DPDP
+              </Link>
               <Link href="/reconciliation" className="hover:text-[var(--color-fg)]">
                 Recon
               </Link>
               <Link href="/finance" className="hover:text-[var(--color-fg)]">
                 Finance
               </Link>
+              <Link href="/engineers" className="hover:text-[var(--color-fg)]">
+                Engineers
+              </Link>
+              <Link href="/cohorts" className="hover:text-[var(--color-fg)]">
+                Cohorts
+              </Link>
               <Link href="/kyc" className="hover:text-[var(--color-fg)]">
                 KYC
               </Link>
               <Link href="/funnel" className="hover:text-[var(--color-fg)]">
                 Funnel
+              </Link>
+              <Link href="/audit" className="hover:text-[var(--color-fg)]">
+                Audit
               </Link>
             </nav>
           )}
