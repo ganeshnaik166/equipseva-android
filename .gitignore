@@ -42,3 +42,10 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Next.js web console (web/.gitignore handles inner state)
+web/node_modules/
+web/.next/
+web/.vercel/
+web/out/
+web/next-env.d.ts
