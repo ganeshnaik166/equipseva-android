@@ -95,6 +95,15 @@ class RazorpayCheckoutLauncher @Inject constructor() {
                 // sticky bar so the SDK sheet reads as native.
                 put("color", "#0D7B45")
             })
+            // Round 512 (v0.4 P2 #6) — surface UPI Intent apps
+            // (PhonePe / GPay / Paytm / BHIM) as the headline row in the
+            // Razorpay sheet. Card / netbanking remain available as
+            // fallback tiles. UPI Intent has ~10pp higher conversion in
+            // tier-2/3 India vs. WebView checkout, and our hospital/
+            // engineer cohorts skew heavily UPI-first.
+            put("preferences", JSONObject().apply {
+                put("show_upi", true)
+            })
         }
 
         // Spin up the deferred + register it with the bridge before
