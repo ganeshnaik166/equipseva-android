@@ -16,3 +16,25 @@ html, body {
   color: var(--color-fg);
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
+
+/* r528 — print-mode polish for the /investor route. Trim TopBar nav,
+   force light backgrounds for ink-efficiency, and break sections
+   sensibly. */
+@media print {
+  header[role="banner"],
+  nav,
+  .print\:hidden {
+    display: none !important;
+  }
+  body, main {
+    background: white !important;
+    color: black !important;
+  }
+  section {
+    break-inside: avoid;
+  }
+  a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+}
