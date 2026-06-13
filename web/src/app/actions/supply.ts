@@ -36,3 +36,51 @@ export async function registerBondedSupplier(input: {
   revalidatePath("/supply");
   return { ok: true, id: String(data) };
 }
+
+export async function recordBondedIntake(input: {
+  supplierId: string;
+  invoiceNo: string;
+  invoiceDate: string; // YYYY-MM-DD
+  invoiceUrl: string;
+  oemBrand: string;
+  partNumber: string;
+  partDescription: string;
+  quantity: number;
+  unitCostRupees: number;
+  tamperQrCodes: string[];
+}): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  await requireFounder();
+
+  if (!input.supplierId) return { ok: false, error: "Supplier required" };
+  if (!input.invoiceNo.trim()) return { ok: false, error: "Vendor invoice no required" };
+  if (!input.invoiceDate) return { ok: false, error: "Invoice date required" };
+  if (input.quantity < 1) return { ok: false, error: "Quantity must be >= 1" };
+  if (input.unitCostRupees <= 0) return { ok: false, error: "Unit cost must be > 0" };
+  const codes = input.tamperQrCodes.map((c) => c.trim()).filter(Boolean);
+  if (codes.length !== input.quantity) {
+    return {
+      ok: false,
+      error: `QR code count (${codes.length}) must equal quantity (${input.quantity}).`,
+    };
+  }
+  if (new Set(codes).size !== codes.length) {
+    return { ok: false, error: "Duplicate QR codes in submission." };
+  }
+
+  const supabase = await getSupabaseServerClient();
+  const { data, error } = await supabase.rpc("founder_record_bonded_intake", {
+    p_supplier_id: input.supplierId,
+    p_vendor_invoice_no: input.invoiceNo.trim(),
+    p_vendor_invoice_date: input.invoiceDate,
+    p_vendor_invoice_url: input.invoiceUrl.trim(),
+    p_oem_brand: input.oemBrand.trim(),
+    p_part_number: input.partNumber.trim(),
+    p_part_description: input.partDescription.trim(),
+    p_quantity_received: input.quantity,
+    p_unit_cost_rupees: input.unitCostRupees,
+    p_tamper_qr_codes: codes,
+  });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/supply");
+  return { ok: true, id: String(data) };
+}
