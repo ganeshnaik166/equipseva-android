@@ -1,6 +1,7 @@
 import { requireFounder } from "@/lib/auth/requireFounder";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { DataTable, type Column } from "@/components/DataTable";
+import { ReconTimeseries, type ReconDatum } from "@/components/charts/ReconTimeseries";
 import { formatRelativeTime, formatRupees, shortId } from "@/lib/format";
 
 export const metadata = { title: "Reconciliation — EquipSeva Founder Console" };
@@ -104,6 +105,11 @@ export default async function ReconciliationPage() {
 
       <section>
         <h2 className="mb-2 text-sm font-semibold">Last 14 days</h2>
+        {recent.length > 0 && (
+          <div className="mb-3 rounded border border-[var(--color-border)] bg-white p-3">
+            <ReconTimeseries data={recent as ReconDatum[]} />
+          </div>
+        )}
         <DataTable columns={recentCols} rows={recent} rowKey={(r) => r.run_date} emptyMessage="No runs in window." />
       </section>
 
