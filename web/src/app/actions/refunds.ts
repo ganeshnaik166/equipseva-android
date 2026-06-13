@@ -14,7 +14,10 @@ export async function approveRefund(
     p_request_id: requestId,
     p_approver_note: note,
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("approve_refund_authorization failed:", error);
+    return { ok: false, error: "Could not approve refund. Check server logs." };
+  }
   revalidatePath("/refunds");
   return { ok: true };
 }
@@ -29,7 +32,10 @@ export async function rejectRefund(
     p_request_id: requestId,
     p_reject_reason: reason,
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("reject_refund_authorization failed:", error);
+    return { ok: false, error: "Could not reject refund. Check server logs." };
+  }
   revalidatePath("/refunds");
   return { ok: true };
 }

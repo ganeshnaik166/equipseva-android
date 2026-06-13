@@ -18,7 +18,10 @@ export async function markPayoutPaid(
     p_mode: mode || null,
     p_notes: notes || null,
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("admin_mark_engineer_payout_paid failed:", error);
+    return { ok: false, error: "Could not mark payout paid. Check server logs." };
+  }
   revalidatePath("/payouts");
   return { ok: true };
 }
@@ -33,7 +36,10 @@ export async function cancelPayout(
     p_payout_id: payoutId,
     p_reason: reason,
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("admin_cancel_engineer_payout failed:", error);
+    return { ok: false, error: "Could not cancel payout. Check server logs." };
+  }
   revalidatePath("/payouts");
   return { ok: true };
 }

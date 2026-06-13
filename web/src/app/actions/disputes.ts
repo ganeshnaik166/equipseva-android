@@ -17,7 +17,10 @@ export async function forceReleaseEscrow(
     p_escrow_id: escrowId,
     p_reason: reason.trim(),
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("founder_force_release_escrow failed:", error);
+    return { ok: false, error: "Could not release escrow. Check server logs." };
+  }
   revalidatePath("/disputes");
   return { ok: true };
 }
