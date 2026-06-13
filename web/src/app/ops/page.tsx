@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireFounder } from "@/lib/auth/requireFounder";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { DataTable, type Column } from "@/components/DataTable";
@@ -100,7 +101,18 @@ export default async function OpsPage() {
   ];
 
   const fleetCols: Column<FleetRow>[] = [
-    { key: "hospital", header: "Hospital", render: (r) => r.hospital_email ?? shortId(r.hospital_user_id) },
+    {
+      key: "hospital",
+      header: "Hospital",
+      render: (r) => (
+        <Link
+          href={`/hospitals/${r.hospital_user_id}`}
+          className="text-[var(--color-accent)] hover:underline"
+        >
+          {r.hospital_email ?? shortId(r.hospital_user_id)}
+        </Link>
+      ),
+    },
     { key: "fail", header: "Failures 90d", render: (r) => formatNumber(r.total_failures_90d) },
     { key: "assets", header: "Unique assets", render: (r) => formatNumber(r.unique_assets_90d) },
     {
