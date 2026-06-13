@@ -2,6 +2,7 @@ import { requireFounder } from "@/lib/auth/requireFounder";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { StatCard } from "@/components/StatCard";
 import { formatNumber } from "@/lib/format";
+import { SupplierForm } from "./SupplierForm";
 
 export const metadata = { title: "Bonded supply — EquipSeva Founder Console" };
 export const dynamic = "force-dynamic";
@@ -79,21 +80,14 @@ export default async function SupplyPage() {
         </div>
       </section>
 
+      <SupplierForm />
+
       <section className="rounded border border-[var(--color-border)] bg-white p-4 text-sm">
-        <h2 className="font-semibold">Founder actions (not yet wired into web)</h2>
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-[var(--color-muted)]">
-          <li>
-            <code>founder_register_bonded_supplier(name, gstin, tier, brands[], email, phone)</code> —
-            register a new OEM / authorized / verified supplier.
-          </li>
-          <li>
-            <code>founder_record_bonded_intake(supplier_id, invoice_no, invoice_date, invoice_url, brand, part_no, qty, unit_cost, qr_codes[])</code> —
-            log a parts receipt lot with tamper QR.
-          </li>
-        </ul>
-        <p className="mt-2 text-xs text-[var(--color-muted)]">
-          Both actions live on the SECDEF RPC layer; call from the Supabase SQL editor or wire a
-          form here when the first supplier onboards.
+        <h2 className="font-semibold">Still unwired</h2>
+        <p className="mt-1 text-[var(--color-muted)]">
+          <code>founder_record_bonded_intake(supplier_id, invoice_no, invoice_date, invoice_url, brand, part_no, qty, unit_cost, qr_codes[])</code> —
+          log a parts receipt lot with tamper QR. Form wiring deferred until the first supplier onboards.
+          Call from the Supabase SQL editor for now.
         </p>
       </section>
     </div>

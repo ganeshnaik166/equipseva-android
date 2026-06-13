@@ -2,6 +2,7 @@ import { requireFounder } from "@/lib/auth/requireFounder";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { DataTable, type Column } from "@/components/DataTable";
 import { formatRelativeTime, formatRupees, shortId } from "@/lib/format";
+import { EscrowReleaseAction } from "./EscrowReleaseAction";
 
 export const metadata = { title: "Disputes — EquipSeva Founder Console" };
 export const dynamic = "force-dynamic";
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 type DisputeRow = {
   id?: string;
   dispute_id?: string;
+  escrow_id?: string | null;
   hospital_email?: string | null;
   engineer_email?: string | null;
   escrow_amount_rupees?: number | null;
@@ -68,6 +70,11 @@ export default async function DisputesPage() {
           {shortId(r.repair_job_id ?? r.id ?? r.dispute_id)}
         </code>
       ),
+    },
+    {
+      key: "act",
+      header: "Action",
+      render: (r) => <EscrowReleaseAction escrowId={r.escrow_id ?? r.id ?? null} />,
     },
   ];
 
