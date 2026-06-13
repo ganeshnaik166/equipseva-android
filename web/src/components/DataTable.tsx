@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 export type Column<T> = {
   key: string;
   header: string;
-  render: (row: T) => ReactNode;
+  render: (row: T, index: number) => ReactNode;
   width?: string;
 };
 
@@ -42,7 +42,7 @@ export function DataTable<T>({
             <tr key={rowKey(row, i)} className="border-b border-[var(--color-border)] last:border-0">
               {columns.map((c) => (
                 <td key={c.key} className="px-3 py-2 align-top">
-                  {c.render(row)}
+                  {c.render(row, i)}
                 </td>
               ))}
             </tr>
