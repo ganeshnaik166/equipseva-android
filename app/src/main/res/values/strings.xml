@@ -10,4 +10,59 @@
         runtime, so a blank placeholder is fine.
     -->
     <string name="razorpay_api_key" translatable="false"></string>
+
+    <!--
+        Round 514 (v0.4 P5 #9) — i18n seed. These 30 keys cover the
+        hottest hospital + engineer surfaces. NO Compose call-sites are
+        rewired in this round; the resources exist so a native-speaker
+        review pass can land before we flip Text("…") → stringResource().
+        Until then `values/strings.xml` stays the source of truth at
+        runtime even on Hindi/Telugu devices.
+    -->
+
+    <!-- Common UI -->
+    <string name="common_cancel">Cancel</string>
+    <string name="common_continue">Continue</string>
+    <string name="common_retry">Retry</string>
+    <string name="common_save">Save</string>
+    <string name="common_submit">Submit</string>
+    <string name="common_yes">Yes</string>
+    <string name="common_no">No</string>
+    <string name="nav_home">Home</string>
+
+    <!-- Account -->
+    <string name="account_delete_title">Delete your account?</string>
+    <string name="account_delete_body">Deletes your profile, repair jobs, bids, AMC contracts</string>
+    <string name="role_change_title">Change role</string>
+    <string name="role_change_picker">Pick the new role</string>
+
+    <!-- Device integrity -->
+    <string name="devmode_block_title">Developer Mode is on</string>
+    <string name="devmode_block_body">EquipSeva can\'t run while Developer Options or USB debugging is enabled</string>
+
+    <!-- Call masking -->
+    <string name="call_secure_line_note">Calls route through EquipSeva\'s secure line</string>
+    <string name="call_scoped_note">Book a job or open chat first — calls are scoped to active jobs</string>
+
+    <!-- KYC -->
+    <string name="kyc_review_window">After submit: typically reviewed within 4–24 hours</string>
+    <string name="kyc_photo_hint">Capture 1–4 photos of the equipment before you start</string>
+    <string name="kyc_verify_window">We\'ll verify your documents within 4–24 hours and notify you</string>
+
+    <!-- Job lifecycle -->
+    <string name="job_live">Your repair request is live</string>
+    <string name="job_bid_window">Verified engineers in your area usually bid within 5–30 min</string>
+    <string name="job_status_submitted_for_review">Submitted for review</string>
+    <string name="job_status_withdrawn">Withdrawn by hospital</string>
+
+    <!-- Payments — see PaymentBridge.friendlyFailureMessage for the matching codes -->
+    <string name="payment_razorpay_failed">Payment via Razorpay failed</string>
+    <string name="payment_cancelled">Payment cancelled.</string>
+    <string name="payment_network_error">Network error during payment. Check your connection and retry.</string>
+    <string name="payment_tls_error">Your device\'s secure-network setup blocked the payment. Update Android System WebView and retry.</string>
+    <string name="payment_invalid">Couldn\'t start payment. Please try again.</string>
+    <string name="payment_generic_failure">Payment failed. Please try a different method or contact your bank.</string>
+
+    <!-- Moderation -->
+    <string name="moderation_pattern_flag">Pattern flag — 3+ disputes in window</string>
 </resources>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Hindi (hi-IN) — round 514 i18n seed.
+    Reviewed by: PENDING NATIVE-SPEAKER REVIEW.
+    Last sync: 2026-06-13.
+    Compose call-sites have NOT been rewired yet — this file is a
+    scaffold that becomes live once strings.xml usages are migrated to
+    stringResource(). Keep keys in parity with values/strings.xml; the
+    next round will add a parity unit test.
+-->
+<resources>
+    <string name="app_name">EquipSeva</string>
+
+    <!-- Common UI -->
+    <string name="common_cancel">रद्द करें</string>
+    <string name="common_continue">जारी रखें</string>
+    <string name="common_retry">पुनः प्रयास</string>
+    <string name="common_save">सहेजें</string>
+    <string name="common_submit">सबमिट</string>
+    <string name="common_yes">हाँ</string>
+    <string name="common_no">नहीं</string>
+    <string name="nav_home">होम</string>
+
+    <!-- Account -->
+    <string name="account_delete_title">क्या आप अपना खाता हटाना चाहते हैं?</string>
+    <string name="account_delete_body">आपकी प्रोफ़ाइल, मरम्मत कार्य, बोलियाँ और AMC अनुबंध हटा दिए जाएँगे</string>
+    <string name="role_change_title">भूमिका बदलें</string>
+    <string name="role_change_picker">नई भूमिका चुनें</string>
+
+    <!-- Device integrity -->
+    <string name="devmode_block_title">डेवलपर मोड चालू है</string>
+    <string name="devmode_block_body">डेवलपर विकल्प या USB डिबगिंग चालू रहने पर EquipSeva नहीं चलेगा</string>
+
+    <!-- Call masking -->
+    <string name="call_secure_line_note">कॉल EquipSeva की सुरक्षित लाइन से रूट होती हैं</string>
+    <string name="call_scoped_note">पहले कोई कार्य बुक करें या चैट खोलें — कॉल केवल सक्रिय कार्यों तक सीमित हैं</string>
+
+    <!-- KYC -->
+    <string name="kyc_review_window">सबमिट के बाद: आमतौर पर 4–24 घंटों में समीक्षा</string>
+    <string name="kyc_photo_hint">शुरू करने से पहले उपकरण की 1–4 तस्वीरें लें</string>
+    <string name="kyc_verify_window">हम 4–24 घंटों में आपके दस्तावेज़ सत्यापित करेंगे और आपको सूचित करेंगे</string>
+
+    <!-- Job lifecycle -->
+    <string name="job_live">आपका मरम्मत अनुरोध सक्रिय है</string>
+    <string name="job_bid_window">आपके क्षेत्र के सत्यापित इंजीनियर आमतौर पर 5–30 मिनट में बोली लगाते हैं</string>
+    <string name="job_status_submitted_for_review">समीक्षा के लिए सबमिट</string>
+    <string name="job_status_withdrawn">अस्पताल द्वारा वापस लिया गया</string>
+
+    <!-- Payments -->
+    <string name="payment_razorpay_failed">Razorpay से भुगतान विफल</string>
+    <string name="payment_cancelled">भुगतान रद्द किया गया।</string>
+    <string name="payment_network_error">भुगतान के दौरान नेटवर्क त्रुटि। कनेक्शन जांचें और पुनः प्रयास करें।</string>
+    <string name="payment_tls_error">आपके डिवाइस की सुरक्षित नेटवर्क सेटिंग ने भुगतान रोक दिया। Android System WebView अपडेट करें और पुनः प्रयास करें।</string>
+    <string name="payment_invalid">भुगतान शुरू नहीं हो सका। कृपया पुनः प्रयास करें।</string>
+    <string name="payment_generic_failure">भुगतान विफल। कृपया कोई और तरीका आज़माएँ या अपने बैंक से संपर्क करें।</string>
+
+    <!-- Moderation -->
+    <string name="moderation_pattern_flag">पैटर्न फ़्लैग — विंडो में 3+ विवाद</string>
+</resources>

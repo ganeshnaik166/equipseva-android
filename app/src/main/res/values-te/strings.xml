@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Telugu (te-IN) — round 514 i18n seed.
+    Reviewed by: PENDING NATIVE-SPEAKER REVIEW.
+    Last sync: 2026-06-13.
+    Compose call-sites have NOT been rewired yet — this file is a
+    scaffold that becomes live once strings.xml usages are migrated to
+    stringResource(). Hyderabad-base relevance: Telugu after Hindi is
+    the highest-priority second locale per founder vertical pick.
+-->
+<resources>
+    <string name="app_name">EquipSeva</string>
+
+    <!-- Common UI -->
+    <string name="common_cancel">రద్దు చేయి</string>
+    <string name="common_continue">కొనసాగించు</string>
+    <string name="common_retry">మళ్ళీ ప్రయత్నించు</string>
+    <string name="common_save">భద్రపరచు</string>
+    <string name="common_submit">సమర్పించు</string>
+    <string name="common_yes">అవును</string>
+    <string name="common_no">కాదు</string>
+    <string name="nav_home">హోమ్</string>
+
+    <!-- Account -->
+    <string name="account_delete_title">మీ ఖాతాను తొలగించాలా?</string>
+    <string name="account_delete_body">మీ ప్రొఫైల్, మరమ్మతు పనులు, బిడ్‌లు మరియు AMC ఒప్పందాలు తొలగించబడతాయి</string>
+    <string name="role_change_title">పాత్రను మార్చండి</string>
+    <string name="role_change_picker">కొత్త పాత్రను ఎంచుకోండి</string>
+
+    <!-- Device integrity -->
+    <string name="devmode_block_title">డెవలపర్ మోడ్ ఆన్‌లో ఉంది</string>
+    <string name="devmode_block_body">డెవలపర్ ఆప్షన్లు లేదా USB డీబగ్గింగ్ ఆన్‌లో ఉంటే EquipSeva పనిచేయదు</string>
+
+    <!-- Call masking -->
+    <string name="call_secure_line_note">కాల్‌లు EquipSeva యొక్క సురక్షిత లైన్ ద్వారా రూట్ అవుతాయి</string>
+    <string name="call_scoped_note">ముందుగా ఒక పని బుక్ చేయండి లేదా చాట్ తెరవండి — కాల్‌లు యాక్టివ్ పనులకు మాత్రమే పరిమితం</string>
+
+    <!-- KYC -->
+    <string name="kyc_review_window">సమర్పించిన తర్వాత: సాధారణంగా 4–24 గంటల్లో సమీక్షించబడుతుంది</string>
+    <string name="kyc_photo_hint">ప్రారంభించే ముందు పరికరం యొక్క 1–4 ఫోటోలను తీయండి</string>
+    <string name="kyc_verify_window">మేము మీ పత్రాలను 4–24 గంటల్లో ధృవీకరించి మీకు తెలియజేస్తాము</string>
+
+    <!-- Job lifecycle -->
+    <string name="job_live">మీ మరమ్మతు అభ్యర్థన లైవ్‌లో ఉంది</string>
+    <string name="job_bid_window">మీ ప్రాంతంలోని ధృవీకరించబడిన ఇంజనీర్లు సాధారణంగా 5–30 నిమిషాల్లో బిడ్ చేస్తారు</string>
+    <string name="job_status_submitted_for_review">సమీక్ష కోసం సమర్పించబడింది</string>
+    <string name="job_status_withdrawn">ఆసుపత్రి ఉపసంహరించుకుంది</string>
+
+    <!-- Payments -->
+    <string name="payment_razorpay_failed">Razorpay ద్వారా చెల్లింపు విఫలమైంది</string>
+    <string name="payment_cancelled">చెల్లింపు రద్దు చేయబడింది.</string>
+    <string name="payment_network_error">చెల్లింపు సమయంలో నెట్‌వర్క్ లోపం. మీ కనెక్షన్‌ను తనిఖీ చేసి మళ్ళీ ప్రయత్నించండి.</string>
+    <string name="payment_tls_error">మీ పరికరం యొక్క సురక్షిత నెట్‌వర్క్ సెటప్ చెల్లింపును అడ్డుకుంది. Android System WebView ను అప్‌డేట్ చేసి మళ్ళీ ప్రయత్నించండి.</string>
+    <string name="payment_invalid">చెల్లింపు ప్రారంభించబడలేదు. దయచేసి మళ్ళీ ప్రయత్నించండి.</string>
+    <string name="payment_generic_failure">చెల్లింపు విఫలమైంది. దయచేసి వేరే పద్ధతిని ప్రయత్నించండి లేదా మీ బ్యాంకును సంప్రదించండి.</string>
+
+    <!-- Moderation -->
+    <string name="moderation_pattern_flag">నమూనా జెండా — విండోలో 3+ వివాదాలు</string>
+</resources>

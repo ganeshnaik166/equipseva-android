@@ -61,6 +61,12 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
 
+        // Round 514 (v0.4 P5 #9) — ship only the locales we actually
+        // translate, so Play Asset Delivery doesn't bake stub
+        // translations from AndroidX libraries for ~80 unsupported
+        // languages into the APK.
+        resourceConfigurations += listOf("en", "hi", "te")
+
         buildConfigField("String", "SUPABASE_URL", "\"${localOrEnv("SUPABASE_URL")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localOrEnv("SUPABASE_ANON_KEY")}\"")
         buildConfigField("String", "SENTRY_DSN", "\"${localOrEnv("SENTRY_DSN")}\"")
