@@ -187,6 +187,19 @@ serve(async (req) => {
     global: { headers: { Authorization: authHeader } },
   });
 
+  // r522 (audit-11 fix) — rate limit (5/min, 50/day per user; founder bypass).
+  // Reserve a slot BEFORE doing any work so a 429 caller can't spam render.
+  const { error: rateErr } = await caller.rpc("check_and_reserve_nabh_export");
+  if (rateErr) {
+    if (rateErr.code === "53400") {
+      return bad("rate_limited", rateErr.message, 429);
+    }
+    if (rateErr.code === "42501") {
+      return bad("unauthorized", rateErr.message, 401);
+    }
+    return bad("rate_check_failed", rateErr.message, 500);
+  }
+
   const { data: rows, error: rpcErr } = await caller.rpc(
     "nabh_bundle_for_equipment",
     {
