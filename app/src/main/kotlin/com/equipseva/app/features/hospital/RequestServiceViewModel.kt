@@ -41,6 +41,7 @@ class RequestServiceViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val draftStore: RequestServiceDraftStore,
     private val engineerDirectoryRepository: EngineerDirectoryRepository,
+    private val analytics: com.equipseva.app.core.data.analytics.AnalyticsClient,
 ) : ViewModel() {
 
     // Round 453 — process-death-safe draft state. Hospital booking is a
@@ -583,6 +584,14 @@ class RequestServiceViewModel @Inject constructor(
                     // bar for a job they already created.
                     draftStore.clearDraft()
                     _state.update { UiState() }
+                    // r513 (v0.4 P5 #10) — funnel ping after server-write succeeded.
+                    analytics.track(
+                        com.equipseva.app.core.data.analytics.AnalyticsEvent.JOB_POST_SUBMITTED,
+                        mapOf(
+                            "category" to current.category.storageKey,
+                            "urgency" to current.urgency.storageKey,
+                        ),
+                    )
                     effectChannel.tryEmit(Effect.Submitted(jobId = job.id, jobNumber = job.jobNumber))
                 }
                 .onFailure { error ->

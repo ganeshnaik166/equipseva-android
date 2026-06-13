@@ -95,7 +95,15 @@ class CreateAmcWizardViewModel @Inject constructor(
     // payment before the 24h server reaper cancels the contract).
     private val pendingPaymentsStore: PendingAmcPaymentsStore,
     private val pendingContractsStore: PendingAmcContractsStore,
+    private val analytics: com.equipseva.app.core.data.analytics.AnalyticsClient,
 ) : ViewModel() {
+
+    init {
+        // r513 (v0.4 P5 #10) — fire wizard-started exactly once per VM
+        // instantiation. SavedStateHandle survival means a configuration
+        // change won't double-fire (Hilt re-uses the same VM).
+        analytics.track(com.equipseva.app.core.data.analytics.AnalyticsEvent.AMC_WIZARD_STARTED)
+    }
 
     private val primaryEngineerId: String =
         savedStateHandle[Routes.CREATE_AMC_ARG_ENGINEER_ID] ?: ""

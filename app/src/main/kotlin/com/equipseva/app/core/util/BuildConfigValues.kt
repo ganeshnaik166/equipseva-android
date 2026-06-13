@@ -7,4 +7,6 @@ object BuildConfigValues {
     val supabaseAnonKey: String = BuildConfig.SUPABASE_ANON_KEY
     val sentryDsn: String = BuildConfig.SENTRY_DSN
     val googleWebClientId: String = BuildConfig.GOOGLE_WEB_CLIENT_ID
+    val versionName: String = BuildConfig.VERSION_NAME
+    val buildType: String = BuildConfig.BUILD_TYPE
 }
