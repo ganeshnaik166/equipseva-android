@@ -1,7 +1,8 @@
 import { requireFounder } from "@/lib/auth/requireFounder";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { StatCard } from "@/components/StatCard";
-import { formatNumber } from "@/lib/format";
+import { DataTable, type Column } from "@/components/DataTable";
+import { formatNumber, formatRelativeTime, formatRupees, shortId } from "@/lib/format";
 import { SupplierForm } from "./SupplierForm";
 import { IntakeForm } from "./IntakeForm";
 
@@ -25,21 +26,47 @@ type Supplier = {
   oem_brands: string[] | null;
 };
 
+type IntakeLot = {
+  id: string;
+  supplier_id: string;
+  vendor_invoice_no: string;
+  vendor_invoice_date: string;
+  oem_brand: string;
+  part_number: string;
+  part_description: string | null;
+  quantity_received: number;
+  unit_cost_rupees: number;
+  total_cost_rupees: number;
+  status: string | null;
+  intake_received_at: string;
+};
+
 export default async function SupplyPage() {
   await requireFounder();
   const supabase = await getSupabaseServerClient();
-  const [kpiRes, suppliersRes] = await Promise.all([
+  const [kpiRes, suppliersRes, intakesRes] = await Promise.all([
     supabase.rpc("founder_bonded_parts_dashboard"),
     supabase
       .from("bonded_parts_suppliers")
       .select("id, supplier_name, supplier_tier, oem_brands")
       .order("supplier_name"),
+    supabase
+      .from("bonded_parts_intake")
+      .select(
+        "id, supplier_id, vendor_invoice_no, vendor_invoice_date, oem_brand, part_number, part_description, quantity_received, unit_cost_rupees, total_cost_rupees, status, intake_received_at",
+      )
+      .order("intake_received_at", { ascending: false })
+      .limit(50),
   ]);
   if (kpiRes.error) throw new Error(`founder_bonded_parts_dashboard: ${kpiRes.error.message}`);
   if (suppliersRes.error)
     throw new Error(`bonded_parts_suppliers: ${suppliersRes.error.message}`);
+  if (intakesRes.error)
+    throw new Error(`bonded_parts_intake: ${intakesRes.error.message}`);
   const k: SupplyKpis = (Array.isArray(kpiRes.data) ? kpiRes.data[0] : kpiRes.data) ?? ({} as SupplyKpis);
   const suppliers = (suppliersRes.data ?? []) as Supplier[];
+  const intakes = (intakesRes.data ?? []) as IntakeLot[];
+  const supplierIdToName = new Map(suppliers.map((s) => [s.id, s.supplier_name]));
 
   const lostPct =
     k.total_units_received && k.total_units_received > 0 && k.total_units_lost != null
@@ -101,6 +128,79 @@ export default async function SupplyPage() {
         <SupplierForm />
         <IntakeForm suppliers={suppliers} />
       </div>
+
+      {intakes.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+            Recent intake lots ({intakes.length})
+          </h2>
+          <DataTable
+            columns={
+              [
+                {
+                  key: "when",
+                  header: "Received",
+                  render: (r: IntakeLot) => (
+                    <span title={r.intake_received_at}>
+                      {formatRelativeTime(r.intake_received_at)}
+                    </span>
+                  ),
+                },
+                {
+                  key: "supplier",
+                  header: "Supplier",
+                  render: (r) => supplierIdToName.get(r.supplier_id) ?? shortId(r.supplier_id),
+                },
+                { key: "brand", header: "Brand", render: (r) => r.oem_brand },
+                {
+                  key: "part",
+                  header: "Part",
+                  render: (r) => (
+                    <span>
+                      <code className="text-xs">{r.part_number}</code>{" "}
+                      <span className="text-xs text-[var(--color-muted)]">
+                        {r.part_description ?? ""}
+                      </span>
+                    </span>
+                  ),
+                },
+                {
+                  key: "qty",
+                  header: "Qty",
+                  render: (r) => formatNumber(r.quantity_received),
+                },
+                {
+                  key: "cost",
+                  header: "Lot cost",
+                  render: (r) => formatRupees(r.total_cost_rupees),
+                },
+                {
+                  key: "invoice",
+                  header: "Invoice",
+                  render: (r) => (
+                    <span className="text-xs">
+                      {r.vendor_invoice_no} ·{" "}
+                      <span className="text-[var(--color-muted)]">{r.vendor_invoice_date}</span>
+                    </span>
+                  ),
+                },
+                {
+                  key: "status",
+                  header: "Status",
+                  render: (r) => (
+                    <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs">
+                      {r.status ?? "—"}
+                    </span>
+                  ),
+                },
+              ] as Column<IntakeLot>[]
+            }
+            rows={intakes}
+            rowKey={(r) => r.id}
+            emptyMessage="No intake lots yet."
+          />
+        </section>
+      )}
 
       {suppliers.length > 0 && (
         <section>
