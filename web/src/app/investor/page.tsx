@@ -1,4 +1,5 @@
 import { requireFounder } from "@/lib/auth/requireFounder";
+import { PrintButton } from "./PrintButton";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { StatCard } from "@/components/StatCard";
 import { CohortBars, type CohortDatum } from "@/components/charts/CohortBars";
@@ -83,7 +84,13 @@ export default async function InvestorPage() {
   return (
     <div className="space-y-10 pb-12 print:space-y-6">
       <header className="space-y-1">
-        <p className="text-xs uppercase tracking-widest text-[var(--color-muted)]">
+        <div className="flex items-center justify-between print:hidden">
+          <p className="text-xs uppercase tracking-widest text-[var(--color-muted)]">
+            EquipSeva · Investor brief
+          </p>
+          <PrintButton />
+        </div>
+        <p className="hidden text-xs uppercase tracking-widest text-[var(--color-muted)] print:block">
           EquipSeva · Investor brief
         </p>
         <h1 className="text-3xl font-semibold tracking-tight">
