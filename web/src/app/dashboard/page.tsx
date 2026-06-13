@@ -35,6 +35,36 @@ export default async function DashboardPage() {
     timeZone: "Asia/Kolkata",
   });
 
+  // r527 — triage list of actionable items, surfaced as alert pills.
+  // Sorted by stop-the-bleeding priority (refunds + disputes first).
+  type AlertTone = "danger" | "warn" | "neutral";
+  const alerts: { label: string; href: string; count: number; tone: AlertTone }[] = [
+    {
+      label: "Pending refund authorizations",
+      href: "/refunds",
+      count: k.pending_refund_authorizations ?? 0,
+      tone: "warn" as AlertTone,
+    },
+    {
+      label: "Open disputes",
+      href: "/disputes",
+      count: k.open_disputes ?? 0,
+      tone: ((k.open_disputes ?? 0) > 0 ? "warn" : "neutral") as AlertTone,
+    },
+    {
+      label: "DPDP grievances open",
+      href: "/dpdp",
+      count: k.open_dpdp_grievances ?? 0,
+      tone: ((k.open_dpdp_grievances ?? 0) > 0 ? "danger" : "neutral") as AlertTone,
+    },
+    {
+      label: "AMC pending payment",
+      href: "/dashboard",
+      count: k.amc_contracts_pending_payment ?? 0,
+      tone: ((k.amc_contracts_pending_payment ?? 0) > 0 ? "warn" : "neutral") as AlertTone,
+    },
+  ].filter((a) => a.count > 0);
+
   return (
     <div className="space-y-6">
       <header className="flex items-baseline justify-between">
@@ -43,6 +73,32 @@ export default async function DashboardPage() {
           generated {generatedAt} IST
         </span>
       </header>
+
+      {alerts.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+            Triage now ({alerts.reduce((s, a) => s + a.count, 0)} pending)
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {alerts.map((a) => (
+              <a
+                key={a.label}
+                href={a.href}
+                className={`rounded border px-3 py-1.5 text-sm ${
+                  a.tone === "danger"
+                    ? "border-[var(--color-danger)] bg-red-50 text-[var(--color-danger)] hover:bg-red-100"
+                    : a.tone === "warn"
+                      ? "border-[var(--color-warn)] bg-yellow-50 text-[var(--color-warn)] hover:bg-yellow-100"
+                      : "border-[var(--color-border)] bg-white hover:bg-gray-50"
+                }`}
+              >
+                <span className="font-semibold tabular-nums">{a.count}</span>{" "}
+                <span>{a.label}</span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
