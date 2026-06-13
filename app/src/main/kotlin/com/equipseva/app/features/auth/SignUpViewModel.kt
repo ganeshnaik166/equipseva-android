@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.toAuthError
+import com.equipseva.app.core.data.analytics.AnalyticsClient
+import com.equipseva.app.core.data.analytics.AnalyticsEvent
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.util.Validators
@@ -23,6 +25,7 @@ class SignUpViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val userPrefs: UserPrefs,
     private val crashReporter: com.equipseva.app.core.observability.CrashReporter,
+    private val analytics: AnalyticsClient,
 ) : ViewModel() {
 
     data class UiState(
@@ -135,6 +138,11 @@ class SignUpViewModel @Inject constructor(
                                 }
                                 .onFailure { crashReporter.report(it, "signup addRole") }
                             _state.update { it.copy(form = FormUiState()) }
+                            // r513 (v0.4 P5 #10) — funnel ping after server-write succeeded.
+                            analytics.track(
+                                if (role == UserRole.HOSPITAL) AnalyticsEvent.HOSPITAL_SIGNED_UP
+                                else AnalyticsEvent.ENGINEER_SIGNED_UP,
+                            )
                             // v0.3.4 — Hospitals route through the post-signup
                             // phone onboarding screen before Home (mandatory
                             // phone for Exotel call masking). Engineers continue

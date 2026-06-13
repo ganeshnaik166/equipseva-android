@@ -17,6 +17,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.equipseva.app.core.data.analytics.AnalyticsClient
+import com.equipseva.app.core.data.analytics.AnalyticsEvent
 import com.equipseva.app.core.data.prefs.ThemeMode
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.observability.StartupTelemetry
@@ -36,6 +38,7 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
 
     @Inject lateinit var userPrefs: UserPrefs
     @Inject lateinit var deepLinkRouter: DeepLinkRouter
+    @Inject lateinit var analytics: AnalyticsClient
 
     // Round 470: dev-mode verdict driven by mutableStateOf so onResume
     // updates propagate to the Composition (Setting flipped in another
@@ -59,6 +62,8 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         devModeVerdict.value = DeviceIntegrityCheck.run(this)
         deepLinkRouter.dispatch(intent)
         maybeRequestNotificationPermission()
+        // r513 (v0.4 P5 #10 client wire) — fire-and-forget funnel ping.
+        analytics.track(AnalyticsEvent.APP_OPEN)
         setContent {
             val themeMode by userPrefs.themeMode.collectAsStateWithLifecycle(initialValue = ThemeMode.Light)
             val systemDark = isSystemInDarkTheme()
