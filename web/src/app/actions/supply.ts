@@ -32,7 +32,10 @@ export async function registerBondedSupplier(input: {
     p_contact_email: input.email?.trim() || null,
     p_contact_phone: input.phone?.trim() || null,
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("founder_register_bonded_supplier failed:", error);
+    return { ok: false, error: "Could not register supplier. Check server logs." };
+  }
   revalidatePath("/supply");
   return { ok: true, id: String(data) };
 }
@@ -80,7 +83,10 @@ export async function recordBondedIntake(input: {
     p_unit_cost_rupees: input.unitCostRupees,
     p_tamper_qr_codes: codes,
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("founder_record_bonded_intake failed:", error);
+    return { ok: false, error: "Could not record intake. Check server logs." };
+  }
   revalidatePath("/supply");
   return { ok: true, id: String(data) };
 }

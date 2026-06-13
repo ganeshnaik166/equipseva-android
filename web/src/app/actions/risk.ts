@@ -18,7 +18,12 @@ export async function resolveCollusionFlag(
     p_status: status,
     p_note: note,
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    // r537 audit-13 LOW — log raw error server-side, return generic
+    // message to client so we don't leak Postgres constraint names.
+    console.error("founder_resolve_collusion_flag failed:", error);
+    return { ok: false, error: "Could not resolve flag. Check server logs." };
+  }
   revalidatePath("/risk");
   return { ok: true };
 }
@@ -35,7 +40,10 @@ export async function resolveDuplicateFlag(
     p_status: status,
     p_note: note,
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("founder_resolve_duplicate_flag failed:", error);
+    return { ok: false, error: "Could not resolve flag. Check server logs." };
+  }
   revalidatePath("/risk");
   return { ok: true };
 }
