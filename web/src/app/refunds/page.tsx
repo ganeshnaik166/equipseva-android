@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireFounder } from "@/lib/auth/requireFounder";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { DataTable, type Column } from "@/components/DataTable";
@@ -32,7 +33,15 @@ export default async function RefundsPage() {
     {
       key: "created",
       header: "Requested",
-      render: (r) => <span title={r.created_at}>{formatRelativeTime(r.created_at)}</span>,
+      render: (r) => (
+        <Link
+          href={`/refunds/${r.id}`}
+          title={r.created_at}
+          className="text-[var(--color-accent)] hover:underline"
+        >
+          {formatRelativeTime(r.created_at)}
+        </Link>
+      ),
     },
     {
       key: "expires",
