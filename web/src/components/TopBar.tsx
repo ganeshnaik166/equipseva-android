@@ -32,6 +32,9 @@ export async function TopBar() {
               <Link href="/disputes" className="hover:text-[var(--color-fg)]">
                 Disputes
               </Link>
+              <Link href="/vault" className="hover:text-[var(--color-fg)]">
+                Vault
+              </Link>
               <Link href="/risk" className="hover:text-[var(--color-fg)]">
                 Risk
               </Link>
