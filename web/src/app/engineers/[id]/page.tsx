@@ -4,6 +4,17 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { DataTable, type Column } from "@/components/DataTable";
 import { StatCard } from "@/components/StatCard";
 import { formatNumber, formatPct, formatRelativeTime, formatRupees, shortId } from "@/lib/format";
+import { PromoteTierAction } from "./PromoteTierAction";
+
+type TierProgress = {
+  current_tier: string;
+  jobs_completed: number | null;
+  dispute_rate_pct: number | null;
+  verified_tier_at_eval: string | null;
+  manual_override: boolean;
+  override_reason: string | null;
+  last_computed_at: string;
+};
 
 export const metadata = { title: "Engineer detail — EquipSeva Founder Console" };
 export const dynamic = "force-dynamic";
@@ -66,7 +77,7 @@ export default async function EngineerDetailPage({
 
   // Compose existing RPCs — no new SQL. LTV ranks all engineers; we
   // pull a wide window and find this one. SLA + attendance are similar.
-  const [ltvRes, slaRes, attRes, auditRes] = await Promise.all([
+  const [ltvRes, slaRes, attRes, auditRes, tierRes] = await Promise.all([
     supabase.rpc("founder_engineer_ltv_ranked", { p_limit: 500 }),
     supabase.rpc("engineer_sla_board", { p_days: 90, p_limit: 500 }),
     supabase.rpc("founder_suspicious_attendance_recent", { p_days: 90, p_limit: 200 }),
@@ -76,6 +87,13 @@ export default async function EngineerDetailPage({
       .eq("target_row_id", id)
       .order("created_at", { ascending: false })
       .limit(50),
+    supabase
+      .from("engineer_certification_progress")
+      .select(
+        "current_tier, jobs_completed, dispute_rate_pct, verified_tier_at_eval, manual_override, override_reason, last_computed_at",
+      )
+      .eq("engineer_user_id", id)
+      .maybeSingle(),
   ]);
 
   if (ltvRes.error) throw new Error(`engineer_ltv_ranked: ${ltvRes.error.message}`);
@@ -88,6 +106,7 @@ export default async function EngineerDetailPage({
     (r) => r.engineer_user_id === id || r.engineer_email === ltv?.engineer_email,
   );
   const audit = (auditRes.data ?? []) as AuditRow[];
+  const tier = (tierRes.error ? null : (tierRes.data as TierProgress | null)) ?? null;
 
   if (!ltv && !sla) {
     return (
@@ -186,6 +205,60 @@ export default async function EngineerDetailPage({
           )}
         </div>
       </header>
+
+      <section>
+        <h2 className="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+          Certification (r550 ladder)
+        </h2>
+        <div className="rounded border border-[var(--color-border)] bg-white p-4">
+          <div className="flex flex-wrap items-baseline gap-4">
+            <div>
+              <span className="text-xs text-[var(--color-muted)]">Current tier</span>
+              <div className="mt-0.5">
+                <span
+                  className={`rounded px-2 py-0.5 text-sm uppercase ${
+                    tier?.current_tier === "gold"
+                      ? "bg-yellow-100 text-[var(--color-warn)]"
+                      : tier?.current_tier === "silver"
+                        ? "bg-gray-200"
+                        : tier?.current_tier === "bronze"
+                          ? "bg-orange-100"
+                          : "bg-gray-50 text-[var(--color-muted)]"
+                  }`}
+                >
+                  {tier?.current_tier ?? "(not computed yet)"}
+                </span>
+                {tier?.manual_override && (
+                  <span
+                    className="ml-2 rounded bg-blue-100 px-1.5 py-0.5 text-xs"
+                    title={tier.override_reason ?? ""}
+                  >
+                    manual override
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="text-xs text-[var(--color-muted)]">
+              {tier ? (
+                <>
+                  jobs done {formatNumber(tier.jobs_completed)} · dispute rate{" "}
+                  {formatPct(tier.dispute_rate_pct)} · verified ceiling{" "}
+                  <code>{tier.verified_tier_at_eval ?? "—"}</code> · computed{" "}
+                  {formatRelativeTime(tier.last_computed_at)}
+                </>
+              ) : (
+                <>Daily cron will populate this on next run.</>
+              )}
+            </div>
+          </div>
+          <div className="mt-3 border-t border-[var(--color-border)] pt-3">
+            <PromoteTierAction
+              engineerUserId={id}
+              currentTier={tier?.current_tier ?? null}
+            />
+          </div>
+        </div>
+      </section>
 
       <section>
         <h2 className="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
