@@ -4,6 +4,22 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { DataTable, type Column } from "@/components/DataTable";
 import { StatCard } from "@/components/StatCard";
 import { formatNumber, formatRelativeTime, formatRupees, shortId } from "@/lib/format";
+import { SetTierAction } from "./SetTierAction";
+
+type TierDist = {
+  tier: string;
+  display_label: string;
+  active_contracts: number | null;
+  monthly_recurring_rupees: number | null;
+  pending_payment_contracts: number | null;
+};
+
+const TIER_TONE: Record<string, string> = {
+  gold: "bg-yellow-100 text-[var(--color-warn)]",
+  silver: "bg-gray-200",
+  bronze: "bg-orange-100",
+  basic: "bg-gray-50 text-[var(--color-muted)]",
+};
 
 export const metadata = { title: "AMC contracts — EquipSeva Founder Console" };
 export const dynamic = "force-dynamic";
@@ -16,6 +32,7 @@ type AmcRow = {
   visit_frequency: string;
   visits_per_year: number;
   monthly_fee_rupees: number;
+  amc_tier?: string | null;
   start_date: string;
   end_date: string;
   scope_text: string | null;
@@ -47,7 +64,7 @@ export default async function AmcPage({
   let query = supabase
     .from("amc_contracts")
     .select(
-      "id, hospital_user_id, primary_engineer_id, status, visit_frequency, visits_per_year, monthly_fee_rupees, start_date, end_date, scope_text, equipment_categories, auto_renew, next_visit_at, created_at",
+      "id, hospital_user_id, primary_engineer_id, status, visit_frequency, visits_per_year, monthly_fee_rupees, amc_tier, start_date, end_date, scope_text, equipment_categories, auto_renew, next_visit_at, created_at",
     )
     .order("created_at", { ascending: false })
     .limit(200);
@@ -55,9 +72,13 @@ export default async function AmcPage({
     query = query.eq("status", statusFilter);
   }
 
-  const { data, error } = await query;
-  if (error) throw new Error(`amc_contracts: ${error.message}`);
-  const rows = (data ?? []) as AmcRow[];
+  const [rowsRes, distRes] = await Promise.all([
+    query,
+    supabase.rpc("founder_amc_tier_distribution"),
+  ]);
+  if (rowsRes.error) throw new Error(`amc_contracts: ${rowsRes.error.message}`);
+  const rows = (rowsRes.data ?? []) as AmcRow[];
+  const dist = (distRes.error ? [] : (distRes.data ?? [])) as TierDist[];
 
   const totalMrr = rows
     .filter((r) => r.status === "active")
@@ -123,6 +144,23 @@ export default async function AmcPage({
                 ? "bg-red-100 text-[var(--color-danger)]"
                 : "bg-gray-100";
         return <span className={`rounded px-1.5 py-0.5 text-xs ${cls}`}>{r.status}</span>;
+      },
+    },
+    {
+      key: "tier",
+      header: "Tier",
+      render: (r) => {
+        const tier = r.amc_tier ?? "basic";
+        return (
+          <div className="flex items-center gap-2">
+            <span
+              className={`rounded px-1.5 py-0.5 text-xs uppercase ${TIER_TONE[tier] ?? "bg-gray-100"}`}
+            >
+              {tier}
+            </span>
+            <SetTierAction contractId={r.id} currentTier={tier} />
+          </div>
+        );
       },
     },
     {
@@ -205,6 +243,44 @@ export default async function AmcPage({
           />
         </div>
       </section>
+
+      {dist.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+            Tier distribution (r560 ladder)
+          </h2>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {dist.map((d) => (
+              <div
+                key={d.tier}
+                className="rounded border border-[var(--color-border)] bg-white p-4"
+              >
+                <div className="flex items-baseline justify-between">
+                  <span
+                    className={`rounded px-1.5 py-0.5 text-xs uppercase ${TIER_TONE[d.tier] ?? "bg-gray-100"}`}
+                  >
+                    {d.display_label}
+                  </span>
+                  <span className="text-xs text-[var(--color-muted)]">
+                    {formatNumber(d.active_contracts)} active
+                  </span>
+                </div>
+                <div className="mt-1 text-xl font-semibold tabular-nums">
+                  {formatRupees(d.monthly_recurring_rupees)}
+                  <span className="ml-1 text-xs font-normal text-[var(--color-muted)]">
+                    MRR
+                  </span>
+                </div>
+                {(d.pending_payment_contracts ?? 0) > 0 && (
+                  <div className="text-xs text-[var(--color-warn)]">
+                    {formatNumber(d.pending_payment_contracts)} pending payment
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <nav className="flex flex-wrap gap-2 text-sm">
         {STATUSES.map((s) => (
