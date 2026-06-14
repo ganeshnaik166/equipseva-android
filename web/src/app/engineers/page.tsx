@@ -24,9 +24,23 @@ type LtvRow = {
 export default async function EngineersPage() {
   await requireFounder();
   const supabase = await getSupabaseServerClient();
-  const { data, error } = await supabase.rpc("founder_engineer_ltv_ranked", { p_limit: 100 });
-  if (error) throw new Error(`founder_engineer_ltv_ranked: ${error.message}`);
-  const rows = (data ?? []) as LtvRow[];
+  const [ltvRes, tiersRes] = await Promise.all([
+    supabase.rpc("founder_engineer_ltv_ranked", { p_limit: 100 }),
+    supabase
+      .from("engineer_certification_progress")
+      .select("engineer_user_id, current_tier, manual_override"),
+  ]);
+  if (ltvRes.error)
+    throw new Error(`founder_engineer_ltv_ranked: ${ltvRes.error.message}`);
+  const rows = (ltvRes.data ?? []) as LtvRow[];
+  const tierByEngineer = new Map<
+    string,
+    { current_tier: string; manual_override: boolean }
+  >(
+    (tiersRes.error ? [] : ((tiersRes.data ?? []) as { engineer_user_id: string; current_tier: string; manual_override: boolean }[])).map(
+      (r) => [r.engineer_user_id, { current_tier: r.current_tier, manual_override: r.manual_override }],
+    ),
+  );
 
   const cols: Column<LtvRow>[] = [
     {
@@ -60,6 +74,31 @@ export default async function EngineersPage() {
       key: "rating",
       header: "Rating",
       render: (r) => (r.avg_rating != null ? `${r.avg_rating.toFixed(2)}★` : "—"),
+    },
+    {
+      key: "tier",
+      header: "Tier",
+      render: (r) => {
+        const t = tierByEngineer.get(r.engineer_user_id);
+        if (!t) return <span className="text-xs text-[var(--color-muted)]">—</span>;
+        const cls =
+          t.current_tier === "gold"
+            ? "bg-yellow-100 text-[var(--color-warn)]"
+            : t.current_tier === "silver"
+              ? "bg-gray-200"
+              : t.current_tier === "bronze"
+                ? "bg-orange-100"
+                : "bg-gray-50 text-[var(--color-muted)]";
+        return (
+          <span
+            className={`rounded px-1.5 py-0.5 text-xs uppercase ${cls}`}
+            title={t.manual_override ? "manual override" : ""}
+          >
+            {t.current_tier}
+            {t.manual_override && "*"}
+          </span>
+        );
+      },
     },
     {
       key: "disputes",
