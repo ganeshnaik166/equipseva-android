@@ -1,5 +1,18 @@
 import { requireFounder } from "@/lib/auth/requireFounder";
 import { PrintButton } from "./PrintButton";
+import { ShareTokensSection } from "./ShareTokensSection";
+
+type ShareTokenRow = {
+  id: string;
+  label: string;
+  status: string;
+  expires_at: string;
+  max_views: number;
+  view_count: number;
+  revoked_at: string | null;
+  revoke_reason: string | null;
+  created_at: string;
+};
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { StatCard } from "@/components/StatCard";
 import { CohortBars, type CohortDatum } from "@/components/charts/CohortBars";
@@ -45,18 +58,20 @@ export default async function InvestorPage() {
   const fy = currentFiscalYear();
   const supabase = await getSupabaseServerClient();
 
-  const [hero, verticals90, cohorts, dispute, top, gst] = await Promise.all([
+  const [hero, verticals90, cohorts, dispute, top, gst, shareTokens] = await Promise.all([
     supabase.rpc("founder_hero_kpis"),
     supabase.rpc("founder_gmv_by_equipment_type", { p_days: 90 }),
     supabase.rpc("founder_hospital_cohort_retention", { p_months: 12 }),
     supabase.rpc("founder_dispute_rate_monthly", { p_months: 12 }),
     supabase.rpc("founder_engineer_ltv_ranked", { p_limit: 10 }),
     supabase.rpc("founder_gst_summary", { p_fiscal_year: fy }),
+    supabase.rpc("founder_list_investor_share_tokens", { p_limit: 50 }),
   ]);
 
   for (const r of [hero, verticals90, cohorts, dispute, top, gst]) {
     if (r.error) throw new Error(`RPC failed: ${r.error.message}`);
   }
+  const tokens = (shareTokens.error ? [] : (shareTokens.data ?? [])) as ShareTokenRow[];
 
   const k: HeroKpis = (Array.isArray(hero.data) ? hero.data[0] : hero.data) ?? ({} as HeroKpis);
   const verticalsRows = (verticals90.data ?? []) as VerticalRow[];
@@ -271,6 +286,8 @@ export default async function InvestorPage() {
           </li>
         </ul>
       </section>
+
+      <ShareTokensSection tokens={tokens} />
 
       <footer className="border-t border-[var(--color-border)] pt-6 text-xs text-[var(--color-muted)]">
         Numbers are live, generated at request time from production RPCs. Source code, audit
