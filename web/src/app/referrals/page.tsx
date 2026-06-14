@@ -30,6 +30,8 @@ type RefRow = {
   bounty_revoked: boolean;
   bounty_revoke_reason: string | null;
   bounty_revoked_at: string | null;
+  referrer_confirmed_at: string | null;
+  referral_confirmation_code: string | null;
   created_at: string;
 };
 
@@ -55,7 +57,7 @@ export default async function ReferralsPage() {
     supabase
       .from("engineer_referrals")
       .select(
-        "id, referrer_user_id, referee_user_id, referral_code_used, referee_first_job_id, referee_first_completed_at, bounty_eligible, bounty_amount_rupees, bounty_revoked, bounty_revoke_reason, bounty_revoked_at, created_at",
+        "id, referrer_user_id, referee_user_id, referral_code_used, referee_first_job_id, referee_first_completed_at, bounty_eligible, bounty_amount_rupees, bounty_revoked, bounty_revoke_reason, bounty_revoked_at, referrer_confirmed_at, referral_confirmation_code, created_at",
       )
       .order("created_at", { ascending: false })
       .limit(200),
@@ -127,6 +129,17 @@ export default async function ReferralsPage() {
               title={r.bounty_revoke_reason ?? ""}
             >
               revoked
+            </span>
+          );
+        }
+        // r568: surface unconfirmed status distinctly from pending-evaluation
+        if (!r.referrer_confirmed_at) {
+          return (
+            <span
+              className="rounded bg-orange-100 px-1.5 py-0.5 text-xs text-[var(--color-warn)]"
+              title={`Referrer must confirm via code ${r.referral_confirmation_code ?? "—"} before bounty evaluates`}
+            >
+              awaiting referrer confirm
             </span>
           );
         }
@@ -207,12 +220,18 @@ export default async function ReferralsPage() {
       />
 
       <section className="rounded border border-[var(--color-border)] bg-white p-3 text-xs text-[var(--color-muted)]">
-        Daily cron at 04:47 UTC evaluates pending referrals — gates: referee&rsquo;s
-        first job completed + escrow released + NO open r498 collusion flag pairing
-        referrer/referee + NO open r501 duplicate-account flag. Bounty mints as a
-        queued row in <code>referral_bounty_payouts</code>; payout settles via the
-        existing engineer payouts queue (Cashfree). Founder can revoke any row with
-        a ≥10-char reason — cancels the queued payout AND logs to founder_action_log.
+        <strong>r568 referrer-consent flow:</strong> when a new engineer signs up
+        with a referral, a row lands here with status &ldquo;awaiting referrer
+        confirm&rdquo;. The referrer must explicitly call{" "}
+        <code>confirm_engineer_referral</code> (or enter the 12-char code via{" "}
+        <code>confirm_engineer_referral_by_code</code>) from their own session.
+        Until then, the daily cron at 04:47 UTC skips the row. Once confirmed, the
+        remaining gates fire: referee&rsquo;s first job completed + escrow
+        released + NO open r501 duplicate-account flag. Bounty mints as a queued
+        row in <code>referral_bounty_payouts</code>; payout settles via the
+        existing engineer payouts queue (Cashfree). Founder can revoke any row
+        with a ≥10-char reason — cancels the queued payout AND logs to
+        founder_action_log.
       </section>
     </div>
   );

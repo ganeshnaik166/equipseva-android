@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireFounder } from "@/lib/auth/requireFounder";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { DataTable, type Column } from "@/components/DataTable";
@@ -65,11 +66,18 @@ export default async function DisputesPage() {
     {
       key: "job",
       header: "Job",
-      render: (r) => (
-        <code className="text-xs text-[var(--color-muted)]">
-          {shortId(r.repair_job_id ?? r.id ?? r.dispute_id)}
-        </code>
-      ),
+      render: (r) => {
+        const jobId = r.repair_job_id ?? r.id ?? r.dispute_id;
+        if (!jobId) return <span className="text-xs">—</span>;
+        return (
+          <Link
+            href={`/jobs/${jobId}`}
+            className="font-mono text-xs text-[var(--color-accent)] hover:underline"
+          >
+            {shortId(jobId)}
+          </Link>
+        );
+      },
     },
     {
       key: "act",

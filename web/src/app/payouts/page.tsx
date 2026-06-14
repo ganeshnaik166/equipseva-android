@@ -80,7 +80,17 @@ export default async function PayoutsPage({
     {
       key: "job",
       header: "Job",
-      render: (r) => <code className="text-xs">{r.job_number ?? shortId(r.repair_job_id)}</code>,
+      render: (r) =>
+        r.repair_job_id ? (
+          <Link
+            href={`/jobs/${r.repair_job_id}`}
+            className="font-mono text-xs text-[var(--color-accent)] hover:underline"
+          >
+            {r.job_number ?? shortId(r.repair_job_id)}
+          </Link>
+        ) : (
+          <span className="text-xs">—</span>
+        ),
     },
     {
       key: "amount",
