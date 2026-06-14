@@ -3,8 +3,29 @@ import { requireFounder } from "@/lib/auth/requireFounder";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { DataTable, type Column } from "@/components/DataTable";
 import { StatCard } from "@/components/StatCard";
-import { formatNumber, formatRelativeTime, shortId } from "@/lib/format";
+import { formatNumber, formatRelativeTime, formatRupees, shortId } from "@/lib/format";
 import { InviteForm } from "./InviteForm";
+
+type ChainKpis = {
+  member_count: number | null;
+  jobs_open: number | null;
+  jobs_completed_window: number | null;
+  jobs_disputed_window: number | null;
+  amc_active: number | null;
+  amc_pending_payment: number | null;
+  total_escrow_held_rupees: number | null;
+  open_dispute_packs: number | null;
+};
+
+type PerSite = {
+  hospital_user_id: string;
+  site_label: string | null;
+  jobs_open: number | null;
+  jobs_completed_window: number | null;
+  jobs_disputed_window: number | null;
+  amc_active: number | null;
+  escrow_held_rupees: number | null;
+};
 
 export const metadata = { title: "Chain detail — EquipSeva Founder Console" };
 export const dynamic = "force-dynamic";
@@ -56,7 +77,7 @@ export default async function ChainDetailPage({
   const { id } = await params;
   const supabase = await getSupabaseServerClient();
 
-  const [chainsRes, membersRes, invitesRes, auditRes] = await Promise.all([
+  const [chainsRes, membersRes, invitesRes, auditRes, kpisRes, perSiteRes] = await Promise.all([
     supabase.rpc("founder_list_hospital_chains", { p_status: null, p_limit: 500 }),
     supabase
       .from("hospital_chain_memberships")
@@ -74,6 +95,8 @@ export default async function ChainDetailPage({
       .eq("target_row_id", id)
       .order("created_at", { ascending: false })
       .limit(20),
+    supabase.rpc("chain_kpis", { p_chain_id: id, p_days: 30 }),
+    supabase.rpc("chain_per_site_summary", { p_chain_id: id, p_days: 30 }),
   ]);
 
   if (chainsRes.error)
@@ -83,6 +106,10 @@ export default async function ChainDetailPage({
   const members = (membersRes.error ? [] : (membersRes.data ?? [])) as Membership[];
   const invites = (invitesRes.error ? [] : (invitesRes.data ?? [])) as Invite[];
   const audit = (auditRes.error ? [] : (auditRes.data ?? [])) as AuditRow[];
+  const kpis: ChainKpis = kpisRes.error
+    ? ({} as ChainKpis)
+    : ((Array.isArray(kpisRes.data) ? kpisRes.data[0] : kpisRes.data) ?? ({} as ChainKpis));
+  const perSite = (perSiteRes.error ? [] : (perSiteRes.data ?? [])) as PerSite[];
 
   if (!chain) {
     return (
@@ -235,6 +262,93 @@ export default async function ChainDetailPage({
           />
         </div>
       </section>
+
+      <section>
+        <h2 className="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+          Chain activity — last 30 days
+        </h2>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <StatCard label="Open repair jobs" value={formatNumber(kpis.jobs_open)} />
+          <StatCard
+            label="Completed (30d)"
+            value={formatNumber(kpis.jobs_completed_window)}
+          />
+          <StatCard
+            label="Disputes opened (30d)"
+            value={formatNumber(kpis.jobs_disputed_window)}
+            tone={(kpis.jobs_disputed_window ?? 0) > 0 ? "warn" : "ok"}
+          />
+          <StatCard
+            label="Open dispute packs"
+            value={formatNumber(kpis.open_dispute_packs)}
+            href="/vault"
+            tone={(kpis.open_dispute_packs ?? 0) > 0 ? "warn" : "ok"}
+          />
+          <StatCard label="AMC active" value={formatNumber(kpis.amc_active)} />
+          <StatCard
+            label="AMC pending payment"
+            value={formatNumber(kpis.amc_pending_payment)}
+            tone={(kpis.amc_pending_payment ?? 0) > 0 ? "warn" : "ok"}
+          />
+          <StatCard
+            label="Escrow held"
+            value={formatRupees(kpis.total_escrow_held_rupees)}
+          />
+          <StatCard
+            label="Members"
+            value={formatNumber(kpis.member_count)}
+          />
+        </div>
+      </section>
+
+      {perSite.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-sm font-semibold">Per-site breakdown</h2>
+          <div className="overflow-x-auto rounded border border-[var(--color-border)] bg-white">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b border-[var(--color-border)] bg-gray-50 text-left text-xs uppercase tracking-wider text-[var(--color-muted)]">
+                  <th className="px-3 py-2 font-medium">Site</th>
+                  <th className="px-3 py-2 font-medium">Open jobs</th>
+                  <th className="px-3 py-2 font-medium">Completed (30d)</th>
+                  <th className="px-3 py-2 font-medium">Disputed (30d)</th>
+                  <th className="px-3 py-2 font-medium">AMC active</th>
+                  <th className="px-3 py-2 font-medium">Escrow held</th>
+                </tr>
+              </thead>
+              <tbody>
+                {perSite.map((s) => (
+                  <tr key={s.hospital_user_id} className="border-b border-[var(--color-border)] last:border-0">
+                    <td className="px-3 py-2">
+                      <Link
+                        href={`/hospitals/${s.hospital_user_id}`}
+                        className="text-[var(--color-accent)] hover:underline"
+                      >
+                        {s.site_label ?? shortId(s.hospital_user_id)}
+                      </Link>
+                    </td>
+                    <td className="px-3 py-2">{formatNumber(s.jobs_open)}</td>
+                    <td className="px-3 py-2">{formatNumber(s.jobs_completed_window)}</td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={
+                          (s.jobs_disputed_window ?? 0) > 0
+                            ? "font-medium text-[var(--color-warn)]"
+                            : "text-[var(--color-muted)]"
+                        }
+                      >
+                        {formatNumber(s.jobs_disputed_window)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">{formatNumber(s.amc_active)}</td>
+                    <td className="px-3 py-2">{formatRupees(s.escrow_held_rupees)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className="mb-2 text-sm font-semibold">Invite a new site</h2>
