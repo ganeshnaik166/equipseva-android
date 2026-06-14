@@ -59,6 +59,9 @@ export async function TopBar() {
               <Link href="/onboarding" className="hover:text-[var(--color-fg)]">
                 KYC queue
               </Link>
+              <Link href="/tiers" className="hover:text-[var(--color-fg)]">
+                Tiers
+              </Link>
               <Link href="/chains" className="hover:text-[var(--color-fg)]">
                 Chains
               </Link>
