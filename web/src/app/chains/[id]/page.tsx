@@ -5,6 +5,7 @@ import { DataTable, type Column } from "@/components/DataTable";
 import { StatCard } from "@/components/StatCard";
 import { formatNumber, formatRelativeTime, formatRupees, shortId } from "@/lib/format";
 import { InviteForm } from "./InviteForm";
+import { RevokeInviteButton } from "./RevokeInviteButton";
 
 type ChainKpis = {
   member_count: number | null;
@@ -208,6 +209,17 @@ export default async function ChainDetailPage({
       key: "created",
       header: "Sent",
       render: (i) => formatRelativeTime(i.created_at),
+    },
+    {
+      key: "act",
+      header: "Action",
+      render: (i) => {
+        const expired = new Date(i.expires_at).getTime() < Date.now();
+        if (i.status !== "pending" || expired) {
+          return <span className="text-xs text-[var(--color-muted)]">—</span>;
+        }
+        return <RevokeInviteButton inviteId={i.id} chainId={id} />;
+      },
     },
   ];
 

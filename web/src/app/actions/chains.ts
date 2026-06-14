@@ -67,3 +67,25 @@ export async function inviteSiteToChain(input: {
   revalidatePath(`/chains/${input.chainId}`);
   return { ok: true, id: String(data) };
 }
+
+export async function revokeChainInvite(
+  inviteId: string,
+  chainId: string,
+  reason: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireFounder();
+  if (!UUID_RE.test(inviteId) || !UUID_RE.test(chainId)) {
+    return { ok: false, error: "Invalid UUID" };
+  }
+  const supabase = await getSupabaseServerClient();
+  const { error } = await supabase.rpc("chain_admin_revoke_invite", {
+    p_invite_id: inviteId,
+    p_reason: reason.trim() || null,
+  });
+  if (error) {
+    console.error("chain_admin_revoke_invite failed:", error);
+    return { ok: false, error: "Could not revoke invite. Check server logs." };
+  }
+  revalidatePath(`/chains/${chainId}`);
+  return { ok: true };
+}
