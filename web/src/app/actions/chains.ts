@@ -6,6 +6,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const GSTIN_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]{3}$/;
+const EMAIL_RE = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
 
 export async function registerHospitalChain(input: {
   name: string;
@@ -37,5 +38,32 @@ export async function registerHospitalChain(input: {
     return { ok: false, error: "Could not register chain. Check server logs." };
   }
   revalidatePath("/chains");
+  return { ok: true, id: String(data) };
+}
+
+export async function inviteSiteToChain(input: {
+  chainId: string;
+  email: string;
+  siteLabel?: string;
+}): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  await requireFounder();
+  if (!UUID_RE.test(input.chainId)) {
+    return { ok: false, error: "Invalid chain_id UUID" };
+  }
+  const email = input.email.trim().toLowerCase();
+  if (!EMAIL_RE.test(email)) {
+    return { ok: false, error: "Valid email required" };
+  }
+  const supabase = await getSupabaseServerClient();
+  const { data, error } = await supabase.rpc("chain_admin_invite_site", {
+    p_chain_id: input.chainId,
+    p_email: email,
+    p_site_label: input.siteLabel?.trim() || null,
+  });
+  if (error) {
+    console.error("chain_admin_invite_site failed:", error);
+    return { ok: false, error: "Could not create invite. Check server logs." };
+  }
+  revalidatePath(`/chains/${input.chainId}`);
   return { ok: true, id: String(data) };
 }

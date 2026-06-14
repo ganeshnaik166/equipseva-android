@@ -50,10 +50,10 @@ export default async function ChainsPage({
       key: "name",
       header: "Chain",
       render: (r) => (
-        <div>
-          <div className="font-medium">{r.name}</div>
+        <Link href={`/chains/${r.id}`} className="block hover:underline">
+          <div className="font-medium text-[var(--color-accent)]">{r.name}</div>
           <div className="text-xs text-[var(--color-muted)]">{shortId(r.id)}</div>
-        </div>
+        </Link>
       ),
     },
     {
