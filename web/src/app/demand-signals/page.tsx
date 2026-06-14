@@ -5,6 +5,7 @@ import { StatCard } from "@/components/StatCard";
 import { formatNumber, formatRelativeTime } from "@/lib/format";
 import { ResolveButton } from "./ResolveButton";
 import { PriorityPicker } from "./PriorityPicker";
+import { ManualEntryForm } from "./ManualEntryForm";
 
 export const metadata = { title: "Demand signals — EquipSeva Founder Console" };
 export const dynamic = "force-dynamic";
@@ -133,6 +134,8 @@ export default async function DemandSignalsPage() {
           />
         </div>
       </section>
+
+      <ManualEntryForm />
 
       <DataTable
         columns={cols}
