@@ -7,6 +7,29 @@ import { ResolveButton } from "./ResolveButton";
 import { PriorityPicker } from "./PriorityPicker";
 import { ManualEntryForm } from "./ManualEntryForm";
 
+type SnapshotRow = {
+  metric: string;
+  current_week_value: number | null;
+  prior_week_value: number | null;
+  delta_pct: number | null;
+};
+
+type BrandRow = {
+  brand: string | null;
+  signal_count: number | null;
+  unique_part_numbers: number | null;
+  unique_reporters: number | null;
+  last_seen: string | null;
+  has_critical: boolean | null;
+};
+
+const METRIC_LABELS: Record<string, string> = {
+  new_signals: "New signals",
+  resolved_signals: "Resolved",
+  unique_part_numbers: "Unique parts",
+  critical_signals: "Critical-urgency",
+};
+
 export const metadata = { title: "Demand signals — EquipSeva Founder Console" };
 export const dynamic = "force-dynamic";
 
@@ -27,10 +50,17 @@ type DashRow = {
 export default async function DemandSignalsPage() {
   await requireFounder();
   const supabase = await getSupabaseServerClient();
-  const { data, error } = await supabase.rpc("founder_demand_signal_dashboard");
-  if (error) throw new Error(`founder_demand_signal_dashboard: ${error.message}`);
+  const [dashRes, snapRes, brandRes] = await Promise.all([
+    supabase.rpc("founder_demand_signal_dashboard"),
+    supabase.rpc("founder_demand_signal_weekly_snapshot"),
+    supabase.rpc("founder_demand_signal_brand_rollup"),
+  ]);
+  if (dashRes.error)
+    throw new Error(`founder_demand_signal_dashboard: ${dashRes.error.message}`);
 
-  const rows = (data ?? []) as DashRow[];
+  const rows = (dashRes.data ?? []) as DashRow[];
+  const snapshot = (snapRes.error ? [] : (snapRes.data ?? [])) as SnapshotRow[];
+  const brands = (brandRes.error ? [] : (brandRes.data ?? [])) as BrandRow[];
   const totalSignals = rows.reduce((s, r) => s + (r.signal_count ?? 0), 0);
   const critGroups = rows.filter((r) => r.has_critical).length;
   const highPriority = rows.filter((r) => r.founder_priority === "high").length;
@@ -134,6 +164,88 @@ export default async function DemandSignalsPage() {
           />
         </div>
       </section>
+
+      {snapshot.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-sm font-semibold">Week-over-week (7d vs prior 7d)</h2>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {snapshot.map((s) => {
+              const delta = s.delta_pct;
+              const tone =
+                delta == null
+                  ? "text-[var(--color-muted)]"
+                  : delta > 0
+                    ? "text-[var(--color-warn)]"
+                    : delta < 0
+                      ? "text-[var(--color-ok)]"
+                      : "text-[var(--color-muted)]";
+              const sign = delta != null && delta > 0 ? "+" : "";
+              return (
+                <div
+                  key={s.metric}
+                  className="rounded border border-[var(--color-border)] bg-white p-3"
+                >
+                  <div className="text-xs uppercase tracking-wider text-[var(--color-muted)]">
+                    {METRIC_LABELS[s.metric] ?? s.metric}
+                  </div>
+                  <div className="mt-1 text-lg font-semibold tabular-nums">
+                    {formatNumber(s.current_week_value)}{" "}
+                    <span className="text-xs font-normal text-[var(--color-muted)]">
+                      vs {formatNumber(s.prior_week_value)}
+                    </span>
+                  </div>
+                  <div className={`text-xs ${tone}`}>
+                    {delta == null ? "— no prior data" : `${sign}${delta}% WoW`}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {brands.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-sm font-semibold">Unresolved demand by brand (top {brands.length})</h2>
+          <div className="overflow-hidden rounded border border-[var(--color-border)] bg-white">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-left text-xs text-[var(--color-muted)]">
+                <tr>
+                  <th className="px-3 py-2">Brand</th>
+                  <th className="px-3 py-2">Signals</th>
+                  <th className="px-3 py-2">Unique parts</th>
+                  <th className="px-3 py-2">Reporters</th>
+                  <th className="px-3 py-2">Last seen</th>
+                  <th className="px-3 py-2">Critical</th>
+                </tr>
+              </thead>
+              <tbody>
+                {brands.map((b, idx) => (
+                  <tr
+                    key={`${b.brand ?? "_null"}-${idx}`}
+                    className="border-t border-[var(--color-border)]"
+                  >
+                    <td className="px-3 py-2 font-medium">{b.brand ?? <span className="text-[var(--color-muted)]">(unknown)</span>}</td>
+                    <td className="px-3 py-2 tabular-nums">{formatNumber(b.signal_count)}</td>
+                    <td className="px-3 py-2 tabular-nums">{formatNumber(b.unique_part_numbers)}</td>
+                    <td className="px-3 py-2 tabular-nums">{formatNumber(b.unique_reporters)}</td>
+                    <td className="px-3 py-2 text-xs">{formatRelativeTime(b.last_seen)}</td>
+                    <td className="px-3 py-2">
+                      {b.has_critical ? (
+                        <span className="rounded bg-red-100 px-1.5 py-0.5 text-xs text-[var(--color-danger)]">
+                          yes
+                        </span>
+                      ) : (
+                        <span className="text-xs text-[var(--color-muted)]">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       <ManualEntryForm />
 
