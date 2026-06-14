@@ -238,9 +238,16 @@ export default async function PayoutDetailPage({
           <div>
             <dt className="text-xs text-[var(--color-muted)]">Job</dt>
             <dd>
-              <code className="text-xs">
-                {payout.job_number ?? shortId(payout.repair_job_id)}
-              </code>
+              {payout.repair_job_id ? (
+                <Link
+                  href={`/jobs/${payout.repair_job_id}`}
+                  className="font-mono text-xs text-[var(--color-accent)] hover:underline"
+                >
+                  {payout.job_number ?? shortId(payout.repair_job_id)}
+                </Link>
+              ) : (
+                <span className="text-xs">—</span>
+              )}
             </dd>
           </div>
           <div>
