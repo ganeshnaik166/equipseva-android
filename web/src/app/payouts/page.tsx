@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireFounder } from "@/lib/auth/requireFounder";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { DataTable, type Column } from "@/components/DataTable";
@@ -54,7 +55,15 @@ export default async function PayoutsPage({
     {
       key: "queued",
       header: "Queued",
-      render: (r) => <span title={r.queued_at ?? ""}>{formatRelativeTime(r.queued_at)}</span>,
+      render: (r) => (
+        <Link
+          href={`/payouts/${r.id}`}
+          title={r.queued_at ?? ""}
+          className="text-[var(--color-accent)] hover:underline"
+        >
+          {formatRelativeTime(r.queued_at)}
+        </Link>
+      ),
     },
     {
       key: "engineer",
