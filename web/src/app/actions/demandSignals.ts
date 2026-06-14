@@ -6,6 +6,55 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+const URGENCY_VALUES = ["standard", "urgent", "critical"] as const;
+type Urgency = (typeof URGENCY_VALUES)[number];
+
+export async function createManualDemandSignal(input: {
+  brand: string;
+  model: string;
+  partNumber: string;
+  description: string;
+  urgency: string;
+}): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  await requireFounder();
+
+  const brand = input.brand.trim();
+  const model = input.model.trim();
+  const partNumber = input.partNumber.trim();
+  const description = input.description.trim();
+  const urgency = input.urgency.trim() || "standard";
+
+  if (!URGENCY_VALUES.includes(urgency as Urgency))
+    return { ok: false, error: `urgency must be one of: ${URGENCY_VALUES.join(", ")}` };
+
+  // Need at least one grouping field non-empty. RPC will reject too,
+  // but a client-side check gives the founder a better message.
+  if (!brand && !model && !partNumber && !description)
+    return { ok: false, error: "Provide at least one of brand / model / part_number / description" };
+
+  // Cap each field at a reasonable length up-front (defense in depth —
+  // r572 audit-21 noted there's no DB-side length cap on text columns).
+  const cap = (s: string, n: number) => (s.length > n ? s.slice(0, n) : s);
+
+  const supabase = await getSupabaseServerClient();
+  const { data, error } = await supabase.rpc("record_spare_part_demand_signal", {
+    p_part_number: cap(partNumber, 200) || null,
+    p_brand: cap(brand, 120) || null,
+    p_model: cap(model, 120) || null,
+    p_query: cap(description, 500) || null,
+    p_source: "manual_founder",
+    p_urgency: urgency,
+    p_job_id: null,
+    p_hospital_org_id: null,
+  });
+  if (error) {
+    console.error("record_spare_part_demand_signal failed:", error);
+    return { ok: false, error: error.message ?? "Could not create signal." };
+  }
+  revalidatePath("/demand-signals");
+  return { ok: true, id: String(data ?? "") };
+}
+
 const VIA_VALUES = [
   "supplier_onboarded",
   "bonded_intake",
