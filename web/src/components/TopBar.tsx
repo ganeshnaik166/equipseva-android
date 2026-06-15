@@ -62,6 +62,9 @@ export async function TopBar() {
               <Link href="/engineers" className="hover:text-[var(--color-fg)]">
                 Engineers
               </Link>
+              <Link href="/training" className="hover:text-[var(--color-fg)]">
+                Training
+              </Link>
               <Link href="/onboarding" className="hover:text-[var(--color-fg)]">
                 KYC queue
               </Link>
