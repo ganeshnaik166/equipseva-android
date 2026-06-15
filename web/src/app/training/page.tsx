@@ -5,6 +5,7 @@ import { DataTable, type Column } from "@/components/DataTable";
 import { StatCard } from "@/components/StatCard";
 import { formatNumber, formatRelativeTime, shortId } from "@/lib/format";
 import { RevokeAssignmentButton } from "./RevokeAssignmentButton";
+import { ThresholdEditor } from "./ThresholdEditor";
 
 export const metadata = { title: "Supervised training — EquipSeva Founder Console" };
 export const dynamic = "force-dynamic";
@@ -61,9 +62,13 @@ export default async function TrainingPage() {
   await requireFounder();
   const supabase = await getSupabaseServerClient();
 
-  const [dashRes, listRes] = await Promise.all([
+  const [dashRes, listRes, tiersRes] = await Promise.all([
     supabase.rpc("founder_supervision_dashboard"),
     supabase.rpc("founder_list_supervision_assignments", { p_limit: 200 }),
+    supabase
+      .from("engineer_certification_tiers")
+      .select("tier, min_supervised_completions, display_order")
+      .order("display_order", { ascending: true }),
   ]);
   if (dashRes.error)
     throw new Error(`founder_supervision_dashboard: ${dashRes.error.message}`);
@@ -71,6 +76,15 @@ export default async function TrainingPage() {
   const statuses = (dashRes.data ?? []) as StatusRow[];
   const list = (listRes.error ? [] : (listRes.data ?? [])) as AssignmentRow[];
   const totalInProgress = statuses[0]?.total_in_progress ?? 0;
+  const tiers = (tiersRes.error ? [] : (tiersRes.data ?? [])) as Array<{
+    tier: string;
+    min_supervised_completions: number;
+    display_order: number;
+  }>;
+  const thresholdRows = tiers.map((t) => ({
+    tier: t.tier,
+    min: t.min_supervised_completions ?? 0,
+  }));
 
   const successCount =
     statuses.find((s) => s.status === "completed_successful")?.assignment_count ?? 0;
@@ -216,6 +230,8 @@ export default async function TrainingPage() {
           />
         </div>
       </section>
+
+      {thresholdRows.length > 0 && <ThresholdEditor rows={thresholdRows} />}
 
       <DataTable
         columns={cols}
