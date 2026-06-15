@@ -28,6 +28,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
@@ -84,7 +85,7 @@ class EngineerGraduationViewModel @Inject constructor(
                     _state.update {
                         UiState(
                             status = Status.Error,
-                            error = e.message ?: "Could not load graduation status.",
+                            error = e.toUserMessage("Could not load graduation status."),
                         )
                     }
                 }
