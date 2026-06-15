@@ -103,6 +103,9 @@ object Routes {
     // (available jobs, my bids, active work, earnings, profile editor).
     const val ENGINEER_JOBS_HUB = "engineer/jobs_hub"
 
+    // r578 — engineer tier-graduation cockpit (jobs/dispute/KYC/supervised gates).
+    const val ENGINEER_GRADUATION = "engineer/graduation"
+
     // Standalone editor for engineer base coords (engineers.latitude/longitude).
     // Reachable from the Jobs hub. Lets the engineer move their service centre
     // without going back through the full KYC flow.

@@ -152,6 +152,7 @@ fun EngineerJobsHubScreen(
     onSignIn: () -> Unit,
     onAmcVisits: () -> Unit = {},
     onMyDisputes: () -> Unit = {},
+    onTierProgress: () -> Unit = {},
     viewModel: EngineerJobsHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -248,6 +249,12 @@ fun EngineerJobsHubScreen(
                         title = "Disputes received",
                         desc = "Hospital-filed disputes + outcomes",
                         onClick = onMyDisputes,
+                    )
+                    HubTile(
+                        icon = Icons.Outlined.Shield,
+                        title = "Tier progress",
+                        desc = "Path to your next certification tier",
+                        onClick = onTierProgress,
                     )
                     HubTile(
                         icon = Icons.Outlined.LocationOn,
