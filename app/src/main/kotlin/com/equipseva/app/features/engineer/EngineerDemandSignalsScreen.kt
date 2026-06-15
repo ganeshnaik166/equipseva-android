@@ -37,6 +37,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
@@ -90,7 +91,7 @@ class EngineerDemandSignalsViewModel @Inject constructor(
                     _state.update {
                         UiState(
                             status = Status.Error,
-                            error = e.message ?: "Could not load your reports.",
+                            error = e.toUserMessage("Could not load your reports."),
                         )
                     }
                 }
@@ -121,7 +122,7 @@ class EngineerDemandSignalsViewModel @Inject constructor(
                 }
                 .onFailure { e ->
                     _state.update { it.copy(submitting = false) }
-                    onResult(false, e.message ?: "Could not report.")
+                    onResult(false, e.toUserMessage("Could not report."))
                 }
         }
     }

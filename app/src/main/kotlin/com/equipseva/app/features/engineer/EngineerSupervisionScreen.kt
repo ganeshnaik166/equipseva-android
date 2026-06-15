@@ -49,6 +49,7 @@ import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk600
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.theme.SevaInk900
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -96,7 +97,7 @@ class EngineerSupervisionViewModel @Inject constructor(
                     _state.update {
                         UiState(
                             status = Status.Error,
-                            error = e.message ?: "Could not load supervision history.",
+                            error = e.toUserMessage("Could not load supervision history."),
                         )
                     }
                 }
@@ -115,7 +116,7 @@ class EngineerSupervisionViewModel @Inject constructor(
                     _state.update {
                         it.copy(
                             acting = null,
-                            toast = e.message ?: "Could not accept.",
+                            toast = e.toUserMessage("Could not accept."),
                         )
                     }
                 }
@@ -134,7 +135,7 @@ class EngineerSupervisionViewModel @Inject constructor(
                     _state.update {
                         it.copy(
                             acting = null,
-                            toast = e.message ?: "Could not decline.",
+                            toast = e.toUserMessage("Could not decline."),
                         )
                     }
                 }
@@ -158,7 +159,7 @@ class EngineerSupervisionViewModel @Inject constructor(
                     pickerLoading = false,
                     pickerJobs = jobs,
                     pickerSupervisors = supers,
-                    pickerError = firstError?.message,
+                    pickerError = firstError?.toUserMessage("Couldn't load picker data."),
                 )
             }
         }
@@ -188,23 +189,10 @@ class EngineerSupervisionViewModel @Inject constructor(
                     _state.update {
                         it.copy(
                             acting = null,
-                            toast = friendlySignoffError(e.message),
+                            toast = e.toUserMessage("Could not sign off."),
                         )
                     }
                 }
-        }
-    }
-
-    private fun friendlySignoffError(raw: String?): String {
-        val m = raw ?: "Could not sign off."
-        // r576 raises 0L000 'no signed DSR for this job; cannot sign off
-        // (hospital must accept first)' — surface a cleaner sentence.
-        return when {
-            m.contains("no signed DSR", ignoreCase = true) ->
-                "Hospital hasn't signed the DSR yet. Ask the hospital to accept the repair, then sign off."
-            m.contains("only the named supervisor", ignoreCase = true) ->
-                "Only the assigned supervisor can sign off this row."
-            else -> m
         }
     }
 
@@ -228,7 +216,7 @@ class EngineerSupervisionViewModel @Inject constructor(
                     _state.update {
                         it.copy(
                             submitting = false,
-                            pickerError = e.message ?: "Could not send request.",
+                            pickerError = e.toUserMessage("Could not send request."),
                         )
                     }
                 }

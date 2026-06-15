@@ -74,6 +74,26 @@ private fun friendlyRestMessage(ex: RestException): String? {
         // queue load and resolve action.
         raw.contains("engineer_not_found", ignoreCase = true) ->
             "This engineer's row is no longer in the queue — pull to refresh."
+        // r576 + r585 supervised training error mappings. ERRCODE 0L000
+        // covers all illegal-state transitions; match on the literal
+        // RAISE EXCEPTION text since each one needs a distinct hint.
+        raw.contains("no signed DSR", ignoreCase = true) ->
+            "Hospital hasn't signed the DSR yet. Ask the hospital to accept the repair, then sign off."
+        raw.contains("only the named supervisor", ignoreCase = true) ->
+            "Only the assigned supervisor can take this action."
+        raw.contains("only the accepted-bid engineer", ignoreCase = true) ->
+            "Only the engineer who was awarded this job can request supervision."
+        raw.contains("supervisor tier", ignoreCase = true) &&
+            raw.contains("strictly higher", ignoreCase = true) ->
+            "Supervisor must be a strictly higher tier than you."
+        raw.contains("supervisor is not an active verified engineer", ignoreCase = true) ->
+            "That supervisor is no longer an active verified engineer."
+        raw.contains("cannot supervise self", ignoreCase = true) ->
+            "You can't supervise yourself."
+        raw.contains("cannot accept from state", ignoreCase = true) ||
+            raw.contains("cannot decline from state", ignoreCase = true) ||
+            raw.contains("cannot signoff from state", ignoreCase = true) ->
+            "This request has moved past that step — pull to refresh."
         raw.isNotBlank() && !looksLikeRawDbError(raw) -> raw
         else -> null
     }
