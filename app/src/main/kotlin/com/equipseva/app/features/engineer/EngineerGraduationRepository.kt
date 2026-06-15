@@ -119,4 +119,20 @@ class EngineerGraduationRepository @Inject constructor(
         )
         Unit
     }
+
+    suspend fun signoffSupervision(
+        assignmentId: String,
+        outcome: String,
+        notes: String,
+    ): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "signoff_supervision",
+            parameters = buildJsonObject {
+                put("p_assignment_id", JsonPrimitive(assignmentId))
+                put("p_outcome", JsonPrimitive(outcome))
+                put("p_notes", JsonPrimitive(notes))
+            },
+        )
+        Unit
+    }
 }
