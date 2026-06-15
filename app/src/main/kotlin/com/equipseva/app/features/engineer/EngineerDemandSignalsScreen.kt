@@ -20,10 +20,13 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -134,7 +137,15 @@ fun EngineerDemandSignalsScreen(
     viewModel: EngineerDemandSignalsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var reportOpen by remember { mutableStateOf(false) }
+    var reportOpen by rememberSaveable { mutableStateOf(false) }
+
+    // r585 audit-24 MEDIUM: drive clearToast via LaunchedEffect.
+    LaunchedEffect(state.toast) {
+        if (state.toast != null) {
+            delay(2_500)
+            viewModel.clearToast()
+        }
+    }
 
     Box(Modifier.fillMaxSize().background(PaperDefault)) {
         Column(Modifier.fillMaxSize()) {
@@ -227,7 +238,7 @@ fun EngineerDemandSignalsScreen(
                 Text(toast, color = Color.White, style = EsType.BodySm)
             }
         }
-        viewModel.clearToast()
+        // Auto-clear is driven by the LaunchedEffect(state.toast) above.
     }
 }
 
@@ -316,12 +327,14 @@ private fun ReportDialog(
         onResult: (ok: Boolean, msg: String) -> Unit,
     ) -> Unit,
 ) {
-    var brand by remember { mutableStateOf("") }
-    var model by remember { mutableStateOf("") }
-    var part by remember { mutableStateOf("") }
-    var desc by remember { mutableStateOf("") }
-    var urgency by remember { mutableStateOf("standard") }
-    var error by remember { mutableStateOf<String?>(null) }
+    // r585 audit-24 MEDIUM: rememberSaveable so mid-typing report fields
+    // survive rotation / theme flips while the dialog is open.
+    var brand by rememberSaveable { mutableStateOf("") }
+    var model by rememberSaveable { mutableStateOf("") }
+    var part by rememberSaveable { mutableStateOf("") }
+    var desc by rememberSaveable { mutableStateOf("") }
+    var urgency by rememberSaveable { mutableStateOf("standard") }
+    var error by rememberSaveable { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onCancel,
