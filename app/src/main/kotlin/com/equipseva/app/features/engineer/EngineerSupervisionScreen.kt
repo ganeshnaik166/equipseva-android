@@ -173,6 +173,38 @@ class EngineerSupervisionViewModel @Inject constructor(
         }
     }
 
+    fun signoff(assignmentId: String, outcome: String, notes: String) {
+        _state.update { it.copy(acting = assignmentId) }
+        viewModelScope.launch {
+            repo.signoffSupervision(assignmentId, outcome, notes)
+                .onSuccess {
+                    _state.update { it.copy(acting = null, toast = "Signed off") }
+                    reload()
+                }
+                .onFailure { e ->
+                    _state.update {
+                        it.copy(
+                            acting = null,
+                            toast = friendlySignoffError(e.message),
+                        )
+                    }
+                }
+        }
+    }
+
+    private fun friendlySignoffError(raw: String?): String {
+        val m = raw ?: "Could not sign off."
+        // r576 raises 0L000 'no signed DSR for this job; cannot sign off
+        // (hospital must accept first)' — surface a cleaner sentence.
+        return when {
+            m.contains("no signed DSR", ignoreCase = true) ->
+                "Hospital hasn't signed the DSR yet. Ask the hospital to accept the repair, then sign off."
+            m.contains("only the named supervisor", ignoreCase = true) ->
+                "Only the assigned supervisor can sign off this row."
+            else -> m
+        }
+    }
+
     fun submitRequest(jobId: String, supervisorUserId: String) {
         _state.update { it.copy(submitting = true, pickerError = null) }
         viewModelScope.launch {
@@ -210,6 +242,10 @@ fun EngineerSupervisionScreen(
     var declineFor by remember { mutableStateOf<String?>(null) }
     var declineReason by remember { mutableStateOf("") }
     var declineError by remember { mutableStateOf<String?>(null) }
+    var signoffFor by remember { mutableStateOf<String?>(null) }
+    var signoffOutcome by remember { mutableStateOf("successful") }
+    var signoffNotes by remember { mutableStateOf("") }
+    var signoffError by remember { mutableStateOf<String?>(null) }
 
     Box(Modifier.fillMaxSize().background(PaperDefault)) {
         Column(Modifier.fillMaxSize()) {
@@ -254,13 +290,20 @@ fun EngineerSupervisionScreen(
                             asSupervisor.forEach { row ->
                                 AssignmentCard(
                                     row = row,
-                                    showActions = row.status == "pending_supervisor_accept",
+                                    showAcceptDecline = row.status == "pending_supervisor_accept",
+                                    showSignoff = row.status == "active",
                                     actionPending = state.acting == row.assignmentId,
                                     onAccept = { viewModel.accept(row.assignmentId) },
                                     onDecline = {
                                         declineFor = row.assignmentId
                                         declineReason = ""
                                         declineError = null
+                                    },
+                                    onSignoff = {
+                                        signoffFor = row.assignmentId
+                                        signoffOutcome = "successful"
+                                        signoffNotes = ""
+                                        signoffError = null
                                     },
                                 )
                             }
@@ -270,10 +313,12 @@ fun EngineerSupervisionScreen(
                             asTrainee.forEach { row ->
                                 AssignmentCard(
                                     row = row,
-                                    showActions = false,
+                                    showAcceptDecline = false,
+                                    showSignoff = false,
                                     actionPending = false,
                                     onAccept = {},
                                     onDecline = {},
+                                    onSignoff = {},
                                 )
                             }
                         }
@@ -335,6 +380,60 @@ fun EngineerSupervisionScreen(
         )
     }
 
+    val signoffId = signoffFor
+    if (signoffId != null) {
+        AlertDialog(
+            onDismissRequest = { signoffFor = null },
+            title = { Text("Sign off supervision") },
+            text = {
+                Column {
+                    Text(
+                        "Hospital must have signed the DSR first. Pick an outcome and add notes (min 10 chars).",
+                        style = EsType.BodySm,
+                        color = SevaInk500,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text("Outcome", style = EsType.BodySm, color = SevaInk600)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("successful", "failed", "disputed").forEach { o ->
+                            EsBtn(
+                                text = o.replaceFirstChar { it.uppercase() },
+                                onClick = { signoffOutcome = o },
+                                kind = if (signoffOutcome == o) EsBtnKind.Primary else EsBtnKind.Secondary,
+                                size = EsBtnSize.Sm,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    EsField(
+                        value = signoffNotes,
+                        onChange = {
+                            signoffNotes = it
+                            signoffError = null
+                        },
+                        label = "Notes",
+                        placeholder = "How did the supervised work go?",
+                        error = signoffError,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val n = signoffNotes.trim()
+                    if (n.length < 10) {
+                        signoffError = "Min 10 characters."
+                    } else {
+                        viewModel.signoff(signoffId, signoffOutcome, n)
+                        signoffFor = null
+                    }
+                }) { Text("Sign off") }
+            },
+            dismissButton = {
+                TextButton(onClick = { signoffFor = null }) { Text("Cancel") }
+            },
+        )
+    }
+
     val toast = state.toast
     if (toast != null) {
         // Surface toast as a transient banner; auto-clear on next tap.
@@ -372,10 +471,12 @@ private fun SectionHeader(text: String) {
 @Composable
 private fun AssignmentCard(
     row: EngineerGraduationRepository.SupervisionRow,
-    showActions: Boolean,
+    showAcceptDecline: Boolean,
+    showSignoff: Boolean,
     actionPending: Boolean,
     onAccept: () -> Unit,
     onDecline: () -> Unit,
+    onSignoff: () -> Unit,
 ) {
     Box(
         Modifier
@@ -412,7 +513,7 @@ private fun AssignmentCard(
                     color = SevaInk600,
                 )
             }
-            if (showActions) {
+            if (showAcceptDecline) {
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     EsBtn(
@@ -430,6 +531,15 @@ private fun AssignmentCard(
                         disabled = actionPending,
                     )
                 }
+            } else if (showSignoff) {
+                Spacer(Modifier.height(10.dp))
+                EsBtn(
+                    text = "Sign off",
+                    onClick = onSignoff,
+                    kind = EsBtnKind.Primary,
+                    size = EsBtnSize.Sm,
+                    disabled = actionPending,
+                )
             }
         }
     }
