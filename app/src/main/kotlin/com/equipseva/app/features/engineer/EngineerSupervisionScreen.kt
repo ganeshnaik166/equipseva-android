@@ -20,10 +20,13 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -239,13 +242,24 @@ fun EngineerSupervisionScreen(
     viewModel: EngineerSupervisionViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var declineFor by remember { mutableStateOf<String?>(null) }
-    var declineReason by remember { mutableStateOf("") }
-    var declineError by remember { mutableStateOf<String?>(null) }
-    var signoffFor by remember { mutableStateOf<String?>(null) }
-    var signoffOutcome by remember { mutableStateOf("successful") }
-    var signoffNotes by remember { mutableStateOf("") }
-    var signoffError by remember { mutableStateOf<String?>(null) }
+    // r585 audit-24 MEDIUM: rememberSaveable so mid-typing reasons + notes
+    // survive rotation / theme flips / font-scale changes.
+    var declineFor by rememberSaveable { mutableStateOf<String?>(null) }
+    var declineReason by rememberSaveable { mutableStateOf("") }
+    var declineError by rememberSaveable { mutableStateOf<String?>(null) }
+    var signoffFor by rememberSaveable { mutableStateOf<String?>(null) }
+    var signoffOutcome by rememberSaveable { mutableStateOf("successful") }
+    var signoffNotes by rememberSaveable { mutableStateOf("") }
+    var signoffError by rememberSaveable { mutableStateOf<String?>(null) }
+
+    // r585 audit-24 MEDIUM: drive clearToast via LaunchedEffect so the
+    // banner stays on screen long enough to read.
+    LaunchedEffect(state.toast) {
+        if (state.toast != null) {
+            delay(2_500)
+            viewModel.clearToast()
+        }
+    }
 
     Box(Modifier.fillMaxSize().background(PaperDefault)) {
         Column(Modifier.fillMaxSize()) {
@@ -436,7 +450,6 @@ fun EngineerSupervisionScreen(
 
     val toast = state.toast
     if (toast != null) {
-        // Surface toast as a transient banner; auto-clear on next tap.
         Box(
             Modifier
                 .fillMaxWidth()
@@ -452,9 +465,7 @@ fun EngineerSupervisionScreen(
                 Text(toast, color = Color.White, style = EsType.BodySm)
             }
         }
-        // Best-effort auto-clear via LaunchedEffect would be more polished;
-        // for now any user action clears the toast.
-        viewModel.clearToast()
+        // Auto-clear is driven by the LaunchedEffect(state.toast) above.
     }
 }
 
@@ -565,8 +576,8 @@ private fun RequestSupervisionDialog(
     onCancel: () -> Unit,
     onSubmit: (jobId: String, supervisorUserId: String) -> Unit,
 ) {
-    var selectedJob by remember { mutableStateOf<String?>(null) }
-    var selectedSup by remember { mutableStateOf<String?>(null) }
+    var selectedJob by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedSup by rememberSaveable { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onCancel,
