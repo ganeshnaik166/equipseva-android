@@ -399,10 +399,16 @@ fun MainNavGraph(
                     onAmcVisits = { navController.navigate(Routes.ENGINEER_AMC_VISITS) },
                     onMyDisputes = { navController.navigate(Routes.ENGINEER_MY_DISPUTES) },
                     onTierProgress = { navController.navigate(Routes.ENGINEER_GRADUATION) },
+                    onSupervision = { navController.navigate(Routes.ENGINEER_SUPERVISION) },
                 )
             }
             composable(Routes.ENGINEER_GRADUATION) {
                 com.equipseva.app.features.engineer.EngineerGraduationScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.ENGINEER_SUPERVISION) {
+                com.equipseva.app.features.engineer.EngineerSupervisionScreen(
                     onBack = { navController.popBackStack() },
                 )
             }

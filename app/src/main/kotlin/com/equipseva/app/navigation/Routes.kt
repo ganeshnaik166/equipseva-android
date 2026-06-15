@@ -106,6 +106,9 @@ object Routes {
     // r578 — engineer tier-graduation cockpit (jobs/dispute/KYC/supervised gates).
     const val ENGINEER_GRADUATION = "engineer/graduation"
 
+    // r581 — engineer supervision history (trainee + supervisor pairings; accept/decline).
+    const val ENGINEER_SUPERVISION = "engineer/supervision"
+
     // Standalone editor for engineer base coords (engineers.latitude/longitude).
     // Reachable from the Jobs hub. Lets the engineer move their service centre
     // without going back through the full KYC flow.
