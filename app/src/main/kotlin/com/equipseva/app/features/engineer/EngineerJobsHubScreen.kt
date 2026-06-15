@@ -154,6 +154,7 @@ fun EngineerJobsHubScreen(
     onMyDisputes: () -> Unit = {},
     onTierProgress: () -> Unit = {},
     onSupervision: () -> Unit = {},
+    onDemandSignals: () -> Unit = {},
     viewModel: EngineerJobsHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -262,6 +263,12 @@ fun EngineerJobsHubScreen(
                         title = "Supervision",
                         desc = "Pairings + accept/decline pending requests",
                         onClick = onSupervision,
+                    )
+                    HubTile(
+                        icon = Icons.Outlined.LocalOffer,
+                        title = "Demand signals",
+                        desc = "Flag parts you needed but couldn't find",
+                        onClick = onDemandSignals,
                     )
                     HubTile(
                         icon = Icons.Outlined.LocationOn,

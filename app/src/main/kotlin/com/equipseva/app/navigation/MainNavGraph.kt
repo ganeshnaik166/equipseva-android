@@ -400,6 +400,7 @@ fun MainNavGraph(
                     onMyDisputes = { navController.navigate(Routes.ENGINEER_MY_DISPUTES) },
                     onTierProgress = { navController.navigate(Routes.ENGINEER_GRADUATION) },
                     onSupervision = { navController.navigate(Routes.ENGINEER_SUPERVISION) },
+                    onDemandSignals = { navController.navigate(Routes.ENGINEER_DEMAND_SIGNALS) },
                 )
             }
             composable(Routes.ENGINEER_GRADUATION) {
@@ -409,6 +410,11 @@ fun MainNavGraph(
             }
             composable(Routes.ENGINEER_SUPERVISION) {
                 com.equipseva.app.features.engineer.EngineerSupervisionScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.ENGINEER_DEMAND_SIGNALS) {
+                com.equipseva.app.features.engineer.EngineerDemandSignalsScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
