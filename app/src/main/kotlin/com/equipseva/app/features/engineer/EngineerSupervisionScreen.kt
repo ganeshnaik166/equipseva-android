@@ -2,6 +2,7 @@ package com.equipseva.app.features.engineer
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -66,6 +67,12 @@ class EngineerSupervisionViewModel @Inject constructor(
         val error: String? = null,
         val acting: String? = null,    // assignment_id currently mutating
         val toast: String? = null,
+        val pickerOpen: Boolean = false,
+        val pickerLoading: Boolean = false,
+        val pickerJobs: List<EngineerGraduationRepository.SupervisableJob> = emptyList(),
+        val pickerSupervisors: List<EngineerGraduationRepository.EligibleSupervisor> = emptyList(),
+        val pickerError: String? = null,
+        val submitting: Boolean = false,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -134,6 +141,64 @@ class EngineerSupervisionViewModel @Inject constructor(
     fun clearToast() {
         _state.update { it.copy(toast = null) }
     }
+
+    fun openPicker() {
+        _state.update { it.copy(pickerOpen = true, pickerLoading = true, pickerError = null) }
+        viewModelScope.launch {
+            val jobsResult = repo.fetchSupervisableJobs()
+            val supersResult = repo.fetchEligibleSupervisors()
+            val jobs = jobsResult.getOrNull().orEmpty()
+            val supers = supersResult.getOrNull().orEmpty()
+            val firstError = jobsResult.exceptionOrNull() ?: supersResult.exceptionOrNull()
+            _state.update {
+                it.copy(
+                    pickerLoading = false,
+                    pickerJobs = jobs,
+                    pickerSupervisors = supers,
+                    pickerError = firstError?.message,
+                )
+            }
+        }
+    }
+
+    fun closePicker() {
+        _state.update {
+            it.copy(
+                pickerOpen = false,
+                pickerJobs = emptyList(),
+                pickerSupervisors = emptyList(),
+                pickerError = null,
+                submitting = false,
+            )
+        }
+    }
+
+    fun submitRequest(jobId: String, supervisorUserId: String) {
+        _state.update { it.copy(submitting = true, pickerError = null) }
+        viewModelScope.launch {
+            repo.requestSupervision(jobId, supervisorUserId)
+                .onSuccess {
+                    _state.update {
+                        it.copy(
+                            submitting = false,
+                            pickerOpen = false,
+                            pickerJobs = emptyList(),
+                            pickerSupervisors = emptyList(),
+                            toast = "Request sent",
+                        )
+                    }
+                    reload()
+                }
+                .onFailure { e ->
+                    _state.update {
+                        it.copy(
+                            submitting = false,
+                            pickerError = e.message ?: "Could not send request.",
+                        )
+                    }
+                }
+        }
+    }
 }
 
 @Composable
@@ -177,6 +242,13 @@ fun EngineerSupervisionScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
+                        EsBtn(
+                            text = "Request supervision",
+                            onClick = { viewModel.openPicker() },
+                            kind = EsBtnKind.Primary,
+                            size = EsBtnSize.Md,
+                            full = true,
+                        )
                         if (asSupervisor.isNotEmpty()) {
                             SectionHeader("As supervisor (${asSupervisor.size})")
                             asSupervisor.forEach { row ->
@@ -212,6 +284,14 @@ fun EngineerSupervisionScreen(
                 }
             }
         }
+    }
+
+    if (state.pickerOpen) {
+        RequestSupervisionDialog(
+            state = state,
+            onCancel = { viewModel.closePicker() },
+            onSubmit = { jobId, supId -> viewModel.submitRequest(jobId, supId) },
+        )
     }
 
     val declineId = declineFor
@@ -367,6 +447,124 @@ private fun StatusPill(status: String) {
         else -> status to PillKind.Default
     }
     Pill(text = label, kind = kind)
+}
+
+@Composable
+private fun RequestSupervisionDialog(
+    state: EngineerSupervisionViewModel.UiState,
+    onCancel: () -> Unit,
+    onSubmit: (jobId: String, supervisorUserId: String) -> Unit,
+) {
+    var selectedJob by remember { mutableStateOf<String?>(null) }
+    var selectedSup by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text("Request supervision") },
+        text = {
+            if (state.pickerLoading) {
+                Box(
+                    Modifier.fillMaxWidth().padding(24.dp),
+                    contentAlignment = Alignment.Center,
+                ) { CircularProgressIndicator() }
+            } else if (state.pickerError != null && state.pickerJobs.isEmpty() && state.pickerSupervisors.isEmpty()) {
+                Text(state.pickerError, style = EsType.BodySm, color = SevaInk500)
+            } else {
+                Column(
+                    Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text("Pick a job", style = EsType.H5, color = SevaInk900)
+                    if (state.pickerJobs.isEmpty()) {
+                        Text(
+                            "No accepted jobs available for supervision.",
+                            style = EsType.BodySm,
+                            color = SevaInk500,
+                        )
+                    } else {
+                        state.pickerJobs.forEach { job ->
+                            PickerRow(
+                                title = job.jobNumber ?: job.repairJobId.take(8),
+                                subtitle = listOfNotNull(job.equipmentBrand, job.equipmentModel)
+                                    .joinToString(" "),
+                                selected = selectedJob == job.repairJobId,
+                                onClick = { selectedJob = job.repairJobId },
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text("Pick a supervisor", style = EsType.H5, color = SevaInk900)
+                    if (state.pickerSupervisors.isEmpty()) {
+                        Text(
+                            "No higher-tier engineers found.",
+                            style = EsType.BodySm,
+                            color = SevaInk500,
+                        )
+                    } else {
+                        state.pickerSupervisors.forEach { sup ->
+                            PickerRow(
+                                title = sup.displayName,
+                                subtitle = "${sup.currentTier.replaceFirstChar { it.uppercase() }} · ${sup.jobsCompleted} jobs",
+                                selected = selectedSup == sup.userId,
+                                onClick = { selectedSup = sup.userId },
+                            )
+                        }
+                    }
+                    if (state.pickerError != null) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            state.pickerError,
+                            style = EsType.BodySm,
+                            color = SevaInk900,
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val j = selectedJob
+                    val s = selectedSup
+                    if (j != null && s != null && !state.submitting) {
+                        onSubmit(j, s)
+                    }
+                },
+                enabled = selectedJob != null && selectedSup != null && !state.submitting,
+            ) {
+                Text(if (state.submitting) "Sending…" else "Send request")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) { Text("Cancel") }
+        },
+    )
+}
+
+@Composable
+private fun PickerRow(
+    title: String,
+    subtitle: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val borderColor = if (selected) SevaInk900 else BorderDefault
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (selected) Color(0xFFF0F4F0) else Color.White)
+            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(10.dp),
+    ) {
+        Column {
+            Text(title, style = EsType.Body, color = SevaInk900)
+            if (subtitle.isNotBlank()) {
+                Text(subtitle, style = EsType.BodySm, color = SevaInk500)
+            }
+        }
+    }
 }
 
 @Composable
