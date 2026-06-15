@@ -135,4 +135,47 @@ class EngineerGraduationRepository @Inject constructor(
         )
         Unit
     }
+
+    // ---- r584 demand signals ----------------------------------------
+
+    @Serializable
+    data class MyDemandSignal(
+        @SerialName("id") val id: String,
+        @SerialName("occurred_at") val occurredAt: String,
+        @SerialName("equipment_brand") val equipmentBrand: String? = null,
+        @SerialName("equipment_model") val equipmentModel: String? = null,
+        @SerialName("part_number") val partNumber: String? = null,
+        @SerialName("urgency") val urgency: String = "standard",
+        @SerialName("founder_priority") val founderPriority: String? = null,
+        @SerialName("resolved_at") val resolvedAt: String? = null,
+        @SerialName("resolved_via") val resolvedVia: String? = null,
+        @SerialName("days_open") val daysOpen: Int = 0,
+    )
+
+    suspend fun fetchMyDemandSignals(): Result<List<MyDemandSignal>> = runCatching {
+        client.postgrest
+            .rpc(function = "my_reported_demand_signals")
+            .decodeList<MyDemandSignal>()
+    }
+
+    suspend fun reportDemandSignal(
+        partNumber: String?,
+        brand: String?,
+        model: String?,
+        query: String?,
+        urgency: String,
+    ): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "record_spare_part_demand_signal",
+            parameters = buildJsonObject {
+                put("p_part_number", partNumber?.let { JsonPrimitive(it) } ?: JsonPrimitive(""))
+                put("p_brand", brand?.let { JsonPrimitive(it) } ?: JsonPrimitive(""))
+                put("p_model", model?.let { JsonPrimitive(it) } ?: JsonPrimitive(""))
+                put("p_query", query?.let { JsonPrimitive(it) } ?: JsonPrimitive(""))
+                put("p_source", JsonPrimitive("engineer_report"))
+                put("p_urgency", JsonPrimitive(urgency))
+            },
+        )
+        Unit
+    }
 }
