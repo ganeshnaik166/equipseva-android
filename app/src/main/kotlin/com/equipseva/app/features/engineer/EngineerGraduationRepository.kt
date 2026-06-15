@@ -79,4 +79,44 @@ class EngineerGraduationRepository @Inject constructor(
         )
         Unit
     }
+
+    @Serializable
+    data class SupervisableJob(
+        @SerialName("repair_job_id") val repairJobId: String,
+        @SerialName("job_number") val jobNumber: String? = null,
+        @SerialName("equipment_brand") val equipmentBrand: String? = null,
+        @SerialName("equipment_model") val equipmentModel: String? = null,
+        @SerialName("status") val status: String,
+    )
+
+    suspend fun fetchSupervisableJobs(): Result<List<SupervisableJob>> = runCatching {
+        client.postgrest
+            .rpc(function = "my_supervisable_jobs")
+            .decodeList<SupervisableJob>()
+    }
+
+    @Serializable
+    data class EligibleSupervisor(
+        @SerialName("user_id") val userId: String,
+        @SerialName("current_tier") val currentTier: String,
+        @SerialName("jobs_completed") val jobsCompleted: Int = 0,
+        @SerialName("display_name") val displayName: String,
+    )
+
+    suspend fun fetchEligibleSupervisors(): Result<List<EligibleSupervisor>> = runCatching {
+        client.postgrest
+            .rpc(function = "my_eligible_supervisors")
+            .decodeList<EligibleSupervisor>()
+    }
+
+    suspend fun requestSupervision(jobId: String, supervisorUserId: String): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "request_supervision",
+            parameters = buildJsonObject {
+                put("p_job_id", JsonPrimitive(jobId))
+                put("p_supervisor_user_id", JsonPrimitive(supervisorUserId))
+            },
+        )
+        Unit
+    }
 }
