@@ -155,6 +155,7 @@ fun EngineerJobsHubScreen(
     onTierProgress: () -> Unit = {},
     onSupervision: () -> Unit = {},
     onDemandSignals: () -> Unit = {},
+    onEarningsProjection: () -> Unit = {},
     viewModel: EngineerJobsHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -269,6 +270,12 @@ fun EngineerJobsHubScreen(
                         title = "Demand signals",
                         desc = "Flag parts you needed but couldn't find",
                         onClick = onDemandSignals,
+                    )
+                    HubTile(
+                        icon = Icons.Outlined.CurrencyRupee,
+                        title = "Earnings projection",
+                        desc = "How much you'd earn at the next tier",
+                        onClick = onEarningsProjection,
                     )
                     HubTile(
                         icon = Icons.Outlined.LocationOn,

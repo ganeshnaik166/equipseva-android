@@ -158,6 +158,27 @@ class EngineerGraduationRepository @Inject constructor(
             .decodeList<MyDemandSignal>()
     }
 
+    // ---- r587 tier earnings projection -----------------------------
+
+    @Serializable
+    data class TierEarningsProjection(
+        @SerialName("current_tier") val currentTier: String,
+        @SerialName("current_platform_fee_pct") val currentPlatformFeePct: Double,
+        @SerialName("next_tier") val nextTier: String? = null,
+        @SerialName("next_platform_fee_pct") val nextPlatformFeePct: Double? = null,
+        @SerialName("avg_monthly_gross_rupees") val avgMonthlyGrossRupees: Double,
+        @SerialName("projected_monthly_uplift_rupees") val projectedMonthlyUpliftRupees: Double,
+        @SerialName("completed_jobs_90d") val completedJobs90d: Int,
+        @SerialName("supervised_completions_at_eval") val supervisedCompletionsAtEval: Int,
+    )
+
+    suspend fun fetchTierEarningsProjection(): Result<TierEarningsProjection?> = runCatching {
+        client.postgrest
+            .rpc(function = "my_tier_earnings_projection")
+            .decodeList<TierEarningsProjection>()
+            .firstOrNull()
+    }
+
     suspend fun reportDemandSignal(
         partNumber: String?,
         brand: String?,

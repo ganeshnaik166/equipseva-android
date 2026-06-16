@@ -401,6 +401,7 @@ fun MainNavGraph(
                     onTierProgress = { navController.navigate(Routes.ENGINEER_GRADUATION) },
                     onSupervision = { navController.navigate(Routes.ENGINEER_SUPERVISION) },
                     onDemandSignals = { navController.navigate(Routes.ENGINEER_DEMAND_SIGNALS) },
+                    onEarningsProjection = { navController.navigate(Routes.ENGINEER_EARNINGS_PROJECTION) },
                 )
             }
             composable(Routes.ENGINEER_GRADUATION) {
@@ -415,6 +416,11 @@ fun MainNavGraph(
             }
             composable(Routes.ENGINEER_DEMAND_SIGNALS) {
                 com.equipseva.app.features.engineer.EngineerDemandSignalsScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.ENGINEER_EARNINGS_PROJECTION) {
+                com.equipseva.app.features.engineer.EngineerEarningsProjectionScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
