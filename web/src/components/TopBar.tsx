@@ -110,6 +110,9 @@ export async function TopBar() {
               <Link href="/index-health" className="hover:text-[var(--color-fg)]">
                 IdxHealth
               </Link>
+              <Link href="/escrow-aging" className="hover:text-[var(--color-fg)]">
+                EscAging
+              </Link>
               <Link href="/investor" className="hover:text-[var(--color-fg)]">
                 Investor
               </Link>
