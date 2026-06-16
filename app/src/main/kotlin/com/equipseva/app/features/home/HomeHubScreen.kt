@@ -162,6 +162,19 @@ fun HomeHubScreen(
                 )
             }
 
+            // r592 — role-specific tier/AMC chip under the greeting.
+            // Chips silently hide if the user has no progress / no active
+            // contract — no noisy "you have nothing yet" state on Home.
+            if (role == UserRole.ENGINEER) {
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    HomeEngineerTierChip(onClick = onOpenEarnings)
+                }
+            } else if (role == UserRole.HOSPITAL) {
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    HomeHospitalAmcChip(onClick = onOpenAmcContracts)
+                }
+            }
+
             // KYC banner — engineer who isn't verified yet
             if (role == UserRole.ENGINEER && kyc != VerificationStatus.Verified) {
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
