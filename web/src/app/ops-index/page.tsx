@@ -126,6 +126,100 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
         desc: "Pending + active assignments · threshold editor · revoke",
         round: "r576+",
       },
+      {
+        href: "/supervision-funnel",
+        title: "Supervision funnel",
+        desc: "request → accept → signoff → success conversion across 7d/30d/90d",
+        round: "r623",
+      },
+      {
+        href: "/profile-completeness",
+        title: "Profile completeness",
+        desc: "Per-field coverage for verified engineers · bio/rate/city/specs/phone/avatar",
+        round: "r620",
+      },
+      {
+        href: "/weekly-kpis",
+        title: "Weekly KPIs",
+        desc: "WoW snapshot · 7 metrics × this-week vs last-week × delta_pct",
+        round: "r625",
+      },
+    ],
+  },
+  {
+    label: "Operations latency",
+    links: [
+      {
+        href: "/kyc-aging",
+        title: "KYC aging",
+        desc: "Engineer KYC pending/rejected by age bucket (0-3/3-7/7-30/>30d)",
+        round: "r612",
+      },
+      {
+        href: "/dispute-aging",
+        title: "Dispute aging",
+        desc: "Evidence packs submitted/accepted/rejected by age bucket",
+        round: "r613",
+      },
+      {
+        href: "/bid-latency",
+        title: "Bid acceptance latency",
+        desc: "Job-posted → bid-accepted (avg/p50/p90/max) across 7d/30d/90d",
+        round: "r617",
+      },
+      {
+        href: "/dsr-latency",
+        title: "DSR sign-off latency",
+        desc: "Engineer-submitted → hospital-signed lag + unsigned counts",
+        round: "r618",
+      },
+      {
+        href: "/payout-latency",
+        title: "Payout latency",
+        desc: "Engineer payout queued → processed (hours) + pending/failed counts",
+        round: "r624",
+      },
+      {
+        href: "/code-red-sla",
+        title: "Code Red SLA",
+        desc: "Emergency request accept rate + avg accept minutes + timed-out count",
+        round: "r622",
+      },
+    ],
+  },
+  {
+    label: "Business health",
+    links: [
+      {
+        href: "/amc-churn",
+        title: "AMC churn",
+        desc: "Rolling 30d/90d/180d new + cancelled + expired + renewal_failed + churn %",
+        round: "r614",
+      },
+      {
+        href: "/chains-health",
+        title: "Chains health",
+        desc: "Per-chain member count, AMC penetration %, 30d job volume",
+        round: "r621",
+      },
+      {
+        href: "/top-engineers-7d",
+        title: "Top engineers (7d)",
+        desc: "Top 25 engineers by 7-day gross + jobs + avg/job",
+        round: "r615",
+      },
+      {
+        href: "/top-hospitals-30d",
+        title: "Top hospitals (30d)",
+        desc: "Top 25 hospitals by 30d posts + AMC-attached flag",
+        round: "r616",
+      },
+      {
+        href: "/bonded-inventory",
+        title: "Bonded inventory",
+        desc: "r500 bonded-parts intake rollup by SKU · in-stock / dispatched / oldest-intake",
+        round: "r619",
+      },
     ],
   },
   {
@@ -149,7 +243,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r610 sprint · all founder ops surfaces in one place
+          r599–r625 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
