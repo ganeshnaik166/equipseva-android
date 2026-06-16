@@ -47,6 +47,9 @@ export async function TopBar() {
               <Link href="/audit" className="hover:text-[var(--color-fg)]">
                 Audit
               </Link>
+              <Link href="/founder-runbook" className="hover:text-[var(--color-fg)]">
+                Runbook
+              </Link>
               <Link href="/ops-index" className="font-semibold hover:text-[var(--color-fg)]">
                 Ops index
               </Link>
