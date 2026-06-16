@@ -112,6 +112,9 @@ object Routes {
     // r584 — engineer's own demand-signal reports + manual report dialog.
     const val ENGINEER_DEMAND_SIGNALS = "engineer/demand_signals"
 
+    // r587/r588 — engineer earnings projection (current tier vs next tier × 90d gross).
+    const val ENGINEER_EARNINGS_PROJECTION = "engineer/earnings_projection"
+
     // Standalone editor for engineer base coords (engineers.latitude/longitude).
     // Reachable from the Jobs hub. Lets the engineer move their service centre
     // without going back through the full KYC flow.
