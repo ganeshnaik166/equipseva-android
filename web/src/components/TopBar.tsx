@@ -119,6 +119,9 @@ export async function TopBar() {
               <Link href="/slow-rpcs" className="hover:text-[var(--color-fg)]">
                 SlowQ
               </Link>
+              <Link href="/ops-index" className="hover:text-[var(--color-fg)] font-semibold">
+                Ops
+              </Link>
               <Link href="/investor" className="hover:text-[var(--color-fg)]">
                 Investor
               </Link>
