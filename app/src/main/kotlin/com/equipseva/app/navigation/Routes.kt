@@ -257,6 +257,8 @@ object Routes {
     // navigates to AMC_CONTRACT_DETAIL.
     const val AMC_CONTRACTS_LIST = "amc/contracts"
     const val AMC_CONTRACT_DETAIL = "amc/contract"
+    // r589 — hospital's active AMC tier perks (r587 my_active_amc_tier_perks).
+    const val AMC_TIER_PERKS = "amc/tier_perks"
     const val AMC_CONTRACT_DETAIL_ARG_ID = "contractId"
     fun amcContractDetailRoute(contractId: String): String =
         "$AMC_CONTRACT_DETAIL/$contractId"
