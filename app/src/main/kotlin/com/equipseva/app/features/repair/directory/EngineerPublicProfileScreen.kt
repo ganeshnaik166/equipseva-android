@@ -142,6 +142,9 @@ class EngineerPublicProfileViewModel @Inject constructor(
         // me"). Tapping Message would open chat with self; tapping
         // "Post a repair job" would land on the hospital-only wizard.
         val isSelfPreview: Boolean = false,
+        // r598 — public cert tier label (bronze / silver / gold) or
+        // null if engineer has no progress row or is at 'none' tier.
+        val tierLabel: String? = null,
     )
 
     sealed interface Effect {
@@ -180,6 +183,11 @@ class EngineerPublicProfileViewModel @Inject constructor(
             repo.fetchPublicProfile(engineerId)
                 .onSuccess { p -> _state.update { it.copy(loading = false, profile = p) } }
                 .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+            // r598 — public tier label (badge). Silent fail: bronze badge
+            // missing is far less serious than blanking the whole profile.
+            repo.fetchPublicTierLabel(engineerId)
+                .onSuccess { tier -> _state.update { it.copy(tierLabel = tier) } }
+                .onFailure { /* swallow — no badge is acceptable */ }
             // Reviews are best-effort: a failure here doesn't blank the
             // whole profile — the rating-card still renders aggregates.
             _state.update { it.copy(reviewsLoading = true) }
@@ -606,6 +614,7 @@ fun EngineerPublicProfileScreen(
                             onRequestService(id)
                         },
                         onDismissNudge = { viewModel.dismissRepeatBookingNudge() },
+                        tierLabel = state.tierLabel,
                     )
                 }
             }
@@ -708,6 +717,7 @@ private fun ProfileBody(
     nudgeDistanceKm: Double?,
     onPickAlternative: (engineerId: String) -> Unit,
     onDismissNudge: () -> Unit,
+    tierLabel: String? = null,
 ) {
     val hasRelationship = !p.phone.isNullOrBlank() || !p.email.isNullOrBlank()
     Column(
@@ -744,6 +754,18 @@ private fun ProfileBody(
                             fontWeight = FontWeight.Bold,
                         )
                         VerifiedBadgeWithInfo(verifiedAt = p.verifiedAt, small = false)
+                        if (tierLabel != null) {
+                            val kind = when (tierLabel) {
+                                "gold" -> com.equipseva.app.designsystem.components.PillKind.Lime
+                                "silver" -> com.equipseva.app.designsystem.components.PillKind.Neutral
+                                "bronze" -> com.equipseva.app.designsystem.components.PillKind.Warn
+                                else -> com.equipseva.app.designsystem.components.PillKind.Default
+                            }
+                            com.equipseva.app.designsystem.components.Pill(
+                                text = tierLabel.replaceFirstChar { it.uppercase() },
+                                kind = kind,
+                            )
+                        }
                     }
                     val locLine = formatCityStateLine(p.city, p.state)
                     if (locLine.isNotBlank()) {

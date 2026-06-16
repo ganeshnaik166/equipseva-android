@@ -200,6 +200,25 @@ class EngineerDirectoryRepository @Inject constructor(
     }
 
     /**
+     * r598 — public cert-tier label for the engineer being viewed.
+     * Returns 'bronze' / 'silver' / 'gold' or null (none-tier or no
+     * progress row). Hospitals call this to render a tier badge next
+     * to the verified badge on EngineerPublicProfileScreen.
+     */
+    suspend fun fetchPublicTierLabel(engineerId: String): Result<String?> = runCatching {
+        val raw = client.postgrest.rpc(
+            function = "engineer_public_tier_label",
+            parameters = buildJsonObject {
+                put("p_engineer_id", JsonPrimitive(engineerId))
+            },
+        ).data
+        // PostgREST returns the scalar text as a quoted JSON literal
+        // ("gold") or the literal null. Strip quotes; coerce blank → null.
+        val trimmed = raw.trim().trim('"')
+        trimmed.takeIf { it.isNotBlank() && it != "null" }
+    }
+
+    /**
      * Number of completed repair_jobs (any kind) the caller-hospital has
      * had with this engineer's engineers.id. Drives the repeat-booking
      * nudge gate on EngineerPublicProfileScreen — count >= 3 AND
