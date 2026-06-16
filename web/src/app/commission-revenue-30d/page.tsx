@@ -42,7 +42,7 @@ export default async function CommissionRevenue30dPage() {
       </section>
       <DataTable columns={cols} rows={rows} rowKey={(r) => r.day_ist} emptyMessage="No completed jobs." />
       <section className="rounded border border-[var(--color-border)] bg-white p-3 text-xs text-[var(--color-muted)]">
-        Estimate uses 15% take. Actual commission is residual (gross − engineer_payout) per r457 — varies for warranty waivers + edge cases. Use as rough indicator only.
+        Estimate uses 7% take (per r305 repair-job split, confirmed live: ₹20 job → ₹18.60 engineer payout). AMC-funded visits split at 15% so blended take is slightly higher. Actual commission is residual (gross − engineer_payout). Use as rough indicator only.
       </section>
     </div>
   );
