@@ -14,13 +14,25 @@ type Row = {
   engineers: number;
 };
 
+type ActiveRow = {
+  window_label: string;
+  total_users: number;
+  hospitals: number;
+  engineers: number;
+  ratio_pct: number;
+};
+
 export default async function SignupsPage() {
   await requireFounder();
   const supabase = await getSupabaseServerClient();
-  const { data, error } = await supabase.rpc("founder_signups_by_day", { p_days: 30 });
-  if (error) throw new Error(`founder_signups_by_day: ${error.message}`);
+  const [signupsRes, activeRes] = await Promise.all([
+    supabase.rpc("founder_signups_by_day", { p_days: 30 }),
+    supabase.rpc("founder_active_users"),
+  ]);
+  if (signupsRes.error) throw new Error(`founder_signups_by_day: ${signupsRes.error.message}`);
 
-  const rows = (data ?? []) as Row[];
+  const rows = (signupsRes.data ?? []) as Row[];
+  const activeRows = (activeRes.error ? [] : (activeRes.data ?? [])) as ActiveRow[];
   const total30d = rows.reduce((s, r) => s + (r.signups ?? 0), 0);
   const hospitals30d = rows.reduce((s, r) => s + (r.hospitals ?? 0), 0);
   const engineers30d = rows.reduce((s, r) => s + (r.engineers ?? 0), 0);
@@ -83,6 +95,32 @@ export default async function SignupsPage() {
           last 30 days · IST day boundaries
         </span>
       </header>
+
+      {activeRows.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+            Active users (r609)
+          </h2>
+          <div className="grid grid-cols-3 gap-3">
+            {activeRows.map((a) => (
+              <div
+                key={a.window_label}
+                className="rounded border border-[var(--color-border)] bg-white p-3"
+              >
+                <div className="text-xs uppercase tracking-wider text-[var(--color-muted)]">
+                  {a.window_label}
+                </div>
+                <div className="mt-1 text-lg font-semibold tabular-nums">
+                  {formatNumber(a.total_users)}
+                </div>
+                <div className="text-xs text-[var(--color-muted)]">
+                  {a.hospitals}H · {a.engineers}E · {a.ratio_pct}% of total
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
