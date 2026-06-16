@@ -20,6 +20,7 @@ type TierDef = {
   min_completed_jobs: number;
   max_dispute_rate_pct: number;
   min_verified_tier: string;
+  min_supervised_completions: number;
   platform_fee_pct: number;
   code_red_priority: number;
   pi_insurance_eligible: boolean;
@@ -34,6 +35,7 @@ type ProgressRow = {
   jobs_completed: number | null;
   dispute_rate_pct: number | null;
   verified_tier_at_eval: string | null;
+  supervised_completions_at_eval: number | null;
   manual_override: boolean;
   override_reason: string | null;
   last_computed_at: string;
@@ -56,13 +58,13 @@ export default async function TiersPage() {
     supabase
       .from("engineer_certification_tiers")
       .select(
-        "tier, min_completed_jobs, max_dispute_rate_pct, min_verified_tier, platform_fee_pct, code_red_priority, pi_insurance_eligible, featured_in_search, display_label, display_order",
+        "tier, min_completed_jobs, max_dispute_rate_pct, min_verified_tier, min_supervised_completions, platform_fee_pct, code_red_priority, pi_insurance_eligible, featured_in_search, display_label, display_order",
       )
       .order("display_order", { ascending: false }),
     supabase
       .from("engineer_certification_progress")
       .select(
-        "engineer_user_id, current_tier, jobs_completed, dispute_rate_pct, verified_tier_at_eval, manual_override, override_reason, last_computed_at, updated_at",
+        "engineer_user_id, current_tier, jobs_completed, dispute_rate_pct, verified_tier_at_eval, supervised_completions_at_eval, manual_override, override_reason, last_computed_at, updated_at",
       )
       .order("updated_at", { ascending: false })
       .limit(100),
@@ -79,6 +81,10 @@ export default async function TiersPage() {
 
   const totalEngineers = dist.reduce((s, r) => s + (r.engineer_count ?? 0), 0);
   const totalOverrides = dist.reduce((s, r) => s + (r.manual_override_count ?? 0), 0);
+  const totalSupervised = progress.reduce(
+    (s, r) => s + (r.supervised_completions_at_eval ?? 0),
+    0,
+  );
 
   const progressCols: Column<ProgressRow>[] = [
     {
@@ -128,6 +134,18 @@ export default async function TiersPage() {
       ),
     },
     {
+      key: "supervised",
+      header: "Supervised",
+      render: (r) =>
+        (r.supervised_completions_at_eval ?? 0) > 0 ? (
+          <span className="rounded bg-blue-50 px-1.5 py-0.5 text-xs tabular-nums">
+            {r.supervised_completions_at_eval}
+          </span>
+        ) : (
+          <span className="text-xs text-[var(--color-muted)]">—</span>
+        ),
+    },
+    {
       key: "manual",
       header: "Manual",
       render: (r) =>
@@ -154,7 +172,8 @@ export default async function TiersPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Engineer certification tiers</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          {formatNumber(totalEngineers)} engineers · {formatNumber(totalOverrides)} manual overrides
+          {formatNumber(totalEngineers)} engineers · {formatNumber(totalOverrides)} manual overrides ·{" "}
+          {formatNumber(totalSupervised)} supervised completions (last 100)
         </span>
       </header>
 
@@ -189,6 +208,7 @@ export default async function TiersPage() {
                 <th className="px-3 py-2 font-medium">Min jobs</th>
                 <th className="px-3 py-2 font-medium">Max dispute%</th>
                 <th className="px-3 py-2 font-medium">Min verified</th>
+                <th className="px-3 py-2 font-medium" title="Supervised completions required (r578)">Supervised</th>
                 <th className="px-3 py-2 font-medium">Platform fee</th>
                 <th className="px-3 py-2 font-medium">Code Red priority</th>
                 <th className="px-3 py-2 font-medium">PI insurance</th>
@@ -207,6 +227,15 @@ export default async function TiersPage() {
                   <td className="px-3 py-2 tabular-nums">{t.max_dispute_rate_pct}%</td>
                   <td className="px-3 py-2">
                     <code className="text-xs">{t.min_verified_tier}</code>
+                  </td>
+                  <td className="px-3 py-2 tabular-nums">
+                    {t.min_supervised_completions > 0 ? (
+                      <span className="rounded bg-blue-50 px-1.5 py-0.5 text-xs">
+                        ≥{t.min_supervised_completions}
+                      </span>
+                    ) : (
+                      <span className="text-[var(--color-muted)]">—</span>
+                    )}
                   </td>
                   <td className="px-3 py-2 tabular-nums">{t.platform_fee_pct}%</td>
                   <td className="px-3 py-2 tabular-nums">{t.code_red_priority}</td>
