@@ -58,7 +58,7 @@ export default async function WebhooksPage({
     query = query.not("apply_error", "is", null);
   }
 
-  const [rzpRes, payoutsRes] = await Promise.all([
+  const [rzpRes, payoutsRes, healthRes] = await Promise.all([
     query,
     supabase
       .from("payouts_webhook_events")
@@ -67,7 +67,18 @@ export default async function WebhooksPage({
       )
       .order("received_at", { ascending: false })
       .limit(50),
+    supabase.rpc("founder_webhook_health"),
   ]);
+  type HealthRow = {
+    source: string;
+    events_last_hour: number | null;
+    events_last_24h: number | null;
+    failed_last_hour: number | null;
+    failed_last_24h: number | null;
+    last_event_at: string | null;
+    success_rate_24h: number | null;
+  };
+  const healthRows = (healthRes.error ? [] : (healthRes.data ?? [])) as HealthRow[];
   if (rzpRes.error) throw new Error(`razorpay_webhook_events: ${rzpRes.error.message}`);
   const rows = (rzpRes.data ?? []) as RzpRow[];
   // Payout webhook events table is best-effort; if RLS or table missing,
@@ -183,6 +194,39 @@ export default async function WebhooksPage({
         <h1 className="text-xl font-semibold">Razorpay webhook events</h1>
         <span className="text-xs text-[var(--color-muted)]">last 100 events</span>
       </header>
+
+      {healthRows.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+            Health (r606)
+          </h2>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {healthRows.map((h) => {
+              const tone =
+                (h.failed_last_hour ?? 0) > 0
+                  ? "danger"
+                  : (h.success_rate_24h ?? 100) < 99
+                    ? "warn"
+                    : "ok";
+              return (
+                <StatCard
+                  key={h.source}
+                  label={`${h.source} (24h)`}
+                  value={
+                    h.success_rate_24h != null ? `${h.success_rate_24h}%` : "—"
+                  }
+                  subtext={
+                    h.events_last_24h
+                      ? `${h.events_last_24h} events · ${h.failed_last_24h ?? 0} failed`
+                      : "no events"
+                  }
+                  tone={tone}
+                />
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
