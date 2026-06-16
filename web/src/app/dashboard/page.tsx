@@ -24,6 +24,22 @@ type HeroKpis = {
 type DemandRow = { signal_count: number | null };
 type SuperRow = { status: string; assignment_count: number | null; total_in_progress: number | null };
 type TierMoveRow = { changed_at: string; new_tier: string; prev_tier: string };
+type DailyActivityRow = {
+  metric: string;
+  count_today: number | null;
+  count_yesterday: number | null;
+  delta: number | null;
+};
+
+const DAILY_METRIC_LABEL: Record<string, string> = {
+  new_repair_jobs: "New repair jobs",
+  accepted_bids: "Accepted bids",
+  completed_jobs: "Completed jobs",
+  signed_dsr_reports: "Signed DSRs",
+  new_amc_contracts: "New AMC contracts",
+  new_demand_signals: "New demand signals",
+  tier_promotions: "Tier promotions",
+};
 
 export default async function DashboardPage() {
   await requireFounder();
@@ -32,11 +48,12 @@ export default async function DashboardPage() {
   // r597 — parallel-fetch the v0.5 pipeline KPIs alongside the existing
   // hero. Each RPC fails silently into a zeroed bucket so a single v0.5
   // outage doesn't break the legacy dashboard.
-  const [heroRes, demandRes, superRes, tierMovesRes] = await Promise.all([
+  const [heroRes, demandRes, superRes, tierMovesRes, dailyRes] = await Promise.all([
     supabase.rpc("founder_hero_kpis"),
     supabase.rpc("founder_demand_signal_dashboard"),
     supabase.rpc("founder_supervision_dashboard"),
     supabase.rpc("founder_tier_history_recent", { p_limit: 200 }),
+    supabase.rpc("founder_daily_activity_summary"),
   ]);
   if (heroRes.error) {
     throw new Error(`founder_hero_kpis failed: ${heroRes.error.message}`);
@@ -52,6 +69,8 @@ export default async function DashboardPage() {
   const supervisionInProgress = superRows[0]?.total_in_progress ?? 0;
   const supervisionPending = superRows.find((r) => r.status === "pending_supervisor_accept")
     ?.assignment_count ?? 0;
+
+  const dailyRows = (dailyRes.error ? [] : (dailyRes.data ?? [])) as DailyActivityRow[];
 
   const tierMoves = (tierMovesRes.error ? [] : (tierMovesRes.data ?? [])) as TierMoveRow[];
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -189,6 +208,37 @@ export default async function DashboardPage() {
           />
         </div>
       </section>
+
+      {/* r602 — Today vs yesterday strip. IST day window; future edge
+          fn can email this same data at 08:00 IST. */}
+      {dailyRows.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+            Today vs yesterday (IST)
+          </h2>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {dailyRows.map((d) => {
+              const delta = d.delta ?? 0;
+              const tone =
+                delta > 0
+                  ? "ok"
+                  : delta < 0
+                    ? "warn"
+                    : ("neutral" as const);
+              const sign = delta > 0 ? "+" : "";
+              return (
+                <StatCard
+                  key={d.metric}
+                  label={DAILY_METRIC_LABEL[d.metric] ?? d.metric}
+                  value={formatNumber(d.count_today)}
+                  subtext={`${sign}${delta} vs ${formatNumber(d.count_yesterday)} yesterday`}
+                  tone={tone}
+                />
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* r597 — v0.5 pipeline-health section. Links into the new
           surfaces (/demand-signals, /training, /tier-history) so the
