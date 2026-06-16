@@ -16,13 +16,24 @@ type Row = {
   table_pretty: string;
   index_bytes: number | null;
   index_pretty: string;
+  // r601 — WoW delta (null when no 7d-old snapshot exists yet)
+  prior_bytes?: number | null;
+  delta_bytes?: number | null;
+  delta_pct?: number | null;
 };
 
 export default async function DbStoragePage() {
   await requireFounder();
   const supabase = await getSupabaseServerClient();
 
-  const { data, error } = await supabase.rpc("founder_db_storage");
+  // r601: prefer the delta RPC which includes WoW columns. Fall back
+  // to founder_db_storage if the delta RPC isn't applied yet on this
+  // database (defensive against migration ordering).
+  const deltaRes = await supabase.rpc("founder_db_storage_with_delta");
+  const useDelta = !deltaRes.error;
+  const { data, error } = useDelta
+    ? deltaRes
+    : await supabase.rpc("founder_db_storage");
   if (error) throw new Error(`founder_db_storage: ${error.message}`);
 
   const rows = (data ?? []) as Row[];
@@ -70,6 +81,30 @@ export default async function DbStoragePage() {
       key: "index",
       header: "Indexes",
       render: (r) => <span className="text-xs tabular-nums">{r.index_pretty}</span>,
+    },
+    {
+      key: "wow",
+      header: "WoW",
+      render: (r) => {
+        if (r.delta_pct == null) {
+          return <span className="text-xs text-[var(--color-muted)]">—</span>;
+        }
+        const sign = r.delta_pct > 0 ? "+" : "";
+        const tone =
+          r.delta_pct > 10
+            ? "text-[var(--color-danger)]"
+            : r.delta_pct > 2
+              ? "text-[var(--color-warn)]"
+              : r.delta_pct < 0
+                ? "text-[var(--color-ok)]"
+                : "text-[var(--color-muted)]";
+        return (
+          <span className={`text-xs tabular-nums ${tone}`}>
+            {sign}
+            {r.delta_pct}%
+          </span>
+        );
+      },
     },
     {
       key: "ratio",
@@ -122,14 +157,18 @@ export default async function DbStoragePage() {
       />
 
       <section className="rounded border border-[var(--color-border)] bg-white p-3 text-xs text-[var(--color-muted)]">
-        <strong>r600 ops view.</strong> Sizes come from{" "}
+        <strong>r600 + r601 ops view.</strong> Sizes come from{" "}
         <code>pg_total_relation_size</code> (heap + indexes + toast),{" "}
         <code>pg_relation_size</code> (heap only), and the derived index
         footprint. Row counts are <em>estimates</em> from{" "}
         <code>pg_class.reltuples</code> — accurate after the last ANALYZE, may
         lag for write-heavy tables. Idx % &gt; 60% suggests the table has more
         index than data — usually fine for hot read paths but worth checking
-        for over-indexing if write throughput drops.
+        for over-indexing if write throughput drops. WoW % compares current
+        total to the most recent snapshot &gt;= 7 days old; r601&apos;s daily sweep
+        populates the ledger so this column starts showing values after a
+        week of snapshots. — for now the column will be &quot;—&quot; until the
+        snapshot edge-fn or pg_cron run begins backfilling history.
       </section>
     </div>
   );
