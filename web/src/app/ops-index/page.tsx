@@ -48,6 +48,7 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/payout-volume-30d", title: "Payout volume 30d", desc: "Per-status rupees", round: "r651" },
       { href: "/payouts-by-day-trend", title: "Payouts by day", desc: "Daily paid + failed (14d)", round: "r686" },
       { href: "/payout-fail-reasons", title: "Payout fail reasons", desc: "RazorpayX status distribution", round: "r666" },
+      { href: "/engineers-missing-payout", title: "Engineers missing payout", desc: "Earned 30d but no verified VPA · outreach queue", round: "r726" },
       { href: "/refunds", title: "Refunds", desc: "Refund authorizations + history", round: "—" },
       { href: "/commission-revenue-30d", title: "Commission revenue (30d)", desc: "Daily platform take (est)", round: "r663" },
       { href: "/amc-revenue-trend", title: "AMC revenue trend", desc: "Daily AMC paid orders (14d)", round: "r656" },
