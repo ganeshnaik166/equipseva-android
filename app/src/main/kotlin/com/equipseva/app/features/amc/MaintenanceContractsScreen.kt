@@ -202,6 +202,7 @@ fun MaintenanceContractsScreen(
     onBack: () -> Unit,
     onOpenContract: (String) -> Unit,
     onBrowseEngineers: () -> Unit,
+    onTierPerks: () -> Unit = {},
     viewModel: MaintenanceContractsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -251,6 +252,15 @@ fun MaintenanceContractsScreen(
                         ),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
+                        item(key = "_tier_perks_entry") {
+                            com.equipseva.app.designsystem.components.EsBtn(
+                                text = "View tier perks",
+                                onClick = onTierPerks,
+                                kind = com.equipseva.app.designsystem.components.EsBtnKind.Secondary,
+                                size = com.equipseva.app.designsystem.components.EsBtnSize.Sm,
+                                full = true,
+                            )
+                        }
                         items(state.items, key = { it.id }) { item ->
                             ContractCard(
                                 item = item,

@@ -492,6 +492,14 @@ fun MainNavGraph(
                     onBrowseEngineers = {
                         navController.navigate(Routes.ENGINEER_DIRECTORY)
                     },
+                    onTierPerks = {
+                        navController.navigate(Routes.AMC_TIER_PERKS)
+                    },
+                )
+            }
+            composable(Routes.AMC_TIER_PERKS) {
+                com.equipseva.app.features.amc.HospitalAmcTierPerksScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(
