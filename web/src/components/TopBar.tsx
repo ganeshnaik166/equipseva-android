@@ -17,6 +17,9 @@ export async function TopBar() {
           </Link>
           {user && (
             <nav className="flex flex-wrap items-center gap-4 text-sm text-[var(--color-muted)]">
+              <Link href="/platform-pulse" className="font-semibold hover:text-[var(--color-fg)]">
+                Pulse
+              </Link>
               <Link href="/dashboard" className="hover:text-[var(--color-fg)]">
                 Dashboard
               </Link>
