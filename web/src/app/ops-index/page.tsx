@@ -8,6 +8,13 @@ type OpsLink = { href: string; title: string; desc: string; round: string };
 
 const SECTIONS: { label: string; links: OpsLink[] }[] = [
   {
+    label: "Executive",
+    links: [
+      { href: "/platform-pulse", title: "Platform pulse", desc: "12 KPIs at a glance · executive snapshot", round: "r700★" },
+      { href: "/dashboard", title: "Hero dashboard", desc: "Top-line KPIs + today vs yesterday", round: "r597+" },
+    ],
+  },
+  {
     label: "Database health",
     links: [
       { href: "/db-storage", title: "DB storage", desc: "Per-table size · WoW growth", round: "r600+" },
@@ -44,13 +51,14 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/refunds", title: "Refunds", desc: "Refund authorizations + history", round: "—" },
       { href: "/commission-revenue-30d", title: "Commission revenue (30d)", desc: "Daily platform take (est)", round: "r663" },
       { href: "/amc-revenue-trend", title: "AMC revenue trend", desc: "Daily AMC paid orders (14d)", round: "r656" },
+      { href: "/amc-revenue-by-tier", title: "AMC revenue by tier", desc: "Per-tier MRR + ARR", round: "r688" },
       { href: "/amc-payment-orders-status", title: "AMC payment orders status", desc: "Pending/paid/failed/refunded", round: "r667" },
+      { href: "/amc-payment-success-rate", title: "AMC payment success rate", desc: "paid / (paid+failed) 7/30/90d", round: "r714" },
     ],
   },
   {
     label: "Growth & engagement",
     links: [
-      { href: "/dashboard", title: "Hero dashboard", desc: "Top-line KPIs", round: "r597+" },
       { href: "/signups", title: "Signups + active users", desc: "Funnel + DAU/WAU/MAU", round: "r608+" },
       { href: "/weekly-kpis", title: "Weekly KPIs", desc: "WoW snapshot · 7 metrics", round: "r625" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
@@ -59,13 +67,15 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/tier-climbers", title: "Tier climbers", desc: "Non-gold close to promotion", round: "r676" },
       { href: "/demand-signals", title: "Demand signals", desc: "Market intel + priority", round: "r571+" },
       { href: "/demand-signal-status", title: "Demand signal status", desc: "Open by priority + resolved", round: "r677" },
+      { href: "/demand-by-brand", title: "Demand by brand", desc: "Top 50 brands by 90d demand", round: "r712" },
+      { href: "/demand-by-model", title: "Demand by model", desc: "Top 50 models by 90d demand", round: "r713" },
       { href: "/training", title: "Supervised training", desc: "Pending + active assignments", round: "r576+" },
       { href: "/supervised-active", title: "Supervised active", desc: "Pending + active list", round: "r684" },
       { href: "/supervised-outcomes", title: "Supervised outcomes", desc: "Lifetime status distribution", round: "r685" },
       { href: "/supervision-funnel", title: "Supervision funnel", desc: "Request → success conversion", round: "r623" },
       { href: "/profile-completeness", title: "Profile completeness", desc: "Per-field coverage", round: "r620" },
       { href: "/referral-funnel", title: "Referral funnel", desc: "90d cohort signed → paid", round: "r646" },
-      { href: "/referral-volume-trend", title: "Referral volume trend", desc: "Daily referrals/first-jobs/bounties", round: "r668" },
+      { href: "/referral-volume-trend", title: "Referral volume trend", desc: "Daily referrals/first-jobs", round: "r668" },
       { href: "/referrers-leaderboard", title: "Referrers leaderboard", desc: "Top 50 by first-job conversions", round: "r680" },
       { href: "/retention-cohort", title: "Retention cohort", desc: "Engineer signup-week × active", round: "r647" },
     ],
@@ -78,12 +88,12 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/engineer-onboarding-funnel", title: "Onboarding funnel", desc: "Signup → first job", round: "r630" },
       { href: "/engineer-dormancy", title: "Dormancy", desc: "Past completers idle >30d", round: "r631" },
       { href: "/engineer-geo", title: "Geo", desc: "Top 50 cities + verification", round: "r633" },
-      { href: "/engineer-specialization-coverage", title: "Specialization coverage", desc: "Per-category counts (flag <3)", round: "r634" },
+      { href: "/engineer-specialization-coverage", title: "Specialization coverage", desc: "Per-category counts", round: "r634" },
       { href: "/top-engineers-7d", title: "Top earners (7d)", desc: "Top 25 by 7d gross", round: "r615" },
       { href: "/top-engineers-30d", title: "Top earners (30d)", desc: "Top 50 by 30d gross", round: "r635" },
       { href: "/engineer-acceptance-rate", title: "Acceptance rate", desc: "30d bid → accepted %", round: "r636" },
       { href: "/engineer-payout-history", title: "Payout history", desc: "30/90d/lifetime per engineer", round: "r658" },
-      { href: "/engineer-rating-distribution", title: "Rating distribution", desc: "180d histogram 5..1 stars", round: "r671" },
+      { href: "/engineer-rating-distribution", title: "Rating distribution", desc: "180d histogram", round: "r671" },
       { href: "/lead-scoring", title: "Lead scoring", desc: "≥10 bids, 0 completions", round: "r670" },
     ],
   },
@@ -102,9 +112,12 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
     label: "Repair jobs",
     links: [
       { href: "/repair-job-funnel", title: "Funnel", desc: "30d posted → completed", round: "r641" },
+      { href: "/repair-jobs-status", title: "Status snapshot", desc: "All-time status distribution", round: "r692" },
       { href: "/job-fee-distribution", title: "Fee distribution", desc: "90d gross by bucket", round: "r642" },
       { href: "/job-bid-counts", title: "Bid counts", desc: "Bids-per-job histogram", round: "r643" },
       { href: "/unmatched-jobs", title: "Unmatched >7d", desc: "Posted >7d ago · zero bids", round: "r661" },
+      { href: "/jobs-by-hour-of-day", title: "Jobs by hour", desc: "30d hour-of-day distribution", round: "r690" },
+      { href: "/jobs-by-day-of-week", title: "Jobs by weekday", desc: "90d weekday distribution", round: "r691" },
     ],
   },
   {
@@ -113,6 +126,8 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/parts-demand-supply", title: "Demand vs supply", desc: "90d demand vs bonded stock", round: "r644" },
       { href: "/parts-vendor-share", title: "Vendor share", desc: "Top 50 bonded suppliers", round: "r645" },
       { href: "/bonded-inventory", title: "Bonded inventory", desc: "SKU rollup · in-stock", round: "r619" },
+      { href: "/bonded-by-supplier-tier", title: "By supplier tier", desc: "OEM/AUTHORIZED/VERIFIED rollup", round: "r708" },
+      { href: "/bonded-dispatch-status", title: "Dispatch status", desc: "All-time dispatch status dist", round: "r709" },
     ],
   },
   {
@@ -121,9 +136,11 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/kyc-aging", title: "KYC aging", desc: "Pending/rejected age buckets", round: "r612" },
       { href: "/dispute-aging", title: "Dispute aging", desc: "Evidence pack age buckets", round: "r613" },
       { href: "/dispute-resolution-latency", title: "Dispute resolution latency", desc: "Submitted → decision p50/p90", round: "r648" },
+      { href: "/dispute-outcomes", title: "Dispute outcomes", desc: "Accepted vs rejected + avg stake", round: "r715" },
       { href: "/bid-latency", title: "Bid acceptance latency", desc: "Posted → accepted (p50/p90)", round: "r617" },
       { href: "/dsr-latency", title: "DSR sign-off latency", desc: "Engineer → hospital signed", round: "r618" },
       { href: "/code-red-sla", title: "Code Red SLA", desc: "Emergency accept rate", round: "r622" },
+      { href: "/code-red-by-hour", title: "Code Red by hour", desc: "90d hourly distribution", round: "r716" },
     ],
   },
   {
@@ -133,6 +150,7 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/amc-renewal-pipeline", title: "AMC renewal pipeline", desc: "Expiring 30/60/90d · MRR/ARR", round: "r627" },
       { href: "/amc-near-expiry", title: "AMC near expiry", desc: "Expiring within 30d list", round: "r660" },
       { href: "/amc-tier-distribution", title: "AMC tier distribution", desc: "Per-tier active + MRR", round: "r640" },
+      { href: "/amc-categories-coverage", title: "AMC categories coverage", desc: "Equipment categories rolled up", round: "r689" },
       { href: "/amc-visits-cadence", title: "AMC visits cadence", desc: "Completed vs scheduled %", round: "r649" },
       { href: "/amc-pool-health", title: "AMC pool health", desc: "Balance distribution buckets", round: "r678" },
       { href: "/amc-paused", title: "AMC paused", desc: "Paused contracts · MRR frozen", round: "r679" },
@@ -144,13 +162,34 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
   {
     label: "Daily trends (14d)",
     links: [
-      { href: "/signups-by-day-trend", title: "Signups by day", desc: "Daily + engineer breakdown", round: "r652" },
-      { href: "/bid-volume-trend", title: "Bid volume", desc: "Placed + accepted + engineers", round: "r653" },
-      { href: "/jobs-volume-trend", title: "Jobs volume", desc: "Posted + completed + gross", round: "r654" },
+      { href: "/signups-by-day-trend", title: "Signups", desc: "Daily + engineer breakdown", round: "r652" },
+      { href: "/bid-volume-trend", title: "Bids", desc: "Placed + accepted + engineers", round: "r653" },
+      { href: "/jobs-volume-trend", title: "Jobs", desc: "Posted + completed + gross", round: "r654" },
       { href: "/demand-signals-trend", title: "Demand signals", desc: "Daily + distinct SKUs + reporters", round: "r655" },
-      { href: "/referral-volume-trend", title: "Referral volume", desc: "Daily referrals + first-jobs + bounties", round: "r668" },
-      { href: "/code-red-volume-trend", title: "Code Red volume", desc: "Daily opened + timed-out", round: "r669" },
-      { href: "/payouts-by-day-trend", title: "Payouts by day", desc: "Daily paid + rupees + failed", round: "r686" },
+      { href: "/referral-volume-trend", title: "Referrals", desc: "Daily referrals + first-jobs", round: "r668" },
+      { href: "/code-red-volume-trend", title: "Code Red", desc: "Daily opened + timed-out", round: "r669" },
+      { href: "/payouts-by-day-trend", title: "Payouts", desc: "Daily paid + rupees + failed", round: "r686" },
+      { href: "/amc-pool-credits-trend", title: "AMC pool credits", desc: "Daily ledger credit/debit/refund", round: "r693" },
+      { href: "/bonded-intake-trend", title: "Bonded intake", desc: "Daily intake rows + qty + cost", round: "r706" },
+      { href: "/bonded-dispatch-trend", title: "Bonded dispatch", desc: "Daily dispatches + qty + installed", round: "r707" },
+    ],
+  },
+  {
+    label: "Monthly trends (12mo)",
+    links: [
+      { href: "/repair-jobs-by-month", title: "Repair jobs", desc: "Posted / completed / cancelled / gross", round: "r694" },
+      { href: "/signups-by-month", title: "Signups", desc: "Total + engineer subset", round: "r695" },
+      { href: "/amc-contracts-by-month", title: "AMC contracts", desc: "New AMCs + new MRR", round: "r696" },
+      { href: "/payouts-by-month", title: "Engineer payouts", desc: "Paid count / rupees / failed", round: "r697" },
+      { href: "/disputes-by-month", title: "Disputes", desc: "Submitted / accepted / rejected", round: "r698" },
+      { href: "/referrals-by-month", title: "Referrals", desc: "Referrals / first jobs / bounties", round: "r699" },
+      { href: "/demand-signals-by-month", title: "Demand signals", desc: "Signals / SKUs / resolved", round: "r701" },
+      { href: "/code-red-by-month", title: "Code Red", desc: "Opened / resolved / timed-out", round: "r702" },
+      { href: "/escrow-by-month", title: "Escrow", desc: "Released vs refunded", round: "r703" },
+      { href: "/tier-changes-by-month", title: "Tier changes", desc: "Promotions / demotions", round: "r704" },
+      { href: "/spot-audits-by-month", title: "Spot audits", desc: "Invitations / responses / rating", round: "r705" },
+      { href: "/supervised-by-month", title: "Supervised", desc: "Assigned / successful / failed", round: "r710" },
+      { href: "/amc-payment-by-month", title: "AMC payments", desc: "Paid count / rupees / failed", round: "r711" },
     ],
   },
   {
@@ -169,7 +208,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r686 sprint · all founder ops surfaces in one place
+          r599–r716 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
@@ -199,11 +238,10 @@ export default async function OpsIndexPage() {
       ))}
 
       <section className="rounded border border-[var(--color-border)] bg-white p-3 text-xs text-[var(--color-muted)]">
-        <strong>r687 ops index.</strong> Catalogs the second 30-ship autonomous
-        chain (r658-r687) on top of r628-r657 and r599-r627. 85+ founder ops
-        surfaces, each powered by a SECDEF RPC + <code>is_founder()</code> gate.
-        Pages degrade gracefully when underlying extensions (pg_cron, pg_stat_statements)
-        aren&apos;t enabled on the current Supabase tier.
+        <strong>r717 ops index.</strong> Third autonomous 30-ship chain
+        (r688-r717) on top of r628-r657 + r658-r687. 115+ founder ops surfaces
+        spanning 14 sections. Featured: r700 milestone (<a href="/platform-pulse" className="underline">/platform-pulse</a>)
+        is the single-page executive snapshot — start there for daily founder review.
       </section>
     </div>
   );
