@@ -68,6 +68,7 @@ fun EarningsScreen(
     onBankDetails: () -> Unit = {},
     onBrowseJobs: () -> Unit = {},
     onOpenActiveEscrows: () -> Unit = {},
+    onOpenEarningsProjection: () -> Unit = {},
     viewModel: EarningsViewModel = hiltViewModel(),
 ) {
     SecureScreen()
@@ -107,6 +108,23 @@ fun EarningsScreen(
                                 EarningsHero(
                                     paidTotal = state.paidTotal,
                                     pendingTotal = state.pendingTotal,
+                                )
+                            }
+                        }
+                        // r591 — surface r588 projection screen inline.
+                        // Tier promotion lowers platform_fee; engineers
+                        // checking Earnings are the right audience.
+                        item("earnings_projection_link") {
+                            Box(
+                                modifier = Modifier.padding(
+                                    horizontal = 16.dp,
+                                    vertical = 4.dp,
+                                ),
+                            ) {
+                                com.equipseva.app.designsystem.components.EsListRow(
+                                    title = "Earnings projection",
+                                    subtitle = "See how much you'd earn at the next tier",
+                                    onClick = onOpenEarningsProjection,
                                 )
                             }
                         }
