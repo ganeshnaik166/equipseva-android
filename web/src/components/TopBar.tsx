@@ -98,6 +98,9 @@ export async function TopBar() {
               <Link href="/cron-status" className="hover:text-[var(--color-fg)]">
                 Cron
               </Link>
+              <Link href="/db-storage" className="hover:text-[var(--color-fg)]">
+                Storage
+              </Link>
               <Link href="/investor" className="hover:text-[var(--color-fg)]">
                 Investor
               </Link>
