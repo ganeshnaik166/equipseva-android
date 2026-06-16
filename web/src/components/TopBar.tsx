@@ -101,6 +101,9 @@ export async function TopBar() {
               <Link href="/db-storage" className="hover:text-[var(--color-fg)]">
                 Storage
               </Link>
+              <Link href="/rls-coverage" className="hover:text-[var(--color-fg)]">
+                RLS
+              </Link>
               <Link href="/investor" className="hover:text-[var(--color-fg)]">
                 Investor
               </Link>
