@@ -18,6 +18,7 @@ const SECTIONS: Section[] = [
       { href: "/unmatched-jobs",  title: "Unmatched jobs (>7d)",    why: "Posted jobs with zero bids. Routing/outreach signal." },
       { href: "/escrow-stuck",    title: "Escrow stuck (>30d)",    why: "Cash held in escrow >30d. Likely a stuck flow." },
       { href: "/payout-fail-reasons", title: "Payout fail reasons", why: "RazorpayX failure codes accumulating. Reach out to engineers." },
+      { href: "/amc-pool-low-balance", title: "AMC pool low balance", why: "Active AMCs heading toward auto-suspend. Outreach BEFORE pause." },
       { href: "/cron-status",     title: "Cron status",            why: "Confirm scheduled jobs ran. Quick sanity tile." },
     ],
   },

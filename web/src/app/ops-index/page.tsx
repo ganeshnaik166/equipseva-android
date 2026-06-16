@@ -153,6 +153,7 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/amc-categories-coverage", title: "AMC categories coverage", desc: "Equipment categories rolled up", round: "r689" },
       { href: "/amc-visits-cadence", title: "AMC visits cadence", desc: "Completed vs scheduled %", round: "r649" },
       { href: "/amc-pool-health", title: "AMC pool health", desc: "Balance distribution buckets", round: "r678" },
+      { href: "/amc-pool-low-balance", title: "AMC pool low balance", desc: "Active AMCs below 2× monthly fee · outreach queue", round: "r724" },
       { href: "/amc-paused", title: "AMC paused", desc: "Paused contracts · MRR frozen", round: "r679" },
       { href: "/amc-cancellations", title: "AMC cancellations 30d", desc: "Cancelled/failed/expired list", round: "r683" },
       { href: "/chains-health", title: "Chains health", desc: "Per-chain AMC % + jobs", round: "r621" },
