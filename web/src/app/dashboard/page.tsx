@@ -21,15 +21,47 @@ type HeroKpis = {
   amc_contracts_pending_payment: number | null;
 };
 
+type DemandRow = { signal_count: number | null };
+type SuperRow = { status: string; assignment_count: number | null; total_in_progress: number | null };
+type TierMoveRow = { changed_at: string; new_tier: string; prev_tier: string };
+
 export default async function DashboardPage() {
   await requireFounder();
   const supabase = await getSupabaseServerClient();
 
-  const { data, error } = await supabase.rpc("founder_hero_kpis");
-  if (error) {
-    throw new Error(`founder_hero_kpis failed: ${error.message}`);
+  // r597 — parallel-fetch the v0.5 pipeline KPIs alongside the existing
+  // hero. Each RPC fails silently into a zeroed bucket so a single v0.5
+  // outage doesn't break the legacy dashboard.
+  const [heroRes, demandRes, superRes, tierMovesRes] = await Promise.all([
+    supabase.rpc("founder_hero_kpis"),
+    supabase.rpc("founder_demand_signal_dashboard"),
+    supabase.rpc("founder_supervision_dashboard"),
+    supabase.rpc("founder_tier_history_recent", { p_limit: 200 }),
+  ]);
+  if (heroRes.error) {
+    throw new Error(`founder_hero_kpis failed: ${heroRes.error.message}`);
   }
-  const k: HeroKpis = (Array.isArray(data) ? data[0] : data) ?? ({} as HeroKpis);
+  const k: HeroKpis = (Array.isArray(heroRes.data) ? heroRes.data[0] : heroRes.data) ?? ({} as HeroKpis);
+
+  // v0.5 pipeline aggregates (silent fail = 0):
+  const demandRows = (demandRes.error ? [] : (demandRes.data ?? [])) as DemandRow[];
+  const unresolvedSignals = demandRows.reduce((s, r) => s + (r.signal_count ?? 0), 0);
+  const unresolvedGroups = demandRows.length;
+
+  const superRows = (superRes.error ? [] : (superRes.data ?? [])) as SuperRow[];
+  const supervisionInProgress = superRows[0]?.total_in_progress ?? 0;
+  const supervisionPending = superRows.find((r) => r.status === "pending_supervisor_accept")
+    ?.assignment_count ?? 0;
+
+  const tierMoves = (tierMovesRes.error ? [] : (tierMovesRes.data ?? [])) as TierMoveRow[];
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const tierMoves7d = tierMoves.filter(
+    (r) => new Date(r.changed_at).getTime() >= sevenDaysAgo,
+  );
+  const tierRank: Record<string, number> = { none: 0, bronze: 1, silver: 2, gold: 3 };
+  const promotions7d = tierMoves7d.filter(
+    (r) => (tierRank[r.new_tier] ?? 0) > (tierRank[r.prev_tier] ?? 0),
+  ).length;
 
   const generatedAt = new Date().toLocaleString("en-IN", {
     timeZone: "Asia/Kolkata",
@@ -154,6 +186,45 @@ export default async function DashboardPage() {
             label="Pending refund auths"
             value={formatNumber(k.pending_refund_authorizations)}
             tone={(k.pending_refund_authorizations ?? 0) > 0 ? "warn" : "ok"}
+          />
+        </div>
+      </section>
+
+      {/* r597 — v0.5 pipeline-health section. Links into the new
+          surfaces (/demand-signals, /training, /tier-history) so the
+          founder can drill from one glance. */}
+      <section>
+        <h2 className="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+          v0.5 pipeline health
+        </h2>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <StatCard
+            label="Unresolved demand groups"
+            value={formatNumber(unresolvedGroups)}
+            subtext={
+              unresolvedSignals > 0 ? `${formatNumber(unresolvedSignals)} signals` : undefined
+            }
+            tone={unresolvedGroups > 0 ? "warn" : "ok"}
+            href="/demand-signals"
+          />
+          <StatCard
+            label="Supervision in progress"
+            value={formatNumber(supervisionInProgress)}
+            subtext={supervisionPending > 0 ? `${supervisionPending} awaiting accept` : undefined}
+            tone={supervisionPending > 0 ? "warn" : "ok"}
+            href="/training"
+          />
+          <StatCard
+            label="Tier promotions (7d)"
+            value={formatNumber(promotions7d)}
+            subtext={tierMoves7d.length > 0 ? `${tierMoves7d.length} total moves` : undefined}
+            tone="ok"
+            href="/tier-history"
+          />
+          <StatCard
+            label="Engineer tier moves (in view)"
+            value={formatNumber(tierMoves.length)}
+            href="/tier-history"
           />
         </div>
       </section>
