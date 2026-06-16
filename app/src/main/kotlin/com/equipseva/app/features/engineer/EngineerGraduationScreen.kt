@@ -64,6 +64,7 @@ class EngineerGraduationViewModel @Inject constructor(
     data class UiState(
         val status: Status = Status.Loading,
         val data: EngineerGraduationRepository.GraduationStatus? = null,
+        val history: List<EngineerGraduationRepository.TierHistoryEntry> = emptyList(),
         val error: String? = null,
     )
 
@@ -77,9 +78,17 @@ class EngineerGraduationViewModel @Inject constructor(
     fun reload() {
         _state.update { it.copy(status = Status.Loading, error = null) }
         viewModelScope.launch {
-            repo.fetchGraduationStatus()
+            val statusResult = repo.fetchGraduationStatus()
+            val historyResult = repo.fetchTierHistory()
+            statusResult
                 .onSuccess { row ->
-                    _state.update { UiState(status = Status.Loaded, data = row) }
+                    _state.update {
+                        UiState(
+                            status = Status.Loaded,
+                            data = row,
+                            history = historyResult.getOrNull().orEmpty(),
+                        )
+                    }
                 }
                 .onFailure { e ->
                     _state.update {
@@ -154,7 +163,7 @@ fun EngineerGraduationScreen(
                             )
                         }
                     } else {
-                        GraduationContent(d)
+                        GraduationContent(d, state.history)
                     }
                 }
             }
@@ -163,7 +172,10 @@ fun EngineerGraduationScreen(
 }
 
 @Composable
-private fun GraduationContent(d: EngineerGraduationRepository.GraduationStatus) {
+private fun GraduationContent(
+    d: EngineerGraduationRepository.GraduationStatus,
+    history: List<EngineerGraduationRepository.TierHistoryEntry>,
+) {
     Column(
         Modifier
             .fillMaxSize()
@@ -263,6 +275,44 @@ private fun GraduationContent(d: EngineerGraduationRepository.GraduationStatus) 
             style = EsType.BodySm,
             color = SevaInk400,
         )
+
+        // r594 — Promotion history (from r593 ledger). Rendered only
+        // when the engineer has at least one tier change in history.
+        if (history.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            Text(
+                "Promotion history",
+                style = EsType.H5,
+                color = SevaInk900,
+            )
+            history.forEach { h -> TierHistoryRow(h) }
+        }
+    }
+}
+
+@Composable
+private fun TierHistoryRow(h: EngineerGraduationRepository.TierHistoryEntry) {
+    val arrow = "${h.prevTier.replaceFirstChar { it.uppercase() }} → ${h.newTier.replaceFirstChar { it.uppercase() }}"
+    val kindLabel = when (h.changeKind) {
+        "cron_compute" -> "auto"
+        "founder_override" -> "founder override"
+        "founder_promote" -> "founder promotion"
+        "founder_demote" -> "founder demotion"
+        else -> h.changeKind
+    }
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(10.dp))
+            .padding(12.dp),
+    ) {
+        Column {
+            Text(arrow, style = EsType.Body.copy(fontWeight = FontWeight.SemiBold), color = SevaInk900)
+            Spacer(Modifier.height(2.dp))
+            Text("$kindLabel · ${h.changedAt.take(10)}", style = EsType.BodySm, color = SevaInk500)
+        }
     }
 }
 

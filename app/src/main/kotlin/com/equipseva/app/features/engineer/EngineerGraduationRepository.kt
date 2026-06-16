@@ -179,6 +179,24 @@ class EngineerGraduationRepository @Inject constructor(
             .firstOrNull()
     }
 
+    // ---- r593 tier history ------------------------------------------
+
+    @Serializable
+    data class TierHistoryEntry(
+        @SerialName("id") val id: String,
+        @SerialName("prev_tier") val prevTier: String,
+        @SerialName("new_tier") val newTier: String,
+        @SerialName("change_kind") val changeKind: String,
+        @SerialName("reason") val reason: String? = null,
+        @SerialName("changed_at") val changedAt: String,
+    )
+
+    suspend fun fetchTierHistory(): Result<List<TierHistoryEntry>> = runCatching {
+        client.postgrest
+            .rpc(function = "my_tier_history")
+            .decodeList<TierHistoryEntry>()
+    }
+
     suspend fun reportDemandSignal(
         partNumber: String?,
         brand: String?,
