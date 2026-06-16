@@ -220,6 +220,12 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
         desc: "r500 bonded-parts intake rollup by SKU · in-stock / dispatched / oldest-intake",
         round: "r619",
       },
+      {
+        href: "/amc-renewal-pipeline",
+        title: "AMC renewal pipeline",
+        desc: "Active AMCs expiring 30/60/90d · auto vs manual · MRR/ARR at stake",
+        round: "r627",
+      },
     ],
   },
   {
@@ -243,7 +249,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r625 sprint · all founder ops surfaces in one place
+          r599–r627 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
