@@ -71,6 +71,9 @@ export async function TopBar() {
               <Link href="/tiers" className="hover:text-[var(--color-fg)]">
                 Tiers
               </Link>
+              <Link href="/tier-history" className="hover:text-[var(--color-fg)]">
+                Tier hist
+              </Link>
               <Link href="/referrals" className="hover:text-[var(--color-fg)]">
                 Referrals
               </Link>
