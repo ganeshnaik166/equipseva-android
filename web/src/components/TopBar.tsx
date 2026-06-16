@@ -95,6 +95,9 @@ export async function TopBar() {
               <Link href="/audit" className="hover:text-[var(--color-fg)]">
                 Audit
               </Link>
+              <Link href="/cron-status" className="hover:text-[var(--color-fg)]">
+                Cron
+              </Link>
               <Link href="/investor" className="hover:text-[var(--color-fg)]">
                 Investor
               </Link>
