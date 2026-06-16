@@ -104,6 +104,9 @@ export async function TopBar() {
               <Link href="/rls-coverage" className="hover:text-[var(--color-fg)]">
                 RLS
               </Link>
+              <Link href="/long-queries" className="hover:text-[var(--color-fg)]">
+                LongQ
+              </Link>
               <Link href="/investor" className="hover:text-[var(--color-fg)]">
                 Investor
               </Link>
