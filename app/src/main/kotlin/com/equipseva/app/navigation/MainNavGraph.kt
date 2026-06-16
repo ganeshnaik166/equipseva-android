@@ -696,6 +696,7 @@ fun MainNavGraph(
                     onBankDetails = { navController.navigate(Routes.PROFILE_BANK_DETAILS) },
                     onBrowseJobs = { navController.navigate(Routes.REPAIR) },
                     onOpenActiveEscrows = { navController.navigate(Routes.ENGINEER_ACTIVE_ESCROWS) },
+                    onOpenEarningsProjection = { navController.navigate(Routes.ENGINEER_EARNINGS_PROJECTION) },
                 )
             }
             composable(Routes.ENGINEER_ACTIVE_ESCROWS) {
