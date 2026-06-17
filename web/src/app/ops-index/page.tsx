@@ -36,6 +36,7 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/spot-audit-rating-distribution", title: "Spot audit ratings", desc: "Per-rating histogram (180d)", round: "r822" },
       { href: "/integrity-events", title: "Integrity events", desc: "Play Integrity + client self-report audit", round: "r846" },
       { href: "/security-overview", title: "Security overview ★", desc: "Anti-mod layer status + dirty events", round: "r850" },
+      { href: "/grants-audit", title: "Grants audit", desc: "EXECUTE privileges on every founder_* RPC", round: "r852" },
     ],
   },
   {
@@ -335,7 +336,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r850 sprint · all founder ops surfaces in one place
+          r599–r852 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
