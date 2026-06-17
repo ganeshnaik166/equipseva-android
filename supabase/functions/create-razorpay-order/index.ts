@@ -16,6 +16,7 @@
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { maybeBlockIntegrity } from "../_shared/integrity_gate.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -30,6 +31,10 @@ const bad = (code: string, message: string, status = 400) =>
 
 serve(async (req) => {
   if (req.method !== "POST") return bad("bad_request", "POST only", 405);
+
+  // r851 — server-side soft-gate from X-Equipseva-Integrity header.
+  const integrityBlock = maybeBlockIntegrity(req);
+  if (integrityBlock) return integrityBlock;
 
   const authHeader = req.headers.get("authorization") ?? "";
   if (!authHeader.toLowerCase().startsWith("bearer ")) {
