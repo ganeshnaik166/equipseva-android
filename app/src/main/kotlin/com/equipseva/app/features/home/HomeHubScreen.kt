@@ -1279,13 +1279,32 @@ private fun RecommendedEngineerCard(
                 }
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = row.fullName,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = SevaInk900,
-                    maxLines = 1,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = row.fullName,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = SevaInk900,
+                        maxLines = 1,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    // r733 — tier badge inline on home recommendation card.
+                    // Hidden for "none". Matches r731 directory-card + r598
+                    // public-profile colors.
+                    if (row.currentTier != "none") {
+                        Spacer(Modifier.width(6.dp))
+                        val tierKind = when (row.currentTier) {
+                            "gold" -> com.equipseva.app.designsystem.components.PillKind.Lime
+                            "silver" -> com.equipseva.app.designsystem.components.PillKind.Neutral
+                            "bronze" -> com.equipseva.app.designsystem.components.PillKind.Warn
+                            else -> com.equipseva.app.designsystem.components.PillKind.Default
+                        }
+                        com.equipseva.app.designsystem.components.Pill(
+                            text = row.currentTier.replaceFirstChar { it.uppercase() },
+                            kind = tierKind,
+                        )
+                    }
+                }
                 val cityDistance = recommendedEngineerCityDistanceLine(row.city, row.distanceKm)
                 if (cityDistance != null) {
                     Text(
