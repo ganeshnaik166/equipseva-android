@@ -25,8 +25,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.designsystem.theme.EsType
+import com.equipseva.app.designsystem.theme.SevaDanger500
 import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.designsystem.theme.SevaWarning700
 import com.equipseva.app.features.amc.HospitalAmcTierPerksRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -76,12 +78,18 @@ fun HomeHospitalAmcChip(
     // Pick the soonest-expiring contract (rows are already sorted ASC by
     // end_date server-side).
     val top = state.rows.first()
-    val tone = when (top.amcTier) {
-        "gold" -> SevaGreen700
+    val daysLeft = daysUntil(top.endDate)
+    // r786 — urgency-tone overrides the tier-tone when the soonest contract
+    // is expiring soon. Pulls the same signal as founder /amc-near-expiry
+    // (r660) and AmcDetailScreen ExpiringSoonBanner (r784) onto the home
+    // chip so hospitals see it without drilling in.
+    val tone = when {
+        daysLeft != null && daysLeft <= 7 -> SevaDanger500
+        daysLeft != null && daysLeft <= 30 -> SevaWarning700
+        top.amcTier == "gold" -> SevaGreen700
         else -> SevaInk900
     }
 
-    val daysLeft = daysUntil(top.endDate)
     val expiryLine = when {
         daysLeft == null -> top.endDate
         daysLeft <= 0 -> "expires today"
