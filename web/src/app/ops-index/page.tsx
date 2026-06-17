@@ -195,6 +195,72 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
     ],
   },
   {
+    label: "Weekly trends (13wk)",
+    links: [
+      { href: "/jobs-by-week",            title: "Jobs",            desc: "Posted/completed/cancelled/gross", round: "r735" },
+      { href: "/signups-by-week",         title: "Signups",         desc: "Total + engineer subset",          round: "r736" },
+      { href: "/amc-contracts-by-week",   title: "AMC contracts",   desc: "New AMCs + new MRR",               round: "r737" },
+      { href: "/payouts-by-week",         title: "Engineer payouts", desc: "Paid count + rupees + failed",    round: "r738" },
+      { href: "/disputes-by-week",        title: "Disputes",        desc: "Submitted/accepted/rejected",      round: "r739" },
+      { href: "/referrals-by-week",       title: "Referrals",       desc: "Referrals/first-jobs/bounties",    round: "r740" },
+      { href: "/demand-signals-by-week",  title: "Demand signals",  desc: "Signals/SKUs/resolved",            round: "r741" },
+      { href: "/code-red-by-week",        title: "Code Red",        desc: "Opened/resolved/timed-out",        round: "r742" },
+      { href: "/escrow-by-week",          title: "Escrow",          desc: "Released vs refunded",             round: "r743" },
+      { href: "/tier-changes-by-week",    title: "Tier changes",    desc: "Promotions/demotions",             round: "r744" },
+      { href: "/supervised-by-week",      title: "Supervised",      desc: "Assigned/successful/failed",       round: "r745" },
+      { href: "/spot-audits-by-week",     title: "Spot audits",     desc: "Invitations/responses/rating",     round: "r746" },
+      { href: "/amc-payment-by-week",     title: "AMC payments",    desc: "Paid count + rupees + failed",     round: "r747" },
+    ],
+  },
+  {
+    label: "Time patterns",
+    links: [
+      { href: "/signups-by-hour",         title: "Signups by hour", desc: "90d hourly distribution",          round: "r748" },
+      { href: "/bids-by-hour",            title: "Bids by hour",    desc: "90d hourly distribution",          round: "r749" },
+      { href: "/payouts-by-hour",         title: "Payouts by hour", desc: "90d queued_at distribution",       round: "r750" },
+      { href: "/signups-by-day-of-week",  title: "Signups weekday", desc: "90d weekday distribution",         round: "r751" },
+      { href: "/bids-by-day-of-week",     title: "Bids weekday",    desc: "90d weekday distribution",         round: "r752" },
+      { href: "/code-red-by-day-of-week", title: "Code Red weekday", desc: "90d weekday distribution",        round: "r753" },
+      { href: "/payouts-by-day-of-week",  title: "Payouts weekday", desc: "90d weekday distribution",         round: "r754" },
+      { href: "/amc-by-day-of-week",      title: "AMC weekday",     desc: "180d signup weekday",              round: "r755" },
+    ],
+  },
+  {
+    label: "Cross-cuts & revenue",
+    links: [
+      { href: "/at-risk-revenue",         title: "At-risk revenue", desc: "6-category leak roll-up",          round: "r756" },
+      { href: "/jobs-completion-rate",    title: "Completion rate", desc: "Posted-to-completed weekly funnel", round: "r757" },
+      { href: "/amc-churn-monthly",       title: "AMC churn %",     desc: "12-month churn %",                 round: "r758" },
+      { href: "/top-suppliers-30d",       title: "Top suppliers",   desc: "Top 25 by 30d intake",             round: "r759" },
+      { href: "/bid-amount-distribution", title: "Bid amounts",     desc: "90d bid rupee buckets",            round: "r760" },
+      { href: "/bid-vs-contract-spread",  title: "Bid vs contract", desc: "Negotiation stretch p7/30/90d",    round: "r761" },
+      { href: "/jobs-by-equipment-type",  title: "Jobs by equipment", desc: "90d category breakdown",         round: "r762" },
+      { href: "/commission-vs-payout",    title: "Commission vs payout", desc: "12mo GMV vs paid vs net",     round: "r779" },
+      { href: "/pulse-extended",          title: "Pulse extended ★",desc: "10 KPIs WoW (r780 milestone)",     round: "r780" },
+    ],
+  },
+  {
+    label: "Cumulative (12mo growth)",
+    links: [
+      { href: "/verified-engineer-growth", title: "Verified engineers", desc: "Cumulative verified base",     round: "r763" },
+      { href: "/amc-base-growth",          title: "AMC base",        desc: "Cumulative AMCs + MRR",           round: "r764" },
+      { href: "/signups-cumulative",       title: "Signups",         desc: "Cumulative user base",            round: "r765" },
+      { href: "/payouts-cumulative",       title: "Engineer payouts", desc: "Cumulative paid count + rupees", round: "r766" },
+      { href: "/gmv-cumulative",           title: "GMV",             desc: "Cumulative GMV + jobs",           round: "r767" },
+      { href: "/commission-cumulative",    title: "Commission",      desc: "Cumulative platform take",        round: "r768" },
+      { href: "/escrow-cumulative",        title: "Escrow",          desc: "Cumulative released + refunded",  round: "r769" },
+      { href: "/amc-revenue-cumulative",   title: "AMC revenue",     desc: "Cumulative AMC payment orders",   round: "r770" },
+      { href: "/referrals-cumulative",     title: "Referrals",       desc: "Cumulative referrals + first-jobs", round: "r771" },
+      { href: "/demand-signals-cumulative", title: "Demand signals", desc: "Cumulative signals + resolved",   round: "r772" },
+      { href: "/disputes-cumulative",      title: "Disputes",        desc: "Cumulative disputes",             round: "r773" },
+      { href: "/code-red-cumulative",      title: "Code Red",        desc: "Cumulative Code Red",             round: "r774" },
+      { href: "/supervised-cumulative",    title: "Supervised",      desc: "Cumulative supervised",           round: "r775" },
+      { href: "/spot-audits-cumulative",   title: "Spot audits",     desc: "Cumulative spot audits",          round: "r776" },
+      { href: "/tier-changes-cumulative",  title: "Tier changes",    desc: "Cumulative promo/demo",           round: "r777" },
+      { href: "/bonded-intake-cumulative", title: "Bonded intake",   desc: "Cumulative bonded rows/qty/cost", round: "r778" },
+    ],
+  },
+  {
     label: "Cron & periodic jobs",
     links: [
       { href: "/cron-status", title: "Cron status", desc: "pg_cron last-run + failures", round: "r599" },
@@ -210,7 +276,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r716 sprint · all founder ops surfaces in one place
+          r599–r780 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
