@@ -20,6 +20,7 @@ import com.equipseva.app.core.payments.PendingEscrowPaymentsReconciler
 import com.equipseva.app.core.push.NotificationChannels
 import com.equipseva.app.core.security.DeviceIntegrityCheck
 import com.equipseva.app.core.security.InstallSourceVerifier
+import com.equipseva.app.core.security.IntegritySnapshot
 import com.equipseva.app.core.security.ReverseEngineeringDetector
 import com.equipseva.app.core.security.SignatureVerifier
 import com.equipseva.app.core.sync.OutboxScheduler
@@ -99,6 +100,7 @@ class EquipSevaApplication : Application(), Configuration.Provider, SingletonIma
         val devVerdict = DeviceIntegrityCheck.run(this)
         val installVerdict = InstallSourceVerifier.verify(this)
         val reVerdict = ReverseEngineeringDetector.scan(this)
+        IntegritySnapshot.capture(this, sigVerdict, installVerdict, devVerdict, reVerdict)
         Log.i(TAG, "Integrity boot: sig=$sigVerdict install=$installVerdict reTools=${reVerdict.foundPackages.size} ${devVerdict.toTag()}")
 
         // Hard-block conditions when TAMPER_ENFORCE=true:
