@@ -155,13 +155,30 @@ private fun AlternativeCard(
                 size = 36,
             )
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = row.fullName,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = SevaInk900,
-                    maxLines = 1,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = row.fullName,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = SevaInk900,
+                        maxLines = 1,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    // r734 — tier badge inline. Matches r731/r733/r598 colors.
+                    if (row.currentTier != "none") {
+                        Spacer(Modifier.width(4.dp))
+                        val tierKind = when (row.currentTier) {
+                            "gold" -> com.equipseva.app.designsystem.components.PillKind.Lime
+                            "silver" -> com.equipseva.app.designsystem.components.PillKind.Neutral
+                            "bronze" -> com.equipseva.app.designsystem.components.PillKind.Warn
+                            else -> com.equipseva.app.designsystem.components.PillKind.Default
+                        }
+                        com.equipseva.app.designsystem.components.Pill(
+                            text = row.currentTier.replaceFirstChar { it.uppercase() },
+                            kind = tierKind,
+                        )
+                    }
+                }
                 val locLine = engineerCardLocationLine(row.city, row.distanceKm)
                 if (locLine != null) {
                     Text(
