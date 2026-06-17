@@ -389,6 +389,22 @@ fun AmcDetailScreen(
                         val isLowButPositive = balance > 0.0
                             && monthlyFee > 0.0
                             && balance < (monthlyFee * 2)
+                        // r784 — expiring-soon banner. Active AMC within 30
+                        // days of end_date AND not already paused / low-pool
+                        // (those banners take priority — fix the bigger
+                        // problem first). Hospital-only since engineer can't
+                        // renew. The existing Overview Renew CTA stays as
+                        // a contextual button when the user scrolls down;
+                        // this banner is the top-of-screen prompt that
+                        // doesn't require scrolling.
+                        val endIso = state.hospital?.endDate ?: ""
+                        val daysToExpiry = if (endIso.isNotBlank()) com.equipseva.app.core.util.daysUntil(endIso) else null
+                        val expiringSoon = state.viewerIsHospital
+                            && state.hospital?.status == "active"
+                            && daysToExpiry != null
+                            && daysToExpiry in 0..30
+                        val engineerIdForRenew = state.hospital?.primaryEngineerId
+                        val sourceIdForRenew = state.hospital?.id
                         when {
                             pendingPayment -> PendingPaymentBanner(
                                 isHospital = state.viewerIsHospital,
@@ -399,6 +415,11 @@ fun AmcDetailScreen(
                                 bufferMonths = balance / monthlyFee,
                                 onTopUp = { viewModel.openTopUp() },
                             )
+                            expiringSoon && !engineerIdForRenew.isNullOrBlank() && !sourceIdForRenew.isNullOrBlank() ->
+                                ExpiringSoonBanner(
+                                    daysToExpiry = daysToExpiry!!,
+                                    onRenew = { onRenew(engineerIdForRenew, sourceIdForRenew) },
+                                )
                         }
                         TabsRow(
                             selected = state.tab,
@@ -622,6 +643,58 @@ private fun PausedBanner() {
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
             )
+        }
+    }
+}
+
+@Composable
+private fun ExpiringSoonBanner(daysToExpiry: Long, onRenew: () -> Unit) {
+    // r784 — pre-expiry banner for hospitals. Fires when active AMC's
+    // end_date is within 30 days. Tone escalates: <=7 days = danger,
+    // otherwise warn. Founder /amc-near-expiry (r660) lists these for
+    // outreach; this is the hospital's own self-serve renewal path.
+    val isCritical = daysToExpiry <= 7
+    val bg = if (isCritical) SevaDanger50 else SevaWarning50
+    val fg = if (isCritical) SevaDanger500 else SevaWarning700
+    val daysStr = when {
+        daysToExpiry == 0L -> "today"
+        daysToExpiry == 1L -> "in 1 day"
+        else -> "in $daysToExpiry days"
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(bg)
+            .padding(12.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Warning,
+                contentDescription = null,
+                tint = fg,
+                modifier = Modifier.width(18.dp),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "AMC expiring $daysStr.",
+                    color = fg,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    "Renew now to keep visits + SLA on track.",
+                    color = fg,
+                    fontSize = 11.sp,
+                )
+            }
+            TextButton(onClick = onRenew) {
+                Text("Renew", color = fg, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
