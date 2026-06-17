@@ -2,6 +2,7 @@ package com.equipseva.app.core.supabase
 
 import android.content.Context
 import com.equipseva.app.core.auth.EncryptedSessionManager
+import com.equipseva.app.core.security.IntegritySnapshot
 import com.equipseva.app.core.util.BuildConfigValues
 import dagger.Module
 import dagger.Provides
@@ -9,6 +10,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.annotations.SupabaseInternal
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.functions.Functions
@@ -16,6 +18,8 @@ import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.serializer.KotlinXSerializer
 import io.github.jan.supabase.storage.Storage
+import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.request.header
 import kotlinx.serialization.json.Json
 import javax.inject.Singleton
 
@@ -25,6 +29,7 @@ object SupabaseModule {
 
     @Provides
     @Singleton
+    @OptIn(SupabaseInternal::class)
     fun provideSupabaseClient(@ApplicationContext context: Context): SupabaseClient = createSupabaseClient(
         supabaseUrl = BuildConfigValues.supabaseUrl,
         supabaseKey = BuildConfigValues.supabaseAnonKey,
@@ -52,5 +57,18 @@ object SupabaseModule {
         install(Realtime)
         install(Storage)
         install(Functions)
+        // r844 — stamp every outbound request with the boot-time integrity
+        // snapshot. Server-side can correlate / refuse high-stakes RPCs from
+        // clients self-reporting a dirty state. A tampered client can lie,
+        // but most mods patch ONE if-statement and don't strip this header —
+        // so the header still flags a lot of real-world tampering. Final
+        // truth on sensitive ops still goes through PlayIntegrityClient
+        // (server-validated Google attestation).
+        httpConfig {
+            defaultRequest {
+                val snap = IntegritySnapshot.header()
+                if (snap.isNotEmpty()) header("X-Equipseva-Integrity", snap)
+            }
+        }
     }
 }
