@@ -19,6 +19,8 @@ import com.equipseva.app.core.payments.PendingAmcPaymentsReconciler
 import com.equipseva.app.core.payments.PendingEscrowPaymentsReconciler
 import com.equipseva.app.core.push.NotificationChannels
 import com.equipseva.app.core.security.DeviceIntegrityCheck
+import com.equipseva.app.core.security.InstallSourceVerifier
+import com.equipseva.app.core.security.ReverseEngineeringDetector
 import com.equipseva.app.core.security.SignatureVerifier
 import com.equipseva.app.core.sync.OutboxScheduler
 import dagger.hilt.android.HiltAndroidApp
@@ -95,9 +97,21 @@ class EquipSevaApplication : Application(), Configuration.Provider, SingletonIma
         // hard-exit every Play-distributed install.
         val sigVerdict = SignatureVerifier.verify(this)
         val devVerdict = DeviceIntegrityCheck.run(this)
-        Log.i(TAG, "Integrity boot: sig=$sigVerdict ${devVerdict.toTag()}")
-        if (BuildConfig.TAMPER_ENFORCE && sigVerdict == SignatureVerifier.Verdict.Tampered) {
-            Log.e(TAG, "Tampered signature — refusing to start")
+        val installVerdict = InstallSourceVerifier.verify(this)
+        val reVerdict = ReverseEngineeringDetector.scan(this)
+        Log.i(TAG, "Integrity boot: sig=$sigVerdict install=$installVerdict reTools=${reVerdict.foundPackages.size} ${devVerdict.toTag()}")
+
+        // Hard-block conditions when TAMPER_ENFORCE=true:
+        //   1. Cert SHA mismatch — APK was re-signed
+        //   2. Install came from a non-Google-Play installer in a release
+        //      build — sideloaded tampered APK, or store-fronted clone
+        //   3. Known reverse-engineering / hooking tool present —
+        //      Xposed/LSPosed/Magisk-manager/Frida/Lucky Patcher
+        // Debug builds skip 2+3 unconditionally so devs can ADB-install.
+        val installBlocked = !BuildConfig.DEBUG && installVerdict == InstallSourceVerifier.Verdict.Sideloaded
+        val reBlocked = !BuildConfig.DEBUG && !reVerdict.clean
+        if (BuildConfig.TAMPER_ENFORCE && (sigVerdict == SignatureVerifier.Verdict.Tampered || installBlocked || reBlocked)) {
+            Log.e(TAG, "Refusing to start: sig=$sigVerdict install=$installVerdict reTools=${reVerdict.foundPackages}")
             // Hard-exit before any auth / network / repository code runs.
             // The Supabase session is encrypted at rest via the custom
             // EncryptedSessionManager (Keystore-backed AES256/GCM); an
