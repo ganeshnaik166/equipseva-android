@@ -292,6 +292,13 @@ const SECTIONS: OpsSection[] = [
       { href: "/engineer-retention-rate",      title: "Engineer retention rate", desc: "% engineers with ≥2 completions · 30/90/180d",  round: "r806" },
       { href: "/bids-acceptance-rate-platform", title: "Bid acceptance (platform)", desc: "% all bids accepted · 7/30/90d",              round: "r807" },
       { href: "/code-red-resolution-rate",     title: "Code Red resolution rate", desc: "% emergency requests resolved · 7/30/90d",      round: "r825" },
+      { href: "/onboarding-time-to-first-action", title: "Onboarding time-to-first-action", desc: "Median + p90 min from signup → first action", round: "r859" },
+      { href: "/first-bid-latency", title: "First bid latency",       desc: "Posted → first-bid time distribution",                round: "r861" },
+      { href: "/amc-renewal-by-tenure", title: "Renewal by tenure",   desc: "Renewal success % by contract age",                   round: "r863" },
+      { href: "/referral-payout-conversion", title: "Referral signup→paid %", desc: "Referral funnel conversion",                  round: "r864" },
+      { href: "/spot-audit-coverage-rate", title: "Spot audit coverage", desc: "Invitation + response rate vs completed jobs",     round: "r865" },
+      { href: "/amc-pool-utilization", title: "AMC pool utilization", desc: "debits/credits% per active contract",                 round: "r866" },
+      { href: "/tier-progression-rate", title: "Tier progression rate", desc: "Engineer cert promotions vs demotions",             round: "r867" },
     ],
   },
   {
@@ -311,10 +318,13 @@ const SECTIONS: OpsSection[] = [
       { href: "/jobs-revenue-by-city",  title: "Jobs revenue by city (90d)",  desc: "Top 50 cities by 90d completed-jobs gross",   round: "r813" },
       { href: "/signups-by-city",       title: "Signups by city (90d)",       desc: "Top 50 cities by 90d new accounts",           round: "r814" },
       { href: "/payouts-by-bank",       title: "Payouts by bank (90d)",       desc: "Top 50 banks · processed vs failed",          round: "r815" },
+      { href: "/payouts-by-mode",       title: "Payouts by mode (90d)",       desc: "UPI/IMPS/NEFT/RTGS split",                    round: "r860" },
+      { href: "/chains-amc-gap",        title: "Chains AMC gap",              desc: "Chain hospitals without AMC · sales queue",   round: "r868" },
       { href: "/demand-by-city",        title: "Demand by city (90d)",        desc: "Top 50 cities by 90d demand signals",         round: "r824" },
       { href: "/chains-revenue-rollup", title: "Chains revenue rollup (90d)", desc: "Top 50 chains by AMC + jobs revenue",         round: "r826" },
       { href: "/amc-payments-by-tier",  title: "AMC payments by tier (90d)",  desc: "Paid rupees rolled up by AMC tier",           round: "r829" },
       { href: "/amc-renewal-success-by-tier", title: "Renewal success by tier", desc: "Per-tier renewal success % (90d)",        round: "r854" },
+      { href: "/code-red-by-equipment", title: "Code Red by equipment", desc: "Top 50 equipment types · 90d Code Red volume + resolution", round: "r862" },
       { href: "/amc-pool-balance-by-hospital", title: "AMC pool balance by hospital", desc: "Top 50 by active-contract pool balance", round: "r831" },
       { href: "/amc-pool-balance-by-city", title: "AMC pool balance by city",        desc: "Top 50 cities by active-contract balance", round: "r841" },
       { href: "/payouts-by-engineer-tier", title: "Payouts by engineer tier",  desc: "90d processed payouts by cert tier",          round: "r833" },
@@ -337,7 +347,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r858 sprint · all founder ops surfaces in one place
+          r599–r869 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
