@@ -281,6 +281,23 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
     ],
   },
   {
+    label: "Aging surfaces",
+    links: [
+      { href: "/pending-payouts-aging",     title: "Pending payouts aging",    desc: "engineer_payouts pending bucketed by age",   round: "r809" },
+      { href: "/pending-amc-orders-aging",  title: "Pending AMC orders aging", desc: "amc_payment_orders pending bucketed by age", round: "r810" },
+      { href: "/repair-jobs-stuck",         title: "Repair jobs stuck >14d",   desc: "Non-terminal repair jobs older than 14d",    round: "r811" },
+    ],
+  },
+  {
+    label: "Geo & dimension breakdowns",
+    links: [
+      { href: "/amc-revenue-by-city",   title: "AMC revenue by city (90d)",   desc: "Top 50 cities by 90d AMC paid rupees",       round: "r812" },
+      { href: "/jobs-revenue-by-city",  title: "Jobs revenue by city (90d)",  desc: "Top 50 cities by 90d completed-jobs gross",   round: "r813" },
+      { href: "/signups-by-city",       title: "Signups by city (90d)",       desc: "Top 50 cities by 90d new accounts",           round: "r814" },
+      { href: "/payouts-by-bank",       title: "Payouts by bank (90d)",       desc: "Top 50 banks · processed vs failed",          round: "r815" },
+    ],
+  },
+  {
     label: "Cron & periodic jobs",
     links: [
       { href: "/cron-status", title: "Cron status", desc: "pg_cron last-run + failures", round: "r599" },
@@ -296,7 +313,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r808 sprint · all founder ops surfaces in one place
+          r599–r816 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
