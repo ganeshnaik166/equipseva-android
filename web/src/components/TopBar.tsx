@@ -20,6 +20,12 @@ export async function TopBar() {
               <Link href="/platform-pulse" className="font-semibold text-[var(--color-fg)] hover:underline">
                 Pulse
               </Link>
+              <Link href="/pulse-extended" className="hover:text-[var(--color-fg)]">
+                Pulse+
+              </Link>
+              <Link href="/at-risk-revenue" className="hover:text-[var(--color-fg)]">
+                At-risk
+              </Link>
               <Link href="/dashboard" className="hover:text-[var(--color-fg)]">
                 Dashboard
               </Link>
