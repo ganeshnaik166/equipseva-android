@@ -316,6 +316,28 @@ fun RepairJobDetailScreen(
                     else -> Unit
                 }
             }
+            // r785 — hospital "0 bids in 7d" banner. Closes the founder
+            // /unmatched-jobs (r661) loop by surfacing the same signal to
+            // the hospital that posted the job. They can adjust price /
+            // refine description without the founder having to outreach.
+            run {
+                val job = state.job
+                if (job != null
+                    && state.viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
+                    && job.status == RepairJobStatus.Requested
+                    && state.bids.isEmpty()
+                ) {
+                    val nowInstant = java.time.Instant.now()
+                    val daysOld = job.createdAtInstant?.let {
+                        java.time.Duration.between(it, nowInstant).toDays()
+                    } ?: 0L
+                    if (daysOld >= 7) {
+                        com.equipseva.app.features.repair.components.UnmatchedJobBanner(
+                            daysOld = daysOld,
+                        )
+                    }
+                }
+            }
             when {
                 state.loading -> Box(
                     modifier = Modifier.fillMaxSize(),
