@@ -83,6 +83,15 @@ fun EarningsScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(title = "Earnings", onBack = onBack)
             ErrorBanner(message = state.errorMessage)
+            // r783 — payout method nudge. Fires when the engineer has any
+            // earnings (paid/pending/AMC) but no verified row in
+            // engineer_payout_methods. Founder /engineers-missing-payout
+            // r726 lists these for outreach; this is the engineer's own
+            // self-serve path so the founder doesn't have to chase.
+            val hasEarnings = (state.paidTotal + state.pendingTotal + state.amcPaidTotal) > 0.0
+            if (!state.loading && !state.payoutMethodVerified && hasEarnings) {
+                PayoutMethodNudge(onSetUp = onBankDetails)
+            }
             PullToRefreshBox(
                 isRefreshing = state.refreshing,
                 onRefresh = viewModel::onRefresh,
@@ -776,4 +785,38 @@ internal fun payoutSubtitle(p: EngineerPayoutRow): String? = when (p.status) {
     }
     PayoutStatus.Failed -> p.failureReason?.let { "Failed — $it" } ?: "Failed — re-check your payout method."
     PayoutStatus.Cancelled -> "Cancelled by admin."
+}
+
+/**
+ * r783 — payout-method nudge banner. Fires when the engineer has any
+ * earnings but no verified row in engineer_payout_methods. Direct
+ * self-serve path to bank details setup; without it the engineer's
+ * money sits in escrow + the founder ends up doing manual outreach
+ * (see founder /engineers-missing-payout r726).
+ */
+@Composable
+private fun PayoutMethodNudge(onSetUp: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(SevaWarning50)
+            .clickable { onSetUp() }
+            .padding(12.dp),
+    ) {
+        Column {
+            Text(
+                "You have earnings — verify your UPI to get paid.",
+                color = SevaWarning500,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                "Tap to set up your payout method.",
+                color = SevaWarning500,
+                fontSize = 11.sp,
+            )
+        }
+    }
 }
