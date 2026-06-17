@@ -205,6 +205,17 @@ function evaluatePass(
 serve(async (req) => {
   if (req.method !== "POST") return bad("bad_request", "POST only", 405);
 
+  // r846 — capture client-side integrity self-report header. The Android
+  // client (r844) stamps this on every Supabase request with its boot-time
+  // sig/install/root/Frida verdicts. We persist it alongside Google's
+  // verdict so the founder console can correlate dirty self-reports vs.
+  // Google's view. Cap to 512 chars to keep the DB row sane; the client
+  // sends ~64 chars in practice.
+  let clientIntegrityHeader = req.headers.get("x-equipseva-integrity") ?? null;
+  if (clientIntegrityHeader && clientIntegrityHeader.length > 512) {
+    clientIntegrityHeader = clientIntegrityHeader.slice(0, 512);
+  }
+
   const authHeader = req.headers.get("authorization") ?? "";
   if (!authHeader.toLowerCase().startsWith("bearer ")) {
     return bad("unauthenticated", "missing bearer token", 401);
@@ -334,6 +345,7 @@ serve(async (req) => {
       licensing_verdict: licensing ?? null,
       raw_token_hash: tokenHash,
       pass,
+      client_integrity_header: clientIntegrityHeader,
     });
   if (auditErr) {
     // Log but don't fail the call — the verdict itself is still useful.
