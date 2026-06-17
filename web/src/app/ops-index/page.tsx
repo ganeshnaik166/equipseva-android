@@ -1,12 +1,10 @@
-import Link from "next/link";
 import { requireFounder } from "@/lib/auth/requireFounder";
+import { OpsIndexSearchable, type OpsSection } from "@/components/OpsIndexSearchable";
 
 export const metadata = { title: "Ops index — EquipSeva Founder Console" };
 export const dynamic = "force-dynamic";
 
-type OpsLink = { href: string; title: string; desc: string; round: string };
-
-const SECTIONS: { label: string; links: OpsLink[] }[] = [
+const SECTIONS: OpsSection[] = [
   {
     label: "Executive",
     links: [
@@ -337,40 +335,19 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r854 sprint · all founder ops surfaces in one place
+          r599–r855 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
-      {SECTIONS.map((section) => (
-        <section key={section.label}>
-          <h2 className="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
-            {section.label}
-          </h2>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {section.links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="rounded border border-[var(--color-border)] bg-white p-3 transition-colors hover:border-[var(--color-fg)]"
-              >
-                <div className="flex items-baseline justify-between">
-                  <h3 className="text-sm font-semibold">{link.title}</h3>
-                  <span className="text-[10px] text-[var(--color-muted)]">
-                    {link.round}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs text-[var(--color-muted)]">{link.desc}</p>
-              </Link>
-            ))}
-          </div>
-        </section>
-      ))}
+      <OpsIndexSearchable sections={SECTIONS} />
 
       <section className="rounded border border-[var(--color-border)] bg-white p-3 text-xs text-[var(--color-muted)]">
-        <strong>r717 ops index.</strong> Third autonomous 30-ship chain
-        (r688-r717) on top of r628-r657 + r658-r687. 115+ founder ops surfaces
-        spanning 14 sections. Featured: r700 milestone (<a href="/platform-pulse" className="underline">/platform-pulse</a>)
-        is the single-page executive snapshot — start there for daily founder review.
+        <strong>r855 — search-filter shipped.</strong> 200+ founder ops surfaces
+        across ~18 sections, all filterable by title / description / route / round.
+        Start at <a href="/platform-pulse" className="underline">/platform-pulse</a>
+        (r700 milestone) for the daily executive snapshot;
+        <a href="/security-overview" className="underline ml-1">/security-overview</a> (r850)
+        for anti-mod stack state.
       </section>
     </div>
   );
