@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireFounder } from "@/lib/auth/requireFounder";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { DataTable, type Column } from "@/components/DataTable";
@@ -21,8 +22,24 @@ export default async function AtRiskRevenuePage() {
   const rows = (data ?? []) as Row[];
   const grandTotal = rows.reduce((s, r) => s + Number(r.rupees_v), 0);
   const grandCount = rows.reduce((s, r) => s + r.count_v, 0);
+  // r789 — link each category row to the underlying drill-down so the
+  // founder can act on the leak, not just count it.
+  const DRILL: Record<string, string> = {
+    "AMCs expiring within 30d":       "/amc-near-expiry",
+    "AMCs paused (pool low)":         "/amc-paused",
+    "AMCs renewal_failed":            "/amc-cancellations",
+    "Escrow stuck >30d":              "/escrow-stuck",
+    "Open disputes (money at stake)": "/open-disputes",
+    "Payouts queued/processing":      "/payouts",
+  };
   const cols: Column<Row>[] = [
-    { key: "c", header: "Category", render: (r) => <span className="text-xs font-semibold">{r.category}</span> },
+    { key: "c", header: "Category",
+      render: (r) => {
+        const href = DRILL[r.category];
+        const label = <span className="text-xs font-semibold">{r.category}</span>;
+        return href ? <Link href={href} className="underline">{label}</Link> : label;
+      }
+    },
     { key: "n", header: "Count", render: (r) => <span className="text-xs tabular-nums">{formatNumber(r.count_v)}</span> },
     { key: "r", header: "Rupees", render: (r) => <span className="text-xs tabular-nums font-semibold">{inr(Number(r.rupees_v))}</span> },
   ];
