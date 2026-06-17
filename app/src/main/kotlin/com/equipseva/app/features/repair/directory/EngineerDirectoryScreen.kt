@@ -619,6 +619,19 @@ private fun EngCard(
                     fontWeight = FontWeight.SemiBold,
                 )
                 VerifiedBadgeWithInfo(verifiedAt = row.verifiedAt, small = true)
+                // r731 — tier badge inline on directory card. Hidden for "none".
+                if (row.currentTier != "none") {
+                    val tierKind = when (row.currentTier) {
+                        "gold" -> com.equipseva.app.designsystem.components.PillKind.Lime
+                        "silver" -> com.equipseva.app.designsystem.components.PillKind.Neutral
+                        "bronze" -> com.equipseva.app.designsystem.components.PillKind.Warn
+                        else -> com.equipseva.app.designsystem.components.PillKind.Default
+                    }
+                    com.equipseva.app.designsystem.components.Pill(
+                        text = row.currentTier.replaceFirstChar { it.uppercase() },
+                        kind = tierKind,
+                    )
+                }
             }
             Spacer(Modifier.height(2.dp))
             val locLine = formatDirectoryRowLocationLine(
