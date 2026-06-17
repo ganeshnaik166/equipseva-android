@@ -275,6 +275,9 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/supervised-success-rate",      title: "Supervised success rate", desc: "% supervised jobs marked successful",           round: "r801" },
       { href: "/jobs-cancellation-rate",       title: "Jobs cancellation rate",  desc: "% repair jobs ending in cancellation",          round: "r802" },
       { href: "/spot-audit-pass-rate",         title: "Spot audit pass rate",    desc: "% spot audit responses rated ≥4★",              round: "r803" },
+      { href: "/hospital-retention-rate",      title: "Hospital retention rate", desc: "% active hospitals with ≥2 jobs · 30/90/180d",  round: "r805" },
+      { href: "/engineer-retention-rate",      title: "Engineer retention rate", desc: "% engineers with ≥2 completions · 30/90/180d",  round: "r806" },
+      { href: "/bids-acceptance-rate-platform", title: "Bid acceptance (platform)", desc: "% all bids accepted · 7/30/90d",              round: "r807" },
     ],
   },
   {
@@ -293,7 +296,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r803 sprint · all founder ops surfaces in one place
+          r599–r808 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
