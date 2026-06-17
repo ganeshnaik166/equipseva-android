@@ -117,6 +117,9 @@ class EngineerDirectoryRepository @Inject constructor(
         @SerialName("is_available") val isAvailable: Boolean = false,
         @SerialName("distance_km") val distanceKm: Double? = null,
         @SerialName("match_score") val matchScore: Double = 0.0,
+        // r732 — tier badge inline on HomeHub carousel + repeat-booking
+        // nudge. Defaults to "none" so old RPC versions still deserialize.
+        @SerialName("current_tier") val currentTier: String = "none",
     )
 
     /**
