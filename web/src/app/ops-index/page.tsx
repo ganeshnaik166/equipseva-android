@@ -33,6 +33,7 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/pending-kyc", title: "Pending KYC", desc: "Engineer verification queue", round: "r664" },
       { href: "/open-disputes", title: "Open disputes", desc: "Submitted packs awaiting decision", round: "r665" },
       { href: "/spot-audits-summary", title: "Spot audits", desc: "Invitations · responses · ratings", round: "r682" },
+      { href: "/spot-audit-rating-distribution", title: "Spot audit ratings", desc: "Per-rating histogram (180d)", round: "r822" },
     ],
   },
   {
@@ -93,6 +94,7 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/engineer-specialization-coverage", title: "Specialization coverage", desc: "Per-category counts", round: "r634" },
       { href: "/top-engineers-7d", title: "Top earners (7d)", desc: "Top 25 by 7d gross", round: "r615" },
       { href: "/top-engineers-30d", title: "Top earners (30d)", desc: "Top 50 by 30d gross", round: "r635" },
+      { href: "/top-engineers-90d", title: "Top earners (90d)", desc: "Top 50 by 90d gross (long loyalists)", round: "r818" },
       { href: "/engineer-acceptance-rate", title: "Acceptance rate", desc: "30d bid → accepted %", round: "r636" },
       { href: "/engineer-payout-history", title: "Payout history", desc: "30/90d/lifetime per engineer", round: "r658" },
       { href: "/engineer-rating-distribution", title: "Rating distribution", desc: "180d histogram", round: "r671" },
@@ -108,6 +110,8 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/hospital-spend-30d", title: "Spend (30d)", desc: "Top 50 spenders + AMC flag", round: "r659" },
       { href: "/hospital-amc-coverage", title: "AMC coverage", desc: "With vs without active AMC", round: "r675" },
       { href: "/top-hospitals-30d", title: "Top hospitals (30d)", desc: "Top 25 by 30d posts", round: "r616" },
+      { href: "/top-hospitals-90d", title: "Top hospitals (90d)", desc: "Top 50 by 90d posts", round: "r819" },
+      { href: "/top-amc-spenders",  title: "Top AMC spenders",   desc: "Top 50 by 90d pool credits",  round: "r817" },
     ],
   },
   {
@@ -286,6 +290,8 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/pending-payouts-aging",     title: "Pending payouts aging",    desc: "engineer_payouts pending bucketed by age",   round: "r809" },
       { href: "/pending-amc-orders-aging",  title: "Pending AMC orders aging", desc: "amc_payment_orders pending bucketed by age", round: "r810" },
       { href: "/repair-jobs-stuck",         title: "Repair jobs stuck >14d",   desc: "Non-terminal repair jobs older than 14d",    round: "r811" },
+      { href: "/amc-renewal-failures-aging", title: "Renewal failures aging",  desc: "renewal_failed by days since end_date",      round: "r820" },
+      { href: "/amc-renewal-failures",       title: "Renewal failures list",   desc: "renewal_failed outreach queue",              round: "r821" },
     ],
   },
   {
@@ -313,7 +319,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r816 sprint · all founder ops surfaces in one place
+          r599–r823 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
