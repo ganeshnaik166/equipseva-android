@@ -49,6 +49,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/escrow-stuck", title: "Escrow stuck >30d", desc: "Pending/held/dispute aged out", round: "r662" },
       { href: "/escrow-velocity", title: "Escrow velocity", desc: "Created → released p50/p90", round: "r674" },
       { href: "/webhooks", title: "Webhook health", desc: "Razorpay + payouts success", round: "r606" },
+      { href: "/webhook-failures-recent", title: "Webhook failures recent", desc: "Last 100 unapplied events (7d)", round: "r881" },
       { href: "/payouts", title: "Engineer payouts", desc: "Queue · dead-letter · ops", round: "r428+" },
       { href: "/payout-latency", title: "Payout latency", desc: "Queued → processed time", round: "r624" },
       { href: "/payout-volume-30d", title: "Payout volume 30d", desc: "Per-status rupees", round: "r651" },
@@ -89,6 +90,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/referral-funnel", title: "Referral funnel", desc: "90d cohort signed → paid", round: "r646" },
       { href: "/referral-volume-trend", title: "Referral volume trend", desc: "Daily referrals/first-jobs", round: "r668" },
       { href: "/referrers-leaderboard", title: "Referrers leaderboard", desc: "Top 50 by first-job conversions", round: "r680" },
+      { href: "/top-referrers-90d", title: "Top referrers (90d)", desc: "Top 50 by paid bounty volume", round: "r884" },
       { href: "/retention-cohort", title: "Retention cohort", desc: "Engineer signup-week × active", round: "r647" },
       { href: "/hospital-retention-cohort", title: "Hospital retention cohort", desc: "Hospital signup-week × posted 30d", round: "r836" },
     ],
@@ -169,6 +171,8 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-churn", title: "AMC churn", desc: "Rolling 30/90/180d churn %", round: "r614" },
       { href: "/amc-renewal-pipeline", title: "AMC renewal pipeline", desc: "Expiring 30/60/90d · MRR/ARR", round: "r627" },
       { href: "/amc-near-expiry", title: "AMC near expiry", desc: "Expiring within 30d list", round: "r660" },
+      { href: "/amc-near-expiry-by-tier", title: "AMC near expiry by tier", desc: "Expiring 30/60/90d + MRR at risk per tier", round: "r882" },
+      { href: "/amc-pending-by-hospital", title: "AMC pending by hospital", desc: "Top 50 hospitals with pending payment orders", round: "r883" },
       { href: "/amc-tier-distribution", title: "AMC tier distribution", desc: "Per-tier active + MRR", round: "r640" },
       { href: "/amc-categories-coverage", title: "AMC categories coverage", desc: "Equipment categories rolled up", round: "r689" },
       { href: "/amc-visits-cadence", title: "AMC visits cadence", desc: "Completed vs scheduled %", round: "r649" },
@@ -355,7 +359,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r880 sprint · all founder ops surfaces in one place
+          r599–r885 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
