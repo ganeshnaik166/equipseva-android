@@ -128,6 +128,35 @@ class EquipSevaApplication : Application(), Configuration.Provider, SingletonIma
             android.os.Process.killProcess(android.os.Process.myPid())
             kotlin.system.exitProcess(0)
         }
+
+        // r845 — periodic re-verification. Defense layer against an
+        // attacker who patched the one if-block above: this coroutine
+        // re-runs the same checks every 15 minutes and exits the process
+        // if any verdict flips dirty. To bypass, the attacker now has to
+        // find AND patch this loop too. R8 inlines + obfuscates so the
+        // call sites don't share an obvious symbol; the loop body is
+        // also intentionally duplicated rather than calling a shared
+        // helper.
+        appScope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(15L * 60 * 1000)
+                val sig = SignatureVerifier.verify(this@EquipSevaApplication)
+                val install = InstallSourceVerifier.verify(this@EquipSevaApplication)
+                val re = ReverseEngineeringDetector.scan(this@EquipSevaApplication)
+                val dev = DeviceIntegrityCheck.run(this@EquipSevaApplication)
+                IntegritySnapshot.capture(this@EquipSevaApplication, sig, install, dev, re)
+                val blockNow = !BuildConfig.DEBUG && (
+                    sig == SignatureVerifier.Verdict.Tampered ||
+                        install == InstallSourceVerifier.Verdict.Sideloaded ||
+                        !re.clean
+                    )
+                if (BuildConfig.TAMPER_ENFORCE && blockNow) {
+                    Log.e(TAG, "Periodic integrity check failed — exiting: sig=$sig install=$install re=${re.foundPackages}")
+                    android.os.Process.killProcess(android.os.Process.myPid())
+                    kotlin.system.exitProcess(0)
+                }
+            }
+        }
     }
 
     override val workManagerConfiguration: Configuration
