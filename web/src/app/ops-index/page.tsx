@@ -58,6 +58,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/payouts-failed-list", title: "Payouts failed list", desc: "Last 100 failed (30d)", round: "r838" },
       { href: "/payouts-rupees-by-day", title: "Payouts ₹ by day (30d)", desc: "Daily processed ₹ + failed + pending", round: "r879" },
       { href: "/escrow-amount-at-risk", title: "Escrow ₹ at risk", desc: "Sum held bucketed by age", round: "r873" },
+      { href: "/payouts-net-of-tds", title: "Payouts net of TDS", desc: "Gross vs TDS withheld vs net paid", round: "r889" },
       { href: "/payout-fail-reasons", title: "Payout fail reasons", desc: "RazorpayX status distribution", round: "r666" },
       { href: "/engineers-missing-payout", title: "Engineers missing payout", desc: "Earned 30d but no verified VPA · outreach queue", round: "r726" },
       { href: "/payout-method-coverage", title: "Payout method coverage", desc: "% of earning engineers with verified VPA · 7/30/90d", round: "r791" },
@@ -104,6 +105,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/engineer-referral-coverage", title: "Referral coverage", desc: "% engineers who referred ≥1", round: "r827" },
       { href: "/bidder-engagement", title: "Bidder engagement", desc: "% verified engineers placing ≥1 bid", round: "r832" },
       { href: "/engineer-dormancy", title: "Dormancy", desc: "Past completers idle >30d", round: "r631" },
+      { href: "/engineer-recency", title: "Recency buckets", desc: "Verified engineers by days since last bid", round: "r888" },
       { href: "/engineer-geo", title: "Geo", desc: "Top 50 cities + verification", round: "r633" },
       { href: "/engineer-specialization-coverage", title: "Specialization coverage", desc: "Per-category counts", round: "r634" },
       { href: "/top-engineers-7d", title: "Top earners (7d)", desc: "Top 25 by 7d gross", round: "r615" },
@@ -121,6 +123,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/hospital-utilization", title: "Utilization", desc: "Posting jobs 7/30/90d", round: "r637" },
       { href: "/hospital-repeat-rate", title: "Repeat rate", desc: "Lifetime job count buckets", round: "r638" },
       { href: "/hospital-onboarding-funnel", title: "Onboarding funnel", desc: "Hospital signup → AMC (90d cohort)", round: "r828" },
+      { href: "/hospital-recency", title: "Hospital recency", desc: "Buckets by days since last posted job", round: "r887" },
       { href: "/hospital-geo", title: "Geo", desc: "Top 50 cities", round: "r639" },
       { href: "/hospital-spend-30d", title: "Spend (30d)", desc: "Top 50 spenders + AMC flag", round: "r659" },
       { href: "/hospital-amc-coverage", title: "AMC coverage", desc: "With vs without active AMC", round: "r675" },
@@ -341,6 +344,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-pool-balance-by-city", title: "AMC pool balance by city",        desc: "Top 50 cities by active-contract balance", round: "r841" },
       { href: "/payouts-by-engineer-tier", title: "Payouts by engineer tier",  desc: "90d processed payouts by cert tier",          round: "r833" },
       { href: "/jobs-by-engineer-tier", title: "Jobs by engineer tier",        desc: "90d completed jobs by cert tier",             round: "r834" },
+      { href: "/jobs-completion-by-equipment", title: "Completion hours by equipment", desc: "p50/p90/avg hours per equipment (90d)", round: "r886" },
     ],
   },
   {
@@ -359,7 +363,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r885 sprint · all founder ops surfaces in one place
+          r599–r890 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
