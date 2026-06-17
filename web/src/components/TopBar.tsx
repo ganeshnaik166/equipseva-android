@@ -12,12 +12,15 @@ export async function TopBar() {
     <header className="border-b border-[var(--color-border)] bg-white">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
         <div className="flex items-center gap-6">
-          <Link href="/platform-pulse" className="text-sm font-semibold tracking-tight">
+          <Link href="/founder-morning-cockpit" className="text-sm font-semibold tracking-tight">
             EquipSeva Founder Console
           </Link>
           {user && (
             <nav className="flex flex-wrap items-center gap-4 text-sm text-[var(--color-muted)]">
-              <Link href="/platform-pulse" className="font-semibold text-[var(--color-fg)] hover:underline">
+              <Link href="/founder-morning-cockpit" className="font-semibold text-[var(--color-fg)] hover:underline">
+                Morning ★
+              </Link>
+              <Link href="/platform-pulse" className="hover:text-[var(--color-fg)]">
                 Pulse
               </Link>
               <Link href="/pulse-extended" className="hover:text-[var(--color-fg)]">
@@ -52,6 +55,9 @@ export async function TopBar() {
               </Link>
               <Link href="/audit" className="hover:text-[var(--color-fg)]">
                 Audit
+              </Link>
+              <Link href="/security-overview" className="hover:text-[var(--color-fg)]">
+                Security
               </Link>
               <Link href="/founder-runbook" className="hover:text-[var(--color-fg)]">
                 Runbook
