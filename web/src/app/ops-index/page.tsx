@@ -29,6 +29,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/audit", title: "Founder action log", desc: "Append-only audit ledger", round: "r482+" },
       { href: "/admin-actions-trend", title: "Admin actions trend", desc: "Daily founder_action_log volume", round: "r672" },
       { href: "/admin-top-ops", title: "Admin top ops", desc: "Most-used founder ops · 30d", round: "r673" },
+      { href: "/audit-by-actor", title: "Audit by actor", desc: "Top 50 actors by founder_action_log volume", round: "r874" },
       { href: "/pending-kyc", title: "Pending KYC", desc: "Engineer verification queue", round: "r664" },
       { href: "/open-disputes", title: "Open disputes", desc: "Submitted packs awaiting decision", round: "r665" },
       { href: "/spot-audits-summary", title: "Spot audits", desc: "Invitations · responses · ratings", round: "r682" },
@@ -54,6 +55,8 @@ const SECTIONS: OpsSection[] = [
       { href: "/payouts-by-day-trend", title: "Payouts by day", desc: "Daily paid + failed (14d)", round: "r686" },
       { href: "/payouts-pending-list", title: "Payouts pending list", desc: "Top 100 pending oldest-first", round: "r837" },
       { href: "/payouts-failed-list", title: "Payouts failed list", desc: "Last 100 failed (30d)", round: "r838" },
+      { href: "/payouts-rupees-by-day", title: "Payouts ₹ by day (30d)", desc: "Daily processed ₹ + failed + pending", round: "r879" },
+      { href: "/escrow-amount-at-risk", title: "Escrow ₹ at risk", desc: "Sum held bucketed by age", round: "r873" },
       { href: "/payout-fail-reasons", title: "Payout fail reasons", desc: "RazorpayX status distribution", round: "r666" },
       { href: "/engineers-missing-payout", title: "Engineers missing payout", desc: "Earned 30d but no verified VPA · outreach queue", round: "r726" },
       { href: "/payout-method-coverage", title: "Payout method coverage", desc: "% of earning engineers with verified VPA · 7/30/90d", round: "r791" },
@@ -129,6 +132,7 @@ const SECTIONS: OpsSection[] = [
     links: [
       { href: "/repair-job-funnel", title: "Funnel", desc: "30d posted → completed", round: "r641" },
       { href: "/repair-jobs-status", title: "Status snapshot", desc: "All-time status distribution", round: "r692" },
+      { href: "/repair-jobs-status-snapshot", title: "Status snapshot (live)", desc: "All-time histogram + share%", round: "r878" },
       { href: "/job-fee-distribution", title: "Fee distribution", desc: "90d gross by bucket", round: "r642" },
       { href: "/job-bid-counts", title: "Bid counts", desc: "Bids-per-job histogram", round: "r643" },
       { href: "/unmatched-jobs", title: "Unmatched >7d", desc: "Posted >7d ago · zero bids", round: "r661" },
@@ -300,6 +304,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/spot-audit-coverage-rate", title: "Spot audit coverage", desc: "Invitation + response rate vs completed jobs",     round: "r865" },
       { href: "/amc-pool-utilization", title: "AMC pool utilization", desc: "debits/credits% per active contract",                 round: "r866" },
       { href: "/tier-progression-rate", title: "Tier progression rate", desc: "Engineer cert promotions vs demotions",             round: "r867" },
+      { href: "/tier-graduations-recent", title: "Tier graduations recent", desc: "Last 100 cert tier transitions (30d)",          round: "r876" },
     ],
   },
   {
@@ -326,6 +331,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/chains-revenue-rollup", title: "Chains revenue rollup (90d)", desc: "Top 50 chains by AMC + jobs revenue",         round: "r826" },
       { href: "/amc-payments-by-tier",  title: "AMC payments by tier (90d)",  desc: "Paid rupees rolled up by AMC tier",           round: "r829" },
       { href: "/amc-renewal-success-by-tier", title: "Renewal success by tier", desc: "Per-tier renewal success % (90d)",        round: "r854" },
+      { href: "/amc-mrr-by-tier",        title: "AMC MRR by tier",         desc: "Active + MRR + ARR + share% per tier",        round: "r877" },
       { href: "/code-red-by-equipment", title: "Code Red by equipment", desc: "Top 50 equipment types · 90d Code Red volume + resolution", round: "r862" },
       { href: "/amc-pool-balance-by-hospital", title: "AMC pool balance by hospital", desc: "Top 50 by active-contract pool balance", round: "r831" },
       { href: "/amc-pool-balance-by-city", title: "AMC pool balance by city",        desc: "Top 50 cities by active-contract balance", round: "r841" },
@@ -349,7 +355,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r872 sprint · all founder ops surfaces in one place
+          r599–r880 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
