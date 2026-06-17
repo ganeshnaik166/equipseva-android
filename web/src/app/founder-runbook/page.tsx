@@ -13,6 +13,8 @@ const SECTIONS: Section[] = [
     intent: "Spot what changed overnight + handle action queues.",
     items: [
       { href: "/platform-pulse",  title: "Platform pulse",         why: "12 KPIs at a glance. Tone-coded tiles flag attention." },
+      { href: "/at-risk-revenue", title: "At-risk revenue",        why: "6 leak categories rolled up · MRR + counts you can act on." },
+      { href: "/pulse-extended",  title: "Pulse extended",         why: "10 KPIs × this-week vs last-week deltas. Spot trends fast." },
       { href: "/open-disputes",   title: "Open disputes",          why: "Anything submitted but not decided. Mediation queue." },
       { href: "/pending-kyc",     title: "Pending KYC",            why: "Engineers waiting on verification. Approve/reject." },
       { href: "/unmatched-jobs",  title: "Unmatched jobs (>7d)",    why: "Posted jobs with zero bids. Routing/outreach signal." },
