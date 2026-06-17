@@ -34,6 +34,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/open-disputes", title: "Open disputes", desc: "Submitted packs awaiting decision", round: "r665" },
       { href: "/spot-audits-summary", title: "Spot audits", desc: "Invitations · responses · ratings", round: "r682" },
       { href: "/spot-audit-rating-distribution", title: "Spot audit ratings", desc: "Per-rating histogram (180d)", round: "r822" },
+      { href: "/spot-audit-by-engineer", title: "Spot audit by engineer", desc: "Engineers ranked by lowest avg rating (quality watch)", round: "r894" },
       { href: "/integrity-events", title: "Integrity events", desc: "Play Integrity + client self-report audit", round: "r846" },
       { href: "/security-overview", title: "Security overview ★", desc: "Anti-mod layer status + dirty events", round: "r850" },
       { href: "/grants-audit", title: "Grants audit", desc: "EXECUTE privileges on every founder_* RPC", round: "r852" },
@@ -64,6 +65,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/payout-method-coverage", title: "Payout method coverage", desc: "% of earning engineers with verified VPA · 7/30/90d", round: "r791" },
       { href: "/refunds", title: "Refunds", desc: "Refund authorizations + history", round: "—" },
       { href: "/commission-revenue-30d", title: "Commission revenue (30d)", desc: "Daily platform take (est)", round: "r663" },
+      { href: "/commission-by-month", title: "Commission by month", desc: "12mo platform commission est. (7% take)", round: "r893" },
       { href: "/amc-revenue-trend", title: "AMC revenue trend", desc: "Daily AMC paid orders (14d)", round: "r656" },
       { href: "/amc-revenue-by-tier", title: "AMC revenue by tier", desc: "Per-tier MRR + ARR", round: "r688" },
       { href: "/amc-payment-orders-status", title: "AMC payment orders status", desc: "Pending/paid/failed/refunded", round: "r667" },
@@ -92,6 +94,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/referral-volume-trend", title: "Referral volume trend", desc: "Daily referrals/first-jobs", round: "r668" },
       { href: "/referrers-leaderboard", title: "Referrers leaderboard", desc: "Top 50 by first-job conversions", round: "r680" },
       { href: "/top-referrers-90d", title: "Top referrers (90d)", desc: "Top 50 by paid bounty volume", round: "r884" },
+      { href: "/referrers-by-tier", title: "Referrers by tier", desc: "Referral activity by referrer's cert tier", round: "r891" },
       { href: "/retention-cohort", title: "Retention cohort", desc: "Engineer signup-week × active", round: "r647" },
       { href: "/hospital-retention-cohort", title: "Hospital retention cohort", desc: "Hospital signup-week × posted 30d", round: "r836" },
     ],
@@ -143,6 +146,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/unmatched-jobs", title: "Unmatched >7d", desc: "Posted >7d ago · zero bids", round: "r661" },
       { href: "/jobs-by-hour-of-day", title: "Jobs by hour", desc: "30d hour-of-day distribution", round: "r690" },
       { href: "/jobs-by-day-of-week", title: "Jobs by weekday", desc: "90d weekday distribution", round: "r691" },
+      { href: "/jobs-heatmap", title: "Jobs heatmap (hour×weekday)", desc: "7×24 IST grid of posted jobs (90d)", round: "r892" },
     ],
   },
   {
@@ -363,7 +367,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r890 sprint · all founder ops surfaces in one place
+          r599–r895 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
