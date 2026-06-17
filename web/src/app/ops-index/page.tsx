@@ -48,6 +48,8 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/payout-latency", title: "Payout latency", desc: "Queued → processed time", round: "r624" },
       { href: "/payout-volume-30d", title: "Payout volume 30d", desc: "Per-status rupees", round: "r651" },
       { href: "/payouts-by-day-trend", title: "Payouts by day", desc: "Daily paid + failed (14d)", round: "r686" },
+      { href: "/payouts-pending-list", title: "Payouts pending list", desc: "Top 100 pending oldest-first", round: "r837" },
+      { href: "/payouts-failed-list", title: "Payouts failed list", desc: "Last 100 failed (30d)", round: "r838" },
       { href: "/payout-fail-reasons", title: "Payout fail reasons", desc: "RazorpayX status distribution", round: "r666" },
       { href: "/engineers-missing-payout", title: "Engineers missing payout", desc: "Earned 30d but no verified VPA · outreach queue", round: "r726" },
       { href: "/payout-method-coverage", title: "Payout method coverage", desc: "% of earning engineers with verified VPA · 7/30/90d", round: "r791" },
@@ -81,6 +83,7 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/referral-volume-trend", title: "Referral volume trend", desc: "Daily referrals/first-jobs", round: "r668" },
       { href: "/referrers-leaderboard", title: "Referrers leaderboard", desc: "Top 50 by first-job conversions", round: "r680" },
       { href: "/retention-cohort", title: "Retention cohort", desc: "Engineer signup-week × active", round: "r647" },
+      { href: "/hospital-retention-cohort", title: "Hospital retention cohort", desc: "Hospital signup-week × posted 30d", round: "r836" },
     ],
   },
   {
@@ -329,7 +332,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r835 sprint · all founder ops surfaces in one place
+          r599–r839 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
