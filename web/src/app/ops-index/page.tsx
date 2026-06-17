@@ -90,6 +90,7 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/engineer-tenure", title: "Tenure", desc: "Verified by signup age", round: "r629" },
       { href: "/engineer-onboarding-funnel", title: "Onboarding funnel", desc: "Signup → first job", round: "r630" },
       { href: "/engineer-referral-coverage", title: "Referral coverage", desc: "% engineers who referred ≥1", round: "r827" },
+      { href: "/bidder-engagement", title: "Bidder engagement", desc: "% verified engineers placing ≥1 bid", round: "r832" },
       { href: "/engineer-dormancy", title: "Dormancy", desc: "Past completers idle >30d", round: "r631" },
       { href: "/engineer-geo", title: "Geo", desc: "Top 50 cities + verification", round: "r633" },
       { href: "/engineer-specialization-coverage", title: "Specialization coverage", desc: "Per-category counts", round: "r634" },
@@ -307,6 +308,9 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/demand-by-city",        title: "Demand by city (90d)",        desc: "Top 50 cities by 90d demand signals",         round: "r824" },
       { href: "/chains-revenue-rollup", title: "Chains revenue rollup (90d)", desc: "Top 50 chains by AMC + jobs revenue",         round: "r826" },
       { href: "/amc-payments-by-tier",  title: "AMC payments by tier (90d)",  desc: "Paid rupees rolled up by AMC tier",           round: "r829" },
+      { href: "/amc-pool-balance-by-hospital", title: "AMC pool balance by hospital", desc: "Top 50 by active-contract pool balance", round: "r831" },
+      { href: "/payouts-by-engineer-tier", title: "Payouts by engineer tier",  desc: "90d processed payouts by cert tier",          round: "r833" },
+      { href: "/jobs-by-engineer-tier", title: "Jobs by engineer tier",        desc: "90d completed jobs by cert tier",             round: "r834" },
     ],
   },
   {
@@ -325,7 +329,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r830 sprint · all founder ops surfaces in one place
+          r599–r835 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
