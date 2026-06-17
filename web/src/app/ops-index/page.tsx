@@ -8,6 +8,7 @@ const SECTIONS: OpsSection[] = [
   {
     label: "Executive",
     links: [
+      { href: "/founder-morning-cockpit", title: "Morning cockpit ★", desc: "Pulse + rates + outreach + integrity · 2-min daily review", round: "r872★" },
       { href: "/platform-pulse", title: "Platform pulse", desc: "12 KPIs at a glance · executive snapshot", round: "r700★" },
       { href: "/dashboard", title: "Hero dashboard", desc: "Top-line KPIs + today vs yesterday", round: "r597+" },
     ],
@@ -321,6 +322,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/payouts-by-mode",       title: "Payouts by mode (90d)",       desc: "UPI/IMPS/NEFT/RTGS split",                    round: "r860" },
       { href: "/chains-amc-gap",        title: "Chains AMC gap",              desc: "Chain hospitals without AMC · sales queue",   round: "r868" },
       { href: "/demand-by-city",        title: "Demand by city (90d)",        desc: "Top 50 cities by 90d demand signals",         round: "r824" },
+      { href: "/demand-priority-distribution", title: "Demand priority", desc: "Demand signals by founder priority · 90d",   round: "r871" },
       { href: "/chains-revenue-rollup", title: "Chains revenue rollup (90d)", desc: "Top 50 chains by AMC + jobs revenue",         round: "r826" },
       { href: "/amc-payments-by-tier",  title: "AMC payments by tier (90d)",  desc: "Paid rupees rolled up by AMC tier",           round: "r829" },
       { href: "/amc-renewal-success-by-tier", title: "Renewal success by tier", desc: "Per-tier renewal success % (90d)",        round: "r854" },
@@ -347,7 +349,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r869 sprint · all founder ops surfaces in one place
+          r599–r872 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
