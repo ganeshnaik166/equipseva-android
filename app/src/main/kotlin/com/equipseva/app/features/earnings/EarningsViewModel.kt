@@ -8,6 +8,7 @@ import com.equipseva.app.core.data.amc.AmcRepository
 import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
 import com.equipseva.app.core.data.payouts.EngineerPayoutRepository
 import com.equipseva.app.core.data.payouts.EngineerPayoutRow
+import com.equipseva.app.core.data.payouts.PayoutMethodVerification
 import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairBidRepository
 import com.equipseva.app.core.data.repair.RepairBidStatus
@@ -57,6 +58,12 @@ class EarningsViewModel @Inject constructor(
         // processed / failed rows from engineer_payouts). Empty list while
         // loading or on RPC failure; the section just hides in either case.
         val payouts: List<EngineerPayoutRow> = emptyList(),
+        // r783 — payout-method verification state. true iff engineer has at
+        // least one row in engineer_payout_methods with status='verified'.
+        // When false AND engineer has any earnings, the screen shows a
+        // nudge banner urging VPA verification (analog of founder
+        // /engineers-missing-payout r726).
+        val payoutMethodVerified: Boolean = false,
         val errorMessage: String? = null,
     )
 
@@ -93,10 +100,13 @@ class EarningsViewModel @Inject constructor(
             val rank = launch { loadSelfRank() }
             val amc = launch { loadAmcEarnings() }
             val payouts = launch { loadPayouts() }
+            // r783 — payout method verification check. Independent slice,
+            // failure leaves the banner hidden (safe default).
+            val method = launch { loadPayoutMethod() }
             // Wait for ALL to settle before flipping loading/refreshing
             // off so the pull-to-refresh indicator hides only when the
             // screen has actually re-stabilised.
-            bid.join(); escrow.join(); rank.join(); amc.join(); payouts.join()
+            bid.join(); escrow.join(); rank.join(); amc.join(); payouts.join(); method.join()
             _state.update { it.copy(loading = false, refreshing = false) }
         }
     }
@@ -168,6 +178,24 @@ class EarningsViewModel @Inject constructor(
         payoutRepository.listPayouts(limit = 50).onSuccess { rows ->
             _state.update { it.copy(payouts = rows) }
         }
+    }
+
+    private suspend fun loadPayoutMethod() {
+        // r783 — fetchCurrent returns the engineer's default payout method
+        // (or null if none set). Treat it as verified ONLY when status is
+        // explicitly 'verified'. Anything else (null, unverified, invalid)
+        // → banner appears if engineer has earnings.
+        payoutRepository.fetchAll()
+            .onSuccess { methods ->
+                val hasVerified = methods.any {
+                    it.verificationStatus == PayoutMethodVerification.Verified
+                }
+                _state.update { it.copy(payoutMethodVerified = hasVerified) }
+            }
+            .onFailure {
+                // Safe default: don't pop a banner on transient errors.
+                _state.update { it.copy(payoutMethodVerified = true) }
+            }
     }
 }
 
