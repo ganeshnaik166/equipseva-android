@@ -262,6 +262,22 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
     ],
   },
   {
+    label: "Health rates",
+    links: [
+      { href: "/amc-pool-coverage",            title: "AMC pool coverage",       desc: "Active AMCs by buffer buckets",                 round: "r793" },
+      { href: "/jobs-fill-rate",               title: "Jobs fill rate",          desc: "% jobs that got bid within 7d",                 round: "r794" },
+      { href: "/jobs-time-to-complete",        title: "Jobs time-to-complete",   desc: "Posted → completed p50/p90 hours",              round: "r795" },
+      { href: "/escrow-release-rate",          title: "Escrow release rate",     desc: "% completed jobs whose escrow released",        round: "r796" },
+      { href: "/amc-payment-collection-rate",  title: "AMC payment collection",  desc: "% AMC payment orders paid · 7/30/90d",          round: "r797" },
+      { href: "/payouts-success-rate",         title: "Payouts success rate",    desc: "% engineer payouts processed vs failed",        round: "r798" },
+      { href: "/dispute-resolution-rate",      title: "Dispute resolution rate", desc: "% disputes mediator decided",                   round: "r799" },
+      { href: "/amc-renewal-rate",             title: "AMC renewal rate",        desc: "% renewal attempts succeeded · 30/90/365d",     round: "r800" },
+      { href: "/supervised-success-rate",      title: "Supervised success rate", desc: "% supervised jobs marked successful",           round: "r801" },
+      { href: "/jobs-cancellation-rate",       title: "Jobs cancellation rate",  desc: "% repair jobs ending in cancellation",          round: "r802" },
+      { href: "/spot-audit-pass-rate",         title: "Spot audit pass rate",    desc: "% spot audit responses rated ≥4★",              round: "r803" },
+    ],
+  },
+  {
     label: "Cron & periodic jobs",
     links: [
       { href: "/cron-status", title: "Cron status", desc: "pg_cron last-run + failures", round: "r599" },
@@ -277,7 +293,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r780 sprint · all founder ops surfaces in one place
+          r599–r803 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
