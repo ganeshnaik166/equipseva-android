@@ -68,6 +68,10 @@ class EngineerDirectoryRepository @Inject constructor(
         // ISO-8601 timestamp when engineer completed KYC verification.
         // Rendered on the info sheet as "Verified on <date>".
         @SerialName("verified_at") val verifiedAt: String? = null,
+        // Cert ladder tier (r731 added to engineers_directory_search RPC).
+        // Defaults to "none" so directory cards render correctly even when
+        // server hasn't been upgraded yet — UI hides badge for "none".
+        @SerialName("current_tier") val currentTier: String = "none",
         @Transient val completionPctOverride: Int? = null,
     )
 
