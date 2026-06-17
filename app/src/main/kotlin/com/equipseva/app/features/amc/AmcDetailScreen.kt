@@ -25,6 +25,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
@@ -379,12 +380,25 @@ fun AmcDetailScreen(
                         // already knows the contract hasn't started.
                         val pendingPayment = state.hospital?.status == "pending_payment" ||
                             state.engineerView?.status == "pending_payment"
+                        val monthlyFee = state.hospital?.monthlyFeeRupees
+                            ?: state.engineerView?.monthlyFeeRupees ?: 0.0
+                        val balance = state.poolBalance ?: 0.0
+                        // r782 — pre-pause warning. Founder /amc-pool-low-balance
+                        // (r724) flags this for outreach; hospital should see it
+                        // themselves to self-serve top-up before auto-suspend.
+                        val isLowButPositive = balance > 0.0
+                            && monthlyFee > 0.0
+                            && balance < (monthlyFee * 2)
                         when {
                             pendingPayment -> PendingPaymentBanner(
                                 isHospital = state.viewerIsHospital,
                                 onPayNow = { viewModel.openTopUp() },
                             )
-                            pausedByServer || (state.poolBalance ?: 0.0) <= 0.0 -> PausedBanner()
+                            pausedByServer || balance <= 0.0 -> PausedBanner()
+                            isLowButPositive && state.viewerIsHospital -> LowPoolBanner(
+                                bufferMonths = balance / monthlyFee,
+                                onTopUp = { viewModel.openTopUp() },
+                            )
                         }
                         TabsRow(
                             selected = state.tab,
@@ -608,6 +622,55 @@ private fun PausedBanner() {
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
             )
+        }
+    }
+}
+
+@Composable
+private fun LowPoolBanner(bufferMonths: Double, onTopUp: () -> Unit) {
+    // r782 — pre-pause warning for hospitals.
+    // Fires when pool > 0 but < 2× monthly fee → next visit cycle will
+    // drive balance negative and auto-suspend the contract (per r501
+    // cash_auto_suspend). Tone-coded warn (not danger) since contract is
+    // still live; balance > 0 today.
+    val bufferStr = if (bufferMonths < 1.0)
+        "less than a month"
+    else
+        "${"%.1f".format(bufferMonths)} months"
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(SevaWarning50)
+            .padding(12.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Warning,
+                contentDescription = null,
+                tint = SevaWarning500,
+                modifier = Modifier.width(18.dp),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "AMC pool running low — about $bufferStr left.",
+                    color = SevaWarning700,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    "Top up before the next visit to avoid auto-pause.",
+                    color = SevaWarning700,
+                    fontSize = 11.sp,
+                )
+            }
+            TextButton(onClick = onTopUp) {
+                Text("Top up", color = SevaWarning700, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
