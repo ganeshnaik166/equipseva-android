@@ -89,6 +89,7 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/engineer-utilization", title: "Utilization", desc: "Verified active 7/30/90d", round: "r628" },
       { href: "/engineer-tenure", title: "Tenure", desc: "Verified by signup age", round: "r629" },
       { href: "/engineer-onboarding-funnel", title: "Onboarding funnel", desc: "Signup → first job", round: "r630" },
+      { href: "/engineer-referral-coverage", title: "Referral coverage", desc: "% engineers who referred ≥1", round: "r827" },
       { href: "/engineer-dormancy", title: "Dormancy", desc: "Past completers idle >30d", round: "r631" },
       { href: "/engineer-geo", title: "Geo", desc: "Top 50 cities + verification", round: "r633" },
       { href: "/engineer-specialization-coverage", title: "Specialization coverage", desc: "Per-category counts", round: "r634" },
@@ -106,6 +107,7 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
     links: [
       { href: "/hospital-utilization", title: "Utilization", desc: "Posting jobs 7/30/90d", round: "r637" },
       { href: "/hospital-repeat-rate", title: "Repeat rate", desc: "Lifetime job count buckets", round: "r638" },
+      { href: "/hospital-onboarding-funnel", title: "Onboarding funnel", desc: "Hospital signup → AMC (90d cohort)", round: "r828" },
       { href: "/hospital-geo", title: "Geo", desc: "Top 50 cities", round: "r639" },
       { href: "/hospital-spend-30d", title: "Spend (30d)", desc: "Top 50 spenders + AMC flag", round: "r659" },
       { href: "/hospital-amc-coverage", title: "AMC coverage", desc: "With vs without active AMC", round: "r675" },
@@ -282,6 +284,7 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/hospital-retention-rate",      title: "Hospital retention rate", desc: "% active hospitals with ≥2 jobs · 30/90/180d",  round: "r805" },
       { href: "/engineer-retention-rate",      title: "Engineer retention rate", desc: "% engineers with ≥2 completions · 30/90/180d",  round: "r806" },
       { href: "/bids-acceptance-rate-platform", title: "Bid acceptance (platform)", desc: "% all bids accepted · 7/30/90d",              round: "r807" },
+      { href: "/code-red-resolution-rate",     title: "Code Red resolution rate", desc: "% emergency requests resolved · 7/30/90d",      round: "r825" },
     ],
   },
   {
@@ -301,6 +304,9 @@ const SECTIONS: { label: string; links: OpsLink[] }[] = [
       { href: "/jobs-revenue-by-city",  title: "Jobs revenue by city (90d)",  desc: "Top 50 cities by 90d completed-jobs gross",   round: "r813" },
       { href: "/signups-by-city",       title: "Signups by city (90d)",       desc: "Top 50 cities by 90d new accounts",           round: "r814" },
       { href: "/payouts-by-bank",       title: "Payouts by bank (90d)",       desc: "Top 50 banks · processed vs failed",          round: "r815" },
+      { href: "/demand-by-city",        title: "Demand by city (90d)",        desc: "Top 50 cities by 90d demand signals",         round: "r824" },
+      { href: "/chains-revenue-rollup", title: "Chains revenue rollup (90d)", desc: "Top 50 chains by AMC + jobs revenue",         round: "r826" },
+      { href: "/amc-payments-by-tier",  title: "AMC payments by tier (90d)",  desc: "Paid rupees rolled up by AMC tier",           round: "r829" },
     ],
   },
   {
@@ -319,7 +325,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r823 sprint · all founder ops surfaces in one place
+          r599–r830 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
