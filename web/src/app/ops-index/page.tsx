@@ -30,6 +30,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/admin-actions-trend", title: "Admin actions trend", desc: "Daily founder_action_log volume", round: "r672" },
       { href: "/admin-top-ops", title: "Admin top ops", desc: "Most-used founder ops · 30d", round: "r673" },
       { href: "/audit-by-actor", title: "Audit by actor", desc: "Top 50 actors by founder_action_log volume", round: "r874" },
+      { href: "/audit-trail-export", title: "Audit trail export ★", desc: "CSV download for compliance archive (r900 milestone)", round: "r900★" },
       { href: "/pending-kyc", title: "Pending KYC", desc: "Engineer verification queue", round: "r664" },
       { href: "/open-disputes", title: "Open disputes", desc: "Submitted packs awaiting decision", round: "r665" },
       { href: "/spot-audits-summary", title: "Spot audits", desc: "Invitations · responses · ratings", round: "r682" },
@@ -80,6 +81,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
+      { href: "/tier-distribution-by-city", title: "Tier distribution by city", desc: "Top 50 cities × engineer cert tier mix", round: "r898" },
       { href: "/tier-climbers", title: "Tier climbers", desc: "Non-gold close to promotion", round: "r676" },
       { href: "/demand-signals", title: "Demand signals", desc: "Market intel + priority", round: "r571+" },
       { href: "/demand-signal-status", title: "Demand signal status", desc: "Open by priority + resolved", round: "r677" },
@@ -130,6 +132,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/hospital-geo", title: "Geo", desc: "Top 50 cities", round: "r639" },
       { href: "/hospital-spend-30d", title: "Spend (30d)", desc: "Top 50 spenders + AMC flag", round: "r659" },
       { href: "/hospital-amc-coverage", title: "AMC coverage", desc: "With vs without active AMC", round: "r675" },
+      { href: "/hospital-amc-coverage-by-city", title: "AMC coverage by city", desc: "Top 50 cities · AMC penetration %", round: "r899" },
       { href: "/top-hospitals-30d", title: "Top hospitals (30d)", desc: "Top 25 by 30d posts", round: "r616" },
       { href: "/top-hospitals-90d", title: "Top hospitals (90d)", desc: "Top 50 by 90d posts", round: "r819" },
       { href: "/top-amc-spenders",  title: "Top AMC spenders",   desc: "Top 50 by 90d pool credits",  round: "r817" },
@@ -202,6 +205,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/code-red-volume-trend", title: "Code Red", desc: "Daily opened + timed-out", round: "r669" },
       { href: "/payouts-by-day-trend", title: "Payouts", desc: "Daily paid + rupees + failed", round: "r686" },
       { href: "/amc-pool-credits-trend", title: "AMC pool credits", desc: "Daily ledger credit/debit/refund", round: "r693" },
+      { href: "/amc-pool-credits-source", title: "AMC pool credits/month", desc: "12mo credit/debit/refund/net", round: "r896" },
       { href: "/bonded-intake-trend", title: "Bonded intake", desc: "Daily intake rows + qty + cost", round: "r706" },
       { href: "/bonded-dispatch-trend", title: "Bonded dispatch", desc: "Daily dispatches + qty + installed", round: "r707" },
     ],
@@ -344,6 +348,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-renewal-success-by-tier", title: "Renewal success by tier", desc: "Per-tier renewal success % (90d)",        round: "r854" },
       { href: "/amc-mrr-by-tier",        title: "AMC MRR by tier",         desc: "Active + MRR + ARR + share% per tier",        round: "r877" },
       { href: "/code-red-by-equipment", title: "Code Red by equipment", desc: "Top 50 equipment types · 90d Code Red volume + resolution", round: "r862" },
+      { href: "/codered-to-repair-conversion", title: "Code Red → repair conversion", desc: "% Code Red that spawned + completed repair job", round: "r897" },
       { href: "/amc-pool-balance-by-hospital", title: "AMC pool balance by hospital", desc: "Top 50 by active-contract pool balance", round: "r831" },
       { href: "/amc-pool-balance-by-city", title: "AMC pool balance by city",        desc: "Top 50 cities by active-contract balance", round: "r841" },
       { href: "/payouts-by-engineer-tier", title: "Payouts by engineer tier",  desc: "90d processed payouts by cert tier",          round: "r833" },
@@ -367,7 +372,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r895 sprint · all founder ops surfaces in one place
+          r599–r900 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
