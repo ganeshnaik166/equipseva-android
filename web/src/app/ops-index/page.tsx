@@ -103,6 +103,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/hospitals-no-jobs-30d", title: "Hospital activation leak", desc: "Hospitals w/ 0 posted jobs in 30/60/90d + never (demand-side mirror)", round: "r993" },
       { href: "/payouts-stuck-aging", title: "Payouts stuck aging", desc: "Queued/processing payouts × age bucket × INR · &gt;7d = engineer trust at risk", round: "r994" },
       { href: "/code-red-aging", title: "Code Red aging", desc: "Open emergency requests × age bucket · &gt;4h = SLA breach", round: "r995" },
+      { href: "/spare-parts-stuck-aging", title: "Spare parts stuck aging", desc: "Paid but unshipped orders × age bucket × INR · &gt;7d = buyer trust", round: "r996" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -445,7 +446,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r995 sprint · all founder ops surfaces in one place
+          r599–r996 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
