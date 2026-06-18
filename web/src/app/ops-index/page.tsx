@@ -123,6 +123,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/notifications-engagement-30d", title: "Notifications engagement 30d", desc: "Daily sent/read + unread % · engagement health signal", round: "r1016" },
       { href: "/notifications-by-kind-30d", title: "Notifications by kind 30d", desc: "Per-kind sent/read/read-% · candidates to drop or rework", round: "r1017" },
       { href: "/audit-by-actor-30d", title: "Audit by actor 30d", desc: "Top 20 actors by founder_action_log volume + success/failure split", round: "r1018" },
+      { href: "/audit-by-op-30d", title: "Audit by op 30d", desc: "Top 50 op_names · failed-heavy ops are candidates for retry/RPC fix", round: "r1019" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -465,7 +466,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1018 sprint · 221 ships · all founder ops surfaces in one place
+          r599–r1019 sprint · 222 ships · all founder ops surfaces in one place
         </span>
       </header>
 
