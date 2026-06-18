@@ -349,6 +349,7 @@ const SECTIONS: OpsSection[] = [
     label: "Geo & dimension breakdowns",
     links: [
       { href: "/amc-revenue-by-city",   title: "AMC revenue by city (90d)",   desc: "Top 50 cities by 90d AMC paid rupees",       round: "r812" },
+      { href: "/amc-revenue-by-state",  title: "AMC revenue by state (90d)",  desc: "Top 40 states by 90d AMC paid rupees",       round: "r923" },
       { href: "/jobs-revenue-by-city",  title: "Jobs revenue by city (90d)",  desc: "Top 50 cities by 90d completed-jobs gross",   round: "r813" },
       { href: "/jobs-by-state",         title: "Jobs by state",               desc: "Top 40 states · hospitals + jobs + AMC count", round: "r920" },
       { href: "/signups-by-city",       title: "Signups by city (90d)",       desc: "Top 50 cities by 90d new accounts",           round: "r814" },
