@@ -9,6 +9,7 @@ const SECTIONS: OpsSection[] = [
     label: "Executive",
     links: [
       { href: "/founder-morning-cockpit", title: "Morning cockpit ★", desc: "Pulse + rates + outreach + integrity · 2-min daily review", round: "r872★" },
+      { href: "/live-feed", title: "Live feed ★", desc: "Raw event stream across jobs/payouts/AMC/disputes/code-red (r950 milestone)", round: "r950★" },
       { href: "/platform-pulse", title: "Platform pulse", desc: "12 KPIs at a glance · executive snapshot", round: "r700★" },
       { href: "/dashboard", title: "Hero dashboard", desc: "Top-line KPIs + today vs yesterday", round: "r597+" },
     ],
@@ -412,7 +413,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r945 sprint · all founder ops surfaces in one place
+          r599–r950 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
