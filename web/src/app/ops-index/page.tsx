@@ -99,6 +99,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/monthly-kpi-snapshot", title: "Monthly KPI snapshot", desc: "12mo time series · 8 raw KPIs", round: "r987" },
       { href: "/daily-kpi-snapshot", title: "Daily KPI snapshot", desc: "90d time series · completes the daily/weekly/monthly trio", round: "r989" },
       { href: "/amc-renewal-window-30d", title: "AMC renewal window 30d", desc: "Renewing next 30d × tier · MRR at risk", round: "r991" },
+      { href: "/engineers-no-jobs-30d", title: "Engineer activation leak", desc: "Engineers w/ 0 completed jobs in 30/60/90d + never", round: "r992" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -441,7 +442,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r991 sprint · all founder ops surfaces in one place
+          r599–r992 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
