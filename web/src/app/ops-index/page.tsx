@@ -152,6 +152,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/spare-part-order-funnel-30d", title: "Spare part order funnel 30d", desc: "Created → paid → shipped → delivered + cancelled/refunded tails", round: "r1046" },
       { href: "/repair-job-funnel-30d", title: "Repair job funnel 30d", desc: "Posted → bid → assigned → completed + cancelled · core marketplace funnel", round: "r1047" },
       { href: "/payouts-amount-histogram", title: "Payouts amount histogram", desc: "90d processed payouts × 7 amount buckets · pricing tier signal", round: "r1048" },
+      { href: "/amc-amount-histogram", title: "AMC amount histogram", desc: "Active AMCs × 7 amount buckets · pricing distribution", round: "r1049" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -494,7 +495,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1048 sprint · 251 ships · all founder ops surfaces in one place
+          r599–r1049 sprint · 252 ships · all founder ops surfaces in one place
         </span>
       </header>
 
