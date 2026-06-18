@@ -13,6 +13,11 @@ const DAILIES: Daily[] = [
   { href: "/daily-kpi-snapshot",                title: "Daily KPI snapshot",                 desc: "90d × 8 raw KPIs",                                              round: "r989",  domain: "Marketplace" },
   { href: "/notifications-engagement-30d",      title: "Notifications engagement 30d",      desc: "Daily sent/read + unread %",                                    round: "r1016", domain: "Engagement"  },
   { href: "/audit-ops-by-day-30d",              title: "Audit ops by day 30d",              desc: "Daily founder activity + success/fail + actors",                round: "r1034", domain: "Governance"  },
+  { href: "/disputes-by-day-30d",               title: "Disputes by day 30d",                desc: "Submitted + resolved + open-EOD",                               round: "r1079", domain: "Trust"       },
+  { href: "/spare-part-orders-by-day-30d",      title: "Spare part orders by day 30d",       desc: "Orders + paid + shipped + delivered + GMV",                     round: "r1080", domain: "Marketplace" },
+  { href: "/signups-by-role-30d",               title: "Signups by role 30d",                desc: "Engineer + hospital + buyer + other splits",                    round: "r1081", domain: "Marketplace" },
+  { href: "/supervised-by-day-30d",             title: "Supervised by day 30d",              desc: "Requested + active + successful + failed + declined",            round: "r1082", domain: "Engagement"  },
+  { href: "/tier-changes-by-day-30d",           title: "Tier changes by day 30d",            desc: "Promotions vs demotions",                                        round: "r1083", domain: "Engagement"  },
 ];
 
 const DOMAIN_TONE: Record<Daily["domain"], string> = {
@@ -28,8 +33,8 @@ export default async function ByDayIndexPage() {
   return (
     <div className="space-y-6">
       <header className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold">By-day index ★ r1040</h1>
-        <span className="text-xs text-[var(--color-muted)]">7th meta-landing · 6 daily time-series surfaces grouped by domain</span>
+        <h1 className="text-xl font-semibold">By-day index ★ r1040 (expanded r1096)</h1>
+        <span className="text-xs text-[var(--color-muted)]">7th meta-landing · 11 daily time-series surfaces grouped by domain</span>
       </header>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {DAILIES.map((d) => (
