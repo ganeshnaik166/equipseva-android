@@ -396,6 +396,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/state-overview",        title: "State overview ★",            desc: "All-state consolidated dashboard (r925 / PR #1550 milestone)", round: "r925★" },
       { href: "/escrow-by-state",       title: "Escrow by state",             desc: "Held + released + refunded per state",        round: "r926" },
       { href: "/payouts-by-state",      title: "Payouts by state",            desc: "Top 40 states by engineer payout volume 90d", round: "r927" },
+      { href: "/spare-parts-by-state",  title: "Spare parts by state",        desc: "Top 40 states by 90d spare-part orders ₹",    round: "r961" },
       { href: "/payouts-by-engineer-tier", title: "Payouts by engineer tier",  desc: "90d processed payouts by cert tier",          round: "r833" },
       { href: "/jobs-by-engineer-tier", title: "Jobs by engineer tier",        desc: "90d completed jobs by cert tier",             round: "r834" },
       { href: "/jobs-completion-by-tier", title: "Jobs completion by tier",    desc: "Per-tier completion % from accepted bids",    round: "r934" },
