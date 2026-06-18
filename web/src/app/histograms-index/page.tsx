@@ -14,6 +14,8 @@ const HISTS: Hist[] = [
   { href: "/disputes-resolution-time-distribution", title: "Dispute resolution time distribution", desc: "90d resolved disputes × 6 latency buckets",           round: "r1090", axis: "Latency"   },
   { href: "/first-bid-latency-distribution",      title: "First-bid latency distribution",     desc: "90d jobs × 6 post→first-bid buckets",                  round: "r1091", axis: "Latency"   },
   { href: "/bids-per-job-distribution",           title: "Bids per job distribution",          desc: "90d jobs × 6 bid-count buckets",                       round: "r1092", axis: "Frequency" },
+  { href: "/engineer-earnings-distribution",      title: "Engineer earnings distribution",     desc: "90d per-engineer × 7 amount buckets",                  round: "r1131", axis: "Amount"    },
+  { href: "/hospital-spend-distribution",         title: "Hospital spend distribution",        desc: "90d per-hospital × 7 amount buckets",                   round: "r1132", axis: "Amount"    },
 ];
 
 const AXIS_TONE: Record<Hist["axis"], string> = {
@@ -27,8 +29,8 @@ export default async function HistogramsIndexPage() {
   return (
     <div className="space-y-6">
       <header className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold">Histograms index ★ r1050</h1>
-        <span className="text-xs text-[var(--color-muted)]">8th meta-landing · distribution surfaces (Amount/Latency/Frequency)</span>
+        <h1 className="text-xl font-semibold">Histograms index ★ r1050 (expanded r1093/r1133)</h1>
+        <span className="text-xs text-[var(--color-muted)]">8th meta-landing · 9 distribution surfaces (Amount/Latency/Frequency)</span>
       </header>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {HISTS.map((h) => (
