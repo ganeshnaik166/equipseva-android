@@ -200,6 +200,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/by-week-index", title: "By-week index ★", desc: "13th meta-landing · 7 weekly time-series surfaces (13wk grain)", round: "r1104★" },
       { href: "/disputes-by-week-13wk", title: "Disputes by week 13wk", desc: "Weekly submitted + resolved + open-EOW · dispute lane medium grain", round: "r1105" },
       { href: "/code-red-by-week-13wk", title: "Code Red by week 13wk", desc: "Weekly total + resolved + timed_out + resolved % · trust lane medium grain", round: "r1106" },
+      { href: "/spare-part-orders-by-week-13wk", title: "Spare part orders by week 13wk", desc: "Weekly orders + paid + delivered + GMV · medium grain", round: "r1107" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -542,7 +543,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1106 sprint · 309 ships · all founder ops surfaces in one place
+          r599–r1107 sprint · 310 ships · all founder ops surfaces in one place
         </span>
       </header>
 
