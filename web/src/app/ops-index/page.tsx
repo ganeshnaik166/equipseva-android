@@ -99,6 +99,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/referrers-leaderboard", title: "Referrers leaderboard", desc: "Top 50 by first-job conversions", round: "r680" },
       { href: "/top-referrers-90d", title: "Top referrers (90d)", desc: "Top 50 by paid bounty volume", round: "r884" },
       { href: "/referrers-by-tier", title: "Referrers by tier", desc: "Referral activity by referrer's cert tier", round: "r891" },
+      { href: "/referrals-roi", title: "Referrals ROI ×", desc: "Referee gross / bounty paid", round: "r908" },
       { href: "/retention-cohort", title: "Retention cohort", desc: "Engineer signup-week × active", round: "r647" },
       { href: "/hospital-retention-cohort", title: "Hospital retention cohort", desc: "Hospital signup-week × posted 30d", round: "r836" },
     ],
