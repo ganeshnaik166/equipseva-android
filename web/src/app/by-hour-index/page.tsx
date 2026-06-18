@@ -8,8 +8,11 @@ type Hourly = { href: string; title: string; desc: string; round: string; domain
 
 const HOURLIES: Hourly[] = [
   { href: "/jobs-by-hour-7d",       title: "Jobs by hour 7d",       desc: "24 IST hours · jobs posted + bids + completed",       round: "r1058", domain: "Marketplace" },
+  { href: "/signups-by-hour-7d",    title: "Signups by hour 7d",    desc: "24 IST hours · engineer/hospital/other splits",        round: "r1094", domain: "Marketplace" },
+  { href: "/code-red-by-hour-7d",   title: "Code Red by hour 7d",   desc: "24 IST hours · volume + resolved + timed_out",         round: "r1086", domain: "Marketplace" },
   { href: "/audit-by-hour-7d",      title: "Audit by hour 7d",      desc: "24 IST hours · founder ops distribution",              round: "r1057", domain: "Governance"  },
-  { href: "/payouts-by-hour",       title: "Payouts by hour",        desc: "Payout processing time-of-day distribution",          round: "r700+", domain: "Payments"    },
+  { href: "/payouts-by-hour-7d",    title: "Payouts by hour 7d",    desc: "24 IST hours · queued/processed/failed + paid INR",    round: "r1087", domain: "Payments"    },
+  { href: "/payouts-by-hour",       title: "Payouts by hour (orig)", desc: "Original payout processing time-of-day distribution", round: "r700+", domain: "Payments"    },
 ];
 
 const TONE: Record<Hourly["domain"], string> = {
@@ -23,8 +26,8 @@ export default async function ByHourIndexPage() {
   return (
     <div className="space-y-6">
       <header className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold">By-hour index ★ r1059</h1>
-        <span className="text-xs text-[var(--color-muted)]">10th meta-landing · 24-hour IST distribution surfaces</span>
+        <h1 className="text-xl font-semibold">By-hour index ★ r1059 (expanded r1095)</h1>
+        <span className="text-xs text-[var(--color-muted)]">10th meta-landing · 6 hour-of-day surfaces grouped by domain</span>
       </header>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {HOURLIES.map((h) => (
