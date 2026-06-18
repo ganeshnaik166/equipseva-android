@@ -20,6 +20,9 @@ export async function TopBar() {
               <Link href="/founder-morning-cockpit" className="font-semibold text-[var(--color-fg)] hover:underline">
                 Morning ★
               </Link>
+              <Link href="/live-feed" className="hover:text-[var(--color-fg)]">
+                Live ★
+              </Link>
               <Link href="/platform-pulse" className="hover:text-[var(--color-fg)]">
                 Pulse
               </Link>
