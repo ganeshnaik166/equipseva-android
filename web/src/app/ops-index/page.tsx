@@ -176,6 +176,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/cumulative-index", title: "Cumulative index ★", desc: "12th meta-landing · 16 cumulative running-total surfaces by domain", round: "r1072★" },
       { href: "/amc-pool-balance-distribution", title: "AMC pool balance distribution", desc: "Active AMCs × 7 current-balance buckets · 0-balance + grand float", round: "r1073" },
       { href: "/audit-success-rate-by-week", title: "Audit success rate by week", desc: "13wk weekly success/fail % · governance reliability signal", round: "r1074" },
+      { href: "/amc-pool-top-balances", title: "AMC pool top balances", desc: "Top 50 active AMCs by current pool balance · upsell + audit candidates", round: "r1075" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -518,7 +519,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1074 sprint · 277 ships · all founder ops surfaces in one place
+          r599–r1075 sprint · 278 ships · all founder ops surfaces in one place
         </span>
       </header>
 
