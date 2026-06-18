@@ -62,6 +62,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/payouts-by-day-trend", title: "Payouts by day", desc: "Daily paid + failed (14d)", round: "r686" },
       { href: "/payouts-pending-list", title: "Payouts pending list", desc: "Top 100 pending oldest-first", round: "r837" },
       { href: "/payouts-failed-list", title: "Payouts failed list", desc: "Last 100 failed (30d)", round: "r838" },
+      { href: "/payouts-recent-list", title: "Payouts recent (7d)", desc: "Last 100 with mode + UTR + status", round: "r946" },
       { href: "/payouts-rupees-by-day", title: "Payouts ₹ by day (30d)", desc: "Daily processed ₹ + failed + pending", round: "r879" },
       { href: "/escrow-amount-at-risk", title: "Escrow ₹ at risk", desc: "Sum held bucketed by age", round: "r873" },
       { href: "/escrow-flow-by-day", title: "Escrow flow by day (30d)", desc: "Inflow vs released vs refunded daily", round: "r901" },
