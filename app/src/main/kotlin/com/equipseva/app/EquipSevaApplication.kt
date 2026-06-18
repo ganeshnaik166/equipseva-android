@@ -24,6 +24,9 @@ import com.equipseva.app.core.security.IntegritySnapshot
 import com.equipseva.app.core.security.ReverseEngineeringDetector
 import com.equipseva.app.core.security.SignatureVerifier
 import com.equipseva.app.core.sync.OutboxScheduler
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -157,6 +160,32 @@ class EquipSevaApplication : Application(), Configuration.Provider, SingletonIma
                 }
             }
         }
+
+        // r979 — defense layer 15: refresh on foreground. Catches the
+        // case where the user backgrounded the app and the device was
+        // tampered with mid-session (e.g. enabled USB debugging, installed
+        // Frida, side-loaded Magisk Manager) between background → next
+        // foreground event. Cheaper than the 15-min loop in r845 because
+        // it runs only on foreground transition, not on a timer.
+        ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onStart(owner: LifecycleOwner) {
+                val sig = SignatureVerifier.verify(this@EquipSevaApplication)
+                val install = InstallSourceVerifier.verify(this@EquipSevaApplication)
+                val re = ReverseEngineeringDetector.scan(this@EquipSevaApplication)
+                val dev = DeviceIntegrityCheck.run(this@EquipSevaApplication)
+                IntegritySnapshot.capture(this@EquipSevaApplication, sig, install, dev, re)
+                val blockNow = !BuildConfig.DEBUG && (
+                    sig == SignatureVerifier.Verdict.Tampered ||
+                        install == InstallSourceVerifier.Verdict.Sideloaded ||
+                        !re.clean
+                    )
+                if (BuildConfig.TAMPER_ENFORCE && blockNow) {
+                    Log.e(TAG, "Foreground integrity check failed — exiting: sig=$sig install=$install re=${re.foundPackages}")
+                    android.os.Process.killProcess(android.os.Process.myPid())
+                    kotlin.system.exitProcess(0)
+                }
+            }
+        })
     }
 
     override val workManagerConfiguration: Configuration
