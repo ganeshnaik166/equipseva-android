@@ -348,6 +348,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/repair-jobs-stuck",         title: "Repair jobs stuck >14d",   desc: "Non-terminal repair jobs older than 14d",    round: "r811" },
       { href: "/amc-renewal-failures-aging", title: "Renewal failures aging",  desc: "renewal_failed by days since end_date",      round: "r820" },
       { href: "/amc-renewal-failures",       title: "Renewal failures list",   desc: "renewal_failed outreach queue",              round: "r821" },
+      { href: "/amc-renewal-attempts-recent", title: "Renewal attempts recent", desc: "Last 100 renewal attempts (30d) + errors", round: "r936" },
     ],
   },
   {
