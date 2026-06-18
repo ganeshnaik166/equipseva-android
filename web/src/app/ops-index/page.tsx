@@ -195,6 +195,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/signups-by-hour-7d", title: "Signups by hour 7d", desc: "24 IST hours · 7d signups split engineer/hospital/other · onboarding pattern", round: "r1094" },
       { href: "/amc-contracts-by-week-13wk", title: "AMC contracts by week 13wk", desc: "Weekly new AMCs + MRR added + tiers used · medium grain time series", round: "r1098" },
       { href: "/jobs-by-week-13wk", title: "Jobs by week 13wk", desc: "Weekly posted + completed + cancelled + bids · medium grain time series", round: "r1099" },
+      { href: "/signups-by-week-13wk", title: "Signups by week 13wk", desc: "Weekly engineer + hospital + other splits · medium grain time series", round: "r1101" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -537,7 +538,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1100 sprint · 303 ships · all founder ops surfaces in one place
+          r599–r1101 sprint · 304 ships · all founder ops surfaces in one place
         </span>
       </header>
 
