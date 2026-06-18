@@ -105,6 +105,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/code-red-aging", title: "Code Red aging", desc: "Open emergency requests × age bucket · &gt;4h = SLA breach", round: "r995" },
       { href: "/spare-parts-stuck-aging", title: "Spare parts stuck aging", desc: "Paid but unshipped orders × age bucket × INR · &gt;7d = buyer trust", round: "r996" },
       { href: "/jobs-unassigned-aging", title: "Jobs unassigned aging", desc: "Open jobs with no engineer × age bucket · marketplace liquidity signal", round: "r997" },
+      { href: "/bids-stuck-aging", title: "Bids stuck aging", desc: "Submitted/pending bids no decision × age · engineer trust signal", round: "r998" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -447,7 +448,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r997 sprint · all founder ops surfaces in one place
+          r599–r998 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
