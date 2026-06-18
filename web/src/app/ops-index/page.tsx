@@ -384,6 +384,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/demand-signals-recent", title: "Demand signals recent", desc: "Last 100 raw signal events (30d)", round: "r915" },
       { href: "/chains-revenue-rollup", title: "Chains revenue rollup (90d)", desc: "Top 50 chains by AMC + jobs revenue",         round: "r826" },
       { href: "/amc-payments-by-tier",  title: "AMC payments by tier (90d)",  desc: "Paid rupees rolled up by AMC tier",           round: "r829" },
+      { href: "/amc-revenue-by-month-by-tier", title: "AMC revenue month × tier", desc: "Cross-tab 6mo AMC paid orders",         round: "r962" },
       { href: "/amc-renewal-success-by-tier", title: "Renewal success by tier", desc: "Per-tier renewal success % (90d)",        round: "r854" },
       { href: "/amc-mrr-by-tier",        title: "AMC MRR by tier",         desc: "Active + MRR + ARR + share% per tier",        round: "r877" },
       { href: "/code-red-by-equipment", title: "Code Red by equipment", desc: "Top 50 equipment types · 90d Code Red volume + resolution", round: "r862" },
