@@ -198,6 +198,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-visits-cadence", title: "AMC visits cadence", desc: "Completed vs scheduled %", round: "r649" },
       { href: "/amc-visits-recent", title: "AMC visits recent (30d)", desc: "Last 100 amc-contract-tagged repair jobs", round: "r906" },
       { href: "/amc-vs-adhoc-jobs", title: "AMC vs ad-hoc jobs", desc: "12mo monthly split + AMC share %", round: "r907" },
+      { href: "/repair-jobs-by-source", title: "Repair jobs by source", desc: "amc_visit · code_red · direct (90d)", round: "r928" },
       { href: "/amc-debits-by-engineer", title: "AMC debits by engineer", desc: "Top 50 engineers consuming AMC pool 90d", round: "r909" },
       { href: "/amc-pool-health", title: "AMC pool health", desc: "Balance distribution buckets", round: "r678" },
       { href: "/amc-pool-low-balance", title: "AMC pool low balance", desc: "Active AMCs below 2× monthly fee · outreach queue", round: "r724" },
