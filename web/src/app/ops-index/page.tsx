@@ -363,6 +363,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-mrr-by-tier",        title: "AMC MRR by tier",         desc: "Active + MRR + ARR + share% per tier",        round: "r877" },
       { href: "/code-red-by-equipment", title: "Code Red by equipment", desc: "Top 50 equipment types · 90d Code Red volume + resolution", round: "r862" },
       { href: "/codered-to-repair-conversion", title: "Code Red → repair conversion", desc: "% Code Red that spawned + completed repair job", round: "r897" },
+      { href: "/code-red-recent-list", title: "Code Red recent", desc: "Last 100 emergency events (30d)", round: "r918" },
       { href: "/amc-pool-balance-by-hospital", title: "AMC pool balance by hospital", desc: "Top 50 by active-contract pool balance", round: "r831" },
       { href: "/amc-pool-balance-by-city", title: "AMC pool balance by city",        desc: "Top 50 cities by active-contract balance", round: "r841" },
       { href: "/payouts-by-engineer-tier", title: "Payouts by engineer tier",  desc: "90d processed payouts by cert tier",          round: "r833" },
