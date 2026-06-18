@@ -133,6 +133,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/leaderboards-index", title: "Leaderboards index ★", desc: "4th meta-landing · Supply/Demand/Seller leaderboards in one place", round: "r1026★" },
       { href: "/agings-index", title: "Agings index ★", desc: "5th meta-landing · 9 aging surfaces grouped by severity (Trust/Liquidity/Pipeline/Engagement)", round: "r1027★" },
       { href: "/city-coverage", title: "City coverage", desc: "Top 50 cities · engineers + hospitals + jobs + active AMCs", round: "r1028" },
+      { href: "/state-coverage", title: "State coverage", desc: "All states · engineers + verified + hospitals + active AMCs + MRR", round: "r1029" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -475,7 +476,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1028 sprint · 231 ships · all founder ops surfaces in one place
+          r599–r1029 sprint · 232 ships · all founder ops surfaces in one place
         </span>
       </header>
 
