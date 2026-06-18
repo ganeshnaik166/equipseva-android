@@ -1,0 +1,46 @@
+BEGIN;
+DROP FUNCTION IF EXISTS public.founder_signups_by_role_30d();
+CREATE OR REPLACE FUNCTION public.founder_signups_by_role_30d()
+RETURNS TABLE (
+  day_ist          date,
+  engineer_signups bigint,
+  hospital_signups bigint,
+  buyer_signups    bigint,
+  other_signups    bigint,
+  total            bigint
+)
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF NOT public.is_founder() THEN RAISE EXCEPTION 'founder only' USING ERRCODE = '42501'; END IF;
+  RETURN QUERY
+  WITH days AS (
+    SELECT generate_series(
+      (now() AT TIME ZONE 'Asia/Kolkata')::date - 29,
+      (now() AT TIME ZONE 'Asia/Kolkata')::date,
+      interval '1 day'
+    )::date AS day_ist
+  )
+  SELECT
+    d.day_ist,
+    coalesce((SELECT count(*)::bigint FROM public.profiles p
+              WHERE p.role = 'engineer'
+                AND (p.created_at AT TIME ZONE 'Asia/Kolkata')::date = d.day_ist), 0)             AS engineer_signups,
+    coalesce((SELECT count(*)::bigint FROM public.profiles p
+              WHERE p.role = 'hospital'
+                AND (p.created_at AT TIME ZONE 'Asia/Kolkata')::date = d.day_ist), 0)             AS hospital_signups,
+    coalesce((SELECT count(*)::bigint FROM public.profiles p
+              WHERE p.role = 'buyer'
+                AND (p.created_at AT TIME ZONE 'Asia/Kolkata')::date = d.day_ist), 0)             AS buyer_signups,
+    coalesce((SELECT count(*)::bigint FROM public.profiles p
+              WHERE p.role NOT IN ('engineer','hospital','buyer')
+                AND (p.created_at AT TIME ZONE 'Asia/Kolkata')::date = d.day_ist), 0)             AS other_signups,
+    coalesce((SELECT count(*)::bigint FROM public.profiles p
+              WHERE (p.created_at AT TIME ZONE 'Asia/Kolkata')::date = d.day_ist), 0)             AS total
+  FROM days d
+  ORDER BY d.day_ist DESC;
+END;
+$$;
+REVOKE EXECUTE ON FUNCTION public.founder_signups_by_role_30d() FROM PUBLIC, anon;
+GRANT  EXECUTE ON FUNCTION public.founder_signups_by_role_30d() TO authenticated;
+COMMIT;
