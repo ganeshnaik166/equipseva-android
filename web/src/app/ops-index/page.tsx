@@ -66,6 +66,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/payouts-failed-list", title: "Payouts failed list", desc: "Last 100 failed (30d)", round: "r838" },
       { href: "/payouts-recent-list", title: "Payouts recent (7d)", desc: "Last 100 with mode + UTR + status", round: "r946" },
       { href: "/payouts-rupees-by-day", title: "Payouts ₹ by day (30d)", desc: "Daily processed ₹ + failed + pending", round: "r879" },
+      { href: "/payouts-by-month-by-status", title: "Payouts month × status", desc: "12mo queued/processing/processed/failed/cancelled", round: "r965" },
       { href: "/escrow-amount-at-risk", title: "Escrow ₹ at risk", desc: "Sum held bucketed by age", round: "r873" },
       { href: "/escrow-flow-by-day", title: "Escrow flow by day (30d)", desc: "Inflow vs released vs refunded daily", round: "r901" },
       { href: "/escrow-by-month-by-status", title: "Escrow month × status", desc: "12mo paid/released/refunded/disputed", round: "r964" },
