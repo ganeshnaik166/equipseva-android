@@ -20,6 +20,9 @@ type Row = {
   hospitals_no_jobs_90d: number;
   amc_renewing_30d: number;
   amc_renewing_mrr_inr: number;
+  amc_pool_zero_balance: number;
+  amc_pool_zero_mrr_inr: number;
+  kyc_pending_over_7d: number;
 };
 
 function Tile({ href, label, count, sub, danger }: { href: string; label: string; count: number; sub?: string; danger?: boolean }) {
@@ -47,7 +50,7 @@ export default async function CriticalCockpitPage() {
     <div className="space-y-6">
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Founder critical cockpit ★ r1000 milestone</h1>
-        <span className="text-xs text-[var(--color-muted)]">12 cross-system aging/leak signals · click any tile for drill-down</span>
+        <span className="text-xs text-[var(--color-muted)]">14 cross-system aging/leak signals (expanded r1013) · click any tile for drill-down</span>
       </header>
       {r ? (
         <>
@@ -73,6 +76,8 @@ export default async function CriticalCockpitPage() {
             <h2 className="text-xs uppercase tracking-wider text-[var(--color-muted)]">Revenue protection</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <Tile href="/amc-renewal-window-30d" label="AMCs renewing 30d" count={r.amc_renewing_30d} sub={`MRR at risk ${formatRupees(Number(r.amc_renewing_mrr_inr))}`} />
+              <Tile href="/amc-pool-zero-balance" label="AMC pool zero balance" count={r.amc_pool_zero_balance} sub={`Blocked MRR ${formatRupees(Number(r.amc_pool_zero_mrr_inr))}`} danger />
+              <Tile href="/kyc-pending-aging" label="KYC pending >7d" count={r.kyc_pending_over_7d} sub="activation pipeline blocker" />
             </div>
           </section>
         </>
