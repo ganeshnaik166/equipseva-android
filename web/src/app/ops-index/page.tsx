@@ -95,6 +95,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/demand-by-model", title: "Demand by model", desc: "Top 50 models by 90d demand", round: "r713" },
       { href: "/training", title: "Supervised training", desc: "Pending + active assignments", round: "r576+" },
       { href: "/supervised-active", title: "Supervised active", desc: "Pending + active list", round: "r684" },
+      { href: "/supervised-assignments-recent", title: "Supervised assignments recent", desc: "Last 100 trainee/supervisor pairs (30d)", round: "r937" },
       { href: "/supervised-outcomes", title: "Supervised outcomes", desc: "Lifetime status distribution", round: "r685" },
       { href: "/supervision-funnel", title: "Supervision funnel", desc: "Request → success conversion", round: "r623" },
       { href: "/profile-completeness", title: "Profile completeness", desc: "Per-field coverage", round: "r620" },
