@@ -16,6 +16,8 @@ const AGINGS: Agg[] = [
   { href: "/kyc-pending-aging",         title: "KYC pending aging",            desc: "Engineers awaiting verification × age",                  round: "r1012", sev: "Pipeline"   },
   { href: "/dispute-aging",             title: "Dispute aging",                desc: "Submitted disputes × age",                                round: "r613",  sev: "Trust"      },
   { href: "/reviews-pending-aging",     title: "Reviews pending aging",        desc: "Completed jobs no hospital rating × age",                round: "r1009", sev: "Engagement" },
+  { href: "/amc-paused-aging",          title: "AMC paused aging",             desc: "Paused AMCs × 6 age buckets × frozen MRR",                round: "r1055", sev: "Pipeline"   },
+  { href: "/engineer-suspension-aging", title: "Engineer suspension aging",    desc: "Cash-auto-suspended engineers × age buckets",            round: "r1056", sev: "Pipeline"   },
 ];
 
 const SEV_TONE: Record<Agg["sev"], string> = {
@@ -30,8 +32,8 @@ export default async function AgingsIndexPage() {
   return (
     <div className="space-y-6">
       <header className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold">Agings index ★ r1027</h1>
-        <span className="text-xs text-[var(--color-muted)]">5th meta-landing · 9 aging surfaces grouped by severity domain</span>
+        <h1 className="text-xl font-semibold">Agings index ★ r1027 (expanded r1113)</h1>
+        <span className="text-xs text-[var(--color-muted)]">5th meta-landing · 11 aging surfaces grouped by severity domain</span>
       </header>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {AGINGS.map((a) => (
