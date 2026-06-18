@@ -95,6 +95,7 @@ const SECTIONS: OpsSection[] = [
     links: [
       { href: "/signups", title: "Signups + active users", desc: "Funnel + DAU/WAU/MAU", round: "r608+" },
       { href: "/weekly-kpis", title: "Weekly KPIs", desc: "WoW snapshot · 7 metrics", round: "r625" },
+      { href: "/weekly-kpi-snapshot", title: "Weekly KPI snapshot", desc: "13wk time series · 8 raw KPIs", round: "r986" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
