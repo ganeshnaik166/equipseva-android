@@ -255,6 +255,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-contracts-by-month-by-tier", title: "New AMCs month × tier", desc: "6mo acquisition by tier", round: "r971" },
       { href: "/payouts-by-month", title: "Engineer payouts", desc: "Paid count / rupees / failed", round: "r697" },
       { href: "/disputes-by-month", title: "Disputes", desc: "Submitted / accepted / rejected", round: "r698" },
+      { href: "/disputes-by-month-by-status", title: "Disputes month × status", desc: "12mo submitted/accepted/rejected/pending", round: "r974" },
       { href: "/referrals-by-month", title: "Referrals", desc: "Referrals / first jobs / bounties", round: "r699" },
       { href: "/referrals-by-month-by-status", title: "Referrals month × status", desc: "12mo cohort funnel: signup→first→eligible→paid", round: "r972" },
       { href: "/demand-signals-by-month", title: "Demand signals", desc: "Signals / SKUs / resolved", round: "r701" },
