@@ -350,6 +350,7 @@ const SECTIONS: OpsSection[] = [
     links: [
       { href: "/amc-revenue-by-city",   title: "AMC revenue by city (90d)",   desc: "Top 50 cities by 90d AMC paid rupees",       round: "r812" },
       { href: "/jobs-revenue-by-city",  title: "Jobs revenue by city (90d)",  desc: "Top 50 cities by 90d completed-jobs gross",   round: "r813" },
+      { href: "/jobs-by-state",         title: "Jobs by state",               desc: "Top 40 states · hospitals + jobs + AMC count", round: "r920" },
       { href: "/signups-by-city",       title: "Signups by city (90d)",       desc: "Top 50 cities by 90d new accounts",           round: "r814" },
       { href: "/payouts-by-bank",       title: "Payouts by bank (90d)",       desc: "Top 50 banks · processed vs failed",          round: "r815" },
       { href: "/payouts-by-mode",       title: "Payouts by mode (90d)",       desc: "UPI/IMPS/NEFT/RTGS split",                    round: "r860" },
@@ -388,7 +389,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r905 sprint · all founder ops surfaces in one place
+          r599–r920 sprint · all founder ops surfaces in one place
         </span>
       </header>
 
