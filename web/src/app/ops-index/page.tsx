@@ -158,6 +158,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/hospital-cohort-retention", title: "Hospital cohort retention", desc: "12mo signup cohorts × 30/60/90/180d posted-job % · demand retention", round: "r1052" },
       { href: "/retention-index", title: "Retention index ★", desc: "9th meta-landing · cohort retention + activation leak (Supply/Demand)", round: "r1053★" },
       { href: "/amc-renewal-rate-by-month", title: "AMC renewal rate by month", desc: "6mo actual renewal rate (renewed/due × 100) · key revenue health metric", round: "r1054" },
+      { href: "/amc-paused-aging", title: "AMC paused aging", desc: "Paused AMCs × 6 age buckets × frozen MRR · &gt;30d paused = likely churned", round: "r1055" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -500,7 +501,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1054 sprint · 257 ships · all founder ops surfaces in one place
+          r599–r1055 sprint · 258 ships · all founder ops surfaces in one place
         </span>
       </header>
 
