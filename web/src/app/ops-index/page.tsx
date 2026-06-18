@@ -10,6 +10,7 @@ const SECTIONS: OpsSection[] = [
     links: [
       { href: "/founder-morning-cockpit", title: "Morning cockpit ★", desc: "Pulse + rates + outreach + integrity · 2-min daily review", round: "r872★" },
       { href: "/live-feed", title: "Live feed ★", desc: "Raw event stream across jobs/payouts/AMC/disputes/code-red (r950 milestone)", round: "r950★" },
+      { href: "/cross-tabs-index", title: "Cross-tabs index ★", desc: "11 month × status surfaces in one place (r976 / PR #1600 milestone)", round: "r976★" },
       { href: "/platform-pulse", title: "Platform pulse", desc: "12 KPIs at a glance · executive snapshot", round: "r700★" },
       { href: "/dashboard", title: "Hero dashboard", desc: "Top-line KPIs + today vs yesterday", round: "r597+" },
     ],
