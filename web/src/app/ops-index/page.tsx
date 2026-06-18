@@ -208,6 +208,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-pool-running-balance-by-week", title: "AMC pool running balance by week", desc: "13wk cumulative net flow trajectory · weekly grain of r1066", round: "r1115" },
       { href: "/jobs-completion-rate-by-week", title: "Jobs completion rate by week", desc: "13wk · posted + completed + completion % · marketplace health", round: "r1116" },
       { href: "/payouts-success-rate-by-week", title: "Payouts success rate by week", desc: "13wk · processed/queued % · target ≥95% · pair with failed-payouts-by-reason", round: "r1117" },
+      { href: "/amc-renewal-rate-by-week", title: "AMC renewal rate by week", desc: "13wk · renewed/due % · weekly companion to r1054 monthly", round: "r1118" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -550,7 +551,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1117 sprint · 320 ships · all founder ops surfaces in one place
+          r599–r1118 sprint · 321 ships · all founder ops surfaces in one place
         </span>
       </header>
 
