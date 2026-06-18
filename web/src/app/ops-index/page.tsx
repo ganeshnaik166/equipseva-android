@@ -166,6 +166,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-pool-credit-events-recent", title: "AMC pool credit events recent", desc: "Top 100 recent credit/refund ledger entries · revenue flow", round: "r1060" },
       { href: "/amc-pool-debit-events-recent", title: "AMC pool debit events recent", desc: "Top 100 recent debit ledger entries · usage feed", round: "r1061" },
       { href: "/events-index", title: "Events index ★", desc: "11th meta-landing · live event feeds (Money/Governance/Marketplace/Trust)", round: "r1062★" },
+      { href: "/chains-amc-leaderboard", title: "Chains AMC leaderboard", desc: "Top 50 hospital chains × active AMCs × aggregated MRR", round: "r1063" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -508,7 +509,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1062 sprint · 265 ships · all founder ops surfaces in one place
+          r599–r1063 sprint · 266 ships · all founder ops surfaces in one place
         </span>
       </header>
 
