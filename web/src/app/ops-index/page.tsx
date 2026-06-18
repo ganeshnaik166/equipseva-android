@@ -35,6 +35,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/pending-kyc", title: "Pending KYC", desc: "Engineer verification queue", round: "r664" },
       { href: "/open-disputes", title: "Open disputes", desc: "Submitted packs awaiting decision", round: "r665" },
       { href: "/disputes-recent", title: "Disputes recent", desc: "Last 100 packs (90d)", round: "r938" },
+      { href: "/dispute-by-mediator", title: "Dispute by mediator", desc: "Top 50 mediators · decisions + accept/reject (90d)", round: "r942" },
       { href: "/spot-audits-summary", title: "Spot audits", desc: "Invitations · responses · ratings", round: "r682" },
       { href: "/spot-audit-rating-distribution", title: "Spot audit ratings", desc: "Per-rating histogram (180d)", round: "r822" },
       { href: "/spot-audit-by-engineer", title: "Spot audit by engineer", desc: "Engineers ranked by lowest avg rating (quality watch)", round: "r894" },
