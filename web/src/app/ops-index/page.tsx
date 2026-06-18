@@ -109,6 +109,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/escrow-held-aging", title: "Escrow held aging", desc: "Held escrow rows × age × INR · capital tied up", round: "r999" },
       { href: "/critical-cockpit", title: "Founder critical cockpit ★", desc: "12 cross-system aging/leak signals in one panel (r1000 milestone)", round: "r1000★" },
       { href: "/critical-actions", title: "Critical actions queue", desc: "Top items across payouts/Code Red/spare parts/escrow · with item-level IDs", round: "r1002" },
+      { href: "/amc-renewal-funnel-90d", title: "AMC renewal funnel 90d", desc: "Stage 1→2→3 notify cadence → renewed/expired · % of due", round: "r1003" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -451,7 +452,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1002 sprint · 205 ships · all founder ops surfaces in one place
+          r599–r1003 sprint · 206 ships · all founder ops surfaces in one place
         </span>
       </header>
 
