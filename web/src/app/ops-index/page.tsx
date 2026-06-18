@@ -100,6 +100,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/supervised-outcomes", title: "Supervised outcomes", desc: "Lifetime status distribution", round: "r685" },
       { href: "/supervision-funnel", title: "Supervision funnel", desc: "Request → success conversion", round: "r623" },
       { href: "/profile-completeness", title: "Profile completeness", desc: "Per-field coverage", round: "r620" },
+      { href: "/signup-completion-rate", title: "Signup completion %", desc: "% new profiles with name+state+city", round: "r939" },
       { href: "/referral-funnel", title: "Referral funnel", desc: "90d cohort signed → paid", round: "r646" },
       { href: "/referral-volume-trend", title: "Referral volume trend", desc: "Daily referrals/first-jobs", round: "r668" },
       { href: "/referrers-leaderboard", title: "Referrers leaderboard", desc: "Top 50 by first-job conversions", round: "r680" },
