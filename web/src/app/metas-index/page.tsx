@@ -21,6 +21,7 @@ const METAS: Meta[] = [
   { href: "/cumulative-index",  title: "Cumulative index",         desc: "16 cumulative running-total surfaces by domain",        round: "r1072", emoji: "📊" },
   { href: "/by-week-index",     title: "By-week index",            desc: "11 weekly time-series surfaces (13wk grain)",            round: "r1104", emoji: "📆" },
   { href: "/rates-index",       title: "Rates index",              desc: "Conversion/success-rate surfaces by domain",            round: "r1120", emoji: "📐" },
+  { href: "/amc-index",         title: "AMC index",                desc: "34 AMC surfaces grouped by Structure/Lifecycle/Pool/Revenue/Renewal/Health", round: "r1140", emoji: "🏥" },
 ];
 
 export default async function MetasIndexPage() {
