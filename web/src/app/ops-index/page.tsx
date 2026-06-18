@@ -229,6 +229,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-index", title: "AMC index ★", desc: "15th meta-landing · 34 AMC surfaces (Structure/Lifecycle/Pool/Revenue/Renewal/Health)", round: "r1140★" },
       { href: "/payouts-index", title: "Payouts index ★", desc: "16th meta-landing · 18 payout surfaces (Aggregate/Timeseries/Diagnostics/Leaderboard/Distribution)", round: "r1141★" },
       { href: "/code-red-index", title: "Code Red index ★", desc: "17th meta-landing · 12 life-safety lane surfaces (Aggregate/Timeseries/SLA/Aging/Leaderboard)", round: "r1142★" },
+      { href: "/disputes-index", title: "Disputes index ★", desc: "18th meta-landing · 13 dispute lane surfaces (Aggregate/Timeseries/Latency/Aging/Outcome)", round: "r1143★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -571,7 +572,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1142 sprint · 346 ships · all founder ops surfaces in one place
+          r599–r1143 sprint · 347 ships · all founder ops surfaces in one place
         </span>
       </header>
 

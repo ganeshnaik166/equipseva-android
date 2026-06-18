@@ -24,6 +24,7 @@ const METAS: Meta[] = [
   { href: "/amc-index",         title: "AMC index",                desc: "34 AMC surfaces grouped by Structure/Lifecycle/Pool/Revenue/Renewal/Health", round: "r1140", emoji: "🏥" },
   { href: "/payouts-index",     title: "Payouts index",            desc: "18 payout surfaces (Aggregate/Timeseries/Diagnostics/Leaderboard/Distribution)", round: "r1141", emoji: "💸" },
   { href: "/code-red-index",    title: "Code Red index",           desc: "12 life-safety lane surfaces (Aggregate/Timeseries/SLA/Aging/Leaderboard)", round: "r1142", emoji: "🚨" },
+  { href: "/disputes-index",    title: "Disputes index",           desc: "13 dispute lane surfaces (Aggregate/Timeseries/Latency/Aging/Outcome)", round: "r1143", emoji: "⚖️" },
 ];
 
 export default async function MetasIndexPage() {
