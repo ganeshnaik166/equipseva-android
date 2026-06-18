@@ -6,7 +6,7 @@ import { formatNumber } from "@/lib/format";
 export const metadata = { title: "Hospital onboarding funnel — EquipSeva Founder Console" };
 export const dynamic = "force-dynamic";
 
-type Row = { stage: string; cnt: number; pct_signup: number };
+type Row = { stage: string; stage_order: number; hospitals: number; pct_of_signups: number };
 
 export default async function HospitalOnboardingFunnelPage() {
   await requireFounder();
@@ -16,18 +16,23 @@ export default async function HospitalOnboardingFunnelPage() {
   const rows = (data ?? []) as Row[];
   const cols: Column<Row>[] = [
     { key: "s", header: "Stage", render: (r) => <span className="text-xs font-semibold">{r.stage}</span> },
-    { key: "c", header: "Count", render: (r) => <span className="text-xs tabular-nums">{formatNumber(r.cnt)}</span> },
+    { key: "c", header: "Hospitals", render: (r) => <span className="text-xs tabular-nums">{formatNumber(r.hospitals)}</span> },
     { key: "p", header: "% of signups",
-      render: (r) => <span className="text-xs tabular-nums font-semibold">{r.pct_signup}%</span>
+      render: (r) => {
+        const v = Number(r.pct_of_signups);
+        const tone = v < 25 ? "text-[var(--color-danger)]"
+          : v < 50 ? "text-[var(--color-warn)]" : "text-[var(--color-ok)]";
+        return <span className={`text-xs tabular-nums font-semibold ${tone}`}>{v}%</span>;
+      }
     },
   ];
   return (
     <div className="space-y-6">
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Hospital onboarding funnel</h1>
-        <span className="text-xs text-[var(--color-muted)]">90d cohort · signup → first job → AMC</span>
+        <span className="text-xs text-[var(--color-muted)]">6-stage funnel · signup → 1st AMC · r1007 expanded</span>
       </header>
-      <DataTable columns={cols} rows={rows} rowKey={(r) => r.stage} emptyMessage="No hospital signups." />
+      <DataTable columns={cols} rows={rows} rowKey={(r) => String(r.stage_order)} emptyMessage="No hospital signups." />
     </div>
   );
 }
