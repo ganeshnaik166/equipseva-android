@@ -370,6 +370,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-pool-balance-by-hospital", title: "AMC pool balance by hospital", desc: "Top 50 by active-contract pool balance", round: "r831" },
       { href: "/amc-pool-balance-by-city", title: "AMC pool balance by city",        desc: "Top 50 cities by active-contract balance", round: "r841" },
       { href: "/amc-pool-balance-by-tier", title: "AMC pool balance by tier",        desc: "Total pool + avg buffer (months of MRR) per tier", round: "r919" },
+      { href: "/amc-pool-balance-by-state", title: "AMC pool balance by state",       desc: "Top 40 states by active-contract balance", round: "r924" },
       { href: "/payouts-by-engineer-tier", title: "Payouts by engineer tier",  desc: "90d processed payouts by cert tier",          round: "r833" },
       { href: "/jobs-by-engineer-tier", title: "Jobs by engineer tier",        desc: "90d completed jobs by cert tier",             round: "r834" },
       { href: "/jobs-completion-by-equipment", title: "Completion hours by equipment", desc: "p50/p90/avg hours per equipment (90d)", round: "r886" },
