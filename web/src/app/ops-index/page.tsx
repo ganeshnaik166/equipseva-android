@@ -131,6 +131,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/hospital-utilization", title: "Utilization", desc: "Posting jobs 7/30/90d", round: "r637" },
       { href: "/hospital-repeat-rate", title: "Repeat rate", desc: "Lifetime job count buckets", round: "r638" },
       { href: "/hospital-onboarding-funnel", title: "Onboarding funnel", desc: "Hospital signup → AMC (90d cohort)", round: "r828" },
+      { href: "/hospital-loyalty-funnel", title: "Loyalty funnel", desc: "Lifetime: signup → 10+ jobs loyalist", round: "r904" },
       { href: "/hospital-recency", title: "Hospital recency", desc: "Buckets by days since last posted job", round: "r887" },
       { href: "/hospital-geo", title: "Geo", desc: "Top 50 cities", round: "r639" },
       { href: "/hospital-spend-30d", title: "Spend (30d)", desc: "Top 50 spenders + AMC flag", round: "r659" },
