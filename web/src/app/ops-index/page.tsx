@@ -190,6 +190,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-tier-distribution", title: "AMC tier distribution", desc: "Per-tier active + MRR", round: "r640" },
       { href: "/amc-categories-coverage", title: "AMC categories coverage", desc: "Equipment categories rolled up", round: "r689" },
       { href: "/amc-visits-cadence", title: "AMC visits cadence", desc: "Completed vs scheduled %", round: "r649" },
+      { href: "/amc-visits-recent", title: "AMC visits recent (30d)", desc: "Last 100 amc-contract-tagged repair jobs", round: "r906" },
       { href: "/amc-pool-health", title: "AMC pool health", desc: "Balance distribution buckets", round: "r678" },
       { href: "/amc-pool-low-balance", title: "AMC pool low balance", desc: "Active AMCs below 2× monthly fee · outreach queue", round: "r724" },
       { href: "/amc-paused", title: "AMC paused", desc: "Paused contracts · MRR frozen", round: "r679" },
