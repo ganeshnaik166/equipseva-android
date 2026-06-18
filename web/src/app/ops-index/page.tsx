@@ -352,6 +352,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/jobs-revenue-by-city",  title: "Jobs revenue by city (90d)",  desc: "Top 50 cities by 90d completed-jobs gross",   round: "r813" },
       { href: "/jobs-by-state",         title: "Jobs by state",               desc: "Top 40 states · hospitals + jobs + AMC count", round: "r920" },
       { href: "/signups-by-city",       title: "Signups by city (90d)",       desc: "Top 50 cities by 90d new accounts",           round: "r814" },
+      { href: "/signups-by-state",      title: "Signups by state (90d)",      desc: "Top 40 states by 90d new accounts",           round: "r922" },
       { href: "/payouts-by-bank",       title: "Payouts by bank (90d)",       desc: "Top 50 banks · processed vs failed",          round: "r815" },
       { href: "/payouts-by-mode",       title: "Payouts by mode (90d)",       desc: "UPI/IMPS/NEFT/RTGS split",                    round: "r860" },
       { href: "/chains-amc-gap",        title: "Chains AMC gap",              desc: "Chain hospitals without AMC · sales queue",   round: "r868" },
