@@ -7,9 +7,13 @@ export const dynamic = "force-dynamic";
 type Hist = { href: string; title: string; desc: string; round: string; axis: "Amount" | "Latency" | "Frequency" };
 
 const HISTS: Hist[] = [
-  { href: "/payouts-amount-histogram",          title: "Payouts amount histogram",        desc: "90d processed payouts × 7 amount buckets",          round: "r1048", axis: "Amount"    },
-  { href: "/amc-amount-histogram",              title: "AMC amount histogram",             desc: "Active AMCs × 7 amount buckets",                     round: "r1049", axis: "Amount"    },
-  { href: "/jobs-completion-latency-histogram", title: "Jobs completion latency histogram", desc: "90d completed × 7 latency buckets",                  round: "r1022", axis: "Latency"   },
+  { href: "/payouts-amount-histogram",            title: "Payouts amount histogram",         desc: "90d processed payouts × 7 amount buckets",            round: "r1048", axis: "Amount"    },
+  { href: "/amc-amount-histogram",                title: "AMC amount histogram",              desc: "Active AMCs × 7 amount buckets",                       round: "r1049", axis: "Amount"    },
+  { href: "/amc-pool-balance-distribution",       title: "AMC pool balance distribution",      desc: "Active AMCs × 7 current-balance buckets",              round: "r1073", axis: "Amount"    },
+  { href: "/jobs-completion-latency-histogram",   title: "Jobs completion latency histogram",  desc: "90d completed × 7 latency buckets",                    round: "r1022", axis: "Latency"   },
+  { href: "/disputes-resolution-time-distribution", title: "Dispute resolution time distribution", desc: "90d resolved disputes × 6 latency buckets",           round: "r1090", axis: "Latency"   },
+  { href: "/first-bid-latency-distribution",      title: "First-bid latency distribution",     desc: "90d jobs × 6 post→first-bid buckets",                  round: "r1091", axis: "Latency"   },
+  { href: "/bids-per-job-distribution",           title: "Bids per job distribution",          desc: "90d jobs × 6 bid-count buckets",                       round: "r1092", axis: "Frequency" },
 ];
 
 const AXIS_TONE: Record<Hist["axis"], string> = {
