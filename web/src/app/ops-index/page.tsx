@@ -264,6 +264,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/tier-changes-by-month", title: "Tier changes", desc: "Promotions / demotions", round: "r704" },
       { href: "/spot-audits-by-month", title: "Spot audits", desc: "Invitations / responses / rating", round: "r705" },
       { href: "/supervised-by-month", title: "Supervised", desc: "Assigned / successful / failed", round: "r710" },
+      { href: "/supervised-by-month-by-status", title: "Supervised month × status", desc: "12mo requested/successful/failed/declined", round: "r973" },
       { href: "/amc-payment-by-month", title: "AMC payments", desc: "Paid count / rupees / failed", round: "r711" },
     ],
   },
