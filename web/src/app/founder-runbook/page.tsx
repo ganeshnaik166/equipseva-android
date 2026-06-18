@@ -10,8 +10,9 @@ type Section = { cadence: string; intent: string; items: Item[] };
 const SECTIONS: Section[] = [
   {
     cadence: "Daily (5 minutes, IST morning)",
-    intent: "Spot what changed overnight + handle action queues.",
+    intent: "Spot what changed overnight + handle action queues. Start at /founder-morning-cockpit ★.",
     items: [
+      { href: "/founder-morning-cockpit", title: "Morning cockpit ★",  why: "r872 PR #1500 — one-page roll-up of pulse + 9 rates + 6 outreach + integrity. 2-min scan." },
       { href: "/platform-pulse",  title: "Platform pulse",         why: "12 KPIs at a glance. Tone-coded tiles flag attention." },
       { href: "/at-risk-revenue", title: "At-risk revenue",        why: "6 leak categories rolled up · MRR + counts you can act on." },
       { href: "/pulse-extended",  title: "Pulse extended",         why: "10 KPIs × this-week vs last-week deltas. Spot trends fast." },
@@ -30,6 +31,8 @@ const SECTIONS: Section[] = [
     cadence: "Weekly (15 minutes, Monday)",
     intent: "Look at week-over-week trends + plan outreach.",
     items: [
+      { href: "/state-overview",         title: "State overview ★",     why: "r925 PR #1550 — top 20 states sorted by 90d AMC paid revenue. Where to concentrate next." },
+      { href: "/security-overview",      title: "Security overview ★",  why: "r850 — anti-mod 14-layer status + Play Integrity pass %." },
       { href: "/weekly-kpis",            title: "Weekly KPIs",         why: "7 metrics × this-week vs last-week × delta %." },
       { href: "/amc-near-expiry",        title: "AMC near expiry (30d)", why: "Outreach queue for manual (non-auto-renew) AMCs." },
       { href: "/amc-paused",             title: "AMC paused",          why: "Contracts paused (often pool-balance shortfall). Restart queue." },
@@ -45,6 +48,8 @@ const SECTIONS: Section[] = [
     cadence: "Monthly (30 minutes, 1st of month)",
     intent: "Review business health + plan the next month's bets.",
     items: [
+      { href: "/monthly-revenue-summary", title: "Monthly revenue summary", why: "r933 — jobs + AMC + parts composite, 12mo. Top-line growth." },
+      { href: "/audit-trail-export",     title: "Audit trail export ★",  why: "r900 — CSV of founder_action_log for compliance archive (30/90/180/365d)." },
       { href: "/repair-jobs-by-month",   title: "Repair jobs by month",  why: "12-month posted/completed/cancelled + gross." },
       { href: "/signups-by-month",       title: "Signups by month",      why: "Acquisition trajectory." },
       { href: "/amc-contracts-by-month", title: "AMC contracts by month", why: "MRR additions per month." },
