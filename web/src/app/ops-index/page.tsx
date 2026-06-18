@@ -31,6 +31,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/admin-top-ops", title: "Admin top ops", desc: "Most-used founder ops · 30d", round: "r673" },
       { href: "/audit-by-actor", title: "Audit by actor", desc: "Top 50 actors by founder_action_log volume", round: "r874" },
       { href: "/audit-trail-export", title: "Audit trail export ★", desc: "CSV download for compliance archive (r900 milestone)", round: "r900★" },
+      { href: "/audit-actions-by-day", title: "Audit actions by day", desc: "30d founder action log volume + variety", round: "r929" },
       { href: "/pending-kyc", title: "Pending KYC", desc: "Engineer verification queue", round: "r664" },
       { href: "/open-disputes", title: "Open disputes", desc: "Submitted packs awaiting decision", round: "r665" },
       { href: "/spot-audits-summary", title: "Spot audits", desc: "Invitations · responses · ratings", round: "r682" },
