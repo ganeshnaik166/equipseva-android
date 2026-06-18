@@ -18,6 +18,12 @@ const WEEKLIES: W[] = [
   { href: "/disputes-by-week-13wk",            title: "Disputes by week 13wk",              desc: "Submitted + resolved + open-EOW",                        round: "r1105", domain: "Trust"       },
   { href: "/audit-by-week",                    title: "Audit by week",                      desc: "Founder ops weekly aggregate",                          round: "r980",  domain: "Governance"  },
   { href: "/audit-success-rate-by-week",       title: "Audit success rate by week",         desc: "Success/fail % weekly trend",                            round: "r1074", domain: "Governance"  },
+  { href: "/amc-pool-net-flow-by-week-13wk",   title: "AMC pool net flow by week",          desc: "Credits − (debits + refunds) per week",                  round: "r1114", domain: "Revenue"     },
+  { href: "/amc-pool-running-balance-by-week", title: "AMC pool running balance by week",   desc: "Cumulative net flow trajectory",                         round: "r1115", domain: "Revenue"     },
+  { href: "/amc-pool-debits-by-week-13wk",     title: "AMC pool debits by week",            desc: "Consumption velocity (debit events + INR)",              round: "r1127", domain: "Revenue"     },
+  { href: "/amc-pool-credits-by-week-13wk",    title: "AMC pool credits by week",           desc: "Top-up velocity (credit events + INR)",                  round: "r1128", domain: "Revenue"     },
+  { href: "/amc-renewal-rate-by-week",         title: "AMC renewal rate by week",           desc: "Renewed/due % weekly",                                   round: "r1118", domain: "Revenue"     },
+  { href: "/code-red-resolution-rate-by-week", title: "Code Red resolution rate by week",   desc: "Resolved/total % weekly",                                 round: "r1119", domain: "Trust"       },
 ];
 
 const TONE: Record<W["domain"], string> = {
@@ -32,8 +38,8 @@ export default async function ByWeekIndexPage() {
   return (
     <div className="space-y-6">
       <header className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold">By-week index ★ r1104 (expanded r1110)</h1>
-        <span className="text-xs text-[var(--color-muted)]">13th meta-landing · 11 weekly time-series surfaces grouped by domain</span>
+        <h1 className="text-xl font-semibold">By-week index ★ r1104 (expanded r1110/r1129)</h1>
+        <span className="text-xs text-[var(--color-muted)]">13th meta-landing · 17 weekly time-series surfaces grouped by domain</span>
       </header>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {WEEKLIES.map((w) => (
