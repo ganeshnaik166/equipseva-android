@@ -244,6 +244,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-pool-credits-source", title: "AMC pool credits/month", desc: "12mo credit/debit/refund/net", round: "r896" },
       { href: "/amc-pool-debits-recent", title: "AMC pool debits recent", desc: "Last 100 debits (30d) + balance-after tone", round: "r947" },
       { href: "/amc-pool-debits-by-month-by-tier", title: "Pool debits month × tier", desc: "6mo cross-tab · which tier drains pools fastest", round: "r983" },
+      { href: "/amc-pool-credits-by-month-by-tier", title: "Pool credits month × tier", desc: "6mo cross-tab · pool top-up cadence per tier", round: "r985" },
       { href: "/amc-pool-credits-recent", title: "AMC pool credits recent", desc: "Last 100 credits (30d)", round: "r948" },
       { href: "/bonded-intake-trend", title: "Bonded intake", desc: "Daily intake rows + qty + cost", round: "r706" },
       { href: "/bonded-dispatch-trend", title: "Bonded dispatch", desc: "Daily dispatches + qty + installed", round: "r707" },
