@@ -72,6 +72,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/commission-by-month", title: "Commission by month", desc: "12mo platform commission est. (7% take)", round: "r893" },
       { href: "/jobs-vs-amc-revenue", title: "Jobs vs AMC revenue", desc: "12mo monthly split + recurring revenue share %", round: "r902" },
       { href: "/weekly-revenue-summary", title: "Weekly revenue summary", desc: "13-week jobs + AMC + parts (3 streams)", round: "r932" },
+      { href: "/monthly-revenue-summary", title: "Monthly revenue summary", desc: "12-month jobs + AMC + parts (3 streams)", round: "r933" },
       { href: "/amc-revenue-trend", title: "AMC revenue trend", desc: "Daily AMC paid orders (14d)", round: "r656" },
       { href: "/amc-revenue-by-tier", title: "AMC revenue by tier", desc: "Per-tier MRR + ARR", round: "r688" },
       { href: "/amc-payment-orders-status", title: "AMC payment orders status", desc: "Pending/paid/failed/refunded", round: "r667" },
