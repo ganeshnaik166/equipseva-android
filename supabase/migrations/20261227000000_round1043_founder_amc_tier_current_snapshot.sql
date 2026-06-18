@@ -23,10 +23,17 @@ BEGIN
     count(*) FILTER (WHERE c.status = 'expired')::bigint                             AS expired_cnt,
     round(avg(c.amount_inr) FILTER (WHERE c.status = 'active')::numeric, 2)          AS avg_amount_inr,
     coalesce(sum(c.amount_inr) FILTER (WHERE c.status = 'active'), 0)::numeric        AS total_mrr_inr,
-    round(avg(coalesce(
+    round(
+      avg(coalesce(
         (SELECT balance_rupees FROM public.v_amc_pool_balance v WHERE v.amc_contract_id = c.id), 0
-      )) FILTER (WHERE c.status = 'active')::numeric, 2)                              AS avg_pool_inr,
-    round(avg(c.end_date - (now() AT TIME ZONE 'Asia/Kolkata')::date)::numeric FILTER (WHERE c.status = 'active' AND c.end_date IS NOT NULL), 1) AS avg_days_to_end
+      )) FILTER (WHERE c.status = 'active')::numeric,
+      2
+    )                                                                                 AS avg_pool_inr,
+    round(
+      avg((c.end_date - (now() AT TIME ZONE 'Asia/Kolkata')::date)::numeric)
+        FILTER (WHERE c.status = 'active' AND c.end_date IS NOT NULL)::numeric,
+      1
+    )                                                                                 AS avg_days_to_end
   FROM public.amc_contracts c
   GROUP BY coalesce(c.tier, 'unknown')
   ORDER BY total_mrr_inr DESC;
