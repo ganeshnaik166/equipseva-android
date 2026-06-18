@@ -28,6 +28,7 @@ const METAS: Meta[] = [
   { href: "/spare-parts-index", title: "Spare parts index",        desc: "12 marketplace inventory lane surfaces",                round: "r1144", emoji: "🔩" },
   { href: "/jobs-index",        title: "Jobs index",               desc: "23 repair-job surfaces · core marketplace lane",        round: "r1145", emoji: "🔧" },
   { href: "/engineers-index",   title: "Engineers index",          desc: "19 engineer (supply side) surfaces",                    round: "r1146", emoji: "👷" },
+  { href: "/hospitals-index",   title: "Hospitals index",          desc: "13 hospital (demand side) surfaces",                    round: "r1147", emoji: "🏨" },
 ];
 
 export default async function MetasIndexPage() {
