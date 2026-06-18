@@ -15,6 +15,7 @@ const METAS: Meta[] = [
   { href: "/coverage-index",    title: "Coverage index",           desc: "7 geographic + chain coverage surfaces",              round: "r1030",  emoji: "🗺️" },
   { href: "/by-day-index",      title: "By-day index",             desc: "6 daily time-series surfaces",                        round: "r1040",  emoji: "📅" },
   { href: "/histograms-index",  title: "Histograms index",         desc: "Distribution surfaces by amount/latency",             round: "r1050",  emoji: "📈" },
+  { href: "/retention-index",   title: "Retention index",          desc: "Cohort retention + activation leak (supply+demand)",  round: "r1053",  emoji: "🔄" },
 ];
 
 export default async function MetasIndexPage() {
