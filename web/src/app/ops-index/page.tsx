@@ -162,6 +162,7 @@ const SECTIONS: OpsSection[] = [
     links: [
       { href: "/parts-demand-supply", title: "Demand vs supply", desc: "90d demand vs bonded stock", round: "r644" },
       { href: "/spare-part-orders-recent", title: "Spare part orders recent", desc: "Last 100 orders (30d)", round: "r911" },
+      { href: "/spare-parts-by-status", title: "Spare parts by status", desc: "90d count + ₹ per order_status", round: "r912" },
       { href: "/parts-vendor-share", title: "Vendor share", desc: "Top 50 bonded suppliers", round: "r645" },
       { href: "/bonded-inventory", title: "Bonded inventory", desc: "SKU rollup · in-stock", round: "r619" },
       { href: "/bonded-by-supplier-tier", title: "By supplier tier", desc: "OEM/AUTHORIZED/VERIFIED rollup", round: "r708" },
