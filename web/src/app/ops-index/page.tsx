@@ -355,6 +355,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/chains-amc-gap",        title: "Chains AMC gap",              desc: "Chain hospitals without AMC · sales queue",   round: "r868" },
       { href: "/demand-by-city",        title: "Demand by city (90d)",        desc: "Top 50 cities by 90d demand signals",         round: "r824" },
       { href: "/demand-priority-distribution", title: "Demand priority", desc: "Demand signals by founder priority · 90d",   round: "r871" },
+      { href: "/demand-signals-recent", title: "Demand signals recent", desc: "Last 100 raw signal events (30d)", round: "r915" },
       { href: "/chains-revenue-rollup", title: "Chains revenue rollup (90d)", desc: "Top 50 chains by AMC + jobs revenue",         round: "r826" },
       { href: "/amc-payments-by-tier",  title: "AMC payments by tier (90d)",  desc: "Paid rupees rolled up by AMC tier",           round: "r829" },
       { href: "/amc-renewal-success-by-tier", title: "Renewal success by tier", desc: "Per-tier renewal success % (90d)",        round: "r854" },
