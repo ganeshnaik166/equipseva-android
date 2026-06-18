@@ -381,6 +381,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/payouts-by-state",      title: "Payouts by state",            desc: "Top 40 states by engineer payout volume 90d", round: "r927" },
       { href: "/payouts-by-engineer-tier", title: "Payouts by engineer tier",  desc: "90d processed payouts by cert tier",          round: "r833" },
       { href: "/jobs-by-engineer-tier", title: "Jobs by engineer tier",        desc: "90d completed jobs by cert tier",             round: "r834" },
+      { href: "/jobs-completion-by-tier", title: "Jobs completion by tier",    desc: "Per-tier completion % from accepted bids",    round: "r934" },
       { href: "/jobs-completion-by-equipment", title: "Completion hours by equipment", desc: "p50/p90/avg hours per equipment (90d)", round: "r886" },
     ],
   },
