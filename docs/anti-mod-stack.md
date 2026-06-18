@@ -1,7 +1,8 @@
 # EquipSeva Anti-Mod Defense Stack
 
-> 14-layer defense matrix protecting against modded / repackaged / sideloaded APKs.
-> Shipped r422-r856 with major hardening sprint at r843-r856 (June 2026).
+> 15-layer defense matrix protecting against modded / repackaged / sideloaded APKs.
+> Shipped r422-r979 with major hardening sprint at r843-r856 (June 2026)
+> + r979 foreground re-verify (added 2026-06-18).
 
 ## Threat model
 
@@ -116,6 +117,16 @@ If any are installed, in release with `TAMPER_ENFORCE=true`, process exits.
 A coroutine launched from `appScope` re-runs all checks every 15 minutes. If any verdict flips dirty mid-session (e.g. user installs Frida after launch), it exits.
 
 **Defeats:** an attacker who passed the boot check then enabled tampering.
+
+### 15. **r979** Foreground re-verify
+
+A `DefaultLifecycleObserver` registered on `ProcessLifecycleOwner.get().lifecycle` re-runs all 4 integrity checks (SignatureVerifier, InstallSourceVerifier, ReverseEngineeringDetector, DeviceIntegrityCheck) on every `onStart` event of the app process — i.e. every time the user brings the app from background to foreground.
+
+Catches the case where the user backgrounded the app and the device was tampered with mid-session (USB debugging enabled, Frida installed, LSPosed sideloaded) between background → next foreground. Cheaper than the 15-min r845 timer because it runs only on transition, not periodically.
+
+Also refreshes the `X-Equipseva-Integrity` header (r844 via `IntegritySnapshot.capture`) so subsequent Supabase requests carry the fresh device state, not just boot-time state.
+
+**Defeats:** mid-session tamper that happened while the app was backgrounded. With r845 (timer) and r979 (foreground transition), an attacker has 3 verify checkpoints (boot, foreground, 15-min) to defeat from a single patch.
 
 ## Enforcement state
 
