@@ -257,6 +257,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/referrals-by-month", title: "Referrals", desc: "Referrals / first jobs / bounties", round: "r699" },
       { href: "/demand-signals-by-month", title: "Demand signals", desc: "Signals / SKUs / resolved", round: "r701" },
       { href: "/code-red-by-month", title: "Code Red", desc: "Opened / resolved / timed-out", round: "r702" },
+      { href: "/code-red-by-month-by-status", title: "Code Red month × status", desc: "12mo monthly funnel", round: "r969" },
       { href: "/escrow-by-month", title: "Escrow", desc: "Released vs refunded", round: "r703" },
       { href: "/tier-changes-by-month", title: "Tier changes", desc: "Promotions / demotions", round: "r704" },
       { href: "/spot-audits-by-month", title: "Spot audits", desc: "Invitations / responses / rating", round: "r705" },
