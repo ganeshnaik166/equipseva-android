@@ -226,6 +226,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-by-equipment-category", title: "AMC by equipment category", desc: "AMCs grouped by equipment_categories array element × status + MRR", round: "r1137" },
       { href: "/amc-by-visit-frequency", title: "AMC by visit frequency", desc: "AMCs by weekly/biweekly/monthly/quarterly cadence × status + MRR + avg", round: "r1138" },
       { href: "/amc-by-renewal-term", title: "AMC by renewal term", desc: "AMCs grouped by contract length (months) · long-term commitment mix", round: "r1139" },
+      { href: "/amc-index", title: "AMC index ★", desc: "15th meta-landing · 34 AMC surfaces (Structure/Lifecycle/Pool/Revenue/Renewal/Health)", round: "r1140★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -568,7 +569,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1139 sprint · 343 ships · all founder ops surfaces in one place
+          r599–r1140 sprint · 344 ships · all founder ops surfaces in one place
         </span>
       </header>
 
