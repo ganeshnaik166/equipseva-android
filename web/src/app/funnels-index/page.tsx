@@ -19,8 +19,13 @@ const FUNNELS: Funnel[] = [
   { href: "/payout-success-funnel-90d", title: "Payout success funnel 90d",      desc: "Queued → processing → processed/failed/still-queued",          round: "r1004", domain: "Trust"       },
   { href: "/engineer-onboarding-funnel", title: "Engineer onboarding funnel",    desc: "Signup → profile → verified → 1st bid → 1st job → 1st payout", round: "r1005", domain: "Onboarding"  },
   { href: "/hospital-onboarding-funnel", title: "Hospital onboarding funnel",    desc: "Signup → profile → 1st job → 1st bid → 1st done → 1st AMC",    round: "r1007", domain: "Onboarding"  },
-  { href: "/code-red-sla",              title: "Code Red SLA",                  desc: "7d/30d/90d resolved vs timed_out",                            round: "r622",  domain: "Trust"       },
-  { href: "/supervision-funnel",        title: "Supervision funnel",             desc: "Trainee → first supervised → graduate",                        round: "r623",  domain: "Onboarding"  },
+  { href: "/code-red-sla",                    title: "Code Red SLA",                    desc: "7d/30d/90d resolved vs timed_out",                            round: "r622",  domain: "Trust"       },
+  { href: "/code-red-resolution-funnel-30d",  title: "Code Red resolution funnel 30d",  desc: "Created → accepted → resolved + tails",                       round: "r1111", domain: "Trust"       },
+  { href: "/supervision-funnel",              title: "Supervision funnel",              desc: "Trainee → first supervised → graduate",                        round: "r623",  domain: "Onboarding"  },
+  { href: "/bid-acceptance-funnel-30d",       title: "Bid acceptance funnel 30d",       desc: "Submitted → accepted → completed + rejected/expired tails",   round: "r1045", domain: "Onboarding"  },
+  { href: "/spare-part-order-funnel-30d",     title: "Spare part order funnel 30d",     desc: "Created → paid → shipped → delivered + cancelled/refunded",    round: "r1046", domain: "Revenue"     },
+  { href: "/repair-job-funnel-30d",           title: "Repair job funnel 30d",           desc: "Posted → bid → assigned → completed + cancelled",              round: "r1047", domain: "Onboarding"  },
+  { href: "/amc-renewal-attempts-by-month",   title: "AMC renewal attempts by month",   desc: "12mo attempts × status + success %",                          round: "r1078", domain: "Revenue"     },
 ];
 
 const DOMAIN_TONE: Record<Funnel["domain"], string> = {
@@ -35,8 +40,8 @@ export default async function FunnelsIndexPage() {
   return (
     <div className="space-y-6">
       <header className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold">Funnels index ★ r1010</h1>
-        <span className="text-xs text-[var(--color-muted)]">All multi-stage funnels in one place · pairs with /cross-tabs-index (r976) + /critical-cockpit (r1000)</span>
+        <h1 className="text-xl font-semibold">Funnels index ★ r1010 (expanded r1112)</h1>
+        <span className="text-xs text-[var(--color-muted)]">All 13 multi-stage funnels in one place · pairs with /cross-tabs-index (r976) + /critical-cockpit (r1000)</span>
       </header>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {FUNNELS.map((f) => (
