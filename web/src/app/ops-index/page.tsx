@@ -364,6 +364,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-renewal-failures-aging", title: "Renewal failures aging",  desc: "renewal_failed by days since end_date",      round: "r820" },
       { href: "/amc-renewal-failures",       title: "Renewal failures list",   desc: "renewal_failed outreach queue",              round: "r821" },
       { href: "/amc-renewal-attempts-recent", title: "Renewal attempts recent", desc: "Last 100 renewal attempts (30d) + errors", round: "r936" },
+      { href: "/amc-renewal-by-month-by-status", title: "Renewals month × status", desc: "12mo succeeded/failed/abandoned monthly", round: "r963" },
     ],
   },
   {
