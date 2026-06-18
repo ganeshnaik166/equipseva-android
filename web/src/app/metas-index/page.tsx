@@ -14,6 +14,7 @@ const METAS: Meta[] = [
   { href: "/agings-index",      title: "Agings index",             desc: "9 aging surfaces × 4 severity domains",               round: "r1027",  emoji: "⏰" },
   { href: "/coverage-index",    title: "Coverage index",           desc: "7 geographic + chain coverage surfaces",              round: "r1030",  emoji: "🗺️" },
   { href: "/by-day-index",      title: "By-day index",             desc: "6 daily time-series surfaces",                        round: "r1040",  emoji: "📅" },
+  { href: "/histograms-index",  title: "Histograms index",         desc: "Distribution surfaces by amount/latency",             round: "r1050",  emoji: "📈" },
 ];
 
 export default async function MetasIndexPage() {
