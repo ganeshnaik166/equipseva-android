@@ -60,6 +60,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/payouts-failed-list", title: "Payouts failed list", desc: "Last 100 failed (30d)", round: "r838" },
       { href: "/payouts-rupees-by-day", title: "Payouts ₹ by day (30d)", desc: "Daily processed ₹ + failed + pending", round: "r879" },
       { href: "/escrow-amount-at-risk", title: "Escrow ₹ at risk", desc: "Sum held bucketed by age", round: "r873" },
+      { href: "/escrow-flow-by-day", title: "Escrow flow by day (30d)", desc: "Inflow vs released vs refunded daily", round: "r901" },
       { href: "/payouts-net-of-tds", title: "Payouts net of TDS", desc: "Gross vs TDS withheld vs net paid", round: "r889" },
       { href: "/payout-fail-reasons", title: "Payout fail reasons", desc: "RazorpayX status distribution", round: "r666" },
       { href: "/engineers-missing-payout", title: "Engineers missing payout", desc: "Earned 30d but no verified VPA · outreach queue", round: "r726" },
