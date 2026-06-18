@@ -252,6 +252,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/signups-by-month", title: "Signups", desc: "Total + engineer subset", round: "r695" },
       { href: "/signups-by-month-by-role", title: "Signups month × role", desc: "12mo engineer vs hospital split", round: "r968" },
       { href: "/amc-contracts-by-month", title: "AMC contracts", desc: "New AMCs + new MRR", round: "r696" },
+      { href: "/amc-contracts-by-month-by-tier", title: "New AMCs month × tier", desc: "6mo acquisition by tier", round: "r971" },
       { href: "/payouts-by-month", title: "Engineer payouts", desc: "Paid count / rupees / failed", round: "r697" },
       { href: "/disputes-by-month", title: "Disputes", desc: "Submitted / accepted / rejected", round: "r698" },
       { href: "/referrals-by-month", title: "Referrals", desc: "Referrals / first jobs / bounties", round: "r699" },
