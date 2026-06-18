@@ -109,6 +109,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/engineer-utilization", title: "Utilization", desc: "Verified active 7/30/90d", round: "r628" },
       { href: "/engineer-tenure", title: "Tenure", desc: "Verified by signup age", round: "r629" },
       { href: "/engineer-onboarding-funnel", title: "Onboarding funnel", desc: "Signup → first job", round: "r630" },
+      { href: "/engineer-loyalty-funnel", title: "Loyalty funnel", desc: "Lifetime cohort: signup → 10+ jobs loyalist", round: "r903" },
       { href: "/engineer-referral-coverage", title: "Referral coverage", desc: "% engineers who referred ≥1", round: "r827" },
       { href: "/bidder-engagement", title: "Bidder engagement", desc: "% verified engineers placing ≥1 bid", round: "r832" },
       { href: "/engineer-dormancy", title: "Dormancy", desc: "Past completers idle >30d", round: "r631" },
