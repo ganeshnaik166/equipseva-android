@@ -155,6 +155,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-amount-histogram", title: "AMC amount histogram", desc: "Active AMCs × 7 amount buckets · pricing distribution", round: "r1049" },
       { href: "/histograms-index", title: "Histograms index ★", desc: "8th meta-landing · distribution surfaces (Amount/Latency/Frequency)", round: "r1050★" },
       { href: "/engineer-cohort-retention", title: "Engineer cohort retention", desc: "12mo signup cohorts × 30/60/90/180d active % · classic retention table", round: "r1051" },
+      { href: "/hospital-cohort-retention", title: "Hospital cohort retention", desc: "12mo signup cohorts × 30/60/90/180d posted-job % · demand retention", round: "r1052" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -497,7 +498,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1051 sprint · 254 ships · all founder ops surfaces in one place
+          r599–r1052 sprint · 255 ships · all founder ops surfaces in one place
         </span>
       </header>
 
