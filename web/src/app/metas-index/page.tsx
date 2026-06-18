@@ -19,6 +19,7 @@ const METAS: Meta[] = [
   { href: "/by-hour-index",     title: "By-hour index",            desc: "24 IST hour-of-day distribution surfaces",            round: "r1059",  emoji: "🕐" },
   { href: "/events-index",      title: "Events index",             desc: "Live event feed surfaces (Money/Governance/Marketplace/Trust)", round: "r1062", emoji: "📋" },
   { href: "/cumulative-index",  title: "Cumulative index",         desc: "16 cumulative running-total surfaces by domain",        round: "r1072", emoji: "📊" },
+  { href: "/by-week-index",     title: "By-week index",            desc: "7 weekly time-series surfaces (13wk grain)",            round: "r1104", emoji: "📆" },
 ];
 
 export default async function MetasIndexPage() {
