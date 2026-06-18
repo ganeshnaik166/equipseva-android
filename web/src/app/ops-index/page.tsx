@@ -223,6 +223,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-pool-low-balance", title: "AMC pool low balance", desc: "Active AMCs below 2× monthly fee · outreach queue", round: "r724" },
       { href: "/amc-paused", title: "AMC paused", desc: "Paused contracts · MRR frozen", round: "r679" },
       { href: "/amc-paused-recent", title: "AMC paused (sorted)", desc: "100 most-recently-paused + days-paused tone", round: "r951" },
+      { href: "/amc-paused-by-tier", title: "AMC paused by tier", desc: "Frozen MRR + avg days paused per tier", round: "r982" },
       { href: "/amc-cancellations", title: "AMC cancellations 30d", desc: "Cancelled/failed/expired list", round: "r683" },
       { href: "/amc-cancellations-recent", title: "AMC cancellations (sorted)", desc: "30d cancellations with MRR lost", round: "r952" },
       { href: "/chains-health", title: "Chains health", desc: "Per-chain AMC % + jobs", round: "r621" },
