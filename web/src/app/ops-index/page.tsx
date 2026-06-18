@@ -128,6 +128,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/bidder-engagement", title: "Bidder engagement", desc: "% verified engineers placing ≥1 bid", round: "r832" },
       { href: "/engineer-dormancy", title: "Dormancy", desc: "Past completers idle >30d", round: "r631" },
       { href: "/engineer-recency", title: "Recency buckets", desc: "Verified engineers by days since last bid", round: "r888" },
+      { href: "/verified-engineers-recent", title: "Verified engineers recent", desc: "Last 100 verifications + signup→verified latency", round: "r955" },
       { href: "/engineer-geo", title: "Geo", desc: "Top 50 cities + verification", round: "r633" },
       { href: "/engineer-specialization-coverage", title: "Specialization coverage", desc: "Per-category counts", round: "r634" },
       { href: "/top-engineers-7d", title: "Top earners (7d)", desc: "Top 25 by 7d gross", round: "r615" },
