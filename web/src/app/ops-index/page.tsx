@@ -231,6 +231,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/payouts-by-day-trend", title: "Payouts", desc: "Daily paid + rupees + failed", round: "r686" },
       { href: "/amc-pool-credits-trend", title: "AMC pool credits", desc: "Daily ledger credit/debit/refund", round: "r693" },
       { href: "/amc-pool-credits-source", title: "AMC pool credits/month", desc: "12mo credit/debit/refund/net", round: "r896" },
+      { href: "/amc-pool-debits-recent", title: "AMC pool debits recent", desc: "Last 100 debits (30d) + balance-after tone", round: "r947" },
       { href: "/bonded-intake-trend", title: "Bonded intake", desc: "Daily intake rows + qty + cost", round: "r706" },
       { href: "/bonded-dispatch-trend", title: "Bonded dispatch", desc: "Daily dispatches + qty + installed", round: "r707" },
     ],
