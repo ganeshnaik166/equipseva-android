@@ -192,6 +192,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/disputes-resolution-time-distribution", title: "Dispute resolution time distribution", desc: "90d resolved disputes × 6 latency buckets · mediation velocity histogram", round: "r1090" },
       { href: "/first-bid-latency-distribution", title: "First-bid latency distribution", desc: "90d jobs × 6 buckets of post→first-bid latency · marketplace responsiveness", round: "r1091" },
       { href: "/bids-per-job-distribution", title: "Bids per job distribution", desc: "90d jobs × 6 bid-count buckets · marketplace competitiveness · 0-bid count", round: "r1092" },
+      { href: "/signups-by-hour-7d", title: "Signups by hour 7d", desc: "24 IST hours · 7d signups split engineer/hospital/other · onboarding pattern", round: "r1094" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -534,7 +535,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1093 sprint · 296 ships · all founder ops surfaces in one place
+          r599–r1094 sprint · 297 ships · all founder ops surfaces in one place
         </span>
       </header>
 
