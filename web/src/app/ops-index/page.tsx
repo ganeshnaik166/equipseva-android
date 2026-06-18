@@ -179,6 +179,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-pool-top-balances", title: "AMC pool top balances", desc: "Top 50 active AMCs by current pool balance · upsell + audit candidates", round: "r1075" },
       { href: "/amc-pool-bottom-balances", title: "AMC pool bottom balances", desc: "Bottom 50 active AMCs by pool balance · founder top-up campaign queue", round: "r1076" },
       { href: "/payouts-pending-by-engineer", title: "Payouts pending by engineer", desc: "Top 50 engineers · pending count + INR + oldest + 90d failures", round: "r1077" },
+      { href: "/amc-renewal-attempts-by-month", title: "AMC renewal attempts by month", desc: "12mo · attempts split by status + success % · Razorpay outcome quality", round: "r1078" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -521,7 +522,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1077 sprint · 280 ships · all founder ops surfaces in one place
+          r599–r1078 sprint · 281 ships · all founder ops surfaces in one place
         </span>
       </header>
 
