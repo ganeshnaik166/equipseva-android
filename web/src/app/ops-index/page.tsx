@@ -373,6 +373,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-pool-balance-by-state", title: "AMC pool balance by state",       desc: "Top 40 states by active-contract balance", round: "r924" },
       { href: "/state-overview",        title: "State overview ★",            desc: "All-state consolidated dashboard (r925 / PR #1550 milestone)", round: "r925★" },
       { href: "/escrow-by-state",       title: "Escrow by state",             desc: "Held + released + refunded per state",        round: "r926" },
+      { href: "/payouts-by-state",      title: "Payouts by state",            desc: "Top 40 states by engineer payout volume 90d", round: "r927" },
       { href: "/payouts-by-engineer-tier", title: "Payouts by engineer tier",  desc: "90d processed payouts by cert tier",          round: "r833" },
       { href: "/jobs-by-engineer-tier", title: "Jobs by engineer tier",        desc: "90d completed jobs by cert tier",             round: "r834" },
       { href: "/jobs-completion-by-equipment", title: "Completion hours by equipment", desc: "p50/p90/avg hours per equipment (90d)", round: "r886" },
