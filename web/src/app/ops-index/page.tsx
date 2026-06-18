@@ -34,6 +34,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/audit-trail-export", title: "Audit trail export ★", desc: "CSV download for compliance archive (r900 milestone)", round: "r900★" },
       { href: "/audit-actions-by-day", title: "Audit actions by day", desc: "30d founder action log volume + variety", round: "r929" },
       { href: "/pending-kyc", title: "Pending KYC", desc: "Engineer verification queue", round: "r664" },
+      { href: "/kyc-pending-detail", title: "KYC pending detail", desc: "100 oldest pending verifications + days-pending tone", round: "r956" },
       { href: "/open-disputes", title: "Open disputes", desc: "Submitted packs awaiting decision", round: "r665" },
       { href: "/disputes-recent", title: "Disputes recent", desc: "Last 100 packs (90d)", round: "r938" },
       { href: "/dispute-by-mediator", title: "Dispute by mediator", desc: "Top 50 mediators · decisions + accept/reject (90d)", round: "r942" },
