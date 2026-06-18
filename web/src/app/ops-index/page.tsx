@@ -68,6 +68,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/payouts-rupees-by-day", title: "Payouts ₹ by day (30d)", desc: "Daily processed ₹ + failed + pending", round: "r879" },
       { href: "/escrow-amount-at-risk", title: "Escrow ₹ at risk", desc: "Sum held bucketed by age", round: "r873" },
       { href: "/escrow-flow-by-day", title: "Escrow flow by day (30d)", desc: "Inflow vs released vs refunded daily", round: "r901" },
+      { href: "/escrow-by-month-by-status", title: "Escrow month × status", desc: "12mo paid/released/refunded/disputed", round: "r964" },
       { href: "/payouts-net-of-tds", title: "Payouts net of TDS", desc: "Gross vs TDS withheld vs net paid", round: "r889" },
       { href: "/tds-deductions-recent", title: "TDS deductions recent", desc: "Last 100 with deposited flag", round: "r943" },
       { href: "/undeposited-tds", title: "Undeposited TDS ⚠️", desc: "TDS deducted but not yet sent to govt · compliance", round: "r944" },
