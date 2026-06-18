@@ -14,6 +14,7 @@ const EVENTS: Ev[] = [
   { href: "/failed-payouts-recent",         title: "Failed payouts recent",         desc: "Top 100 recent failed payouts + reason",                round: "r1032", domain: "Money"       },
   { href: "/spare-part-orders-recent",      title: "Spare part orders recent",       desc: "Recent spare part order feed",                          round: "r911",  domain: "Marketplace" },
   { href: "/critical-actions",              title: "Critical actions queue",         desc: "Top items needing founder action (4 domains)",          round: "r1002", domain: "Trust"       },
+  { href: "/amc-renewal-attempts-recent",   title: "AMC renewal attempts recent",    desc: "Top 100 recent renewal attempts × outcome × error",    round: "r1088", domain: "Money"       },
 ];
 
 const TONE: Record<Ev["domain"], string> = {
@@ -28,8 +29,8 @@ export default async function EventsIndexPage() {
   return (
     <div className="space-y-6">
       <header className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold">Events index ★ r1062</h1>
-        <span className="text-xs text-[var(--color-muted)]">11th meta-landing · live event feed surfaces (Money/Governance/Marketplace/Trust)</span>
+        <h1 className="text-xl font-semibold">Events index ★ r1062 (expanded r1097)</h1>
+        <span className="text-xs text-[var(--color-muted)]">11th meta-landing · 8 live event feed surfaces (Money/Governance/Marketplace/Trust)</span>
       </header>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {EVENTS.map((e) => (
