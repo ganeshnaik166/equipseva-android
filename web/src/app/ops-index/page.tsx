@@ -53,6 +53,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/escrow-velocity", title: "Escrow velocity", desc: "Created → released p50/p90", round: "r674" },
       { href: "/webhooks", title: "Webhook health", desc: "Razorpay + payouts success", round: "r606" },
       { href: "/webhook-failures-recent", title: "Webhook failures recent", desc: "Last 100 unapplied events (7d)", round: "r881" },
+      { href: "/webhook-success-rate", title: "Webhook success rate", desc: "% applied per source · 7/30d", round: "r931" },
       { href: "/payouts", title: "Engineer payouts", desc: "Queue · dead-letter · ops", round: "r428+" },
       { href: "/payout-latency", title: "Payout latency", desc: "Queued → processed time", round: "r624" },
       { href: "/payout-volume-30d", title: "Payout volume 30d", desc: "Per-status rupees", round: "r651" },
