@@ -67,6 +67,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/escrow-flow-by-day", title: "Escrow flow by day (30d)", desc: "Inflow vs released vs refunded daily", round: "r901" },
       { href: "/payouts-net-of-tds", title: "Payouts net of TDS", desc: "Gross vs TDS withheld vs net paid", round: "r889" },
       { href: "/tds-deductions-recent", title: "TDS deductions recent", desc: "Last 100 with deposited flag", round: "r943" },
+      { href: "/undeposited-tds", title: "Undeposited TDS ⚠️", desc: "TDS deducted but not yet sent to govt · compliance", round: "r944" },
       { href: "/payout-fail-reasons", title: "Payout fail reasons", desc: "RazorpayX status distribution", round: "r666" },
       { href: "/engineers-missing-payout", title: "Engineers missing payout", desc: "Earned 30d but no verified VPA · outreach queue", round: "r726" },
       { href: "/payout-method-coverage", title: "Payout method coverage", desc: "% of earning engineers with verified VPA · 7/30/90d", round: "r791" },
