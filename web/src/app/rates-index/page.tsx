@@ -15,6 +15,8 @@ const RATES: Rate[] = [
   { href: "/audit-success-rate-by-week",           title: "Audit success rate by week",        desc: "13wk · success/total %",                       round: "r1074", domain: "Governance"  },
   { href: "/escrow-release-rate",                  title: "Escrow release rate",                desc: "% completed jobs whose escrow released",       round: "r796",  domain: "Trust"       },
   { href: "/jobs-fill-rate",                       title: "Jobs fill rate",                     desc: "% jobs got bid within 7d",                    round: "r794",  domain: "Marketplace" },
+  { href: "/jobs-cancellation-rate-by-week",       title: "Jobs cancellation rate by week",     desc: "13wk · cancelled/posted % (lower is better)", round: "r1121", domain: "Marketplace" },
+  { href: "/spare-parts-delivery-rate-by-week",    title: "Spare parts delivery rate by week",  desc: "13wk · delivered/paid % · fulfillment",       round: "r1122", domain: "Marketplace" },
 ];
 
 const TONE: Record<Rate["domain"], string> = {
@@ -29,8 +31,8 @@ export default async function RatesIndexPage() {
   return (
     <div className="space-y-6">
       <header className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold">Rates index ★ r1120</h1>
-        <span className="text-xs text-[var(--color-muted)]">14th meta-landing · 8 conversion/success-rate surfaces grouped by domain</span>
+        <h1 className="text-xl font-semibold">Rates index ★ r1120 (expanded r1123)</h1>
+        <span className="text-xs text-[var(--color-muted)]">14th meta-landing · 10 conversion/success-rate surfaces grouped by domain</span>
       </header>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {RATES.map((r) => (
