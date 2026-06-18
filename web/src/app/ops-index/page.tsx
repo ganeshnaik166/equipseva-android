@@ -186,6 +186,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/supervised-by-day-30d", title: "Supervised by day 30d", desc: "Daily requested + active + successful + failed + declined · training pulse", round: "r1082" },
       { href: "/tier-changes-by-day-30d", title: "Tier changes by day 30d", desc: "Daily promotions vs demotions · supply quality pulse", round: "r1083" },
       { href: "/amc-renewal-window-90d", title: "AMC renewal window 90d", desc: "Renewing in next 90d × tier × MRR at risk · pair with /amc-renewal-window-30d (r991)", round: "r1084" },
+      { href: "/code-red-by-hour-7d", title: "Code Red by hour 7d", desc: "24 IST hours · Code Red volume + resolved + timed_out · staffing signal", round: "r1086" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -528,7 +529,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1084 sprint · 287 ships · all founder ops surfaces in one place
+          r599–r1086 sprint · 289 ships · all founder ops surfaces in one place
         </span>
       </header>
 
