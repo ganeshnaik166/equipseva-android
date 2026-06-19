@@ -263,6 +263,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/notifications-snapshot-summary", title: "Notifications snapshot summary", desc: "12-KPI throughput · today/30d · stuck-unread alerts", round: "r1183" },
       { href: "/signups-funnel-snapshot-summary", title: "Signups funnel snapshot summary", desc: "13-KPI acquisition funnel · today/7d/30d by role + first-action %", round: "r1184" },
       { href: "/spot-audits-snapshot-summary", title: "Spot audits snapshot summary", desc: "14-KPI QA dashboard · invitations + responses + ratings + coverage", round: "r1185" },
+      { href: "/money-in-flight-summary", title: "Money in flight summary ★", desc: "Cross-domain cash position · escrow + payouts + spare-parts + AMC pool + bounty + disputes", round: "r1193★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
