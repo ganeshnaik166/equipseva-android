@@ -352,6 +352,11 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-churn-early-warning", title: "AMC churn early warning ★★", desc: "Top-100 watchlist · composite churn score (visit recency + overdue visits + payment lateness + SLA + disputes + code-red) · ARR at risk per band", round: "r1318★★" },
       { href: "/hospital-chains-bulk-import", title: "Hospital chains bulk import ★★", desc: "v0.5 Phase 3 SHIPPED · multi-hospital chain register · prospecting→live funnel · MRR contribution · acquisition velocity (r1321 fix on r544 schema)", round: "r1319★★" },
       { href: "/founder-tier-1-home", title: "Founder tier-1 home ★★★ · 500 SHIPS", desc: "COMPOSITE HOME · headline KPIs + top 5 actions + open incidents + cron health + DPDP routing + payouts snapshot · 6 RPCs parallel", round: "r1320★★★" },
+      { href: "/dental-vertical-pilot", title: "Dental vertical pilot ★★", desc: "v0.5 Phase 4 SHIPPED · 12 KPIs · clinic enrollment ledger (invited→onboarding→live→paused→churned) · bonded-parts suppliers · pilot conversion + days-to-first-AMC median", round: "r1323★★" },
+      { href: "/founder-ma-pipeline", title: "Founder M&A pipeline ★★", desc: "Internal corp-dev tracker · 15 KPIs · 9-stage funnel (identified→passed) · target ledger + per-target activity log · NOT customer-facing", round: "r1324★★" },
+      { href: "/founder-payroll-bulk-authorize", title: "Founder payroll bulk authorize ★★", desc: "Bulk-authorize queued engineer payouts · 12-card dry-run (KYC + UPI/bank + dispute blockers) · draft → authorized → cron consumes · Cashfree-ready", round: "r1325★★" },
+      { href: "/founder-nps-quarterly", title: "Founder NPS quarterly ★★", desc: "Hospital NPS quarterly survey infra · 15 KPIs · latest score + QoQ delta + promoter/passive/detractor migration · offline send + RPC-logged responses", round: "r1326★★" },
+      { href: "/founder-compliance-ledger", title: "Founder compliance ledger ★★★", desc: "BOARD DILIGENCE FREEZE · 22-KPI consolidated regulatory health: GST + DPDP + Razorpay + Cashfree + KYC + disputes + Code Red + audit · 0..100 weighted score", round: "r1327★★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -692,7 +697,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1322 sprint · 503 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 7 audit-fix sweeps · 54 prod bugs caught pre-deploy ★ all founder ops surfaces in one place
+          r599–r1327 sprint · 508 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ 7 audit-fix sweeps · 54 prod bugs caught pre-deploy
         </span>
       </header>
 

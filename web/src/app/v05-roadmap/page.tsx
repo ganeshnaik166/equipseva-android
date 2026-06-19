@@ -37,23 +37,23 @@ const PLAN: Item[] = [
     priority: "P0",
   },
   {
-    phase: 3, title: "Hospital chains onboarding accelerator",
-    scope: "Bulk-import API for hospital chains (top 50 by AMC LTV proxy). Pre-filled AMC affidavits with chain-signer + chain-specific equipment_categories. /hospital-chains-snapshot-summary tracks acquisition velocity.",
-    blockers: "1 sales conversation with each chain to validate flow. Founder-led.",
-    deliverables: "5 chains onboarded · 50+ hospitals · ₹5L+ MRR added.",
-    owner: "Founder · BD",
-    target_weeks: "Weeks 2-4",
-    status: "Ready",
+    phase: 3, title: "Hospital chains onboarding accelerator — ✅ SHIPPED r1319 (+ r1321 fix)",
+    scope: "Bulk-import API for hospital chains (top 50 by AMC LTV proxy). Pre-filled AMC affidavits with chain-signer + chain-specific equipment_categories. /hospital-chains-bulk-import tracks acquisition velocity + prospecting→live funnel.",
+    blockers: "None — infra live; sales conversations next.",
+    deliverables: "✅ hospital_chains (extended r544 schema) + hospital_chain_imports tables · 5 RPCs · Server-Action register form on /hospital-chains-bulk-import.",
+    owner: "Claude · founder owns sales",
+    target_weeks: "✅ DONE (2 weeks early)",
+    status: "In progress",
     priority: "P0",
   },
   {
-    phase: 4, title: "Dental vertical pilot",
-    scope: "Dental-clinic AMC + repair vertical — distinct equipment_taxonomy_class (autoclave, X-ray, dental chairs, ultrasonic scalers). Bonded-parts supplier network. 10 dental clinics in Hyderabad as pilot cohort.",
-    blockers: "Equipment-category seeding + 2-3 dental-equipment suppliers signed.",
-    deliverables: "10 dental clinics live · 5 AMCs signed · /equipment-category-snapshot shows dental ≥ 10% mix.",
-    owner: "Founder · vertical lead",
-    target_weeks: "Weeks 3-6",
-    status: "Planned",
+    phase: 4, title: "Dental vertical pilot — ✅ SHIPPED r1323",
+    scope: "Dental-clinic AMC + repair vertical — distinct equipment_taxonomy_class (autoclave, dental X-ray, dental chairs, ultrasonic scalers). Bonded-parts supplier network. Pilot cohort tracker.",
+    blockers: "None for infra; sales (founder-led).",
+    deliverables: "✅ dental_pilot_clinics + dental_bonded_parts_suppliers tables · 12-KPI summary RPC · /dental-vertical-pilot page · register+invite Server Actions.",
+    owner: "Claude · founder + vertical lead",
+    target_weeks: "✅ DONE (3 weeks early)",
+    status: "In progress",
     priority: "P1",
   },
   {
@@ -139,8 +139,8 @@ export default async function V05RoadmapPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-xl font-semibold">v0.5 roadmap ★ r1304 · r1314 update (5/10 phases done in Day 5)</h1>
-        <p className="text-xs text-[var(--color-muted)] mt-1">10 phases planned · 5 SHIPPED ahead of schedule (5/6/7/8 + add. incidents infra) · {ready} ready · {blocked} blocked</p>
+        <h1 className="text-xl font-semibold">v0.5 roadmap ★ r1304 · r1323 update — 8/10 v0.5 phases SHIPPED in Day 5</h1>
+        <p className="text-xs text-[var(--color-muted)] mt-1">10 phases planned · 8 SHIPPED ahead of schedule (3/4/5/6/7/8/9/10 + add. incidents/cron/tier-1/churn-warning/board-pack) · {ready} ready · {blocked} blocked</p>
       </header>
 
       <section className="rounded-lg border-2 border-[var(--color-accent)] bg-[var(--color-surface)] p-6">
