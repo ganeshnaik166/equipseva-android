@@ -27,6 +27,9 @@ const PULSES: Pulse[] = [
   // Ops axis
   { href: "/founder-action-followups-summary", title: "Founder action followups", desc: "Untouched items >7d · meta-operational TODO age pulse",                          round: "r1217", focus: "Ops"     },
   { href: "/system-throughput-hourly-summary", title: "System throughput hourly", desc: "Jobs-per-hour + 24h-load curve · capacity planning",                              round: "r1218", focus: "Ops"     },
+  { href: "/razorpay-payments-pulse-summary", title: "Razorpay payments pulse",  desc: "Gateway-side pulse · capture lag + webhook recon + refund inflight",              round: "r1221", focus: "Money"   },
+  { href: "/tds-deductions-pulse-summary",   title: "TDS deductions pulse",     desc: "194C/194J withholding ledger · MTD accrued + missing-PAN + filing aging",          round: "r1242", focus: "Money"   },
+  { href: "/dpdp-grievance-pulse-summary",   title: "DPDP grievance pulse",     desc: "DPDP Act complaints · 30-day SLA breach + correction/erasure/portability mix",     round: "r1243", focus: "Trust"   },
 ];
 
 const FOCUS_TONE: Record<Pulse["focus"], string> = {
@@ -42,7 +45,7 @@ export default async function PulseSummariesIndexPage() {
   return (
     <div className="space-y-6">
       <header className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold">Pulse summaries index ★ r1228</h1>
+        <h1 className="text-xl font-semibold">Pulse summaries index ★ r1228 · r1246 expansion</h1>
         <span className="text-xs text-[var(--color-muted)]">27th meta-landing · {PULSES.length} cross-domain pulse dashboards (Money/Trust/Quality/Growth/Ops)</span>
       </header>
       <p className="text-sm text-[var(--color-muted)]">Pulses differ from snapshots: they cut ACROSS domains and produce a composite score, not a per-table single-row dashboard. Use these to answer broad founder questions ("is trust deteriorating", "where is the cash") in one glance.</p>
