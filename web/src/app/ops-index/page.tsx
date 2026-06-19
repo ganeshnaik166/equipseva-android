@@ -357,6 +357,11 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-payroll-bulk-authorize", title: "Founder payroll bulk authorize ★★", desc: "Bulk-authorize queued engineer payouts · 12-card dry-run (KYC + UPI/bank + dispute blockers) · draft → authorized → cron consumes · Cashfree-ready", round: "r1325★★" },
       { href: "/founder-nps-quarterly", title: "Founder NPS quarterly ★★", desc: "Hospital NPS quarterly survey infra · 15 KPIs · latest score + QoQ delta + promoter/passive/detractor migration · offline send + RPC-logged responses", round: "r1326★★" },
       { href: "/founder-compliance-ledger", title: "Founder compliance ledger ★★★", desc: "BOARD DILIGENCE FREEZE · 22-KPI consolidated regulatory health: GST + DPDP + Razorpay + Cashfree + KYC + disputes + Code Red + audit · 0..100 weighted score", round: "r1327★★★" },
+      { href: "/founder-runway-burn", title: "Founder runway & burn ★★★", desc: "Cash position + 3m-avg burn → runway months + zero-cash date · 12 KPIs · burn = payouts + spares + refunds · inflow = captured payments · manual monthly snapshot", round: "r1328★★★" },
+      { href: "/founder-vendor-payables", title: "Vendor payables ★★", desc: "Supplier ledger · pending + overdue 30d + bonded vs unbonded · top 30 by pending amount · avg days-to-pay", round: "r1329★★" },
+      { href: "/founder-cohort-retention", title: "Founder cohort retention ★★", desc: "Engineer + hospital 12mo signup cohorts × M0/M1/M3/M6/M12 active % · color-banded retention curves", round: "r1330★★" },
+      { href: "/founder-pipeline-velocity", title: "Founder pipeline velocity ★★", desc: "AMC sales funnel · win-rate 30d/90d · cycle-time p50/p90 · per-chain stage table · qualified pipeline value", round: "r1331★★" },
+      { href: "/founder-incident-postmortem-ledger", title: "Founder incident postmortem ledger ★★★", desc: "INSTITUTIONAL MEMORY · 17 KPIs · 8-class root-cause taxonomy · postmortems linked to founder_incidents · action items with overdue flag", round: "r1332★★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -697,7 +702,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1327 sprint · 508 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ 7 audit-fix sweeps · 54 prod bugs caught pre-deploy
+          r599–r1333 sprint · 514 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ 8 audit-fix sweeps · 59 prod bugs caught pre-deploy
         </span>
       </header>
 
