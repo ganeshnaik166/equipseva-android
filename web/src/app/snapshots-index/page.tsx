@@ -22,6 +22,27 @@ const SURFACES: Snap[] = [
   { href: "/referrals-snapshot-summary",            title: "Referrals snapshot",            desc: "Growth dashboard · funnel + bounty spend + ROI + stuck",       round: "r1180", kpis: 14, section: "Growth" },
   { href: "/signups-funnel-snapshot-summary",       title: "Signups funnel snapshot",       desc: "Acquisition funnel × role + first-action completion %",        round: "r1184", kpis: 13, section: "Growth" },
   { href: "/notifications-snapshot-summary",        title: "Notifications snapshot",        desc: "Throughput · today/30d · stuck-unread alerts",                 round: "r1183", kpis: 12, section: "Ops"    },
+  // r1186 expansion ↑ · r1226 expansion ↓
+  // Batch 2 (r1197-r1201)
+  { href: "/equipment-category-snapshot",           title: "Equipment category snapshot",   desc: "Taxonomy mix · scope gate · top category by job volume",       round: "r1197", kpis: 13, section: "Demand" },
+  { href: "/engineer-certifications-snapshot",      title: "Engineer cert snapshot",        desc: "Cert-ladder tier mix + promo flow + stalled queue",            round: "r1198", kpis: 14, section: "Supply" },
+  { href: "/compliance-evidence-snapshot",          title: "Compliance evidence snapshot",  desc: "§65B ledger + DPDP + DSR + NABH + audit log",                  round: "r1199", kpis: 15, section: "Trust"  },
+  { href: "/cumulative-rollup-summary",             title: "Cumulative rollup summary",     desc: "Lifetime autobiography · investor-deck row",                   round: "r1200", kpis: 14, section: "Money"  },
+  { href: "/regional-state-summary",                title: "Regional state summary",        desc: "Top-3 states by composite activity",                            round: "r1201", kpis: 15, section: "Demand" },
+  // Batch 3 (r1202-r1207)
+  { href: "/kyc-pipeline-snapshot",                 title: "KYC pipeline snapshot",         desc: "Engineer + buyer pending + rekyc-due + aging buckets",         round: "r1202", kpis: 20, section: "Trust"  },
+  { href: "/webhooks-snapshot",                     title: "Webhooks snapshot",             desc: "Razorpay webhook health · success rate + retry queue",         round: "r1203", kpis: 12, section: "Ops"    },
+  { href: "/gst-invoice-snapshot",                  title: "GST invoice snapshot",          desc: "Tax-audit-ready · MTD value + dispatch + GSTIN coverage",      round: "r1204", kpis: 12, section: "Money"  },
+  { href: "/rfq-marketplace-snapshot",              title: "RFQ marketplace snapshot",      desc: "Vendor RFQs + rental + financing · TAM expansion lane",        round: "r1205", kpis: 14, section: "Demand" },
+  { href: "/amc-sla-warranty-snapshot",             title: "AMC SLA warranty snapshot",     desc: "SLA breach + warranty-detected + breach $ exposure",           round: "r1206", kpis: 14, section: "Money"  },
+  { href: "/reconciliation-tax-snapshot",           title: "Reconciliation tax snapshot",   desc: "Recon mismatch + TDS MTD + 26AS + gateway drift",              round: "r1207", kpis: 12, section: "Money"  },
+  // Batch 4 (r1213-r1218)
+  { href: "/chat-moderation-summary",               title: "Chat moderation summary",       desc: "DPDP safety · volume + PII-attempts + repeat offenders",       round: "r1213", kpis: 12, section: "Trust"  },
+  { href: "/onboarding-velocity-summary",           title: "Onboarding velocity summary",   desc: "Signup → first-action latency · median + p90 + by role",      round: "r1214", kpis: 12, section: "Growth" },
+  { href: "/dsr-data-export-sla-summary",           title: "DSR data export SLA summary",   desc: "DPDP DSR queue + 24h-SLA compliance + breaches",                round: "r1215", kpis: 12, section: "Trust"  },
+  { href: "/consent-ledger-summary",                title: "Consent ledger summary",        desc: "DPDP per-purpose grants + revocation velocity",                round: "r1216", kpis: 13, section: "Trust"  },
+  { href: "/founder-action-followups-summary",      title: "Founder action followups",      desc: "Untouched items >7d · meta-operational TODO age pulse",        round: "r1217", kpis: 16, section: "Ops"    },
+  { href: "/system-throughput-hourly-summary",      title: "System throughput hourly",      desc: "Jobs-per-hour + 24h-load curve · capacity planning",           round: "r1218", kpis: 12, section: "Ops"    },
 ];
 
 const SEC_TONE: Record<Snap["section"], string> = {
@@ -38,8 +59,8 @@ export default async function SnapshotsIndexPage() {
   return (
     <div className="space-y-6">
       <header className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold">Snapshots index ★ r1172 · r1186 expansion</h1>
-        <span className="text-xs text-[var(--color-muted)]">24th meta-landing · {SURFACES.length} domain snapshot summaries · 12-18 KPIs each, today/30d/all-time mix</span>
+        <h1 className="text-xl font-semibold">Snapshots index ★ r1172 · r1226 expansion</h1>
+        <span className="text-xs text-[var(--color-muted)]">24th meta-landing · {SURFACES.length} domain snapshot summaries · 12-20 KPIs each, today/30d/all-time mix</span>
       </header>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {SURFACES.map((s) => (
