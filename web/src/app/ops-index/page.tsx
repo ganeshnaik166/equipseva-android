@@ -281,6 +281,12 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-pool-pulse-summary", title: "AMC pool pulse summary ★", desc: "12-KPI pool health · balance + flow + zero-balance alerts", round: "r1209★" },
       { href: "/supply-quality-summary", title: "Supply quality summary ★", desc: "Composite engineer-trust score · KYC + tiers + audit + payouts + activity", round: "r1211★" },
       { href: "/demand-quality-summary", title: "Demand quality summary ★", desc: "Composite hospital-trust score · AMC coverage + activity + loyalty + churn", round: "r1212★" },
+      { href: "/chat-moderation-summary", title: "Chat moderation summary", desc: "12-KPI DPDP safety · volume + PII-attempts + repeat offenders 30d", round: "r1213" },
+      { href: "/onboarding-velocity-summary", title: "Onboarding velocity summary", desc: "12-KPI signup→first-action latency · median + p90 + by role", round: "r1214" },
+      { href: "/dsr-data-export-sla-summary", title: "DSR data export SLA summary", desc: "12-KPI DPDP-mandated DSR queue + 24h-SLA compliance + breaches", round: "r1215" },
+      { href: "/consent-ledger-summary", title: "Consent ledger summary", desc: "13-KPI DPDP per-purpose grant + revocation velocity", round: "r1216" },
+      { href: "/founder-action-followups-summary", title: "Founder action followups summary", desc: "16-KPI untouched items >7d · meta-operational TODO age pulse", round: "r1217" },
+      { href: "/system-throughput-hourly-summary", title: "System throughput hourly summary", desc: "12-KPI jobs-per-hour + peak distribution · capacity planning", round: "r1218" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -621,7 +627,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1212 sprint · 407 ships · all founder ops surfaces in one place
+          r599–r1218 sprint · 414 ships · all founder ops surfaces in one place
         </span>
       </header>
 
