@@ -346,6 +346,12 @@ const SECTIONS: OpsSection[] = [
       { href: "/v05-roadmap", title: "v0.5 roadmap ★", desc: "10-phase v0.5 plan · Cashfree payouts + chains + dental + action-center-v2 + investor share v2", round: "r1304★" },
       { href: "/share/investor/v2/<token>", title: "Public investor share v2 ★", desc: "Token-gated public page · 13 sanitized KPIs (MRR + lifetime GMV + trust score) · v0.5 Phase 6 SHIPPED", round: "r1307★" },
       { href: "/founder-cron-status", title: "Founder cron status ★", desc: "pg_cron jobs · last-run state + 24h failure rate · monitors all background automation", round: "r1312★" },
+      { href: "/founder-morning-email-digest-v2", title: "Founder morning email digest v2 ★★", desc: "v0.5 Phase 9 SHIPPED · 07:30 IST preview · top 10 actions + MRR DoD/WoW/30d deltas + alerts + 24h milestones + cron health", round: "r1315★★" },
+      { href: "/founder-gst-quarterly-filing-prep", title: "Founder GST quarterly filing prep ★★", desc: "v0.5 Phase 10 SHIPPED · GSTR-1 + GSTR-3B prefill · B2B/B2C breakdown · HSN summary · filings log with ARN", round: "r1316★★" },
+      { href: "/founder-weekly-board-pack", title: "Weekly board pack ★★", desc: "25+ auto-generated weekly KPIs for investor/board reporting · 6 categories · 13-week trend", round: "r1317★★" },
+      { href: "/amc-churn-early-warning", title: "AMC churn early warning ★★", desc: "Top-100 watchlist · composite churn score (visit recency + overdue visits + payment lateness + SLA + disputes + code-red) · ARR at risk per band", round: "r1318★★" },
+      { href: "/hospital-chains-bulk-import", title: "Hospital chains bulk import ★★", desc: "v0.5 Phase 3 SHIPPED · multi-hospital chain register · prospecting→live funnel · MRR contribution · acquisition velocity (r1321 fix on r544 schema)", round: "r1319★★" },
+      { href: "/founder-tier-1-home", title: "Founder tier-1 home ★★★ · 500 SHIPS", desc: "COMPOSITE HOME · headline KPIs + top 5 actions + open incidents + cron health + DPDP routing + payouts snapshot · 6 RPCs parallel", round: "r1320★★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -686,7 +692,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1302 sprint · 482 ships · all founder ops surfaces in one place
+          r599–r1321 sprint · 502 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ all founder ops surfaces in one place
         </span>
       </header>
 
