@@ -340,6 +340,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/razorpay-webhook-events-summary", title: "Razorpay webhook events summary", desc: "14-KPI incoming-payment telemetry · webhook lag + signature fails + dup events", round: "r1297" },
       { href: "/payouts-webhook-events-summary", title: "Payouts webhook events summary", desc: "14-KPI Cashfree outbound · terminal state distribution + reconciliation gap", round: "r1298" },
       { href: "/amc-sla-breaches-summary", title: "AMC SLA breaches summary", desc: "22-KPI breach ledger by week + tier + engineer + breach type · retention risk", round: "r1299" },
+      { href: "/workflow-failure-modes-catalog", title: "Workflow failure modes catalog ★", desc: "18 distinct workflow-agent failure modes observed + fix strategies · knowledge catalog", round: "r1302★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -680,7 +681,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1301 sprint · 481 ships · all founder ops surfaces in one place
+          r599–r1302 sprint · 482 ships · all founder ops surfaces in one place
         </span>
       </header>
 
