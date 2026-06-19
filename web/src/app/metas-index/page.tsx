@@ -32,7 +32,8 @@ const METAS: Meta[] = [
   { href: "/notifications-index", title: "Notifications index",    desc: "3 notification engagement surfaces",                    round: "r1149", emoji: "🔔" },
   { href: "/snapshots-index",   title: "Snapshots index",          desc: "15 domain snapshot summaries · 12-18 KPIs each (r1186 expansion)", round: "r1172", emoji: "📸" },
   { href: "/by-month-index",    title: "By-month index",           desc: "40 monthly time-series surfaces grouped Marketplace/AMC/Money/Trust/Growth/Supply", round: "r1179", emoji: "📅" },
-  { href: "/executive-dashboard-index", title: "Executive dashboard index ★", desc: "19 founder dashboards ranked Tier 1/2/3 by daily-usage priority", round: "r1196", emoji: "💼" },
+  { href: "/executive-dashboard-index", title: "Executive dashboard index ★", desc: "33 founder dashboards ranked Tier 1/2/3 by daily-usage priority (r1219 expansion)", round: "r1196", emoji: "💼" },
+  { href: "/pulse-summaries-index", title: "Pulse summaries index ★", desc: "11 cross-domain pulse dashboards grouped Money/Trust/Quality/Growth/Ops", round: "r1228", emoji: "💓" },
 ];
 
 export default async function MetasIndexPage() {
@@ -41,7 +42,7 @@ export default async function MetasIndexPage() {
     <div className="space-y-6">
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Metas index ★ r1041</h1>
-        <span className="text-xs text-[var(--color-muted)]">Meta-of-metas · 26 founder console navigation root pages</span>
+        <span className="text-xs text-[var(--color-muted)]">Meta-of-metas · 27 founder console navigation root pages</span>
       </header>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {METAS.map((m) => (
