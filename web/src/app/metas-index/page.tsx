@@ -30,6 +30,7 @@ const METAS: Meta[] = [
   { href: "/engineers-index",   title: "Engineers index",          desc: "19 engineer (supply side) surfaces",                    round: "r1146", emoji: "👷" },
   { href: "/hospitals-index",   title: "Hospitals index",          desc: "13 hospital (demand side) surfaces",                    round: "r1147", emoji: "🏨" },
   { href: "/notifications-index", title: "Notifications index",    desc: "3 notification engagement surfaces",                    round: "r1149", emoji: "🔔" },
+  { href: "/snapshots-index",   title: "Snapshots index",          desc: "9 domain snapshot summaries · 12-18 KPIs each, today/30d/all-time", round: "r1172", emoji: "📸" },
 ];
 
 export default async function MetasIndexPage() {
@@ -38,7 +39,7 @@ export default async function MetasIndexPage() {
     <div className="space-y-6">
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Metas index ★ r1041</h1>
-        <span className="text-xs text-[var(--color-muted)]">Meta-of-metas · 7 founder console navigation root pages</span>
+        <span className="text-xs text-[var(--color-muted)]">Meta-of-metas · 24 founder console navigation root pages</span>
       </header>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {METAS.map((m) => (
