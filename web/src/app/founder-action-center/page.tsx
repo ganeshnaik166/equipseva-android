@@ -1,6 +1,7 @@
 import { requireFounder } from "@/lib/auth/requireFounder";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { formatNumber } from "@/lib/format";
+import { logFounderActionAction } from "./actions";
 
 export const metadata = { title: "Founder action center — EquipSeva Founder Console" };
 export const dynamic = "force-dynamic";
@@ -42,10 +43,21 @@ const SOURCE_DRILLDOWN: Record<string, string> = {
 };
 
 const inr = (n: number) => Number(n) > 0 ? `₹${Number(n).toLocaleString("en-IN")}` : "";
-const ageStr = (h: number) => {
-  if (h < 24) return `${h}h`;
-  return `${Math.floor(h / 24)}d`;
-};
+const ageStr = (h: number) => h < 24 ? `${h}h` : `${Math.floor(h / 24)}d`;
+
+function ActionButton({ row, action, label, tone }: { row: ActionRow; action: "acked" | "resolved" | "escalated" | "ignored"; label: string; tone: string }) {
+  return (
+    <form action={logFounderActionAction} className="inline">
+      <input type="hidden" name="source_domain" value={row.source_domain} />
+      <input type="hidden" name="item_kind" value={row.item_kind} />
+      <input type="hidden" name="source_item_id" value={row.item_id} />
+      <input type="hidden" name="action_taken" value={action} />
+      <button type="submit" className={`px-2 py-1 rounded text-[10px] uppercase tracking-wider font-semibold border ${tone} hover:opacity-80`}>
+        {label}
+      </button>
+    </form>
+  );
+}
 
 export default async function FounderActionCenterPage() {
   await requireFounder();
@@ -65,8 +77,8 @@ export default async function FounderActionCenterPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-xl font-semibold">Founder action center ★ r1303</h1>
-        <p className="text-xs text-[var(--color-muted)] mt-1">Unified action queue · top {actions.length} items prioritized across 14 source domains · do these in order</p>
+        <h1 className="text-xl font-semibold">Founder action center ★★★ r1303 · r1306 (write transitions)</h1>
+        <p className="text-xs text-[var(--color-muted)] mt-1">Unified action queue · top {actions.length} items prioritized across 14 source domains · ACK / RESOLVE / ESCALATE / IGNORE each to silence</p>
       </header>
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -91,7 +103,8 @@ export default async function FounderActionCenterPage() {
       {actions.length === 0 ? (
         <div className="rounded-lg border-2 border-[var(--color-ok)] bg-[var(--color-surface)] p-8 text-center">
           <div className="text-2xl font-bold text-[var(--color-ok)]">✓ Inbox zero</div>
-          <p className="mt-2 text-sm text-[var(--color-muted)]">No outstanding founder actions across all 14 source domains. Good time to take a break — or scout new opportunities.</p>
+          <p className="mt-2 text-sm text-[var(--color-muted)]">No outstanding founder actions across all 14 source domains.</p>
+          <p className="mt-1 text-xs text-[var(--color-muted)]">See <a className="text-[var(--color-accent)] hover:underline" href="/founder-priority-actions-log">/founder-priority-actions-log</a> for the history of what was acked/resolved/escalated/ignored.</p>
         </div>
       ) : (
         <section>
@@ -106,7 +119,8 @@ export default async function FounderActionCenterPage() {
                   <th className="py-2 pr-3">Domain</th>
                   <th className="py-2 pr-3 tabular-nums">Age</th>
                   <th className="py-2 pr-3 tabular-nums">$ at stake</th>
-                  <th className="py-2">Drill down</th>
+                  <th className="py-2 pr-3">Drill</th>
+                  <th className="py-2">Mark</th>
                 </tr>
               </thead>
               <tbody>
@@ -118,10 +132,18 @@ export default async function FounderActionCenterPage() {
                     <td className="py-2 pr-3 text-xs font-mono text-[var(--color-muted)]">{a.source_domain}</td>
                     <td className="py-2 pr-3 tabular-nums text-xs">{ageStr(a.age_hours)}</td>
                     <td className="py-2 pr-3 tabular-nums text-xs">{inr(a.money_at_stake_inr)}</td>
-                    <td className="py-2 text-xs">
+                    <td className="py-2 pr-3 text-xs">
                       {SOURCE_DRILLDOWN[a.source_domain] ? (
-                        <a href={SOURCE_DRILLDOWN[a.source_domain]} className="text-[var(--color-accent)] hover:underline">→ {a.source_domain}</a>
+                        <a href={SOURCE_DRILLDOWN[a.source_domain]} className="text-[var(--color-accent)] hover:underline">→</a>
                       ) : <span className="text-[var(--color-muted)]">—</span>}
+                    </td>
+                    <td className="py-2">
+                      <div className="flex flex-wrap gap-1">
+                        <ActionButton row={a} action="acked"     label="Ack (24h)"   tone="border-[var(--color-info)] text-[var(--color-info)]" />
+                        <ActionButton row={a} action="resolved"  label="Resolved"    tone="border-[var(--color-ok)] text-[var(--color-ok)]" />
+                        <ActionButton row={a} action="escalated" label="Escalate"   tone="border-[var(--color-warn)] text-[var(--color-warn)]" />
+                        <ActionButton row={a} action="ignored"   label="Ignore"     tone="border-[var(--color-muted)] text-[var(--color-muted)]" />
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -132,7 +154,7 @@ export default async function FounderActionCenterPage() {
       )}
 
       <p className="text-xs text-[var(--color-muted)]">
-        Source domains: stuck payouts &gt;7d · unresolved Code Red &gt;4h · open disputes &gt;7d · escrow held &gt;14d or in dispute · spare parts paid-not-shipped &gt;7d · AMC renewals due 30d · engineer KYC pending &gt;7d · refund queue open &gt;3d · collusion flags critical/high · DPDP grievances &gt;30d SLA · AMC SLA breaches today · risk score critical actors (alert_only) · spot audit invites unresponded &gt;7d.
+        Silencing semantics: <b>Ack</b> = silence for 24h (will re-surface if not resolved) · <b>Resolved</b> / <b>Ignored</b> = silence forever · <b>Escalate</b> = silence for 7 days. All actions logged to <code>founder_priority_actions</code> with auditor trail.
       </p>
     </div>
   );
