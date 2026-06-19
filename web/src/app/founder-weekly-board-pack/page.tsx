@@ -113,8 +113,21 @@ export default async function FounderWeeklyBoardPackPage({ searchParams }: { sea
     );
   }
 
-  const pack = packData as Pack;
+  // r1322 RPC returns rows of {payload: jsonb}; unwrap first row's payload
+  const packRows = packData as Array<{ payload: Pack }> | null;
+  const pack = (packRows?.[0]?.payload ?? null) as Pack | null;
   const history = (historyData || []) as HistoryRow[];
+
+  if (!pack) {
+    return (
+      <main className="mx-auto max-w-7xl p-6">
+        <h1 className="text-2xl font-semibold">Founder Weekly Board Pack</h1>
+        <div className="mt-4 rounded-lg border border-[var(--color-warn)] bg-[var(--color-surface)] p-4 text-[var(--color-warn)]">
+          No data for week ending {weekEnd}.
+        </div>
+      </main>
+    );
+  }
 
   const mrrTone = pack.mrr_delta_pct_4wk !== null && pack.mrr_delta_pct_4wk >= 0 ? "ok" : "danger";
   const churnTone = pack.amc_net_new >= 0 ? "ok" : "danger";

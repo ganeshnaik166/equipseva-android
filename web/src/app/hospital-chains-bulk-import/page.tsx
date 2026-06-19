@@ -14,6 +14,7 @@ type SummaryRow = {
   onboarding_count: number;
   live_count: number;
   churned_count: number;
+  active_legacy_count: number;
   total_hospitals_onboarded: number;
   target_hospitals: number;
   mrr_from_chains_rupees: number;
