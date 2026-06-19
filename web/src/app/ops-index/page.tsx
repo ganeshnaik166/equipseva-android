@@ -272,6 +272,13 @@ const SECTIONS: OpsSection[] = [
       { href: "/cumulative-rollup-summary", title: "Cumulative rollup summary", desc: "14-KPI lifetime autobiography · investor-deck row · jobs/GMV/payouts/AMC/referrals", round: "r1200" },
       { href: "/regional-state-summary", title: "Regional state summary", desc: "15-KPI top-3 states by composite activity 30d · capital-allocation signal", round: "r1201" },
       { href: "/investor-pulse-summary", title: "Investor pulse summary ★", desc: "15-KPI monthly update · MRR + GMV + active users + lifetime totals · paste into deck", round: "r1208★" },
+      { href: "/kyc-pipeline-snapshot", title: "KYC pipeline snapshot", desc: "20-KPI regulatory backlog · engineer + buyer pending + rekyc-due + intake-vs-approval", round: "r1202" },
+      { href: "/webhooks-snapshot", title: "Webhooks snapshot", desc: "12-KPI Razorpay webhook health · success rate + retry queue + signature failures", round: "r1203" },
+      { href: "/gst-invoice-snapshot", title: "GST invoice snapshot", desc: "12-KPI tax-audit-ready · today/MTD value + dispatch + GSTIN-missing + HSN coverage", round: "r1204" },
+      { href: "/rfq-marketplace-snapshot", title: "RFQ marketplace snapshot", desc: "14-KPI vendor RFQs + rental + financing · marketplace TAM expansion lane", round: "r1205" },
+      { href: "/amc-sla-warranty-snapshot", title: "AMC SLA warranty snapshot", desc: "14-KPI SLA breach + warranty-detected fee-waived + breach $ exposure", round: "r1206" },
+      { href: "/reconciliation-tax-snapshot", title: "Reconciliation tax snapshot", desc: "12-KPI finance-ops · recon mismatch + TDS MTD + 26AS + gateway-vs-ledger drift", round: "r1207" },
+      { href: "/amc-pool-pulse-summary", title: "AMC pool pulse summary ★", desc: "12-KPI pool health · balance + flow + zero-balance alerts", round: "r1209★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -612,7 +619,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1208 sprint · 397 ships · all founder ops surfaces in one place
+          r599–r1209 sprint · 404 ships · all founder ops surfaces in one place
         </span>
       </header>
 
