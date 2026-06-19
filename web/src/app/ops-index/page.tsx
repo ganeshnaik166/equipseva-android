@@ -294,6 +294,12 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-checkpoints-summary", title: "Founder checkpoints summary", desc: "16-KPI release/migration/deployment history · incident-triage signal", round: "r1223" },
       { href: "/regional-city-summary", title: "Regional city summary", desc: "15-KPI top cities by composite activity · city-grain rollup", round: "r1224" },
       { href: "/repair-types-snapshot-summary", title: "Repair types snapshot summary", desc: "13-KPI job-type distribution · margin signal · revenue + latency per type", round: "r1225" },
+      { href: "/collusion-flags-summary", title: "Collusion flags summary", desc: "15-KPI fraud signals · engineer↔hospital collusion · open + severity + oldest unreviewed", round: "r1231" },
+      { href: "/duplicate-account-flags-summary", title: "Duplicate account flags summary", desc: "14-KPI dupe signups · phone/email/device-id reuse · referral-bounty integrity", round: "r1232" },
+      { href: "/promo-redemptions-summary", title: "Promo redemptions summary", desc: "15-KPI CAC visibility · which codes firing + total ₹ given + abuse signals", round: "r1233" },
+      { href: "/device-integrity-checks-summary", title: "Device integrity checks summary", desc: "14-KPI Play Integrity attestation · rooted devices + emulators + blocked installs", round: "r1234" },
+      { href: "/equipment-pm-schedule-summary", title: "Equipment PM schedule summary", desc: "14-KPI preventive maintenance plan · upcoming PM + overdue · proactive visit driver", round: "r1235" },
+      { href: "/cart-abandonment-summary", title: "Cart abandonment summary", desc: "12-KPI active carts ₹ + abandonment rate + top SKUs + conversion-to-order", round: "r1236" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -634,7 +640,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1225 sprint · 426 ships · all founder ops surfaces in one place
+          r599–r1236 sprint · 433 ships · all founder ops surfaces in one place
         </span>
       </header>
 
