@@ -279,6 +279,8 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-sla-warranty-snapshot", title: "AMC SLA warranty snapshot", desc: "14-KPI SLA breach + warranty-detected fee-waived + breach $ exposure", round: "r1206" },
       { href: "/reconciliation-tax-snapshot", title: "Reconciliation tax snapshot", desc: "12-KPI finance-ops · recon mismatch + TDS MTD + 26AS + gateway-vs-ledger drift", round: "r1207" },
       { href: "/amc-pool-pulse-summary", title: "AMC pool pulse summary ★", desc: "12-KPI pool health · balance + flow + zero-balance alerts", round: "r1209★" },
+      { href: "/supply-quality-summary", title: "Supply quality summary ★", desc: "Composite engineer-trust score · KYC + tiers + audit + payouts + activity", round: "r1211★" },
+      { href: "/demand-quality-summary", title: "Demand quality summary ★", desc: "Composite hospital-trust score · AMC coverage + activity + loyalty + churn", round: "r1212★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -619,7 +621,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1209 sprint · 404 ships · all founder ops surfaces in one place
+          r599–r1212 sprint · 407 ships · all founder ops surfaces in one place
         </span>
       </header>
 
