@@ -301,6 +301,12 @@ const SECTIONS: OpsSection[] = [
       { href: "/equipment-pm-schedule-summary", title: "Equipment PM schedule summary", desc: "14-KPI preventive maintenance plan · upcoming PM + overdue · proactive visit driver", round: "r1235" },
       { href: "/cart-abandonment-summary", title: "Cart abandonment summary", desc: "12-KPI active carts ₹ + abandonment rate + top SKUs + conversion-to-order", round: "r1236" },
       { href: "/day-5-shipping-ledger", title: "Day 5 shipping ledger ★", desc: "Milestones + workflows-ridden recap · static page · narrative for stakeholders", round: "r1244★" },
+      { href: "/phone-otp-funnel-summary", title: "Phone OTP funnel summary", desc: "12-KPI SMS-OTP layer · request → verify rate + bot bursts + rate-limit hits", round: "r1238" },
+      { href: "/bonded-parts-pipeline-summary", title: "Bonded parts pipeline summary", desc: "12-KPI counterfeit-defense chain · in-bond → dispatch → install evidence", round: "r1239" },
+      { href: "/virtual-call-sessions-summary", title: "Virtual call sessions summary", desc: "12-KPI Exotel calls · remote-resolve rate + abuse-detection signal", round: "r1240" },
+      { href: "/pre-visit-dossier-readiness-summary", title: "Pre-visit dossier readiness summary", desc: "7-KPI engineer prep · dossier-opened-before-visit % · first-time-fix predictor", round: "r1241" },
+      { href: "/tds-deductions-pulse-summary", title: "TDS deductions pulse summary", desc: "12-KPI 194C/194J withholding ledger · MTD accrued + missing-PAN + filing aging", round: "r1242" },
+      { href: "/dpdp-grievance-pulse-summary", title: "DPDP grievance pulse summary", desc: "12-KPI DPDP Act complaints · 30-day SLA breach + correction/erasure/portability mix", round: "r1243" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -641,7 +647,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1245 sprint · 435 ships · all founder ops surfaces in one place
+          r599–r1243 sprint · 441 ships · all founder ops surfaces in one place
         </span>
       </header>
 
