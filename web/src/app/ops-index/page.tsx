@@ -271,6 +271,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/compliance-evidence-snapshot", title: "Compliance evidence snapshot", desc: "15-KPI regulatory posture · §65B ledger + DPDP + DSR + NABH + audit log", round: "r1199" },
       { href: "/cumulative-rollup-summary", title: "Cumulative rollup summary", desc: "14-KPI lifetime autobiography · investor-deck row · jobs/GMV/payouts/AMC/referrals", round: "r1200" },
       { href: "/regional-state-summary", title: "Regional state summary", desc: "15-KPI top-3 states by composite activity 30d · capital-allocation signal", round: "r1201" },
+      { href: "/investor-pulse-summary", title: "Investor pulse summary ★", desc: "15-KPI monthly update · MRR + GMV + active users + lifetime totals · paste into deck", round: "r1208★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -611,7 +612,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1201 sprint · 396 ships · all founder ops surfaces in one place
+          r599–r1208 sprint · 397 ships · all founder ops surfaces in one place
         </span>
       </header>
 
