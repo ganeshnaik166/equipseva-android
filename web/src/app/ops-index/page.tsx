@@ -352,6 +352,26 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-churn-early-warning", title: "AMC churn early warning ★★", desc: "Top-100 watchlist · composite churn score (visit recency + overdue visits + payment lateness + SLA + disputes + code-red) · ARR at risk per band", round: "r1318★★" },
       { href: "/hospital-chains-bulk-import", title: "Hospital chains bulk import ★★", desc: "v0.5 Phase 3 SHIPPED · multi-hospital chain register · prospecting→live funnel · MRR contribution · acquisition velocity (r1321 fix on r544 schema)", round: "r1319★★" },
       { href: "/founder-tier-1-home", title: "Founder tier-1 home ★★★ · 500 SHIPS", desc: "COMPOSITE HOME · headline KPIs + top 5 actions + open incidents + cron health + DPDP routing + payouts snapshot · 6 RPCs parallel", round: "r1320★★★" },
+      { href: "/dental-vertical-pilot", title: "Dental vertical pilot ★★", desc: "v0.5 Phase 4 SHIPPED · 12 KPIs · clinic enrollment ledger (invited→onboarding→live→paused→churned) · bonded-parts suppliers · pilot conversion + days-to-first-AMC median", round: "r1323★★" },
+      { href: "/founder-ma-pipeline", title: "Founder M&A pipeline ★★", desc: "Internal corp-dev tracker · 15 KPIs · 9-stage funnel (identified→passed) · target ledger + per-target activity log · NOT customer-facing", round: "r1324★★" },
+      { href: "/founder-payroll-bulk-authorize", title: "Founder payroll bulk authorize ★★", desc: "Bulk-authorize queued engineer payouts · 12-card dry-run (KYC + UPI/bank + dispute blockers) · draft → authorized → cron consumes · Cashfree-ready", round: "r1325★★" },
+      { href: "/founder-nps-quarterly", title: "Founder NPS quarterly ★★", desc: "Hospital NPS quarterly survey infra · 15 KPIs · latest score + QoQ delta + promoter/passive/detractor migration · offline send + RPC-logged responses", round: "r1326★★" },
+      { href: "/founder-compliance-ledger", title: "Founder compliance ledger ★★★", desc: "BOARD DILIGENCE FREEZE · 22-KPI consolidated regulatory health: GST + DPDP + Razorpay + Cashfree + KYC + disputes + Code Red + audit · 0..100 weighted score", round: "r1327★★★" },
+      { href: "/founder-runway-burn", title: "Founder runway & burn ★★★", desc: "Cash position + 3m-avg burn → runway months + zero-cash date · 12 KPIs · burn = payouts + spares + refunds · inflow = captured payments · manual monthly snapshot", round: "r1328★★★" },
+      { href: "/founder-vendor-payables", title: "Vendor payables ★★", desc: "Supplier ledger · pending + overdue 30d + bonded vs unbonded · top 30 by pending amount · avg days-to-pay", round: "r1329★★" },
+      { href: "/founder-cohort-retention", title: "Founder cohort retention ★★", desc: "Engineer + hospital 12mo signup cohorts × M0/M1/M3/M6/M12 active % · color-banded retention curves", round: "r1330★★" },
+      { href: "/founder-pipeline-velocity", title: "Founder pipeline velocity ★★", desc: "AMC sales funnel · win-rate 30d/90d · cycle-time p50/p90 · per-chain stage table · qualified pipeline value", round: "r1331★★" },
+      { href: "/founder-incident-postmortem-ledger", title: "Founder incident postmortem ledger ★★★", desc: "INSTITUTIONAL MEMORY · 17 KPIs · 8-class root-cause taxonomy · postmortems linked to founder_incidents · action items with overdue flag", round: "r1332★★★" },
+      { href: "/founder-unit-economics", title: "Founder unit economics ★★", desc: "CAC + LTV + payback months + contribution margin · 10 KPIs · health band (ok/warn/danger) · CAC cohort = last-90d AMC activations", round: "r1334★★" },
+      { href: "/founder-cap-table-snapshot", title: "Founder cap-table snapshot ★★", desc: "Equity dilution + cap-table tracker · 11 KPIs · ownership-by-kind bars · rounds history + ESOP headroom", round: "r1335★★" },
+      { href: "/founder-decision-log", title: "Founder decision log ★★★", desc: "3 DECISIONS/DAY DISCIPLINE · 14 KPIs · Bezos reversibility framework · pre-commit reasoning + post-hoc outcome review · due-revisit triage", round: "r1336★★★" },
+      { href: "/founder-sales-territory-heatmap", title: "Sales territory heatmap ★★", desc: "Jobs density by pincode + city (90d) · engineer supply + AMC penetration · top-100 pincodes + top-50 cities · under-served territory hunt", round: "r1337★★" },
+      { href: "/founder-action-items-cockpit", title: "Founder action items cockpit ★★", desc: "Unified cockpit across founder_priority_actions + postmortem action items · 16 KPIs · combined 100-row feed with source-kind badge + overdue/status filter", round: "r1338★★" },
+      { href: "/founder-cash-conversion-cycle", title: "Cash conversion cycle ★★★", desc: "DSO + DPO + inventory days → CCC · 16 KPIs · AR/AP aging 0-30/31-60/61-90/90+ · NWC · 12-week trend · band ≤30 ok / ≤60 warn", round: "r1340★★★" },
+      { href: "/founder-hiring-pipeline", title: "Founder hiring pipeline ★★", desc: "Engineer + ops recruitment funnel · 15 KPIs · 10-stage funnel sourced→active · source attribution · median cycle days · internal only", round: "r1346★★" },
+      { href: "/founder-quarterly-okrs", title: "Founder quarterly OKRs ★★★", desc: "Objective + KR + check-in tracker · 14 KPIs · 30-row priority objective table · stale-check-in flag · confidence auto-status", round: "r1347★★★" },
+      { href: "/founder-investor-meeting-tracker", title: "Investor meeting tracker ★★", desc: "Fundraise institutional memory · 15 KPIs · 7-state deal funnel identified→closed_won · meeting cadence · overdue-followup triage", round: "r1348★★" },
+      { href: "/founder-customer-success-playbook", title: "Customer success playbook ★", desc: "Per-tier playbook ledger · 12 KPIs · top 50 overdue runs · 19-step catalog starter/growth/enterprise · seed + complete RPCs", round: "r1349★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -692,7 +712,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1322 sprint · 503 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 7 audit-fix sweeps · 54 prod bugs caught pre-deploy ★ all founder ops surfaces in one place
+          r599–r1349 sprint · 526 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases · 10 audit-fix sweeps · 64 prod bugs caught pre-deploy
         </span>
       </header>
 
