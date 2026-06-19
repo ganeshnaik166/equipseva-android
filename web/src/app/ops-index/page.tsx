@@ -243,6 +243,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/engineers-with-no-payouts", title: "Engineers with no payouts", desc: "Activation gap · 5-card breakdown of engineer payout status", round: "r1154" },
       { href: "/referral-bounty-payouts-by-month", title: "Referral bounty payouts by month", desc: "12mo queued/paid/cancelled + paid INR · growth-loop spend monthly grain", round: "r1155" },
       { href: "/engineers-by-tier-by-city", title: "Engineers by tier by city", desc: "Top 50 cities × engineer tier cross-tab + verified count", round: "r1156" },
+      { href: "/amc-by-state", title: "AMC by state", desc: "Per state · AMC status breakdown + active MRR · sorted by MRR desc", round: "r1157" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -585,7 +586,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1156 sprint · 362 ships · all founder ops surfaces in one place
+          r599–r1157 sprint · 363 ships · all founder ops surfaces in one place
         </span>
       </header>
 
