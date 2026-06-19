@@ -405,6 +405,9 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-ma-pipeline-home", title: "M&A pipeline cockpit ★★", desc: "14 KPIs (pipeline count · closed value · conversion · most-active segment · 30d activity) + top-30 active targets sorted priority+value · extends r1324", round: "r1379★★" },
       { href: "/founder-monthly-cash-ledger", title: "Monthly cash ledger ★★", desc: "12-month cash log · snapshot vs computed reconciliation diff · biggest inflow + outflow months · over founder_cash_position_snapshots + payments + payouts + spares", round: "r1380★★" },
       { href: "/founder-skill-coverage-tracker", title: "Founder skill coverage tracker ★★", desc: "Mental coverage of every console surface · confidence ladder unknown→obsessed · p0/p1/p2/p3 importance · review cadence · 14 KPIs incl p0_unknown_count", round: "r1381★★" },
+      { href: "/founder-customer-onboarding-funnel", title: "Customer onboarding funnel ★★", desc: "Per-hospital lifecycle lead→qualified→contract→KYC→first-visit→active · 16 KPIs · 9-stage funnel + 100-row ledger + blocker tracking", round: "r1383★★" },
+      { href: "/founder-revenue-leakage-tracker", title: "Revenue leakage tracker ★★★", desc: "Refunds + SLA credits + escrow refunds unified · 14 KPIs · 12-month history · leakage % of GMV (target <2%) · 3-bucket aggregator", round: "r1384★★★" },
+      { href: "/founder-weekly-review-template", title: "Founder weekly review template ★★", desc: "Written weekly review log · wins/misses/blockers/priorities · mood/confidence/energy 1-10 ratings · draft→final→shared state machine", round: "r1385★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -745,7 +748,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1382 sprint · 559 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ 13 ships in last hour (10 solo + workflow batch 22) ★ 10 audit-fix sweeps · 65 prod bugs caught pre-deploy
+          r599–r1385 sprint · 562 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ 16 ships in last 90min (10 solo + 6 workflow) ★ 10 audit-fix sweeps · 65 prod bugs caught pre-deploy
         </span>
       </header>
 
