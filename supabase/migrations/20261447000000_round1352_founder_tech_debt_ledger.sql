@@ -3,7 +3,6 @@ BEGIN;
 -- Tech debt ledger: known debt items + payback priority for founder.
 -- Founder-only writes via log_* RPCs; reads via founder_tech_debt_summary + founder_tech_debt_recent.
 
-BEGIN;
 
 CREATE TABLE IF NOT EXISTS public.founder_tech_debt_items (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
