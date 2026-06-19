@@ -372,6 +372,11 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-quarterly-okrs", title: "Founder quarterly OKRs ★★★", desc: "Objective + KR + check-in tracker · 14 KPIs · 30-row priority objective table · stale-check-in flag · confidence auto-status", round: "r1347★★★" },
       { href: "/founder-investor-meeting-tracker", title: "Investor meeting tracker ★★", desc: "Fundraise institutional memory · 15 KPIs · 7-state deal funnel identified→closed_won · meeting cadence · overdue-followup triage", round: "r1348★★" },
       { href: "/founder-customer-success-playbook", title: "Customer success playbook ★", desc: "Per-tier playbook ledger · 12 KPIs · top 50 overdue runs · 19-step catalog starter/growth/enterprise · seed + complete RPCs", round: "r1349★" },
+      { href: "/founder-board-meeting-prep", title: "Board meeting prep ★★", desc: "Board agenda + materials tracker · 12 KPIs · next-meeting hero · 20 recent meetings · 50 open action items · prep discipline", round: "r1350★★" },
+      { href: "/founder-headcount-plan", title: "Founder headcount plan ★★", desc: "Quarterly hiring plan + budget · 14 KPIs · top 50 role ledger · status pipeline planned→recruiting→offer_out→hired · priority p0/p1/p2/p3 · monthly burn banner", round: "r1351★★" },
+      { href: "/founder-tech-debt-ledger", title: "Founder tech debt ledger ★★", desc: "Known debt + payback priority · 15 KPIs · 10-area taxonomy · 9-kind payback classes · 100-row ledger sorted priority desc", round: "r1352★★" },
+      { href: "/founder-experimentation-tracker", title: "Founder experimentation tracker ★★", desc: "A/B tests + holdouts + staged rollouts · 14 KPIs · hypothesis→expected lift→actual lift→ship/kill · lift-realization color (≥80% ok / ≥50% warn / <50% danger)", round: "r1353★★" },
+      { href: "/v06-roadmap", title: "v0.6 roadmap ★★★", desc: "10-phase v0.6 plan: vertical expansion (dental+lab+radiology) · chain bulk import v2 · engineer app v0.6 (offline-first + P2P parts) · AI-assisted triage · franchise model · investor data room · international pilot", round: "r1354★★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -712,7 +717,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1349 sprint · 526 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases · 10 audit-fix sweeps · 64 prod bugs caught pre-deploy
+          r599–r1354 sprint · 531 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ v0.6 ROADMAP LANDED (r1354) ★ 10 audit-fix sweeps · 64 prod bugs caught pre-deploy
         </span>
       </header>
 
