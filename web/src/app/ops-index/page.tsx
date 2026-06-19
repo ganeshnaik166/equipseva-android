@@ -402,6 +402,9 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-hospital-segmentation", title: "Hospital segmentation ★★★", desc: "9-cell volume × value segmentation · 14 KPIs · super-user + segment-at-risk flags · 100-hospital ranked table with composite badges", round: "r1377★★★" },
       { href: "/founder-engineer-utilization", title: "Engineer utilization ★★", desc: "Active engineer utilization · 12 KPIs · 5-band ladder (idle/low/normal/active/workhorse) · p90 threshold + active engagement pct · 100-engineer ranked table", round: "r1378★★" },
       { href: "/founder-week-in-review", title: "Week in review ★★★", desc: "Rolling 7-day cockpit · 22 KPIs across revenue/operations/cash/supply · founder's weekly heartbeat (pair with /founder-weekly-board-pack for investor view)", round: "r1382★★★" },
+      { href: "/founder-ma-pipeline-home", title: "M&A pipeline cockpit ★★", desc: "14 KPIs (pipeline count · closed value · conversion · most-active segment · 30d activity) + top-30 active targets sorted priority+value · extends r1324", round: "r1379★★" },
+      { href: "/founder-monthly-cash-ledger", title: "Monthly cash ledger ★★", desc: "12-month cash log · snapshot vs computed reconciliation diff · biggest inflow + outflow months · over founder_cash_position_snapshots + payments + payouts + spares", round: "r1380★★" },
+      { href: "/founder-skill-coverage-tracker", title: "Founder skill coverage tracker ★★", desc: "Mental coverage of every console surface · confidence ladder unknown→obsessed · p0/p1/p2/p3 importance · review cadence · 14 KPIs incl p0_unknown_count", round: "r1381★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -742,7 +745,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1376 sprint · 553 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ 7 solo institutional-memory + analytics ships in last hour (Day-5 summary + retro + gotchas + runway-v2 + tier-mix + engineer progression + spare-parts forecast) ★ 10 audit-fix sweeps · 65 prod bugs caught pre-deploy
+          r599–r1382 sprint · 559 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ 13 ships in last hour (10 solo + workflow batch 22) ★ 10 audit-fix sweeps · 65 prod bugs caught pre-deploy
         </span>
       </header>
 
