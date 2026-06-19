@@ -112,7 +112,6 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-renewal-funnel-90d", title: "AMC renewal funnel 90d", desc: "Stage 1→2→3 notify cadence → renewed/expired · % of due", round: "r1003" },
       { href: "/payout-success-funnel-90d", title: "Payout success funnel 90d", desc: "Queued → processing → processed/failed/still-queued · % of queued", round: "r1004" },
       { href: "/engineer-onboarding-funnel", title: "Engineer onboarding funnel", desc: "Signup → profile → verified → 1st bid → 1st job → 1st payout · % of signups", round: "r1005" },
-      { href: "/hospital-onboarding-funnel", title: "Hospital onboarding funnel", desc: "Signup → profile → 1st job posted → 1st bid → 1st completed → 1st AMC", round: "r1007" },
       { href: "/equipment-type-breakdown", title: "Equipment type breakdown", desc: "90d jobs by equipment_type · total + completed + open + avg hrs to complete", round: "r1008" },
       { href: "/reviews-pending-aging", title: "Reviews pending aging", desc: "Completed jobs no hospital rating × age · engagement gap signal", round: "r1009" },
       { href: "/funnels-index", title: "Funnels index ★", desc: "Unified landing for all 8+ multi-stage funnel surfaces (r1010 sub-milestone)", round: "r1010★" },
@@ -393,7 +392,6 @@ const SECTIONS: OpsSection[] = [
       { href: "/demand-signals-trend", title: "Demand signals", desc: "Daily + distinct SKUs + reporters", round: "r655" },
       { href: "/referral-volume-trend", title: "Referrals", desc: "Daily referrals + first-jobs", round: "r668" },
       { href: "/code-red-volume-trend", title: "Code Red", desc: "Daily opened + timed-out", round: "r669" },
-      { href: "/payouts-by-day-trend", title: "Payouts", desc: "Daily paid + rupees + failed", round: "r686" },
       { href: "/amc-pool-credits-trend", title: "AMC pool credits", desc: "Daily ledger credit/debit/refund", round: "r693" },
       { href: "/amc-pool-credits-source", title: "AMC pool credits/month", desc: "12mo credit/debit/refund/net", round: "r896" },
       { href: "/amc-pool-debits-recent", title: "AMC pool debits recent", desc: "Last 100 debits (30d) + balance-after tone", round: "r947" },
@@ -532,7 +530,6 @@ const SECTIONS: OpsSection[] = [
       { href: "/repair-jobs-recent",        title: "Repair jobs recent (7d)",  desc: "Last 100 created · live raw view",           round: "r949" },
       { href: "/amc-renewal-failures-aging", title: "Renewal failures aging",  desc: "renewal_failed by days since end_date",      round: "r820" },
       { href: "/amc-renewal-failures",       title: "Renewal failures list",   desc: "renewal_failed outreach queue",              round: "r821" },
-      { href: "/amc-renewal-attempts-recent", title: "Renewal attempts recent", desc: "Last 100 renewal attempts (30d) + errors", round: "r936" },
       { href: "/amc-renewal-by-month-by-status", title: "Renewals month × status", desc: "12mo succeeded/failed/abandoned monthly", round: "r963" },
       { href: "/amc-renewal-attempts-by-tier", title: "Renewal attempts × tier", desc: "Per-tier 90d outcome counts", round: "r977" },
     ],
@@ -591,7 +588,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1162 sprint · 369 ships · all founder ops surfaces in one place
+          r599–r1164 sprint · 371 ships · all founder ops surfaces in one place
         </span>
       </header>
 
