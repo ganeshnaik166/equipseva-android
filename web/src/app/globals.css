@@ -9,6 +9,9 @@
   --color-danger: #b91c1c;
   --color-warn: #b45309;
   --color-ok: #15803d;
+  --color-info: #0ea5e9;
+  --color-surface: #ffffff;
+  --color-text: #111111;
 }
 
 html, body {
