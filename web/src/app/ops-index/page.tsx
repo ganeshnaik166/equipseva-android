@@ -344,6 +344,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-action-center", title: "Founder action center ★★★", desc: "UNIFIED PRIORITY QUEUE · top items across 14 source domains · with ACK/RESOLVE/ESCALATE/IGNORE buttons (r1306)", round: "r1303★★★" },
       { href: "/founder-priority-actions-log", title: "Founder priority actions log ★", desc: "Audit trail of every founder ACK/RESOLVE/ESCALATE/IGNORE action · pair with /founder-action-center", round: "r1306★" },
       { href: "/v05-roadmap", title: "v0.5 roadmap ★", desc: "10-phase v0.5 plan · Cashfree payouts + chains + dental + action-center-v2 + investor share v2", round: "r1304★" },
+      { href: "/share/investor/v2/<token>", title: "Public investor share v2 ★", desc: "Token-gated public page · 13 sanitized KPIs (MRR + lifetime GMV + trust score) · v0.5 Phase 6 SHIPPED", round: "r1307★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
