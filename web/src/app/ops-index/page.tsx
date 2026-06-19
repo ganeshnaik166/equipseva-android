@@ -341,6 +341,8 @@ const SECTIONS: OpsSection[] = [
       { href: "/payouts-webhook-events-summary", title: "Payouts webhook events summary", desc: "14-KPI Cashfree outbound · terminal state distribution + reconciliation gap", round: "r1298" },
       { href: "/amc-sla-breaches-summary", title: "AMC SLA breaches summary", desc: "22-KPI breach ledger by week + tier + engineer + breach type · retention risk", round: "r1299" },
       { href: "/workflow-failure-modes-catalog", title: "Workflow failure modes catalog ★", desc: "18 distinct workflow-agent failure modes observed + fix strategies · knowledge catalog", round: "r1302★" },
+      { href: "/founder-action-center", title: "Founder action center ★★★", desc: "UNIFIED PRIORITY QUEUE · top items across 14 source domains · do these in order", round: "r1303★★★" },
+      { href: "/v05-roadmap", title: "v0.5 roadmap ★", desc: "10-phase v0.5 plan · Cashfree payouts + chains + dental + action-center-v2 + investor share v2", round: "r1304★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
