@@ -11,7 +11,7 @@ const LEADERBOARDS: LB[] = [
   { href: "/hospital-leaderboard-30d",     title: "Hospital leaderboard 30d",      desc: "Top 50 hospitals · jobs posted + completed + spend + AMC count",       round: "r1025", side: "Demand"  },
   { href: "/spare-parts-by-supplier-30d",  title: "Spare parts suppliers 30d",     desc: "Top 50 suppliers · orders + paid + GMV INR",                            round: "r1023", side: "Seller"  },
   { href: "/tier-climbers",                title: "Tier climbers",                  desc: "Non-gold engineers close to promotion",                                  round: "r676",  side: "Supply"  },
-  { href: "/founder-amc-leaderboard",      title: "AMC leaderboard",                desc: "Top hospitals by AMC contract value",                                    round: "r700+", side: "Demand"  },
+  { href: "/chains-amc-leaderboard",       title: "AMC leaderboard",                desc: "Top hospital chains by AMC contract value · MRR · contract count",       round: "r722",  side: "Demand"  },
 ];
 
 const SIDE_TONE: Record<LB["side"], string> = {
