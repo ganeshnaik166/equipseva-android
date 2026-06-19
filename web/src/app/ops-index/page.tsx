@@ -328,6 +328,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/engineer-payout-methods-summary", title: "Engineer payout methods summary", desc: "12-KPI UPI/bank registry · verification state per engineer · payout-method readiness", round: "r1272" },
       { href: "/engineer-tier-history-summary", title: "Engineer tier history summary", desc: "14-KPI tier-progression timeline · transitions + promo/demo velocity", round: "r1273" },
       { href: "/payment-verify-events-summary", title: "Payment verify events summary", desc: "14-KPI server-side Razorpay verify-endpoint ledger · audit trail of capture verifications", round: "r1274" },
+      { href: "/sprint-stats-summary", title: "Sprint stats summary ★", desc: "Day 5 velocity stats · 467+ ships · 80+ snapshots · 27 metas · 20 workflows", round: "r1289★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -668,7 +669,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1274 sprint · 466 ships · all founder ops surfaces in one place
+          r599–r1289 sprint · 468 ships · all founder ops surfaces in one place
         </span>
       </header>
 
