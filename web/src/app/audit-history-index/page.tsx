@@ -62,6 +62,22 @@ const AUDITS: AuditEvent[] = [
     highlights: "All clean. Strengthened 'verify every table' instruction was internalized by design agents",
     fix_round: "—",
   },
+  {
+    round: "r1256-r1261",
+    workflow: "wa30pu9rl",
+    scope: "6 batch-8 RPCs (attendance/renewal-attempts/cash-survey/buyer-kyc/catalog/refund-queue)",
+    found: 0, confirmed: 0,
+    highlights: "All clean. 3rd consecutive clean audit. Design agents now reliably verify table+column existence.",
+    fix_round: "—",
+  },
+  {
+    round: "r1262-r1267",
+    workflow: "w4byedv9t",
+    scope: "6 batch-9 RPCs (risk-score/evidence-ledger-65b/amc-affidavits/rotation/cost-revisions/db-storage)",
+    found: 0, confirmed: 0,
+    highlights: "All clean. 4th consecutive clean audit. Legal-defensibility surfaces audit-confirmed for prod.",
+    fix_round: "—",
+  },
 ];
 
 const totalFound = AUDITS.reduce((s, a) => s + a.found, 0);
