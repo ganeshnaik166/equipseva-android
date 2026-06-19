@@ -257,6 +257,12 @@ const SECTIONS: OpsSection[] = [
       { href: "/escrow-snapshot-summary", title: "Escrow snapshot summary", desc: "18-KPI escrow pipeline · held + released + refunded + scheduled · money-in-flight", round: "r1171" },
       { href: "/snapshots-index", title: "Snapshots index ★", desc: "24th meta-landing · 9 domain snapshot summaries grouped Demand/Supply/Money/Trust", round: "r1172★" },
       { href: "/by-month-index", title: "By-month index ★", desc: "25th meta-landing · 40 monthly time-series grouped Marketplace/AMC/Money/Trust/Growth/Supply", round: "r1179★" },
+      { href: "/referrals-snapshot-summary", title: "Referrals snapshot summary", desc: "14-KPI growth dashboard · funnel + bounty spend + ROI + stuck · today/30d", round: "r1180" },
+      { href: "/hospital-chains-snapshot-summary", title: "Hospital chains snapshot summary", desc: "13-KPI chain whale dashboard · AMC coverage + revenue concentration", round: "r1181" },
+      { href: "/supervised-training-snapshot-summary", title: "Supervised training snapshot summary", desc: "14-KPI training pipeline · active + pass rate + stuck · today/30d", round: "r1182" },
+      { href: "/notifications-snapshot-summary", title: "Notifications snapshot summary", desc: "12-KPI throughput · today/30d · stuck-unread alerts", round: "r1183" },
+      { href: "/signups-funnel-snapshot-summary", title: "Signups funnel snapshot summary", desc: "13-KPI acquisition funnel · today/7d/30d by role + first-action %", round: "r1184" },
+      { href: "/spot-audits-snapshot-summary", title: "Spot audits snapshot summary", desc: "14-KPI QA dashboard · invitations + responses + ratings + coverage", round: "r1185" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -597,7 +603,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1179 sprint · 380 ships · all founder ops surfaces in one place
+          r599–r1185 sprint · 386 ships · all founder ops surfaces in one place
         </span>
       </header>
 
