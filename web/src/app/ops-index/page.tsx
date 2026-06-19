@@ -287,6 +287,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/consent-ledger-summary", title: "Consent ledger summary", desc: "13-KPI DPDP per-purpose grant + revocation velocity", round: "r1216" },
       { href: "/founder-action-followups-summary", title: "Founder action followups summary", desc: "16-KPI untouched items >7d · meta-operational TODO age pulse", round: "r1217" },
       { href: "/system-throughput-hourly-summary", title: "System throughput hourly summary", desc: "12-KPI jobs-per-hour + peak distribution · capacity planning", round: "r1218" },
+      { href: "/repair-job-bids-snapshot-summary", title: "Repair job bids snapshot summary", desc: "12-KPI bid dynamics · acceptance % + engineer competition + bids/job", round: "r1229" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
