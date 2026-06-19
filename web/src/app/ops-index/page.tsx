@@ -322,6 +322,12 @@ const SECTIONS: OpsSection[] = [
       { href: "/amc-engineer-rotation-summary", title: "AMC engineer rotation summary", desc: "AMC↔engineer roster mapping · load distribution + rotation churn", round: "r1265" },
       { href: "/repair-job-cost-revisions-summary", title: "Repair job cost revisions summary", desc: "Scope-creep audit trail · revision freq + avg uplift % + top-revising engineers", round: "r1266" },
       { href: "/db-storage-snapshots-summary", title: "DB storage snapshots summary", desc: "Postgres infra-health · top-N tables by size + fastest-growing wow + capacity planning", round: "r1267" },
+      { href: "/amc-admin-escalations-summary", title: "AMC admin escalations summary", desc: "12-KPI ops triage · open backlog + reason mix + oldest unresolved + weekly intake", round: "r1269" },
+      { href: "/amc-subscription-charges-summary", title: "AMC subscription charges summary", desc: "22-KPI recurring charge ledger · per-subscription billing pipeline", round: "r1270" },
+      { href: "/engineer-kyc-renewals-summary", title: "Engineer KYC renewals summary", desc: "14-KPI periodic re-KYC queue · annual refresh · distinct from initial onboarding", round: "r1271" },
+      { href: "/engineer-payout-methods-summary", title: "Engineer payout methods summary", desc: "12-KPI UPI/bank registry · verification state per engineer · payout-method readiness", round: "r1272" },
+      { href: "/engineer-tier-history-summary", title: "Engineer tier history summary", desc: "14-KPI tier-progression timeline · transitions + promo/demo velocity", round: "r1273" },
+      { href: "/payment-verify-events-summary", title: "Payment verify events summary", desc: "14-KPI server-side Razorpay verify-endpoint ledger · audit trail of capture verifications", round: "r1274" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -662,7 +668,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1267 sprint · 458 ships · all founder ops surfaces in one place
+          r599–r1274 sprint · 466 ships · all founder ops surfaces in one place
         </span>
       </header>
 
