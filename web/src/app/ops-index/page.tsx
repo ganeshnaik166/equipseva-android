@@ -398,6 +398,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-runway-forecast-v2", title: "Runway forecast v2 ★★", desc: "Scenario planning · 4 scenario kinds (base/upside/downside/stress) · runway months projected against current cash · actual-vs-base variance · register/deactivate scenario RPCs", round: "r1373★★" },
       { href: "/founder-pricing-tier-mix", title: "Pricing tier mix ★★", desc: "AMC tier distribution + MRR contribution · 14 KPIs · 3-tier hero cards · 12-month history with enterprise MRR pct (upmarket signal)", round: "r1374★★" },
       { href: "/founder-engineer-tier-progression", title: "Engineer tier progression ★★", desc: "Bronze/silver/gold/platinum distribution · top 30 climbers nearest to promotion · thresholds: silver≥50, gold≥200, platinum≥500 jobs", round: "r1375★★" },
+      { href: "/founder-spare-parts-demand-forecast", title: "Spare parts demand forecast ★★", desc: "Historic spare_part_orders demand pattern · 12-month trend · estimated next-30d orders + amount projection · pre-stock + supplier onboarding signal", round: "r1376★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -738,7 +739,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1375 sprint · 552 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ v0.6 ROADMAP + DAY-5 SUMMARY + RETRO + GOTCHAS + RUNWAY-V2 + TIER-MIX + ENGINEER-PROGRESSION ★ 10 audit-fix sweeps · 65 prod bugs caught pre-deploy
+          r599–r1376 sprint · 553 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ 7 solo institutional-memory + analytics ships in last hour (Day-5 summary + retro + gotchas + runway-v2 + tier-mix + engineer progression + spare-parts forecast) ★ 10 audit-fix sweeps · 65 prod bugs caught pre-deploy
         </span>
       </header>
 
