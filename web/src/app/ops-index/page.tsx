@@ -395,6 +395,8 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-day-5-summary-snapshot", title: "Day 5 summary snapshot ★★★", desc: "Day 5 sprint review · 546 ships · 5 batches · 8/10 v0.5 phases · 10 audit-fix sweeps · 65 prod bugs caught · v0.6 roadmap landed", round: "r1370★★★" },
       { href: "/founder-v0-5-retrospective", title: "v0.5 retrospective ★★★", desc: "Per-phase retro: what worked / what didn't / lessons for each of 10 v0.5 phases + 8 cross-cutting meta-lessons (plpgsql lazy validation, pg_cron + is_founder, CREATE TABLE IF NOT EXISTS footgun, etc)", round: "r1371★★★" },
       { href: "/founder-gotchas-catalog", title: "Gotchas catalog ★★★", desc: "INSTITUTIONAL MEMORY · 30 known failure modes across schema/function/page/workflow/pg_cron kinds · severity-banded · first-caught-at attribution · mitigation per item · onboarding doc for new agents", round: "r1372★★★" },
+      { href: "/founder-runway-forecast-v2", title: "Runway forecast v2 ★★", desc: "Scenario planning · 4 scenario kinds (base/upside/downside/stress) · runway months projected against current cash · actual-vs-base variance · register/deactivate scenario RPCs", round: "r1373★★" },
+      { href: "/founder-pricing-tier-mix", title: "Pricing tier mix ★★", desc: "AMC tier distribution + MRR contribution · 14 KPIs · 3-tier hero cards · 12-month history with enterprise MRR pct (upmarket signal)", round: "r1374★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -735,7 +737,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1372 sprint · 549 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ v0.6 ROADMAP (r1354) + DAY-5 SUMMARY (r1370) + v0.5 RETRO (r1371) + GOTCHAS CATALOG (r1372) ★ 10 audit-fix sweeps · 65 prod bugs caught pre-deploy
+          r599–r1374 sprint · 551 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ v0.6 ROADMAP + DAY-5 SUMMARY + RETRO + GOTCHAS CATALOG ★ 10 audit-fix sweeps · 65 prod bugs caught pre-deploy
         </span>
       </header>
 
