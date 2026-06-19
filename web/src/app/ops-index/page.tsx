@@ -367,6 +367,11 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-decision-log", title: "Founder decision log ★★★", desc: "3 DECISIONS/DAY DISCIPLINE · 14 KPIs · Bezos reversibility framework · pre-commit reasoning + post-hoc outcome review · due-revisit triage", round: "r1336★★★" },
       { href: "/founder-sales-territory-heatmap", title: "Sales territory heatmap ★★", desc: "Jobs density by pincode + city (90d) · engineer supply + AMC penetration · top-100 pincodes + top-50 cities · under-served territory hunt", round: "r1337★★" },
       { href: "/founder-action-items-cockpit", title: "Founder action items cockpit ★★", desc: "Unified cockpit across founder_priority_actions + postmortem action items · 16 KPIs · combined 100-row feed with source-kind badge + overdue/status filter", round: "r1338★★" },
+      { href: "/founder-cash-conversion-cycle", title: "Cash conversion cycle ★★★", desc: "DSO + DPO + inventory days → CCC · 16 KPIs · AR/AP aging 0-30/31-60/61-90/90+ · NWC · 12-week trend · band ≤30 ok / ≤60 warn", round: "r1340★★★" },
+      { href: "/founder-hiring-pipeline", title: "Founder hiring pipeline ★★", desc: "Engineer + ops recruitment funnel · 15 KPIs · 10-stage funnel sourced→active · source attribution · median cycle days · internal only", round: "r1346★★" },
+      { href: "/founder-quarterly-okrs", title: "Founder quarterly OKRs ★★★", desc: "Objective + KR + check-in tracker · 14 KPIs · 30-row priority objective table · stale-check-in flag · confidence auto-status", round: "r1347★★★" },
+      { href: "/founder-investor-meeting-tracker", title: "Investor meeting tracker ★★", desc: "Fundraise institutional memory · 15 KPIs · 7-state deal funnel identified→closed_won · meeting cadence · overdue-followup triage", round: "r1348★★" },
+      { href: "/founder-customer-success-playbook", title: "Customer success playbook ★", desc: "Per-tier playbook ledger · 12 KPIs · top 50 overdue runs · 19-step catalog starter/growth/enterprise · seed + complete RPCs", round: "r1349★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -707,7 +712,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1339 sprint · 520 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases · 9 audit-fix sweeps · 61 prod bugs caught pre-deploy
+          r599–r1349 sprint · 526 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases · 10 audit-fix sweeps · 64 prod bugs caught pre-deploy
         </span>
       </header>
 
