@@ -8,6 +8,7 @@ type Dash = { href: string; title: string; desc: string; round: string; priority
 
 const DASHES: Dash[] = [
   // Tier 1 — daily founder dashboards (bookmark these)
+  { href: "/founder-action-center",         title: "Founder action center ★★★", desc: "Unified action queue · top items across 14 source domains · do these in order", round: "r1303", priority: "Tier 1" },
   { href: "/critical-cockpit",              title: "Critical cockpit",         desc: "14-tile aging/leak signals · open this first every morning",                round: "r1000", priority: "Tier 1" },
   { href: "/founder-morning-pulse-v2",      title: "Founder morning pulse v2", desc: "12 actionable numbers · today vs yesterday · 4 categories",                 round: "r1130", priority: "Tier 1" },
   { href: "/money-in-flight-summary",       title: "Money in flight summary",  desc: "Cross-domain cash position · escrow + payouts + spare-parts + AMC pool",   round: "r1193", priority: "Tier 1" },
