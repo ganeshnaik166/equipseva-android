@@ -288,6 +288,12 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-action-followups-summary", title: "Founder action followups summary", desc: "16-KPI untouched items >7d · meta-operational TODO age pulse", round: "r1217" },
       { href: "/system-throughput-hourly-summary", title: "System throughput hourly summary", desc: "12-KPI jobs-per-hour + peak distribution · capacity planning", round: "r1218" },
       { href: "/repair-job-bids-snapshot-summary", title: "Repair job bids snapshot summary", desc: "12-KPI bid dynamics · acceptance % + engineer competition + bids/job", round: "r1229" },
+      { href: "/engineer-availability-summary", title: "Engineer availability summary", desc: "12-KPI live supply vs open demand · reachable 1h/24h/7d", round: "r1220" },
+      { href: "/razorpay-payments-pulse-summary", title: "Razorpay payments pulse summary", desc: "14-KPI gateway-side pulse · capture lag + webhook recon + refund inflight", round: "r1221" },
+      { href: "/email-delivery-health-summary", title: "Email delivery health summary", desc: "12-KPI email channel · sent/delivered/bounced + suppression-list growth", round: "r1222" },
+      { href: "/founder-checkpoints-summary", title: "Founder checkpoints summary", desc: "16-KPI release/migration/deployment history · incident-triage signal", round: "r1223" },
+      { href: "/regional-city-summary", title: "Regional city summary", desc: "15-KPI top cities by composite activity · city-grain rollup", round: "r1224" },
+      { href: "/repair-types-snapshot-summary", title: "Repair types snapshot summary", desc: "13-KPI job-type distribution · margin signal · revenue + latency per type", round: "r1225" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -628,7 +634,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1227 sprint · 416 ships · all founder ops surfaces in one place
+          r599–r1225 sprint · 426 ships · all founder ops surfaces in one place
         </span>
       </header>
 
