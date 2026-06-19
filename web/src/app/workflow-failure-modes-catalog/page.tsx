@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 type FailureMode = {
   class: string;
   example: string;
-  caught_by: "audit-workflow" | "pre-flight Python" | "build/typecheck" | "first runtime call";
+  caught_by: string;
   first_seen_batch: string;
   fix_strategy: string;
   severity: "critical" | "high" | "medium" | "low";
