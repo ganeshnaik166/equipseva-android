@@ -78,6 +78,14 @@ const AUDITS: AuditEvent[] = [
     highlights: "All clean. 4th consecutive clean audit. Legal-defensibility surfaces audit-confirmed for prod.",
     fix_round: "—",
   },
+  {
+    round: "r1269-r1274",
+    workflow: "w5zep7qpr",
+    scope: "6 batch-10 RPCs (admin-escalations/subscription-charges/kyc-renewals/payout-methods/tier-history/payment-verify)",
+    found: 0, confirmed: 0,
+    highlights: "All clean (post-fix). 5th consecutive clean audit. Pre-flight Python normalization caught 3 LANGUAGE sql + missing-is_founder-gate critical bugs before they reached the audit.",
+    fix_round: "(pre-flight, no migration)",
+  },
 ];
 
 const totalFound = AUDITS.reduce((s, a) => s + a.found, 0);
