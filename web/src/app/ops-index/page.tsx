@@ -307,6 +307,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/pre-visit-dossier-readiness-summary", title: "Pre-visit dossier readiness summary", desc: "7-KPI engineer prep · dossier-opened-before-visit % · first-time-fix predictor", round: "r1241" },
       { href: "/tds-deductions-pulse-summary", title: "TDS deductions pulse summary", desc: "12-KPI 194C/194J withholding ledger · MTD accrued + missing-PAN + filing aging", round: "r1242" },
       { href: "/dpdp-grievance-pulse-summary", title: "DPDP grievance pulse summary", desc: "12-KPI DPDP Act complaints · 30-day SLA breach + correction/erasure/portability mix", round: "r1243" },
+      { href: "/audit-history-index", title: "Audit history index ★", desc: "Pre-deploy adversarial audit log · 6 workflows ridden · 26+ confirmed bugs caught", round: "r1254★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -647,7 +648,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1247 sprint · 443 ships · all founder ops surfaces in one place
+          r599–r1254 sprint · 444 ships · all founder ops surfaces in one place
         </span>
       </header>
 
