@@ -377,6 +377,11 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-tech-debt-ledger", title: "Founder tech debt ledger ★★", desc: "Known debt + payback priority · 15 KPIs · 10-area taxonomy · 9-kind payback classes · 100-row ledger sorted priority desc", round: "r1352★★" },
       { href: "/founder-experimentation-tracker", title: "Founder experimentation tracker ★★", desc: "A/B tests + holdouts + staged rollouts · 14 KPIs · hypothesis→expected lift→actual lift→ship/kill · lift-realization color (≥80% ok / ≥50% warn / <50% danger)", round: "r1353★★" },
       { href: "/v06-roadmap", title: "v0.6 roadmap ★★★", desc: "10-phase v0.6 plan: vertical expansion (dental+lab+radiology) · chain bulk import v2 · engineer app v0.6 (offline-first + P2P parts) · AI-assisted triage · franchise model · investor data room · international pilot", round: "r1354★★★" },
+      { href: "/founder-product-feedback-inbox", title: "Founder product feedback inbox ★★", desc: "Feature requests + voting + sentiment · 16 KPIs · status ladder open→triaged→planned→in_progress→shipped · most-voted hero · feedback discipline", round: "r1355★★" },
+      { href: "/founder-partnerships-tracker", title: "Founder partnerships tracker ★★", desc: "Strategic partnerships + JVs + integrations · 14 KPIs · 9-state deal funnel · revenue attribution + per-partner activity log", round: "r1356★★" },
+      { href: "/founder-engineer-satisfaction-tracker", title: "Founder engineer satisfaction tracker ★★", desc: "Engineer NPS + CSAT pulse-survey ledger · 15 KPIs · monthly pulse + quarterly NPS · auto promoter/passive/detractor · QoQ NPS delta · repeat-detractor risk", round: "r1357★★" },
+      { href: "/founder-compliance-document-vault", title: "Founder compliance document vault ★★", desc: "Regulatory doc storage tracker · 14 KPIs · renewal-due alerts (30d/90d) · 12-kind taxonomy (Udyam/GST/CDSCO/NABH/ISO/MSME/etc) · 100-row ledger", round: "r1358★★" },
+      { href: "/founder-monthly-narrative-tracker", title: "Founder monthly narrative tracker ★★", desc: "Investor monthly narrative log · 14 KPIs · draft→reviewed→sent→published state machine · 12-month history · cadence telemetry", round: "r1359★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -717,7 +722,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1354 sprint · 531 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ v0.6 ROADMAP LANDED (r1354) ★ 10 audit-fix sweeps · 64 prod bugs caught pre-deploy
+          r599–r1359 sprint · 536 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ v0.6 ROADMAP LANDED (r1354) ★ 10 audit-fix sweeps · 65 prod bugs caught pre-deploy
         </span>
       </header>
 
