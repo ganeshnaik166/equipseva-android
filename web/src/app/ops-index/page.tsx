@@ -300,6 +300,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/device-integrity-checks-summary", title: "Device integrity checks summary", desc: "14-KPI Play Integrity attestation · rooted devices + emulators + blocked installs", round: "r1234" },
       { href: "/equipment-pm-schedule-summary", title: "Equipment PM schedule summary", desc: "14-KPI preventive maintenance plan · upcoming PM + overdue · proactive visit driver", round: "r1235" },
       { href: "/cart-abandonment-summary", title: "Cart abandonment summary", desc: "12-KPI active carts ₹ + abandonment rate + top SKUs + conversion-to-order", round: "r1236" },
+      { href: "/day-5-shipping-ledger", title: "Day 5 shipping ledger ★", desc: "Milestones + workflows-ridden recap · static page · narrative for stakeholders", round: "r1244★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
