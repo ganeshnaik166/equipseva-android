@@ -266,6 +266,11 @@ const SECTIONS: OpsSection[] = [
       { href: "/money-in-flight-summary", title: "Money in flight summary ★", desc: "Cross-domain cash position · escrow + payouts + spare-parts + AMC pool + bounty + disputes", round: "r1193★" },
       { href: "/trust-pulse-summary", title: "Trust pulse summary ★", desc: "Composite trust score · disputes + audits + Code Red + refunds + payouts + KYC", round: "r1195★" },
       { href: "/executive-dashboard-index", title: "Executive dashboard index ★", desc: "26th meta-landing · 19 founder dashboards ranked Tier 1/2/3 priority", round: "r1196★" },
+      { href: "/equipment-category-snapshot", title: "Equipment category snapshot", desc: "13-KPI taxonomy mix · scope gate · top category by job volume", round: "r1197" },
+      { href: "/engineer-certifications-snapshot", title: "Engineer certifications snapshot", desc: "14-KPI cert-ladder · tier mix + promo flow + stalled queue", round: "r1198" },
+      { href: "/compliance-evidence-snapshot", title: "Compliance evidence snapshot", desc: "15-KPI regulatory posture · §65B ledger + DPDP + DSR + NABH + audit log", round: "r1199" },
+      { href: "/cumulative-rollup-summary", title: "Cumulative rollup summary", desc: "14-KPI lifetime autobiography · investor-deck row · jobs/GMV/payouts/AMC/referrals", round: "r1200" },
+      { href: "/regional-state-summary", title: "Regional state summary", desc: "15-KPI top-3 states by composite activity 30d · capital-allocation signal", round: "r1201" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -606,7 +611,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1196 sprint · 391 ships · all founder ops surfaces in one place
+          r599–r1201 sprint · 396 ships · all founder ops surfaces in one place
         </span>
       </header>
 
