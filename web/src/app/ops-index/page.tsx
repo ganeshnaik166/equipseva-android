@@ -264,6 +264,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/signups-funnel-snapshot-summary", title: "Signups funnel snapshot summary", desc: "13-KPI acquisition funnel · today/7d/30d by role + first-action %", round: "r1184" },
       { href: "/spot-audits-snapshot-summary", title: "Spot audits snapshot summary", desc: "14-KPI QA dashboard · invitations + responses + ratings + coverage", round: "r1185" },
       { href: "/money-in-flight-summary", title: "Money in flight summary ★", desc: "Cross-domain cash position · escrow + payouts + spare-parts + AMC pool + bounty + disputes", round: "r1193★" },
+      { href: "/trust-pulse-summary", title: "Trust pulse summary ★", desc: "Composite trust score · disputes + audits + Code Red + refunds + payouts + KYC", round: "r1195★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -604,7 +605,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1194 sprint · 389 ships · all founder ops surfaces in one place
+          r599–r1195 sprint · 390 ships · all founder ops surfaces in one place
         </span>
       </header>
 
