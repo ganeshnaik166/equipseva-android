@@ -33,7 +33,7 @@ const METAS: Meta[] = [
   { href: "/snapshots-index",   title: "Snapshots index",          desc: "15 domain snapshot summaries · 12-18 KPIs each (r1186 expansion)", round: "r1172", emoji: "📸" },
   { href: "/by-month-index",    title: "By-month index",           desc: "40 monthly time-series surfaces grouped Marketplace/AMC/Money/Trust/Growth/Supply", round: "r1179", emoji: "📅" },
   { href: "/executive-dashboard-index", title: "Executive dashboard index ★", desc: "33 founder dashboards ranked Tier 1/2/3 by daily-usage priority (r1219 expansion)", round: "r1196", emoji: "💼" },
-  { href: "/pulse-summaries-index", title: "Pulse summaries index ★", desc: "11 cross-domain pulse dashboards grouped Money/Trust/Quality/Growth/Ops", round: "r1228", emoji: "💓" },
+  { href: "/pulse-summaries-index", title: "Pulse summaries index ★", desc: "14 cross-domain pulse dashboards grouped Money/Trust/Quality/Growth/Ops (r1246 expansion)", round: "r1228", emoji: "💓" },
 ];
 
 export default async function MetasIndexPage() {
