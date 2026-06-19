@@ -12,6 +12,10 @@ const DASHES: Dash[] = [
   { href: "/founder-morning-pulse-v2",      title: "Founder morning pulse v2", desc: "12 actionable numbers · today vs yesterday · 4 categories",                 round: "r1130", priority: "Tier 1" },
   { href: "/money-in-flight-summary",       title: "Money in flight summary",  desc: "Cross-domain cash position · escrow + payouts + spare-parts + AMC pool",   round: "r1193", priority: "Tier 1" },
   { href: "/trust-pulse-summary",           title: "Trust pulse summary",      desc: "Composite trust score · disputes + audits + Code Red + refunds + payouts", round: "r1195", priority: "Tier 1" },
+  { href: "/investor-pulse-summary",        title: "Investor pulse summary",   desc: "Monthly update · MRR + GMV + lifetime totals · paste into deck",            round: "r1208", priority: "Tier 1" },
+  { href: "/amc-pool-pulse-summary",        title: "AMC pool pulse summary",   desc: "Pool balance + 30d flow + zero-balance alerts",                              round: "r1209", priority: "Tier 1" },
+  { href: "/supply-quality-summary",        title: "Supply quality summary",   desc: "Composite engineer-trust score · KYC + tiers + audit + payouts + activity", round: "r1211", priority: "Tier 1" },
+  { href: "/demand-quality-summary",        title: "Demand quality summary",   desc: "Composite hospital-trust score · AMC coverage + activity + loyalty + churn", round: "r1212", priority: "Tier 1" },
 
   // Tier 2 — domain-specific snapshot dashboards
   { href: "/amc-snapshot-summary",          title: "AMC snapshot",             desc: "13-KPI AMC pipeline",                                                       round: "r1161", priority: "Tier 2" },
@@ -31,6 +35,17 @@ const DASHES: Dash[] = [
   { href: "/notifications-snapshot-summary",        title: "Notifications snapshot",        desc: "Throughput + stuck-unread alerts",            round: "r1183", priority: "Tier 3" },
   { href: "/signups-funnel-snapshot-summary",       title: "Signups funnel snapshot",       desc: "Acquisition funnel × role",                   round: "r1184", priority: "Tier 3" },
   { href: "/spot-audits-snapshot-summary",          title: "Spot audits snapshot",          desc: "QA + investor compliance",                    round: "r1185", priority: "Tier 3" },
+  { href: "/equipment-category-snapshot",           title: "Equipment category snapshot",   desc: "Taxonomy mix + scope gate",                   round: "r1197", priority: "Tier 3" },
+  { href: "/engineer-certifications-snapshot",      title: "Engineer cert snapshot",        desc: "Cert-ladder tier mix + stalled queue",        round: "r1198", priority: "Tier 3" },
+  { href: "/compliance-evidence-snapshot",          title: "Compliance evidence snapshot",  desc: "Regulatory posture across ledger",            round: "r1199", priority: "Tier 3" },
+  { href: "/cumulative-rollup-summary",             title: "Cumulative rollup summary",     desc: "Lifetime autobiography · investor-deck row",  round: "r1200", priority: "Tier 3" },
+  { href: "/regional-state-summary",                title: "Regional state summary",        desc: "Top-3 states by composite activity",          round: "r1201", priority: "Tier 3" },
+  { href: "/kyc-pipeline-snapshot",                 title: "KYC pipeline snapshot",         desc: "Regulatory backlog + aging buckets",          round: "r1202", priority: "Tier 3" },
+  { href: "/webhooks-snapshot",                     title: "Webhooks snapshot",             desc: "Razorpay webhook health",                     round: "r1203", priority: "Tier 3" },
+  { href: "/gst-invoice-snapshot",                  title: "GST invoice snapshot",          desc: "Tax-audit-ready view",                        round: "r1204", priority: "Tier 3" },
+  { href: "/rfq-marketplace-snapshot",              title: "RFQ marketplace snapshot",      desc: "Vendor RFQs + rental + financing",            round: "r1205", priority: "Tier 3" },
+  { href: "/amc-sla-warranty-snapshot",             title: "AMC SLA warranty snapshot",     desc: "SLA breach + warranty-detected",              round: "r1206", priority: "Tier 3" },
+  { href: "/reconciliation-tax-snapshot",           title: "Reconciliation tax snapshot",   desc: "Recon mismatch + TDS MTD + 26AS",             round: "r1207", priority: "Tier 3" },
 ];
 
 const PRIO_TONE: Record<Dash["priority"], string> = {
@@ -44,7 +59,7 @@ export default async function ExecutiveDashboardIndexPage() {
   return (
     <div className="space-y-6">
       <header className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold">Executive dashboard index ★ r1196</h1>
+        <h1 className="text-xl font-semibold">Executive dashboard index ★ r1196 · r1219 expansion</h1>
         <span className="text-xs text-[var(--color-muted)]">26th meta-landing · {DASHES.length} founder dashboards ranked by daily-usage priority</span>
       </header>
       <p className="text-sm text-[var(--color-muted)]">Tier 1 = open these first every morning. Tier 2 = drill into when a Tier-1 alert fires. Tier 3 = weekly review depth.</p>
