@@ -399,6 +399,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-pricing-tier-mix", title: "Pricing tier mix ★★", desc: "AMC tier distribution + MRR contribution · 14 KPIs · 3-tier hero cards · 12-month history with enterprise MRR pct (upmarket signal)", round: "r1374★★" },
       { href: "/founder-engineer-tier-progression", title: "Engineer tier progression ★★", desc: "Bronze/silver/gold/platinum distribution · top 30 climbers nearest to promotion · thresholds: silver≥50, gold≥200, platinum≥500 jobs", round: "r1375★★" },
       { href: "/founder-spare-parts-demand-forecast", title: "Spare parts demand forecast ★★", desc: "Historic spare_part_orders demand pattern · 12-month trend · estimated next-30d orders + amount projection · pre-stock + supplier onboarding signal", round: "r1376★★" },
+      { href: "/founder-hospital-segmentation", title: "Hospital segmentation ★★★", desc: "9-cell volume × value segmentation · 14 KPIs · super-user + segment-at-risk flags · 100-hospital ranked table with composite badges", round: "r1377★★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
