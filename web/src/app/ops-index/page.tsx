@@ -382,6 +382,16 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-engineer-satisfaction-tracker", title: "Founder engineer satisfaction tracker ★★", desc: "Engineer NPS + CSAT pulse-survey ledger · 15 KPIs · monthly pulse + quarterly NPS · auto promoter/passive/detractor · QoQ NPS delta · repeat-detractor risk", round: "r1357★★" },
       { href: "/founder-compliance-document-vault", title: "Founder compliance document vault ★★", desc: "Regulatory doc storage tracker · 14 KPIs · renewal-due alerts (30d/90d) · 12-kind taxonomy (Udyam/GST/CDSCO/NABH/ISO/MSME/etc) · 100-row ledger", round: "r1358★★" },
       { href: "/founder-monthly-narrative-tracker", title: "Founder monthly narrative tracker ★★", desc: "Investor monthly narrative log · 14 KPIs · draft→reviewed→sent→published state machine · 12-month history · cadence telemetry", round: "r1359★★" },
+      { href: "/founder-amc-renewal-pipeline", title: "Founder AMC renewal pipeline ★★★", desc: "T-90/60/30 windows · 16 KPIs · expected ARR hero · risk-banded queue (critical/high/medium/low) · code-red 30d + escrow in_dispute flags", round: "r1360★★★" },
+      { href: "/founder-acquisition-attribution", title: "Founder acquisition attribution ★★", desc: "Multi-touch hospital acquisition ledger · 16 KPIs · first-touch + last-touch attribution · 11-kind taxonomy · per-kind conversion breakdown", round: "r1361★★" },
+      { href: "/founder-engineer-rotation-cockpit", title: "Engineer rotation cockpit ★★", desc: "Spot-audit freeze enforcement + at-risk early warning · 14 KPIs · frozen ledger + ≥2-ignored at-risk list · response rate 30d · repeat low-rating flag", round: "r1362★★" },
+      { href: "/founder-supplier-onboarding-funnel", title: "Supplier onboarding funnel ★★", desc: "Supplier recruit funnel identified→onboarded_active · 15 KPIs · 80-row candidate ledger · bond value capture · 8-kind category mix", round: "r1363★★" },
+      { href: "/founder-incident-rca-readout", title: "Incident RCA readout ★★", desc: "Published postmortem RCAs · 16 KPIs · 8-class root-cause taxonomy · revenue + affected-user impact · per-postmortem action-item burndown", round: "r1364★★" },
+      { href: "/founder-revenue-recognition", title: "Revenue recognition ★★", desc: "Accrued vs invoiced vs cash · 14 KPIs · 12-month trend · deferred revenue + bad-debt estimate · MoM + YTD deltas", round: "r1365★★" },
+      { href: "/founder-customer-health-score", title: "Customer health score ★★★", desc: "Composite hospital health 0-100 · 14 KPIs · activity + code-red + disputes + SLA + NPS formula · 4 bands healthy/watch/at_risk/critical · 100-row table sorted riskiest first", round: "r1366★★★" },
+      { href: "/founder-fleet-equipment-inventory", title: "Fleet equipment inventory ★★", desc: "Equipment under AMC fingerprinted by category × manufacturer (365d) · 14 KPIs · informs spare-parts pre-stock + supplier-onboarding priority", round: "r1367★★" },
+      { href: "/founder-team-retro-archive", title: "Founder team retro archive ★★", desc: "Retros across weekly eng/biweekly product/monthly ops/quarterly founder/incidents/launches · 14 KPIs · 50-row ledger · ends re-learning loop", round: "r1368★★" },
+      { href: "/founder-vendor-contract-vault", title: "Founder vendor contract vault ★★", desc: "Supplier contracts + renewal alerts · 14 KPIs · 60d renewal-due banner · 100-row ledger · 10-kind taxonomy · status filter", round: "r1369★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -722,7 +732,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1359 sprint · 536 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ v0.6 ROADMAP LANDED (r1354) ★ 10 audit-fix sweeps · 65 prod bugs caught pre-deploy
+          r599–r1369 sprint · 546 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ v0.6 ROADMAP LANDED (r1354) ★ 10 audit-fix sweeps · 65 prod bugs caught pre-deploy
         </span>
       </header>
 
