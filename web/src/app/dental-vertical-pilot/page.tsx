@@ -38,7 +38,7 @@ type Supplier = {
   id: string;
   supplier_name: string;
   bonded_status: string;
-  supported_categories: string[] | null;
+  supported_categories: string[];
   bond_amount_rupees: number;
   bond_signed_at: string | null;
   bond_expires_at: string | null;
