@@ -316,6 +316,12 @@ const SECTIONS: OpsSection[] = [
       { href: "/catalog-coverage-summary", title: "Catalog coverage summary", desc: "12-KPI devices/brands indexed + untagged equipment + taxonomy depth", round: "r1260" },
       { href: "/refund-authorization-queue-summary", title: "Refund authorization queue summary", desc: "12-KPI manual-approval queue · oldest aging + auto-vs-manual ratio", round: "r1261" },
       { href: "/v04-status-summary", title: "v0.4 status summary ★", desc: "5-phase roadmap roll-up · 451+ ships · 27 meta-landings · investor-deck-ready", round: "r1268★" },
+      { href: "/risk-score-snapshots-summary", title: "Risk score snapshots summary", desc: "Forensic risk telemetry · band distribution + action funnel + drift", round: "r1262" },
+      { href: "/evidence-ledger-65b-summary", title: "Evidence ledger §65B summary", desc: "Indian Evidence Act content-hash chain · 14 kinds · admissibility pulse", round: "r1263" },
+      { href: "/amc-affidavits-summary", title: "AMC affidavits summary", desc: "4 mandatory legal declarations · signer mix + category-coverage + unsigned backlog", round: "r1264" },
+      { href: "/amc-engineer-rotation-summary", title: "AMC engineer rotation summary", desc: "AMC↔engineer roster mapping · load distribution + rotation churn", round: "r1265" },
+      { href: "/repair-job-cost-revisions-summary", title: "Repair job cost revisions summary", desc: "Scope-creep audit trail · revision freq + avg uplift % + top-revising engineers", round: "r1266" },
+      { href: "/db-storage-snapshots-summary", title: "DB storage snapshots summary", desc: "Postgres infra-health · top-N tables by size + fastest-growing wow + capacity planning", round: "r1267" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -656,7 +662,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1268 sprint · 452 ships · all founder ops surfaces in one place
+          r599–r1267 sprint · 458 ships · all founder ops surfaces in one place
         </span>
       </header>
 
