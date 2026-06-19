@@ -692,7 +692,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1321 sprint · 502 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ all founder ops surfaces in one place
+          r599–r1322 sprint · 503 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 7 audit-fix sweeps · 54 prod bugs caught pre-deploy ★ all founder ops surfaces in one place
         </span>
       </header>
 
