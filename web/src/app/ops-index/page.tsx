@@ -392,6 +392,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-fleet-equipment-inventory", title: "Fleet equipment inventory ★★", desc: "Equipment under AMC fingerprinted by category × manufacturer (365d) · 14 KPIs · informs spare-parts pre-stock + supplier-onboarding priority", round: "r1367★★" },
       { href: "/founder-team-retro-archive", title: "Founder team retro archive ★★", desc: "Retros across weekly eng/biweekly product/monthly ops/quarterly founder/incidents/launches · 14 KPIs · 50-row ledger · ends re-learning loop", round: "r1368★★" },
       { href: "/founder-vendor-contract-vault", title: "Founder vendor contract vault ★★", desc: "Supplier contracts + renewal alerts · 14 KPIs · 60d renewal-due banner · 100-row ledger · 10-kind taxonomy · status filter", round: "r1369★★" },
+      { href: "/founder-day-5-summary-snapshot", title: "Day 5 summary snapshot ★★★", desc: "Day 5 sprint review · 546 ships · 5 batches · 8/10 v0.5 phases · 10 audit-fix sweeps · 65 prod bugs caught · v0.6 roadmap landed", round: "r1370★★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -732,7 +733,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1369 sprint · 546 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ v0.6 ROADMAP LANDED (r1354) ★ 10 audit-fix sweeps · 65 prod bugs caught pre-deploy
+          r599–r1370 sprint · 547 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ v0.6 ROADMAP LANDED (r1354) ★ DAY-5 SUMMARY at r1370 ★ 10 audit-fix sweeps · 65 prod bugs caught pre-deploy
         </span>
       </header>
 
