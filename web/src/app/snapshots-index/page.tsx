@@ -4,18 +4,24 @@ import { requireFounder } from "@/lib/auth/requireFounder";
 export const metadata = { title: "Snapshots index — EquipSeva Founder Console" };
 export const dynamic = "force-dynamic";
 
-type Snap = { href: string; title: string; desc: string; round: string; kpis: number; section: "Demand" | "Supply" | "Money" | "Trust" };
+type Snap = { href: string; title: string; desc: string; round: string; kpis: number; section: "Demand" | "Supply" | "Money" | "Trust" | "Growth" | "Ops" };
 
 const SURFACES: Snap[] = [
-  { href: "/hospitals-snapshot-summary",   title: "Hospitals snapshot",      desc: "AMC coverage + spend + loyalty + geographic reach",            round: "r1169", kpis: 15, section: "Demand" },
-  { href: "/engineers-snapshot-summary",   title: "Engineers snapshot",      desc: "KYC funnel + tier distribution + activity",                    round: "r1168", kpis: 14, section: "Supply" },
-  { href: "/jobs-snapshot-summary",        title: "Jobs snapshot",           desc: "Posted/open/in-progress/completed/cancelled marketplace mix",  round: "r1162", kpis: 12, section: "Demand" },
-  { href: "/code-red-snapshot-summary",    title: "Code Red snapshot",       desc: "Emergency queue + SLA breach % + responders 30d",              round: "r1165", kpis: 13, section: "Supply" },
-  { href: "/amc-snapshot-summary",         title: "AMC snapshot",            desc: "Active/paused/expired + MRR + pool health · 13-KPI",           round: "r1161", kpis: 13, section: "Money"  },
-  { href: "/payouts-snapshot-summary",     title: "Payouts snapshot",        desc: "Queued/processed/failed/stuck pipeline + INR",                 round: "r1166", kpis: 14, section: "Money"  },
-  { href: "/spare-parts-snapshot-summary", title: "Spare parts snapshot",    desc: "Paid/shipped/delivered/stuck commerce funnel + GMV",           round: "r1167", kpis: 15, section: "Money"  },
-  { href: "/escrow-snapshot-summary",      title: "Escrow snapshot",         desc: "Money-in-flight: held/released/refunded/scheduled-release",    round: "r1171", kpis: 18, section: "Money"  },
-  { href: "/disputes-snapshot-summary",    title: "Disputes snapshot",       desc: "Mediation queue + resolution % + money at stake",              round: "r1170", kpis: 14, section: "Trust"  },
+  { href: "/hospitals-snapshot-summary",            title: "Hospitals snapshot",            desc: "AMC coverage + spend + loyalty + geographic reach",            round: "r1169", kpis: 15, section: "Demand" },
+  { href: "/hospital-chains-snapshot-summary",      title: "Hospital chains snapshot",      desc: "Chain whale dashboard · AMC coverage + revenue concentration", round: "r1181", kpis: 13, section: "Demand" },
+  { href: "/engineers-snapshot-summary",            title: "Engineers snapshot",            desc: "KYC funnel + tier distribution + activity",                    round: "r1168", kpis: 14, section: "Supply" },
+  { href: "/supervised-training-snapshot-summary",  title: "Supervised training snapshot",  desc: "Active trainees + pass rate + pipeline depth",                 round: "r1182", kpis: 14, section: "Supply" },
+  { href: "/jobs-snapshot-summary",                 title: "Jobs snapshot",                 desc: "Posted/open/in-progress/completed/cancelled marketplace mix",  round: "r1162", kpis: 12, section: "Demand" },
+  { href: "/code-red-snapshot-summary",             title: "Code Red snapshot",             desc: "Emergency queue + SLA breach % + responders 30d",              round: "r1165", kpis: 13, section: "Supply" },
+  { href: "/amc-snapshot-summary",                  title: "AMC snapshot",                  desc: "Active/paused/expired + MRR + pool health",                    round: "r1161", kpis: 13, section: "Money"  },
+  { href: "/payouts-snapshot-summary",              title: "Payouts snapshot",              desc: "Queued/processed/failed/stuck pipeline + INR",                 round: "r1166", kpis: 14, section: "Money"  },
+  { href: "/spare-parts-snapshot-summary",          title: "Spare parts snapshot",          desc: "Paid/shipped/delivered/stuck commerce funnel + GMV",           round: "r1167", kpis: 15, section: "Money"  },
+  { href: "/escrow-snapshot-summary",               title: "Escrow snapshot",               desc: "Money-in-flight: held/released/refunded/scheduled-release",    round: "r1171", kpis: 18, section: "Money"  },
+  { href: "/disputes-snapshot-summary",             title: "Disputes snapshot",             desc: "Mediation queue + resolution % + money at stake",              round: "r1170", kpis: 14, section: "Trust"  },
+  { href: "/spot-audits-snapshot-summary",          title: "Spot audits snapshot",          desc: "Invitations + responses + ratings + coverage",                 round: "r1185", kpis: 14, section: "Trust"  },
+  { href: "/referrals-snapshot-summary",            title: "Referrals snapshot",            desc: "Growth dashboard · funnel + bounty spend + ROI + stuck",       round: "r1180", kpis: 14, section: "Growth" },
+  { href: "/signups-funnel-snapshot-summary",       title: "Signups funnel snapshot",       desc: "Acquisition funnel × role + first-action completion %",        round: "r1184", kpis: 13, section: "Growth" },
+  { href: "/notifications-snapshot-summary",        title: "Notifications snapshot",        desc: "Throughput · today/30d · stuck-unread alerts",                 round: "r1183", kpis: 12, section: "Ops"    },
 ];
 
 const SEC_TONE: Record<Snap["section"], string> = {
@@ -23,6 +29,8 @@ const SEC_TONE: Record<Snap["section"], string> = {
   Supply: "text-[var(--color-ok)]",
   Money:  "text-[var(--color-warn)]",
   Trust:  "text-[var(--color-danger)]",
+  Growth: "text-[var(--color-accent)]",
+  Ops:    "text-[var(--color-muted)]",
 };
 
 export default async function SnapshotsIndexPage() {
@@ -30,7 +38,7 @@ export default async function SnapshotsIndexPage() {
   return (
     <div className="space-y-6">
       <header className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold">Snapshots index ★ r1172</h1>
+        <h1 className="text-xl font-semibold">Snapshots index ★ r1172 · r1186 expansion</h1>
         <span className="text-xs text-[var(--color-muted)]">24th meta-landing · {SURFACES.length} domain snapshot summaries · 12-18 KPIs each, today/30d/all-time mix</span>
       </header>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

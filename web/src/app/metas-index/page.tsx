@@ -30,7 +30,7 @@ const METAS: Meta[] = [
   { href: "/engineers-index",   title: "Engineers index",          desc: "19 engineer (supply side) surfaces",                    round: "r1146", emoji: "👷" },
   { href: "/hospitals-index",   title: "Hospitals index",          desc: "13 hospital (demand side) surfaces",                    round: "r1147", emoji: "🏨" },
   { href: "/notifications-index", title: "Notifications index",    desc: "3 notification engagement surfaces",                    round: "r1149", emoji: "🔔" },
-  { href: "/snapshots-index",   title: "Snapshots index",          desc: "9 domain snapshot summaries · 12-18 KPIs each, today/30d/all-time", round: "r1172", emoji: "📸" },
+  { href: "/snapshots-index",   title: "Snapshots index",          desc: "15 domain snapshot summaries · 12-18 KPIs each (r1186 expansion)", round: "r1172", emoji: "📸" },
   { href: "/by-month-index",    title: "By-month index",           desc: "40 monthly time-series surfaces grouped Marketplace/AMC/Money/Trust/Growth/Supply", round: "r1179", emoji: "📅" },
 ];
 
