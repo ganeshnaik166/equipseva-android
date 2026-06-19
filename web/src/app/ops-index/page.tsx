@@ -309,6 +309,12 @@ const SECTIONS: OpsSection[] = [
       { href: "/dpdp-grievance-pulse-summary", title: "DPDP grievance pulse summary", desc: "12-KPI DPDP Act complaints · 30-day SLA breach + correction/erasure/portability mix", round: "r1243" },
       { href: "/audit-history-index", title: "Audit history index ★", desc: "Pre-deploy adversarial audit log · 6 workflows ridden · 26+ confirmed bugs caught", round: "r1254★" },
       { href: "/workflows-history-index", title: "Workflows history index ★", desc: "Ultracode workflow ledger · 14 ridden (8 design + 6 audit) · ~5.4M agent-tokens spent", round: "r1255★" },
+      { href: "/engineer-attendance-summary", title: "Engineer attendance summary", desc: "12-KPI GPS check-ins + suspicious-distance + verified-eng-no-checkin-7d alerts", round: "r1256" },
+      { href: "/amc-renewal-attempts-summary", title: "AMC renewal attempts summary", desc: "19-KPI auto-renewal retry pile · success/fail/decline-reason · revenue leak", round: "r1257" },
+      { href: "/cash-payment-surveys-summary", title: "Cash payment surveys summary", desc: "14-KPI engineer cash-collection confessions · off-platform leakage detector", round: "r1258" },
+      { href: "/buyer-kyc-pipeline-summary", title: "Buyer KYC pipeline summary", desc: "14-KPI hospital-buyer KYC queue · GST/NABH doc mix + verification SLA", round: "r1259" },
+      { href: "/catalog-coverage-summary", title: "Catalog coverage summary", desc: "12-KPI devices/brands indexed + untagged equipment + taxonomy depth", round: "r1260" },
+      { href: "/refund-authorization-queue-summary", title: "Refund authorization queue summary", desc: "12-KPI manual-approval queue · oldest aging + auto-vs-manual ratio", round: "r1261" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -649,7 +655,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1255 sprint · 445 ships · all founder ops surfaces in one place
+          r599–r1261 sprint · 451 ships · all founder ops surfaces in one place
         </span>
       </header>
 
