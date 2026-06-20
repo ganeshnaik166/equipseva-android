@@ -430,6 +430,10 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-nps-auto-runner", title: "NPS auto-runner ★★★★", desc: "Quarterly NPS survey cron · 1 table (jobs) reusing r1326 surveys+responses · 7 RPCs · 6-state job machine scheduled→sending→collecting→closing→closed", round: "r1405★★★★" },
       { href: "/founder-fundraising-kit-generator", title: "Fundraising Kit Generator ★★★★", desc: "One-click investor pack · 2 tables (kits + shares) · 8 RPCs · 6 kit kinds (preseed→strategic) · time-boxed token-gated shares · 5-state kit machine + 4-state share machine", round: "r1406★★★★" },
       { href: "/founder-customer-churn-prediction", title: "Customer Churn Prediction ★★★★", desc: "Churn ML infra · 3 tables (models + features + outcomes) · 8 RPCs · 6 model families (logistic/gradient_boost/xgboost/random_forest/rule_based/external) · feature store + outcome eval + accuracy tracking", round: "r1407★★★★" },
+      { href: "/founder-live-ops-cockpit-v2", title: "Live ops cockpit v2 ★★★★★", desc: "Real-time composite heartbeat · 18 KPIs from 14 system domains · 0-100 system health score · red-alert thresholds · pulse-last-seen telemetry", round: "r1408★★★★★" },
+      { href: "/founder-payroll-v2-monthly-auto", title: "Payroll v2 monthly auto-disburse ★★★★", desc: "Cron-driven payroll scheduler extends r1325 · per-engineer cadence (weekly/biweekly/monthly/quarterly/custom) · 14 KPIs · cron-callable kickoff RPC", round: "r1409★★★★" },
+      { href: "/founder-marketing-automation", title: "Marketing automation ★★★★", desc: "3 tables (leads + nurturing_sequences + lead_sequence_runs) · 8 RPCs · 8-stage funnel + 7 lead sources + 6 lead kinds · lead scoring 0-100", round: "r1410★★★★" },
+      { href: "/founder-hospital-chains-deep-drilldown", title: "Hospital chains deep drilldown ★★★★", desc: "5 RPCs · 18 KPIs · 30-chain breakdown + top-10 concentration risk + 12mo revenue trend + funnel velocity stages", round: "r1411★★★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -770,7 +774,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1407 sprint · 583 ships ★ 21 HEAVY ships in last 90min (r1390-r1407 incl Investor Data Room + Hospital Billing + Hospital Portal v2 + P2P Marketplace + AI Triage + International + Cashfree v3 Reconciliation + Cap Table v2 + Engineer Earnings v2 + Tax/GST Hub + Engineer Cert Ladder v2 + NPS Auto-Runner + Fundraising Kit Gen + Churn Prediction) ★ 9 v0.6 phases shipped EARLY · 11 audit-fix sweeps · 72 prod bugs caught
+          r599–r1411 sprint · 587 ships ★ 25 HEAVY ★★★★+ ships in last 2hrs (Investor Data Room + Hospital Billing Engine + Hospital Portal v2 + P2P Marketplace + AI Triage + International + Cashfree v3 + Cap Table v2 + Engineer Earnings v2 + Tax/GST Hub + Cert Ladder v2 + NPS Auto + Fundraising Kit + Churn Pred + Live Ops Cockpit v2 + Payroll v2 Auto + Marketing Automation + Hospital Chains Deep Drilldown) ★ 9 v0.6 phases shipped EARLY · 11 audit-fix sweeps · 72 prod bugs caught
         </span>
       </header>
 
