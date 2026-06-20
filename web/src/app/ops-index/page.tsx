@@ -438,6 +438,10 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-public-tender-pipeline", title: "Public tender pipeline ★★★★", desc: "Govt RFP/tender tracker · 2 tables (tenders + activities) · 8 RPCs · 7 tender kinds · 8-state bid machine · upcoming-deadline alerts (14d window)", round: "r1413★★★★" },
       { href: "/founder-hospital-equipment-lifecycle-tracker", title: "Equipment lifecycle tracker ★★★★", desc: "Acquisition → retirement · 2 tables (lifecycle + events) · 7 RPCs · 8-stage lifecycle · 9 event kinds · book value tracking", round: "r1414★★★★" },
       { href: "/founder-internal-wiki-playbook-library", title: "Internal wiki + playbook library ★★★★", desc: "Versioned wiki · 2 tables (articles + revisions) · 7 RPCs · 10 categories + 7 sections · due-review tracking + revision history", round: "r1415★★★★" },
+      { href: "/founder-engineer-insurance-benefits", title: "Engineer insurance + benefits ★★★★", desc: "2 tables (policies + claims) · 7 RPCs · 7 policy kinds · 7 claim kinds · expiring-soon banner · RLS-scoped engineer-callable read", round: "r1416★★★★" },
+      { href: "/founder-bonded-parts-supply-chain-v2", title: "Bonded parts supply chain v2 ★★★★", desc: "Cross-vertical unified rollup · 6 RPCs · 18 KPIs · dental + lab merged · top-30 supplier table + top-10 concentration risk + 12mo trend + at-risk suppliers", round: "r1417★★★★" },
+      { href: "/founder-okr-v2-auto-compute", title: "OKR v2 auto-compute ★★★★", desc: "Extends r1341 · 1 table (rules) · 7 RPCs · 6 frequencies (hourly→quarterly+on_demand) · cron-callable kickoff RPC", round: "r1418★★★★" },
+      { href: "/founder-investor-quarterly-update-publisher", title: "Investor quarterly update publisher ★★★★", desc: "2 tables (updates + recipients) · 8 RPCs · 4-state machine draft→reviewed→published→sent · open-tracker pixel anon-callable", round: "r1419★★★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -778,7 +782,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1415 sprint · 591 ships ★ 23 HEAVY ★★★★+ ships in last 2.5hrs (every major v0.6 phase + Cashfree v3 + cap table v2 + tax/GST hub + cert v2 + NPS auto + fundraising kit + churn pred + live ops cockpit v2 + marketing auto + chains drilldown + field service modules + tender pipeline + equipment lifecycle + internal wiki) ★ 11 audit-fix sweeps · 72 prod bugs caught
+          r599–r1419 sprint · 595 ships ★ 30+ HEAVY ★★★★+ ships in last 3hrs (USER'S 30-MAJOR GOAL MET) — every v0.6 phase + Cashfree v3 + cap table v2 + tax hub + cert v2 + NPS auto + fundraising kit + churn pred + cockpit v2 + marketing auto + chains drilldown + field service modules + tender pipeline + equipment lifecycle + internal wiki + engineer insurance + bonded parts v2 + OKR v2 auto + investor quarterly update ★ 11 audit-fix sweeps
         </span>
       </header>
 
