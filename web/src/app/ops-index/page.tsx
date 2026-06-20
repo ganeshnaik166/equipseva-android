@@ -454,6 +454,10 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-vendor-quality-scorecard", title: "Vendor quality scorecard ★★★★", desc: "Aggregator across spare_part_orders + r1369 contracts · 6 RPCs · 18 KPIs · on-time + defect-rate + concentration risk", round: "r1429★★★★" },
       { href: "/founder-customer-case-study-tracker", title: "Customer case study tracker ★★★★", desc: "2 tables (studies + references) · 7 RPCs · 7 study kinds · 7-state permission machine · publication-channel boolean flags", round: "r1430★★★★" },
       { href: "/founder-inbox-triage-cockpit", title: "Founder inbox triage cockpit ★★★★", desc: "1 table · 7 RPCs · 11 source kinds · 4 urgency bands · 8 categories · 7-state triage machine · overdue + snooze", round: "r1431★★★★" },
+      { href: "/founder-engineer-recruitment-ats-v2", title: "Engineer recruitment ATS v2 ★★★★", desc: "Extends r1346 · 2 tables (interview_panels + offers) · 7 RPCs · 5 panel kinds · 4-state machine · 7-state offer machine · 16 KPIs", round: "r1432★★★★" },
+      { href: "/founder-hospital-department-breakout", title: "Hospital department breakout ★★★★", desc: "1 table · 6 RPCs · 10 dept kinds · per-hospital + per-dept rollup · idle 60d flag", round: "r1433★★★★" },
+      { href: "/founder-engineer-personal-pnl", title: "Engineer personal P&L ★★★★", desc: "1 table · 6 RPCs · per-engineer P&L snapshots · gross_margin_pct · cron-callable bulk-compute period · RLS-scoped engineer read", round: "r1434★★★★" },
+      { href: "/founder-investor-open-tracker", title: "Investor open tracker ★★★★", desc: "Aggregator over r1419 + r1390 · 6 RPCs · 16 KPIs · engagement signal · dormant investor detection · 60d no-open ladder", round: "r1435★★★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -794,7 +798,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1431 sprint · 607 ships ★ 42+ HEAVY ★★★★+ ships in last 3.5hrs · 600 SHIPS MILESTONE PASSED · USER'S +50 MAJORS GOAL: 12 of 50 done · all v0.6 phases + cashfree v3 + cap table v2 + tax hub + cert v2 + NPS auto + fundraising kit + churn pred + cockpit v2 + marketing auto + chains drilldown + field service + tender + equipment lifecycle + wiki + insurance + bonded parts v2 + OKR v2 + investor quarterly + mental health pulse + VIP account manager + sales pipeline v2 + audit vault + photo QA + maintenance calendar + skills matrix + CLV + leave tracker + vendor scorecard + case studies + inbox triage
+          r599–r1435 sprint · 611 ships ★ 46+ HEAVY ★★★★+ ships shipped · 600 MILESTONE PASSED · user's +50 majors goal: 16/50 done · 80+ HEAVY ★★★★ INFRASTRUCTURE SHIPS this session (every v0.6 phase + Cashfree v3 + cap table v2 + tax hub + cert v2 + NPS auto + fundraising + churn + cockpit v2 + marketing + drilldown + field svc + tender + equipment lifecycle + wiki + insurance + bonded parts v2 + OKR v2 + investor quarterly + mental health + VIP + sales pipeline v2 + audit vault + photo QA + maintenance calendar + skills matrix + CLV + leave + vendor scorecard + case studies + inbox triage + ATS v2 + department breakout + engineer P&L + investor open tracker)
         </span>
       </header>
 
