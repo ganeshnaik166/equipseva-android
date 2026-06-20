@@ -13,8 +13,8 @@ export default async function FounderTeamRetroLogPage() {
   const [summaryRes, listRes, overdueRes, openRes, scorecardRes, staleRes] = await Promise.all([
     supabase.rpc('founder_team_retro_summary'),
     supabase.rpc('founder_team_retro_list'),
-    supabase.rpc('founder_team_retro_actions_overdue'),
-    supabase.rpc('founder_team_retro_actions_open'),
+    supabase.rpc('founder_team_retro_actions_v2_overdue'),
+    supabase.rpc('founder_team_retro_actions_v2_open'),
     supabase.rpc('founder_team_retro_owner_scorecard'),
     supabase.rpc('founder_team_retro_stale'),
   ]);
