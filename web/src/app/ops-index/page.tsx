@@ -426,6 +426,10 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-cap-table-v2-vesting-calculator", title: "Cap Table v2 + Vesting ★★★★", desc: "Extends r1335 · 2 tables (vesting schedules + dilution scenarios) · 8 RPCs · 5 vesting kinds · 6 scenario kinds · upcoming cliffs (90d) · founder + employee dilution simulator", round: "r1401★★★★" },
       { href: "/founder-engineer-earnings-v2", title: "Engineer Earnings v2 ★★★★", desc: "2 tables (tax_filing_assists + cashout_requests) · 8 RPCs · cashout request ladder + tax filing assistance · Form 16A/26AS/ITR-V links · 16 KPIs", round: "r1402★★★★" },
       { href: "/founder-tax-gst-automation-hub", title: "Tax & GST Automation Hub ★★★★", desc: "2 tables (tax_filing_runs + tds_payment_ledger) · 8 RPCs · 12 filing kinds (GSTR1/3B/9/9C + TDS 24Q/26Q/27Q/27EQ + IT returns) · 7 TDS payment kinds · CA-review tracking", round: "r1403★★★★" },
+      { href: "/founder-engineer-certification-ladder-v2", title: "Engineer Cert Ladder v2 ★★★★", desc: "Proctored exam infra · 2 tables (exams + attempts) · 7 RPCs · 6 exam kinds (foundation/tier_pro/specialty radiology/dental/lab/equipment) · 7-state attempt machine · integrity_flags jsonb", round: "r1404★★★★" },
+      { href: "/founder-nps-auto-runner", title: "NPS auto-runner ★★★★", desc: "Quarterly NPS survey cron · 1 table (jobs) reusing r1326 surveys+responses · 7 RPCs · 6-state job machine scheduled→sending→collecting→closing→closed", round: "r1405★★★★" },
+      { href: "/founder-fundraising-kit-generator", title: "Fundraising Kit Generator ★★★★", desc: "One-click investor pack · 2 tables (kits + shares) · 8 RPCs · 6 kit kinds (preseed→strategic) · time-boxed token-gated shares · 5-state kit machine + 4-state share machine", round: "r1406★★★★" },
+      { href: "/founder-customer-churn-prediction", title: "Customer Churn Prediction ★★★★", desc: "Churn ML infra · 3 tables (models + features + outcomes) · 8 RPCs · 6 model families (logistic/gradient_boost/xgboost/random_forest/rule_based/external) · feature store + outcome eval + accuracy tracking", round: "r1407★★★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -766,7 +770,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1403 sprint · 579 ships ★ 600 SHIPS MILESTONE FORTHCOMING ★ 9 v0.6 PHASES SHIPPED EARLY · 17 HEAVY ships in last hour (r1390-r1403 incl r1400 Cashfree v3 Reconciliation Engine + r1391 hospital billing engine + r1395 hospital portal v2 + r1396 P2P parts marketplace + r1397 AI Code Red triage + r1398 international expansion + r1399 offline sync queue + r1401 cap table v2 + r1402 engineer earnings v2 + r1403 tax GST hub) ★ 11 audit-fix sweeps · 72 prod bugs caught
+          r599–r1407 sprint · 583 ships ★ 21 HEAVY ships in last 90min (r1390-r1407 incl Investor Data Room + Hospital Billing + Hospital Portal v2 + P2P Marketplace + AI Triage + International + Cashfree v3 Reconciliation + Cap Table v2 + Engineer Earnings v2 + Tax/GST Hub + Engineer Cert Ladder v2 + NPS Auto-Runner + Fundraising Kit Gen + Churn Prediction) ★ 9 v0.6 phases shipped EARLY · 11 audit-fix sweeps · 72 prod bugs caught
         </span>
       </header>
 
