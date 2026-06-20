@@ -413,6 +413,10 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-revenue-per-engineer", title: "Revenue per engineer ★★", desc: "RPE proxy = jobs × (total_AMC_MRR / total_jobs) · 13 KPIs · 4-band ladder (top_decile / upper_half / lower_half / bottom_decile) · top 50 engineer table", round: "r1389★★" },
       { href: "/founder-investor-data-room", title: "Investor data room ★★★★ · v0.6 Phase 8 EARLY", desc: "HEAVY · 4 tables (folders+docs+grants+access_log) · 9 RPCs · 9-folder taxonomy · 5 sensitivity bands · per-investor token-gated grants with max_views + expiry + sensitivity allowlist · every view audit-logged · public surface /share/data-room/[token]", round: "r1390★★★★" },
       { href: "/share/data-room/<token>", title: "Public data room (anon) ★★", desc: "Anon-callable token-gated SECDEF · 6 outcome states (ok/expired/exhausted/revoked/sensitivity_blocked/not_found) · pair with /founder-investor-data-room admin", round: "r1390-pub★★" },
+      { href: "/founder-hospital-billing-engine", title: "Hospital billing engine ★★★★", desc: "HEAVY · 3 tables (cycles+invoices+dunning) · 8 RPCs incl 2 cron-callable (current-month generator + overdue flipper) · 16 KPIs · 5-step dunning ladder × 6 channels", round: "r1391★★★★" },
+      { href: "/lab-diagnostics-vertical-pilot", title: "Lab Diagnostics vertical pilot ★★", desc: "v0.6 Phase 1 EARLY · 3rd vertical (mirrors dental r1323) · 9-equipment category seed (blood_analyzer/centrifuge/autoclave_lab/microscope/elisa_reader/etc) · Hyderabad-Q4 cohort", round: "r1392★★" },
+      { href: "/founder-franchise-pilot", title: "Franchise pilot tracker ★★", desc: "v0.6 Phase 6 EARLY · state-level franchise partners · 8-state funnel · royalty + franchise fee tracking · milestones feed · 3-state focus (TS/KA/TN)", round: "r1393★★" },
+      { href: "/founder-public-market-intelligence", title: "Public market intelligence ★★", desc: "v0.6 Phase 9 EARLY · competitor + market intel · 5-band threat ladder · funding status · pricing snapshots · our-vs-market pricing advantage", round: "r1394★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -753,7 +757,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1390 sprint · 566 ships ★ 500 SHIPS MILESTONE ★ v0.6 PHASE 8 SHIPPED EARLY (r1390 investor data room ★★★★ — 4 tables + 9 RPCs + admin/public pages) ★ 11 audit-fix sweeps · 72 prod bugs caught pre-deploy
+          r599–r1394 sprint · 570 ships ★ 500 SHIPS MILESTONE ★ 4 v0.6 PHASES SHIPPED EARLY: r1390 investor data room (P8) + r1391 hospital billing engine + r1392 lab diagnostics vertical (P1) + r1393 franchise pilot (P6) + r1394 public market intelligence (P9) ★ 11 audit-fix sweeps · 72 prod bugs caught pre-deploy
         </span>
       </header>
 
