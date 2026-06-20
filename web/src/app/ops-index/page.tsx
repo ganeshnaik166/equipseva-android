@@ -417,6 +417,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/lab-diagnostics-vertical-pilot", title: "Lab Diagnostics vertical pilot ★★", desc: "v0.6 Phase 1 EARLY · 3rd vertical (mirrors dental r1323) · 9-equipment category seed (blood_analyzer/centrifuge/autoclave_lab/microscope/elisa_reader/etc) · Hyderabad-Q4 cohort", round: "r1392★★" },
       { href: "/founder-franchise-pilot", title: "Franchise pilot tracker ★★", desc: "v0.6 Phase 6 EARLY · state-level franchise partners · 8-state funnel · royalty + franchise fee tracking · milestones feed · 3-state focus (TS/KA/TN)", round: "r1393★★" },
       { href: "/founder-public-market-intelligence", title: "Public market intelligence ★★", desc: "v0.6 Phase 9 EARLY · competitor + market intel · 5-band threat ladder · funding status · pricing snapshots · our-vs-market pricing advantage", round: "r1394★★" },
+      { href: "/founder-hospital-portal-v2", title: "Hospital portal v2 admin ★★★★", desc: "v0.6 Phase 7 SHIPPED EARLY · 4 tables (self-service requests + disputes + feature flags + session log) · 10 RPCs (founder admin + hospital-callable RLS-scoped + cron) · 11 request kinds + 8 dispute kinds + 6 rollout bands", round: "r1395★★★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -757,7 +758,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1394 sprint · 570 ships ★ 500 SHIPS MILESTONE ★ 4 v0.6 PHASES SHIPPED EARLY: r1390 investor data room (P8) + r1391 hospital billing engine + r1392 lab diagnostics vertical (P1) + r1393 franchise pilot (P6) + r1394 public market intelligence (P9) ★ 11 audit-fix sweeps · 72 prod bugs caught pre-deploy
+          r599–r1395 sprint · 571 ships ★ 5 v0.6 PHASES SHIPPED EARLY: r1390 investor data room (P8) + r1391 hospital billing engine + r1392 lab diagnostics (P1) + r1393 franchise pilot (P6) + r1394 market intel (P9) + r1395 hospital portal v2 (P7) ★ 11 audit-fix sweeps · 72 prod bugs caught pre-deploy
         </span>
       </header>
 
