@@ -434,6 +434,10 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-payroll-v2-monthly-auto", title: "Payroll v2 monthly auto-disburse ★★★★", desc: "Cron-driven payroll scheduler extends r1325 · per-engineer cadence (weekly/biweekly/monthly/quarterly/custom) · 14 KPIs · cron-callable kickoff RPC", round: "r1409★★★★" },
       { href: "/founder-marketing-automation", title: "Marketing automation ★★★★", desc: "3 tables (leads + nurturing_sequences + lead_sequence_runs) · 8 RPCs · 8-stage funnel + 7 lead sources + 6 lead kinds · lead scoring 0-100", round: "r1410★★★★" },
       { href: "/founder-hospital-chains-deep-drilldown", title: "Hospital chains deep drilldown ★★★★", desc: "5 RPCs · 18 KPIs · 30-chain breakdown + top-10 concentration risk + 12mo revenue trend + funnel velocity stages", round: "r1411★★★★" },
+      { href: "/founder-engineer-field-service-modules", title: "Engineer field service modules ★★★★", desc: "v0.6 mobile · 2 tables (modules + runs) · 7 RPCs · 10 module kinds · 5-state run machine · RLS-scoped engineer-callable", round: "r1412★★★★" },
+      { href: "/founder-public-tender-pipeline", title: "Public tender pipeline ★★★★", desc: "Govt RFP/tender tracker · 2 tables (tenders + activities) · 8 RPCs · 7 tender kinds · 8-state bid machine · upcoming-deadline alerts (14d window)", round: "r1413★★★★" },
+      { href: "/founder-hospital-equipment-lifecycle-tracker", title: "Equipment lifecycle tracker ★★★★", desc: "Acquisition → retirement · 2 tables (lifecycle + events) · 7 RPCs · 8-stage lifecycle · 9 event kinds · book value tracking", round: "r1414★★★★" },
+      { href: "/founder-internal-wiki-playbook-library", title: "Internal wiki + playbook library ★★★★", desc: "Versioned wiki · 2 tables (articles + revisions) · 7 RPCs · 10 categories + 7 sections · due-review tracking + revision history", round: "r1415★★★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -774,7 +778,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1411 sprint · 587 ships ★ 25 HEAVY ★★★★+ ships in last 2hrs (Investor Data Room + Hospital Billing Engine + Hospital Portal v2 + P2P Marketplace + AI Triage + International + Cashfree v3 + Cap Table v2 + Engineer Earnings v2 + Tax/GST Hub + Cert Ladder v2 + NPS Auto + Fundraising Kit + Churn Pred + Live Ops Cockpit v2 + Payroll v2 Auto + Marketing Automation + Hospital Chains Deep Drilldown) ★ 9 v0.6 phases shipped EARLY · 11 audit-fix sweeps · 72 prod bugs caught
+          r599–r1415 sprint · 591 ships ★ 23 HEAVY ★★★★+ ships in last 2.5hrs (every major v0.6 phase + Cashfree v3 + cap table v2 + tax/GST hub + cert v2 + NPS auto + fundraising kit + churn pred + live ops cockpit v2 + marketing auto + chains drilldown + field service modules + tender pipeline + equipment lifecycle + internal wiki) ★ 11 audit-fix sweeps · 72 prod bugs caught
         </span>
       </header>
 
