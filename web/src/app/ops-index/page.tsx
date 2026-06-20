@@ -410,6 +410,7 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-weekly-review-template", title: "Founder weekly review template ★★", desc: "Written weekly review log · wins/misses/blockers/priorities · mood/confidence/energy 1-10 ratings · draft→final→shared state machine", round: "r1385★★" },
       { href: "/founder-engineer-by-city", title: "Engineer by city ★★", desc: "Verified engineers grouped by city (COALESCE profile.org.city, last-job hospital.city) · 10 KPIs · top-50 city breakdown · metro vs non-metro split", round: "r1387★★" },
       { href: "/founder-calendar-burndown", title: "Calendar burndown ★★★", desc: "17 KPIs across every due-date column: AMC renewals · vendor contracts · compliance docs · board · postmortems · hiring · investors · warranties · decisions revisit", round: "r1388★★★" },
+      { href: "/founder-revenue-per-engineer", title: "Revenue per engineer ★★", desc: "RPE proxy = jobs × (total_AMC_MRR / total_jobs) · 13 KPIs · 4-band ladder (top_decile / upper_half / lower_half / bottom_decile) · top 50 engineer table", round: "r1389★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -750,7 +751,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1388 sprint · 564 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ 11 audit-fix sweeps · 72 prod bugs caught pre-deploy
+          r599–r1389 sprint · 565 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ 11 audit-fix sweeps · 72 prod bugs caught pre-deploy
         </span>
       </header>
 
