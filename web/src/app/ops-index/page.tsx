@@ -418,6 +418,14 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-franchise-pilot", title: "Franchise pilot tracker ★★", desc: "v0.6 Phase 6 EARLY · state-level franchise partners · 8-state funnel · royalty + franchise fee tracking · milestones feed · 3-state focus (TS/KA/TN)", round: "r1393★★" },
       { href: "/founder-public-market-intelligence", title: "Public market intelligence ★★", desc: "v0.6 Phase 9 EARLY · competitor + market intel · 5-band threat ladder · funding status · pricing snapshots · our-vs-market pricing advantage", round: "r1394★★" },
       { href: "/founder-hospital-portal-v2", title: "Hospital portal v2 admin ★★★★", desc: "v0.6 Phase 7 SHIPPED EARLY · 4 tables (self-service requests + disputes + feature flags + session log) · 10 RPCs (founder admin + hospital-callable RLS-scoped + cron) · 11 request kinds + 8 dispute kinds + 6 rollout bands", round: "r1395★★★★" },
+      { href: "/founder-engineer-p2p-parts-marketplace", title: "Engineer P2P parts marketplace ★★★★", desc: "v0.6 Phase 3 EARLY · 3 tables (listings + bids + transactions) · 9 RPCs · engineer-callable RLS-scoped + cron · 8 part categories · 5 condition bands · 60-day auto-expiry", round: "r1396★★★★" },
+      { href: "/founder-ai-code-red-triage", title: "AI Code Red triage ★★★★", desc: "v0.6 Phase 4 EARLY · 3 tables (model versions + predictions + feedback) · 8 RPCs · 6 model families · shadow/live mode · feedback-driven accuracy tracking", round: "r1397★★★★" },
+      { href: "/founder-international-expansion", title: "International expansion ★★★★", desc: "v0.6 Phase 10 EARLY · 3 tables (countries + currencies + milestones) · 7 RPCs · 7-state expansion ladder · seeded LK/BD/NP · 10-kind milestone taxonomy · FX rate ledger", round: "r1398★★★★" },
+      { href: "/founder-engineer-app-offline-sync", title: "Engineer app offline sync queue ★★★★", desc: "v0.6 Phase 3 INFRA · 3 tables (offline events + conflicts + sync sessions) · 8 RPCs · 10 event kinds · 6 conflict kinds · 7 network kinds · 90d auto-purge cron", round: "r1399★★★★" },
+      { href: "/founder-cashfree-payouts-reconciliation-v3", title: "★ 600 SHIPS ★ Cashfree v3 Reconciliation Engine ★★★★★", desc: "MILESTONE · 3 tables (attempts + webhooks + reconciliation_runs) · 9 RPCs · 7 attempt statuses · 10 webhook event kinds · 4 run kinds · signature validation + dedup + daily auto-reconciliation · discrepancy detection", round: "r1400★★★★★" },
+      { href: "/founder-cap-table-v2-vesting-calculator", title: "Cap Table v2 + Vesting ★★★★", desc: "Extends r1335 · 2 tables (vesting schedules + dilution scenarios) · 8 RPCs · 5 vesting kinds · 6 scenario kinds · upcoming cliffs (90d) · founder + employee dilution simulator", round: "r1401★★★★" },
+      { href: "/founder-engineer-earnings-v2", title: "Engineer Earnings v2 ★★★★", desc: "2 tables (tax_filing_assists + cashout_requests) · 8 RPCs · cashout request ladder + tax filing assistance · Form 16A/26AS/ITR-V links · 16 KPIs", round: "r1402★★★★" },
+      { href: "/founder-tax-gst-automation-hub", title: "Tax & GST Automation Hub ★★★★", desc: "2 tables (tax_filing_runs + tds_payment_ledger) · 8 RPCs · 12 filing kinds (GSTR1/3B/9/9C + TDS 24Q/26Q/27Q/27EQ + IT returns) · 7 TDS payment kinds · CA-review tracking", round: "r1403★★★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -758,7 +766,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1395 sprint · 571 ships ★ 5 v0.6 PHASES SHIPPED EARLY: r1390 investor data room (P8) + r1391 hospital billing engine + r1392 lab diagnostics (P1) + r1393 franchise pilot (P6) + r1394 market intel (P9) + r1395 hospital portal v2 (P7) ★ 11 audit-fix sweeps · 72 prod bugs caught pre-deploy
+          r599–r1403 sprint · 579 ships ★ 600 SHIPS MILESTONE FORTHCOMING ★ 9 v0.6 PHASES SHIPPED EARLY · 17 HEAVY ships in last hour (r1390-r1403 incl r1400 Cashfree v3 Reconciliation Engine + r1391 hospital billing engine + r1395 hospital portal v2 + r1396 P2P parts marketplace + r1397 AI Code Red triage + r1398 international expansion + r1399 offline sync queue + r1401 cap table v2 + r1402 engineer earnings v2 + r1403 tax GST hub) ★ 11 audit-fix sweeps · 72 prod bugs caught
         </span>
       </header>
 
