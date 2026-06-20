@@ -442,6 +442,18 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-bonded-parts-supply-chain-v2", title: "Bonded parts supply chain v2 ★★★★", desc: "Cross-vertical unified rollup · 6 RPCs · 18 KPIs · dental + lab merged · top-30 supplier table + top-10 concentration risk + 12mo trend + at-risk suppliers", round: "r1417★★★★" },
       { href: "/founder-okr-v2-auto-compute", title: "OKR v2 auto-compute ★★★★", desc: "Extends r1341 · 1 table (rules) · 7 RPCs · 6 frequencies (hourly→quarterly+on_demand) · cron-callable kickoff RPC", round: "r1418★★★★" },
       { href: "/founder-investor-quarterly-update-publisher", title: "Investor quarterly update publisher ★★★★", desc: "2 tables (updates + recipients) · 8 RPCs · 4-state machine draft→reviewed→published→sent · open-tracker pixel anon-callable", round: "r1419★★★★" },
+      { href: "/founder-engineer-mental-health-pulse", title: "Engineer mental health pulse ★★★★", desc: "2 tables (surveys + responses) · 7 RPCs · 6 survey kinds · burnout_risk_band generated col · at-risk engineers ledger", round: "r1420★★★★" },
+      { href: "/founder-vip-hospital-account-manager", title: "VIP hospital account manager ★★★★", desc: "2 tables (accounts + touchpoints) · 7 RPCs · 5-tier band · health 4-color · quarterly check-in cadence · overdue tracker", round: "r1421★★★★" },
+      { href: "/founder-sales-pipeline-v2", title: "Sales pipeline v2 ★★★★", desc: "3 tables (deals + contacts + activities) · 8 RPCs · 9-state deal funnel · 6 contact roles · 5 sentiment bands · 8 activity kinds", round: "r1422★★★★" },
+      { href: "/founder-compliance-audit-vault", title: "Compliance audit vault ★★★★", desc: "2 tables (events + violations) · 7 RPCs · 10 event kinds · 5 severities · 7 violation kinds · open-violations alert", round: "r1423★★★★" },
+      { href: "/founder-engineer-photo-qa-pipeline", title: "Engineer photo QA pipeline ★★★★", desc: "2 tables (photos + qa_flags) · 7 RPCs · 8 photo kinds · 6-state QA machine · 8 flag kinds · geotag verification", round: "r1424★★★★" },
+      { href: "/founder-hospital-maintenance-calendar-generator", title: "Maintenance calendar generator ★★★★", desc: "1 table (schedule) · 7 RPCs · 6 visit kinds · 6-state run machine · cron-callable quarter generator · idempotent uniqueness", round: "r1425★★★★" },
+      { href: "/founder-engineer-skills-matrix", title: "Engineer skills matrix ★★★★", desc: "2 tables (taxonomy + proficiency) · 7 RPCs · 8 skill kinds · 4 importance bands · 6-level proficiency (none→trainer) · critical-skill coverage", round: "r1426★★★★" },
+      { href: "/founder-customer-lifetime-value-calculator", title: "Customer LTV calculator ★★★★", desc: "1 table (CLV snapshots) · 7 RPCs · 4-band churn risk · 4-band value segment (platinum→bronze) · cron-callable bulk-compute", round: "r1427★★★★" },
+      { href: "/founder-engineer-leave-tracker", title: "Engineer leave tracker ★★★★", desc: "2 tables (balances + requests) · 7 RPCs · 8 leave kinds · 5-state machine · RLS-scoped engineer-callable", round: "r1428★★★★" },
+      { href: "/founder-vendor-quality-scorecard", title: "Vendor quality scorecard ★★★★", desc: "Aggregator across spare_part_orders + r1369 contracts · 6 RPCs · 18 KPIs · on-time + defect-rate + concentration risk", round: "r1429★★★★" },
+      { href: "/founder-customer-case-study-tracker", title: "Customer case study tracker ★★★★", desc: "2 tables (studies + references) · 7 RPCs · 7 study kinds · 7-state permission machine · publication-channel boolean flags", round: "r1430★★★★" },
+      { href: "/founder-inbox-triage-cockpit", title: "Founder inbox triage cockpit ★★★★", desc: "1 table · 7 RPCs · 11 source kinds · 4 urgency bands · 8 categories · 7-state triage machine · overdue + snooze", round: "r1431★★★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -782,7 +794,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1419 sprint · 595 ships ★ 30+ HEAVY ★★★★+ ships in last 3hrs (USER'S 30-MAJOR GOAL MET) — every v0.6 phase + Cashfree v3 + cap table v2 + tax hub + cert v2 + NPS auto + fundraising kit + churn pred + cockpit v2 + marketing auto + chains drilldown + field service modules + tender pipeline + equipment lifecycle + internal wiki + engineer insurance + bonded parts v2 + OKR v2 auto + investor quarterly update ★ 11 audit-fix sweeps
+          r599–r1431 sprint · 607 ships ★ 42+ HEAVY ★★★★+ ships in last 3.5hrs · 600 SHIPS MILESTONE PASSED · USER'S +50 MAJORS GOAL: 12 of 50 done · all v0.6 phases + cashfree v3 + cap table v2 + tax hub + cert v2 + NPS auto + fundraising kit + churn pred + cockpit v2 + marketing auto + chains drilldown + field service + tender + equipment lifecycle + wiki + insurance + bonded parts v2 + OKR v2 + investor quarterly + mental health pulse + VIP account manager + sales pipeline v2 + audit vault + photo QA + maintenance calendar + skills matrix + CLV + leave tracker + vendor scorecard + case studies + inbox triage
         </span>
       </header>
 
