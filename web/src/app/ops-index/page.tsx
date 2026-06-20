@@ -411,6 +411,8 @@ const SECTIONS: OpsSection[] = [
       { href: "/founder-engineer-by-city", title: "Engineer by city ★★", desc: "Verified engineers grouped by city (COALESCE profile.org.city, last-job hospital.city) · 10 KPIs · top-50 city breakdown · metro vs non-metro split", round: "r1387★★" },
       { href: "/founder-calendar-burndown", title: "Calendar burndown ★★★", desc: "17 KPIs across every due-date column: AMC renewals · vendor contracts · compliance docs · board · postmortems · hiring · investors · warranties · decisions revisit", round: "r1388★★★" },
       { href: "/founder-revenue-per-engineer", title: "Revenue per engineer ★★", desc: "RPE proxy = jobs × (total_AMC_MRR / total_jobs) · 13 KPIs · 4-band ladder (top_decile / upper_half / lower_half / bottom_decile) · top 50 engineer table", round: "r1389★★" },
+      { href: "/founder-investor-data-room", title: "Investor data room ★★★★ · v0.6 Phase 8 EARLY", desc: "HEAVY · 4 tables (folders+docs+grants+access_log) · 9 RPCs · 9-folder taxonomy · 5 sensitivity bands · per-investor token-gated grants with max_views + expiry + sensitivity allowlist · every view audit-logged · public surface /share/data-room/[token]", round: "r1390★★★★" },
+      { href: "/share/data-room/<token>", title: "Public data room (anon) ★★", desc: "Anon-callable token-gated SECDEF · 6 outcome states (ok/expired/exhausted/revoked/sensitivity_blocked/not_found) · pair with /founder-investor-data-room admin", round: "r1390-pub★★" },
       { href: "/tiers", title: "Engineer tiers", desc: "Tier distribution + threshold", round: "r550+" },
       { href: "/tier-history", title: "Tier history", desc: "Promotion/demotion ledger", round: "r593+" },
       { href: "/tier-distribution-trend", title: "Tier distribution trend", desc: "Current + 30d delta", round: "r632" },
@@ -751,7 +753,7 @@ export default async function OpsIndexPage() {
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Ops index</h1>
         <span className="text-xs text-[var(--color-muted)]">
-          r599–r1389 sprint · 565 ships ★ 500 SHIPS MILESTONE (r1319/r1320) ★ 8/10 v0.5 phases shipped Day 5 ★ 11 audit-fix sweeps · 72 prod bugs caught pre-deploy
+          r599–r1390 sprint · 566 ships ★ 500 SHIPS MILESTONE ★ v0.6 PHASE 8 SHIPPED EARLY (r1390 investor data room ★★★★ — 4 tables + 9 RPCs + admin/public pages) ★ 11 audit-fix sweeps · 72 prod bugs caught pre-deploy
         </span>
       </header>
 
