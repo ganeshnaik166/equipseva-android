@@ -1,152 +1,108 @@
-import { requireFounder } from '@/lib/auth/requireFounder';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { DataTable, type Column } from '@/components/DataTable';
 
 export const dynamic = 'force-dynamic';
 
-type Kpi = { label: string; value: string };
-
-function inr(n: number | null | undefined): string {
-  const v = Number(n ?? 0);
-  if (v >= 10000000) return `Rs ${(v/10000000).toFixed(2)}Cr`;
-  if (v >= 100000) return `Rs ${(v/100000).toFixed(2)}L`;
-  if (v >= 1000) return `Rs ${(v/1000).toFixed(1)}K`;
-  return `Rs ${v}`;
-}
-
 export default async function Page() {
-  await requireFounder();
   const sb = await getSupabaseServerClient();
 
-  let kpis: any = null;
-  let ladder: any[] = [];
-  let ageing: any[] = [];
-  let events: any[] = [];
+  const [commitsRes, changesRes, droppedRes, totalsRes, funnelRes] = await Promise.all([
+    sb.rpc('list_commits_r1793'),
+    sb.rpc('list_state_changes_r1793', { p_commit_id: null }),
+    sb.rpc('dropped_commits_r1793'),
+    sb.rpc('total_soft_committed_r1793'),
+    sb.rpc('conversion_funnel_r1793'),
+  ]);
 
-  try {
-    const r = await sb.rpc('founder_isc_kpis');
-    kpis = (r.data && r.data[0]) || null;
-  } catch (_e) { kpis = null; }
+  const commits: any[] = Array.isArray(commitsRes.data) ? commitsRes.data : [];
+  const changes: any[] = Array.isArray(changesRes.data) ? changesRes.data : [];
+  const dropped: any[] = Array.isArray(droppedRes.data) ? droppedRes.data : [];
+  const totals: any = Array.isArray(totalsRes.data) && totalsRes.data.length > 0 ? totalsRes.data[0] : null;
+  const funnel: any[] = Array.isArray(funnelRes.data) ? funnelRes.data : [];
 
-  try {
-    const r = await sb.rpc('founder_isc_ladder');
-    ladder = (r.data as any[]) || [];
-  } catch (_e) { ladder = []; }
-
-  try {
-    const r = await sb.rpc('founder_isc_ageing_report');
-    ageing = (r.data as any[]) || [];
-  } catch (_e) { ageing = []; }
-
-  try {
-    const r = await sb.rpc('founder_isc_recent_events');
-    events = (r.data as any[]) || [];
-  } catch (_e) { events = []; }
-
-  const k: Kpi[] = [
-    { label: 'Total commits', value: String(kpis?.total_commits ?? 0) },
-    { label: 'Pipeline total', value: inr(kpis?.total_amount_rupees) },
-    { label: 'Weighted pipeline', value: inr(kpis?.weighted_pipeline_rupees) },
-    { label: 'Hardening rate %', value: String(kpis?.hardening_rate ?? 0) },
-    { label: 'Verbal count', value: String(kpis?.verbal_count ?? 0) },
-    { label: 'Verbal amount', value: inr(kpis?.verbal_amount) },
-    { label: 'Soft count', value: String(kpis?.soft_count ?? 0) },
-    { label: 'Soft amount', value: inr(kpis?.soft_amount) },
-    { label: 'Term-sheet count', value: String(kpis?.ts_count ?? 0) },
-    { label: 'Term-sheet amount', value: inr(kpis?.ts_amount) },
-    { label: 'Signed count', value: String(kpis?.signed_count ?? 0) },
-    { label: 'Signed amount', value: inr(kpis?.signed_amount) },
-    { label: 'Wired count', value: String(kpis?.wired_count ?? 0) },
-    { label: 'Wired amount', value: inr(kpis?.wired_amount) },
-    { label: 'Dropped count', value: String(kpis?.dropped_count ?? 0) },
-    { label: 'Overdue SLA', value: String(kpis?.overdue_sla_count ?? 0) },
+  const commitsCols: Column<any>[] = [
+    { key: 'investor_email', header: 'Investor', render: (r: any) => r.investor_email ?? r.investor_id ?? '-' },
+    { key: 'soft_commit_amount_rupees', header: 'Amount (Rs)', render: (r: any) => Number(r.soft_commit_amount_rupees ?? 0).toLocaleString('en-IN') },
+    { key: 'current_state', header: 'State', render: (r: any) => String(r.current_state ?? '-') },
+    { key: 'soft_commit_at', header: 'Soft Commit At', render: (r: any) => r.soft_commit_at ? new Date(r.soft_commit_at).toLocaleString() : '-' },
+    { key: 'expected_hard_commit_date', header: 'Expected Hard Date', render: (r: any) => r.expected_hard_commit_date ?? '-' },
+    { key: 'last_touch_at', header: 'Last Touch', render: (r: any) => r.last_touch_at ? new Date(r.last_touch_at).toLocaleString() : '-' },
+    { key: 'founder_note', header: 'Note', render: (r: any) => r.founder_note ?? '-' },
   ];
 
-  const ladderCols: Column<any>[] = [
-    { key: 'investor_name', header: 'Investor', render: (r: any) => r.investor_name ?? '—' },
-    { key: 'investor_firm', header: 'Firm', render: (r: any) => r.investor_firm ?? '—' },
-    { key: 'commit_stage', header: 'Stage', render: (r: any) => r.commit_stage ?? '—' },
-    { key: 'amount_rupees', header: 'Amount', render: (r: any) => inr(r.amount_rupees) },
-    { key: 'weighted_amount', header: 'Weighted', render: (r: any) => inr(r.weighted_amount) },
-    { key: 'days_in_pipeline', header: 'Days in pipe', render: (r: any) => String(r.days_in_pipeline ?? 0) },
-    { key: 'expected_close_date', header: 'Expected close', render: (r: any) => r.expected_close_date ?? '—' },
+  const changesCols: Column<any>[] = [
+    { key: 'commit_id', header: 'Commit', render: (r: any) => String(r.commit_id ?? '-').slice(0, 8) },
+    { key: 'from_state', header: 'From', render: (r: any) => r.from_state ?? '-' },
+    { key: 'to_state', header: 'To', render: (r: any) => r.to_state ?? '-' },
+    { key: 'change_at', header: 'Changed At', render: (r: any) => r.change_at ? new Date(r.change_at).toLocaleString() : '-' },
+    { key: 'change_note', header: 'Note', render: (r: any) => r.change_note ?? '-' },
   ];
 
-  const ageingCols: Column<any>[] = [
-    { key: 'investor_name', header: 'Investor', render: (r: any) => r.investor_name ?? '—' },
-    { key: 'commit_stage', header: 'Stage', render: (r: any) => r.commit_stage ?? '—' },
-    { key: 'amount_rupees', header: 'Amount', render: (r: any) => inr(r.amount_rupees) },
-    { key: 'days_since_touch', header: 'Days since touch', render: (r: any) => String(r.days_since_touch ?? 0) },
-    { key: 'follow_up_sla_days', header: 'SLA (d)', render: (r: any) => String(r.follow_up_sla_days ?? 0) },
-    { key: 'sla_breach_days', header: 'Breach (d)', render: (r: any) => String(r.sla_breach_days ?? 0) },
-    { key: 'status', header: 'Status', render: (r: any) => r.status ?? '—' },
+  const droppedCols: Column<any>[] = [
+    { key: 'investor_email', header: 'Investor', render: (r: any) => r.investor_email ?? r.investor_id ?? '-' },
+    { key: 'soft_commit_amount_rupees', header: 'Amount (Rs)', render: (r: any) => Number(r.soft_commit_amount_rupees ?? 0).toLocaleString('en-IN') },
+    { key: 'soft_commit_at', header: 'Soft Commit At', render: (r: any) => r.soft_commit_at ? new Date(r.soft_commit_at).toLocaleString() : '-' },
+    { key: 'last_touch_at', header: 'Last Touch', render: (r: any) => r.last_touch_at ? new Date(r.last_touch_at).toLocaleString() : '-' },
+    { key: 'founder_note', header: 'Note', render: (r: any) => r.founder_note ?? '-' },
   ];
 
-  const conditionsCols: Column<any>[] = [
-    { key: 'investor_name', header: 'Investor', render: (r: any) => r.investor_name ?? '—' },
-    { key: 'commit_stage', header: 'Stage', render: (r: any) => r.commit_stage ?? '—' },
-    { key: 'conditions', header: 'Conditions', render: (r: any) => r.conditions ?? '—' },
-    { key: 'amount_rupees', header: 'Amount', render: (r: any) => inr(r.amount_rupees) },
+  const funnelCols: Column<any>[] = [
+    { key: 'state', header: 'State', render: (r: any) => String(r.state ?? '-') },
+    { key: 'commit_count', header: 'Count', render: (r: any) => Number(r.commit_count ?? 0).toLocaleString('en-IN') },
+    { key: 'total_rupees', header: 'Total (Rs)', render: (r: any) => Number(r.total_rupees ?? 0).toLocaleString('en-IN') },
   ];
-
-  const breachCols: Column<any>[] = [
-    { key: 'investor_name', header: 'Investor', render: (r: any) => r.investor_name ?? '—' },
-    { key: 'status', header: 'Bucket', render: (r: any) => r.status ?? '—' },
-    { key: 'days_since_touch', header: 'Days quiet', render: (r: any) => String(r.days_since_touch ?? 0) },
-    { key: 'amount_rupees', header: 'At risk', render: (r: any) => inr(r.amount_rupees) },
-  ];
-
-  const eventCols: Column<any>[] = [
-    { key: 'investor_name', header: 'Investor', render: (r: any) => r.investor_name ?? '—' },
-    { key: 'event_type', header: 'Event', render: (r: any) => r.event_type ?? '—' },
-    { key: 'from_stage', header: 'From', render: (r: any) => r.from_stage ?? '—' },
-    { key: 'to_stage', header: 'To', render: (r: any) => r.to_stage ?? '—' },
-    { key: 'created_at', header: 'When', render: (r: any) => r.created_at ?? '—' },
-  ];
-
-  const breachList = (ageing || []).filter((r: any) => r.status === 'red' || r.status === 'amber');
-  const conditionsList = (ladder || []).filter((r: any) => r.conditions && String(r.conditions).length > 0);
 
   return (
-    <main style={{ padding: 24, fontFamily: 'system-ui, sans-serif', maxWidth: 1400, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700 }}>Investor soft-commit ladder</h1>
-      <p style={{ color: '#666', marginTop: 4, marginBottom: 16 }}>
-        Capture verbal {">"} soft {">"} term-sheet {">"} signed {">"} wired. Track ageing + SLA breaches.
+    <div style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
+      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Investor Soft Commit Ladder</h1>
+      <p style={{ color: '#555', marginBottom: 16 }}>
+        Track investor soft commitments and movement toward firm close (r1793).
       </p>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
-        {k.map((c) => (
-          <div key={c.label} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 12 }}>
-            <div style={{ fontSize: 12, color: '#6b7280' }}>{c.label}</div>
-            <div style={{ fontSize: 18, fontWeight: 600, marginTop: 4 }}>{c.value}</div>
+      <section style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Totals</h2>
+        {totals ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+            <div style={{ padding: 12, border: '1px solid #ddd', borderRadius: 8 }}>
+              <div style={{ fontSize: 12, color: '#666' }}>Soft pipeline (Rs)</div>
+              <div style={{ fontSize: 20, fontWeight: 700 }}>{Number(totals.total_soft_rupees ?? 0).toLocaleString('en-IN')}</div>
+              <div style={{ fontSize: 12, color: '#666' }}>{Number(totals.active_count ?? 0)} active</div>
+            </div>
+            <div style={{ padding: 12, border: '1px solid #ddd', borderRadius: 8 }}>
+              <div style={{ fontSize: 12, color: '#666' }}>Firm (Rs)</div>
+              <div style={{ fontSize: 20, fontWeight: 700 }}>{Number(totals.total_firm_rupees ?? 0).toLocaleString('en-IN')}</div>
+              <div style={{ fontSize: 12, color: '#666' }}>{Number(totals.firm_count ?? 0)} firm</div>
+            </div>
+            <div style={{ padding: 12, border: '1px solid #ddd', borderRadius: 8 }}>
+              <div style={{ fontSize: 12, color: '#666' }}>Dropped (Rs)</div>
+              <div style={{ fontSize: 20, fontWeight: 700 }}>{Number(totals.total_dropped_rupees ?? 0).toLocaleString('en-IN')}</div>
+              <div style={{ fontSize: 12, color: '#666' }}>{Number(totals.dropped_count ?? 0)} dropped</div>
+            </div>
           </div>
-        ))}
+        ) : (
+          <div style={{ color: '#888' }}>No totals available.</div>
+        )}
       </section>
 
-      <section style={{ marginBottom: 32 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Ladder (active)</h2>
-        <DataTable columns={ladderCols} rows={ladder} rowKey={(r: any) => r.id} />
+      <section style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Conversion Funnel</h2>
+        <DataTable rows={funnel} columns={funnelCols} rowKey={(r: any, i: number) => String(r.state ?? i)} />
       </section>
 
-      <section style={{ marginBottom: 32 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Ageing report (follow-up SLA)</h2>
-        <DataTable columns={ageingCols} rows={ageing} rowKey={(r: any) => r.id} />
+      <section style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>All Commits</h2>
+        <DataTable rows={commits} columns={commitsCols} rowKey={(r: any, i: number) => String(r.id ?? i)} />
       </section>
 
-      <section style={{ marginBottom: 32 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>SLA breaches (amber + red)</h2>
-        <DataTable columns={breachCols} rows={breachList} rowKey={(r: any) => r.id} />
+      <section style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>State Changes</h2>
+        <DataTable rows={changes} columns={changesCols} rowKey={(r: any, i: number) => String(r.id ?? i)} />
       </section>
 
-      <section style={{ marginBottom: 32 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Conditions to clear</h2>
-        <DataTable columns={conditionsCols} rows={conditionsList} rowKey={(r: any) => r.id} />
+      <section style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Dropped Commits</h2>
+        <DataTable rows={dropped} columns={droppedCols} rowKey={(r: any, i: number) => String(r.id ?? i)} />
       </section>
-
-      <section style={{ marginBottom: 32 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Recent events</h2>
-        <DataTable columns={eventCols} rows={events} rowKey={(r: any) => r.id} />
-      </section>
-    </main>
+    </div>
   );
 }
