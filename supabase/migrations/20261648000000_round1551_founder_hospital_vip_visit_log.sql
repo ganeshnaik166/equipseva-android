@@ -179,12 +179,12 @@ BEGIN
     'vip_targets_count', (SELECT count(*) FROM founder_hospital_vip_targets),
     'overdue_visits', (SELECT count(*) FROM founder_hospital_vip_visits WHERE next_visit_due IS NOT NULL AND next_visit_due < current_date),
     'due_next_30d', (SELECT count(*) FROM founder_hospital_vip_visits WHERE next_visit_due BETWEEN current_date AND current_date + 30),
-    'positive_outcome_pct', (SELECT COALESCE(round(100.0 * count(*) FILTER (WHERE outcome IN ('positive','closed_won')) / NULLIF(count(*),0), 1) FROM founder_hospital_vip_visits WHERE visit_date >= current_date - 90), 0),
+    'positive_outcome_pct', COALESCE((SELECT round(100.0 * count(*) FILTER (WHERE outcome IN ('positive','closed_won')) / NULLIF(count(*),0), 1) FROM founder_hospital_vip_visits WHERE visit_date >= current_date - 90), 0),
     'closed_won_count', (SELECT count(*) FROM founder_hospital_vip_visits WHERE outcome = 'closed_won'),
     'closed_lost_count', (SELECT count(*) FROM founder_hospital_vip_visits WHERE outcome = 'closed_lost'),
     'blocker_count', (SELECT count(*) FROM founder_hospital_vip_visits WHERE outcome = 'blocker' AND visit_date >= current_date - 90),
     'avg_duration_minutes', (SELECT COALESCE(round(avg(duration_minutes)), 0) FROM founder_hospital_vip_visits WHERE visit_date >= current_date - 90),
-    'founder_visit_share_pct', (SELECT COALESCE(round(100.0 * count(*) FILTER (WHERE visitor_role = 'founder') / NULLIF(count(*),0), 1) FROM founder_hospital_vip_visits WHERE visit_date >= current_date - 90), 0),
+    'founder_visit_share_pct', COALESCE((SELECT round(100.0 * count(*) FILTER (WHERE visitor_role = 'founder') / NULLIF(count(*),0), 1) FROM founder_hospital_vip_visits WHERE visit_date >= current_date - 90), 0),
     'estimated_pipeline_rupees', (SELECT COALESCE(sum(estimated_revenue_lift_rupees), 0) FROM founder_hospital_vip_visits WHERE visit_date >= current_date - 180 AND outcome IN ('positive','closed_won')),
     'targets_never_visited', (SELECT count(*) FROM founder_hospital_vip_targets t WHERE NOT EXISTS (SELECT 1 FROM founder_hospital_vip_visits v WHERE v.hospital_org_id = t.hospital_org_id))
   ) INTO v;
