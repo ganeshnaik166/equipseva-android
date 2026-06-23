@@ -3,139 +3,246 @@ import { DataTable, type Column } from '@/components/DataTable';
 
 export const dynamic = 'force-dynamic';
 
+type MatrixRow = {
+  id: string;
+  engineer_user_id: string;
+  skill_name: string;
+  skill_category: string;
+  proficiency_level: string;
+  shadow_jobs_done: number;
+  certified: boolean;
+  certification_date: string | null;
+  certification_authority: string | null;
+  last_used_at: string | null;
+  notes: string | null;
+};
+
+type CoverageRow = {
+  id: string;
+  skill_name: string;
+  primary_engineer_user_id: string;
+  backup_engineer_user_id: string | null;
+  coverage_strength: string;
+  gap_kind: string;
+  action_required: boolean;
+  action_owner_email: string | null;
+  action_due_at: string | null;
+  status: string;
+  notes: string | null;
+};
+
+type RiskRow = {
+  id: string;
+  skill_name: string;
+  primary_engineer_user_id: string;
+  gap_kind: string;
+  coverage_strength: string;
+  action_due_at: string | null;
+  status: string;
+  notes: string | null;
+};
+
+type PipelineRow = {
+  id: string;
+  engineer_user_id: string;
+  skill_name: string;
+  skill_category: string;
+  proficiency_level: string;
+  shadow_jobs_done: number;
+  cert_ready: boolean;
+  notes: string | null;
+};
+
+type GapRow = {
+  skill_name: string;
+  certified_count: number;
+  total_engineers: number;
+  weak_coverage_count: number;
+  no_backup_count: number;
+};
+
+type SummaryRow = {
+  engineer_user_id: string;
+  total_skills: number;
+  certified_skills: number;
+  expert_skills: number;
+  beginner_skills: number;
+  total_shadow_jobs: number;
+};
+
+type TrendRow = {
+  week_start: string;
+  certifications_earned: number;
+  cumulative_certifications: number;
+};
+
 export default async function Page() {
   const sb = await getSupabaseServerClient();
 
-  const [matrix, coverage, gaps, expiring, performers, pipeline, kpis] = await Promise.all([
-    sb.rpc('get_engineer_cross_training_matrix_r2250'),
-    sb.rpc('get_modality_coverage_summary_r2250'),
-    sb.rpc('get_training_demand_gaps_r2250'),
-    sb.rpc('get_expiring_certifications_r2250'),
-    sb.rpc('get_high_performers_r2250'),
-    sb.rpc('get_in_progress_pipeline_r2250'),
-    sb.rpc('get_cross_training_kpis_r2250'),
+  const [matrixRes, coverageRes, risksRes, pipelineRes, gapsRes, summaryRes, trendRes] = await Promise.all([
+    sb.rpc('list_matrix_r2470'),
+    sb.rpc('list_coverage_r2470'),
+    sb.rpc('single_point_risks_r2470'),
+    sb.rpc('certification_pipeline_r2470'),
+    sb.rpc('top_skill_gaps_r2470'),
+    sb.rpc('engineer_coverage_summary_r2470'),
+    sb.rpc('weekly_certification_trend_r2470'),
   ]);
 
-  const matrixRows = (matrix.data ?? []) as any[];
-  const coverageRows = (coverage.data ?? []) as any[];
-  const gapRows = (gaps.data ?? []) as any[];
-  const expiringRows = (expiring.data ?? []) as any[];
-  const performerRows = (performers.data ?? []) as any[];
-  const pipelineRows = (pipeline.data ?? []) as any[];
-  const kpi = (kpis.data?.[0] ?? {}) as any;
+  const matrix: MatrixRow[] = (matrixRes.data as MatrixRow[] | null) ?? [];
+  const coverage: CoverageRow[] = (coverageRes.data as CoverageRow[] | null) ?? [];
+  const risks: RiskRow[] = (risksRes.data as RiskRow[] | null) ?? [];
+  const pipeline: PipelineRow[] = (pipelineRes.data as PipelineRow[] | null) ?? [];
+  const gaps: GapRow[] = (gapsRes.data as GapRow[] | null) ?? [];
+  const summary: SummaryRow[] = (summaryRes.data as SummaryRow[] | null) ?? [];
+  const trend: TrendRow[] = (trendRes.data as TrendRow[] | null) ?? [];
 
   const matrixCols: Column<any>[] = [
-    { key: 'engineer_email', header: 'Engineer', render: (r: any) => r.engineer_email },
-    { key: 'certified_count', header: 'Certified', render: (r: any) => r.certified_count },
-    { key: 'in_progress_count', header: 'In progress', render: (r: any) => r.in_progress_count },
-    { key: 'none_count', header: 'None', render: (r: any) => r.none_count },
-    { key: 'coverage_pct', header: 'Coverage %', render: (r: any) => r.coverage_pct != null ? `${r.coverage_pct}%` : '-' },
-    { key: 'avg_proficiency', header: 'Avg proficiency', render: (r: any) => r.avg_proficiency ?? '-' },
-    { key: 'total_training_hours', header: 'Train hrs', render: (r: any) => r.total_training_hours ?? 0 },
+    { key: 'engineer_user_id', header: 'Engineer', render: (r: any) => String(r.engineer_user_id).slice(0, 8) },
+    { key: 'skill_name', header: 'Skill', render: (r: any) => r.skill_name },
+    { key: 'skill_category', header: 'Category', render: (r: any) => r.skill_category },
+    { key: 'proficiency_level', header: 'Proficiency', render: (r: any) => r.proficiency_level },
+    { key: 'shadow_jobs_done', header: 'Shadow jobs', render: (r: any) => r.shadow_jobs_done },
+    { key: 'certified', header: 'Certified', render: (r: any) => (r.certified ? 'yes' : 'no') },
+    { key: 'certification_authority', header: 'Authority', render: (r: any) => r.certification_authority ?? '—' },
+    { key: 'last_used_at', header: 'Last used', render: (r: any) => (r.last_used_at ? String(r.last_used_at).slice(0, 10) : '—') },
   ];
 
   const coverageCols: Column<any>[] = [
-    { key: 'modality', header: 'Modality', render: (r: any) => r.modality },
-    { key: 'certified_engineers', header: 'Certified', render: (r: any) => r.certified_engineers },
-    { key: 'in_progress_engineers', header: 'In progress', render: (r: any) => r.in_progress_engineers },
-    { key: 'total_engineers', header: 'Total', render: (r: any) => r.total_engineers },
-    { key: 'avg_jobs_30d', header: 'Avg jobs 30d', render: (r: any) => r.avg_jobs_30d ?? 0 },
-    { key: 'avg_proficiency', header: 'Avg proficiency', render: (r: any) => r.avg_proficiency ?? '-' },
-    { key: 'expiring_within_90d', header: 'Expiring 90d', render: (r: any) => r.expiring_within_90d },
+    { key: 'skill_name', header: 'Skill', render: (r: any) => r.skill_name },
+    { key: 'primary_engineer_user_id', header: 'Primary', render: (r: any) => String(r.primary_engineer_user_id).slice(0, 8) },
+    { key: 'backup_engineer_user_id', header: 'Backup', render: (r: any) => (r.backup_engineer_user_id ? String(r.backup_engineer_user_id).slice(0, 8) : '—') },
+    { key: 'coverage_strength', header: 'Strength', render: (r: any) => r.coverage_strength },
+    { key: 'gap_kind', header: 'Gap', render: (r: any) => r.gap_kind },
+    { key: 'action_required', header: 'Action?', render: (r: any) => (r.action_required ? 'yes' : 'no') },
+    { key: 'action_due_at', header: 'Due', render: (r: any) => (r.action_due_at ? String(r.action_due_at).slice(0, 10) : '—') },
+    { key: 'status', header: 'Status', render: (r: any) => r.status },
   ];
 
-  const gapCols: Column<any>[] = [
-    { key: 'modality', header: 'Modality', render: (r: any) => r.modality },
-    { key: 'region', header: 'Region', render: (r: any) => r.region },
-    { key: 'open_jobs_30d', header: 'Open jobs 30d', render: (r: any) => r.open_jobs_30d },
-    { key: 'certified_engineers_count', header: 'Certified eng', render: (r: any) => r.certified_engineers_count },
-    { key: 'demand_supply_ratio', header: 'Demand/supply', render: (r: any) => r.demand_supply_ratio },
-    { key: 'priority', header: 'Priority', render: (r: any) => r.priority },
-    { key: 'recommended_action', header: 'Action', render: (r: any) => r.recommended_action ?? '-' },
-  ];
-
-  const expiringCols: Column<any>[] = [
-    { key: 'engineer_email', header: 'Engineer', render: (r: any) => r.engineer_email },
-    { key: 'modality', header: 'Modality', render: (r: any) => r.modality },
-    { key: 'days_until_expiry', header: 'Days left', render: (r: any) => r.days_until_expiry },
-    { key: 'expires_at', header: 'Expires', render: (r: any) => r.expires_at ? new Date(r.expires_at).toLocaleDateString() : '-' },
-    { key: 'proficiency_score', header: 'Proficiency', render: (r: any) => r.proficiency_score ?? '-' },
-    { key: 'jobs_completed_30d', header: 'Jobs 30d', render: (r: any) => r.jobs_completed_30d },
-  ];
-
-  const performerCols: Column<any>[] = [
-    { key: 'engineer_email', header: 'Engineer', render: (r: any) => r.engineer_email },
-    { key: 'certified_modalities', header: 'Certs', render: (r: any) => r.certified_modalities },
-    { key: 'avg_proficiency', header: 'Avg proficiency', render: (r: any) => r.avg_proficiency ?? '-' },
-    { key: 'total_jobs_30d', header: 'Total jobs 30d', render: (r: any) => r.total_jobs_30d },
+  const riskCols: Column<any>[] = [
+    { key: 'skill_name', header: 'Skill', render: (r: any) => r.skill_name },
+    { key: 'primary_engineer_user_id', header: 'Primary', render: (r: any) => String(r.primary_engineer_user_id).slice(0, 8) },
+    { key: 'gap_kind', header: 'Gap kind', render: (r: any) => r.gap_kind },
+    { key: 'coverage_strength', header: 'Strength', render: (r: any) => r.coverage_strength },
+    { key: 'action_due_at', header: 'Due', render: (r: any) => (r.action_due_at ? String(r.action_due_at).slice(0, 10) : '—') },
+    { key: 'status', header: 'Status', render: (r: any) => r.status },
+    { key: 'notes', header: 'Notes', render: (r: any) => r.notes ?? '—' },
   ];
 
   const pipelineCols: Column<any>[] = [
-    { key: 'engineer_email', header: 'Engineer', render: (r: any) => r.engineer_email },
-    { key: 'modality', header: 'Modality', render: (r: any) => r.modality },
-    { key: 'training_hours_logged', header: 'Hours logged', render: (r: any) => r.training_hours_logged },
-    { key: 'notes', header: 'Notes', render: (r: any) => r.notes ?? '-' },
-    { key: 'updated_at', header: 'Updated', render: (r: any) => r.updated_at ? new Date(r.updated_at).toLocaleDateString() : '-' },
+    { key: 'engineer_user_id', header: 'Engineer', render: (r: any) => String(r.engineer_user_id).slice(0, 8) },
+    { key: 'skill_name', header: 'Skill', render: (r: any) => r.skill_name },
+    { key: 'skill_category', header: 'Category', render: (r: any) => r.skill_category },
+    { key: 'proficiency_level', header: 'Proficiency', render: (r: any) => r.proficiency_level },
+    { key: 'shadow_jobs_done', header: 'Shadow jobs', render: (r: any) => r.shadow_jobs_done },
+    { key: 'cert_ready', header: 'Cert ready?', render: (r: any) => (r.cert_ready ? 'yes' : 'no') },
+  ];
+
+  const gapsCols: Column<any>[] = [
+    { key: 'skill_name', header: 'Skill', render: (r: any) => r.skill_name },
+    { key: 'certified_count', header: 'Certified', render: (r: any) => r.certified_count },
+    { key: 'total_engineers', header: 'Total', render: (r: any) => r.total_engineers },
+    { key: 'weak_coverage_count', header: 'Weak coverage', render: (r: any) => r.weak_coverage_count },
+    { key: 'no_backup_count', header: 'No backup', render: (r: any) => r.no_backup_count },
+  ];
+
+  const summaryCols: Column<any>[] = [
+    { key: 'engineer_user_id', header: 'Engineer', render: (r: any) => String(r.engineer_user_id).slice(0, 8) },
+    { key: 'total_skills', header: 'Total skills', render: (r: any) => r.total_skills },
+    { key: 'certified_skills', header: 'Certified', render: (r: any) => r.certified_skills },
+    { key: 'expert_skills', header: 'Expert', render: (r: any) => r.expert_skills },
+    { key: 'beginner_skills', header: 'Beginner', render: (r: any) => r.beginner_skills },
+    { key: 'total_shadow_jobs', header: 'Shadow jobs', render: (r: any) => r.total_shadow_jobs },
+  ];
+
+  const trendCols: Column<any>[] = [
+    { key: 'week_start', header: 'Week', render: (r: any) => String(r.week_start).slice(0, 10) },
+    { key: 'certifications_earned', header: 'Earned', render: (r: any) => r.certifications_earned },
+    { key: 'cumulative_certifications', header: 'Cumulative', render: (r: any) => r.cumulative_certifications },
   ];
 
   return (
-    <div style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Engineer cross-training matrix</h1>
+    <div style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
+      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Engineer Cross-Training Matrix</h1>
       <p style={{ color: '#666', marginBottom: 24 }}>
-        Each engineer x equipment modality (CT, MRI, ventilator, monitor) certification status. Gap analysis flags high-demand modalities with thin supply.
+        Skill × engineer × proficiency level × shadow-jobs done × certified, plus backup-engineer coverage and single-point-of-failure risks.
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 32 }}>
-        <KpiCard label="Engineers tracked" value={kpi.total_engineers_tracked ?? 0} />
-        <KpiCard label="Total certifications" value={kpi.total_certifications ?? 0} />
-        <KpiCard label="In progress" value={kpi.total_in_progress ?? 0} />
-        <KpiCard label="Avg modalities/eng" value={kpi.avg_modalities_per_engineer ?? 0} />
-        <KpiCard label="Critical gap regions" value={kpi.critical_gap_regions ?? 0} />
-        <KpiCard label="Expiring 90d" value={kpi.expiring_90d ?? 0} />
-        <KpiCard label="Multi-modality eng" value={kpi.multi_modality_engineers ?? 0} />
-      </div>
+      <section style={{ marginBottom: 32 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Skill matrix ({matrix.length})</h2>
+        <DataTable
+          rows={matrix}
+          columns={matrixCols}
+          emptyMessage="No skill rows yet."
+          rowKey={(r: any, i: number) => String(r.id ?? i)}
+        />
+      </section>
 
-      <Section title="Engineer matrix">
-        <DataTable columns={matrixCols} rows={matrixRows} rowKey={(_, i) => String(i)} />
-      </Section>
+      <section style={{ marginBottom: 32 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Backup coverage ({coverage.length})</h2>
+        <DataTable
+          rows={coverage}
+          columns={coverageCols}
+          emptyMessage="No coverage rows yet."
+          rowKey={(r: any, i: number) => String(r.id ?? i)}
+        />
+      </section>
 
-      <Section title="Modality coverage summary">
-        <DataTable columns={coverageCols} rows={coverageRows} rowKey={(_, i) => String(i)} />
-      </Section>
+      <section style={{ marginBottom: 32 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Single-point risks ({risks.length})</h2>
+        <p style={{ color: '#666', marginBottom: 8, fontSize: 13 }}>
+          Open or in-progress gaps where gap_kind is no_backup, single_point, or weak_backup.
+        </p>
+        <DataTable
+          rows={risks}
+          columns={riskCols}
+          emptyMessage="No open risks."
+          rowKey={(r: any, i: number) => String(r.id ?? i)}
+        />
+      </section>
 
-      <Section title="Training demand gaps (critical first)">
-        <DataTable columns={gapCols} rows={gapRows} rowKey={(_, i) => String(i)} />
-      </Section>
+      <section style={{ marginBottom: 32 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Certification pipeline ({pipeline.length})</h2>
+        <p style={{ color: '#666', marginBottom: 8, fontSize: 13 }}>
+          Engineers not-yet-certified on a skill. cert_ready = yes when shadow_jobs >= 5 and proficiency >= intermediate.
+        </p>
+        <DataTable
+          rows={pipeline}
+          columns={pipelineCols}
+          emptyMessage="Nothing in pipeline."
+          rowKey={(r: any, i: number) => String(r.id ?? i)}
+        />
+      </section>
 
-      <Section title="Expiring certifications (next 180d)">
-        <DataTable columns={expiringCols} rows={expiringRows} rowKey={(_, i) => String(i)} />
-      </Section>
+      <section style={{ marginBottom: 32 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Top skill gaps ({gaps.length})</h2>
+        <DataTable
+          rows={gaps}
+          columns={gapsCols}
+          emptyMessage="No skills yet."
+          rowKey={(r: any, i: number) => String(r.skill_name ?? i)}
+        />
+      </section>
 
-      <Section title="High performers (cert count >= 2)">
-        <DataTable columns={performerCols} rows={performerRows} rowKey={(_, i) => String(i)} />
-      </Section>
+      <section style={{ marginBottom: 32 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Engineer summary ({summary.length})</h2>
+        <DataTable
+          rows={summary}
+          columns={summaryCols}
+          emptyMessage="No engineers yet."
+          rowKey={(r: any, i: number) => String(r.engineer_user_id ?? i)}
+        />
+      </section>
 
-      <Section title="In-progress training pipeline">
-        <DataTable columns={pipelineCols} rows={pipelineRows} rowKey={(_, i) => String(i)} />
-      </Section>
+      <section style={{ marginBottom: 32 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Weekly certification trend ({trend.length})</h2>
+        <DataTable
+          rows={trend}
+          columns={trendCols}
+          emptyMessage="No certifications recorded."
+          rowKey={(r: any, i: number) => String(r.week_start ?? i)}
+        />
+      </section>
     </div>
-  );
-}
-
-function KpiCard({ label, value }: { label: string; value: any }) {
-  return (
-    <div style={{ background: '#fafafa', border: '1px solid #e5e5e5', borderRadius: 8, padding: 14 }}>
-      <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4 }}>{String(value)}</div>
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section style={{ marginBottom: 32 }}>
-      <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>{title}</h2>
-      {children}
-    </section>
   );
 }
