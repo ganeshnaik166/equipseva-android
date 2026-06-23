@@ -4,134 +4,158 @@ import { DataTable, type Column } from '@/components/DataTable';
 export const dynamic = 'force-dynamic';
 
 export default async function Page() {
-  const sb = await getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
-  const [summary, activePairs, recentCheckins, effByGoal, missed, mentorLoad, trend] = await Promise.all([
-    sb.rpc('r2258_summary'),
-    sb.rpc('r2258_active_pairs'),
-    sb.rpc('r2258_recent_checkins', { limit_count: 50 }),
-    sb.rpc('r2258_effectiveness_by_goal'),
-    sb.rpc('r2258_missed_checkins'),
-    sb.rpc('r2258_mentor_load'),
-    sb.rpc('r2258_progression_trend'),
+  const [pairings, meetings, active, topLift, mentorLoad, weekly, bonusSummary] = await Promise.all([
+    supabase.rpc('list_pairings_r2458'),
+    supabase.rpc('list_meetings_r2458'),
+    supabase.rpc('active_pairings_r2458'),
+    supabase.rpc('top_lift_pairings_r2458'),
+    supabase.rpc('mentor_load_r2458'),
+    supabase.rpc('weekly_meeting_compliance_r2458'),
+    supabase.rpc('mentor_bonus_summary_r2458'),
   ]);
 
-  const s = summary.data?.[0] ?? {
-    active_pairs: 0, paused_pairs: 0, completed_pairs: 0,
-    dissolved_pairs: 0, avg_effectiveness: 0, pairs_needing_review: 0,
-  };
-
-  const pairCols: Column<any>[] = [
-    { key: 'mentor_email', header: 'Mentor', render: (r: any) => r.mentor_email },
-    { key: 'mentor_tier', header: 'Mentor Tier', render: (r: any) => r.mentor_tier },
-    { key: 'mentee_email', header: 'Mentee', render: (r: any) => r.mentee_email },
-    { key: 'mentee_tier', header: 'Mentee Tier', render: (r: any) => r.mentee_tier },
-    { key: 'pairing_goal', header: 'Goal', render: (r: any) => r.pairing_goal },
-    { key: 'days_paired', header: 'Days Paired', render: (r: any) => r.days_paired },
-    { key: 'expected_end_at', header: 'Expected End', render: (r: any) => r.expected_end_at ? new Date(r.expected_end_at).toLocaleDateString() : '-' },
+  const pairingCols: Column<any>[] = [
+    { key: 'pairing_start', header: 'Start', render: (r: any) => r.pairing_start ? new Date(r.pairing_start).toLocaleDateString() : '—' },
+    { key: 'mentor_engineer_user_id', header: 'Mentor', render: (r: any) => String(r.mentor_engineer_user_id ?? '').slice(0, 8) },
+    { key: 'mentee_engineer_user_id', header: 'Mentee', render: (r: any) => String(r.mentee_engineer_user_id ?? '').slice(0, 8) },
+    { key: 'pairing_weeks', header: 'Weeks', render: (r: any) => String(r.pairing_weeks ?? 0) },
+    { key: 'cadence', header: 'Meetings (act/plan)', render: (r: any) => `${r.actual_meetings_count ?? 0} / ${(r.pairing_weeks ?? 0) * (r.planned_meetings_per_week ?? 0)}` },
+    { key: 'ramp_score_lift_pct', header: 'Lift %', render: (r: any) => `${Number(r.ramp_score_lift_pct ?? 0).toFixed(1)}%` },
+    { key: 'mentor_bonus_rupees', header: 'Bonus', render: (r: any) => `₹${Number(r.mentor_bonus_rupees ?? 0).toLocaleString('en-IN')}` },
+    { key: 'status', header: 'Status', render: (r: any) => String(r.status ?? '') },
+    { key: 'outcome', header: 'Outcome', render: (r: any) => String(r.outcome ?? '') },
   ];
 
-  const checkinCols: Column<any>[] = [
-    { key: 'checkin_month', header: 'Month', render: (r: any) => r.checkin_month },
-    { key: 'mentor_email', header: 'Mentor', render: (r: any) => r.mentor_email },
-    { key: 'mentee_email', header: 'Mentee', render: (r: any) => r.mentee_email },
-    { key: 'checkin_status', header: 'Status', render: (r: any) => r.checkin_status },
-    { key: 'mentee_progress_score', header: 'Progress (1-10)', render: (r: any) => r.mentee_progress_score ?? '-' },
-    { key: 'topics_covered', header: 'Topics', render: (r: any) => r.topics_covered ?? '-' },
+  const meetingCols: Column<any>[] = [
+    { key: 'meeting_at', header: 'When', render: (r: any) => r.meeting_at ? new Date(r.meeting_at).toLocaleString() : '—' },
+    { key: 'pairing_id', header: 'Pairing', render: (r: any) => String(r.pairing_id ?? '').slice(0, 8) },
+    { key: 'duration_minutes', header: 'Mins', render: (r: any) => String(r.duration_minutes ?? 0) },
+    { key: 'completion_score', header: 'Score', render: (r: any) => `${r.completion_score ?? 0}/100` },
+    { key: 'agenda', header: 'Agenda', render: (r: any) => String(r.agenda ?? '') },
+    { key: 'next_focus', header: 'Next focus', render: (r: any) => String(r.next_focus ?? '') },
   ];
 
-  const goalCols: Column<any>[] = [
-    { key: 'pairing_goal', header: 'Goal', render: (r: any) => r.pairing_goal },
-    { key: 'pair_count', header: 'Pairs', render: (r: any) => r.pair_count },
-    { key: 'completed_count', header: 'Completed', render: (r: any) => r.completed_count },
-    { key: 'avg_effectiveness', header: 'Avg Rating (1-5)', render: (r: any) => r.avg_effectiveness ?? '-' },
+  const activeCols: Column<any>[] = [
+    { key: 'mentor_engineer_user_id', header: 'Mentor', render: (r: any) => String(r.mentor_engineer_user_id ?? '').slice(0, 8) },
+    { key: 'mentee_engineer_user_id', header: 'Mentee', render: (r: any) => String(r.mentee_engineer_user_id ?? '').slice(0, 8) },
+    { key: 'weeks_elapsed', header: 'Wk elapsed', render: (r: any) => `${r.weeks_elapsed ?? 0} / ${r.pairing_weeks ?? 0}` },
+    { key: 'cadence_pct', header: 'Cadence %', render: (r: any) => `${Number(r.cadence_pct ?? 0).toFixed(1)}%` },
+    { key: 'planned_meetings_total', header: 'Met (act/plan)', render: (r: any) => `${r.actual_meetings_count ?? 0} / ${r.planned_meetings_total ?? 0}` },
+    { key: 'status', header: 'Status', render: (r: any) => String(r.status ?? '') },
   ];
 
-  const missedCols: Column<any>[] = [
-    { key: 'checkin_month', header: 'Month', render: (r: any) => r.checkin_month },
-    { key: 'mentor_email', header: 'Mentor', render: (r: any) => r.mentor_email },
-    { key: 'mentee_email', header: 'Mentee', render: (r: any) => r.mentee_email },
-    { key: 'checkin_status', header: 'Status', render: (r: any) => r.checkin_status },
-    { key: 'days_overdue', header: 'Days Overdue', render: (r: any) => r.days_overdue },
+  const topLiftCols: Column<any>[] = [
+    { key: 'mentor_engineer_user_id', header: 'Mentor', render: (r: any) => String(r.mentor_engineer_user_id ?? '').slice(0, 8) },
+    { key: 'mentee_engineer_user_id', header: 'Mentee', render: (r: any) => String(r.mentee_engineer_user_id ?? '').slice(0, 8) },
+    { key: 'ramp_score_lift_pct', header: 'Lift %', render: (r: any) => `${Number(r.ramp_score_lift_pct ?? 0).toFixed(1)}%` },
+    { key: 'pairing_weeks', header: 'Weeks', render: (r: any) => String(r.pairing_weeks ?? 0) },
+    { key: 'status', header: 'Status', render: (r: any) => String(r.status ?? '') },
+    { key: 'outcome', header: 'Outcome', render: (r: any) => String(r.outcome ?? '') },
   ];
 
-  const mentorCols: Column<any>[] = [
-    { key: 'mentor_email', header: 'Mentor', render: (r: any) => r.mentor_email },
-    { key: 'mentor_tier', header: 'Tier', render: (r: any) => r.mentor_tier },
-    { key: 'active_mentees', header: 'Active Mentees', render: (r: any) => r.active_mentees },
-    { key: 'completed_mentees', header: 'Completed Mentees', render: (r: any) => r.completed_mentees },
-    { key: 'avg_rating', header: 'Avg Rating', render: (r: any) => r.avg_rating ?? '-' },
+  const loadCols: Column<any>[] = [
+    { key: 'mentor_engineer_user_id', header: 'Mentor', render: (r: any) => String(r.mentor_engineer_user_id ?? '').slice(0, 8) },
+    { key: 'total_pairings', header: 'Total', render: (r: any) => String(r.total_pairings ?? 0) },
+    { key: 'active_pairings', header: 'Active', render: (r: any) => String(r.active_pairings ?? 0) },
+    { key: 'completed_pairings', header: 'Done', render: (r: any) => String(r.completed_pairings ?? 0) },
+    { key: 'avg_lift_pct', header: 'Avg lift %', render: (r: any) => `${Number(r.avg_lift_pct ?? 0).toFixed(1)}%` },
+    { key: 'total_bonus_rupees', header: 'Total bonus', render: (r: any) => `₹${Number(r.total_bonus_rupees ?? 0).toLocaleString('en-IN')}` },
   ];
 
-  const trendCols: Column<any>[] = [
-    { key: 'month_bucket', header: 'Month', render: (r: any) => r.month_bucket },
-    { key: 'checkins_completed', header: 'Completed', render: (r: any) => r.checkins_completed },
-    { key: 'avg_progress_score', header: 'Avg Progress (1-10)', render: (r: any) => r.avg_progress_score ?? '-' },
-    { key: 'missed_count', header: 'Missed', render: (r: any) => r.missed_count },
+  const weeklyCols: Column<any>[] = [
+    { key: 'week_start', header: 'Week', render: (r: any) => r.week_start ? new Date(r.week_start).toLocaleDateString() : '—' },
+    { key: 'meetings_count', header: 'Meetings', render: (r: any) => String(r.meetings_count ?? 0) },
+    { key: 'avg_completion', header: 'Avg score', render: (r: any) => `${Number(r.avg_completion ?? 0).toFixed(1)}/100` },
+    { key: 'avg_duration_minutes', header: 'Avg mins', render: (r: any) => Number(r.avg_duration_minutes ?? 0).toFixed(1) },
+  ];
+
+  const bonusCols: Column<any>[] = [
+    { key: 'status', header: 'Status', render: (r: any) => String(r.status ?? '') },
+    { key: 'pairings_count', header: 'Pairings', render: (r: any) => String(r.pairings_count ?? 0) },
+    { key: 'total_bonus_rupees', header: 'Total bonus', render: (r: any) => `₹${Number(r.total_bonus_rupees ?? 0).toLocaleString('en-IN')}` },
+    { key: 'avg_bonus_rupees', header: 'Avg bonus', render: (r: any) => `₹${Number(r.avg_bonus_rupees ?? 0).toLocaleString('en-IN')}` },
+    { key: 'avg_lift_pct', header: 'Avg lift %', render: (r: any) => `${Number(r.avg_lift_pct ?? 0).toFixed(1)}%` },
   ];
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Engineer Mentor-Mentee Pairing Tracker</h1>
-        <p className="text-sm text-gray-500">Senior & junior pairings, monthly check-ins, mentee progression & pair effectiveness.</p>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-        <div className="rounded-lg border p-3">
-          <div className="text-xs text-gray-500">Active Pairs</div>
-          <div className="text-2xl font-semibold">{s.active_pairs}</div>
-        </div>
-        <div className="rounded-lg border p-3">
-          <div className="text-xs text-gray-500">Paused</div>
-          <div className="text-2xl font-semibold">{s.paused_pairs}</div>
-        </div>
-        <div className="rounded-lg border p-3">
-          <div className="text-xs text-gray-500">Completed</div>
-          <div className="text-2xl font-semibold">{s.completed_pairs}</div>
-        </div>
-        <div className="rounded-lg border p-3">
-          <div className="text-xs text-gray-500">Dissolved</div>
-          <div className="text-2xl font-semibold">{s.dissolved_pairs}</div>
-        </div>
-        <div className="rounded-lg border p-3">
-          <div className="text-xs text-gray-500">Avg Effectiveness</div>
-          <div className="text-2xl font-semibold">{s.avg_effectiveness ?? '-'}</div>
-        </div>
-        <div className="rounded-lg border p-3">
-          <div className="text-xs text-gray-500">Needing Review (&gt;180d)</div>
-          <div className="text-2xl font-semibold">{s.pairs_needing_review}</div>
-        </div>
-      </div>
+    <div className="p-6 space-y-8">
+      <header>
+        <h1 className="text-2xl font-bold">Engineer Mentor & Mentee Pairing Tracker</h1>
+        <p className="text-sm text-gray-600 mt-1">
+          Senior mentor × junior mentee × pairing weeks × ramp lift × meeting cadence × mentor bonus
+        </p>
+      </header>
 
       <section>
-        <h2 className="text-lg font-medium mb-2">Active Pairs</h2>
-        <DataTable columns={pairCols} rows={activePairs.data ?? []} rowKey={(_, i) => String(i)} />
+        <h2 className="text-lg font-semibold mb-2">All pairings</h2>
+        <DataTable
+          rows={pairings.data ?? []}
+          columns={pairingCols}
+          emptyMessage="No pairings yet"
+          rowKey={(r: any, i: number) => String(r.id ?? i)}
+        />
       </section>
 
       <section>
-        <h2 className="text-lg font-medium mb-2">Recent Check-ins</h2>
-        <DataTable columns={checkinCols} rows={recentCheckins.data ?? []} rowKey={(_, i) => String(i)} />
+        <h2 className="text-lg font-semibold mb-2">Active & at-risk pairings</h2>
+        <DataTable
+          rows={active.data ?? []}
+          columns={activeCols}
+          emptyMessage="No active pairings"
+          rowKey={(r: any, i: number) => String(r.id ?? i)}
+        />
       </section>
 
       <section>
-        <h2 className="text-lg font-medium mb-2">Effectiveness by Goal</h2>
-        <DataTable columns={goalCols} rows={effByGoal.data ?? []} rowKey={(_, i) => String(i)} />
+        <h2 className="text-lg font-semibold mb-2">Top ramp-lift pairings</h2>
+        <DataTable
+          rows={topLift.data ?? []}
+          columns={topLiftCols}
+          emptyMessage="No lift data"
+          rowKey={(r: any, i: number) => String(r.id ?? i)}
+        />
       </section>
 
       <section>
-        <h2 className="text-lg font-medium mb-2">Missed / Rescheduled Check-ins</h2>
-        <DataTable columns={missedCols} rows={missed.data ?? []} rowKey={(_, i) => String(i)} />
+        <h2 className="text-lg font-semibold mb-2">Mentor load</h2>
+        <DataTable
+          rows={mentorLoad.data ?? []}
+          columns={loadCols}
+          emptyMessage="No mentors yet"
+          rowKey={(r: any, i: number) => String(r.mentor_engineer_user_id ?? i)}
+        />
       </section>
 
       <section>
-        <h2 className="text-lg font-medium mb-2">Mentor Load & Performance</h2>
-        <DataTable columns={mentorCols} rows={mentorLoad.data ?? []} rowKey={(_, i) => String(i)} />
+        <h2 className="text-lg font-semibold mb-2">Weekly meeting compliance</h2>
+        <DataTable
+          rows={weekly.data ?? []}
+          columns={weeklyCols}
+          emptyMessage="No meeting data"
+          rowKey={(r: any, i: number) => String(r.week_start ?? i)}
+        />
       </section>
 
       <section>
-        <h2 className="text-lg font-medium mb-2">Monthly Progression Trend</h2>
-        <DataTable columns={trendCols} rows={trend.data ?? []} rowKey={(_, i) => String(i)} />
+        <h2 className="text-lg font-semibold mb-2">Mentor bonus summary</h2>
+        <DataTable
+          rows={bonusSummary.data ?? []}
+          columns={bonusCols}
+          emptyMessage="No bonus data"
+          rowKey={(r: any, i: number) => String(r.status ?? i)}
+        />
+      </section>
+
+      <section>
+        <h2 className="text-lg font-semibold mb-2">Recent meetings</h2>
+        <DataTable
+          rows={meetings.data ?? []}
+          columns={meetingCols}
+          emptyMessage="No meetings logged"
+          rowKey={(r: any, i: number) => String(r.id ?? i)}
+        />
       </section>
     </div>
   );
