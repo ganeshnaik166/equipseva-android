@@ -8,72 +8,92 @@ export async function TopBar() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const navGroups: { label: string; links: { href: string; label: string; highlight?: boolean }[] }[] = [
+    {
+      label: "Pulse",
+      links: [
+        { href: "/founder-morning-cockpit", label: "Morning ★", highlight: true },
+        { href: "/live-feed", label: "Live" },
+        { href: "/platform-pulse", label: "Pulse" },
+        { href: "/pulse-extended", label: "Pulse+" },
+      ],
+    },
+    {
+      label: "Ops",
+      links: [
+        { href: "/dashboard", label: "Dashboard" },
+        { href: "/engineers", label: "Engineers" },
+        { href: "/jobs", label: "Jobs" },
+        { href: "/amc", label: "AMC" },
+        { href: "/supply", label: "Parts" },
+      ],
+    },
+    {
+      label: "Money",
+      links: [
+        { href: "/payouts", label: "Cash" },
+        { href: "/at-risk-revenue", label: "At-risk" },
+        { href: "/disputes", label: "Disputes" },
+      ],
+    },
+    {
+      label: "Risk",
+      links: [
+        { href: "/onboarding", label: "KYC" },
+        { href: "/audit", label: "Audit" },
+        { href: "/security-overview", label: "Security" },
+        { href: "/founder-runbook", label: "Runbook" },
+      ],
+    },
+  ];
+
   return (
-    <header className="border-b border-[var(--color-border)] bg-white">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-6">
-          <Link href="/founder-morning-cockpit" className="text-sm font-semibold tracking-tight">
-            EquipSeva Founder Console
+    <header role="banner" className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-white/85 backdrop-blur-md print:hidden">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-2.5">
+        <div className="flex min-w-0 items-center gap-4">
+          <Link href="/founder-morning-cockpit" className="group flex shrink-0 items-center gap-2 text-sm font-bold tracking-tight">
+            <span className="grid h-7 w-7 place-items-center rounded-md bg-gradient-to-br from-emerald-600 to-emerald-700 text-[11px] font-bold text-white shadow-sm ring-1 ring-emerald-700/30">
+              ES
+            </span>
+            <span className="hidden sm:inline">Founder Console</span>
           </Link>
           {user && (
-            <nav className="flex flex-wrap items-center gap-4 text-sm text-[var(--color-muted)]">
-              <Link href="/founder-morning-cockpit" className="font-semibold text-[var(--color-fg)] hover:underline">
-                Morning ★
-              </Link>
-              <Link href="/live-feed" className="hover:text-[var(--color-fg)]">
-                Live ★
-              </Link>
-              <Link href="/platform-pulse" className="hover:text-[var(--color-fg)]">
-                Pulse
-              </Link>
-              <Link href="/pulse-extended" className="hover:text-[var(--color-fg)]">
-                Pulse+
-              </Link>
-              <Link href="/at-risk-revenue" className="hover:text-[var(--color-fg)]">
-                At-risk
-              </Link>
-              <Link href="/dashboard" className="hover:text-[var(--color-fg)]">
-                Dashboard
-              </Link>
-              <Link href="/engineers" className="hover:text-[var(--color-fg)]">
-                Engineers
-              </Link>
-              <Link href="/jobs" className="hover:text-[var(--color-fg)]">
-                Jobs
-              </Link>
-              <Link href="/amc" className="hover:text-[var(--color-fg)]">
-                AMC
-              </Link>
-              <Link href="/supply" className="hover:text-[var(--color-fg)]">
-                Parts
-              </Link>
-              <Link href="/payouts" className="hover:text-[var(--color-fg)]">
-                Cash
-              </Link>
-              <Link href="/disputes" className="hover:text-[var(--color-fg)]">
-                Disputes
-              </Link>
-              <Link href="/onboarding" className="hover:text-[var(--color-fg)]">
-                KYC
-              </Link>
-              <Link href="/audit" className="hover:text-[var(--color-fg)]">
-                Audit
-              </Link>
-              <Link href="/security-overview" className="hover:text-[var(--color-fg)]">
-                Security
-              </Link>
-              <Link href="/founder-runbook" className="hover:text-[var(--color-fg)]">
-                Runbook
-              </Link>
-              <Link href="/ops-index" className="font-semibold hover:text-[var(--color-fg)]">
-                Ops index
+            <nav className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-[var(--color-muted)]">
+              {navGroups.map((group) => (
+                <div key={group.label} className="flex items-center gap-2">
+                  <span className="hidden text-[10px] font-semibold uppercase tracking-wider text-gray-400 md:inline">
+                    {group.label}
+                  </span>
+                  {group.links.map((l) => (
+                    <Link
+                      key={l.href}
+                      href={l.href}
+                      className={
+                        l.highlight
+                          ? "rounded px-1.5 font-semibold text-[var(--color-fg)] hover:text-emerald-700"
+                          : "rounded px-1 hover:text-[var(--color-fg)]"
+                      }
+                    >
+                      {l.label}
+                    </Link>
+                  ))}
+                  <span className="text-gray-300">·</span>
+                </div>
+              ))}
+              <Link
+                href="/ops-index"
+                className="ml-1 rounded bg-emerald-600 px-2 py-0.5 text-[12px] font-semibold text-white shadow-sm hover:bg-emerald-700"
+              >
+                Ops index ⇢
               </Link>
             </nav>
           )}
         </div>
         {user && (
-          <div className="flex items-center gap-3 text-sm text-[var(--color-muted)]">
-            <span>{user.email}</span>
+          <div className="flex shrink-0 items-center gap-3 text-[13px] text-[var(--color-muted)]">
+            <span className="hidden truncate max-w-[180px] md:inline" title={user.email ?? ""}>
+              {user.email}
+            </span>
             <SignOutButton />
           </div>
         )}
