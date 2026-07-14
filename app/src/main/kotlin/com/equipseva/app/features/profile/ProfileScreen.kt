@@ -123,6 +123,8 @@ fun ProfileScreen(
     onOpenMaintenanceContracts: () -> Unit = {},
     // PR-D41 — hospital self-view of dispute filing history.
     onOpenMyDisputes: () -> Unit = {},
+    // r1392 — read-only GST invoice ledger (both roles).
+    onOpenGstInvoices: () -> Unit = {},
     onSwitchService: () -> Unit = {},
     onSignIn: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -263,6 +265,7 @@ fun ProfileScreen(
                         onOpenPublicPreview = onOpenPublicPreview,
                         onOpenMaintenanceContracts = onOpenMaintenanceContracts,
                         onOpenMyDisputes = onOpenMyDisputes,
+                        onOpenGstInvoices = onOpenGstInvoices,
                         onSwitchService = viewModel::onToggleRoleAndGoHome,
                         onPickAvatar = viewModel::uploadAvatar,
                     )
@@ -403,6 +406,7 @@ private fun ProfileContent(
     onOpenPublicPreview: (engineerId: String) -> Unit,
     onOpenMaintenanceContracts: () -> Unit,
     onOpenMyDisputes: () -> Unit,
+    onOpenGstInvoices: () -> Unit,
     onSwitchService: () -> Unit,
     onPickAvatar: (Uri) -> Unit,
 ) {
@@ -487,6 +491,7 @@ private fun ProfileContent(
             onOpenPublicPreview = onOpenPublicPreview,
             onOpenMaintenanceContracts = onOpenMaintenanceContracts,
             onOpenMyDisputes = onOpenMyDisputes,
+            onOpenGstInvoices = onOpenGstInvoices,
             onSwitchService = onSwitchService,
             onSignOut = onSignOut,
             signingOut = state.signingOut,
@@ -675,6 +680,7 @@ private fun buildProfileSections(
     onOpenPublicPreview: (engineerId: String) -> Unit,
     onOpenMaintenanceContracts: () -> Unit,
     onOpenMyDisputes: () -> Unit,
+    onOpenGstInvoices: () -> Unit,
     onSwitchService: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
@@ -703,6 +709,13 @@ private fun buildProfileSections(
             icon = Icons.Outlined.CalendarMonth,
             label = "Maintenance contracts",
             onClick = onOpenMaintenanceContracts,
+        ),
+        // r1392 — GST invoice ledger (incoming for hospitals, outgoing for
+        // engineers). Reuses Description (document) icon; no new import.
+        SettingsRow(
+            icon = Icons.Outlined.Description,
+            label = "GST invoices",
+            onClick = onOpenGstInvoices,
         ),
         SettingsRow(icon = Icons.Outlined.Notifications, label = "Notifications", onClick = onOpenNotifications),
         SettingsRow(icon = Icons.Outlined.Lock, label = "Change password", onClick = onOpenChangePassword),

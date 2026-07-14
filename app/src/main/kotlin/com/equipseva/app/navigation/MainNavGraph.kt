@@ -577,6 +577,7 @@ fun MainNavGraph(
                     onOpenMyRepairJobs = { navController.navigate(Routes.HOSPITAL_ACTIVE_JOBS) },
                     onOpenMaintenanceContracts = { navController.navigate(Routes.AMC_CONTRACTS_LIST) },
                     onOpenMyDisputes = { navController.navigate(Routes.HOSPITAL_MY_DISPUTES) },
+                    onOpenGstInvoices = { navController.navigate(Routes.GST_INVOICES) },
                     onOpenPublicPreview = { engineerId ->
                         navController.navigate(Routes.engineerPublicProfileRoute(engineerId))
                     },
@@ -1044,6 +1045,11 @@ fun MainNavGraph(
                 com.equipseva.app.features.payouts.EngineerPayoutMethodScreen(
                     onBack = { navController.popBackStack() },
                     onShowMessage = showSnackbar,
+                )
+            }
+            composable(Routes.GST_INVOICES) {
+                com.equipseva.app.features.profile.GstInvoiceLedgerScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.PROFILE_ADDRESSES) {

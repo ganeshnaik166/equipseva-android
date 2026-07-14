@@ -157,6 +157,8 @@ object Routes {
     // PROFILE_BANK_DETAILS (legacy stub form) — this writes to
     // engineer_payout_methods + drives the auto-payout pipeline.
     const val ENGINEER_PAYOUT_METHOD = "profile/engineer_payout_method"
+    // r1392 — read-only GST invoice ledger (my_gst_invoices); both roles.
+    const val GST_INVOICES = "profile/gst_invoices"
     const val PROFILE_ADDRESSES = "profile/addresses"
     const val PROFILE_HOSPITAL_SETTINGS = "profile/hospital_settings"
     const val PROFILE_STOREFRONT = "profile/storefront"
