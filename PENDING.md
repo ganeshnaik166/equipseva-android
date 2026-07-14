@@ -30,9 +30,9 @@ Legend: 🔴 blocker · 🟠 needs attention · 🟡 nice-to-have · ⚪ beyond 
 
 ### Store Listing — design / marketing
 7. 🟠 **App title + short + full description** — fully drafted in [docs/launch/STORE_LISTING.md](docs/launch/STORE_LISTING.md). Copy into Play Console.
-8. 🔴 **Feature graphic** 1024×500 PNG — DESIGN ASSET. Not yet created.
-9. 🔴 **8 phone screenshots** — DESIGN ASSET. Per the v1 scope (Book Repair + Engineer Jobs only, marketplace gated off): suggested set = welcome/auth, role select, home (hospital), home (engineer), repair-job detail, engineer directory, KYC submitted, chat. Need device captures.
-10. 🔴 **App icon master 512×512 PNG** — DESIGN ASSET. Current `ic_launcher_foreground.xml` is a placeholder grid mark; Play Console needs a final brand-art PNG.
+8. 🟢 **Feature graphic** 1024×500 PNG — EXISTS at [play-store/launch-assets/v1-candidates/feature-graphic-1024x500.png](play-store/launch-assets/v1-candidates/feature-graphic-1024x500.png) (ship-quality, designer can polish post-launch).
+9. 🟠 **Phone screenshots** — **7 of 8 captured** (2026-07-14) in [play-store/launch-assets/v1-candidates/screenshots/](play-store/launch-assets/v1-candidates/screenshots/): welcome, signin, role-select, hospital-home, engineer-home, engineer-directory, kyc. Captured from a signed-in emulator (API 35, AEHD) on the live backend via headless adb. **Remaining 2 blocked on backend data setup (not UI):** *repair-job detail* (hospital `repair_jobs` INSERT needs org linkage — see #60) and *chat* (needs an admin-verified engineer + a matched job+bid). Directory shot uses "Testy"-style seed names — reseed before final. Minimum-of-2 already exceeded; submission unblocked.
+10. 🟢 **App icon master 512×512 PNG** — EXISTS at [play-store/launch-assets/v1-candidates/icon-512x512.png](play-store/launch-assets/v1-candidates/icon-512x512.png) (brand-green, EQ glyph; designer can polish).
 11. 🟠 **Content rating** (IARC) — answer key fully drafted in [docs/launch/CONTENT_RATING.md](docs/launch/CONTENT_RATING.md). Copy into Play Console.
 12. 🟠 **Target audience** declaration — answers in CONTENT_RATING.md (18+, no children's data).
 13. 🟠 **Ads declaration** — answer = "No ads in this app." Trivial Play Console toggle.
@@ -115,10 +115,10 @@ Legend: 🔴 blocker · 🟠 needs attention · 🟡 nice-to-have · ⚪ beyond 
 
 ## SUMMARY — what v1 launch *actually* needs now (2026-04-30)
 
-### 🔴 DESIGN ASSETS — true blockers, need a designer
-- **Feature graphic** 1024×500 PNG (item #8)
-- **8 phone screenshots** (item #9) — capture from emulator after design pass
-- **App icon master** 512×512 PNG (item #10) — current is a placeholder grid mark
+### 🟢 DESIGN ASSETS — no longer blockers (candidates exist in `play-store/launch-assets/v1-candidates/`)
+- ✅ **Feature graphic** 1024×500 PNG (item #8) — present, ship-quality
+- 🟠 **Phone screenshots** (item #9) — **7 of 8 captured** on emulator (2026-07-14). Remaining 2 (repair-job detail, chat) blocked on backend data setup, not design/UI. Reseed the directory shot's test-named engineers before final.
+- ✅ **App icon master** 512×512 PNG (item #10) — present, ship-quality
 
 ### 🟠 PASTE-INTO-PLAY-CONSOLE — drafts ready, ~30 min of clicking
 - Store listing copy → [docs/launch/STORE_LISTING.md](docs/launch/STORE_LISTING.md)

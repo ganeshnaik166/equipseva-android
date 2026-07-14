@@ -10,6 +10,11 @@ First-cut assets generated 2026-04-30 from the existing brand SVG (`~/Downloads/
 | `feature-graphic-1024x500.png` | Feature graphic | Store listing → Graphics → Feature graphic |
 | `screenshots/01-welcome.png` | Cold-start welcome (logo + tagline + sign-in/create-account CTAs). 1080×2400 portrait. | Store listing → Graphics → Phone screenshots |
 | `screenshots/02-signin.png` | Sign-in form (empty, no PII). 1080×2400 portrait. | Store listing → Graphics → Phone screenshots |
+| `screenshots/03-role-select.png` | Signup role picker (Hospital admin / Biomedical engineer). 1080×2400. | Phone screenshots |
+| `screenshots/04-hospital-home.png` | Hospital dashboard ("What needs fixing today?" + book/bookings cards). 1080×2400. | Phone screenshots |
+| `screenshots/05-engineer-home.png` | Engineer dashboard (find work / bids / earnings). 1080×2400. | Phone screenshots |
+| `screenshots/06-engineer-directory.png` | Verified-engineer directory (search + filters + engineer cards). 1080×2400. | Phone screenshots |
+| `screenshots/07-kyc.png` | Engineer KYC / verification flow (Submitted→Under review→Verified stepper). 1080×2400. | Phone screenshots |
 
 ## Specs
 
@@ -58,4 +63,13 @@ PY
 
 ## Still needed for v1 submission
 
-The 2 captured screenshots (welcome + signin) meet Play's minimum-of-2 phone-screenshot requirement, so submission is unblocked. For a richer listing, capture additional screens from a signed-in device — suggested set per the v1 scope (Book Repair + Engineer Jobs only): role select / hospital home / engineer home / repair-job detail / engineer directory / KYC submitted / chat. Use `bash play-store/launch-assets/capture-screenshots.sh` (interactive helper).
+**Update 2026-07-14 — 7 screenshots now captured** from a signed-in emulator (Android 15 / API 35, AEHD-accelerated) against the live backend, driven headlessly via `adb uiautomator`. Two throwaway test accounts (`eqs.engineer.demo@gmail.com`, `eqs.hospital.demo@gmail.com`) were created through the app to reach the authed screens. This exceeds Play's minimum-of-2 and gives a rich listing.
+
+Two screens from the ideal 8-shot set remain **uncaptured**, blocked by backend/data setup (not app UI):
+
+- **repair-job detail** — hospital "Post new job" → `repair_jobs` INSERT fails for a self-signed-up hospital (org-linkage RLS; cf. root PENDING #60 "test accounts = manual DB inserts today"). Needs a hospital test account linked to a hospital org, or one seeded repair job.
+- **chat** — needs a job + engineer bid + hospital accept; the engineer job-feed is gated behind KYC *verification* (admin approval), so an unverified engineer can't bid. Needs one admin-verified engineer + a matched job.
+
+Also note: `06-engineer-directory.png` shows seeded engineers named "Testy"/"Test E2E Engineer" — fine functionally, but reseed with realistic names before final submission. A `07-kyc.png` shows the KYC flow's step 1 (verification stepper); the "submitted" confirmation state couldn't be captured because returning from the OS document picker recreated the activity and reset the multi-step engineer onboarding wizard (observed on the headless emulator).
+
+Freshly-captured copies also live in `../screenshots-emulator/` (original filenames).
