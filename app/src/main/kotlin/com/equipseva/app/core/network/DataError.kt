@@ -94,6 +94,15 @@ private fun friendlyRestMessage(ex: RestException): String? {
             raw.contains("cannot decline from state", ignoreCase = true) ||
             raw.contains("cannot signoff from state", ignoreCase = true) ->
             "This request has moved past that step — pull to refresh."
+        // r1387 engineer referral bounty (round564) RAISE EXCEPTION literals.
+        raw.contains("cannot_refer_self", ignoreCase = true) ->
+            "You can't refer yourself."
+        raw.contains("referral_already_registered", ignoreCase = true) ->
+            "You've already recorded a referral — each engineer can only be referred once."
+        raw.contains("referrer_not_an_engineer", ignoreCase = true) ->
+            "That code doesn't match an EquipSeva engineer. Double-check it with whoever referred you."
+        raw.contains("referrer_required", ignoreCase = true) ->
+            "Enter a referral code first."
         raw.isNotBlank() && !looksLikeRawDbError(raw) -> raw
         else -> null
     }

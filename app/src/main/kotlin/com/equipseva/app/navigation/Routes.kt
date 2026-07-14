@@ -115,6 +115,10 @@ object Routes {
     // r587/r588 — engineer earnings projection (current tier vs next tier × 90d gross).
     const val ENGINEER_EARNINGS_PROJECTION = "engineer/earnings_projection"
 
+    // r1387 — engineer-to-engineer referral bounty (share code + my_referrals
+    // self-view + register a referrer's code).
+    const val ENGINEER_REFERRALS = "engineer/referrals"
+
     // Standalone editor for engineer base coords (engineers.latitude/longitude).
     // Reachable from the Jobs hub. Lets the engineer move their service centre
     // without going back through the full KYC flow.

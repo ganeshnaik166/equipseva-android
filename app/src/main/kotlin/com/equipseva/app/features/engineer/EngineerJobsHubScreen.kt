@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.CardGiftcard
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.CurrencyRupee
 import androidx.compose.material.icons.outlined.Gavel
@@ -156,6 +157,7 @@ fun EngineerJobsHubScreen(
     onSupervision: () -> Unit = {},
     onDemandSignals: () -> Unit = {},
     onEarningsProjection: () -> Unit = {},
+    onReferrals: () -> Unit = {},
     viewModel: EngineerJobsHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -276,6 +278,12 @@ fun EngineerJobsHubScreen(
                         title = "Earnings projection",
                         desc = "How much you'd earn at the next tier",
                         onClick = onEarningsProjection,
+                    )
+                    HubTile(
+                        icon = Icons.Outlined.CardGiftcard,
+                        title = "Refer an engineer",
+                        desc = "Earn ₹2,000 per engineer you refer",
+                        onClick = onReferrals,
                     )
                     HubTile(
                         icon = Icons.Outlined.LocationOn,

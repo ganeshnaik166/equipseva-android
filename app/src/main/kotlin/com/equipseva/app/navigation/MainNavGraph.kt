@@ -402,6 +402,13 @@ fun MainNavGraph(
                     onSupervision = { navController.navigate(Routes.ENGINEER_SUPERVISION) },
                     onDemandSignals = { navController.navigate(Routes.ENGINEER_DEMAND_SIGNALS) },
                     onEarningsProjection = { navController.navigate(Routes.ENGINEER_EARNINGS_PROJECTION) },
+                    onReferrals = { navController.navigate(Routes.ENGINEER_REFERRALS) },
+                )
+            }
+            composable(Routes.ENGINEER_REFERRALS) {
+                com.equipseva.app.features.engineer.EngineerReferralsScreen(
+                    onBack = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
                 )
             }
             composable(Routes.ENGINEER_GRADUATION) {
