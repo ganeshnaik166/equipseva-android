@@ -9,6 +9,9 @@ import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
 import com.equipseva.app.core.data.payouts.EngineerPayoutRepository
 import com.equipseva.app.core.data.payouts.EngineerPayoutRow
 import com.equipseva.app.core.data.payouts.PayoutMethodVerification
+import com.equipseva.app.core.data.referrals.EngineerReferralRepository
+import com.equipseva.app.core.data.referrals.ReferralSummary
+import com.equipseva.app.core.data.referrals.referralSummary
 import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairBidRepository
 import com.equipseva.app.core.data.repair.RepairBidStatus
@@ -34,6 +37,7 @@ class EarningsViewModel @Inject constructor(
     private val escrowRepository: RepairJobEscrowRepository,
     private val amcRepository: AmcRepository,
     private val payoutRepository: EngineerPayoutRepository,
+    private val referralRepository: EngineerReferralRepository,
 ) : ViewModel() {
 
     data class EarningRow(val bid: RepairBid, val job: RepairJob?)
@@ -64,6 +68,9 @@ class EarningsViewModel @Inject constructor(
         // nudge banner urging VPA verification (analog of founder
         // /engineers-missing-payout r726).
         val payoutMethodVerified: Boolean = false,
+        // r1389 — referral earnings roll-up. Null while loading or on RPC
+        // failure; the Earnings referral row falls back to a CTA subtitle.
+        val referralSummary: ReferralSummary? = null,
         val errorMessage: String? = null,
     )
 
@@ -103,10 +110,12 @@ class EarningsViewModel @Inject constructor(
             // r783 — payout method verification check. Independent slice,
             // failure leaves the banner hidden (safe default).
             val method = launch { loadPayoutMethod() }
+            val referral = launch { loadReferralSummary() }
             // Wait for ALL to settle before flipping loading/refreshing
             // off so the pull-to-refresh indicator hides only when the
             // screen has actually re-stabilised.
             bid.join(); escrow.join(); rank.join(); amc.join(); payouts.join(); method.join()
+            referral.join()
             _state.update { it.copy(loading = false, refreshing = false) }
         }
     }
@@ -196,6 +205,14 @@ class EarningsViewModel @Inject constructor(
                 // Safe default: don't pop a banner on transient errors.
                 _state.update { it.copy(payoutMethodVerified = true) }
             }
+    }
+
+    private suspend fun loadReferralSummary() {
+        referralRepository.fetchMyReferrals()
+            .onSuccess { rows ->
+                _state.update { it.copy(referralSummary = referralSummary(rows)) }
+            }
+        // Quiet on failure — the Earnings referral row falls back to its CTA.
     }
 }
 

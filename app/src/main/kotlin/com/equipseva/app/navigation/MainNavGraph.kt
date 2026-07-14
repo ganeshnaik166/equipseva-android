@@ -704,6 +704,7 @@ fun MainNavGraph(
                     onBrowseJobs = { navController.navigate(Routes.REPAIR) },
                     onOpenActiveEscrows = { navController.navigate(Routes.ENGINEER_ACTIVE_ESCROWS) },
                     onOpenEarningsProjection = { navController.navigate(Routes.ENGINEER_EARNINGS_PROJECTION) },
+                    onOpenReferrals = { navController.navigate(Routes.ENGINEER_REFERRALS) },
                 )
             }
             composable(Routes.ENGINEER_ACTIVE_ESCROWS) {

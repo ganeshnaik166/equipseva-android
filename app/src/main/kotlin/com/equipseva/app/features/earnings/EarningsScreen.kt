@@ -39,6 +39,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.payouts.EngineerPayoutRow
 import com.equipseva.app.core.data.payouts.PayoutStatus
+import com.equipseva.app.core.data.referrals.referralEarningsRowSubtitle
 import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.prettyDateTime
@@ -69,6 +70,7 @@ fun EarningsScreen(
     onBrowseJobs: () -> Unit = {},
     onOpenActiveEscrows: () -> Unit = {},
     onOpenEarningsProjection: () -> Unit = {},
+    onOpenReferrals: () -> Unit = {},
     viewModel: EarningsViewModel = hiltViewModel(),
 ) {
     SecureScreen()
@@ -134,6 +136,24 @@ fun EarningsScreen(
                                     title = "Earnings projection",
                                     subtitle = "See how much you'd earn at the next tier",
                                     onClick = onOpenEarningsProjection,
+                                )
+                            }
+                        }
+                        // r1389 — referral earnings entry. Engineers checking
+                        // Earnings are the right audience to nudge toward the
+                        // ₹2,000-per-referral bounty; subtitle shows live
+                        // earned/referred once they have any.
+                        item("referrals_link") {
+                            Box(
+                                modifier = Modifier.padding(
+                                    horizontal = 16.dp,
+                                    vertical = 4.dp,
+                                ),
+                            ) {
+                                com.equipseva.app.designsystem.components.EsListRow(
+                                    title = "Referral earnings",
+                                    subtitle = referralEarningsRowSubtitle(state.referralSummary),
+                                    onClick = onOpenReferrals,
                                 )
                             }
                         }

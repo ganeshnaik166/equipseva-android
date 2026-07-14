@@ -41,7 +41,9 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.referrals.EngineerReferralRepository
+import com.equipseva.app.core.data.referrals.ReferralSummary
 import com.equipseva.app.core.data.referrals.referralCodeInputError
+import com.equipseva.app.core.data.referrals.referralSummary
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.ErrorBanner
@@ -319,12 +321,12 @@ private fun SummaryRow(summary: ReferralSummary) {
         )
         StatCell(
             modifier = Modifier.weight(1f),
-            value = "₹${formatRupees(summary.earnedRupees)}",
+            value = formatRupees(summary.earnedRupees),
             label = "Earned (${summary.paidCount})",
         )
         StatCell(
             modifier = Modifier.weight(1f),
-            value = "₹${formatRupees(summary.queuedRupees)}",
+            value = formatRupees(summary.queuedRupees),
             label = "Pending (${summary.pendingCount})",
         )
     }
@@ -414,7 +416,7 @@ private fun ReferralRow(r: EngineerReferralRepository.MyReferral) {
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                text = "Referred ${r.createdAt.take(10)} · ₹${formatRupees(r.bountyAmountRupees)}",
+                text = "Referred ${r.createdAt.take(10)} · ${formatRupees(r.bountyAmountRupees)}",
                 style = EsType.Caption,
                 color = SevaInk500,
             )
@@ -441,57 +443,10 @@ private fun CardSurface(content: @Composable androidx.compose.foundation.layout.
 }
 
 // ---------------------------------------------------------------------
-//  Extracted, unit-pinned helpers (behaviour-pinning convention).
+//  Extracted, unit-pinned presentation helpers (pill + PII-safe mask).
+//  ReferralSummary / referralSummary / referralEarningsRowSubtitle moved
+//  to core/data/referrals (shared with the Earnings surface).
 // ---------------------------------------------------------------------
-
-/**
- * Roll-up of a referrer's [EngineerReferralRepository.MyReferral] rows.
- *
- *  - [totalReferred]  every row, including revoked (they still referred them)
- *  - [paidCount] / [earnedRupees]  bounties actually paid out
- *  - [pendingCount] / [queuedRupees]  eligible-but-unpaid; queued rupees only
- *    count rows with an actual queued payout row (an eligible row without a
- *    payout row yet contributes to pendingCount but ₹0 to queuedRupees)
- *
- * Revoked rows are excluded from every money/pending tally.
- */
-data class ReferralSummary(
-    val totalReferred: Int = 0,
-    val paidCount: Int = 0,
-    val earnedRupees: Double = 0.0,
-    val pendingCount: Int = 0,
-    val queuedRupees: Double = 0.0,
-)
-
-internal fun referralSummary(
-    referrals: List<EngineerReferralRepository.MyReferral>,
-): ReferralSummary {
-    var paidCount = 0
-    var earned = 0.0
-    var pending = 0
-    var queued = 0.0
-    for (r in referrals) {
-        if (r.bountyRevoked) continue
-        when {
-            r.payoutStatus == "paid" -> {
-                paidCount++
-                earned += r.bountyAmountRupees
-            }
-            r.payoutStatus == "queued" -> {
-                pending++
-                queued += r.bountyAmountRupees
-            }
-            r.bountyEligible -> pending++ // eligible, payout row not minted yet
-        }
-    }
-    return ReferralSummary(
-        totalReferred = referrals.size,
-        paidCount = paidCount,
-        earnedRupees = earned,
-        pendingCount = pending,
-        queuedRupees = queued,
-    )
-}
 
 /**
  * Status pill for one referral. Precedence pinned deliberately:

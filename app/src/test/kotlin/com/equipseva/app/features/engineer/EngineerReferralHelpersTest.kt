@@ -1,7 +1,10 @@
 package com.equipseva.app.features.engineer
 
 import com.equipseva.app.core.data.referrals.EngineerReferralRepository
+import com.equipseva.app.core.data.referrals.ReferralSummary
 import com.equipseva.app.core.data.referrals.referralCodeInputError
+import com.equipseva.app.core.data.referrals.referralEarningsRowSubtitle
+import com.equipseva.app.core.data.referrals.referralSummary
 import com.equipseva.app.designsystem.components.PillKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -125,6 +128,37 @@ class EngineerReferralHelpersTest {
         assertEquals(0.0, s.queuedRupees, 0.0)
         assertEquals(0, s.paidCount)
         assertEquals(0.0, s.earnedRupees, 0.0)
+    }
+
+    // ---- referralEarningsRowSubtitle ----------------------------------
+
+    @Test fun `null summary shows the cold-start referral CTA`() {
+        assertEquals(
+            "Refer engineers — you earn ₹2,000 for each one's first paid job",
+            referralEarningsRowSubtitle(null),
+        )
+    }
+
+    @Test fun `zero referrals shows the cold-start referral CTA`() {
+        assertEquals(
+            "Refer engineers — you earn ₹2,000 for each one's first paid job",
+            referralEarningsRowSubtitle(ReferralSummary()),
+        )
+    }
+
+    @Test fun `paid referrals show earned rupees and count with a single leading glyph`() {
+        // formatRupees already prepends ₹ — pins the r1387 double-₹ regression.
+        val subtitle = referralEarningsRowSubtitle(
+            ReferralSummary(totalReferred = 2, paidCount = 1, earnedRupees = 4500.0),
+        )
+        assertEquals("₹4,500 earned · 2 referred", subtitle)
+    }
+
+    @Test fun `referred but unpaid shows the awaiting-first-job line`() {
+        val subtitle = referralEarningsRowSubtitle(
+            ReferralSummary(totalReferred = 3, paidCount = 0),
+        )
+        assertEquals("3 referred · bounty pays after their first job", subtitle)
     }
 
     // ---- refereeShortLabel --------------------------------------------
