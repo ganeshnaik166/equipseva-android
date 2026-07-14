@@ -45,6 +45,7 @@ import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Phone
@@ -125,6 +126,8 @@ fun ProfileScreen(
     onOpenMyDisputes: () -> Unit = {},
     // r1392 — read-only GST invoice ledger (both roles).
     onOpenGstInvoices: () -> Unit = {},
+    // r1396 — hospital fleet-health board.
+    onOpenFleetHealth: () -> Unit = {},
     onSwitchService: () -> Unit = {},
     onSignIn: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -266,6 +269,7 @@ fun ProfileScreen(
                         onOpenMaintenanceContracts = onOpenMaintenanceContracts,
                         onOpenMyDisputes = onOpenMyDisputes,
                         onOpenGstInvoices = onOpenGstInvoices,
+                        onOpenFleetHealth = onOpenFleetHealth,
                         onSwitchService = viewModel::onToggleRoleAndGoHome,
                         onPickAvatar = viewModel::uploadAvatar,
                     )
@@ -407,6 +411,7 @@ private fun ProfileContent(
     onOpenMaintenanceContracts: () -> Unit,
     onOpenMyDisputes: () -> Unit,
     onOpenGstInvoices: () -> Unit,
+    onOpenFleetHealth: () -> Unit,
     onSwitchService: () -> Unit,
     onPickAvatar: (Uri) -> Unit,
 ) {
@@ -492,6 +497,7 @@ private fun ProfileContent(
             onOpenMaintenanceContracts = onOpenMaintenanceContracts,
             onOpenMyDisputes = onOpenMyDisputes,
             onOpenGstInvoices = onOpenGstInvoices,
+            onOpenFleetHealth = onOpenFleetHealth,
             onSwitchService = onSwitchService,
             onSignOut = onSignOut,
             signingOut = state.signingOut,
@@ -681,6 +687,7 @@ private fun buildProfileSections(
     onOpenMaintenanceContracts: () -> Unit,
     onOpenMyDisputes: () -> Unit,
     onOpenGstInvoices: () -> Unit,
+    onOpenFleetHealth: () -> Unit,
     onSwitchService: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
@@ -760,6 +767,13 @@ private fun buildProfileSections(
             add(SettingsRow(icon = Icons.Outlined.Apartment, label = "Hospital settings", onClick = onOpenHospitalSettings))
             // PR-D41 — hospital self-view of dispute filing history.
             add(SettingsRow(icon = Icons.Outlined.Gavel, label = "Your disputes", onClick = onOpenMyDisputes))
+            // r1396 — per-asset reliability board (MTBF/MTTR/uptime,
+            // replacement candidates) from hospital_fleet_health.
+            add(SettingsRow(
+                icon = Icons.Outlined.MonitorHeart,
+                label = "Fleet health",
+                onClick = onOpenFleetHealth,
+            ))
             // Messages row removed (v0.3.4) — now a hospital bottom-nav tab.
         }
     }
