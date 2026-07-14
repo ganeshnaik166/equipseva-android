@@ -127,6 +127,7 @@ internal val fullScreenRoutePrefixes = listOf(
     Routes.ABOUT,
     Routes.ADD_PHONE,
     Routes.MY_BIDS,
+    Routes.JOB_PROFITABILITY,
     Routes.REQUEST_SERVICE,
     Routes.ENGINEER_PROFILE,
     Routes.NOTIFICATIONS,
@@ -695,6 +696,20 @@ fun MainNavGraph(
                     onBack = { navController.popBackStack() },
                     onJobClick = { jobId -> navController.navigate(Routes.repairJobDetailRoute(jobId)) },
                     onBrowseJobs = { navController.navigate(Routes.REPAIR) },
+                    onOpenProfitability = { bidId -> navController.navigate(Routes.jobProfitabilityRoute(bidId)) },
+                )
+            }
+            composable(
+                route = "${Routes.JOB_PROFITABILITY}/{${Routes.JOB_PROFITABILITY_ARG_BID_ID}}",
+                arguments = listOf(
+                    androidx.navigation.navArgument(Routes.JOB_PROFITABILITY_ARG_BID_ID) {
+                        type = androidx.navigation.NavType.StringType
+                    },
+                ),
+            ) {
+                com.equipseva.app.features.mybids.JobProfitabilityScreen(
+                    onBack = { navController.popBackStack() },
+                    onShowMessage = showSnackbar,
                 )
             }
             composable(Routes.EARNINGS) {

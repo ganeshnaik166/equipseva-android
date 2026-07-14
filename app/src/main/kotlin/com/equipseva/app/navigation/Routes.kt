@@ -122,6 +122,11 @@ object Routes {
     // r1393 — engineer TDS (section 194-O) statement for the current FY.
     const val ENGINEER_TDS = "engineer/tds"
 
+    // r1394 — engineer bid net-pay (profitability) estimate; bidId path arg.
+    const val JOB_PROFITABILITY = "engineer/bid_profitability"
+    const val JOB_PROFITABILITY_ARG_BID_ID = "bidId"
+    fun jobProfitabilityRoute(bidId: String): String = "$JOB_PROFITABILITY/$bidId"
+
     // Standalone editor for engineer base coords (engineers.latitude/longitude).
     // Reachable from the Jobs hub. Lets the engineer move their service centre
     // without going back through the full KYC flow.

@@ -61,6 +61,7 @@ fun MyBidsScreen(
     onBack: () -> Unit,
     onJobClick: (String) -> Unit,
     onBrowseJobs: () -> Unit = {},
+    onOpenProfitability: (bidId: String) -> Unit = {},
     viewModel: MyBidsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -136,6 +137,7 @@ fun MyBidsScreen(
                             BidRowCard(
                                 row = row,
                                 onClick = { onJobClick(row.bid.repairJobId) },
+                                onSeeNetPay = { onOpenProfitability(row.bid.id) },
                             )
                         }
                     }
@@ -149,6 +151,7 @@ fun MyBidsScreen(
 private fun BidRowCard(
     row: MyBidsViewModel.MyBidRow,
     onClick: () -> Unit,
+    onSeeNetPay: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -199,6 +202,15 @@ private fun BidRowCard(
                 )
             }
         }
+        // r1394 — per-bid net-pay estimate. Nested clickable so tapping the
+        // link opens the profitability breakdown without triggering the
+        // card's job-detail onClick.
+        Text(
+            text = "See net pay →",
+            style = EsType.Caption.copy(fontWeight = FontWeight.SemiBold),
+            color = SevaGreen700,
+            modifier = Modifier.clickable(onClick = onSeeNetPay),
+        )
     }
 }
 
