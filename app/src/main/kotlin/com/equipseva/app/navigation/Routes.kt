@@ -119,6 +119,9 @@ object Routes {
     // self-view + register a referrer's code).
     const val ENGINEER_REFERRALS = "engineer/referrals"
 
+    // r1393 — engineer TDS (section 194-O) statement for the current FY.
+    const val ENGINEER_TDS = "engineer/tds"
+
     // Standalone editor for engineer base coords (engineers.latitude/longitude).
     // Reachable from the Jobs hub. Lets the engineer move their service centre
     // without going back through the full KYC flow.

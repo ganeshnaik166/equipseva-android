@@ -411,6 +411,11 @@ fun MainNavGraph(
                     onShowMessage = showSnackbar,
                 )
             }
+            composable(Routes.ENGINEER_TDS) {
+                com.equipseva.app.features.earnings.TdsStatementScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
             composable(Routes.ENGINEER_GRADUATION) {
                 com.equipseva.app.features.engineer.EngineerGraduationScreen(
                     onBack = { navController.popBackStack() },
@@ -706,6 +711,7 @@ fun MainNavGraph(
                     onOpenActiveEscrows = { navController.navigate(Routes.ENGINEER_ACTIVE_ESCROWS) },
                     onOpenEarningsProjection = { navController.navigate(Routes.ENGINEER_EARNINGS_PROJECTION) },
                     onOpenReferrals = { navController.navigate(Routes.ENGINEER_REFERRALS) },
+                    onOpenTds = { navController.navigate(Routes.ENGINEER_TDS) },
                 )
             }
             composable(Routes.ENGINEER_ACTIVE_ESCROWS) {

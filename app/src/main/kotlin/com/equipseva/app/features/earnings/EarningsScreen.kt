@@ -71,6 +71,7 @@ fun EarningsScreen(
     onOpenActiveEscrows: () -> Unit = {},
     onOpenEarningsProjection: () -> Unit = {},
     onOpenReferrals: () -> Unit = {},
+    onOpenTds: () -> Unit = {},
     viewModel: EarningsViewModel = hiltViewModel(),
 ) {
     SecureScreen()
@@ -154,6 +155,23 @@ fun EarningsScreen(
                                     title = "Referral earnings",
                                     subtitle = referralEarningsRowSubtitle(state.referralSummary),
                                     onClick = onOpenReferrals,
+                                )
+                            }
+                        }
+                        // r1393 — TDS (194-O) statement entry. Engineers see
+                        // net payouts elsewhere but never the withheld TDS;
+                        // this row opens the per-quarter FY statement.
+                        item("tds_link") {
+                            Box(
+                                modifier = Modifier.padding(
+                                    horizontal = 16.dp,
+                                    vertical = 4.dp,
+                                ),
+                            ) {
+                                com.equipseva.app.designsystem.components.EsListRow(
+                                    title = "Tax deducted (TDS)",
+                                    subtitle = "Section 194-O TDS withheld this financial year",
+                                    onClick = onOpenTds,
                                 )
                             }
                         }
