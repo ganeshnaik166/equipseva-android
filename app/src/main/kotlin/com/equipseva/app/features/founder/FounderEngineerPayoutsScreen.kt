@@ -544,7 +544,7 @@ private fun PayoutAdminRow(
                     fontWeight = FontWeight.Medium,
                 )
                 Text(
-                    "₹${formatRupees(amountRupees)} → ${row.engineerName ?: "Unknown engineer"}",
+                    "${formatRupees(amountRupees)} → ${row.engineerName ?: "Unknown engineer"}",
                     fontSize = 15.sp,
                     color = SevaInk900,
                     fontWeight = FontWeight.SemiBold,
@@ -665,7 +665,7 @@ private fun MarkPaidSheet(
     ) {
         Text("Mark paid", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = SevaInk900)
         Text(
-            "${p.jobNumber} · ₹${formatRupees(amountRupees)} → ${p.engineerName ?: "engineer"}",
+            "${p.jobNumber} · ${formatRupees(amountRupees)} → ${p.engineerName ?: "engineer"}",
             fontSize = 13.sp,
             color = SevaInk500,
         )
@@ -762,7 +762,7 @@ private fun CancelPayoutSheet(
     ) {
         Text("Cancel payout", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = SevaInk900)
         Text(
-            "${p.jobNumber} · ₹${formatRupees(amountRupees)} → ${p.engineerName ?: "engineer"}",
+            "${p.jobNumber} · ${formatRupees(amountRupees)} → ${p.engineerName ?: "engineer"}",
             fontSize = 13.sp,
             color = SevaInk500,
         )

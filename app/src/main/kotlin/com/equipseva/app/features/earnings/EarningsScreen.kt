@@ -273,7 +273,7 @@ fun EarningsScreen(
                             if (state.amcEarnings.isNotEmpty()) {
                                 item("amc_history") {
                                     EsSection(
-                                        title = "AMC visit payouts (₹${formatRupees(state.amcPaidTotal)})",
+                                        title = "AMC visit payouts (${formatRupees(state.amcPaidTotal)})",
                                     ) {
                                         com.equipseva.app.features.earnings.AmcEarningsList(
                                             rows = state.amcEarnings,
@@ -732,7 +732,7 @@ private fun PayoutTransferRow(
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                "₹${formatRupees(amountRupees)} → ${p.destinationLabel ?: "No payout method"}",
+                "${formatRupees(amountRupees)} → ${p.destinationLabel ?: "No payout method"}",
                 fontSize = 15.sp,
                 color = SevaInk900,
                 fontWeight = FontWeight.SemiBold,
