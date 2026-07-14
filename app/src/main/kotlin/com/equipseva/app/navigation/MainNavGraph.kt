@@ -404,6 +404,7 @@ fun MainNavGraph(
                     onDemandSignals = { navController.navigate(Routes.ENGINEER_DEMAND_SIGNALS) },
                     onEarningsProjection = { navController.navigate(Routes.ENGINEER_EARNINGS_PROJECTION) },
                     onReferrals = { navController.navigate(Routes.ENGINEER_REFERRALS) },
+                    onProfileStrength = { navController.navigate(Routes.ENGINEER_PROFILE_STRENGTH) },
                 )
             }
             composable(Routes.ENGINEER_REFERRALS) {
@@ -415,6 +416,12 @@ fun MainNavGraph(
             composable(Routes.ENGINEER_TDS) {
                 com.equipseva.app.features.earnings.TdsStatementScreen(
                     onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.ENGINEER_PROFILE_STRENGTH) {
+                com.equipseva.app.features.engineerprofile.ProfileCompletenessScreen(
+                    onBack = { navController.popBackStack() },
+                    onEditProfile = { navController.navigate(Routes.ENGINEER_PROFILE) },
                 )
             }
             composable(Routes.ENGINEER_GRADUATION) {

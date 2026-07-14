@@ -127,6 +127,9 @@ object Routes {
     const val JOB_PROFITABILITY_ARG_BID_ID = "bidId"
     fun jobProfitabilityRoute(bidId: String): String = "$JOB_PROFITABILITY/$bidId"
 
+    // r1395 — engineer profile-strength (completeness) meter.
+    const val ENGINEER_PROFILE_STRENGTH = "engineer/profile_strength"
+
     // Standalone editor for engineer base coords (engineers.latitude/longitude).
     // Reachable from the Jobs hub. Lets the engineer move their service centre
     // without going back through the full KYC flow.

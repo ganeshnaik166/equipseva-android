@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.CardGiftcard
+import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.CurrencyRupee
 import androidx.compose.material.icons.outlined.Gavel
@@ -158,6 +159,7 @@ fun EngineerJobsHubScreen(
     onDemandSignals: () -> Unit = {},
     onEarningsProjection: () -> Unit = {},
     onReferrals: () -> Unit = {},
+    onProfileStrength: () -> Unit = {},
     viewModel: EngineerJobsHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -296,6 +298,12 @@ fun EngineerJobsHubScreen(
                         title = "Edit profile",
                         desc = "Bio, rate, service area",
                         onClick = onEditProfile,
+                    )
+                    HubTile(
+                        icon = Icons.Outlined.Checklist,
+                        title = "Profile strength",
+                        desc = "See what's left to complete",
+                        onClick = onProfileStrength,
                     )
                 }
             }
