@@ -65,6 +65,7 @@ class EngineerGraduationViewModel @Inject constructor(
         val status: Status = Status.Loading,
         val data: EngineerGraduationRepository.GraduationStatus? = null,
         val history: List<EngineerGraduationRepository.TierHistoryEntry> = emptyList(),
+        val tiers: List<EngineerGraduationRepository.TierBenefit> = emptyList(),
         val error: String? = null,
     )
 
@@ -80,6 +81,7 @@ class EngineerGraduationViewModel @Inject constructor(
         viewModelScope.launch {
             val statusResult = repo.fetchGraduationStatus()
             val historyResult = repo.fetchTierHistory()
+            val tiersResult = repo.fetchCertificationTiers()
             statusResult
                 .onSuccess { row ->
                     _state.update {
@@ -87,6 +89,7 @@ class EngineerGraduationViewModel @Inject constructor(
                             status = Status.Loaded,
                             data = row,
                             history = historyResult.getOrNull().orEmpty(),
+                            tiers = tiersResult.getOrNull().orEmpty(),
                         )
                     }
                 }
@@ -163,7 +166,7 @@ fun EngineerGraduationScreen(
                             )
                         }
                     } else {
-                        GraduationContent(d, state.history)
+                        GraduationContent(d, state.history, state.tiers)
                     }
                 }
             }
@@ -175,6 +178,7 @@ fun EngineerGraduationScreen(
 private fun GraduationContent(
     d: EngineerGraduationRepository.GraduationStatus,
     history: List<EngineerGraduationRepository.TierHistoryEntry>,
+    tiers: List<EngineerGraduationRepository.TierBenefit>,
 ) {
     Column(
         Modifier
@@ -276,6 +280,25 @@ private fun GraduationContent(
             color = SevaInk400,
         )
 
+        // r1390 — tier benefits (r550 engineer_certification_tiers). Shows
+        // what each tier UNLOCKS so the ladder's value (especially Gold's
+        // free PI insurance) is legible — not just the gates to climb it.
+        val benefitTiers = tiers.filter { it.tier != "none" }
+        if (benefitTiers.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            Text(
+                "Tier benefits",
+                style = EsType.H5,
+                color = SevaInk900,
+            )
+            benefitTiers.forEach { t ->
+                TierBenefitCard(
+                    tier = t,
+                    isCurrent = t.tier.equals(d.currentTier, ignoreCase = true),
+                )
+            }
+        }
+
         // r594 — Promotion history (from r593 ledger). Rendered only
         // when the engineer has at least one tier change in history.
         if (history.isNotEmpty()) {
@@ -365,6 +388,81 @@ private fun GateCard(
         }
     }
 }
+
+@Composable
+private fun TierBenefitCard(
+    tier: EngineerGraduationRepository.TierBenefit,
+    isCurrent: Boolean,
+) {
+    val lines = tierBenefitLines(
+        platformFeePct = tier.platformFeePct,
+        piInsuranceEligible = tier.piInsuranceEligible,
+        featuredInSearch = tier.featuredInSearch,
+        codeRedPriority = tier.codeRedPriority,
+    )
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (isCurrent) SevaGreen50 else Color.White)
+            .border(
+                1.dp,
+                if (isCurrent) SevaGreen700 else BorderDefault,
+                RoundedCornerShape(10.dp),
+            )
+            .padding(14.dp),
+    ) {
+        Column {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    tier.displayLabel,
+                    style = EsType.Body.copy(fontWeight = FontWeight.SemiBold),
+                    color = SevaInk900,
+                )
+                if (isCurrent) {
+                    Pill(text = "Current", kind = PillKind.Success)
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            lines.forEach { line ->
+                Text("•  $line", style = EsType.BodySm, color = SevaInk600)
+            }
+        }
+    }
+}
+
+/**
+ * Human-readable benefit lines for a certification tier, in a pinned order:
+ * platform fee first, then the unlockable perks. Backs the cockpit's
+ * "Tier benefits" cards.
+ */
+internal fun tierBenefitLines(
+    platformFeePct: Double,
+    piInsuranceEligible: Boolean,
+    featuredInSearch: Boolean,
+    codeRedPriority: Int,
+): List<String> = buildList {
+    add("${formatFeePct(platformFeePct)}% platform fee")
+    if (piInsuranceEligible) add("Free PI insurance")
+    if (featuredInSearch) add("Featured in search")
+    if (codeRedPriority > 0) add("Code Red priority dispatch")
+}
+
+/**
+ * Platform-fee percent: whole numbers drop the decimal (5.0 → "5"),
+ * fractional keep one place (6.5 → "6.5"). Locale.ROOT so a comma-decimal
+ * locale (de / hi) can't render "6,5".
+ */
+internal fun formatFeePct(pct: Double): String =
+    if (pct == pct.toLong().toDouble()) {
+        pct.toLong().toString()
+    } else {
+        String.format(java.util.Locale.ROOT, "%.1f", pct)
+    }
 
 // Mirrors the r550 _verified_tier_at_or_above private helper.
 private fun verifiedRank(tier: String): Int = when (tier) {

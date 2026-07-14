@@ -39,6 +39,34 @@ class EngineerGraduationRepository @Inject constructor(
             .firstOrNull()
     }
 
+    // ---- r1390 tier benefits (r550 engineer_certification_tiers) ----
+
+    /**
+     * Tier benefit definitions from the publicly-readable
+     * engineer_certification_tiers table. Lets the cockpit show what each
+     * tier UNLOCKS (platform fee, PI insurance, featured-in-search, Code Red
+     * priority) — not just the gates to reach it. Sorted client-side by
+     * display_order so the ladder reads bronze → silver → gold.
+     */
+    @Serializable
+    data class TierBenefit(
+        @SerialName("tier") val tier: String,
+        @SerialName("display_label") val displayLabel: String,
+        @SerialName("platform_fee_pct") val platformFeePct: Double = 0.0,
+        @SerialName("code_red_priority") val codeRedPriority: Int = 0,
+        @SerialName("pi_insurance_eligible") val piInsuranceEligible: Boolean = false,
+        @SerialName("featured_in_search") val featuredInSearch: Boolean = false,
+        @SerialName("display_order") val displayOrder: Int = 0,
+    )
+
+    suspend fun fetchCertificationTiers(): Result<List<TierBenefit>> = runCatching {
+        client.postgrest
+            .from("engineer_certification_tiers")
+            .select { }
+            .decodeList<TierBenefit>()
+            .sortedBy { it.displayOrder }
+    }
+
     @Serializable
     data class SupervisionRow(
         @SerialName("role") val role: String,           // "trainee" or "supervisor"
