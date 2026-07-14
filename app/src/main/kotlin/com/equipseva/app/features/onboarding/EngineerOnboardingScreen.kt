@@ -30,6 +30,8 @@ import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.location.IndiaLocations
 import com.equipseva.app.core.data.profile.ProfileRepository
+import com.equipseva.app.core.data.referrals.EngineerReferralRepository
+import com.equipseva.app.core.data.referrals.referralCodeInputError
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.normalizeIndiaMobileInput
 import com.equipseva.app.designsystem.components.EsBtn
@@ -77,6 +79,7 @@ import kotlinx.coroutines.launch
 class EngineerOnboardingViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
+    private val referralRepository: EngineerReferralRepository,
 ) : ViewModel() {
 
     data class UiState(
@@ -84,14 +87,22 @@ class EngineerOnboardingViewModel @Inject constructor(
         val state: String = "",
         val district: String = "",
         val districtOptions: List<String> = emptyList(),
+        val referralCode: String = "",
+        val myUserId: String? = null,
         val saving: Boolean = false,
         val error: String? = null,
     ) {
+        // Optional referral capture — a self-referral is the only client-side
+        // error we can catch (the code is the referrer's user_id); the server
+        // does the authoritative checks.
+        val referralCodeError: String? get() = referralCodeInputError(referralCode, myUserId)
+
         val canSubmit: Boolean
             get() = !saving &&
                 isPhoneE164Routable(phone) &&
                 state.isNotBlank() &&
-                district.isNotBlank()
+                district.isNotBlank() &&
+                referralCodeError == null
     }
 
     sealed interface Effect {
@@ -104,6 +115,21 @@ class EngineerOnboardingViewModel @Inject constructor(
 
     private val _effects = MutableSharedFlow<Effect>(extraBufferCapacity = 4)
     val effects: kotlinx.coroutines.flow.Flow<Effect> = _effects
+
+    init {
+        // Capture the signed-in user id so the referral field can flag a
+        // self-referral inline (the code is that same id).
+        viewModelScope.launch {
+            val session = authRepository.sessionState.first { it !is AuthSession.Unknown }
+            (session as? AuthSession.SignedIn)?.let { signed ->
+                _state.update { it.copy(myUserId = signed.userId) }
+            }
+        }
+    }
+
+    fun onReferralCodeChange(value: String) {
+        _state.update { it.copy(referralCode = value, error = null) }
+    }
 
     fun onPhoneChange(value: String) {
         _state.update { it.copy(phone = normalizeIndiaMobileInput(value), error = null) }
@@ -142,8 +168,24 @@ class EngineerOnboardingViewModel @Inject constructor(
                 state = s.state.trim(),
                 district = s.district.trim(),
             ).onSuccess {
+                // Best-effort, non-blocking referral capture: a bad code must
+                // never block a completed onboarding. Only attempt when a code
+                // is present and clears the self-referral guard.
+                val code = s.referralCode.trim()
+                val msg = if (code.isNotBlank() && referralCodeInputError(code, userId) == null) {
+                    referralRepository.registerReferral(code).fold(
+                        onSuccess = {
+                            "Saved. Referral recorded — your referrer earns ₹2,000 after your first paid job."
+                        },
+                        onFailure = { e ->
+                            "Saved. We couldn't record that referral code: ${e.toUserMessage()}"
+                        },
+                    )
+                } else {
+                    "Saved"
+                }
                 _state.update { it.copy(saving = false) }
-                _effects.emit(Effect.ShowMessage("Saved"))
+                _effects.emit(Effect.ShowMessage(msg))
                 _effects.emit(Effect.Done)
             }.onFailure { e ->
                 _state.update { it.copy(saving = false, error = e.toUserMessage()) }
@@ -231,6 +273,29 @@ fun EngineerOnboardingScreen(
                 options = s.districtOptions,
                 enabled = !s.saving && s.state.isNotBlank(),
                 onValueChange = viewModel::onDistrictChange,
+            )
+
+            OutlinedTextField(
+                value = s.referralCode,
+                onValueChange = viewModel::onReferralCodeChange,
+                label = { Text("Referral code (optional)") },
+                placeholder = { Text("Paste a referrer's code") },
+                supportingText = {
+                    val referralErr = s.referralCodeError
+                    if (referralErr != null) {
+                        Text(
+                            referralErr,
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                        )
+                    } else {
+                        Text("Referred by another engineer? Enter their code so they earn their ₹2,000 bounty.")
+                    }
+                },
+                isError = s.referralCodeError != null,
+                singleLine = true,
+                enabled = !s.saving,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                modifier = Modifier.fillMaxWidth(),
             )
 
             if (s.error != null) {

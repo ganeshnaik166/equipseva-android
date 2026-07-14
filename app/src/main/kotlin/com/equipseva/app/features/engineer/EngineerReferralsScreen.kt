@@ -40,6 +40,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.data.referrals.EngineerReferralRepository
+import com.equipseva.app.core.data.referrals.referralCodeInputError
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.ErrorBanner
@@ -521,22 +523,4 @@ internal fun referralBountyPillTextAndKind(
 internal fun refereeShortLabel(refereeUserId: String): String {
     val tail = refereeUserId.takeLast(4).uppercase(java.util.Locale.ROOT)
     return "Engineer ••$tail"
-}
-
-/**
- * Validation for the "were you referred?" code box.
- *  - blank input → null (no error shown; the submit button gates on
- *    isNotBlank separately)
- *  - the engineer's own code → self-referral, which the server also blocks
- *    (cannot_refer_self); catch it client-side for an instant, friendlier
- *    message
- *  - otherwise null (the server does the authoritative existence checks)
- */
-internal fun referralCodeInputError(input: String, ownUserId: String?): String? {
-    val code = input.trim()
-    if (code.isEmpty()) return null
-    if (ownUserId != null && code.equals(ownUserId.trim(), ignoreCase = true)) {
-        return "That's your own code — you can't refer yourself."
-    }
-    return null
 }

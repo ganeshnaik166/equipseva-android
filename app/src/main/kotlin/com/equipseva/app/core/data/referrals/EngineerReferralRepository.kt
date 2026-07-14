@@ -1,4 +1,4 @@
-package com.equipseva.app.features.engineer
+package com.equipseva.app.core.data.referrals
 
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
@@ -19,9 +19,12 @@ import kotlinx.serialization.json.buildJsonObject
  *  - register_engineer_referral() → the referee claims a referrer's code
  *                                    (the code IS the referrer's user_id)
  *
- * A concrete @Singleton with an @Inject constructor — Hilt provides it via
- * constructor injection, so no @Binds module is needed (mirrors
- * [EngineerGraduationRepository]).
+ * Lives in core/data (not a feature package) because it is consumed by
+ * more than one feature — the engineer referrals cockpit
+ * (features/engineer) and the referee's join-time capture
+ * (features/onboarding). A concrete @Singleton with an @Inject
+ * constructor, so Hilt provides it via constructor injection — no @Binds
+ * module needed.
  */
 @Singleton
 class EngineerReferralRepository @Inject constructor(
