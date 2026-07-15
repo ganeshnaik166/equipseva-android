@@ -134,6 +134,8 @@ fun ProfileScreen(
     onOpenPmCalendar: () -> Unit = {},
     // r1402 — DPDP consent centre (both roles).
     onOpenConsents: () -> Unit = {},
+    // r1403 — DPDP grievances (both roles).
+    onOpenGrievances: () -> Unit = {},
     onSwitchService: () -> Unit = {},
     onSignIn: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -278,6 +280,7 @@ fun ProfileScreen(
                         onOpenFleetHealth = onOpenFleetHealth,
                         onOpenPmCalendar = onOpenPmCalendar,
                         onOpenConsents = onOpenConsents,
+                        onOpenGrievances = onOpenGrievances,
                         onSwitchService = viewModel::onToggleRoleAndGoHome,
                         onPickAvatar = viewModel::uploadAvatar,
                     )
@@ -422,6 +425,7 @@ private fun ProfileContent(
     onOpenFleetHealth: () -> Unit,
     onOpenPmCalendar: () -> Unit,
     onOpenConsents: () -> Unit,
+    onOpenGrievances: () -> Unit,
     onSwitchService: () -> Unit,
     onPickAvatar: (Uri) -> Unit,
 ) {
@@ -510,6 +514,7 @@ private fun ProfileContent(
             onOpenFleetHealth = onOpenFleetHealth,
             onOpenPmCalendar = onOpenPmCalendar,
             onOpenConsents = onOpenConsents,
+            onOpenGrievances = onOpenGrievances,
             onSwitchService = onSwitchService,
             onSignOut = onSignOut,
             signingOut = state.signingOut,
@@ -702,6 +707,7 @@ private fun buildProfileSections(
     onOpenFleetHealth: () -> Unit,
     onOpenPmCalendar: () -> Unit,
     onOpenConsents: () -> Unit,
+    onOpenGrievances: () -> Unit,
     onSwitchService: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
@@ -808,6 +814,8 @@ private fun buildProfileSections(
         SettingsRow(icon = Icons.Outlined.Description, label = "About", onClick = onOpenAbout),
         // r1402 — DPDP consent centre (current_consents); both roles.
         SettingsRow(icon = Icons.Outlined.PrivacyTip, label = "Privacy & consents", onClick = onOpenConsents),
+        // r1403 — DPDP grievances the user filed (my_grievances); both roles.
+        SettingsRow(icon = Icons.Outlined.Gavel, label = "My grievances", onClick = onOpenGrievances),
         SettingsRow(
             icon = Icons.Outlined.FileUpload,
             label = if (exportingData) "Preparing export…" else "Export my data",
