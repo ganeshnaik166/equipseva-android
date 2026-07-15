@@ -604,6 +604,7 @@ fun MainNavGraph(
                     onOpenMaintenanceContracts = { navController.navigate(Routes.AMC_CONTRACTS_LIST) },
                     onOpenMyDisputes = { navController.navigate(Routes.HOSPITAL_MY_DISPUTES) },
                     onOpenGstInvoices = { navController.navigate(Routes.GST_INVOICES) },
+                    onOpenConsents = { navController.navigate(Routes.PRIVACY_CONSENTS) },
                     onOpenFleetHealth = { navController.navigate(Routes.HOSPITAL_FLEET_HEALTH) },
                     onOpenPmCalendar = { navController.navigate(Routes.HOSPITAL_PM_CALENDAR) },
                     onOpenPublicPreview = { engineerId ->
@@ -1092,6 +1093,11 @@ fun MainNavGraph(
             }
             composable(Routes.GST_INVOICES) {
                 com.equipseva.app.features.profile.GstInvoiceLedgerScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.PRIVACY_CONSENTS) {
+                com.equipseva.app.features.profile.ConsentCentreScreen(
                     onBack = { navController.popBackStack() },
                 )
             }

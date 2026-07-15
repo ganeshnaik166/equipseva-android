@@ -46,6 +46,7 @@ import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.EventRepeat
+import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
@@ -131,6 +132,8 @@ fun ProfileScreen(
     onOpenFleetHealth: () -> Unit = {},
     // r1398 — hospital preventive-maintenance calendar.
     onOpenPmCalendar: () -> Unit = {},
+    // r1402 — DPDP consent centre (both roles).
+    onOpenConsents: () -> Unit = {},
     onSwitchService: () -> Unit = {},
     onSignIn: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -274,6 +277,7 @@ fun ProfileScreen(
                         onOpenGstInvoices = onOpenGstInvoices,
                         onOpenFleetHealth = onOpenFleetHealth,
                         onOpenPmCalendar = onOpenPmCalendar,
+                        onOpenConsents = onOpenConsents,
                         onSwitchService = viewModel::onToggleRoleAndGoHome,
                         onPickAvatar = viewModel::uploadAvatar,
                     )
@@ -417,6 +421,7 @@ private fun ProfileContent(
     onOpenGstInvoices: () -> Unit,
     onOpenFleetHealth: () -> Unit,
     onOpenPmCalendar: () -> Unit,
+    onOpenConsents: () -> Unit,
     onSwitchService: () -> Unit,
     onPickAvatar: (Uri) -> Unit,
 ) {
@@ -504,6 +509,7 @@ private fun ProfileContent(
             onOpenGstInvoices = onOpenGstInvoices,
             onOpenFleetHealth = onOpenFleetHealth,
             onOpenPmCalendar = onOpenPmCalendar,
+            onOpenConsents = onOpenConsents,
             onSwitchService = onSwitchService,
             onSignOut = onSignOut,
             signingOut = state.signingOut,
@@ -695,6 +701,7 @@ private fun buildProfileSections(
     onOpenGstInvoices: () -> Unit,
     onOpenFleetHealth: () -> Unit,
     onOpenPmCalendar: () -> Unit,
+    onOpenConsents: () -> Unit,
     onSwitchService: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
@@ -799,6 +806,8 @@ private fun buildProfileSections(
             onClick = onOpenHelp,
         ),
         SettingsRow(icon = Icons.Outlined.Description, label = "About", onClick = onOpenAbout),
+        // r1402 — DPDP consent centre (current_consents); both roles.
+        SettingsRow(icon = Icons.Outlined.PrivacyTip, label = "Privacy & consents", onClick = onOpenConsents),
         SettingsRow(
             icon = Icons.Outlined.FileUpload,
             label = if (exportingData) "Preparing export…" else "Export my data",

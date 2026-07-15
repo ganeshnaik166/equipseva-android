@@ -176,6 +176,8 @@ object Routes {
     const val ENGINEER_PAYOUT_METHOD = "profile/engineer_payout_method"
     // r1392 — read-only GST invoice ledger (my_gst_invoices); both roles.
     const val GST_INVOICES = "profile/gst_invoices"
+    // r1402 — DPDP consent centre (current_consents); both roles.
+    const val PRIVACY_CONSENTS = "profile/consents"
     // r1396 — read-only hospital fleet-health board (hospital_fleet_health).
     const val HOSPITAL_FLEET_HEALTH = "profile/fleet_health"
     // r1398 — hospital preventive-maintenance calendar (hospital_upcoming_pm).
