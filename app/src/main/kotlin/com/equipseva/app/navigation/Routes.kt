@@ -1,5 +1,7 @@
 package com.equipseva.app.navigation
 
+import android.net.Uri
+
 object Routes {
     // Top-level graph IDs (sub-graphs wrapped under these names).
     const val AUTH_GRAPH = "auth_graph"
@@ -176,6 +178,14 @@ object Routes {
     const val HOSPITAL_FLEET_HEALTH = "profile/fleet_health"
     // r1398 — hospital preventive-maintenance calendar (hospital_upcoming_pm).
     const val HOSPITAL_PM_CALENDAR = "profile/pm_calendar"
+    // r1399 — per-asset history timeline (asset_history), drill-down from
+    // Fleet Health. serial + display title passed as encoded query args.
+    const val HOSPITAL_ASSET_HISTORY = "profile/asset_history"
+    const val ASSET_HISTORY_ARG_SERIAL = "serial"
+    const val ASSET_HISTORY_ARG_TITLE = "title"
+    fun assetHistoryRoute(serial: String, title: String): String =
+        "$HOSPITAL_ASSET_HISTORY?$ASSET_HISTORY_ARG_SERIAL=${Uri.encode(serial)}" +
+            "&$ASSET_HISTORY_ARG_TITLE=${Uri.encode(title)}"
     const val PROFILE_ADDRESSES = "profile/addresses"
     const val PROFILE_HOSPITAL_SETTINGS = "profile/hospital_settings"
     const val PROFILE_STOREFRONT = "profile/storefront"

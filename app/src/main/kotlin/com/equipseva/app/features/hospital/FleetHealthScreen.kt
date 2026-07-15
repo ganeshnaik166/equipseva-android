@@ -2,6 +2,7 @@ package com.equipseva.app.features.hospital
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -122,6 +123,7 @@ class FleetHealthViewModel @Inject constructor(
 @Composable
 fun FleetHealthScreen(
     onBack: () -> Unit,
+    onOpenAsset: (serial: String, title: String) -> Unit = { _, _ -> },
     viewModel: FleetHealthViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -157,7 +159,7 @@ fun FleetHealthScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         item(key = "headline") { HeadlineCard(state.headline) }
-                        items(state.assets) { asset -> AssetRow(asset) }
+                        items(state.assets) { asset -> AssetRow(asset, onOpenAsset) }
                     }
                 }
             }
@@ -209,26 +211,34 @@ private fun HeadlineCard(headline: FleetHealthHeadline) {
 }
 
 @Composable
-private fun AssetRow(asset: FleetHealthRepository.FleetAsset) {
+private fun AssetRow(
+    asset: FleetHealthRepository.FleetAsset,
+    onOpenAsset: (serial: String, title: String) -> Unit,
+) {
     val (pillText, pillKind) = uptimePillTextAndKind(asset.uptimePct)
+    val title = fleetAssetTitle(asset.equipmentBrand, asset.equipmentModel, asset.equipmentType)
+    // Only assets with a serial can drill into their history (asset_history
+    // keys on serial); serial-less rows stay non-clickable.
+    val serial = asset.equipmentSerial?.takeIf { it.isNotBlank() }
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(Color.White)
             .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
+            .then(if (serial != null) Modifier.clickable { onOpenAsset(serial, title) } else Modifier)
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    fleetAssetTitle(asset.equipmentBrand, asset.equipmentModel, asset.equipmentType),
+                    title,
                     color = SevaInk900,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                 )
-                asset.equipmentSerial?.takeIf { it.isNotBlank() }?.let {
+                serial?.let {
                     Text("SN $it", color = SevaInk500, fontSize = 12.sp)
                 }
             }

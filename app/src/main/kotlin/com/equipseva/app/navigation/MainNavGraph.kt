@@ -1091,10 +1091,26 @@ fun MainNavGraph(
             composable(Routes.HOSPITAL_FLEET_HEALTH) {
                 com.equipseva.app.features.hospital.FleetHealthScreen(
                     onBack = { navController.popBackStack() },
+                    onOpenAsset = { serial, title ->
+                        navController.navigate(Routes.assetHistoryRoute(serial, title))
+                    },
                 )
             }
             composable(Routes.HOSPITAL_PM_CALENDAR) {
                 com.equipseva.app.features.hospital.PmCalendarScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = "${Routes.HOSPITAL_ASSET_HISTORY}?${Routes.ASSET_HISTORY_ARG_SERIAL}={${Routes.ASSET_HISTORY_ARG_SERIAL}}&${Routes.ASSET_HISTORY_ARG_TITLE}={${Routes.ASSET_HISTORY_ARG_TITLE}}",
+                arguments = listOf(
+                    navArgument(Routes.ASSET_HISTORY_ARG_SERIAL) { type = NavType.StringType; defaultValue = "" },
+                    navArgument(Routes.ASSET_HISTORY_ARG_TITLE) { type = NavType.StringType; defaultValue = "" },
+                ),
+            ) { entry ->
+                com.equipseva.app.features.hospital.AssetHistoryScreen(
+                    serial = entry.arguments?.getString(Routes.ASSET_HISTORY_ARG_SERIAL).orEmpty(),
+                    title = entry.arguments?.getString(Routes.ASSET_HISTORY_ARG_TITLE).orEmpty(),
                     onBack = { navController.popBackStack() },
                 )
             }
