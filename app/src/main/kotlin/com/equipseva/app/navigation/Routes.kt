@@ -133,6 +133,8 @@ object Routes {
     const val ENGINEER_PROFILE_STRENGTH = "engineer/profile_strength"
     // r1397 — engineer 30-day SLA scorecard (my_sla_card).
     const val ENGINEER_SLA_CARD = "engineer/sla_card"
+    // r1401 — engineer periodic re-KYC nudge (my_kyc_renewal).
+    const val ENGINEER_KYC_RENEWAL = "engineer/kyc_renewal"
 
     // Standalone editor for engineer base coords (engineers.latitude/longitude).
     // Reachable from the Jobs hub. Lets the engineer move their service centre

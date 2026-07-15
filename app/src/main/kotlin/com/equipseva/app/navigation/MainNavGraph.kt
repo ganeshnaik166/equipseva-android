@@ -406,6 +406,7 @@ fun MainNavGraph(
                     onReferrals = { navController.navigate(Routes.ENGINEER_REFERRALS) },
                     onProfileStrength = { navController.navigate(Routes.ENGINEER_PROFILE_STRENGTH) },
                     onSlaCard = { navController.navigate(Routes.ENGINEER_SLA_CARD) },
+                    onKycRenewal = { navController.navigate(Routes.ENGINEER_KYC_RENEWAL) },
                 )
             }
             composable(Routes.ENGINEER_REFERRALS) {
@@ -428,6 +429,12 @@ fun MainNavGraph(
             composable(Routes.ENGINEER_SLA_CARD) {
                 com.equipseva.app.features.engineer.EngineerSlaScreen(
                     onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.ENGINEER_KYC_RENEWAL) {
+                com.equipseva.app.features.engineer.EngineerKycRenewalScreen(
+                    onBack = { navController.popBackStack() },
+                    onRenew = { navController.navigate(Routes.KYC) },
                 )
             }
             composable(Routes.ENGINEER_GRADUATION) {

@@ -17,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.CardGiftcard
@@ -162,6 +163,7 @@ fun EngineerJobsHubScreen(
     onReferrals: () -> Unit = {},
     onProfileStrength: () -> Unit = {},
     onSlaCard: () -> Unit = {},
+    onKycRenewal: () -> Unit = {},
     viewModel: EngineerJobsHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -312,6 +314,12 @@ fun EngineerJobsHubScreen(
                         title = "My SLA",
                         desc = "On-time %, disputes, response times (30 days)",
                         onClick = onSlaCard,
+                    )
+                    HubTile(
+                        icon = Icons.Outlined.Autorenew,
+                        title = "KYC renewal",
+                        desc = "Keep your verified badge — yearly re-check",
+                        onClick = onKycRenewal,
                     )
                 }
             }
