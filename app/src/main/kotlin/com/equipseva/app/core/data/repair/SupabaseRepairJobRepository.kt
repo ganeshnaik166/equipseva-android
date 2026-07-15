@@ -288,6 +288,8 @@ internal fun normaliseRatingReview(review: String?): String? =
 internal fun buildRepairJobInsert(draft: RepairJobDraft): RepairJobInsertDto =
     RepairJobInsertDto(
         hospitalUserId = draft.hospitalUserId,
+        // Required by the INSERT RLS WITH CHECK; see RepairJobInsertDto KDoc.
+        status = RepairJobStatus.Requested.storageKey,
         hospitalOrgId = draft.hospitalOrgId?.takeIf { it.isNotBlank() },
         equipmentType = draft.equipmentCategory.storageKey,
         equipmentBrand = draft.equipmentBrand?.takeIf { it.isNotBlank() },

@@ -5,13 +5,22 @@ import kotlinx.serialization.Serializable
 
 /**
  * Wire shape for inserting a new `repair_jobs` row. The server fills in id,
- * job_number, created_at, updated_at, and the job_type / urgency / status defaults
- * if we don't supply them. We pass only the fields the hospital user actually
- * captured on the request-service form.
+ * job_number, created_at, updated_at, and the job_type / urgency defaults if we
+ * don't supply them. We pass the fields the hospital user captured on the
+ * request-service form, plus [status] (see below).
+ *
+ * `status` MUST be sent and MUST be a required (no-default) field: the INSERT
+ * RLS policy has `WITH CHECK (status = 'requested')`, and the Postgrest Json is
+ * configured with `encodeDefaults = false`. A defaulted `status = "requested"`
+ * would be dropped from the wire JSON, the column would fall to the (drifted)
+ * DB default, and the RLS check would reject the insert with a 403 that the app
+ * surfaces as a generic "Something went wrong". Keeping it non-default forces it
+ * onto the wire. (r1400 — fixes hospital "Post new job" failing outright.)
  */
 @Serializable
 internal data class RepairJobInsertDto(
     @SerialName("hospital_user_id") val hospitalUserId: String,
+    val status: String,
     @SerialName("hospital_org_id") val hospitalOrgId: String? = null,
     @SerialName("equipment_type") val equipmentType: String? = null,
     @SerialName("equipment_brand") val equipmentBrand: String? = null,
