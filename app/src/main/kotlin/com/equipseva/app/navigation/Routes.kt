@@ -174,6 +174,8 @@ object Routes {
     const val GST_INVOICES = "profile/gst_invoices"
     // r1396 — read-only hospital fleet-health board (hospital_fleet_health).
     const val HOSPITAL_FLEET_HEALTH = "profile/fleet_health"
+    // r1398 — hospital preventive-maintenance calendar (hospital_upcoming_pm).
+    const val HOSPITAL_PM_CALENDAR = "profile/pm_calendar"
     const val PROFILE_ADDRESSES = "profile/addresses"
     const val PROFILE_HOSPITAL_SETTINGS = "profile/hospital_settings"
     const val PROFILE_STOREFRONT = "profile/storefront"

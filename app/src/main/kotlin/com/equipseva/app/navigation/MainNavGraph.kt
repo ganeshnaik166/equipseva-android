@@ -598,6 +598,7 @@ fun MainNavGraph(
                     onOpenMyDisputes = { navController.navigate(Routes.HOSPITAL_MY_DISPUTES) },
                     onOpenGstInvoices = { navController.navigate(Routes.GST_INVOICES) },
                     onOpenFleetHealth = { navController.navigate(Routes.HOSPITAL_FLEET_HEALTH) },
+                    onOpenPmCalendar = { navController.navigate(Routes.HOSPITAL_PM_CALENDAR) },
                     onOpenPublicPreview = { engineerId ->
                         navController.navigate(Routes.engineerPublicProfileRoute(engineerId))
                     },
@@ -1089,6 +1090,11 @@ fun MainNavGraph(
             }
             composable(Routes.HOSPITAL_FLEET_HEALTH) {
                 com.equipseva.app.features.hospital.FleetHealthScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.HOSPITAL_PM_CALENDAR) {
+                com.equipseva.app.features.hospital.PmCalendarScreen(
                     onBack = { navController.popBackStack() },
                 )
             }

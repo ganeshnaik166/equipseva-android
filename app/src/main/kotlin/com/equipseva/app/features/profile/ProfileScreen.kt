@@ -45,6 +45,7 @@ import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.EventRepeat
 import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
@@ -128,6 +129,8 @@ fun ProfileScreen(
     onOpenGstInvoices: () -> Unit = {},
     // r1396 — hospital fleet-health board.
     onOpenFleetHealth: () -> Unit = {},
+    // r1398 — hospital preventive-maintenance calendar.
+    onOpenPmCalendar: () -> Unit = {},
     onSwitchService: () -> Unit = {},
     onSignIn: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -270,6 +273,7 @@ fun ProfileScreen(
                         onOpenMyDisputes = onOpenMyDisputes,
                         onOpenGstInvoices = onOpenGstInvoices,
                         onOpenFleetHealth = onOpenFleetHealth,
+                        onOpenPmCalendar = onOpenPmCalendar,
                         onSwitchService = viewModel::onToggleRoleAndGoHome,
                         onPickAvatar = viewModel::uploadAvatar,
                     )
@@ -412,6 +416,7 @@ private fun ProfileContent(
     onOpenMyDisputes: () -> Unit,
     onOpenGstInvoices: () -> Unit,
     onOpenFleetHealth: () -> Unit,
+    onOpenPmCalendar: () -> Unit,
     onSwitchService: () -> Unit,
     onPickAvatar: (Uri) -> Unit,
 ) {
@@ -498,6 +503,7 @@ private fun ProfileContent(
             onOpenMyDisputes = onOpenMyDisputes,
             onOpenGstInvoices = onOpenGstInvoices,
             onOpenFleetHealth = onOpenFleetHealth,
+            onOpenPmCalendar = onOpenPmCalendar,
             onSwitchService = onSwitchService,
             onSignOut = onSignOut,
             signingOut = state.signingOut,
@@ -688,6 +694,7 @@ private fun buildProfileSections(
     onOpenMyDisputes: () -> Unit,
     onOpenGstInvoices: () -> Unit,
     onOpenFleetHealth: () -> Unit,
+    onOpenPmCalendar: () -> Unit,
     onSwitchService: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
@@ -773,6 +780,13 @@ private fun buildProfileSections(
                 icon = Icons.Outlined.MonitorHeart,
                 label = "Fleet health",
                 onClick = onOpenFleetHealth,
+            ))
+            // r1398 — proactive PM calendar (overdue + upcoming) from
+            // hospital_upcoming_pm.
+            add(SettingsRow(
+                icon = Icons.Outlined.EventRepeat,
+                label = "Maintenance calendar",
+                onClick = onOpenPmCalendar,
             ))
             // Messages row removed (v0.3.4) — now a hospital bottom-nav tab.
         }
