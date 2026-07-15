@@ -33,14 +33,15 @@ class ContentReportRepository @Inject constructor(
                 put("target_type", JsonPrimitive(target.key))
                 put("target_id", JsonPrimitive(targetId))
                 put("reason", JsonPrimitive(reason.key))
-                // Cap matches the server-side CHECK
-                // content_reports_notes_length_chk (4000). UI input
-                // (ReportContentSheet) already clamps to 1000 in the
-                // text field, but defense-in-depth at the repository
-                // boundary covers non-UI callers (tests, scripts,
-                // future programmatic flows) so they can't ship a
-                // multi-MB string and get a 23514 rejection.
-                val trimmed = notes?.trim()?.takeIf { it.isNotEmpty() }?.take(4000)
+                // Cap at 1000 to match the STRICTEST active server CHECK.
+                // content_reports has TWO coexisting note-length checks:
+                // content_reports_notes_len (char_length<=1000, from the base
+                // table) and content_reports_notes_length_chk (length<=4000,
+                // added later, additive). The base 1000 was never dropped, so
+                // 1000 governs — a 1001..4000-char note passes .take() but
+                // hits a 23514. UI already clamps to 1000; this covers non-UI
+                // callers (tests, scripts, future programmatic flows).
+                val trimmed = notes?.trim()?.takeIf { it.isNotEmpty() }?.take(1000)
                 put("notes", if (trimmed != null) JsonPrimitive(trimmed) else JsonNull)
             },
         )
