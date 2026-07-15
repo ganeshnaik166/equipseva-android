@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -160,6 +161,7 @@ fun EngineerJobsHubScreen(
     onEarningsProjection: () -> Unit = {},
     onReferrals: () -> Unit = {},
     onProfileStrength: () -> Unit = {},
+    onSlaCard: () -> Unit = {},
     viewModel: EngineerJobsHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -304,6 +306,12 @@ fun EngineerJobsHubScreen(
                         title = "Profile strength",
                         desc = "See what's left to complete",
                         onClick = onProfileStrength,
+                    )
+                    HubTile(
+                        icon = Icons.Outlined.Speed,
+                        title = "My SLA",
+                        desc = "On-time %, disputes, response times (30 days)",
+                        onClick = onSlaCard,
                     )
                 }
             }

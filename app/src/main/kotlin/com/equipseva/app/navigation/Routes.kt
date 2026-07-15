@@ -129,6 +129,8 @@ object Routes {
 
     // r1395 — engineer profile-strength (completeness) meter.
     const val ENGINEER_PROFILE_STRENGTH = "engineer/profile_strength"
+    // r1397 — engineer 30-day SLA scorecard (my_sla_card).
+    const val ENGINEER_SLA_CARD = "engineer/sla_card"
 
     // Standalone editor for engineer base coords (engineers.latitude/longitude).
     // Reachable from the Jobs hub. Lets the engineer move their service centre

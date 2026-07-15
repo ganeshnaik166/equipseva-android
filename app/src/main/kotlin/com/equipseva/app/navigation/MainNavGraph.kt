@@ -405,6 +405,7 @@ fun MainNavGraph(
                     onEarningsProjection = { navController.navigate(Routes.ENGINEER_EARNINGS_PROJECTION) },
                     onReferrals = { navController.navigate(Routes.ENGINEER_REFERRALS) },
                     onProfileStrength = { navController.navigate(Routes.ENGINEER_PROFILE_STRENGTH) },
+                    onSlaCard = { navController.navigate(Routes.ENGINEER_SLA_CARD) },
                 )
             }
             composable(Routes.ENGINEER_REFERRALS) {
@@ -422,6 +423,11 @@ fun MainNavGraph(
                 com.equipseva.app.features.engineerprofile.ProfileCompletenessScreen(
                     onBack = { navController.popBackStack() },
                     onEditProfile = { navController.navigate(Routes.ENGINEER_PROFILE) },
+                )
+            }
+            composable(Routes.ENGINEER_SLA_CARD) {
+                com.equipseva.app.features.engineer.EngineerSlaScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.ENGINEER_GRADUATION) {
