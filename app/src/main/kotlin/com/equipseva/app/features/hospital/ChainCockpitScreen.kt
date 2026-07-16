@@ -98,7 +98,9 @@ class ChainCockpitViewModel @Inject constructor(
                     repo.perSite(chain.id).onSuccess { s -> _state.update { it.copy(sites = s) } }
                     _state.update { it.copy(loading = false) }
                 }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+                .onFailure { e ->
+                    _state.update { if (it.chain == null) it.copy(loading = false, error = e.toUserMessage()) else it.copy(loading = false) }
+                }
         }
     }
 }

@@ -72,7 +72,9 @@ class CommissionTierViewModel @Inject constructor(
         viewModelScope.launch {
             repo.fetch()
                 .onSuccess { d -> _state.update { it.copy(loading = false, data = d) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+                .onFailure { e ->
+                    _state.update { if (it.data == null) it.copy(loading = false, error = e.toUserMessage()) else it.copy(loading = false) }
+                }
         }
     }
 }

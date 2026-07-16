@@ -117,7 +117,9 @@ class HospitalCodeRedViewModel @Inject constructor(
                 }
             repo.myRequests(uid)
                 .onSuccess { list -> _state.update { it.copy(loading = false, requests = list) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+                .onFailure { e ->
+                    _state.update { if (it.requests.isEmpty()) it.copy(loading = false, error = e.toUserMessage()) else it.copy(loading = false) }
+                }
         }
     }
 

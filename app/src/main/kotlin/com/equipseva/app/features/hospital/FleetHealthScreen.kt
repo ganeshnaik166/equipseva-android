@@ -104,7 +104,10 @@ class FleetHealthViewModel @Inject constructor(
                     }
                 }
                 .onFailure { e ->
-                    _state.update { it.copy(loading = false, refreshing = false, error = e.toUserMessage()) }
+                    _state.update {
+                        if (it.assets.isEmpty()) it.copy(loading = false, refreshing = false, error = e.toUserMessage())
+                        else it.copy(loading = false, refreshing = false)
+                    }
                 }
         }
     }

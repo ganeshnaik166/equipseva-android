@@ -107,7 +107,12 @@ class EngineerCodeRedViewModel @Inject constructor(
             val accepted = repo.acceptedByMe(uid).getOrNull().orEmpty()
             repo.openForMe(uid)
                 .onSuccess { list -> _state.update { it.copy(loading = false, items = list, accepted = accepted) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage(), accepted = accepted) } }
+                .onFailure { e ->
+                    _state.update {
+                        if (it.items.isEmpty() && accepted.isEmpty()) it.copy(loading = false, error = e.toUserMessage(), accepted = accepted)
+                        else it.copy(loading = false, accepted = accepted)
+                    }
+                }
         }
     }
 
