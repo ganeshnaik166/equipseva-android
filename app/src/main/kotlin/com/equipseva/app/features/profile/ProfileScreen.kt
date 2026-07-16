@@ -47,6 +47,10 @@ import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.EventRepeat
 import androidx.compose.material.icons.outlined.PrivacyTip
+import androidx.compose.material.icons.outlined.WorkspacePremium
+import androidx.compose.material.icons.outlined.Diversity3
+import androidx.compose.material.icons.outlined.Loyalty
+import androidx.compose.material.icons.outlined.Redeem
 import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
@@ -136,6 +140,14 @@ fun ProfileScreen(
     onOpenConsents: () -> Unit = {},
     // r1403 — DPDP grievances (both roles).
     onOpenGrievances: () -> Unit = {},
+    // r1404 — engineer certification-ladder status (my_certification_status).
+    onOpenCertification: () -> Unit = {},
+    // r1406 — engineer pending referral confirmations.
+    onOpenPendingReferrals: () -> Unit = {},
+    // r1405 — hospital loyalty commission tier (get_my_commission_tier).
+    onOpenCommissionTier: () -> Unit = {},
+    // r1407 — hospital first-job-free promo eligibility.
+    onOpenFirstJobFree: () -> Unit = {},
     onSwitchService: () -> Unit = {},
     onSignIn: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -281,6 +293,10 @@ fun ProfileScreen(
                         onOpenPmCalendar = onOpenPmCalendar,
                         onOpenConsents = onOpenConsents,
                         onOpenGrievances = onOpenGrievances,
+                        onOpenCertification = onOpenCertification,
+                        onOpenPendingReferrals = onOpenPendingReferrals,
+                        onOpenCommissionTier = onOpenCommissionTier,
+                        onOpenFirstJobFree = onOpenFirstJobFree,
                         onSwitchService = viewModel::onToggleRoleAndGoHome,
                         onPickAvatar = viewModel::uploadAvatar,
                     )
@@ -426,6 +442,10 @@ private fun ProfileContent(
     onOpenPmCalendar: () -> Unit,
     onOpenConsents: () -> Unit,
     onOpenGrievances: () -> Unit,
+    onOpenCertification: () -> Unit,
+    onOpenPendingReferrals: () -> Unit,
+    onOpenCommissionTier: () -> Unit,
+    onOpenFirstJobFree: () -> Unit,
     onSwitchService: () -> Unit,
     onPickAvatar: (Uri) -> Unit,
 ) {
@@ -515,6 +535,10 @@ private fun ProfileContent(
             onOpenPmCalendar = onOpenPmCalendar,
             onOpenConsents = onOpenConsents,
             onOpenGrievances = onOpenGrievances,
+            onOpenCertification = onOpenCertification,
+            onOpenPendingReferrals = onOpenPendingReferrals,
+            onOpenCommissionTier = onOpenCommissionTier,
+            onOpenFirstJobFree = onOpenFirstJobFree,
             onSwitchService = onSwitchService,
             onSignOut = onSignOut,
             signingOut = state.signingOut,
@@ -708,6 +732,10 @@ private fun buildProfileSections(
     onOpenPmCalendar: () -> Unit,
     onOpenConsents: () -> Unit,
     onOpenGrievances: () -> Unit,
+    onOpenCertification: () -> Unit,
+    onOpenPendingReferrals: () -> Unit,
+    onOpenCommissionTier: () -> Unit,
+    onOpenFirstJobFree: () -> Unit,
     onSwitchService: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
@@ -765,6 +793,10 @@ private fun buildProfileSections(
                 onClick = onOpenEarnings,
             ))
             add(SettingsRow(icon = Icons.Outlined.AccountBalance, label = "Payout method", onClick = onOpenBankDetails))
+            // r1404 — certification-ladder status + next-tier requirements.
+            add(SettingsRow(icon = Icons.Outlined.WorkspacePremium, label = "Certification", onClick = onOpenCertification))
+            // r1406 — referrals awaiting the engineer's confirmation.
+            add(SettingsRow(icon = Icons.Outlined.Diversity3, label = "Pending referrals", onClick = onOpenPendingReferrals))
             // Engineers want to see how hospitals see them — the public-
             // preview lambda was already plumbed from MainNavGraph but
             // never wired to a row. Only show when verified + we have
@@ -800,6 +832,18 @@ private fun buildProfileSections(
                 icon = Icons.Outlined.EventRepeat,
                 label = "Maintenance calendar",
                 onClick = onOpenPmCalendar,
+            ))
+            // r1405 — loyalty commission tier (completed jobs → cheaper rate).
+            add(SettingsRow(
+                icon = Icons.Outlined.Loyalty,
+                label = "Commission tier",
+                onClick = onOpenCommissionTier,
+            ))
+            // r1407 — first-job-free promo eligibility.
+            add(SettingsRow(
+                icon = Icons.Outlined.Redeem,
+                label = "First job free",
+                onClick = onOpenFirstJobFree,
             ))
             // Messages row removed (v0.3.4) — now a hospital bottom-nav tab.
         }

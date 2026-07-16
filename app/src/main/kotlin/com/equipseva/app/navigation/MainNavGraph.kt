@@ -606,6 +606,10 @@ fun MainNavGraph(
                     onOpenGstInvoices = { navController.navigate(Routes.GST_INVOICES) },
                     onOpenConsents = { navController.navigate(Routes.PRIVACY_CONSENTS) },
                     onOpenGrievances = { navController.navigate(Routes.DPDP_GRIEVANCES) },
+                    onOpenCertification = { navController.navigate(Routes.ENGINEER_CERTIFICATION) },
+                    onOpenPendingReferrals = { navController.navigate(Routes.ENGINEER_PENDING_REFERRALS) },
+                    onOpenCommissionTier = { navController.navigate(Routes.HOSPITAL_COMMISSION_TIER) },
+                    onOpenFirstJobFree = { navController.navigate(Routes.HOSPITAL_FIRST_JOB_FREE) },
                     onOpenFleetHealth = { navController.navigate(Routes.HOSPITAL_FLEET_HEALTH) },
                     onOpenPmCalendar = { navController.navigate(Routes.HOSPITAL_PM_CALENDAR) },
                     onOpenPublicPreview = { engineerId ->
@@ -1104,6 +1108,26 @@ fun MainNavGraph(
             }
             composable(Routes.DPDP_GRIEVANCES) {
                 com.equipseva.app.features.profile.GrievancesScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.ENGINEER_CERTIFICATION) {
+                com.equipseva.app.features.engineer.CertificationStatusScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.ENGINEER_PENDING_REFERRALS) {
+                com.equipseva.app.features.engineer.PendingReferralsScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.HOSPITAL_COMMISSION_TIER) {
+                com.equipseva.app.features.hospital.CommissionTierScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.HOSPITAL_FIRST_JOB_FREE) {
+                com.equipseva.app.features.hospital.FirstJobFreeScreen(
                     onBack = { navController.popBackStack() },
                 )
             }

@@ -180,6 +180,14 @@ object Routes {
     const val PRIVACY_CONSENTS = "profile/consents"
     // r1403 — DPDP grievances the user filed (my_grievances); both roles.
     const val DPDP_GRIEVANCES = "profile/grievances"
+    // r1404 — engineer certification-ladder status (my_certification_status).
+    const val ENGINEER_CERTIFICATION = "profile/certification"
+    // r1406 — engineer pending referral confirmations (my_pending_referral_confirmations).
+    const val ENGINEER_PENDING_REFERRALS = "profile/pending_referrals"
+    // r1405 — hospital loyalty commission tier (get_my_commission_tier).
+    const val HOSPITAL_COMMISSION_TIER = "profile/commission_tier"
+    // r1407 — hospital first-job-free promo eligibility (first_job_free_eligible).
+    const val HOSPITAL_FIRST_JOB_FREE = "profile/first_job_free"
     // r1396 — read-only hospital fleet-health board (hospital_fleet_health).
     const val HOSPITAL_FLEET_HEALTH = "profile/fleet_health"
     // r1398 — hospital preventive-maintenance calendar (hospital_upcoming_pm).
