@@ -1073,6 +1073,23 @@ private fun EscrowStatusCard(
         if (sub.isNotBlank()) {
             Text(text = sub, fontSize = 12.sp, color = SevaInk500)
         }
+        // r1434 — live auto-release countdown while funds are held. For the
+        // hospital this is the closing dispute window; for the engineer it's
+        // the incoming payout. Additive to the static copy above; disappears
+        // once the release window passes (server flips the row shortly after).
+        if (escrow.isHeld) {
+            escrow.scheduledReleaseAt?.let { iso ->
+                val now by com.equipseva.app.designsystem.util.rememberNowTicker(60_000L)
+                com.equipseva.app.core.util.durationUntilLabel(iso, now)?.let { cd ->
+                    Text(
+                        text = "Auto-releases in $cd",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = SevaGreen700,
+                    )
+                }
+            }
+        }
         // Show the dispute reason text + the engineer's response (when set)
         // on both sides — admins, hospitals, and engineers all benefit from
         // seeing the back-and-forth before the resolution lands.
