@@ -160,6 +160,10 @@ fun RepairJobDetailScreen(
     onOpenEvidence: (jobId: String) -> Unit = {},
     onOpenAttendance: (jobId: String) -> Unit = {},
     onOpenServiceReport: (jobId: String) -> Unit = {},
+    // r1412 — structured GST invoice (completed jobs). r1413 — engineer payout
+    // preview (engineer-only). Both default no-ops; MainNavGraph wires them.
+    onOpenInvoice: (jobId: String) -> Unit = {},
+    onOpenPayoutPreview: (jobId: String) -> Unit = {},
     viewModel: RepairJobDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -386,6 +390,8 @@ fun RepairJobDetailScreen(
                     onOpenEvidence = { onOpenEvidence(state.job!!.id) },
                     onOpenAttendance = { onOpenAttendance(state.job!!.id) },
                     onOpenServiceReport = { onOpenServiceReport(state.job!!.id) },
+                    onOpenInvoice = { onOpenInvoice(state.job!!.id) },
+                    onOpenPayoutPreview = { onOpenPayoutPreview(state.job!!.id) },
                 )
             }
         }
@@ -586,9 +592,13 @@ private fun RecordsCard(
     onOpenServiceReport: () -> Unit,
     onOpenEvidence: () -> Unit,
     onOpenAttendance: () -> Unit,
+    onOpenInvoice: (() -> Unit)? = null,
+    onOpenPayoutPreview: (() -> Unit)? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         RecordsRow(label = "Service report", onClick = onOpenServiceReport)
+        onOpenInvoice?.let { RecordsRow(label = "Tax invoice", onClick = it) }
+        onOpenPayoutPreview?.let { RecordsRow(label = "Payout preview", onClick = it) }
         RecordsRow(label = "Evidence vault", onClick = onOpenEvidence)
         RecordsRow(label = "GPS attendance", onClick = onOpenAttendance)
     }
@@ -644,6 +654,8 @@ private fun JobBody(
     onOpenEvidence: () -> Unit = {},
     onOpenAttendance: () -> Unit = {},
     onOpenServiceReport: () -> Unit = {},
+    onOpenInvoice: () -> Unit = {},
+    onOpenPayoutPreview: () -> Unit = {},
 ) {
     val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
     Column(
@@ -746,6 +758,9 @@ private fun JobBody(
                     onOpenServiceReport = onOpenServiceReport,
                     onOpenEvidence = onOpenEvidence,
                     onOpenAttendance = onOpenAttendance,
+                    // Invoice only exists once completed; payout preview is engineer-only.
+                    onOpenInvoice = if (job.status == RepairJobStatus.Completed) onOpenInvoice else null,
+                    onOpenPayoutPreview = if (!isHospital) onOpenPayoutPreview else null,
                 )
             }
         }

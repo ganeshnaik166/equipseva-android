@@ -388,6 +388,8 @@ fun MainNavGraph(
                     onOpenEvidence = { jobId -> navController.navigate(Routes.evidenceRoute(jobId)) },
                     onOpenAttendance = { jobId -> navController.navigate(Routes.attendanceRoute(jobId)) },
                     onOpenServiceReport = { jobId -> navController.navigate(Routes.serviceReportRoute(jobId)) },
+                    onOpenInvoice = { jobId -> navController.navigate(Routes.gstInvoiceRoute(jobId)) },
+                    onOpenPayoutPreview = { jobId -> navController.navigate(Routes.payoutPreviewRoute(jobId)) },
                 )
             }
             composable(
@@ -417,6 +419,26 @@ fun MainNavGraph(
                 ),
             ) {
                 com.equipseva.app.features.repair.ServiceReportDetailScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = "${Routes.GST_INVOICE_FOR_JOB}/{${Routes.GST_INVOICE_ARG_JOB_ID}}",
+                arguments = listOf(
+                    navArgument(Routes.GST_INVOICE_ARG_JOB_ID) { type = NavType.StringType },
+                ),
+            ) {
+                com.equipseva.app.features.repair.GstInvoiceScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = "${Routes.PAYOUT_PREVIEW_FOR_JOB}/{${Routes.PAYOUT_PREVIEW_ARG_JOB_ID}}",
+                arguments = listOf(
+                    navArgument(Routes.PAYOUT_PREVIEW_ARG_JOB_ID) { type = NavType.StringType },
+                ),
+            ) {
+                com.equipseva.app.features.repair.PayoutPreviewScreen(
                     onBack = { navController.popBackStack() },
                 )
             }

@@ -44,6 +44,16 @@ object Routes {
     const val SERVICE_REPORT_ARG_JOB_ID = "jobId"
     fun serviceReportRoute(jobId: String): String = "$SERVICE_REPORT_FOR_JOB/$jobId"
 
+    // r1412 — structured GST tax invoice for a completed job (get_repair_invoice_payload).
+    const val GST_INVOICE_FOR_JOB = "job/invoice"
+    const val GST_INVOICE_ARG_JOB_ID = "jobId"
+    fun gstInvoiceRoute(jobId: String): String = "$GST_INVOICE_FOR_JOB/$jobId"
+
+    // r1413 — engineer payout preview for an assigned job (engineer_view_hospital_tier).
+    const val PAYOUT_PREVIEW_FOR_JOB = "job/payout_preview"
+    const val PAYOUT_PREVIEW_ARG_JOB_ID = "jobId"
+    fun payoutPreviewRoute(jobId: String): String = "$PAYOUT_PREVIEW_FOR_JOB/$jobId"
+
     // Chat — conversation list and single-thread view (both full-screen).
     const val CONVERSATIONS = "chat"
     const val CHAT_DETAIL = "chat/detail"
