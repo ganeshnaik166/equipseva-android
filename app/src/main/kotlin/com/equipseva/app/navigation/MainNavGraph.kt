@@ -446,6 +446,7 @@ fun MainNavGraph(
                 com.equipseva.app.features.engineer.EngineerJobsHubScreen(
                     onBack = null,
                     onAvailableJobs = { navController.navigate(Routes.REPAIR) },
+                    onCodeRed = { navController.navigate(Routes.ENGINEER_CODE_RED) },
                     onMyBids = { navController.navigate(Routes.MY_BIDS) },
                     onActiveWork = { navController.navigate(Routes.ACTIVE_WORK) },
                     onEarnings = { navController.navigate(Routes.EARNINGS) },
@@ -1231,6 +1232,11 @@ fun MainNavGraph(
             }
             composable(Routes.FOUNDER_SLA_BOARD) {
                 com.equipseva.app.features.founder.FounderSlaBoardScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.ENGINEER_CODE_RED) {
+                com.equipseva.app.features.engineer.EngineerCodeRedScreen(
                     onBack = { navController.popBackStack() },
                 )
             }

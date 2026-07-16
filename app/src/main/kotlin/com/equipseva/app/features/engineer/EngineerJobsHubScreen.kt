@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.CardGiftcard
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.CurrencyRupee
+import androidx.compose.material.icons.outlined.Emergency
 import androidx.compose.material.icons.outlined.Gavel
 import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.LocationOn
@@ -147,6 +148,7 @@ class EngineerJobsHubViewModel @Inject constructor(
 fun EngineerJobsHubScreen(
     onBack: (() -> Unit)? = null,
     onAvailableJobs: () -> Unit,
+    onCodeRed: () -> Unit = {},
     onMyBids: () -> Unit,
     onActiveWork: () -> Unit,
     onEarnings: () -> Unit,
@@ -221,6 +223,12 @@ fun EngineerJobsHubScreen(
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
+                    HubTile(
+                        icon = Icons.Outlined.Emergency,
+                        title = "Code Red",
+                        desc = "Emergencies paged to you — accept fast",
+                        onClick = onCodeRed,
+                    )
                     HubTile(
                         icon = Icons.Outlined.Bolt,
                         title = "Available jobs",

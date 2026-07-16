@@ -129,6 +129,8 @@ object Routes {
     // Engineer Jobs hub — chooser landing for an engineer's daily workflow
     // (available jobs, my bids, active work, earnings, profile editor).
     const val ENGINEER_JOBS_HUB = "engineer/jobs_hub"
+    // r1425 — engineer Code Red emergency response (accept/decline paged SOS).
+    const val ENGINEER_CODE_RED = "engineer/code_red"
 
     // r578 — engineer tier-graduation cockpit (jobs/dispute/KYC/supervised gates).
     const val ENGINEER_GRADUATION = "engineer/graduation"
