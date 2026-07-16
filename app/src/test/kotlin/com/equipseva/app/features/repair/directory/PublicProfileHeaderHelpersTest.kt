@@ -48,6 +48,17 @@ class PublicProfileHeaderHelpersTest {
         assertEquals("", formatCityStateLine("  ", "   "))
     }
 
+    @Test fun `city already ending with the state is not duplicated`() {
+        // Regression: seed/legacy rows store "City, State" in the city field,
+        // which rendered as "Hyderabad, Telangana, Telangana". r-fix dedupes.
+        assertEquals("Hyderabad, Telangana", formatCityStateLine("Hyderabad, Telangana", "Telangana"))
+        assertEquals("Hyderabad, Telangana", formatCityStateLine("Hyderabad, Telangana", "telangana"))
+    }
+
+    @Test fun `city equal to state renders once`() {
+        assertEquals("Telangana", formatCityStateLine("Telangana", "Telangana"))
+    }
+
     // ---- formatHourlyRateOrDash ----
 
     @Test fun `null hourly rate returns em-dash`() {
