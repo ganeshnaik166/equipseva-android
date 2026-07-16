@@ -54,6 +54,7 @@ import com.equipseva.app.designsystem.components.EsField
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
+import com.equipseva.app.designsystem.util.PollingEffect
 import com.equipseva.app.designsystem.util.rememberNowTicker
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.EsType
@@ -140,6 +141,9 @@ fun EngineerCodeRedScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
     val now by rememberNowTicker()
+    // Live board: while emergencies are showing, poll so ones taken by another
+    // engineer or timed out drop off without a manual refresh.
+    PollingEffect(enabled = state.items.isNotEmpty()) { viewModel.reload() }
 
     var declineFor by rememberSaveable { mutableStateOf<String?>(null) }
 

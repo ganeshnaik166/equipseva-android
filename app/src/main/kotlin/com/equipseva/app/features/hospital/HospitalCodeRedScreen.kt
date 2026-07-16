@@ -59,6 +59,7 @@ import com.equipseva.app.designsystem.components.EsFieldType
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
+import com.equipseva.app.designsystem.util.PollingEffect
 import com.equipseva.app.designsystem.util.rememberNowTicker
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.EsType
@@ -150,6 +151,9 @@ fun HospitalCodeRedScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
     val now by rememberNowTicker()
+    // While a Code Red is still paging, poll so "Paging engineers" flips to
+    // "Engineer accepted" live, without a manual refresh.
+    PollingEffect(enabled = state.requests.any { it.status == "open" }) { viewModel.reload() }
 
     var showForm by rememberSaveable { mutableStateOf(false) }
     if (showForm) {
