@@ -1,5 +1,8 @@
 package com.equipseva.app.features.repair
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -32,15 +35,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.repair.AttendanceRepository
+import com.equipseva.app.core.location.LocationFetcher
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.prettyDateTime
 import com.equipseva.app.designsystem.components.EmptyStateView
+import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.EsBtnKind
+import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaDanger500
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk900
 import com.equipseva.app.navigation.Routes
@@ -56,17 +64,24 @@ import kotlinx.coroutines.launch
 class AttendanceTimelineViewModel @Inject constructor(
     savedState: SavedStateHandle,
     private val repo: AttendanceRepository,
+    private val locationFetcher: LocationFetcher,
 ) : ViewModel() {
     private val jobId: String =
         checkNotNull(savedState.get<String>(Routes.ATTENDANCE_ARG_JOB_ID)) {
             "AttendanceTimelineViewModel requires arg ${Routes.ATTENDANCE_ARG_JOB_ID}"
         }
 
+    /** r1443 — only the accepted engineer gets the check-in/out actions. */
+    val isEngineer: Boolean = savedState.get<Boolean>(Routes.ATTENDANCE_ARG_IS_ENGINEER) ?: false
+
     data class UiState(
         val loading: Boolean = true,
         val refreshing: Boolean = false,
         val error: String? = null,
         val rows: List<AttendanceRepository.Attendance> = emptyList(),
+        // r1443 — check-in/out capture state.
+        val capturing: Boolean = false,
+        val actionError: String? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -90,6 +105,41 @@ class AttendanceTimelineViewModel @Inject constructor(
     }
 
     fun onPullToRefresh() = reload(initial = false)
+
+    fun hasLocationPermission(): Boolean = locationFetcher.hasPermission()
+
+    fun clearActionError() = _state.update { it.copy(actionError = null) }
+
+    fun onLocationPermissionDenied() = _state.update {
+        it.copy(actionError = "Location permission is needed to record an on-site check-in.")
+    }
+
+    /** The event the next tap should record, derived from the latest event. */
+    fun nextEventKind(): String =
+        nextAttendanceEvent(_state.value.rows.maxByOrNull { it.deviceCapturedAt ?: it.createdAt ?: "" }?.eventKind)
+
+    /**
+     * Capture the device location and record a check-in/out (r1443). Requires
+     * location permission (the screen requests it first). On success reloads so
+     * the new event lands on the timeline.
+     */
+    fun checkIn() {
+        if (_state.value.capturing) return
+        val eventKind = nextEventKind()
+        _state.update { it.copy(capturing = true, actionError = null) }
+        viewModelScope.launch {
+            val coords = locationFetcher.currentCoords()
+            if (coords == null) {
+                _state.update {
+                    it.copy(capturing = false, actionError = "Couldn't get your location. Turn on GPS/location and try again.")
+                }
+                return@launch
+            }
+            repo.record(jobId, eventKind, coords.lat, coords.lng)
+                .onSuccess { _state.update { it.copy(capturing = false) }; reload() }
+                .onFailure { e -> _state.update { it.copy(capturing = false, actionError = e.toUserMessage()) } }
+        }
+    }
 }
 
 /**
@@ -107,9 +157,42 @@ fun AttendanceTimelineScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
 
+    val permLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> if (granted) viewModel.checkIn() else viewModel.onLocationPermissionDenied() }
+
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(title = "Attendance", onBack = onBack)
+            if (viewModel.isEngineer) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    val checkingIn = viewModel.nextEventKind() == "arrival_checkin"
+                    EsBtn(
+                        text = when {
+                            state.capturing -> "Recording…"
+                            checkingIn -> "Check in at site"
+                            else -> "Check out"
+                        },
+                        onClick = {
+                            viewModel.clearActionError()
+                            if (viewModel.hasLocationPermission()) viewModel.checkIn()
+                            else permLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                        },
+                        kind = EsBtnKind.Primary,
+                        size = EsBtnSize.Lg,
+                        full = true,
+                        disabled = state.capturing,
+                    )
+                    state.actionError?.let {
+                        Text(it, style = EsType.Caption, color = SevaDanger500)
+                    }
+                }
+            }
             androidx.compose.material3.pulltorefresh.PullToRefreshBox(
                 isRefreshing = state.refreshing,
                 onRefresh = viewModel::onPullToRefresh,
@@ -198,3 +281,11 @@ internal fun formatDistanceM(meters: Double?): String {
 /** On-site vs far-from-site pill from the server's suspicious-distance flag. */
 internal fun attendanceSuspiciousPill(suspicious: Boolean): Pair<String, PillKind> =
     if (suspicious) "Far from site" to PillKind.Danger else "On-site" to PillKind.Success
+
+/**
+ * The event the next check-in/out tap should record (r1443): after an arrival
+ * check-in the next action is a departure check-out; otherwise (no events yet,
+ * or the last event was a check-out) it's an arrival check-in.
+ */
+internal fun nextAttendanceEvent(latestEventKind: String?): String =
+    if (latestEventKind == "arrival_checkin") "departure_checkout" else "arrival_checkin"

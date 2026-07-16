@@ -158,7 +158,7 @@ fun RepairJobDetailScreen(
     // attendance). Default no-ops so existing callsites compile; MainNavGraph
     // wires them to the evidence / attendance routes with this job's id.
     onOpenEvidence: (jobId: String) -> Unit = {},
-    onOpenAttendance: (jobId: String) -> Unit = {},
+    onOpenAttendance: (jobId: String, isEngineer: Boolean) -> Unit = { _, _ -> },
     onOpenServiceReport: (jobId: String, isHospital: Boolean) -> Unit = { _, _ -> },
     // r1412 — structured GST invoice (completed jobs). r1413 — engineer payout
     // preview (engineer-only). Both default no-ops; MainNavGraph wires them.
@@ -394,7 +394,12 @@ fun RepairJobDetailScreen(
                     onOpenEngineerResponseSheet = viewModel::openEngineerResponseSheet,
                     onOpenPayoutMethod = onOpenPayoutMethod,
                     onOpenEvidence = { onOpenEvidence(state.job!!.id) },
-                    onOpenAttendance = { onOpenAttendance(state.job!!.id) },
+                    onOpenAttendance = {
+                        onOpenAttendance(
+                            state.job!!.id,
+                            state.viewerRole == RepairJobDetailViewModel.ViewerRole.Engineer,
+                        )
+                    },
                     onOpenServiceReport = {
                         onOpenServiceReport(
                             state.job!!.id,

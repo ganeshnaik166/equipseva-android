@@ -386,7 +386,7 @@ fun MainNavGraph(
                     },
                     // r1408 / r1409 — job "Records" drill-downs.
                     onOpenEvidence = { jobId -> navController.navigate(Routes.evidenceRoute(jobId)) },
-                    onOpenAttendance = { jobId -> navController.navigate(Routes.attendanceRoute(jobId)) },
+                    onOpenAttendance = { jobId, isEngineer -> navController.navigate(Routes.attendanceRoute(jobId, isEngineer)) },
                     onOpenServiceReport = { jobId, isHospital -> navController.navigate(Routes.serviceReportRoute(jobId, isHospital)) },
                     onOpenInvoice = { jobId -> navController.navigate(Routes.gstInvoiceRoute(jobId)) },
                     onOpenPayoutPreview = { jobId -> navController.navigate(Routes.payoutPreviewRoute(jobId)) },
@@ -403,9 +403,11 @@ fun MainNavGraph(
                 )
             }
             composable(
-                route = "${Routes.ATTENDANCE_FOR_JOB}/{${Routes.ATTENDANCE_ARG_JOB_ID}}",
+                route = "${Routes.ATTENDANCE_FOR_JOB}/{${Routes.ATTENDANCE_ARG_JOB_ID}}" +
+                    "?${Routes.ATTENDANCE_ARG_IS_ENGINEER}={${Routes.ATTENDANCE_ARG_IS_ENGINEER}}",
                 arguments = listOf(
                     navArgument(Routes.ATTENDANCE_ARG_JOB_ID) { type = NavType.StringType },
+                    navArgument(Routes.ATTENDANCE_ARG_IS_ENGINEER) { type = NavType.BoolType; defaultValue = false },
                 ),
             ) {
                 com.equipseva.app.features.repair.AttendanceTimelineScreen(

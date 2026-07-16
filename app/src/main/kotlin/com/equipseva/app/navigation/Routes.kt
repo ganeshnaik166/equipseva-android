@@ -37,7 +37,10 @@ object Routes {
     // r1409 — GPS attendance timeline for a job (attendance_for_job).
     const val ATTENDANCE_FOR_JOB = "job/attendance"
     const val ATTENDANCE_ARG_JOB_ID = "jobId"
-    fun attendanceRoute(jobId: String): String = "$ATTENDANCE_FOR_JOB/$jobId"
+    // r1443 — only the accepted engineer sees the check-in/out actions.
+    const val ATTENDANCE_ARG_IS_ENGINEER = "isEngineer"
+    fun attendanceRoute(jobId: String, isEngineer: Boolean): String =
+        "$ATTENDANCE_FOR_JOB/$jobId?$ATTENDANCE_ARG_IS_ENGINEER=$isEngineer"
 
     // r1411 — in-app structured Digital Service Report for a job (dsr_for_job).
     const val SERVICE_REPORT_FOR_JOB = "job/service_report"

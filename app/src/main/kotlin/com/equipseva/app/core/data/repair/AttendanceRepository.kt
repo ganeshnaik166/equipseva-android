@@ -42,4 +42,31 @@ class AttendanceRepository @Inject constructor(
             },
         ).decodeList<Attendance>()
     }
+
+    /**
+     * Records an engineer GPS attendance event (r1443): backed by
+     * record_engineer_attendance, which enforces the caller is the job's
+     * accepted engineer and stamps the event with the device coords. Optional
+     * params (accuracy, device time, hospital expected coords) are omitted so
+     * the server uses its defaults — the hospital-distance / suspicious flag is
+     * a server enrichment that needs expected coords we don't push from here.
+     * [eventKind] is 'arrival_checkin' or 'departure_checkout'.
+     */
+    suspend fun record(
+        repairJobId: String,
+        eventKind: String,
+        lat: Double,
+        lng: Double,
+    ): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "record_engineer_attendance",
+            parameters = buildJsonObject {
+                put("p_repair_job_id", JsonPrimitive(repairJobId))
+                put("p_event_kind", JsonPrimitive(eventKind))
+                put("p_engineer_lat", JsonPrimitive(lat))
+                put("p_engineer_lng", JsonPrimitive(lng))
+            },
+        )
+        Unit
+    }
 }

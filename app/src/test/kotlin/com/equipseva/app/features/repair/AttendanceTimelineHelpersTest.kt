@@ -28,4 +28,12 @@ class AttendanceTimelineHelpersTest {
         assertEquals("On-site" to PillKind.Success, attendanceSuspiciousPill(false))
         assertEquals("Far from site" to PillKind.Danger, attendanceSuspiciousPill(true))
     }
+
+    // r1443 — next check-in/out action.
+
+    @Test fun `next event toggles from the latest`() {
+        assertEquals("arrival_checkin", nextAttendanceEvent(null))
+        assertEquals("arrival_checkin", nextAttendanceEvent("departure_checkout"))
+        assertEquals("departure_checkout", nextAttendanceEvent("arrival_checkin"))
+    }
 }
