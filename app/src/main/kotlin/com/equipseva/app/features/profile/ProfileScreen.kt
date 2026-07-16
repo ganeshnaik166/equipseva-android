@@ -36,6 +36,7 @@ import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Apartment
 import androidx.compose.material.icons.outlined.Gavel
+import androidx.compose.material.icons.outlined.GroupAdd
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Close
@@ -159,6 +160,8 @@ fun ProfileScreen(
     onOpenFounderCockpit: () -> Unit = {},
     // r1426 — hospital Code Red emergency dispatch.
     onOpenHospitalCodeRed: () -> Unit = {},
+    // r1444 — invited hospital joins a chain.
+    onOpenJoinChain: () -> Unit = {},
     onSwitchService: () -> Unit = {},
     onSignIn: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -312,6 +315,7 @@ fun ProfileScreen(
                         onOpenChainCockpit = onOpenChainCockpit,
                         onOpenFounderCockpit = onOpenFounderCockpit,
                         onOpenHospitalCodeRed = onOpenHospitalCodeRed,
+                        onOpenJoinChain = onOpenJoinChain,
                         onSwitchService = viewModel::onToggleRoleAndGoHome,
                         onPickAvatar = viewModel::uploadAvatar,
                     )
@@ -465,6 +469,7 @@ private fun ProfileContent(
     onOpenChainCockpit: () -> Unit,
     onOpenFounderCockpit: () -> Unit,
     onOpenHospitalCodeRed: () -> Unit,
+    onOpenJoinChain: () -> Unit,
     onSwitchService: () -> Unit,
     onPickAvatar: (Uri) -> Unit,
 ) {
@@ -562,6 +567,7 @@ private fun ProfileContent(
             onOpenChainCockpit = onOpenChainCockpit,
             onOpenFounderCockpit = onOpenFounderCockpit,
             onOpenHospitalCodeRed = onOpenHospitalCodeRed,
+            onOpenJoinChain = onOpenJoinChain,
             onSwitchService = onSwitchService,
             onSignOut = onSignOut,
             signingOut = state.signingOut,
@@ -763,6 +769,7 @@ private fun buildProfileSections(
     onOpenChainCockpit: () -> Unit,
     onOpenFounderCockpit: () -> Unit,
     onOpenHospitalCodeRed: () -> Unit,
+    onOpenJoinChain: () -> Unit,
     onSwitchService: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
@@ -865,6 +872,12 @@ private fun buildProfileSections(
                 icon = Icons.Outlined.Apartment,
                 label = "Chain cockpit",
                 onClick = onOpenChainCockpit,
+            ))
+            // r1444 — redeem a chain-site invite to join a hospital chain.
+            add(SettingsRow(
+                icon = Icons.Outlined.GroupAdd,
+                label = "Join a hospital chain",
+                onClick = onOpenJoinChain,
             ))
             // r1398 — proactive PM calendar (overdue + upcoming) from
             // hospital_upcoming_pm.

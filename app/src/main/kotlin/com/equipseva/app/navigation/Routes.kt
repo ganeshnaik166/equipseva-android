@@ -228,6 +228,8 @@ object Routes {
     const val CHAIN_COCKPIT = "profile/chain_cockpit"
     // r1426 — hospital Code Red emergency dispatch (open + track).
     const val HOSPITAL_CODE_RED = "profile/code_red"
+    // r1444 — invited hospital redeems a chain-site invite token.
+    const val JOIN_CHAIN = "profile/join_chain"
     // r1422 — chain-admin site-invite management (list + invite + revoke).
     const val CHAIN_INVITES = "profile/chain_invites"
     const val CHAIN_INVITES_ARG_CHAIN_ID = "chainId"

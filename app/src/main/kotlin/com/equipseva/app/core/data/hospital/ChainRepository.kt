@@ -134,4 +134,18 @@ class ChainRepository @Inject constructor(
         )
         Unit
     }
+
+    /**
+     * Redeem a chain-site invite token (r1444) — the invited hospital joins the
+     * chain. Backed by accept_hospital_chain_invite, which requires the caller's
+     * email to match the invite's invited_email (so a token can't be replayed
+     * from another account) and the invite to still be pending.
+     */
+    suspend fun acceptInvite(token: String): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "accept_hospital_chain_invite",
+            parameters = buildJsonObject { put("p_invite_token", JsonPrimitive(token.trim())) },
+        )
+        Unit
+    }
 }
