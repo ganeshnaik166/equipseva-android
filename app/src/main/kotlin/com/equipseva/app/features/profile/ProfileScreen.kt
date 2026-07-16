@@ -151,6 +151,8 @@ fun ProfileScreen(
     onOpenFirstJobFree: () -> Unit = {},
     // r1410 — equipment catalog browse (both roles).
     onOpenCatalog: () -> Unit = {},
+    // r1419 — hospital-chain admin cockpit.
+    onOpenChainCockpit: () -> Unit = {},
     onSwitchService: () -> Unit = {},
     onSignIn: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -301,6 +303,7 @@ fun ProfileScreen(
                         onOpenCommissionTier = onOpenCommissionTier,
                         onOpenFirstJobFree = onOpenFirstJobFree,
                         onOpenCatalog = onOpenCatalog,
+                        onOpenChainCockpit = onOpenChainCockpit,
                         onSwitchService = viewModel::onToggleRoleAndGoHome,
                         onPickAvatar = viewModel::uploadAvatar,
                     )
@@ -451,6 +454,7 @@ private fun ProfileContent(
     onOpenCommissionTier: () -> Unit,
     onOpenFirstJobFree: () -> Unit,
     onOpenCatalog: () -> Unit,
+    onOpenChainCockpit: () -> Unit,
     onSwitchService: () -> Unit,
     onPickAvatar: (Uri) -> Unit,
 ) {
@@ -545,6 +549,7 @@ private fun ProfileContent(
             onOpenCommissionTier = onOpenCommissionTier,
             onOpenFirstJobFree = onOpenFirstJobFree,
             onOpenCatalog = onOpenCatalog,
+            onOpenChainCockpit = onOpenChainCockpit,
             onSwitchService = onSwitchService,
             onSignOut = onSignOut,
             signingOut = state.signingOut,
@@ -743,6 +748,7 @@ private fun buildProfileSections(
     onOpenCommissionTier: () -> Unit,
     onOpenFirstJobFree: () -> Unit,
     onOpenCatalog: () -> Unit,
+    onOpenChainCockpit: () -> Unit,
     onSwitchService: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
@@ -832,6 +838,13 @@ private fun buildProfileSections(
                 icon = Icons.Outlined.MonitorHeart,
                 label = "Fleet health",
                 onClick = onOpenFleetHealth,
+            ))
+            // r1419 — hospital-chain admin cockpit (shown to all hospitals;
+            // the screen resolves whether the user is a chain admin).
+            add(SettingsRow(
+                icon = Icons.Outlined.Apartment,
+                label = "Chain cockpit",
+                onClick = onOpenChainCockpit,
             ))
             // r1398 — proactive PM calendar (overdue + upcoming) from
             // hospital_upcoming_pm.

@@ -215,6 +215,8 @@ object Routes {
     const val HOSPITAL_FIRST_JOB_FREE = "profile/first_job_free"
     // r1410 — equipment catalog browse (catalog_devices_search); both roles.
     const val CATALOG_BROWSE = "catalog/browse"
+    // r1419 — hospital-chain admin cockpit (chain_kpis + chain_per_site_summary).
+    const val CHAIN_COCKPIT = "profile/chain_cockpit"
     // r1396 — read-only hospital fleet-health board (hospital_fleet_health).
     const val HOSPITAL_FLEET_HEALTH = "profile/fleet_health"
     // r1398 — hospital preventive-maintenance calendar (hospital_upcoming_pm).
