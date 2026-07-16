@@ -6,6 +6,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 
 /**
  * Read-only list of DPDP grievances the current user has filed, via
@@ -33,5 +35,22 @@ class GrievanceRepository @Inject constructor(
         client.postgrest
             .rpc(function = "my_grievances")
             .decodeList<Grievance>()
+    }
+
+    /**
+     * Files a DPDP grievance via file_dpdp_grievance (round 485). The caller is
+     * forced to auth.uid() server-side; affected_user_ids defaults to empty (not
+     * needed for a self-filed data-rights request). Server re-validates the
+     * description (min 10 chars) + the grievance_type enum.
+     */
+    suspend fun file(grievanceType: String, description: String): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "file_dpdp_grievance",
+            parameters = buildJsonObject {
+                put("p_grievance_type", JsonPrimitive(grievanceType))
+                put("p_description", JsonPrimitive(description.trim()))
+            },
+        )
+        Unit
     }
 }

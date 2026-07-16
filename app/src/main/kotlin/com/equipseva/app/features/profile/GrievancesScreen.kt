@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -31,11 +33,18 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.core.data.consent.FILABLE_GRIEVANCE_TYPES
 import com.equipseva.app.core.data.consent.GrievanceRepository
+import com.equipseva.app.core.data.consent.grievanceDescriptionError
 import com.equipseva.app.core.data.consent.grievanceTypeLabel
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.designsystem.components.EmptyStateView
+import com.equipseva.app.designsystem.components.EsBottomSheet
+import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.EsBtnKind
+import com.equipseva.app.designsystem.components.EsDropdown
+import com.equipseva.app.designsystem.components.EsField
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
@@ -61,6 +70,12 @@ class GrievancesViewModel @Inject constructor(
         val refreshing: Boolean = false,
         val error: String? = null,
         val grievances: List<GrievanceRepository.Grievance> = emptyList(),
+        // File-a-grievance form.
+        val sheetOpen: Boolean = false,
+        val formTypeKey: String? = null,
+        val formDescription: String = "",
+        val submitting: Boolean = false,
+        val submitError: String? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -84,13 +99,40 @@ class GrievancesViewModel @Inject constructor(
     }
 
     fun onPullToRefresh() = reload(initial = false)
+
+    fun openSheet() = _state.update {
+        it.copy(sheetOpen = true, formTypeKey = null, formDescription = "", submitError = null)
+    }
+
+    fun closeSheet() = _state.update { it.copy(sheetOpen = false) }
+
+    fun onFormType(key: String) = _state.update { it.copy(formTypeKey = key, submitError = null) }
+
+    fun onFormDescription(text: String) = _state.update { it.copy(formDescription = text, submitError = null) }
+
+    fun submit() {
+        val s = _state.value
+        val type = s.formTypeKey ?: return
+        if (grievanceDescriptionError(s.formDescription) != null) return
+        _state.update { it.copy(submitting = true, submitError = null) }
+        viewModelScope.launch {
+            repo.file(type, s.formDescription)
+                .onSuccess {
+                    _state.update { it.copy(submitting = false, sheetOpen = false) }
+                    reload()
+                }
+                .onFailure { e ->
+                    _state.update { it.copy(submitting = false, submitError = e.toUserMessage()) }
+                }
+        }
+    }
 }
 
 /**
- * Read-only list of DPDP grievances the user has filed, with status and the
- * statutory deadline. Reachable from the Profile "My grievances" row (both
- * roles). Surfaces my_grievances() (round 485), which had no Android screen
- * before r1403 — pairs with the r1402 consent centre.
+ * DPDP grievances (r1403 read + r1415 file): the list of data-rights requests
+ * the user has filed, with status + statutory deadline, PLUS a "File a
+ * grievance" form that writes via file_dpdp_grievance (round 485). Reachable
+ * from the Profile "My grievances" row (both roles).
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -124,17 +166,95 @@ fun GrievancesScreen(
                         icon = Icons.Outlined.Gavel,
                         title = "No grievances filed",
                         subtitle = "Data-rights requests you raise under India's DPDP Act (access, correction, deletion) show up here with their status and deadline.",
+                        ctaLabel = "File a grievance",
+                        onCta = { viewModel.openSheet() },
                     )
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
+                        item(key = "__file_cta") {
+                            EsBtn(
+                                text = "File a grievance",
+                                onClick = { viewModel.openSheet() },
+                                kind = EsBtnKind.Primary,
+                                full = true,
+                            )
+                        }
                         items(state.grievances, key = { it.id }) { g -> GrievanceRow(g) }
                     }
                 }
             }
         }
+    }
+
+    if (state.sheetOpen) {
+        EsBottomSheet(onClose = { viewModel.closeSheet() }, title = "File a grievance") {
+            FileGrievanceForm(
+                typeKey = state.formTypeKey,
+                description = state.formDescription,
+                submitting = state.submitting,
+                submitError = state.submitError,
+                onType = viewModel::onFormType,
+                onDescription = viewModel::onFormDescription,
+                onSubmit = viewModel::submit,
+            )
+        }
+    }
+}
+
+@Composable
+private fun FileGrievanceForm(
+    typeKey: String?,
+    description: String,
+    submitting: Boolean,
+    submitError: String?,
+    onType: (String) -> Unit,
+    onDescription: (String) -> Unit,
+    onSubmit: () -> Unit,
+) {
+    val labels = FILABLE_GRIEVANCE_TYPES.map { grievanceTypeLabel(it) }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .padding(bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        EsDropdown(
+            value = typeKey?.let { grievanceTypeLabel(it) },
+            onValueChange = { label ->
+                FILABLE_GRIEVANCE_TYPES.firstOrNull { grievanceTypeLabel(it) == label }?.let(onType)
+            },
+            options = labels,
+            label = "Type of request",
+            placeholder = "Select a request type",
+            searchable = false,
+        )
+        EsField(
+            value = description,
+            onChange = onDescription,
+            label = "Details",
+            placeholder = "Briefly describe your data-rights request",
+        )
+        Text(
+            "We respond within 30 days, as required under India's DPDP Act.",
+            color = SevaInk500,
+            fontSize = 11.sp,
+        )
+        if (submitError != null) {
+            Text(submitError, color = Color(0xFFC62828), fontSize = 12.sp)
+        }
+        val valid = typeKey != null && grievanceDescriptionError(description) == null
+        EsBtn(
+            text = if (submitting) "Filing…" else "Submit request",
+            onClick = onSubmit,
+            kind = EsBtnKind.Primary,
+            full = true,
+            disabled = submitting || !valid,
+        )
+        Spacer(Modifier.height(4.dp))
     }
 }
 
