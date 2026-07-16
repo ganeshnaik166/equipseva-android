@@ -44,4 +44,23 @@ class DsrRepository @Inject constructor(
             },
         ).decodeList<Dsr>().firstOrNull()
     }
+
+    /**
+     * Hospital counter-signs a DSR that is pending its signature (r1421):
+     * hospital_sign_dsr(p_dsr_id, p_signer_name, p_signer_role) — flips the
+     * report to 'signed' and stamps the signer. Server enforces that the
+     * caller is the job's hospital (or a founder) and that the report is in
+     * 'pending_hospital_sign'; both names must be >= 3 chars.
+     */
+    suspend fun sign(dsrId: String, signerName: String, signerRole: String): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "hospital_sign_dsr",
+            parameters = buildJsonObject {
+                put("p_dsr_id", JsonPrimitive(dsrId))
+                put("p_signer_name", JsonPrimitive(signerName.trim()))
+                put("p_signer_role", JsonPrimitive(signerRole.trim()))
+            },
+        )
+        Unit
+    }
 }
