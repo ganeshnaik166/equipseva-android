@@ -2,6 +2,7 @@ package com.equipseva.app.features.hospital
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -108,6 +109,8 @@ fun AssetHistoryScreen(
     serial: String,
     title: String,
     onBack: () -> Unit,
+    // r1414 — NABH audit-bundle drill-down for this asset.
+    onOpenNabh: (serial: String, title: String) -> Unit = { _, _ -> },
     viewModel: AssetHistoryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -116,6 +119,9 @@ fun AssetHistoryScreen(
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(title = title.ifBlank { "Asset history" }, onBack = onBack)
+            if (serial.isNotBlank()) {
+                NabhEntryRow(onClick = { onOpenNabh(serial, title) })
+            }
             when {
                 state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
@@ -149,6 +155,28 @@ fun AssetHistoryScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun NabhEntryRow(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(SevaGreen50)
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(Icons.Outlined.Description, contentDescription = null, tint = SevaGreen700)
+        Column(modifier = Modifier.weight(1f)) {
+            Text("NABH audit bundle", color = SevaInk900, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+            Text("Signed service reports for audits", color = SevaInk500, fontSize = 12.sp)
+        }
+        Text("›", color = SevaInk500, fontSize = 20.sp)
     }
 }
 

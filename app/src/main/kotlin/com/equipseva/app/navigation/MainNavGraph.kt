@@ -1217,6 +1217,20 @@ fun MainNavGraph(
                     serial = entry.arguments?.getString(Routes.ASSET_HISTORY_ARG_SERIAL).orEmpty(),
                     title = entry.arguments?.getString(Routes.ASSET_HISTORY_ARG_TITLE).orEmpty(),
                     onBack = { navController.popBackStack() },
+                    onOpenNabh = { s, t -> navController.navigate(Routes.nabhBundleRoute(s, t)) },
+                )
+            }
+            composable(
+                route = "${Routes.NABH_BUNDLE}?${Routes.NABH_BUNDLE_ARG_SERIAL}={${Routes.NABH_BUNDLE_ARG_SERIAL}}&${Routes.NABH_BUNDLE_ARG_TITLE}={${Routes.NABH_BUNDLE_ARG_TITLE}}",
+                arguments = listOf(
+                    navArgument(Routes.NABH_BUNDLE_ARG_SERIAL) { type = NavType.StringType; defaultValue = "" },
+                    navArgument(Routes.NABH_BUNDLE_ARG_TITLE) { type = NavType.StringType; defaultValue = "" },
+                ),
+            ) { entry ->
+                com.equipseva.app.features.hospital.NabhBundleScreen(
+                    serial = entry.arguments?.getString(Routes.NABH_BUNDLE_ARG_SERIAL).orEmpty(),
+                    title = entry.arguments?.getString(Routes.NABH_BUNDLE_ARG_TITLE).orEmpty(),
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.PROFILE_ADDRESSES) {

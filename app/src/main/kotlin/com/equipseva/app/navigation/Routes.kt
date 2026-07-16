@@ -227,6 +227,15 @@ object Routes {
     fun assetHistoryRoute(serial: String, title: String): String =
         "$HOSPITAL_ASSET_HISTORY?$ASSET_HISTORY_ARG_SERIAL=${Uri.encode(serial)}" +
             "&$ASSET_HISTORY_ARG_TITLE=${Uri.encode(title)}"
+
+    // r1414 — NABH audit bundle per equipment (nabh_bundle_for_equipment),
+    // drill-down from Asset history. serial + display title as encoded args.
+    const val NABH_BUNDLE = "profile/nabh_bundle"
+    const val NABH_BUNDLE_ARG_SERIAL = "serial"
+    const val NABH_BUNDLE_ARG_TITLE = "title"
+    fun nabhBundleRoute(serial: String, title: String): String =
+        "$NABH_BUNDLE?$NABH_BUNDLE_ARG_SERIAL=${Uri.encode(serial)}" +
+            "&$NABH_BUNDLE_ARG_TITLE=${Uri.encode(title)}"
     const val PROFILE_ADDRESSES = "profile/addresses"
     const val PROFILE_HOSPITAL_SETTINGS = "profile/hospital_settings"
     const val PROFILE_STOREFRONT = "profile/storefront"
