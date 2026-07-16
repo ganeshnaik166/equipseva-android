@@ -230,10 +230,6 @@ object Routes {
             "&$CHAIN_INVITES_ARG_CHAIN_NAME=${Uri.encode(chainName)}"
     // r1420 — founder business cockpit (hub) + generic key-value metric screen.
     const val FOUNDER_COCKPIT = "founder/cockpit"
-    // r1423 — founder refund-authorization approvals queue.
-    const val FOUNDER_REFUND_APPROVALS = "founder/refund_approvals"
-    // r1424 — founder engineer-SLA board.
-    const val FOUNDER_SLA_BOARD = "founder/sla_board"
     const val FOUNDER_METRICS = "founder/metrics"
     const val FOUNDER_METRICS_ARG_TITLE = "title"
     const val FOUNDER_METRICS_ARG_RPC = "rpc"

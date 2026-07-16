@@ -55,8 +55,6 @@ internal val FOUNDER_METRIC_DASHBOARDS: List<FounderDashboardEntry> = listOf(
 fun FounderCockpitScreen(
     onBack: () -> Unit,
     onOpenDashboard: (title: String, rpc: String) -> Unit,
-    onOpenRefundApprovals: () -> Unit = {},
-    onOpenSlaBoard: () -> Unit = {},
 ) {
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -66,36 +64,6 @@ fun FounderCockpitScreen(
                 contentPadding = PaddingValues(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                item(key = "actions-header") {
-                    Text(
-                        "Actions",
-                        style = EsType.H5,
-                        color = SevaInk900,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-                    )
-                }
-                item(key = "refund-approvals") {
-                    CockpitRow(
-                        title = "Refund approvals",
-                        subtitle = "Approve or reject pending refund requests",
-                        onClick = onOpenRefundApprovals,
-                    )
-                }
-                item(key = "dashboards-header") {
-                    Text(
-                        "Dashboards",
-                        style = EsType.H5,
-                        color = SevaInk900,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-                    )
-                }
-                item(key = "sla-board") {
-                    CockpitRow(
-                        title = "Engineer SLA board",
-                        subtitle = "On-time %, disputes, risk band by engineer",
-                        onClick = onOpenSlaBoard,
-                    )
-                }
                 items(FOUNDER_METRIC_DASHBOARDS, key = { it.rpc }) { entry ->
                     CockpitRow(
                         title = entry.title,
