@@ -86,7 +86,15 @@ class EngineerKycRenewalViewModel @Inject constructor(
         viewModelScope.launch {
             repo.fetch()
                 .onSuccess { d -> _state.update { it.copy(loading = false, loaded = true, data = d) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+                .onFailure { e ->
+                    // r1441: a transient reload failure after a successful
+                    // start/mark must not wipe the still-valid checklist — only
+                    // go full-screen fatal on the initial load (no data yet).
+                    _state.update {
+                        if (it.data == null) it.copy(loading = false, error = e.toUserMessage())
+                        else it.copy(loading = false, actionError = e.toUserMessage())
+                    }
+                }
         }
     }
 

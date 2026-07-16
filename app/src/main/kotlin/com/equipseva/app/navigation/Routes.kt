@@ -42,7 +42,11 @@ object Routes {
     // r1411 — in-app structured Digital Service Report for a job (dsr_for_job).
     const val SERVICE_REPORT_FOR_JOB = "job/service_report"
     const val SERVICE_REPORT_ARG_JOB_ID = "jobId"
-    fun serviceReportRoute(jobId: String): String = "$SERVICE_REPORT_FOR_JOB/$jobId"
+    // r1441 — only the hospital viewer may sign; passed so the Sign CTA
+    // is hidden for the engineer (server rejects it anyway).
+    const val SERVICE_REPORT_ARG_IS_HOSPITAL = "isHospital"
+    fun serviceReportRoute(jobId: String, isHospital: Boolean): String =
+        "$SERVICE_REPORT_FOR_JOB/$jobId?$SERVICE_REPORT_ARG_IS_HOSPITAL=$isHospital"
 
     // r1412 — structured GST tax invoice for a completed job (get_repair_invoice_payload).
     const val GST_INVOICE_FOR_JOB = "job/invoice"

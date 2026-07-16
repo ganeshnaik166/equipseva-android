@@ -78,6 +78,10 @@ class ServiceReportDetailViewModel @Inject constructor(
             "ServiceReportDetailViewModel requires arg ${Routes.SERVICE_REPORT_ARG_JOB_ID}"
         }
 
+    /** r1441 — only the hospital may counter-sign; the Sign CTA is hidden for
+     *  the engineer (who also views this report), since the server rejects it. */
+    val isHospital: Boolean = savedState.get<Boolean>(Routes.SERVICE_REPORT_ARG_IS_HOSPITAL) ?: false
+
     data class UiState(
         val loading: Boolean = true,
         val error: String? = null,
@@ -187,7 +191,7 @@ fun ServiceReportDetailScreen(
                         SectionHeader("Signatures")
                         SignRow("Engineer", d.engineerSignatureAt)
                         SignRow("Hospital", d.hospitalSignatureAt)
-                        if (canSignDsr(d.status)) {
+                        if (viewModel.isHospital && canSignDsr(d.status)) {
                             EsBtn(
                                 text = "Sign report",
                                 onClick = { showSignSheet = true },

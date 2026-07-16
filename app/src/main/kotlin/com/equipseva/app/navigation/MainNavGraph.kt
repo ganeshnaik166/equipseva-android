@@ -387,7 +387,7 @@ fun MainNavGraph(
                     // r1408 / r1409 — job "Records" drill-downs.
                     onOpenEvidence = { jobId -> navController.navigate(Routes.evidenceRoute(jobId)) },
                     onOpenAttendance = { jobId -> navController.navigate(Routes.attendanceRoute(jobId)) },
-                    onOpenServiceReport = { jobId -> navController.navigate(Routes.serviceReportRoute(jobId)) },
+                    onOpenServiceReport = { jobId, isHospital -> navController.navigate(Routes.serviceReportRoute(jobId, isHospital)) },
                     onOpenInvoice = { jobId -> navController.navigate(Routes.gstInvoiceRoute(jobId)) },
                     onOpenPayoutPreview = { jobId -> navController.navigate(Routes.payoutPreviewRoute(jobId)) },
                 )
@@ -413,9 +413,11 @@ fun MainNavGraph(
                 )
             }
             composable(
-                route = "${Routes.SERVICE_REPORT_FOR_JOB}/{${Routes.SERVICE_REPORT_ARG_JOB_ID}}",
+                route = "${Routes.SERVICE_REPORT_FOR_JOB}/{${Routes.SERVICE_REPORT_ARG_JOB_ID}}" +
+                    "?${Routes.SERVICE_REPORT_ARG_IS_HOSPITAL}={${Routes.SERVICE_REPORT_ARG_IS_HOSPITAL}}",
                 arguments = listOf(
                     navArgument(Routes.SERVICE_REPORT_ARG_JOB_ID) { type = NavType.StringType },
+                    navArgument(Routes.SERVICE_REPORT_ARG_IS_HOSPITAL) { type = NavType.BoolType; defaultValue = false },
                 ),
             ) {
                 com.equipseva.app.features.repair.ServiceReportDetailScreen(

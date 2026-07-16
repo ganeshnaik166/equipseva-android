@@ -105,7 +105,16 @@ class HospitalCodeRedViewModel @Inject constructor(
                 _state.update { it.copy(loading = false, error = "Sign in again to manage emergencies.") }
                 return@launch
             }
-            repo.allowedEquipmentTypes().onSuccess { t -> _state.update { it.copy(equipmentTypes = t) } }
+            // r1441: don't swallow a taxonomy failure — without types the Fire
+            // form is unusable, so surface it (shown in the fire sheet) instead
+            // of leaving the dropdown stuck on "Loading…" with no explanation.
+            repo.allowedEquipmentTypes()
+                .onSuccess { t -> _state.update { it.copy(equipmentTypes = t, actionError = null) } }
+                .onFailure { e ->
+                    _state.update {
+                        it.copy(actionError = "Couldn't load equipment types (${e.toUserMessage()}). Pull down to retry.")
+                    }
+                }
             repo.myRequests(uid)
                 .onSuccess { list -> _state.update { it.copy(loading = false, requests = list) } }
                 .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }

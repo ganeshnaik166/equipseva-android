@@ -145,6 +145,8 @@ class AmcDetailViewModel @Inject constructor(
         val pickerResults: List<com.equipseva.app.core.data.engineers.EngineerDirectoryRepository.DirectoryRow> = emptyList(),
         val addingEngineerId: String? = null,
         val addError: String? = null,
+        // r1441 — visible error for a failed fallback removal (Rotation tab).
+        val rotationError: String? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -401,10 +403,14 @@ class AmcDetailViewModel @Inject constructor(
     fun markTopUpBusy(busy: Boolean) = _state.update { it.copy(topUpBusy = busy) }
 
     fun removeFallback(engineerId: String) {
+        _state.update { it.copy(rotationError = null) }
         viewModelScope.launch {
             repo.removeFallbackEngineer(contractId, engineerId)
-                .onSuccess { refresh() }
-                .onFailure { e -> _state.update { it.copy(error = e.toUserMessage()) } }
+                // r1441: reload only the rotation slice (no full-screen spinner
+                // flash) and surface a failure in-tab instead of the dead-end
+                // top-level `error` that never renders on a loaded contract.
+                .onSuccess { reloadRotationSilently() }
+                .onFailure { e -> _state.update { it.copy(rotationError = e.toUserMessage()) } }
         }
     }
 
@@ -1493,6 +1499,9 @@ private fun RotationTab(
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            state.rotationError?.let {
+                Text(it, color = SevaDanger500, fontSize = 12.sp)
+            }
             if (state.rotation.isEmpty()) {
                 Text(
                     if (state.viewerIsHospital)

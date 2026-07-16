@@ -93,8 +93,16 @@ class ChainInvitesViewModel @Inject constructor(
         _state.update { it.copy(loading = it.invites.isEmpty(), error = null) }
         viewModelScope.launch {
             repo.invites(chainId)
-                .onSuccess { list -> _state.update { it.copy(loading = false, invites = list) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+                .onSuccess { list -> _state.update { it.copy(loading = false, invites = list, error = null) } }
+                .onFailure { e ->
+                    // r1441: only take over the whole screen with a fatal error when
+                    // there's nothing loaded yet. A transient refresh failure (e.g. on
+                    // return) must NOT wipe an already-good list — surface it inline.
+                    _state.update {
+                        if (it.invites.isEmpty()) it.copy(loading = false, error = e.toUserMessage())
+                        else it.copy(loading = false, actionError = e.toUserMessage())
+                    }
+                }
         }
     }
 
@@ -116,14 +124,15 @@ class ChainInvitesViewModel @Inject constructor(
 
     /** Revoke a pending invite, then reload. */
     fun revoke(inviteId: String) {
-        _state.update { it.copy(revokingId = inviteId, error = null) }
+        _state.update { it.copy(revokingId = inviteId, actionError = null) }
         viewModelScope.launch {
             repo.revokeInvite(inviteId, reason = null)
                 .onSuccess {
                     _state.update { it.copy(revokingId = null) }
                     reload()
                 }
-                .onFailure { e -> _state.update { it.copy(revokingId = null, error = e.toUserMessage()) } }
+                // r1441: a failed revoke must not wipe the loaded list — inline error.
+                .onFailure { e -> _state.update { it.copy(revokingId = null, actionError = e.toUserMessage()) } }
         }
     }
 }
@@ -201,6 +210,20 @@ fun ChainInvitesScreen(
                             size = EsBtnSize.Lg,
                             full = true,
                         )
+                    }
+                    // r1441 — inline, non-destructive surface for revoke / refresh
+                    // failures (only when the invite sheet isn't already showing them).
+                    if (!showInviteSheet) {
+                        state.actionError?.let { msg ->
+                            item(key = "action-error") {
+                                Text(
+                                    msg,
+                                    style = EsType.BodySm,
+                                    color = SevaDanger500,
+                                    modifier = Modifier.padding(horizontal = 4.dp),
+                                )
+                            }
+                        }
                     }
                     if (state.invites.isEmpty()) {
                         item(key = "empty") {

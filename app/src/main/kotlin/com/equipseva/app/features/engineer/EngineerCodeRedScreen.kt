@@ -94,7 +94,9 @@ class EngineerCodeRedViewModel @Inject constructor(
     init { reload() }
 
     fun reload() {
-        _state.update { it.copy(loading = it.items.isEmpty(), error = null) }
+        // r1441: include accepted — an engineer attending an accepted emergency
+        // (items empty, accepted non-empty) must not get a spinner flash each poll.
+        _state.update { it.copy(loading = it.items.isEmpty() && it.accepted.isEmpty(), error = null) }
         viewModelScope.launch {
             val session = authRepository.sessionState.first { it !is AuthSession.Unknown }
             val uid = (session as? AuthSession.SignedIn)?.userId

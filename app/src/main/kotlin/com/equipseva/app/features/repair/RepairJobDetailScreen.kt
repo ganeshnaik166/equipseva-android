@@ -159,7 +159,7 @@ fun RepairJobDetailScreen(
     // wires them to the evidence / attendance routes with this job's id.
     onOpenEvidence: (jobId: String) -> Unit = {},
     onOpenAttendance: (jobId: String) -> Unit = {},
-    onOpenServiceReport: (jobId: String) -> Unit = {},
+    onOpenServiceReport: (jobId: String, isHospital: Boolean) -> Unit = { _, _ -> },
     // r1412 — structured GST invoice (completed jobs). r1413 — engineer payout
     // preview (engineer-only). Both default no-ops; MainNavGraph wires them.
     onOpenInvoice: (jobId: String) -> Unit = {},
@@ -395,7 +395,12 @@ fun RepairJobDetailScreen(
                     onOpenPayoutMethod = onOpenPayoutMethod,
                     onOpenEvidence = { onOpenEvidence(state.job!!.id) },
                     onOpenAttendance = { onOpenAttendance(state.job!!.id) },
-                    onOpenServiceReport = { onOpenServiceReport(state.job!!.id) },
+                    onOpenServiceReport = {
+                        onOpenServiceReport(
+                            state.job!!.id,
+                            state.viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital,
+                        )
+                    },
                     onOpenInvoice = { onOpenInvoice(state.job!!.id) },
                     onOpenPayoutPreview = { onOpenPayoutPreview(state.job!!.id) },
                 )
