@@ -29,6 +29,16 @@ object Routes {
     const val REPAIR_DETAIL_ARG_ID = "jobId"
     fun repairJobDetailRoute(jobId: String): String = "$REPAIR_DETAIL/$jobId"
 
+    // r1408 — §65B evidence vault for a job (evidence_for_repair_job).
+    const val EVIDENCE_FOR_JOB = "job/evidence"
+    const val EVIDENCE_ARG_JOB_ID = "jobId"
+    fun evidenceRoute(jobId: String): String = "$EVIDENCE_FOR_JOB/$jobId"
+
+    // r1409 — GPS attendance timeline for a job (attendance_for_job).
+    const val ATTENDANCE_FOR_JOB = "job/attendance"
+    const val ATTENDANCE_ARG_JOB_ID = "jobId"
+    fun attendanceRoute(jobId: String): String = "$ATTENDANCE_FOR_JOB/$jobId"
+
     // Chat — conversation list and single-thread view (both full-screen).
     const val CONVERSATIONS = "chat"
     const val CHAT_DETAIL = "chat/detail"

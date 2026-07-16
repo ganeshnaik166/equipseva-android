@@ -384,6 +384,29 @@ fun MainNavGraph(
                     onBookAgain = { engineerId ->
                         navController.navigate(Routes.requestServiceRoute(engineerId))
                     },
+                    // r1408 / r1409 — job "Records" drill-downs.
+                    onOpenEvidence = { jobId -> navController.navigate(Routes.evidenceRoute(jobId)) },
+                    onOpenAttendance = { jobId -> navController.navigate(Routes.attendanceRoute(jobId)) },
+                )
+            }
+            composable(
+                route = "${Routes.EVIDENCE_FOR_JOB}/{${Routes.EVIDENCE_ARG_JOB_ID}}",
+                arguments = listOf(
+                    navArgument(Routes.EVIDENCE_ARG_JOB_ID) { type = NavType.StringType },
+                ),
+            ) {
+                com.equipseva.app.features.repair.EvidenceVaultScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = "${Routes.ATTENDANCE_FOR_JOB}/{${Routes.ATTENDANCE_ARG_JOB_ID}}",
+                arguments = listOf(
+                    navArgument(Routes.ATTENDANCE_ARG_JOB_ID) { type = NavType.StringType },
+                ),
+            ) {
+                com.equipseva.app.features.repair.AttendanceTimelineScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.ENGINEER_JOBS_HUB) {

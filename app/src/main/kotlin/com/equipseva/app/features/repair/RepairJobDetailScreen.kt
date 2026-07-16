@@ -107,6 +107,7 @@ import com.equipseva.app.designsystem.components.ReportContentSheet
 import com.equipseva.app.designsystem.components.UrgencyPill
 import com.equipseva.app.designsystem.components.VerifiedBadge
 import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.Paper2
 import com.equipseva.app.designsystem.theme.Paper3
 import com.equipseva.app.designsystem.theme.PaperDefault
@@ -153,6 +154,11 @@ fun RepairJobDetailScreen(
     // Default no-op so existing callsites compile; MainNavGraph
     // overrides with the actual navController.navigate call.
     onBookAgain: (engineerId: String) -> Unit = {},
+    // r1408 / r1409 — job "Records" drill-downs (evidence vault + GPS
+    // attendance). Default no-ops so existing callsites compile; MainNavGraph
+    // wires them to the evidence / attendance routes with this job's id.
+    onOpenEvidence: (jobId: String) -> Unit = {},
+    onOpenAttendance: (jobId: String) -> Unit = {},
     viewModel: RepairJobDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -376,6 +382,8 @@ fun RepairJobDetailScreen(
                     onOpenEscrowDispute = viewModel::openEscrowDisputeSheet,
                     onOpenEngineerResponseSheet = viewModel::openEngineerResponseSheet,
                     onOpenPayoutMethod = onOpenPayoutMethod,
+                    onOpenEvidence = { onOpenEvidence(state.job!!.id) },
+                    onOpenAttendance = { onOpenAttendance(state.job!!.id) },
                 )
             }
         }
@@ -572,6 +580,35 @@ fun RepairJobDetailScreen(
 }
 
 @Composable
+private fun RecordsCard(
+    onOpenEvidence: () -> Unit,
+    onOpenAttendance: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        RecordsRow(label = "Evidence vault", onClick = onOpenEvidence)
+        RecordsRow(label = "GPS attendance", onClick = onOpenAttendance)
+    }
+}
+
+@Composable
+private fun RecordsRow(label: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(label, style = EsType.Body, color = SevaInk900)
+        Text("›", style = EsType.H5, color = SevaInk500)
+    }
+}
+
+@Composable
 private fun JobBody(
     job: RepairJob,
     ownBid: RepairBid?,
@@ -600,6 +637,8 @@ private fun JobBody(
     onOpenEscrowDispute: () -> Unit,
     onOpenEngineerResponseSheet: () -> Unit,
     onOpenPayoutMethod: () -> Unit = {},
+    onOpenEvidence: () -> Unit = {},
+    onOpenAttendance: () -> Unit = {},
 ) {
     val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
     Column(
@@ -692,6 +731,17 @@ private fun JobBody(
 
         EsSection(title = "Location") {
             LocationCard(job = job, viewerRole = viewerRole)
+        }
+
+        // r1408 / r1409 — evidence + GPS-attendance drill-downs. Shown once an
+        // engineer is assigned (that's when these records start to exist).
+        if (job.engineerId != null) {
+            EsSection(title = "Records") {
+                RecordsCard(
+                    onOpenEvidence = onOpenEvidence,
+                    onOpenAttendance = onOpenAttendance,
+                )
+            }
         }
 
         if (job.status == RepairJobStatus.Completed && afterPhotoSignedUrls.isNotEmpty()) {
