@@ -81,6 +81,9 @@ class EngineerCodeRedViewModel @Inject constructor(
         val loading: Boolean = true,
         val error: String? = null,
         val items: List<CodeRedRepository.CodeRed> = emptyList(),
+        // r1438 — the emergency this engineer already accepted (kept visible
+        // with its war-room link after it leaves the actionable feed).
+        val accepted: List<CodeRedRepository.CodeRed> = emptyList(),
         val working: Boolean = false,
         val actionError: String? = null,
     )
@@ -99,9 +102,10 @@ class EngineerCodeRedViewModel @Inject constructor(
                 _state.update { it.copy(loading = false, error = "Sign in again to see emergencies.") }
                 return@launch
             }
+            val accepted = repo.acceptedByMe(uid).getOrNull().orEmpty()
             repo.openForMe(uid)
-                .onSuccess { list -> _state.update { it.copy(loading = false, items = list) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+                .onSuccess { list -> _state.update { it.copy(loading = false, items = list, accepted = accepted) } }
+                .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage(), accepted = accepted) } }
         }
     }
 
@@ -143,7 +147,7 @@ fun EngineerCodeRedScreen(
     val now by rememberNowTicker()
     // Live board: while emergencies are showing, poll so ones taken by another
     // engineer or timed out drop off without a manual refresh.
-    PollingEffect(enabled = state.items.isNotEmpty()) { viewModel.reload() }
+    PollingEffect(enabled = state.items.isNotEmpty() || state.accepted.isNotEmpty()) { viewModel.reload() }
 
     var declineFor by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -173,7 +177,7 @@ fun EngineerCodeRedScreen(
                     ctaLabel = "Try again",
                     onCta = { viewModel.reload() },
                 )
-                state.items.isEmpty() -> EmptyStateView(
+                state.items.isEmpty() && state.accepted.isEmpty() -> EmptyStateView(
                     icon = Icons.Outlined.Emergency,
                     title = "No active emergencies",
                     subtitle = "When a hospital fires a Code Red near you, it appears here for you to accept.",
@@ -183,6 +187,29 @@ fun EngineerCodeRedScreen(
                     contentPadding = PaddingValues(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    if (state.accepted.isNotEmpty()) {
+                        item(key = "accepted-header") {
+                            Text(
+                                "You're attending",
+                                style = EsType.H5,
+                                color = SevaInk900,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                            )
+                        }
+                        items(state.accepted, key = { "acc-${it.id}" }) { cr ->
+                            AcceptedCodeRedCard(cr = cr)
+                        }
+                        if (state.items.isNotEmpty()) {
+                            item(key = "open-header") {
+                                Text(
+                                    "Also paged to you",
+                                    style = EsType.H5,
+                                    color = SevaInk900,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                )
+                            }
+                        }
+                    }
                     items(state.items, key = { it.id }) { cr ->
                         CodeRedCard(
                             cr = cr,
@@ -268,6 +295,44 @@ private fun CodeRedCard(
                 size = EsBtnSize.Sm,
                 disabled = working,
                 modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun AcceptedCodeRedCard(cr: CodeRedRepository.CodeRed) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                codeRedEquipmentTitle(cr.equipmentType, cr.equipmentBrand, cr.equipmentModel),
+                style = EsType.Body.copy(fontWeight = FontWeight.Bold),
+                color = SevaInk900,
+                modifier = Modifier.weight(1f),
+            )
+            Pill(text = "Accepted", kind = PillKind.Success)
+        }
+        Text(cr.description, style = EsType.BodySm, color = SevaInk700)
+        val warroom = cr.warroomUrl?.takeIf { it.isNotBlank() }
+        if (warroom != null) {
+            val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+            EsBtn(
+                text = "Open war room",
+                onClick = { runCatching { uriHandler.openUri(warroom) } },
+                kind = EsBtnKind.Secondary,
+                size = EsBtnSize.Sm,
             )
         }
     }

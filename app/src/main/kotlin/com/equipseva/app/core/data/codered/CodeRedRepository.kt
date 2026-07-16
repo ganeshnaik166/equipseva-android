@@ -37,6 +37,7 @@ class CodeRedRepository @Inject constructor(
         val status: String,
         val slaDeadlineAt: String?,
         val distanceKmAtPage: Double?,
+        val warroomUrl: String? = null,
     )
 
     @Serializable
@@ -58,12 +59,27 @@ class CodeRedRepository @Inject constructor(
         @SerialName("emergency_fee_ceiling_rupees") val feeCeilingRupees: Double = 0.0,
         @SerialName("status") val status: String = "",
         @SerialName("sla_deadline_at") val slaDeadlineAt: String? = null,
+        @SerialName("warroom_url") val warroomUrl: String? = null,
+    )
+
+    private fun RequestRow.toCodeRed(distanceKmAtPage: Double?) = CodeRed(
+        id = id,
+        equipmentType = equipmentType,
+        equipmentBrand = equipmentBrand,
+        equipmentModel = equipmentModel,
+        equipmentSerial = equipmentSerial,
+        description = description,
+        feeCeilingRupees = feeCeilingRupees,
+        status = status,
+        slaDeadlineAt = slaDeadlineAt,
+        distanceKmAtPage = distanceKmAtPage,
+        warroomUrl = warroomUrl,
     )
 
     private companion object {
-        const val EMBED = "code_red_id, outcome, distance_km_at_page, " +
-            "code_red_requests(id, equipment_type, equipment_brand, equipment_model, " +
-            "equipment_serial, description, emergency_fee_ceiling_rupees, status, sla_deadline_at)"
+        private const val REQUEST_COLS = "id, equipment_type, equipment_brand, equipment_model, " +
+            "equipment_serial, description, emergency_fee_ceiling_rupees, status, sla_deadline_at, warroom_url"
+        const val EMBED = "code_red_id, outcome, distance_km_at_page, code_red_requests($REQUEST_COLS)"
     }
 
     /**
@@ -83,20 +99,28 @@ class CodeRedRepository @Inject constructor(
             .mapNotNull { d ->
                 val r = d.request ?: return@mapNotNull null
                 if (r.status != "open") return@mapNotNull null
-                CodeRed(
-                    id = r.id,
-                    equipmentType = r.equipmentType,
-                    equipmentBrand = r.equipmentBrand,
-                    equipmentModel = r.equipmentModel,
-                    equipmentSerial = r.equipmentSerial,
-                    description = r.description,
-                    feeCeilingRupees = r.feeCeilingRupees,
-                    status = r.status,
-                    slaDeadlineAt = r.slaDeadlineAt,
-                    distanceKmAtPage = d.distanceKmAtPage,
-                )
+                r.toCodeRed(d.distanceKmAtPage)
             }
             .sortedBy { it.slaDeadlineAt ?: "￿" }
+    }
+
+    /**
+     * The emergency this engineer has accepted and is now attending (r1438):
+     * their code_red_requests still in 'engineer_accepted' (RLS lets the
+     * accepted engineer read the row). Keeps the committed emergency — and its
+     * war-room link — visible after it leaves the actionable [openForMe] feed.
+     */
+    suspend fun acceptedByMe(engineerUserId: String): Result<List<CodeRed>> = runCatching {
+        client.postgrest.from("code_red_requests")
+            .select(columns = Columns.raw(REQUEST_COLS)) {
+                filter {
+                    eq("accepted_engineer_user_id", engineerUserId)
+                    eq("status", "engineer_accepted")
+                }
+                order("accepted_at", Order.DESCENDING)
+            }
+            .decodeList<RequestRow>()
+            .map { it.toCodeRed(distanceKmAtPage = null) }
     }
 
     // -----------------------------------------------------------------
