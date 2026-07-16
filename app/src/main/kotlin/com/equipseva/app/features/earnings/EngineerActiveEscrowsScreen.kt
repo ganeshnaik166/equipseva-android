@@ -34,12 +34,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.durationUntilLabel
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.prettyDateTime
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
+import com.equipseva.app.designsystem.util.rememberNowTicker
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaInk500
@@ -101,6 +103,7 @@ fun EngineerActiveEscrowsScreen(
     // marked-done + hospital approved) or capture-pending → captured;
     // without this, the list keeps showing the old status until restart.
     com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
+    val now by rememberNowTicker(60_000L)
 
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -137,7 +140,7 @@ fun EngineerActiveEscrowsScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         items(state.rows, key = { it.escrowId }) { row ->
-                            ActiveEscrowRow(row = row, onClick = { onOpenJob(row.repairJobId) })
+                            ActiveEscrowRow(row = row, now = now, onClick = { onOpenJob(row.repairJobId) })
                         }
                     }
                 }
@@ -149,6 +152,7 @@ fun EngineerActiveEscrowsScreen(
 @Composable
 private fun ActiveEscrowRow(
     row: RepairJobEscrowRepository.ActiveEscrowRow,
+    now: Long,
     onClick: () -> Unit,
 ) {
     val (pillText, pillKind) = activeEscrowStatusPill(row.status)
@@ -188,9 +192,14 @@ private fun ActiveEscrowRow(
             fontSize = 12.sp,
         )
         when (row.status) {
-            "held" -> row.scheduledReleaseAt?.let {
+            "held" -> row.scheduledReleaseAt?.let { iso ->
+                val countdown = durationUntilLabel(iso, now)
                 Text(
-                    text = "Releases: ${prettyDateTime(it)}",
+                    text = if (countdown != null) {
+                        "Releases in $countdown · ${prettyDateTime(iso)}"
+                    } else {
+                        "Releasing now · ${prettyDateTime(iso)}"
+                    },
                     color = SevaInk500,
                     fontSize = 11.sp,
                 )

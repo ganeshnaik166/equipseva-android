@@ -136,3 +136,30 @@ fun slaCountdownLabel(iso: String?, nowEpochMillis: Long): String? =
 
 fun slaUrgency(iso: String?, nowEpochMillis: Long): SlaUrgency? =
     iso.parseInstantOrNull()?.let { slaUrgency(it.toEpochMilli(), nowEpochMillis) }
+
+/**
+ * Coarse, DAYS-aware "time until" label with no framing words — the caller
+ * wraps it (e.g. "Releases in $x"). Unlike [slaCountdownLabel] (short-horizon,
+ * "Overdue"/"left") this suits multi-day windows like the 48h escrow hold.
+ * Null once [deadlineEpochMillis] is at/before [nowEpochMillis] so the caller
+ * can render its own "now" copy. Buckets: "2d 3h" / "2d" / "3h 20m" / "3h" /
+ * "45m" / "<1m".
+ */
+fun durationUntilLabel(deadlineEpochMillis: Long, nowEpochMillis: Long): String? {
+    val rem = deadlineEpochMillis - nowEpochMillis
+    if (rem <= 0L) return null
+    val totalMin = rem / 60_000L
+    val d = totalMin / (60L * 24L)
+    val h = (totalMin % (60L * 24L)) / 60L
+    val m = totalMin % 60L
+    return when {
+        d > 0L -> if (h > 0L) "${d}d ${h}h" else "${d}d"
+        h > 0L -> if (m > 0L) "${h}h ${m}m" else "${h}h"
+        totalMin > 0L -> "${m}m"
+        else -> "<1m"
+    }
+}
+
+/** ISO overload for [durationUntilLabel]; null on unparseable input or past. */
+fun durationUntilLabel(iso: String?, nowEpochMillis: Long): String? =
+    iso.parseInstantOrNull()?.let { durationUntilLabel(it.toEpochMilli(), nowEpochMillis) }
