@@ -668,6 +668,7 @@ fun MainNavGraph(
                     onOpenFirstJobFree = { navController.navigate(Routes.HOSPITAL_FIRST_JOB_FREE) },
                     onOpenCatalog = { navController.navigate(Routes.CATALOG_BROWSE) },
                     onOpenChainCockpit = { navController.navigate(Routes.CHAIN_COCKPIT) },
+                    onOpenFounderCockpit = { navController.navigate(Routes.FOUNDER_COCKPIT) },
                     onOpenFleetHealth = { navController.navigate(Routes.HOSPITAL_FLEET_HEALTH) },
                     onOpenPmCalendar = { navController.navigate(Routes.HOSPITAL_PM_CALENDAR) },
                     onOpenPublicPreview = { engineerId ->
@@ -1196,6 +1197,25 @@ fun MainNavGraph(
             }
             composable(Routes.CHAIN_COCKPIT) {
                 com.equipseva.app.features.hospital.ChainCockpitScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.FOUNDER_COCKPIT) {
+                com.equipseva.app.features.founder.FounderCockpitScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenDashboard = { title, rpc ->
+                        navController.navigate(Routes.founderMetricsRoute(title, rpc))
+                    },
+                )
+            }
+            composable(
+                route = "${Routes.FOUNDER_METRICS}?${Routes.FOUNDER_METRICS_ARG_TITLE}={${Routes.FOUNDER_METRICS_ARG_TITLE}}&${Routes.FOUNDER_METRICS_ARG_RPC}={${Routes.FOUNDER_METRICS_ARG_RPC}}",
+                arguments = listOf(
+                    navArgument(Routes.FOUNDER_METRICS_ARG_TITLE) { type = NavType.StringType; defaultValue = "" },
+                    navArgument(Routes.FOUNDER_METRICS_ARG_RPC) { type = NavType.StringType; defaultValue = "" },
+                ),
+            ) {
+                com.equipseva.app.features.founder.FounderMetricListScreen(
                     onBack = { navController.popBackStack() },
                 )
             }

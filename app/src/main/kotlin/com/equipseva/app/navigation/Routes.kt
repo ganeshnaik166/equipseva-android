@@ -217,6 +217,14 @@ object Routes {
     const val CATALOG_BROWSE = "catalog/browse"
     // r1419 — hospital-chain admin cockpit (chain_kpis + chain_per_site_summary).
     const val CHAIN_COCKPIT = "profile/chain_cockpit"
+    // r1420 — founder business cockpit (hub) + generic key-value metric screen.
+    const val FOUNDER_COCKPIT = "founder/cockpit"
+    const val FOUNDER_METRICS = "founder/metrics"
+    const val FOUNDER_METRICS_ARG_TITLE = "title"
+    const val FOUNDER_METRICS_ARG_RPC = "rpc"
+    fun founderMetricsRoute(title: String, rpc: String): String =
+        "$FOUNDER_METRICS?$FOUNDER_METRICS_ARG_TITLE=${Uri.encode(title)}" +
+            "&$FOUNDER_METRICS_ARG_RPC=${Uri.encode(rpc)}"
     // r1396 — read-only hospital fleet-health board (hospital_fleet_health).
     const val HOSPITAL_FLEET_HEALTH = "profile/fleet_health"
     // r1398 — hospital preventive-maintenance calendar (hospital_upcoming_pm).

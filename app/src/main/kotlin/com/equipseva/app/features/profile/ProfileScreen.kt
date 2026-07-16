@@ -56,6 +56,7 @@ import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.QueryStats
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.AssistChip
@@ -153,6 +154,8 @@ fun ProfileScreen(
     onOpenCatalog: () -> Unit = {},
     // r1419 — hospital-chain admin cockpit.
     onOpenChainCockpit: () -> Unit = {},
+    // r1420 — founder business cockpit.
+    onOpenFounderCockpit: () -> Unit = {},
     onSwitchService: () -> Unit = {},
     onSignIn: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -304,6 +307,7 @@ fun ProfileScreen(
                         onOpenFirstJobFree = onOpenFirstJobFree,
                         onOpenCatalog = onOpenCatalog,
                         onOpenChainCockpit = onOpenChainCockpit,
+                        onOpenFounderCockpit = onOpenFounderCockpit,
                         onSwitchService = viewModel::onToggleRoleAndGoHome,
                         onPickAvatar = viewModel::uploadAvatar,
                     )
@@ -455,6 +459,7 @@ private fun ProfileContent(
     onOpenFirstJobFree: () -> Unit,
     onOpenCatalog: () -> Unit,
     onOpenChainCockpit: () -> Unit,
+    onOpenFounderCockpit: () -> Unit,
     onSwitchService: () -> Unit,
     onPickAvatar: (Uri) -> Unit,
 ) {
@@ -550,6 +555,7 @@ private fun ProfileContent(
             onOpenFirstJobFree = onOpenFirstJobFree,
             onOpenCatalog = onOpenCatalog,
             onOpenChainCockpit = onOpenChainCockpit,
+            onOpenFounderCockpit = onOpenFounderCockpit,
             onSwitchService = onSwitchService,
             onSignOut = onSignOut,
             signingOut = state.signingOut,
@@ -749,6 +755,7 @@ private fun buildProfileSections(
     onOpenFirstJobFree: () -> Unit,
     onOpenCatalog: () -> Unit,
     onOpenChainCockpit: () -> Unit,
+    onOpenFounderCockpit: () -> Unit,
     onSwitchService: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
@@ -913,6 +920,11 @@ private fun buildProfileSections(
                 icon = Icons.Outlined.Shield,
                 label = "Founder dashboard",
                 onClick = onOpenFounderDashboard,
+            ),
+            SettingsRow(
+                icon = Icons.Outlined.QueryStats,
+                label = "Business cockpit",
+                onClick = onOpenFounderCockpit,
             ),
         )
     } else emptyList()

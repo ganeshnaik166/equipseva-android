@@ -49,3 +49,6 @@ web/.next/
 web/.vercel/
 web/out/
 web/next-env.d.ts
+
+# Personal Claude Code overrides (local-only)
+.claude/settings.local.json
