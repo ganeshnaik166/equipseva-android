@@ -387,6 +387,7 @@ fun MainNavGraph(
                     // r1408 / r1409 — job "Records" drill-downs.
                     onOpenEvidence = { jobId -> navController.navigate(Routes.evidenceRoute(jobId)) },
                     onOpenAttendance = { jobId -> navController.navigate(Routes.attendanceRoute(jobId)) },
+                    onOpenServiceReport = { jobId -> navController.navigate(Routes.serviceReportRoute(jobId)) },
                 )
             }
             composable(
@@ -406,6 +407,16 @@ fun MainNavGraph(
                 ),
             ) {
                 com.equipseva.app.features.repair.AttendanceTimelineScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = "${Routes.SERVICE_REPORT_FOR_JOB}/{${Routes.SERVICE_REPORT_ARG_JOB_ID}}",
+                arguments = listOf(
+                    navArgument(Routes.SERVICE_REPORT_ARG_JOB_ID) { type = NavType.StringType },
+                ),
+            ) {
+                com.equipseva.app.features.repair.ServiceReportDetailScreen(
                     onBack = { navController.popBackStack() },
                 )
             }

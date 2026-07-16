@@ -39,6 +39,11 @@ object Routes {
     const val ATTENDANCE_ARG_JOB_ID = "jobId"
     fun attendanceRoute(jobId: String): String = "$ATTENDANCE_FOR_JOB/$jobId"
 
+    // r1411 — in-app structured Digital Service Report for a job (dsr_for_job).
+    const val SERVICE_REPORT_FOR_JOB = "job/service_report"
+    const val SERVICE_REPORT_ARG_JOB_ID = "jobId"
+    fun serviceReportRoute(jobId: String): String = "$SERVICE_REPORT_FOR_JOB/$jobId"
+
     // Chat — conversation list and single-thread view (both full-screen).
     const val CONVERSATIONS = "chat"
     const val CHAT_DETAIL = "chat/detail"

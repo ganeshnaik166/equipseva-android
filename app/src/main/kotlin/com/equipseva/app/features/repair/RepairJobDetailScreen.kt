@@ -159,6 +159,7 @@ fun RepairJobDetailScreen(
     // wires them to the evidence / attendance routes with this job's id.
     onOpenEvidence: (jobId: String) -> Unit = {},
     onOpenAttendance: (jobId: String) -> Unit = {},
+    onOpenServiceReport: (jobId: String) -> Unit = {},
     viewModel: RepairJobDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -384,6 +385,7 @@ fun RepairJobDetailScreen(
                     onOpenPayoutMethod = onOpenPayoutMethod,
                     onOpenEvidence = { onOpenEvidence(state.job!!.id) },
                     onOpenAttendance = { onOpenAttendance(state.job!!.id) },
+                    onOpenServiceReport = { onOpenServiceReport(state.job!!.id) },
                 )
             }
         }
@@ -581,10 +583,12 @@ fun RepairJobDetailScreen(
 
 @Composable
 private fun RecordsCard(
+    onOpenServiceReport: () -> Unit,
     onOpenEvidence: () -> Unit,
     onOpenAttendance: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        RecordsRow(label = "Service report", onClick = onOpenServiceReport)
         RecordsRow(label = "Evidence vault", onClick = onOpenEvidence)
         RecordsRow(label = "GPS attendance", onClick = onOpenAttendance)
     }
@@ -639,6 +643,7 @@ private fun JobBody(
     onOpenPayoutMethod: () -> Unit = {},
     onOpenEvidence: () -> Unit = {},
     onOpenAttendance: () -> Unit = {},
+    onOpenServiceReport: () -> Unit = {},
 ) {
     val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
     Column(
@@ -738,6 +743,7 @@ private fun JobBody(
         if (job.engineerId != null) {
             EsSection(title = "Records") {
                 RecordsCard(
+                    onOpenServiceReport = onOpenServiceReport,
                     onOpenEvidence = onOpenEvidence,
                     onOpenAttendance = onOpenAttendance,
                 )
