@@ -394,8 +394,14 @@ private fun EscrowSummaryCard(
             // only when a held row exists, and trigger always populates
             // scheduled_release_at on those rows).
             summary.nextReleaseAt?.let { iso ->
+                val now by com.equipseva.app.designsystem.util.rememberNowTicker(60_000L)
+                val countdown = com.equipseva.app.core.util.durationUntilLabel(iso, now)
                 Text(
-                    text = "Next release: ${prettyDateTime(iso)}",
+                    text = if (countdown != null) {
+                        "Next release in $countdown · ${prettyDateTime(iso)}"
+                    } else {
+                        "Next release: ${prettyDateTime(iso)}"
+                    },
                     fontSize = 12.sp,
                     color = SevaInk500,
                 )
