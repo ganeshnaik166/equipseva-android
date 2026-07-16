@@ -217,6 +217,13 @@ object Routes {
     const val CATALOG_BROWSE = "catalog/browse"
     // r1419 — hospital-chain admin cockpit (chain_kpis + chain_per_site_summary).
     const val CHAIN_COCKPIT = "profile/chain_cockpit"
+    // r1422 — chain-admin site-invite management (list + invite + revoke).
+    const val CHAIN_INVITES = "profile/chain_invites"
+    const val CHAIN_INVITES_ARG_CHAIN_ID = "chainId"
+    const val CHAIN_INVITES_ARG_CHAIN_NAME = "chainName"
+    fun chainInvitesRoute(chainId: String, chainName: String): String =
+        "$CHAIN_INVITES?$CHAIN_INVITES_ARG_CHAIN_ID=${Uri.encode(chainId)}" +
+            "&$CHAIN_INVITES_ARG_CHAIN_NAME=${Uri.encode(chainName)}"
     // r1420 — founder business cockpit (hub) + generic key-value metric screen.
     const val FOUNDER_COCKPIT = "founder/cockpit"
     const val FOUNDER_METRICS = "founder/metrics"

@@ -1198,6 +1198,20 @@ fun MainNavGraph(
             composable(Routes.CHAIN_COCKPIT) {
                 com.equipseva.app.features.hospital.ChainCockpitScreen(
                     onBack = { navController.popBackStack() },
+                    onManageInvites = { chainId, chainName ->
+                        navController.navigate(Routes.chainInvitesRoute(chainId, chainName))
+                    },
+                )
+            }
+            composable(
+                route = "${Routes.CHAIN_INVITES}?${Routes.CHAIN_INVITES_ARG_CHAIN_ID}={${Routes.CHAIN_INVITES_ARG_CHAIN_ID}}&${Routes.CHAIN_INVITES_ARG_CHAIN_NAME}={${Routes.CHAIN_INVITES_ARG_CHAIN_NAME}}",
+                arguments = listOf(
+                    navArgument(Routes.CHAIN_INVITES_ARG_CHAIN_ID) { type = NavType.StringType; defaultValue = "" },
+                    navArgument(Routes.CHAIN_INVITES_ARG_CHAIN_NAME) { type = NavType.StringType; defaultValue = "" },
+                ),
+            ) {
+                com.equipseva.app.features.hospital.ChainInvitesScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.FOUNDER_COCKPIT) {

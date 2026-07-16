@@ -7,6 +7,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 
@@ -70,5 +71,67 @@ class ChainRepository @Inject constructor(
             function = "chain_per_site_summary",
             parameters = buildJsonObject { put("p_chain_id", JsonPrimitive(chainId)) },
         ).decodeList<ChainSite>()
+    }
+
+    // -----------------------------------------------------------------
+    //  r1422 — site-onboarding invites
+    // -----------------------------------------------------------------
+
+    @Serializable
+    data class ChainInvite(
+        @SerialName("id") val id: String,
+        @SerialName("invited_email") val invitedEmail: String = "",
+        @SerialName("site_label") val siteLabel: String? = null,
+        @SerialName("status") val status: String = "pending",
+        @SerialName("expires_at") val expiresAt: String? = null,
+        @SerialName("created_at") val createdAt: String? = null,
+    )
+
+    /**
+     * Invites for the caller's chain, newest first. Read straight from
+     * hospital_chain_invites — its RLS SELECT policy already scopes rows to
+     * the chain's primary admin (or founder).
+     */
+    suspend fun invites(chainId: String): Result<List<ChainInvite>> = runCatching {
+        client.postgrest.from("hospital_chain_invites").select {
+            filter { eq("chain_id", chainId) }
+            order("created_at", Order.DESCENDING)
+        }.decodeList<ChainInvite>()
+    }
+
+    /**
+     * Invite a new site to the chain by admin email. Backed by
+     * chain_admin_invite_site (SECURITY DEFINER, re-gated to the chain admin,
+     * rate-limited server-side). The returned invite id is not needed here —
+     * the screen just reloads the list.
+     */
+    suspend fun inviteSite(chainId: String, email: String, siteLabel: String?): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "chain_admin_invite_site",
+            parameters = buildJsonObject {
+                put("p_chain_id", JsonPrimitive(chainId))
+                put("p_email", JsonPrimitive(email.trim()))
+                put(
+                    "p_site_label",
+                    siteLabel?.trim()?.takeIf { it.isNotEmpty() }?.let { JsonPrimitive(it) } ?: JsonNull,
+                )
+            },
+        )
+        Unit
+    }
+
+    /** Revoke a still-pending invite. Backed by chain_admin_revoke_invite. */
+    suspend fun revokeInvite(inviteId: String, reason: String?): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "chain_admin_revoke_invite",
+            parameters = buildJsonObject {
+                put("p_invite_id", JsonPrimitive(inviteId))
+                put(
+                    "p_reason",
+                    reason?.trim()?.takeIf { it.isNotEmpty() }?.let { JsonPrimitive(it) } ?: JsonNull,
+                )
+            },
+        )
+        Unit
     }
 }

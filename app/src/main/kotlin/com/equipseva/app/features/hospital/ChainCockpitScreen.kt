@@ -36,6 +36,9 @@ import com.equipseva.app.core.data.hospital.ChainRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.EmptyStateView
+import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.EsBtnKind
+import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
@@ -111,6 +114,7 @@ class ChainCockpitViewModel @Inject constructor(
 @Composable
 fun ChainCockpitScreen(
     onBack: () -> Unit,
+    onManageInvites: (chainId: String, chainName: String) -> Unit = { _, _ -> },
     viewModel: ChainCockpitViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -143,6 +147,15 @@ fun ChainCockpitScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         item(key = "hero") { ChainHero(chain.name, state.kpis) }
+                        item(key = "invites-cta") {
+                            EsBtn(
+                                text = "Manage site invites",
+                                onClick = { onManageInvites(chain.id, chain.name) },
+                                kind = EsBtnKind.Secondary,
+                                size = EsBtnSize.Md,
+                                full = true,
+                            )
+                        }
                         if (state.multipleChains) {
                             item(key = "multi") {
                                 Text(
