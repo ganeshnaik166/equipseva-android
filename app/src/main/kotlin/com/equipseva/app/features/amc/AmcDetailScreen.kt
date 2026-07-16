@@ -124,6 +124,8 @@ class AmcDetailViewModel @Inject constructor(
         // covers both the setup-request and cancel paths.
         val subscription: AmcRepository.SubscriptionRow? = null,
         val autoPayBusy: Boolean = false,
+        // Round 560 — per-contract tier perks (my_amc_tier_perks); best-effort.
+        val tierPerks: AmcRepository.ContractTierPerks? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -197,6 +199,8 @@ class AmcDetailViewModel @Inject constructor(
             // methods. Null is OK (hospital hasn't enrolled).
             repo.fetchSubscription(contractId)
                 .onSuccess { v -> _state.update { it.copy(subscription = v) } }
+            repo.fetchTierPerks(contractId)
+                .onSuccess { v -> _state.update { it.copy(tierPerks = v) } }
 
             _state.update {
                 it.copy(loading = false, role = role, viewerIsHospital = isHospital)
@@ -878,6 +882,22 @@ private fun OverviewTab(
                 }
             }
         }
+        state.tierPerks?.let { tp ->
+            EsSection(title = "Tier benefits") {
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Pill(text = tp.displayLabel.ifBlank { tp.amcTier }, kind = PillKind.Default)
+                    LabelRow("Visits / year", tp.visitsPerYearCeiling?.toString() ?: "—")
+                    LabelRow("Code Red SLA", amcSlaLabel(tp.codeRedSlaMinutes))
+                    LabelRow("Parts discount", amcDiscountLabel(tp.partsDiscountPct))
+                    LabelRow("Trusted-partner badge", if (tp.trustedPartnerBadge) "Included" else "—")
+                    LabelRow("PI insurance bundled", if (tp.piInsuranceBundled) "Included" else "—")
+                    LabelRow("Founder priority support", if (tp.founderPrioritySupport) "Included" else "—")
+                }
+            }
+        }
         if (cats.isNotEmpty()) {
             EsSection(title = "Equipment categories") {
                 CategoryFlow(items = cats)
@@ -1409,6 +1429,21 @@ private fun CategoryFlow(items: List<String>) {
  */
 internal fun amcSeverityLabel(severity: String?): String =
     if (severity == "emergency") "Emergency" else "Standard"
+
+/** r1416 — Code-Red SLA minutes → label ("60 min" / "2 h"); "—" when unset. */
+internal fun amcSlaLabel(minutes: Int?): String = when {
+    minutes == null || minutes <= 0 -> "—"
+    minutes % 60 == 0 -> "${minutes / 60} h"
+    else -> "$minutes min"
+}
+
+/** r1416 — parts discount fraction-or-percent → "10%"; "—" when unset/zero. */
+internal fun amcDiscountLabel(pct: Double?): String {
+    if (pct == null || pct == 0.0) return "—"
+    val rounded = kotlin.math.round(pct * 10.0) / 10.0
+    val s = if (rounded % 1.0 == 0.0) rounded.toLong().toString() else rounded.toString()
+    return "$s%"
+}
 
 /**
  * Label for an AMC SLA breach type. Three known wire values:

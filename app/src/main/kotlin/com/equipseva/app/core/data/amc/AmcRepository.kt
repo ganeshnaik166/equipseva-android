@@ -201,6 +201,29 @@ class AmcRepository @Inject constructor(
             ?: error("Couldn't read pool balance (server returned: ${raw.take(40)})")
     }
 
+    /** Round 560 — per-contract AMC tier perks (my_amc_tier_perks). Distinct
+     *  from my_active_amc_tier_perks: scoped to one contract + adds the
+     *  PI-insurance and founder-priority flags. 0-or-1 row. */
+    @Serializable
+    data class ContractTierPerks(
+        @SerialName("contract_id") val contractId: String,
+        @SerialName("amc_tier") val amcTier: String = "",
+        @SerialName("display_label") val displayLabel: String = "",
+        @SerialName("visits_per_year_ceiling") val visitsPerYearCeiling: Int? = null,
+        @SerialName("code_red_sla_minutes") val codeRedSlaMinutes: Int? = null,
+        @SerialName("parts_discount_pct") val partsDiscountPct: Double? = null,
+        @SerialName("trusted_partner_badge") val trustedPartnerBadge: Boolean = false,
+        @SerialName("pi_insurance_bundled") val piInsuranceBundled: Boolean = false,
+        @SerialName("founder_priority_support") val founderPrioritySupport: Boolean = false,
+    )
+
+    suspend fun fetchTierPerks(contractId: String): Result<ContractTierPerks?> = runCatching {
+        supabase.postgrest.rpc(
+            function = "my_amc_tier_perks",
+            parameters = buildJsonObject { put("p_contract_id", JsonPrimitive(contractId)) },
+        ).decodeList<ContractTierPerks>().firstOrNull()
+    }
+
     suspend fun listSlaBreaches(contractId: String): Result<List<AmcSlaBreach>> = runCatching {
         supabase.postgrest.rpc(
             function = "list_amc_sla_breaches_for_contract",
