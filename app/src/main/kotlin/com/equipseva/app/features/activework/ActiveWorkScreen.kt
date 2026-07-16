@@ -59,6 +59,12 @@ fun ActiveWorkScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
+    // r1436 — while jobs are in flight, silently poll so a hospital-driven
+    // status change (bid accepted, job confirmed) surfaces without a manual
+    // pull. Silent: no spinner, and it stops when there's nothing active.
+    com.equipseva.app.designsystem.util.PollingEffect(
+        enabled = state.activeJobs.isNotEmpty(),
+    ) { viewModel.silentRefresh() }
 
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {

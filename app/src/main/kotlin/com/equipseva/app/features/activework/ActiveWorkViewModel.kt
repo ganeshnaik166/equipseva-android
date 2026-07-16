@@ -55,6 +55,31 @@ class ActiveWorkViewModel @Inject constructor(
 
     fun onRefresh() = load(initial = false)
 
+    /**
+     * Silent poll refresh (r1436) for an engineer watching jobs in flight —
+     * updates the active/completed lists only, with no loading/refreshing
+     * indicator and failures swallowed, so a hospital-driven status change
+     * (bid accepted, job confirmed, escrow released) surfaces without a manual
+     * pull. Existing visible state is preserved on any error.
+     */
+    fun silentRefresh() {
+        viewModelScope.launch {
+            jobRepository.fetchAssignedToMe().onSuccess { jobs ->
+                val active = jobs.filter {
+                    it.status in listOf(
+                        RepairJobStatus.Assigned,
+                        RepairJobStatus.EnRoute,
+                        RepairJobStatus.InProgress,
+                    )
+                }
+                val completed = jobs.filter {
+                    it.status in listOf(RepairJobStatus.Completed, RepairJobStatus.Cancelled)
+                }
+                _state.update { it.copy(activeJobs = active, completedJobs = completed) }
+            }
+        }
+    }
+
     private fun load(initial: Boolean) {
         _state.update {
             it.copy(loading = initial, refreshing = !initial, errorMessage = null)
