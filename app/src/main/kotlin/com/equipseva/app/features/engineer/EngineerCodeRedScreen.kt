@@ -40,8 +40,11 @@ import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.codered.CodeRedRepository
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.SlaUrgency
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.prettyDate
+import com.equipseva.app.core.util.slaCountdownLabel
+import com.equipseva.app.core.util.slaUrgency
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBottomSheet
 import com.equipseva.app.designsystem.components.EsBtn
@@ -51,9 +54,11 @@ import com.equipseva.app.designsystem.components.EsField
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
+import com.equipseva.app.designsystem.util.rememberNowTicker
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaDanger500
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk700
 import com.equipseva.app.designsystem.theme.SevaInk900
@@ -134,6 +139,7 @@ fun EngineerCodeRedScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
+    val now by rememberNowTicker()
 
     var declineFor by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -176,6 +182,7 @@ fun EngineerCodeRedScreen(
                     items(state.items, key = { it.id }) { cr ->
                         CodeRedCard(
                             cr = cr,
+                            now = now,
                             working = state.working,
                             onAccept = { viewModel.accept(cr.id) {} },
                             onDecline = { declineFor = cr.id },
@@ -191,6 +198,7 @@ fun EngineerCodeRedScreen(
 @Composable
 private fun CodeRedCard(
     cr: CodeRedRepository.CodeRed,
+    now: Long,
     working: Boolean,
     onAccept: () -> Unit,
     onDecline: () -> Unit,
@@ -218,8 +226,18 @@ private fun CodeRedCard(
             Pill(text = "SOS", kind = PillKind.Danger)
         }
         Text(cr.description, style = EsType.BodySm, color = SevaInk700)
-        cr.slaDeadlineAt?.takeIf { it.isNotBlank() }?.let {
-            Text("Respond by ${prettyDate(it)}", style = EsType.Caption, color = SevaInk500)
+        cr.slaDeadlineAt?.takeIf { it.isNotBlank() }?.let { iso ->
+            val countdown = slaCountdownLabel(iso, now)
+            if (countdown != null) {
+                val urgent = slaUrgency(iso, now) != SlaUrgency.Ok
+                Text(
+                    "$countdown · respond by ${prettyDate(iso)}",
+                    style = EsType.Caption.copy(fontWeight = if (urgent) FontWeight.Bold else FontWeight.Normal),
+                    color = if (urgent) SevaDanger500 else SevaInk500,
+                )
+            } else {
+                Text("Respond by ${prettyDate(iso)}", style = EsType.Caption, color = SevaInk500)
+            }
         }
         Text(
             "Up to ${formatRupees(cr.feeCeilingRupees)} emergency fee" +

@@ -89,3 +89,50 @@ fun daysUntil(iso: String): Long? =
             ?: LocalDate.parse(iso)
         java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(IST_ZONE), target)
     }.getOrNull()
+
+// ---------------------------------------------------------------------
+//  Short-horizon SLA countdown (r1429) — used by time-critical surfaces
+//  like Code Red where a live "12m left" beats a static timestamp.
+//  Pure over epoch millis (now is a parameter) so they unit-test without
+//  a clock; the composable passes System.currentTimeMillis() from a ticker.
+// ---------------------------------------------------------------------
+
+/** Urgency bucket for an SLA deadline. */
+enum class SlaUrgency { Ok, Urgent, Overdue }
+
+/** Minutes-remaining threshold below which an SLA reads [SlaUrgency.Urgent]. */
+private const val SLA_URGENT_WINDOW_MS = 15L * 60_000L
+
+/** Countdown to [deadlineEpochMillis] from [nowEpochMillis]:
+ *  "Overdue" once passed, "<1m left" under a minute, else "Nm left" /
+ *  "Hh left" / "Hh Mm left". */
+fun slaCountdownLabel(deadlineEpochMillis: Long, nowEpochMillis: Long): String {
+    val remaining = deadlineEpochMillis - nowEpochMillis
+    if (remaining <= 0L) return "Overdue"
+    val totalMin = remaining / 60_000L
+    val h = totalMin / 60L
+    val m = totalMin % 60L
+    return when {
+        totalMin == 0L -> "<1m left"
+        h == 0L -> "${m}m left"
+        m == 0L -> "${h}h left"
+        else -> "${h}h ${m}m left"
+    }
+}
+
+fun slaUrgency(deadlineEpochMillis: Long, nowEpochMillis: Long): SlaUrgency {
+    val remaining = deadlineEpochMillis - nowEpochMillis
+    return when {
+        remaining <= 0L -> SlaUrgency.Overdue
+        remaining <= SLA_URGENT_WINDOW_MS -> SlaUrgency.Urgent
+        else -> SlaUrgency.Ok
+    }
+}
+
+/** Convenience over an ISO deadline string. Null when [iso] can't be parsed
+ *  (callers then fall back to a plain date). */
+fun slaCountdownLabel(iso: String?, nowEpochMillis: Long): String? =
+    iso.parseInstantOrNull()?.let { slaCountdownLabel(it.toEpochMilli(), nowEpochMillis) }
+
+fun slaUrgency(iso: String?, nowEpochMillis: Long): SlaUrgency? =
+    iso.parseInstantOrNull()?.let { slaUrgency(it.toEpochMilli(), nowEpochMillis) }

@@ -43,8 +43,11 @@ import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.codered.CodeRedRepository
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.SlaUrgency
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.prettyDate
+import com.equipseva.app.core.util.slaCountdownLabel
+import com.equipseva.app.core.util.slaUrgency
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBottomSheet
 import com.equipseva.app.designsystem.components.EsBtn
@@ -56,6 +59,7 @@ import com.equipseva.app.designsystem.components.EsFieldType
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
+import com.equipseva.app.designsystem.util.rememberNowTicker
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.PaperDefault
@@ -145,6 +149,7 @@ fun HospitalCodeRedScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.reload() }
+    val now by rememberNowTicker()
 
     var showForm by rememberSaveable { mutableStateOf(false) }
     if (showForm) {
@@ -200,7 +205,7 @@ fun HospitalCodeRedScreen(
                             )
                         }
                     } else {
-                        items(state.requests, key = { it.id }) { req -> HospitalCodeRedCard(req) }
+                        items(state.requests, key = { it.id }) { req -> HospitalCodeRedCard(req, now) }
                     }
                     item(key = "tail") { Spacer(Modifier.height(8.dp)) }
                 }
@@ -210,7 +215,7 @@ fun HospitalCodeRedScreen(
 }
 
 @Composable
-private fun HospitalCodeRedCard(req: CodeRedRepository.HospitalCodeRed) {
+private fun HospitalCodeRedCard(req: CodeRedRepository.HospitalCodeRed, now: Long) {
     val (pillText, pillKind) = codeRedRequestStatusPill(req.status)
     Column(
         modifier = Modifier
@@ -235,8 +240,18 @@ private fun HospitalCodeRedCard(req: CodeRedRepository.HospitalCodeRed) {
             Pill(text = pillText, kind = pillKind)
         }
         Text(req.description, style = EsType.BodySm, color = SevaInk700)
-        req.slaDeadlineAt?.takeIf { it.isNotBlank() }?.let {
-            Text("SLA by ${prettyDate(it)}", style = EsType.Caption, color = SevaInk500)
+        req.slaDeadlineAt?.takeIf { it.isNotBlank() }?.let { iso ->
+            val countdown = if (req.status == "open") slaCountdownLabel(iso, now) else null
+            if (countdown != null) {
+                val urgent = slaUrgency(iso, now) != SlaUrgency.Ok
+                Text(
+                    "$countdown · SLA ${prettyDate(iso)}",
+                    style = EsType.Caption.copy(fontWeight = if (urgent) FontWeight.Bold else FontWeight.Normal),
+                    color = if (urgent) SevaDanger500 else SevaInk500,
+                )
+            } else {
+                Text("SLA by ${prettyDate(iso)}", style = EsType.Caption, color = SevaInk500)
+            }
         }
         Text(
             "Up to ${formatRupees(req.feeCeilingRupees)} emergency fee" +
