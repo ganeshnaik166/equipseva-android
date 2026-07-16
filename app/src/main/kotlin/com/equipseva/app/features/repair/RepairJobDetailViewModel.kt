@@ -1090,7 +1090,10 @@ class RepairJobDetailViewModel @Inject constructor(
     }
 
     private fun load() {
-        _state.update { it.copy(loading = true, errorMessage = null, notFound = false) }
+        // r1451 — full-screen loader only on the first load (job == null). A
+        // refresh-on-return or a decideCostRevision-triggered reload with the job
+        // already shown updates silently instead of blanking the whole detail.
+        _state.update { it.copy(loading = it.job == null, errorMessage = null, notFound = false) }
         viewModelScope.launch {
             // Mirrors PR #632 — a malformed deep-link like
             // `https://equipseva.com/job/` (with the trailing slash but no

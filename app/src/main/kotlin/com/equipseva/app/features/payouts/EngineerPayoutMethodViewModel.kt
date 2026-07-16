@@ -80,7 +80,9 @@ class EngineerPayoutMethodViewModel @Inject constructor(
     }
 
     fun load() {
-        _state.update { it.copy(loading = true, errorMessage = null) }
+        // r1451 — full-screen loader only on the first load; a save-triggered
+        // reload with a method already shown refreshes silently.
+        _state.update { it.copy(loading = it.current == null, errorMessage = null) }
         viewModelScope.launch {
             repo.fetchCurrent()
                 .onSuccess { existing ->

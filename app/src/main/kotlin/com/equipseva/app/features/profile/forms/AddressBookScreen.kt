@@ -79,7 +79,9 @@ class AddressBookViewModel @Inject constructor(
     init { reload() }
 
     fun reload() {
-        _state.update { it.copy(loading = true, error = null) }
+        // r1451 — silent refresh when addresses are already shown (set-default /
+        // delete no longer blank the list to a spinner).
+        _state.update { it.copy(loading = it.rows.isEmpty(), error = null) }
         viewModelScope.launch {
             repo.list()
                 .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }
