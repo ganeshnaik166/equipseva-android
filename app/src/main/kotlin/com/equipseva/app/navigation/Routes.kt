@@ -234,6 +234,8 @@ object Routes {
     const val HOSPITAL_CODE_RED = "profile/code_red"
     // r1444 — invited hospital redeems a chain-site invite token.
     const val JOIN_CHAIN = "profile/join_chain"
+    // r1448 — org member views their organization's full registration record.
+    const val ORGANIZATION_DETAIL = "profile/organization"
     // r1445 — dispute evidence vault: file a pack for a disputed escrow.
     const val DISPUTE_PACK = "dispute/pack"
     const val DISPUTE_PACK_ARG_ESCROW_ID = "escrowId"

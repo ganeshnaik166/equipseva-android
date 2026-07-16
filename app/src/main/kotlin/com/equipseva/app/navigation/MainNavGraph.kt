@@ -707,6 +707,7 @@ fun MainNavGraph(
                     onOpenFounderCockpit = { navController.navigate(Routes.FOUNDER_COCKPIT) },
                     onOpenHospitalCodeRed = { navController.navigate(Routes.HOSPITAL_CODE_RED) },
                     onOpenJoinChain = { navController.navigate(Routes.JOIN_CHAIN) },
+                    onOpenOrganization = { navController.navigate(Routes.ORGANIZATION_DETAIL) },
                     onOpenFleetHealth = { navController.navigate(Routes.HOSPITAL_FLEET_HEALTH) },
                     onOpenPmCalendar = { navController.navigate(Routes.HOSPITAL_PM_CALENDAR) },
                     onOpenPublicPreview = { engineerId ->
@@ -1272,6 +1273,11 @@ fun MainNavGraph(
             }
             composable(Routes.JOIN_CHAIN) {
                 com.equipseva.app.features.hospital.JoinChainScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.ORGANIZATION_DETAIL) {
+                com.equipseva.app.features.org.OrganizationDetailScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
