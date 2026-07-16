@@ -118,6 +118,9 @@ class CodeRedRepository @Inject constructor(
         @SerialName("sla_deadline_at") val slaDeadlineAt: String? = null,
         @SerialName("accepted_at") val acceptedAt: String? = null,
         @SerialName("created_at") val createdAt: String? = null,
+        // War-room coordination link (WhatsApp/Slack), set founder-side; null
+        // when none was attached to this emergency.
+        @SerialName("warroom_url") val warroomUrl: String? = null,
     )
 
     @Serializable

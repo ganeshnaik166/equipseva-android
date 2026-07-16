@@ -263,6 +263,18 @@ private fun HospitalCodeRedCard(req: CodeRedRepository.HospitalCodeRed, now: Lon
             style = EsType.Caption,
             color = SevaInk500,
         )
+        // r1437 — one-tap into the emergency coordination channel while the
+        // Code Red is still active. Only shows when ops attached a war-room link.
+        val warroom = req.warroomUrl?.takeIf { it.isNotBlank() }
+        if (warroom != null && (req.status == "open" || req.status == "engineer_accepted")) {
+            val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+            EsBtn(
+                text = "Open war room",
+                onClick = { runCatching { uriHandler.openUri(warroom) } },
+                kind = EsBtnKind.Secondary,
+                size = EsBtnSize.Sm,
+            )
+        }
     }
 }
 
