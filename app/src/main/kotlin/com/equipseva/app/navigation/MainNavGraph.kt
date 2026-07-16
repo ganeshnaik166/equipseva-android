@@ -386,6 +386,7 @@ fun MainNavGraph(
                     },
                     // r1408 / r1409 — job "Records" drill-downs.
                     onOpenEvidence = { jobId -> navController.navigate(Routes.evidenceRoute(jobId)) },
+                    onOpenEngineerDossier = { jobId -> navController.navigate(Routes.pvedRoute(jobId)) },
                     onOpenAttendance = { jobId, isEngineer -> navController.navigate(Routes.attendanceRoute(jobId, isEngineer)) },
                     onOpenServiceReport = { jobId, isHospital -> navController.navigate(Routes.serviceReportRoute(jobId, isHospital)) },
                     onOpenInvoice = { jobId -> navController.navigate(Routes.gstInvoiceRoute(jobId)) },
@@ -411,6 +412,16 @@ fun MainNavGraph(
                 ),
             ) {
                 com.equipseva.app.features.repair.AttendanceTimelineScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = "${Routes.PVED_FOR_JOB}/{${Routes.PVED_ARG_JOB_ID}}",
+                arguments = listOf(
+                    navArgument(Routes.PVED_ARG_JOB_ID) { type = NavType.StringType },
+                ),
+            ) {
+                com.equipseva.app.features.repair.PvedScreen(
                     onBack = { navController.popBackStack() },
                 )
             }

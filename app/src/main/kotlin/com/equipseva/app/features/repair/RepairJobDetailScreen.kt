@@ -158,6 +158,7 @@ fun RepairJobDetailScreen(
     // attendance). Default no-ops so existing callsites compile; MainNavGraph
     // wires them to the evidence / attendance routes with this job's id.
     onOpenEvidence: (jobId: String) -> Unit = {},
+    onOpenEngineerDossier: (jobId: String) -> Unit = {},
     onOpenAttendance: (jobId: String, isEngineer: Boolean) -> Unit = { _, _ -> },
     onOpenServiceReport: (jobId: String, isHospital: Boolean) -> Unit = { _, _ -> },
     // r1412 — structured GST invoice (completed jobs). r1413 — engineer payout
@@ -394,6 +395,7 @@ fun RepairJobDetailScreen(
                     onOpenEngineerResponseSheet = viewModel::openEngineerResponseSheet,
                     onOpenPayoutMethod = onOpenPayoutMethod,
                     onOpenEvidence = { onOpenEvidence(state.job!!.id) },
+                    onOpenEngineerDossier = { onOpenEngineerDossier(state.job!!.id) },
                     onOpenAttendance = {
                         onOpenAttendance(
                             state.job!!.id,
@@ -606,12 +608,14 @@ fun RepairJobDetailScreen(
 @Composable
 private fun RecordsCard(
     onOpenServiceReport: () -> Unit,
+    onOpenEngineerDossier: () -> Unit,
     onOpenEvidence: () -> Unit,
     onOpenAttendance: () -> Unit,
     onOpenInvoice: (() -> Unit)? = null,
     onOpenPayoutPreview: (() -> Unit)? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        RecordsRow(label = "Engineer verification", onClick = onOpenEngineerDossier)
         RecordsRow(label = "Service report", onClick = onOpenServiceReport)
         onOpenInvoice?.let { RecordsRow(label = "Tax invoice", onClick = it) }
         onOpenPayoutPreview?.let { RecordsRow(label = "Payout preview", onClick = it) }
@@ -668,6 +672,7 @@ private fun JobBody(
     onOpenEngineerResponseSheet: () -> Unit,
     onOpenPayoutMethod: () -> Unit = {},
     onOpenEvidence: () -> Unit = {},
+    onOpenEngineerDossier: () -> Unit = {},
     onOpenAttendance: () -> Unit = {},
     onOpenServiceReport: () -> Unit = {},
     onOpenInvoice: () -> Unit = {},
@@ -772,6 +777,7 @@ private fun JobBody(
             EsSection(title = "Records") {
                 RecordsCard(
                     onOpenServiceReport = onOpenServiceReport,
+                    onOpenEngineerDossier = onOpenEngineerDossier,
                     onOpenEvidence = onOpenEvidence,
                     onOpenAttendance = onOpenAttendance,
                     // Invoice only exists once completed; payout preview is engineer-only.

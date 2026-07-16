@@ -42,6 +42,10 @@ object Routes {
     fun attendanceRoute(jobId: String, isEngineer: Boolean): String =
         "$ATTENDANCE_FOR_JOB/$jobId?$ATTENDANCE_ARG_IS_ENGINEER=$isEngineer"
 
+    // r1447 — pre-visit engineer dossier (build_pved) for a job.
+    const val PVED_FOR_JOB = "job/engineer_dossier"
+    const val PVED_ARG_JOB_ID = "jobId"
+    fun pvedRoute(jobId: String): String = "$PVED_FOR_JOB/$jobId"
     // r1411 — in-app structured Digital Service Report for a job (dsr_for_job).
     const val SERVICE_REPORT_FOR_JOB = "job/service_report"
     const val SERVICE_REPORT_ARG_JOB_ID = "jobId"
