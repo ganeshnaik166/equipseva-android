@@ -399,6 +399,45 @@ class AmcRepository @Inject constructor(
     }
 
     /**
+     * Hospital signs the AMC compliance affidavit (r1446) — affirms the four
+     * declarations (out-of-warranty, no active OEM AMC, authority to sign,
+     * aware of the §124 indemnity). Backed by sign_amc_affidavit (idempotent:
+     * a re-sign returns the existing affidavit). Server requires the caller to
+     * own the contract, all four declarations true, and name >= 3 chars.
+     * equipmentCategories carries the contract's categories; aadhaarLast4 is
+     * optional (4 digits when given).
+     */
+    suspend fun signAffidavit(
+        contractId: String,
+        signerName: String,
+        signerDesignation: String?,
+        aadhaarLast4: String?,
+        equipmentCategories: List<String>,
+    ): Result<Unit> = runCatching {
+        supabase.postgrest.rpc(
+            function = "sign_amc_affidavit",
+            parameters = buildJsonObject {
+                put("p_amc_contract_id", JsonPrimitive(contractId))
+                put("p_signer_full_name", JsonPrimitive(signerName.trim()))
+                put(
+                    "p_signer_designation",
+                    signerDesignation?.trim()?.takeIf { it.isNotEmpty() }?.let { JsonPrimitive(it) } ?: JsonNull,
+                )
+                put(
+                    "p_signer_aadhaar_last4",
+                    aadhaarLast4?.trim()?.takeIf { it.isNotEmpty() }?.let { JsonPrimitive(it) } ?: JsonNull,
+                )
+                put("p_equipment_categories", buildJsonArray { equipmentCategories.forEach { add(JsonPrimitive(it)) } })
+                put("p_declares_out_of_warranty", JsonPrimitive(true))
+                put("p_declares_no_active_oem_amc", JsonPrimitive(true))
+                put("p_declares_authority_to_sign", JsonPrimitive(true))
+                put("p_declares_aware_of_indemnity", JsonPrimitive(true))
+            },
+        )
+        Unit
+    }
+
+    /**
      * Auto-assign the next eligible rotation engineer to an unstarted AMC
      * visit (r1427). Backed by assign_next_available_amc_engineer(p_visit_id),
      * which re-checks the caller (contract hospital / rotation engineer /

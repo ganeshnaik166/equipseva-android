@@ -31,6 +31,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,6 +59,7 @@ import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.components.EsChip
 import com.equipseva.app.designsystem.components.EsField
+import com.equipseva.app.designsystem.components.EsFieldType
 import com.equipseva.app.designsystem.components.EsSection
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
@@ -147,6 +151,10 @@ class AmcDetailViewModel @Inject constructor(
         val addError: String? = null,
         // r1441 — visible error for a failed fallback removal (Rotation tab).
         val rotationError: String? = null,
+        // r1446 — AMC compliance affidavit.
+        val affidavitSubmitting: Boolean = false,
+        val affidavitSigned: Boolean = false,
+        val affidavitError: String? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -336,6 +344,27 @@ class AmcDetailViewModel @Inject constructor(
         }
     }
 
+    fun clearAffidavitError() = _state.update { it.copy(affidavitError = null) }
+
+    /** Sign the AMC compliance affidavit (r1446). Uses the contract's own
+     *  equipment categories; on success flips affidavitSigned so the section
+     *  shows "on file". */
+    fun signAffidavit(signerName: String, designation: String, aadhaarLast4: String) {
+        if (_state.value.affidavitSubmitting) return
+        _state.update { it.copy(affidavitSubmitting = true, affidavitError = null) }
+        viewModelScope.launch {
+            repo.signAffidavit(
+                contractId = contractId,
+                signerName = signerName,
+                signerDesignation = designation,
+                aadhaarLast4 = aadhaarLast4,
+                equipmentCategories = _state.value.hospital?.equipmentCategories ?: emptyList(),
+            )
+                .onSuccess { _state.update { it.copy(affidavitSubmitting = false, affidavitSigned = true) } }
+                .onFailure { e -> _state.update { it.copy(affidavitSubmitting = false, affidavitError = e.toUserMessage()) } }
+        }
+    }
+
     fun cancel() {
         if (_state.value.cancelling) return
         _state.update { it.copy(cancelling = true, cancelConfirmOpen = false) }
@@ -447,6 +476,7 @@ fun AmcDetailScreen(
     viewModel: AmcDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var showAffidavitSheet by rememberSaveable { mutableStateOf(false) }
 
     // Round 327 — collect the conversation-id effect so engineer can
     // be routed into chat after messageHospital() resolves.
@@ -557,6 +587,7 @@ fun AmcDetailScreen(
                                     state = state,
                                     onRenew = onRenew,
                                     onMessageHospital = viewModel::messageHospital,
+                                    onSignAffidavit = { showAffidavitSheet = true },
                                 )
                             AmcDetailViewModel.Tab.Pool -> PoolTab(
                                 state = state,
@@ -691,6 +722,21 @@ fun AmcDetailScreen(
             },
             engineerName = state.hospital!!.primaryEngineerName.takeIf { it.isNotBlank() }
                 ?: "your engineer",
+        )
+    }
+
+    if (showAffidavitSheet) {
+        AffidavitSheet(
+            submitting = state.affidavitSubmitting,
+            error = state.affidavitError,
+            onClose = {
+                showAffidavitSheet = false
+                viewModel.clearAffidavitError()
+            },
+            onSubmit = { name, designation, aadhaar ->
+                viewModel.signAffidavit(name, designation, aadhaar)
+            },
+            signed = state.affidavitSigned,
         )
     }
 }
@@ -914,6 +960,7 @@ private fun OverviewTab(
     state: AmcDetailViewModel.UiState,
     onRenew: (engineerId: String, sourceContractId: String) -> Unit = { _, _ -> },
     onMessageHospital: () -> Unit = {},
+    onSignAffidavit: () -> Unit = {},
 ) {
     val title = state.hospital?.primaryEngineerName ?: state.engineerView?.hospitalName ?: "—"
     val status = state.hospital?.status ?: state.engineerView?.status ?: "active"
@@ -1040,6 +1087,37 @@ private fun OverviewTab(
                     fontSize = 13.sp,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
+            }
+        }
+        // r1446 — AMC compliance affidavit (hospital signs the four
+        // out-of-warranty / no-OEM-AMC / authority / indemnity declarations).
+        if (state.viewerIsHospital) {
+            EsSection(title = "Compliance affidavit") {
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (state.affidavitSigned) {
+                        Text(
+                            "Affidavit signed — on file.",
+                            color = SevaGreen700,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    } else {
+                        Text(
+                            "Affirm the equipment is out of OEM warranty with no active OEM AMC, and that you're authorised to sign.",
+                            color = SevaInk500,
+                            fontSize = 12.sp,
+                        )
+                        EsBtn(
+                            text = "Sign AMC affidavit",
+                            onClick = onSignAffidavit,
+                            kind = EsBtnKind.Secondary,
+                            size = EsBtnSize.Md,
+                        )
+                    }
+                }
             }
         }
     }
@@ -1377,9 +1455,78 @@ private fun VisitRow(
     }
 }
 
+@Composable
+private fun AffidavitSheet(
+    submitting: Boolean,
+    error: String?,
+    signed: Boolean,
+    onClose: () -> Unit,
+    onSubmit: (name: String, designation: String, aadhaarLast4: String) -> Unit,
+) {
+    androidx.compose.runtime.LaunchedEffect(signed) { if (signed) onClose() }
+    var name by rememberSaveable { mutableStateOf("") }
+    var designation by rememberSaveable { mutableStateOf("") }
+    var aadhaar by rememberSaveable { mutableStateOf("") }
+    var d1 by rememberSaveable { mutableStateOf(false) }
+    var d2 by rememberSaveable { mutableStateOf(false) }
+    var d3 by rememberSaveable { mutableStateOf(false) }
+    var d4 by rememberSaveable { mutableStateOf(false) }
+    val canSubmit = name.trim().length >= 3 && d1 && d2 && d3 && d4 && isValidAadhaarLast4(aadhaar) && !submitting
+    EsBottomSheet(onClose = onClose, title = "AMC compliance affidavit") {
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            EsField(value = name, onChange = { name = it }, label = "Signer full name", placeholder = "e.g. Dr. Anita Rao")
+            EsField(value = designation, onChange = { designation = it }, label = "Designation (optional)", placeholder = "e.g. Biomedical Head")
+            EsField(
+                value = aadhaar,
+                onChange = { aadhaar = it.filter { c -> c.isDigit() }.take(4) },
+                label = "Aadhaar last 4 (optional)",
+                placeholder = "1234",
+                type = EsFieldType.Number,
+                imeAction = ImeAction.Done,
+            )
+            DeclareRow("Equipment is out of OEM warranty", d1) { d1 = it }
+            DeclareRow("No active OEM AMC covers this equipment", d2) { d2 = it }
+            DeclareRow("I'm authorised to sign for the hospital", d3) { d3 = it }
+            DeclareRow("I'm aware of the §124 Indian Contract Act indemnity", d4) { d4 = it }
+            if (error != null) {
+                Text(error, color = SevaDanger500, fontSize = 12.sp)
+            }
+            EsBtn(
+                text = if (submitting) "Signing…" else "Sign affidavit",
+                onClick = { onSubmit(name, designation, aadhaar) },
+                kind = EsBtnKind.Primary,
+                size = EsBtnSize.Lg,
+                full = true,
+                disabled = !canSubmit,
+            )
+            Spacer(Modifier.height(4.dp))
+        }
+    }
+}
+
+@Composable
+private fun DeclareRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable { onChange(!checked) },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        androidx.compose.material3.Checkbox(checked = checked, onCheckedChange = onChange)
+        Text(label, color = SevaInk700, fontSize = 13.sp, modifier = Modifier.weight(1f))
+    }
+}
+
 // ---------------------------------------------------------------------
 //  Pinned helper (r1427)
 // ---------------------------------------------------------------------
+
+/** Aadhaar-last-4 is optional; when given it must be exactly 4 digits
+ *  (mirrors the sign_amc_affidavit server guard). */
+internal fun isValidAadhaarLast4(value: String): Boolean =
+    value.isBlank() || value.trim().matches(Regex("^[0-9]{4}$"))
 
 /**
  * An AMC visit can be auto-assigned only when it has no engineer yet and
