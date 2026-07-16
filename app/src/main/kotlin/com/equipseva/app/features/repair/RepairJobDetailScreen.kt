@@ -182,6 +182,12 @@ fun RepairJobDetailScreen(
     // subscribes to outbox counters + pending cost-revision realtime;
     // bids and job-row updates require an explicit fetch.
     com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.retry() }
+    // r1435 — while the hospital watches an open job, silently poll so new bids
+    // appear live (bids-only refresh; never flashes the loading spinner).
+    com.equipseva.app.designsystem.util.PollingEffect(
+        enabled = state.viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital &&
+            state.job?.status == RepairJobStatus.Requested,
+    ) { viewModel.refreshBidsSilently() }
 
     LaunchedEffect(viewModel) {
         viewModel.messages.collect { onShowMessage(it) }

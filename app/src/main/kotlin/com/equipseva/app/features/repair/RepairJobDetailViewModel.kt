@@ -1063,6 +1063,36 @@ class RepairJobDetailViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Silent poll refresh of the bid list (r1435) for a hospital watching an
+     * open job fill up. Updates only [UiState.bids] + newly-seen
+     * [UiState.engineerNames] — never the loading flag or any in-flight action
+     * state — so it can't flash the full-screen spinner or disrupt an
+     * accept/checkout mid-flow. No-op unless the viewer is the hospital and the
+     * job is still collecting bids; re-checks those guards after the fetch so a
+     * concurrent accept isn't clobbered.
+     */
+    fun refreshBidsSilently() {
+        val snap = _state.value
+        if (snap.viewerRole != ViewerRole.Hospital) return
+        if (snap.job?.status != RepairJobStatus.Requested) return
+        if (snap.acceptingBidId != null) return
+        viewModelScope.launch {
+            val refreshedBids = bidRepository.fetchBidsForJob(jobId).getOrNull() ?: return@launch
+            val known = _state.value.engineerNames
+            val missing = refreshedBids.map { it.engineerUserId }.filter { it !in known }
+            val names = if (missing.isNotEmpty()) {
+                known + profileRepository.fetchDisplayNames(missing).getOrNull().orEmpty()
+            } else {
+                known
+            }
+            _state.update {
+                if (it.acceptingBidId != null || it.job?.status != RepairJobStatus.Requested) it
+                else it.copy(bids = refreshedBids, engineerNames = names)
+            }
+        }
+    }
+
     private fun load() {
         _state.update { it.copy(loading = true, errorMessage = null, notFound = false) }
         viewModelScope.launch {
