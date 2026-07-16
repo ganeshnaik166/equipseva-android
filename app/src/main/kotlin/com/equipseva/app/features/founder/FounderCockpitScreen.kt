@@ -56,6 +56,7 @@ fun FounderCockpitScreen(
     onBack: () -> Unit,
     onOpenDashboard: (title: String, rpc: String) -> Unit,
     onOpenRefundApprovals: () -> Unit = {},
+    onOpenSlaBoard: () -> Unit = {},
 ) {
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -86,6 +87,13 @@ fun FounderCockpitScreen(
                         style = EsType.H5,
                         color = SevaInk900,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                    )
+                }
+                item(key = "sla-board") {
+                    CockpitRow(
+                        title = "Engineer SLA board",
+                        subtitle = "On-time %, disputes, risk band by engineer",
+                        onClick = onOpenSlaBoard,
                     )
                 }
                 items(FOUNDER_METRIC_DASHBOARDS, key = { it.rpc }) { entry ->

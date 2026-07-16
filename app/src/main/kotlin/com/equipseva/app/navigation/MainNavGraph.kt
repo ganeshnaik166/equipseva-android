@@ -1221,10 +1221,16 @@ fun MainNavGraph(
                         navController.navigate(Routes.founderMetricsRoute(title, rpc))
                     },
                     onOpenRefundApprovals = { navController.navigate(Routes.FOUNDER_REFUND_APPROVALS) },
+                    onOpenSlaBoard = { navController.navigate(Routes.FOUNDER_SLA_BOARD) },
                 )
             }
             composable(Routes.FOUNDER_REFUND_APPROVALS) {
                 com.equipseva.app.features.founder.FounderRefundApprovalsScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.FOUNDER_SLA_BOARD) {
+                com.equipseva.app.features.founder.FounderSlaBoardScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
