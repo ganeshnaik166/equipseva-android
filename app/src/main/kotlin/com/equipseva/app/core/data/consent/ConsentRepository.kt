@@ -6,6 +6,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 
 /**
  * Read-only DPDP consent state for the current user via current_consents()
@@ -31,5 +33,24 @@ class ConsentRepository @Inject constructor(
         client.postgrest
             .rpc(function = "current_consents")
             .decodeList<ConsentRow>()
+    }
+
+    /**
+     * Records a consent grant/withdrawal via record_consent (round 485) —
+     * append-only, forced to auth.uid() server-side. [documentVersion] is the
+     * version the row was originally recorded against (reused from
+     * current_consents) so the ledger references the same policy version.
+     * [action] is "granted" or "revoked".
+     */
+    suspend fun record(consentType: String, documentVersion: String, action: String): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "record_consent",
+            parameters = buildJsonObject {
+                put("p_consent_type", JsonPrimitive(consentType))
+                put("p_document_version", JsonPrimitive(documentVersion))
+                put("p_action", JsonPrimitive(action))
+            },
+        )
+        Unit
     }
 }

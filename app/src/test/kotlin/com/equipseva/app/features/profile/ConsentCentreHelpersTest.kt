@@ -18,4 +18,10 @@ class ConsentCentreHelpersTest {
     @Test fun `unknown action capitalises with Neutral tone`() {
         assertEquals("Pending" to PillKind.Neutral, consentActionPillTextAndKind("pending"))
     }
+
+    @Test fun `consent toggle label reflects state`() {
+        assertEquals("Withdraw", consentToggleLabel(granted = true, busy = false))
+        assertEquals("Re-grant", consentToggleLabel(granted = false, busy = false))
+        assertEquals("Updating…", consentToggleLabel(granted = true, busy = true))
+    }
 }

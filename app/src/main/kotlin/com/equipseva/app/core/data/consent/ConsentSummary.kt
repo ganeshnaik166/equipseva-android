@@ -46,6 +46,21 @@ internal fun consentCategoryLabel(category: String): String = when (category) {
     else -> "Other"
 }
 
+/**
+ * Whether a consent type can be toggled (granted/withdrawn) from the consent
+ * centre (r1418). Scoped to marketing / analytics / comms consents — safe to
+ * opt in or out of at will. Legal + essential + permission/billing consents are
+ * non-withdrawable in-app (managed via their own flows or the OS) and stay
+ * read-only here.
+ */
+internal fun isWithdrawableConsent(type: String): Boolean = type in setOf(
+    "marketing_emails",
+    "marketing_push",
+    "marketing_sms",
+    "whatsapp_business",
+    "cookies_analytics",
+)
+
 // Section order: the consents that matter most to a user's rights first.
 private val CATEGORY_ORDER = listOf("legal", "permissions", "billing", "marketing", "cookies", "other")
 

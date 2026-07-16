@@ -35,9 +35,13 @@ import com.equipseva.app.core.data.consent.ConsentGroup
 import com.equipseva.app.core.data.consent.ConsentRepository
 import com.equipseva.app.core.data.consent.consentTypeLabel
 import com.equipseva.app.core.data.consent.groupConsents
+import com.equipseva.app.core.data.consent.isWithdrawableConsent
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.designsystem.components.EmptyStateView
+import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.EsBtnKind
+import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
@@ -64,6 +68,9 @@ class ConsentCentreViewModel @Inject constructor(
         val refreshing: Boolean = false,
         val error: String? = null,
         val groups: List<ConsentGroup> = emptyList(),
+        // r1418 — grant/withdraw toggle for optional consents.
+        val togglingType: String? = null,
+        val actionError: String? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -91,6 +98,24 @@ class ConsentCentreViewModel @Inject constructor(
     }
 
     fun onPullToRefresh() = reload(initial = false)
+
+    /** Grant ⇄ withdraw an optional consent, reusing the row's existing policy
+     *  version so the ledger references the same document. Append-only server-
+     *  side; on success the latest state changes, so we reload. */
+    fun onToggle(row: ConsentRepository.ConsentRow) {
+        if (_state.value.togglingType != null) return
+        val newAction = if (row.action == "granted") "revoked" else "granted"
+        val version = row.documentVersion.ifBlank { "unversioned" }
+        _state.update { it.copy(togglingType = row.consentType, actionError = null) }
+        viewModelScope.launch {
+            repo.record(row.consentType, version, newAction)
+                .onSuccess {
+                    _state.update { it.copy(togglingType = null) }
+                    reload()
+                }
+                .onFailure { e -> _state.update { it.copy(togglingType = null, actionError = e.toUserMessage()) } }
+        }
+    }
 }
 
 /**
@@ -138,9 +163,25 @@ fun ConsentCentreScreen(
                         contentPadding = PaddingValues(12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
+                        if (state.actionError != null) {
+                            item(key = "actionError") {
+                                Text(
+                                    state.actionError!!,
+                                    color = Color(0xFFC62828),
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(horizontal = 4.dp),
+                                )
+                            }
+                        }
                         state.groups.forEach { group ->
                             item(key = "cat-${group.categoryLabel}") { CategoryHeader(group.categoryLabel) }
-                            items(group.rows, key = { it.consentType }) { row -> ConsentRow(row) }
+                            items(group.rows, key = { it.consentType }) { row ->
+                                ConsentRow(
+                                    row = row,
+                                    toggling = state.togglingType == row.consentType,
+                                    onToggle = { viewModel.onToggle(row) },
+                                )
+                            }
                         }
                     }
                 }
@@ -163,30 +204,55 @@ private fun CategoryHeader(label: String) {
 }
 
 @Composable
-private fun ConsentRow(row: ConsentRepository.ConsentRow) {
+private fun ConsentRow(
+    row: ConsentRepository.ConsentRow,
+    toggling: Boolean,
+    onToggle: () -> Unit,
+) {
     val (pillText, pillKind) = consentActionPillTextAndKind(row.action)
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(Color.White)
             .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
             .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(consentTypeLabel(row.consentType), color = SevaInk900, fontWeight = FontWeight.Medium, fontSize = 14.sp)
-            val meta = listOfNotNull(
-                row.documentVersion.takeIf { it.isNotBlank() },
-                row.grantedAt?.takeIf { it.isNotBlank() }?.let { prettyDate(it) },
-            ).joinToString(" · ")
-            if (meta.isNotEmpty()) {
-                Text(meta, color = SevaInk500, fontSize = 12.sp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(consentTypeLabel(row.consentType), color = SevaInk900, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                val meta = listOfNotNull(
+                    row.documentVersion.takeIf { it.isNotBlank() },
+                    row.grantedAt?.takeIf { it.isNotBlank() }?.let { prettyDate(it) },
+                ).joinToString(" · ")
+                if (meta.isNotEmpty()) {
+                    Text(meta, color = SevaInk500, fontSize = 12.sp)
+                }
             }
+            Pill(text = pillText, kind = pillKind)
         }
-        Pill(text = pillText, kind = pillKind)
+        if (isWithdrawableConsent(row.consentType)) {
+            val granted = row.action == "granted"
+            EsBtn(
+                text = consentToggleLabel(granted, toggling),
+                onClick = onToggle,
+                kind = if (granted) EsBtnKind.Ghost else EsBtnKind.Primary,
+                size = EsBtnSize.Sm,
+                disabled = toggling,
+            )
+        }
     }
+}
+
+/** Label for the consent grant/withdraw toggle. */
+internal fun consentToggleLabel(granted: Boolean, busy: Boolean): String = when {
+    busy -> "Updating…"
+    granted -> "Withdraw"
+    else -> "Re-grant"
 }
 
 /**

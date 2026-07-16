@@ -49,4 +49,13 @@ class ConsentSummaryTest {
     @Test fun `empty rows produce no groups`() {
         assertEquals(0, groupConsents(emptyList()).size)
     }
+
+    @Test fun `only marketing analytics comms consents are withdrawable`() {
+        assertEquals(true, isWithdrawableConsent("marketing_push"))
+        assertEquals(true, isWithdrawableConsent("cookies_analytics"))
+        assertEquals(true, isWithdrawableConsent("whatsapp_business"))
+        assertEquals(false, isWithdrawableConsent("terms_of_service"))
+        assertEquals(false, isWithdrawableConsent("amc_auto_charge"))
+        assertEquals(false, isWithdrawableConsent("location_tracking"))
+    }
 }
