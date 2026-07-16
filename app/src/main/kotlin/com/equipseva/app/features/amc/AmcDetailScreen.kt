@@ -83,6 +83,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -237,7 +239,11 @@ class AmcDetailViewModel @Inject constructor(
 
     fun clearAssignError() = _state.update { it.copy(assignError = null) }
 
-    /** Auto-assign the next rotation engineer to [visitId], then refresh. */
+    /**
+     * Auto-assign the next rotation engineer to [visitId] (r1427). On success
+     * reloads just the visit list silently (r1439 fix) instead of the full
+     * refresh() — a per-row action shouldn't blank the whole screen to a spinner.
+     */
     fun assignVisit(visitId: String) {
         if (_state.value.assigningVisitId != null) return
         _state.update { it.copy(assigningVisitId = visitId, assignError = null) }
@@ -245,7 +251,7 @@ class AmcDetailViewModel @Inject constructor(
             repo.assignNextEngineer(visitId)
                 .onSuccess {
                     _state.update { it.copy(assigningVisitId = null) }
-                    refresh()
+                    reloadVisitsSilently()
                 }
                 .onFailure { e ->
                     _state.update { it.copy(assigningVisitId = null, assignError = e.toUserMessage()) }
@@ -253,31 +259,66 @@ class AmcDetailViewModel @Inject constructor(
         }
     }
 
+    /** Silent slice reloads (r1439) — update one section after a row action
+     *  without the full-screen loading flag refresh() sets. */
+    private fun reloadVisitsSilently() {
+        viewModelScope.launch {
+            repo.listVisits(contractId).onSuccess { v -> _state.update { it.copy(visits = v) } }
+        }
+    }
+
+    private fun reloadRotationSilently() {
+        viewModelScope.launch {
+            repo.listRotation(contractId).onSuccess { v -> _state.update { it.copy(rotation = v) } }
+        }
+    }
+
     // r1428 — add-fallback engineer picker.
+
+    private var pickerSearchJob: Job? = null
 
     fun openAddPicker() {
         _state.update { it.copy(addPickerOpen = true, addError = null) }
         searchEngineers("")
     }
 
-    fun closeAddPicker() =
+    fun closeAddPicker() {
+        pickerSearchJob?.cancel()
         _state.update { it.copy(addPickerOpen = false, addError = null, pickerQuery = "", pickerResults = emptyList()) }
+    }
 
+    /** Debounced (r1439 fix) — one directory search ~300ms after typing stops,
+     *  not one RPC per keystroke. */
     fun onPickerQueryChange(q: String) {
         _state.update { it.copy(pickerQuery = q) }
-        searchEngineers(q)
+        pickerSearchJob?.cancel()
+        pickerSearchJob = viewModelScope.launch {
+            delay(300)
+            searchEngineers(q)
+        }
     }
 
     private fun searchEngineers(q: String) {
         _state.update { it.copy(pickerLoading = true) }
         viewModelScope.launch {
             directoryRepo.search(query = q.trim().ifBlank { null }, limit = 25)
-                .onSuccess { rows -> _state.update { it.copy(pickerLoading = false, pickerResults = rows) } }
+                .onSuccess { rows ->
+                    // r1439 — hide engineers already in the rotation so a
+                    // hospital can't dead-end-tap an existing fallback.
+                    val inRotation = _state.value.rotation.map { it.engineerId }.toSet()
+                    _state.update {
+                        it.copy(pickerLoading = false, pickerResults = rows.filter { r -> r.engineerId !in inRotation })
+                    }
+                }
                 .onFailure { e -> _state.update { it.copy(pickerLoading = false, addError = e.toUserMessage()) } }
         }
     }
 
-    /** Add the picked engineer as a fallback, then close the picker + refresh. */
+    /**
+     * Add the picked engineer as a fallback (r1428). On success closes the
+     * picker and reloads just the rotation silently (r1439 fix) — no full-screen
+     * spinner.
+     */
     fun addFallback(engineerId: String) {
         if (_state.value.addingEngineerId != null) return
         _state.update { it.copy(addingEngineerId = engineerId, addError = null) }
@@ -287,7 +328,7 @@ class AmcDetailViewModel @Inject constructor(
                     _state.update {
                         it.copy(addingEngineerId = null, addPickerOpen = false, pickerQuery = "", pickerResults = emptyList())
                     }
-                    refresh()
+                    reloadRotationSilently()
                 }
                 .onFailure { e -> _state.update { it.copy(addingEngineerId = null, addError = e.toUserMessage()) } }
         }
