@@ -219,6 +219,8 @@ object Routes {
     const val CATALOG_BROWSE = "catalog/browse"
     // r1419 — hospital-chain admin cockpit (chain_kpis + chain_per_site_summary).
     const val CHAIN_COCKPIT = "profile/chain_cockpit"
+    // r1426 — hospital Code Red emergency dispatch (open + track).
+    const val HOSPITAL_CODE_RED = "profile/code_red"
     // r1422 — chain-admin site-invite management (list + invite + revoke).
     const val CHAIN_INVITES = "profile/chain_invites"
     const val CHAIN_INVITES_ARG_CHAIN_ID = "chainId"

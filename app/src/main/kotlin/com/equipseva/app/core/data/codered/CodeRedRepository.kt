@@ -3,6 +3,7 @@ package com.equipseva.app.core.data.codered
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.query.Order
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.serialization.SerialName
@@ -97,6 +98,81 @@ class CodeRedRepository @Inject constructor(
             }
             .sortedBy { it.slaDeadlineAt ?: "￿" }
     }
+
+    // -----------------------------------------------------------------
+    //  r1426 — hospital side: fire + track own Code Reds
+    // -----------------------------------------------------------------
+
+    /** A Code Red the hospital itself raised. */
+    @Serializable
+    data class HospitalCodeRed(
+        @SerialName("id") val id: String,
+        @SerialName("equipment_type") val equipmentType: String = "",
+        @SerialName("equipment_brand") val equipmentBrand: String? = null,
+        @SerialName("equipment_model") val equipmentModel: String? = null,
+        @SerialName("equipment_serial") val equipmentSerial: String? = null,
+        @SerialName("description") val description: String = "",
+        @SerialName("emergency_fee_ceiling_rupees") val feeCeilingRupees: Double = 0.0,
+        @SerialName("status") val status: String = "",
+        @SerialName("sla_minutes") val slaMinutes: Int = 60,
+        @SerialName("sla_deadline_at") val slaDeadlineAt: String? = null,
+        @SerialName("accepted_at") val acceptedAt: String? = null,
+        @SerialName("created_at") val createdAt: String? = null,
+    )
+
+    @Serializable
+    private data class TaxonomyRow(@SerialName("equipment_type") val equipmentType: String = "")
+
+    /** Equipment types eligible for a Code Red — the v0.4-allowed taxonomy
+     *  classes, read live (the table is world-readable to authenticated) so the
+     *  list never drifts from the server's hard-gate. */
+    suspend fun allowedEquipmentTypes(): Result<List<String>> = runCatching {
+        client.postgrest.from("equipment_taxonomy_class")
+            .select(columns = Columns.list("equipment_type")) {
+                filter { eq("allowed_in_v04", true) }
+                order("equipment_type", Order.ASCENDING)
+            }
+            .decodeList<TaxonomyRow>()
+            .map { it.equipmentType }
+    }
+
+    /** The hospital's own Code Reds, newest first (RLS scopes to the caller). */
+    suspend fun myRequests(hospitalUserId: String): Result<List<HospitalCodeRed>> = runCatching {
+        client.postgrest.from("code_red_requests").select {
+            filter { eq("hospital_user_id", hospitalUserId) }
+            order("created_at", Order.DESCENDING)
+        }.decodeList<HospitalCodeRed>()
+    }
+
+    /** Fire a Code Red. equipmentType must be an allowed taxonomy class or the
+     *  server rejects it; description is 10-2000 chars, fee ceiling 0-50000,
+     *  SLA 15-1440 min — all validated server-side too. */
+    suspend fun open(
+        equipmentType: String,
+        brand: String?,
+        model: String?,
+        serial: String?,
+        description: String,
+        feeCeilingRupees: Double,
+        slaMinutes: Int,
+    ): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "open_code_red_request",
+            parameters = buildJsonObject {
+                put("p_equipment_type", JsonPrimitive(equipmentType))
+                put("p_equipment_brand", brand.orNull())
+                put("p_equipment_model", model.orNull())
+                put("p_equipment_serial", serial.orNull())
+                put("p_description", JsonPrimitive(description.trim()))
+                put("p_emergency_fee_ceiling_rupees", JsonPrimitive(feeCeilingRupees))
+                put("p_sla_minutes", JsonPrimitive(slaMinutes))
+            },
+        )
+        Unit
+    }
+
+    private fun String?.orNull() =
+        this?.trim()?.takeIf { it.isNotEmpty() }?.let { JsonPrimitive(it) } ?: JsonNull
 
     suspend fun accept(codeRedId: String): Result<Unit> = runCatching {
         client.postgrest.rpc(

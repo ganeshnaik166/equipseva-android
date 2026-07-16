@@ -45,6 +45,7 @@ import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.Emergency
 import androidx.compose.material.icons.outlined.EventRepeat
 import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material.icons.outlined.WorkspacePremium
@@ -156,6 +157,8 @@ fun ProfileScreen(
     onOpenChainCockpit: () -> Unit = {},
     // r1420 — founder business cockpit.
     onOpenFounderCockpit: () -> Unit = {},
+    // r1426 — hospital Code Red emergency dispatch.
+    onOpenHospitalCodeRed: () -> Unit = {},
     onSwitchService: () -> Unit = {},
     onSignIn: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -308,6 +311,7 @@ fun ProfileScreen(
                         onOpenCatalog = onOpenCatalog,
                         onOpenChainCockpit = onOpenChainCockpit,
                         onOpenFounderCockpit = onOpenFounderCockpit,
+                        onOpenHospitalCodeRed = onOpenHospitalCodeRed,
                         onSwitchService = viewModel::onToggleRoleAndGoHome,
                         onPickAvatar = viewModel::uploadAvatar,
                     )
@@ -460,6 +464,7 @@ private fun ProfileContent(
     onOpenCatalog: () -> Unit,
     onOpenChainCockpit: () -> Unit,
     onOpenFounderCockpit: () -> Unit,
+    onOpenHospitalCodeRed: () -> Unit,
     onSwitchService: () -> Unit,
     onPickAvatar: (Uri) -> Unit,
 ) {
@@ -556,6 +561,7 @@ private fun ProfileContent(
             onOpenCatalog = onOpenCatalog,
             onOpenChainCockpit = onOpenChainCockpit,
             onOpenFounderCockpit = onOpenFounderCockpit,
+            onOpenHospitalCodeRed = onOpenHospitalCodeRed,
             onSwitchService = onSwitchService,
             onSignOut = onSignOut,
             signingOut = state.signingOut,
@@ -756,6 +762,7 @@ private fun buildProfileSections(
     onOpenCatalog: () -> Unit,
     onOpenChainCockpit: () -> Unit,
     onOpenFounderCockpit: () -> Unit,
+    onOpenHospitalCodeRed: () -> Unit,
     onSwitchService: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
@@ -839,6 +846,12 @@ private fun buildProfileSections(
             add(SettingsRow(icon = Icons.Outlined.Apartment, label = "Hospital settings", onClick = onOpenHospitalSettings))
             // PR-D41 — hospital self-view of dispute filing history.
             add(SettingsRow(icon = Icons.Outlined.Gavel, label = "Your disputes", onClick = onOpenMyDisputes))
+            // r1426 — emergency dispatch: fire + track a Code Red.
+            add(SettingsRow(
+                icon = Icons.Outlined.Emergency,
+                label = "Code Red (emergency)",
+                onClick = onOpenHospitalCodeRed,
+            ))
             // r1396 — per-asset reliability board (MTBF/MTTR/uptime,
             // replacement candidates) from hospital_fleet_health.
             add(SettingsRow(

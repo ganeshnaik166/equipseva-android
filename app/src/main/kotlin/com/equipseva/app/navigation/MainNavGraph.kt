@@ -670,6 +670,7 @@ fun MainNavGraph(
                     onOpenCatalog = { navController.navigate(Routes.CATALOG_BROWSE) },
                     onOpenChainCockpit = { navController.navigate(Routes.CHAIN_COCKPIT) },
                     onOpenFounderCockpit = { navController.navigate(Routes.FOUNDER_COCKPIT) },
+                    onOpenHospitalCodeRed = { navController.navigate(Routes.HOSPITAL_CODE_RED) },
                     onOpenFleetHealth = { navController.navigate(Routes.HOSPITAL_FLEET_HEALTH) },
                     onOpenPmCalendar = { navController.navigate(Routes.HOSPITAL_PM_CALENDAR) },
                     onOpenPublicPreview = { engineerId ->
@@ -1237,6 +1238,11 @@ fun MainNavGraph(
             }
             composable(Routes.ENGINEER_CODE_RED) {
                 com.equipseva.app.features.engineer.EngineerCodeRedScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.HOSPITAL_CODE_RED) {
+                com.equipseva.app.features.hospital.HospitalCodeRedScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
