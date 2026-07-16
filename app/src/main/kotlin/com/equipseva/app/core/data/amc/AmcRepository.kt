@@ -376,6 +376,22 @@ class AmcRepository @Inject constructor(
         ).decodeList<AmcVisitRow>()
     }
 
+    /**
+     * Auto-assign the next eligible rotation engineer to an unstarted AMC
+     * visit (r1427). Backed by assign_next_available_amc_engineer(p_visit_id),
+     * which re-checks the caller (contract hospital / rotation engineer /
+     * admin) and that the visit hasn't started, then picks the next verified
+     * rotation engineer. The returned engineer id isn't needed — the caller
+     * refreshes the visit list.
+     */
+    suspend fun assignNextEngineer(visitId: String): Result<Unit> = runCatching {
+        supabase.postgrest.rpc(
+            function = "assign_next_available_amc_engineer",
+            parameters = buildJsonObject { put("p_visit_id", JsonPrimitive(visitId)) },
+        )
+        Unit
+    }
+
 
     /**
      * Calls `create_amc_contract` RPC. Returns the new contract uuid.

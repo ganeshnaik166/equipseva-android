@@ -126,6 +126,10 @@ class AmcDetailViewModel @Inject constructor(
         val autoPayBusy: Boolean = false,
         // Round 560 — per-contract tier perks (my_amc_tier_perks); best-effort.
         val tierPerks: AmcRepository.ContractTierPerks? = null,
+        // r1427 — one-tap AMC visit auto-assign. Tracks the visit being
+        // assigned (for a per-row spinner) and any assign error.
+        val assigningVisitId: String? = null,
+        val assignError: String? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -216,6 +220,24 @@ class AmcDetailViewModel @Inject constructor(
     fun dismissCancelConfirm() {
         if (_state.value.cancelling) return
         _state.update { it.copy(cancelConfirmOpen = false) }
+    }
+
+    fun clearAssignError() = _state.update { it.copy(assignError = null) }
+
+    /** Auto-assign the next rotation engineer to [visitId], then refresh. */
+    fun assignVisit(visitId: String) {
+        if (_state.value.assigningVisitId != null) return
+        _state.update { it.copy(assigningVisitId = visitId, assignError = null) }
+        viewModelScope.launch {
+            repo.assignNextEngineer(visitId)
+                .onSuccess {
+                    _state.update { it.copy(assigningVisitId = null) }
+                    refresh()
+                }
+                .onFailure { e ->
+                    _state.update { it.copy(assigningVisitId = null, assignError = e.toUserMessage()) }
+                }
+        }
     }
 
     fun cancel() {
@@ -442,7 +464,10 @@ fun AmcDetailScreen(
                                 onSetupAutoPay = viewModel::setupAutoPay,
                                 onCancelAutoPay = viewModel::cancelAutoPay,
                             )
-                            AmcDetailViewModel.Tab.Visits -> VisitsTab(state)
+                            AmcDetailViewModel.Tab.Visits -> VisitsTab(
+                                state = state,
+                                onAssignVisit = { viewModel.assignVisit(it) },
+                            )
                             AmcDetailViewModel.Tab.Sla -> SlaTab(state)
                             AmcDetailViewModel.Tab.Rotation -> RotationTab(
                                 state = state,
@@ -1132,7 +1157,10 @@ private fun PoolLedgerRow(row: AmcRepository.PoolLedgerRow) {
 }
 
 @Composable
-private fun VisitsTab(state: AmcDetailViewModel.UiState) {
+private fun VisitsTab(
+    state: AmcDetailViewModel.UiState,
+    onAssignVisit: (String) -> Unit,
+) {
     val visitsDone = state.hospital?.visitsCompleted ?: state.engineerView?.visitsCompleted ?: 0
     val visitsPerYr = state.hospital?.visitsPerYear ?: state.engineerView?.visitsPerYear ?: 12
     // Round 447: same modular-year fix as the Overview tab — server's
@@ -1153,6 +1181,14 @@ private fun VisitsTab(state: AmcDetailViewModel.UiState) {
         }
     }
     EsSection(title = "Visit history") {
+        state.assignError?.let {
+            Text(
+                it,
+                color = SevaDanger500,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            )
+        }
         if (state.visits.isEmpty()) {
             // The previous "runs daily at 09:00 IST" leaked the cron
             // implementation — hospitals don't need to know our scheduler
@@ -1170,46 +1206,88 @@ private fun VisitsTab(state: AmcDetailViewModel.UiState) {
                 modifier = Modifier.padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                state.visits.forEach { v -> VisitRow(v) }
+                state.visits.forEach { v ->
+                    VisitRow(
+                        v = v,
+                        assigning = state.assigningVisitId == v.id,
+                        onAssign = { onAssignVisit(v.id) },
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun VisitRow(v: AmcRepository.AmcVisitRow) {
+private fun VisitRow(
+    v: AmcRepository.AmcVisitRow,
+    assigning: Boolean,
+    onAssign: () -> Unit,
+) {
     val statusColor = when (v.status) {
         "completed" -> SevaGreen700
         "cancelled" -> SevaInk500
         else -> SevaWarning500
     }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+    Column(
         modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    amcVisitHeaderLine(v.amcVisitNumber, v.jobNumber),
+                    color = SevaInk900,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    v.engineerName?.takeIf { it.isNotBlank() } ?: "Unassigned",
+                    color = SevaInk500,
+                    fontSize = 11.sp,
+                )
+                v.scheduledDate?.let {
+                    Text(prettyDate(it), color = SevaInk400, fontSize = 11.sp)
+                }
+            }
             Text(
-                amcVisitHeaderLine(v.amcVisitNumber, v.jobNumber),
-                color = SevaInk900,
-                fontSize = 13.sp,
+                v.status.replaceFirstChar { it.uppercase() },
+                color = statusColor,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
             )
-            v.engineerName?.let {
-                Text(it, color = SevaInk500, fontSize = 11.sp)
-            }
-            v.scheduledDate?.let {
-                Text(prettyDate(it), color = SevaInk400, fontSize = 11.sp)
-            }
         }
-        Text(
-            v.status.replaceFirstChar { it.uppercase() },
-            color = statusColor,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
+        if (canAssignAmcVisit(v.status, v.engineerId)) {
+            EsBtn(
+                text = if (assigning) "Assigning…" else "Assign engineer",
+                onClick = onAssign,
+                kind = EsBtnKind.Secondary,
+                size = EsBtnSize.Sm,
+                disabled = assigning,
+            )
+        }
     }
 }
+
+// ---------------------------------------------------------------------
+//  Pinned helper (r1427)
+// ---------------------------------------------------------------------
+
+/**
+ * An AMC visit can be auto-assigned only when it has no engineer yet and
+ * hasn't started — mirrors the server guard in
+ * assign_next_available_amc_engineer (blocks en_route / in_progress /
+ * completed / disputed / cancelled). Keeps the CTA off rows the RPC rejects.
+ */
+internal fun canAssignAmcVisit(status: String, engineerId: String?): Boolean =
+    engineerId.isNullOrBlank() &&
+        status.trim().lowercase() !in setOf(
+            "en_route", "in_progress", "completed", "disputed", "cancelled",
+        )
 
 @Composable
 private fun SlaTab(state: AmcDetailViewModel.UiState) {
