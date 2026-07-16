@@ -48,6 +48,7 @@ import com.equipseva.app.designsystem.components.PillKind
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaDanger500
 import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk700
@@ -69,6 +70,10 @@ class EngineerKycRenewalViewModel @Inject constructor(
         val error: String? = null,
         val loaded: Boolean = false,
         val data: KycRenewalRepository.KycRenewal? = null,
+        // r1431 — checklist actions.
+        val starting: Boolean = false,
+        val busyItem: String? = null,
+        val actionError: String? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -82,6 +87,30 @@ class EngineerKycRenewalViewModel @Inject constructor(
             repo.fetch()
                 .onSuccess { d -> _state.update { it.copy(loading = false, loaded = true, data = d) } }
                 .onFailure { e -> _state.update { it.copy(loading = false, error = e.toUserMessage()) } }
+        }
+    }
+
+    /** Begin the renewal (pending -> in_progress), then reload. */
+    fun start() {
+        val id = _state.value.data?.id ?: return
+        if (_state.value.starting) return
+        _state.update { it.copy(starting = true, actionError = null) }
+        viewModelScope.launch {
+            repo.start(id)
+                .onSuccess { _state.update { it.copy(starting = false) }; reload() }
+                .onFailure { e -> _state.update { it.copy(starting = false, actionError = e.toUserMessage()) } }
+        }
+    }
+
+    /** Flag one required item refreshed, then reload so it leaves the list. */
+    fun markRefreshed(item: String) {
+        val id = _state.value.data?.id ?: return
+        if (_state.value.busyItem != null) return
+        _state.update { it.copy(busyItem = item, actionError = null) }
+        viewModelScope.launch {
+            repo.markItemRefreshed(id, item)
+                .onSuccess { _state.update { it.copy(busyItem = null) }; reload() }
+                .onFailure { e -> _state.update { it.copy(busyItem = null, actionError = e.toUserMessage()) } }
         }
     }
 }
@@ -131,23 +160,48 @@ fun EngineerKycRenewalScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         DueCard(daysUntilDue = d.daysUntilDue, dueAt = d.dueAt, graceUntil = d.graceUntil)
-                        if (d.remainingItems.isEmpty()) {
-                            Text(
+                        state.actionError?.let {
+                            Text(it, style = EsType.BodySm, color = SevaDanger500)
+                        }
+                        when {
+                            d.remainingItems.isEmpty() -> Text(
                                 "All documents refreshed — we're finishing your re-verification.",
                                 style = EsType.Body,
                                 color = SevaInk700,
                             )
-                        } else {
-                            Text("Still to refresh", style = EsType.H5, color = SevaInk900, modifier = Modifier.padding(top = 4.dp))
-                            d.remainingItems.forEach { key -> ItemRow(renewalItemLabel(key)) }
-                            Spacer(Modifier.height(4.dp))
-                            EsBtn(
-                                text = "Renew now",
-                                onClick = onRenew,
-                                kind = EsBtnKind.Primary,
-                                size = EsBtnSize.Lg,
-                                full = true,
-                            )
+                            d.status == "pending" -> {
+                                Text(
+                                    "Start your renewal, then re-upload each document and mark it done. Your verified badge holds through the grace window.",
+                                    style = EsType.BodySm,
+                                    color = SevaInk700,
+                                )
+                                EsBtn(
+                                    text = if (state.starting) "Starting…" else "Start renewal",
+                                    onClick = { viewModel.start() },
+                                    kind = EsBtnKind.Primary,
+                                    size = EsBtnSize.Lg,
+                                    full = true,
+                                    disabled = state.starting,
+                                )
+                            }
+                            else -> {
+                                Text("Still to refresh", style = EsType.H5, color = SevaInk900, modifier = Modifier.padding(top = 4.dp))
+                                d.remainingItems.forEach { key ->
+                                    ItemRow(
+                                        label = renewalItemLabel(key),
+                                        busy = state.busyItem == key,
+                                        onMarkDone = { viewModel.markRefreshed(key) },
+                                    )
+                                }
+                                Spacer(Modifier.height(4.dp))
+                                EsBtn(
+                                    text = "Re-upload documents",
+                                    onClick = onRenew,
+                                    kind = EsBtnKind.Secondary,
+                                    size = EsBtnSize.Lg,
+                                    full = true,
+                                )
+                            }
                         }
                         Spacer(Modifier.height(8.dp))
                     }
@@ -187,19 +241,26 @@ private fun DueCard(daysUntilDue: Double, dueAt: String?, graceUntil: String?) {
 }
 
 @Composable
-private fun ItemRow(label: String) {
+private fun ItemRow(label: String, busy: Boolean, onMarkDone: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(Color.White)
             .border(1.dp, BorderDefault, RoundedCornerShape(10.dp))
-            .padding(14.dp),
+            .padding(start = 14.dp, top = 8.dp, bottom = 8.dp, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text("○", color = SevaInk500, style = EsType.Body)
-        Text(label, style = EsType.Body, color = SevaInk900)
+        Text(label, style = EsType.Body, color = SevaInk900, modifier = Modifier.weight(1f))
+        EsBtn(
+            text = if (busy) "Saving…" else "Mark done",
+            onClick = onMarkDone,
+            kind = EsBtnKind.Secondary,
+            size = EsBtnSize.Sm,
+            disabled = busy,
+        )
     }
 }
 

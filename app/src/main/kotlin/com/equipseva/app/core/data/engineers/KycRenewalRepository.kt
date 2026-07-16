@@ -6,6 +6,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 
 /**
  * The calling engineer's current periodic re-KYC cycle via my_kyc_renewal()
@@ -37,5 +39,34 @@ class KycRenewalRepository @Inject constructor(
             .rpc(function = "my_kyc_renewal")
             .decodeList<KycRenewal>()
             .firstOrNull()
+    }
+
+    /**
+     * Move a still-pending renewal to in_progress (r1431). Backed by
+     * start_kyc_renewal, which re-checks the caller owns it and it's pending.
+     */
+    suspend fun start(renewalId: String): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "start_kyc_renewal",
+            parameters = buildJsonObject { put("p_renewal_id", JsonPrimitive(renewalId)) },
+        )
+        Unit
+    }
+
+    /**
+     * Flag one required item as refreshed. Backed by mark_renewal_item_refreshed
+     * ([item] must be aadhaar / degree_digilocker / police_verification / photo).
+     * The founder still verifies + closes the renewal, so this is a safe
+     * self-attestation, not auto-approval.
+     */
+    suspend fun markItemRefreshed(renewalId: String, item: String): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "mark_renewal_item_refreshed",
+            parameters = buildJsonObject {
+                put("p_renewal_id", JsonPrimitive(renewalId))
+                put("p_item", JsonPrimitive(item))
+            },
+        )
+        Unit
     }
 }
