@@ -96,6 +96,7 @@ class HospitalMyDisputesViewModel @Inject constructor(
 fun HospitalMyDisputesScreen(
     onBack: () -> Unit,
     onOpenJob: (repairJobId: String) -> Unit,
+    onBuildPack: (escrowId: String, repairJobId: String) -> Unit = { _, _ -> },
     viewModel: HospitalMyDisputesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -148,7 +149,11 @@ fun HospitalMyDisputesScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         items(state.rows, key = { it.escrowId }) { row ->
-                            DisputeRow(row = row, onClick = { onOpenJob(row.repairJobId) })
+                            DisputeRow(
+                                row = row,
+                                onClick = { onOpenJob(row.repairJobId) },
+                                onBuildPack = { onBuildPack(row.escrowId, row.repairJobId) },
+                            )
                         }
                     }
                 }
@@ -161,6 +166,7 @@ fun HospitalMyDisputesScreen(
 private fun DisputeRow(
     row: RepairJobEscrowRepository.HospitalDisputeRow,
     onClick: () -> Unit,
+    onBuildPack: () -> Unit = {},
 ) {
     val (pillText, pillKind) = hospitalDisputePillTextAndKind(row.status, row.outcome)
     Column(
@@ -201,6 +207,15 @@ private fun DisputeRow(
         }
         row.disputeResolvedAt?.let {
             Text("Resolved: ${prettyDate(it)}", color = SevaInk500, fontSize = 11.sp)
+        }
+        // r1445 — while the dispute is open, let the hospital file an evidence pack.
+        if (row.disputeResolvedAt.isNullOrBlank()) {
+            com.equipseva.app.designsystem.components.EsBtn(
+                text = "Build evidence pack",
+                onClick = onBuildPack,
+                kind = com.equipseva.app.designsystem.components.EsBtnKind.Secondary,
+                size = com.equipseva.app.designsystem.components.EsBtnSize.Sm,
+            )
         }
     }
 }

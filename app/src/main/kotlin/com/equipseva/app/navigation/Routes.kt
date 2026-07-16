@@ -230,6 +230,15 @@ object Routes {
     const val HOSPITAL_CODE_RED = "profile/code_red"
     // r1444 — invited hospital redeems a chain-site invite token.
     const val JOIN_CHAIN = "profile/join_chain"
+    // r1445 — dispute evidence vault: file a pack for a disputed escrow.
+    const val DISPUTE_PACK = "dispute/pack"
+    const val DISPUTE_PACK_ARG_ESCROW_ID = "escrowId"
+    const val DISPUTE_PACK_ARG_JOB_ID = "jobId"
+    const val DISPUTE_PACK_ARG_ROLE = "role"
+    fun disputePackRoute(escrowId: String, repairJobId: String, role: String): String =
+        "$DISPUTE_PACK?$DISPUTE_PACK_ARG_ESCROW_ID=${Uri.encode(escrowId)}" +
+            "&$DISPUTE_PACK_ARG_JOB_ID=${Uri.encode(repairJobId)}" +
+            "&$DISPUTE_PACK_ARG_ROLE=${Uri.encode(role)}"
     // r1422 — chain-admin site-invite management (list + invite + revoke).
     const val CHAIN_INVITES = "profile/chain_invites"
     const val CHAIN_INVITES_ARG_CHAIN_ID = "chainId"

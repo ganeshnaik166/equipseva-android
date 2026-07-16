@@ -532,6 +532,9 @@ fun MainNavGraph(
                     onOpenJob = { jobId ->
                         navController.navigate(Routes.repairJobDetailRoute(jobId))
                     },
+                    onBuildPack = { escrowId, jobId ->
+                        navController.navigate(Routes.disputePackRoute(escrowId, jobId, "hospital"))
+                    },
                 )
             }
             composable(Routes.ENGINEER_MY_DISPUTES) {
@@ -540,6 +543,23 @@ fun MainNavGraph(
                     onOpenJob = { jobId ->
                         navController.navigate(Routes.repairJobDetailRoute(jobId))
                     },
+                    onBuildPack = { escrowId, jobId ->
+                        navController.navigate(Routes.disputePackRoute(escrowId, jobId, "engineer"))
+                    },
+                )
+            }
+            composable(
+                route = "${Routes.DISPUTE_PACK}?${Routes.DISPUTE_PACK_ARG_ESCROW_ID}={${Routes.DISPUTE_PACK_ARG_ESCROW_ID}}" +
+                    "&${Routes.DISPUTE_PACK_ARG_JOB_ID}={${Routes.DISPUTE_PACK_ARG_JOB_ID}}" +
+                    "&${Routes.DISPUTE_PACK_ARG_ROLE}={${Routes.DISPUTE_PACK_ARG_ROLE}}",
+                arguments = listOf(
+                    navArgument(Routes.DISPUTE_PACK_ARG_ESCROW_ID) { type = NavType.StringType; defaultValue = "" },
+                    navArgument(Routes.DISPUTE_PACK_ARG_JOB_ID) { type = NavType.StringType; defaultValue = "" },
+                    navArgument(Routes.DISPUTE_PACK_ARG_ROLE) { type = NavType.StringType; defaultValue = "" },
+                ),
+            ) {
+                com.equipseva.app.features.dispute.DisputePackScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.ENGINEER_LOCATION) {

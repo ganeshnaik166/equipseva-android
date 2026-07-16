@@ -97,6 +97,7 @@ class EngineerMyDisputesViewModel @Inject constructor(
 fun EngineerMyDisputesScreen(
     onBack: () -> Unit,
     onOpenJob: (repairJobId: String) -> Unit,
+    onBuildPack: (escrowId: String, repairJobId: String) -> Unit = { _, _ -> },
     viewModel: EngineerMyDisputesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -144,7 +145,11 @@ fun EngineerMyDisputesScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         items(state.rows, key = { it.escrowId }) { row ->
-                            DisputeRow(row = row, onClick = { onOpenJob(row.repairJobId) })
+                            DisputeRow(
+                                row = row,
+                                onClick = { onOpenJob(row.repairJobId) },
+                                onBuildPack = { onBuildPack(row.escrowId, row.repairJobId) },
+                            )
                         }
                     }
                 }
@@ -157,6 +162,7 @@ fun EngineerMyDisputesScreen(
 private fun DisputeRow(
     row: RepairJobEscrowRepository.EngineerDisputeRow,
     onClick: () -> Unit,
+    onBuildPack: () -> Unit = {},
 ) {
     val (pillText, pillKind) = engineerDisputePillTextAndKind(row.status, row.outcome)
     Column(
@@ -205,6 +211,16 @@ private fun DisputeRow(
         }
         row.disputeResolvedAt?.let {
             Text("Resolved: ${prettyDate(it)}", color = SevaInk500, fontSize = 11.sp)
+        }
+        // r1445 — while the dispute is still open, let the engineer file a
+        // structured evidence pack for mediation.
+        if (row.disputeResolvedAt.isNullOrBlank()) {
+            com.equipseva.app.designsystem.components.EsBtn(
+                text = "Build evidence pack",
+                onClick = onBuildPack,
+                kind = com.equipseva.app.designsystem.components.EsBtnKind.Secondary,
+                size = com.equipseva.app.designsystem.components.EsBtnSize.Sm,
+            )
         }
     }
 }
