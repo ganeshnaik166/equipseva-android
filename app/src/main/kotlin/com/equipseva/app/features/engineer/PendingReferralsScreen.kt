@@ -34,6 +34,9 @@ import com.equipseva.app.core.data.referrals.PendingReferralRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.designsystem.components.EmptyStateView
+import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.EsBtnKind
+import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
@@ -60,6 +63,9 @@ class PendingReferralsViewModel @Inject constructor(
         val refreshing: Boolean = false,
         val error: String? = null,
         val rows: List<PendingReferralRepository.PendingReferral> = emptyList(),
+        // r1417 — per-row confirm action.
+        val confirmingId: String? = null,
+        val actionError: String? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -83,6 +89,21 @@ class PendingReferralsViewModel @Inject constructor(
     }
 
     fun onPullToRefresh() = reload(initial = false)
+
+    /** Confirm one pending referral (idempotent server-side); on success the row
+     *  drops out of my_pending_referral_confirmations, so we just reload. */
+    fun onConfirm(id: String) {
+        if (_state.value.confirmingId != null) return
+        _state.update { it.copy(confirmingId = id, actionError = null) }
+        viewModelScope.launch {
+            repo.confirm(id)
+                .onSuccess {
+                    _state.update { it.copy(confirmingId = null) }
+                    reload()
+                }
+                .onFailure { e -> _state.update { it.copy(confirmingId = null, actionError = e.toUserMessage()) } }
+        }
+    }
 }
 
 /**
@@ -138,7 +159,23 @@ fun PendingReferralsScreen(
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
                             )
                         }
-                        items(state.rows, key = { it.id }) { row -> PendingReferralRow(row) }
+                        if (state.actionError != null) {
+                            item(key = "actionError") {
+                                Text(
+                                    state.actionError!!,
+                                    style = EsType.Caption,
+                                    color = Color(0xFFC62828),
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                )
+                            }
+                        }
+                        items(state.rows, key = { it.id }) { row ->
+                            PendingReferralRow(
+                                row = row,
+                                confirming = state.confirmingId == row.id,
+                                onConfirm = { viewModel.onConfirm(row.id) },
+                            )
+                        }
                     }
                 }
             }
@@ -147,30 +184,50 @@ fun PendingReferralsScreen(
 }
 
 @Composable
-private fun PendingReferralRow(row: PendingReferralRepository.PendingReferral) {
-    Row(
+private fun PendingReferralRow(
+    row: PendingReferralRepository.PendingReferral,
+    confirming: Boolean,
+    onConfirm: () -> Unit,
+) {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(Color.White)
             .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
             .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                "Code ${row.confirmationCode}",
-                style = EsType.Body.copy(fontWeight = FontWeight.Medium),
-                color = SevaInk900,
-            )
-            row.createdAt?.takeIf { it.isNotBlank() }?.let {
-                Text("Referred ${prettyDate(it)}", style = EsType.Caption, color = SevaInk500)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Code ${row.confirmationCode}",
+                    style = EsType.Body.copy(fontWeight = FontWeight.Medium),
+                    color = SevaInk900,
+                )
+                row.createdAt?.takeIf { it.isNotBlank() }?.let {
+                    Text("Referred ${prettyDate(it)}", style = EsType.Caption, color = SevaInk500)
+                }
             }
+            Pill(text = "Awaiting confirmation", kind = PillKind.Warn)
         }
-        Pill(text = "Awaiting confirmation", kind = PillKind.Warn)
+        EsBtn(
+            text = confirmButtonLabel(confirming),
+            onClick = onConfirm,
+            kind = EsBtnKind.Primary,
+            size = EsBtnSize.Md,
+            full = true,
+            disabled = confirming,
+        )
     }
 }
+
+/** Confirm-button label reflecting the in-flight state. */
+internal fun confirmButtonLabel(confirming: Boolean): String =
+    if (confirming) "Confirming…" else "Confirm"
 
 // ---------------------------------------------------------------------
 //  Pinned helpers

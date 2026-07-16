@@ -16,4 +16,9 @@ class PendingReferralsHelpersTest {
         assertEquals("1 referral awaiting your confirmation", pendingReferralsHeadline(1))
         assertEquals("4 referrals awaiting your confirmation", pendingReferralsHeadline(4))
     }
+
+    @Test fun `confirm button label reflects in-flight state`() {
+        assertEquals("Confirm", confirmButtonLabel(false))
+        assertEquals("Confirming…", confirmButtonLabel(true))
+    }
 }
