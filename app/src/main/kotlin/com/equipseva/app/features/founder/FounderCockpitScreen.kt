@@ -55,6 +55,7 @@ internal val FOUNDER_METRIC_DASHBOARDS: List<FounderDashboardEntry> = listOf(
 fun FounderCockpitScreen(
     onBack: () -> Unit,
     onOpenDashboard: (title: String, rpc: String) -> Unit,
+    onOpenRefundApprovals: () -> Unit = {},
 ) {
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -64,26 +65,58 @@ fun FounderCockpitScreen(
                 contentPadding = PaddingValues(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                item(key = "actions-header") {
+                    Text(
+                        "Actions",
+                        style = EsType.H5,
+                        color = SevaInk900,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                    )
+                }
+                item(key = "refund-approvals") {
+                    CockpitRow(
+                        title = "Refund approvals",
+                        subtitle = "Approve or reject pending refund requests",
+                        onClick = onOpenRefundApprovals,
+                    )
+                }
+                item(key = "dashboards-header") {
+                    Text(
+                        "Dashboards",
+                        style = EsType.H5,
+                        color = SevaInk900,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                    )
+                }
                 items(FOUNDER_METRIC_DASHBOARDS, key = { it.rpc }) { entry ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White)
-                            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
-                            .clickable { onOpenDashboard(entry.title, entry.rpc) }
-                            .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(entry.title, style = EsType.Body.copy(fontWeight = FontWeight.Medium), color = SevaInk900)
-                            Text(entry.subtitle, style = EsType.Caption, color = SevaInk500)
-                        }
-                        Text("›", style = EsType.H5, color = SevaInk500)
-                    }
+                    CockpitRow(
+                        title = entry.title,
+                        subtitle = entry.subtitle,
+                        onClick = { onOpenDashboard(entry.title, entry.rpc) },
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CockpitRow(title: String, subtitle: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = EsType.Body.copy(fontWeight = FontWeight.Medium), color = SevaInk900)
+            Text(subtitle, style = EsType.Caption, color = SevaInk500)
+        }
+        Text("›", style = EsType.H5, color = SevaInk500)
     }
 }

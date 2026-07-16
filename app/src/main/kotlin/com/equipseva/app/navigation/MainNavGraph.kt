@@ -1220,6 +1220,12 @@ fun MainNavGraph(
                     onOpenDashboard = { title, rpc ->
                         navController.navigate(Routes.founderMetricsRoute(title, rpc))
                     },
+                    onOpenRefundApprovals = { navController.navigate(Routes.FOUNDER_REFUND_APPROVALS) },
+                )
+            }
+            composable(Routes.FOUNDER_REFUND_APPROVALS) {
+                com.equipseva.app.features.founder.FounderRefundApprovalsScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(
