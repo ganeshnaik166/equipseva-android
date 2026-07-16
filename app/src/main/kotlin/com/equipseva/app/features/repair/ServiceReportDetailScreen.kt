@@ -48,6 +48,7 @@ import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.components.EsField
+import com.equipseva.app.designsystem.components.EsFieldType
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
@@ -88,6 +89,9 @@ class ServiceReportDetailViewModel @Inject constructor(
         val data: DsrRepository.Dsr? = null,
         val signing: Boolean = false,
         val signError: String? = null,
+        // r1442 — engineer files the DSR.
+        val submitting: Boolean = false,
+        val submitError: String? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -125,6 +129,41 @@ class ServiceReportDetailViewModel @Inject constructor(
     }
 
     fun clearSignError() = _state.update { it.copy(signError = null) }
+
+    /**
+     * Engineer files the DSR (r1442). On success closes the sheet + reloads so
+     * the freshly-created report renders; failures surface in the sheet.
+     */
+    fun submitDsr(
+        iec62353Passed: Boolean,
+        calibrationPerformed: Boolean,
+        calibrationWithinOem: Boolean?,
+        calibrationLabRef: String,
+        workSummary: String,
+        recommendations: String,
+        onSubmitted: () -> Unit,
+    ) {
+        _state.update { it.copy(submitting = true, submitError = null) }
+        viewModelScope.launch {
+            repo.submit(
+                repairJobId = jobId,
+                iec62353Passed = iec62353Passed,
+                calibrationPerformed = calibrationPerformed,
+                calibrationWithinOem = if (calibrationPerformed) calibrationWithinOem else null,
+                calibrationLabRef = calibrationLabRef,
+                workSummary = workSummary,
+                recommendations = recommendations,
+            )
+                .onSuccess {
+                    _state.update { it.copy(submitting = false, submitError = null) }
+                    onSubmitted()
+                    reload()
+                }
+                .onFailure { e -> _state.update { it.copy(submitting = false, submitError = e.toUserMessage()) } }
+        }
+    }
+
+    fun clearSubmitError() = _state.update { it.copy(submitError = null) }
 }
 
 /**
@@ -156,6 +195,23 @@ fun ServiceReportDetailScreen(
         )
     }
 
+    var showCreateSheet by rememberSaveable { mutableStateOf(false) }
+    if (showCreateSheet) {
+        CreateDsrSheet(
+            submitting = state.submitting,
+            error = state.submitError,
+            onClose = {
+                showCreateSheet = false
+                viewModel.clearSubmitError()
+            },
+            onSubmit = { iecPassed, calDone, calWithinOem, labRef, summary, recommendations ->
+                viewModel.submitDsr(iecPassed, calDone, calWithinOem, labRef, summary, recommendations) {
+                    showCreateSheet = false
+                }
+            },
+        )
+    }
+
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(title = "Service report", onBack = onBack)
@@ -169,6 +225,13 @@ fun ServiceReportDetailScreen(
                     subtitle = state.error,
                     ctaLabel = "Try again",
                     onCta = { viewModel.reload() },
+                )
+                state.data == null && !viewModel.isHospital -> EmptyStateView(
+                    icon = Icons.Outlined.Assignment,
+                    title = "File the service report",
+                    subtitle = "Record the work you did — compliance checks, summary and recommendations. The hospital counter-signs it after.",
+                    ctaLabel = "Create service report",
+                    onCta = { showCreateSheet = true },
                 )
                 state.data == null -> EmptyStateView(
                     icon = Icons.Outlined.Assignment,
@@ -322,9 +385,95 @@ private fun SignDsrSheet(
     }
 }
 
+@Composable
+private fun CreateDsrSheet(
+    submitting: Boolean,
+    error: String?,
+    onClose: () -> Unit,
+    onSubmit: (
+        iecPassed: Boolean,
+        calibrationPerformed: Boolean,
+        calibrationWithinOem: Boolean?,
+        labRef: String,
+        summary: String,
+        recommendations: String,
+    ) -> Unit,
+) {
+    var summary by rememberSaveable { mutableStateOf("") }
+    var iecPassed by rememberSaveable { mutableStateOf(true) }
+    var calDone by rememberSaveable { mutableStateOf(false) }
+    var calWithinOem by rememberSaveable { mutableStateOf(true) }
+    var labRef by rememberSaveable { mutableStateOf("") }
+    var recommendations by rememberSaveable { mutableStateOf("") }
+    EsBottomSheet(onClose = onClose, title = "Service report") {
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            EsField(
+                value = summary,
+                onChange = { summary = it },
+                label = "Work summary",
+                placeholder = "What you inspected, found, and fixed",
+                hint = "At least 20 characters",
+                type = EsFieldType.Multiline,
+            )
+            ToggleRow("IEC 62353 electrical safety passed", iecPassed) { iecPassed = it }
+            ToggleRow("Calibration performed", calDone) { calDone = it }
+            if (calDone) {
+                ToggleRow("Calibration within OEM spec", calWithinOem) { calWithinOem = it }
+                EsField(
+                    value = labRef,
+                    onChange = { labRef = it },
+                    label = "Calibration lab ref (optional)",
+                    placeholder = "e.g. NABL-CC-2231",
+                )
+            }
+            EsField(
+                value = recommendations,
+                onChange = { recommendations = it },
+                label = "Recommendations (optional)",
+                placeholder = "e.g. Replace battery within 3 months",
+                type = EsFieldType.Multiline,
+                imeAction = ImeAction.Done,
+            )
+            if (error != null) {
+                Text(error, style = EsType.BodySm, color = SevaDanger500)
+            }
+            EsBtn(
+                text = if (submitting) "Submitting…" else "Submit report",
+                onClick = {
+                    onSubmit(iecPassed, calDone, if (calDone) calWithinOem else null, labRef, summary, recommendations)
+                },
+                kind = EsBtnKind.Primary,
+                size = EsBtnSize.Lg,
+                full = true,
+                disabled = submitting || !isValidWorkSummary(summary),
+            )
+            Spacer(Modifier.height(4.dp))
+        }
+    }
+}
+
+@Composable
+private fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = EsType.Body, color = SevaInk700, modifier = Modifier.weight(1f))
+        androidx.compose.material3.Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
 // ---------------------------------------------------------------------
 //  Pinned helpers
 // ---------------------------------------------------------------------
+
+/** Work summary must be >= 20 trimmed chars — mirrors the submit_dsr server
+ *  guard so the submit button stays disabled until the RPC would accept it. */
+internal fun isValidWorkSummary(summary: String): Boolean = summary.trim().length >= 20
 
 /** DSR lifecycle status → pill. Fully-signed reads Success; drafts Neutral. */
 internal fun dsrStatusPill(status: String): Pair<String, PillKind> = when (status) {

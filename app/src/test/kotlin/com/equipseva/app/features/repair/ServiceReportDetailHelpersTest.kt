@@ -44,4 +44,14 @@ class ServiceReportDetailHelpersTest {
         assertEquals("Fail" to PillKind.Danger, dsrCheckPill(false))
         assertEquals("—" to PillKind.Neutral, dsrCheckPill(null))
     }
+
+    // r1442 — engineer files the DSR.
+
+    @Test fun `work summary needs at least 20 trimmed chars`() {
+        assertEquals(false, isValidWorkSummary("Replaced the fuse"))
+        assertEquals(false, isValidWorkSummary("   short   "))
+        assertEquals(true, isValidWorkSummary("Replaced compressor and verified cooling to spec"))
+        assertEquals(true, isValidWorkSummary("x".repeat(20)))
+        assertEquals(false, isValidWorkSummary("x".repeat(19)))
+    }
 }

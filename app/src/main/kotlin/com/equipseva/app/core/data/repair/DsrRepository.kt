@@ -7,6 +7,7 @@ import javax.inject.Singleton
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 
@@ -43,6 +44,52 @@ class DsrRepository @Inject constructor(
                 put("p_repair_job_id", JsonPrimitive(repairJobId))
             },
         ).decodeList<Dsr>().firstOrNull()
+    }
+
+    /**
+     * Engineer files the Digital Service Report for a completed job (r1442) —
+     * the NABH COP-6 record. Backed by submit_dsr, which enforces the caller is
+     * the job's accepted engineer and work_summary >= 20 chars, then creates the
+     * DSR in 'pending_hospital_sign' (so the r1421 hospital signature has
+     * something to sign). Reading arrays (readings/parts) are left empty for
+     * this version — the RPC coalesces null to '[]'; the compliance core is the
+     * pass/fail flags + work summary. Returns the new DSR id (ignored here).
+     */
+    suspend fun submit(
+        repairJobId: String,
+        iec62353Passed: Boolean,
+        calibrationPerformed: Boolean,
+        calibrationWithinOem: Boolean?,
+        calibrationLabRef: String?,
+        workSummary: String,
+        recommendations: String?,
+    ): Result<Unit> = runCatching {
+        client.postgrest.rpc(
+            function = "submit_dsr",
+            parameters = buildJsonObject {
+                put("p_repair_job_id", JsonPrimitive(repairJobId))
+                put("p_pre_post_readings", JsonNull)
+                put("p_iec_62353_passed", JsonPrimitive(iec62353Passed))
+                put("p_iec_62353_readings", JsonNull)
+                put("p_calibration_performed", JsonPrimitive(calibrationPerformed))
+                put(
+                    "p_calibration_within_oem",
+                    calibrationWithinOem?.let { JsonPrimitive(it) } ?: JsonNull,
+                )
+                put("p_calibration_readings", JsonNull)
+                put(
+                    "p_calibration_lab_ref",
+                    calibrationLabRef?.trim()?.takeIf { it.isNotEmpty() }?.let { JsonPrimitive(it) } ?: JsonNull,
+                )
+                put("p_parts_replaced", JsonNull)
+                put("p_work_summary", JsonPrimitive(workSummary.trim()))
+                put(
+                    "p_recommendations",
+                    recommendations?.trim()?.takeIf { it.isNotEmpty() }?.let { JsonPrimitive(it) } ?: JsonNull,
+                )
+            },
+        )
+        Unit
     }
 
     /**
