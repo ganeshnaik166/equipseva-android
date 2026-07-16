@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -47,10 +50,12 @@ import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.amc.AmcRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.data.prefs.UserPrefs
+import com.equipseva.app.designsystem.components.EsBottomSheet
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.components.EsChip
+import com.equipseva.app.designsystem.components.EsField
 import com.equipseva.app.designsystem.components.EsSection
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
@@ -85,6 +90,7 @@ import kotlinx.coroutines.launch
 class AmcDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val repo: AmcRepository,
+    private val directoryRepo: com.equipseva.app.core.data.engineers.EngineerDirectoryRepository,
     private val auth: AuthRepository,
     private val userPrefs: UserPrefs,
     private val chatRepository: com.equipseva.app.core.data.chat.ChatRepository,
@@ -130,6 +136,13 @@ class AmcDetailViewModel @Inject constructor(
         // assigned (for a per-row spinner) and any assign error.
         val assigningVisitId: String? = null,
         val assignError: String? = null,
+        // r1428 — add-fallback engineer picker.
+        val addPickerOpen: Boolean = false,
+        val pickerQuery: String = "",
+        val pickerLoading: Boolean = false,
+        val pickerResults: List<com.equipseva.app.core.data.engineers.EngineerDirectoryRepository.DirectoryRow> = emptyList(),
+        val addingEngineerId: String? = null,
+        val addError: String? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -237,6 +250,46 @@ class AmcDetailViewModel @Inject constructor(
                 .onFailure { e ->
                     _state.update { it.copy(assigningVisitId = null, assignError = e.toUserMessage()) }
                 }
+        }
+    }
+
+    // r1428 — add-fallback engineer picker.
+
+    fun openAddPicker() {
+        _state.update { it.copy(addPickerOpen = true, addError = null) }
+        searchEngineers("")
+    }
+
+    fun closeAddPicker() =
+        _state.update { it.copy(addPickerOpen = false, addError = null, pickerQuery = "", pickerResults = emptyList()) }
+
+    fun onPickerQueryChange(q: String) {
+        _state.update { it.copy(pickerQuery = q) }
+        searchEngineers(q)
+    }
+
+    private fun searchEngineers(q: String) {
+        _state.update { it.copy(pickerLoading = true) }
+        viewModelScope.launch {
+            directoryRepo.search(query = q.trim().ifBlank { null }, limit = 25)
+                .onSuccess { rows -> _state.update { it.copy(pickerLoading = false, pickerResults = rows) } }
+                .onFailure { e -> _state.update { it.copy(pickerLoading = false, addError = e.toUserMessage()) } }
+        }
+    }
+
+    /** Add the picked engineer as a fallback, then close the picker + refresh. */
+    fun addFallback(engineerId: String) {
+        if (_state.value.addingEngineerId != null) return
+        _state.update { it.copy(addingEngineerId = engineerId, addError = null) }
+        viewModelScope.launch {
+            repo.addFallbackEngineer(contractId, engineerId)
+                .onSuccess {
+                    _state.update {
+                        it.copy(addingEngineerId = null, addPickerOpen = false, pickerQuery = "", pickerResults = emptyList())
+                    }
+                    refresh()
+                }
+                .onFailure { e -> _state.update { it.copy(addingEngineerId = null, addError = e.toUserMessage()) } }
         }
     }
 
@@ -472,6 +525,10 @@ fun AmcDetailScreen(
                             AmcDetailViewModel.Tab.Rotation -> RotationTab(
                                 state = state,
                                 onRemove = viewModel::removeFallback,
+                                onOpenAddPicker = viewModel::openAddPicker,
+                                onCloseAddPicker = viewModel::closeAddPicker,
+                                onPickerQueryChange = viewModel::onPickerQueryChange,
+                                onPickEngineer = viewModel::addFallback,
                             )
                         }
                         Spacer(Modifier.height(24.dp))
@@ -1289,6 +1346,23 @@ internal fun canAssignAmcVisit(status: String, engineerId: String?): Boolean =
             "en_route", "in_progress", "completed", "disputed", "cancelled",
         )
 
+/**
+ * Subtitle for an engineer pick row: city plus rating and job count, joined
+ * with middle dots and skipping any missing part (r1428). Never blank — a
+ * brand-new engineer with no city/rating still reads "0 jobs".
+ */
+internal fun directoryResultSubtitle(city: String?, ratingAvg: Double, totalJobs: Int): String {
+    val parts = buildList {
+        city?.trim()?.takeIf { it.isNotEmpty() }?.let { add(it) }
+        if (ratingAvg > 0.0) {
+            val r = if (ratingAvg % 1.0 == 0.0) ratingAvg.toLong().toString() else ratingAvg.toString()
+            add("★ $r")
+        }
+        add("$totalJobs jobs")
+    }
+    return parts.joinToString(" · ")
+}
+
 @Composable
 private fun SlaTab(state: AmcDetailViewModel.UiState) {
     EsSection(title = "SLA breaches") {
@@ -1360,27 +1434,34 @@ private fun SlaBreachCard(b: AmcRepository.AmcSlaBreach) {
 private fun RotationTab(
     state: AmcDetailViewModel.UiState,
     onRemove: (engineerId: String) -> Unit,
+    onOpenAddPicker: () -> Unit,
+    onCloseAddPicker: () -> Unit,
+    onPickerQueryChange: (String) -> Unit,
+    onPickEngineer: (engineerId: String) -> Unit,
 ) {
+    if (state.addPickerOpen) {
+        AddFallbackSheet(
+            state = state,
+            onClose = onCloseAddPicker,
+            onQueryChange = onPickerQueryChange,
+            onPick = onPickEngineer,
+        )
+    }
     EsSection(title = "Engineer rotation") {
-        if (state.rotation.isEmpty()) {
-            // The previous "Rotation will appear here." was placeholder
-            // copy that didn't tell hospitals what they were looking at
-            // or how to populate it. Concrete description of how rotation
-            // works + the canonical add-fallback path.
-            Text(
-                if (state.viewerIsHospital)
-                    "The primary engineer takes visits first. If they're unavailable, the next priority engineer is dispatched. Add fallbacks from any engineer's profile."
-                else
-                    "The primary engineer takes visits first. Fallbacks step in when the primary is unavailable.",
-                color = SevaInk500,
-                fontSize = 13.sp,
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
-        } else {
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (state.rotation.isEmpty()) {
+                Text(
+                    if (state.viewerIsHospital)
+                        "The primary engineer takes visits first. If they're unavailable, the next priority engineer is dispatched."
+                    else
+                        "The primary engineer takes visits first. Fallbacks step in when the primary is unavailable.",
+                    color = SevaInk500,
+                    fontSize = 13.sp,
+                )
+            } else {
                 state.rotation.forEach { r ->
                     RotationCard(
                         row = r,
@@ -1388,14 +1469,98 @@ private fun RotationTab(
                         onRemove = { onRemove(r.engineerId) },
                     )
                 }
-                if (state.viewerIsHospital) {
-                    Text(
-                        "Add fallback engineers from the engineer directory — open a profile and tap 'Set up monthly maintenance'.",
-                        color = SevaInk500,
-                        fontSize = 12.sp,
-                    )
+            }
+            if (state.viewerIsHospital) {
+                EsBtn(
+                    text = "Add fallback engineer",
+                    onClick = onOpenAddPicker,
+                    kind = EsBtnKind.Secondary,
+                    size = EsBtnSize.Sm,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddFallbackSheet(
+    state: AmcDetailViewModel.UiState,
+    onClose: () -> Unit,
+    onQueryChange: (String) -> Unit,
+    onPick: (engineerId: String) -> Unit,
+) {
+    EsBottomSheet(onClose = onClose, title = "Add fallback engineer") {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                "Search verified engineers and add one as a rotation fallback.",
+                color = SevaInk700,
+                fontSize = 13.sp,
+            )
+            EsField(
+                value = state.pickerQuery,
+                onChange = onQueryChange,
+                placeholder = "Search by name or city",
+                imeAction = ImeAction.Search,
+            )
+            state.addError?.let {
+                Text(it, color = SevaDanger500, fontSize = 12.sp)
+            }
+            when {
+                state.pickerLoading && state.pickerResults.isEmpty() ->
+                    Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                state.pickerResults.isEmpty() ->
+                    Text("No verified engineers match.", color = SevaInk500, fontSize = 13.sp)
+                else -> Column(
+                    modifier = Modifier
+                        .heightIn(max = 360.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    state.pickerResults.forEach { row ->
+                        DirectoryPickRow(
+                            row = row,
+                            adding = state.addingEngineerId == row.engineerId,
+                            onPick = { onPick(row.engineerId) },
+                        )
+                    }
                 }
             }
+            Spacer(Modifier.height(4.dp))
+        }
+    }
+}
+
+@Composable
+private fun DirectoryPickRow(
+    row: com.equipseva.app.core.data.engineers.EngineerDirectoryRepository.DirectoryRow,
+    adding: Boolean,
+    onPick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(10.dp))
+            .clickable(enabled = !adding, onClick = onPick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(row.fullName, color = SevaInk900, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                directoryResultSubtitle(row.city, row.ratingAvg, row.totalJobs),
+                color = SevaInk500,
+                fontSize = 11.sp,
+            )
+        }
+        if (adding) {
+            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+        } else {
+            Text("Add", color = SevaGreen700, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }

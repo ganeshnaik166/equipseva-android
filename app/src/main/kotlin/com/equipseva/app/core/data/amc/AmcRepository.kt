@@ -321,6 +321,28 @@ class AmcRepository @Inject constructor(
         Unit
     }
 
+    /**
+     * Add a verified engineer as a rotation fallback for the contract (r1428).
+     * Backed by add_amc_fallback_engineer, which re-checks that the caller
+     * owns the contract and the engineer is verified. Priority is left to the
+     * server default (appended after existing fallbacks) when null.
+     */
+    suspend fun addFallbackEngineer(
+        contractId: String,
+        engineerId: String,
+        priority: Int? = null,
+    ): Result<Unit> = runCatching {
+        supabase.postgrest.rpc(
+            function = "add_amc_fallback_engineer",
+            parameters = buildJsonObject {
+                put("p_contract_id", JsonPrimitive(contractId))
+                put("p_engineer_id", JsonPrimitive(engineerId))
+                put("p_priority", priority?.let { JsonPrimitive(it) } ?: JsonNull)
+            },
+        )
+        Unit
+    }
+
     @Serializable
     data class PoolLedgerRow(
         @SerialName("id") val id: String,
