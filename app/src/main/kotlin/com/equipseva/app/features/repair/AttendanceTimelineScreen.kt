@@ -100,7 +100,13 @@ class AttendanceTimelineViewModel @Inject constructor(
         viewModelScope.launch {
             repo.fetch(jobId)
                 .onSuccess { rows -> _state.update { it.copy(loading = false, refreshing = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, refreshing = false, error = e.toUserMessage()) } }
+                // r1452 — keep a loaded timeline on a transient refresh failure.
+                .onFailure { e ->
+                    _state.update {
+                        if (it.rows.isEmpty()) it.copy(loading = false, refreshing = false, error = e.toUserMessage())
+                        else it.copy(loading = false, refreshing = false)
+                    }
+                }
         }
     }
 
