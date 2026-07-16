@@ -778,12 +778,11 @@ class RepairJobDetailViewModel @Inject constructor(
                     }
                 }
                 .onFailure { err ->
-                    _state.update {
-                        it.copy(
-                            proposingRevision = false,
-                            errorMessage = err.toUserMessage(),
-                        )
-                    }
+                    // r1450 — errorMessage only renders full-screen when job==null;
+                    // on a loaded job this action failure was silent. Use the
+                    // screen's snackbar channel like the other actions.
+                    _state.update { it.copy(proposingRevision = false) }
+                    _messages.emit(err.toUserMessage())
                 }
         }
     }
@@ -820,12 +819,9 @@ class RepairJobDetailViewModel @Inject constructor(
                     if (approve) load()
                 }
                 .onFailure { err ->
-                    _state.update {
-                        it.copy(
-                            decidingRevision = false,
-                            errorMessage = err.toUserMessage(),
-                        )
-                    }
+                    // r1450 — surface via snackbar; errorMessage is full-screen-only.
+                    _state.update { it.copy(decidingRevision = false) }
+                    _messages.emit(err.toUserMessage())
                 }
         }
     }

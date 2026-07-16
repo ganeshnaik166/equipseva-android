@@ -168,6 +168,18 @@ fun AddressBookScreen(
                         contentPadding = PaddingValues(Spacing.md),
                         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                     ) {
+                        // r1450 — set-default / delete failures set `error`, which
+                        // otherwise only renders full-screen when the list is empty
+                        // (correctly not wiping a loaded list) — so show it inline.
+                        state.error?.let { msg ->
+                            item(key = "action-error") {
+                                androidx.compose.material3.Text(
+                                    msg,
+                                    color = com.equipseva.app.designsystem.theme.SevaDanger500,
+                                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                        }
                         items(state.rows, key = { it.id ?: it.line1 }) { row ->
                             AddressRowCard(
                                 row = row,

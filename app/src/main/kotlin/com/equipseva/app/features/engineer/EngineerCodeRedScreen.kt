@@ -189,6 +189,16 @@ fun EngineerCodeRedScreen(
                     contentPadding = PaddingValues(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    // r1450 — an accept failure sets actionError but that only
+                    // renders inside the decline sheet; show it inline too so a
+                    // failed accept isn't silent.
+                    if (declineFor == null) {
+                        state.actionError?.let { msg ->
+                            item(key = "action-error") {
+                                Text(msg, style = EsType.BodySm, color = SevaDanger500, modifier = Modifier.padding(horizontal = 4.dp))
+                            }
+                        }
+                    }
                     if (state.accepted.isNotEmpty()) {
                         item(key = "accepted-header") {
                             Text(
