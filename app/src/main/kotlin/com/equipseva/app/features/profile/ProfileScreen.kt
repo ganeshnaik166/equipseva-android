@@ -51,6 +51,7 @@ import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material.icons.outlined.Diversity3
 import androidx.compose.material.icons.outlined.Loyalty
 import androidx.compose.material.icons.outlined.Redeem
+import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
@@ -148,6 +149,8 @@ fun ProfileScreen(
     onOpenCommissionTier: () -> Unit = {},
     // r1407 — hospital first-job-free promo eligibility.
     onOpenFirstJobFree: () -> Unit = {},
+    // r1410 — equipment catalog browse (both roles).
+    onOpenCatalog: () -> Unit = {},
     onSwitchService: () -> Unit = {},
     onSignIn: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -297,6 +300,7 @@ fun ProfileScreen(
                         onOpenPendingReferrals = onOpenPendingReferrals,
                         onOpenCommissionTier = onOpenCommissionTier,
                         onOpenFirstJobFree = onOpenFirstJobFree,
+                        onOpenCatalog = onOpenCatalog,
                         onSwitchService = viewModel::onToggleRoleAndGoHome,
                         onPickAvatar = viewModel::uploadAvatar,
                     )
@@ -446,6 +450,7 @@ private fun ProfileContent(
     onOpenPendingReferrals: () -> Unit,
     onOpenCommissionTier: () -> Unit,
     onOpenFirstJobFree: () -> Unit,
+    onOpenCatalog: () -> Unit,
     onSwitchService: () -> Unit,
     onPickAvatar: (Uri) -> Unit,
 ) {
@@ -539,6 +544,7 @@ private fun ProfileContent(
             onOpenPendingReferrals = onOpenPendingReferrals,
             onOpenCommissionTier = onOpenCommissionTier,
             onOpenFirstJobFree = onOpenFirstJobFree,
+            onOpenCatalog = onOpenCatalog,
             onSwitchService = onSwitchService,
             onSignOut = onSignOut,
             signingOut = state.signingOut,
@@ -736,6 +742,7 @@ private fun buildProfileSections(
     onOpenPendingReferrals: () -> Unit,
     onOpenCommissionTier: () -> Unit,
     onOpenFirstJobFree: () -> Unit,
+    onOpenCatalog: () -> Unit,
     onSwitchService: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
@@ -860,6 +867,8 @@ private fun buildProfileSections(
         SettingsRow(icon = Icons.Outlined.PrivacyTip, label = "Privacy & consents", onClick = onOpenConsents),
         // r1403 — DPDP grievances the user filed (my_grievances); both roles.
         SettingsRow(icon = Icons.Outlined.Gavel, label = "My grievances", onClick = onOpenGrievances),
+        // r1410 — equipment catalog browse (both roles).
+        SettingsRow(icon = Icons.Outlined.Inventory2, label = "Equipment catalog", onClick = onOpenCatalog),
         SettingsRow(
             icon = Icons.Outlined.FileUpload,
             label = if (exportingData) "Preparing export…" else "Export my data",

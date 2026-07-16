@@ -633,6 +633,7 @@ fun MainNavGraph(
                     onOpenPendingReferrals = { navController.navigate(Routes.ENGINEER_PENDING_REFERRALS) },
                     onOpenCommissionTier = { navController.navigate(Routes.HOSPITAL_COMMISSION_TIER) },
                     onOpenFirstJobFree = { navController.navigate(Routes.HOSPITAL_FIRST_JOB_FREE) },
+                    onOpenCatalog = { navController.navigate(Routes.CATALOG_BROWSE) },
                     onOpenFleetHealth = { navController.navigate(Routes.HOSPITAL_FLEET_HEALTH) },
                     onOpenPmCalendar = { navController.navigate(Routes.HOSPITAL_PM_CALENDAR) },
                     onOpenPublicPreview = { engineerId ->
@@ -1151,6 +1152,11 @@ fun MainNavGraph(
             }
             composable(Routes.HOSPITAL_FIRST_JOB_FREE) {
                 com.equipseva.app.features.hospital.FirstJobFreeScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.CATALOG_BROWSE) {
+                com.equipseva.app.features.catalog.CatalogBrowseScreen(
                     onBack = { navController.popBackStack() },
                 )
             }

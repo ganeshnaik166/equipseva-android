@@ -198,6 +198,8 @@ object Routes {
     const val HOSPITAL_COMMISSION_TIER = "profile/commission_tier"
     // r1407 — hospital first-job-free promo eligibility (first_job_free_eligible).
     const val HOSPITAL_FIRST_JOB_FREE = "profile/first_job_free"
+    // r1410 — equipment catalog browse (catalog_devices_search); both roles.
+    const val CATALOG_BROWSE = "catalog/browse"
     // r1396 — read-only hospital fleet-health board (hospital_fleet_health).
     const val HOSPITAL_FLEET_HEALTH = "profile/fleet_health"
     // r1398 — hospital preventive-maintenance calendar (hospital_upcoming_pm).
