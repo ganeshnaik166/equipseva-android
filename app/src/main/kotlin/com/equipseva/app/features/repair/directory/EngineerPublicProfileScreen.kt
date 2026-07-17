@@ -803,7 +803,13 @@ private fun ProfileBody(
                 Stat(
                     modifier = Modifier.weight(1f),
                     label = "Completion",
-                    value = formatCompletionRatePct(p.completionRate),
+                    // With zero completed jobs the rate is 0/0, which
+                    // formatCompletionRatePct renders as "0%" — reads as a
+                    // terrible completion record rather than "no data yet".
+                    // Show the no-data em-dash instead, matching how the
+                    // directory row hides completion when no real number
+                    // exists (and the "New" rating chip, r1485).
+                    value = if (p.totalJobs <= 0) "—" else formatCompletionRatePct(p.completionRate),
                     color = SevaGreen700,
                 )
             }
