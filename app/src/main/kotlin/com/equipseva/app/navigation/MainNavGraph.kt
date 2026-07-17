@@ -804,6 +804,7 @@ fun MainNavGraph(
                 ConversationsScreen(
                     onBack = { navController.popBackStack() },
                     onConversationClick = { id -> navController.navigate(Routes.chatRoute(id)) },
+                    onSignIn = onSignIn,
                 )
             }
             composable(
