@@ -178,7 +178,10 @@ internal fun firstJobFreeHeadline(eligible: Boolean): String =
  * raw token.
  */
 internal fun firstJobFreeReasonLabel(reason: String?): String = when (reason) {
-    null -> "You're eligible for this offer."
+    // This helper is only called in the NOT-eligible branch, so a null reason
+    // means "not eligible, no reason code given" — not "eligible". (Was
+    // wrongly returning the eligible-context string under a "Not available" pill.)
+    null -> "This offer isn't available right now."
     "already_redeemed" -> "You've already used this offer."
     "not_first_time_user" -> "This offer is for first-time hospitals only — you've already completed a job with us."
     "account_under_review" -> "Your account is under review, so this offer isn't available right now."

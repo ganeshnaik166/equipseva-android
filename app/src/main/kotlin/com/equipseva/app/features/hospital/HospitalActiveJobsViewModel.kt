@@ -89,7 +89,11 @@ class HospitalActiveJobsViewModel @Inject constructor(
                         )
                     }
                     _state.update {
-                        UiState(
+                        // it.copy (not a fresh UiState) so the user's selected
+                        // filter chip survives a refresh — a fresh UiState reset
+                        // `filter` to its default (All), silently discarding the
+                        // chosen tab on every pull-to-refresh / RefreshOnReturn.
+                        it.copy(
                             loading = false,
                             refreshing = false,
                             openJobs = open,

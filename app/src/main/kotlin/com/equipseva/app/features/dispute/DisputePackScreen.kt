@@ -84,6 +84,7 @@ class DisputePackViewModel @Inject constructor(
     data class UiState(
         val loadingEvidence: Boolean = true,
         val evidence: List<EvidenceRepository.Evidence> = emptyList(),
+        val evidenceLoadFailed: Boolean = false,
         val submitting: Boolean = false,
         val error: String? = null,
         val filed: Boolean = false,
@@ -99,8 +100,11 @@ class DisputePackViewModel @Inject constructor(
         _state.update { it.copy(loadingEvidence = true) }
         viewModelScope.launch {
             evidenceRepo.fetch(repairJobId)
-                .onSuccess { list -> _state.update { it.copy(loadingEvidence = false, evidence = list) } }
-                .onFailure { _state.update { it.copy(loadingEvidence = false, evidence = emptyList()) } }
+                .onSuccess { list -> _state.update { it.copy(loadingEvidence = false, evidence = list, evidenceLoadFailed = false) } }
+                // Distinguish a load FAILURE from a genuinely empty ledger — else
+                // the header asserts "No evidence on file" when the RPC just
+                // errored, and a party with evidence is told there is none.
+                .onFailure { _state.update { it.copy(loadingEvidence = false, evidenceLoadFailed = true) } }
         }
     }
 
@@ -178,8 +182,11 @@ fun DisputePackScreen(
                     }
                     item(key = "evidence-header") {
                         Text(
-                            if (state.evidence.isEmpty()) "No evidence on file for this job"
-                            else "Attach evidence (${selected.size} selected)",
+                            when {
+                                state.evidenceLoadFailed -> "Couldn't load evidence — reopen to retry"
+                                state.evidence.isEmpty() -> "No evidence on file for this job"
+                                else -> "Attach evidence (${selected.size} selected)"
+                            },
                             style = EsType.H5,
                             color = SevaInk900,
                         )

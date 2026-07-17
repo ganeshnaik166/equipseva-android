@@ -112,7 +112,7 @@ class HospitalCodeRedViewModel @Inject constructor(
                 .onSuccess { t -> _state.update { it.copy(equipmentTypes = t, actionError = null) } }
                 .onFailure { e ->
                     _state.update {
-                        it.copy(actionError = "Couldn't load equipment types (${e.toUserMessage()}). Pull down to retry.")
+                        it.copy(actionError = "Couldn't load equipment types (${e.toUserMessage()}). Reopen this screen to retry.")
                     }
                 }
             repo.myRequests(uid)

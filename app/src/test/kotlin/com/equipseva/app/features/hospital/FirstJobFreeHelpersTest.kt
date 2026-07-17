@@ -23,8 +23,10 @@ class FirstJobFreeHelpersTest {
         )
     }
 
-    @Test fun `null reason reads eligible`() {
-        assertEquals("You're eligible for this offer.", firstJobFreeReasonLabel(null))
+    @Test fun `null reason reads not-available (helper is only called when NOT eligible)`() {
+        // r1468: null reason in the not-eligible branch means "no reason code",
+        // not "eligible" — must not render the eligible-context string.
+        assertEquals("This offer isn't available right now.", firstJobFreeReasonLabel(null))
     }
 
     @Test fun `unknown reason de-snakes`() {
