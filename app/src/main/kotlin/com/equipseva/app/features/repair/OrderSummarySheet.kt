@@ -46,13 +46,15 @@ import com.equipseva.app.designsystem.theme.SevaInk900
  * single, calm, transparent breakdown of what they're authorising.
  *
  * Notes:
- *   - GST hardcoded at 18% per MVP scope. When backend introduces
- *     per-state or service-class variation, route the rate through
- *     state and switch the multiplier to a server-derived value.
- *   - The eventual Razorpay sheet uses `escrow.amount_rupees` (server-
- *     authoritative) as the actual debit amount. The total shown here
- *     is client-computed bid + GST; the two should match in normal
- *     flows but the server is the source of truth for the debit.
+ *   - r1499 — GST is INCLUSIVE, mirroring the server. The old sheet ADDED
+ *     18% on top (bid ₹2,500 → "Total ₹2,950 / Pay ₹2,950") but the actual
+ *     charge is escrow.amount_rupees = the bid verbatim (create-repair-job-
+ *     payment-order edge fn), and the round449 GST invoice REVERSES the tax
+ *     out of that gross (taxable = gross / 1.18). Verified live on
+ *     RPR-00040: order summary promised ₹2,950, the pay sheet + Razorpay
+ *     order were ₹2,500 — an 18% overstatement at the highest-stakes moment.
+ *     The breakdown now shows taxable + GST-included + total-equals-bid,
+ *     matching the tax invoice the hospital later downloads.
  */
 @Composable
 fun OrderSummarySheet(
@@ -62,9 +64,7 @@ fun OrderSummarySheet(
     onClose: () -> Unit,
     onProceedToPayment: () -> Unit,
 ) {
-    val bidAmount = bid.amountRupees
-    val gstAmount = bidAmount * 0.18  // GST @ 18% — see KDoc above
-    val totalAmount = bidAmount + gstAmount
+    val breakdown = orderSummaryBreakdown(bid.amountRupees)
 
     EsBottomSheet(
         onClose = onClose,
@@ -136,8 +136,14 @@ fun OrderSummarySheet(
                     .padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                PriceRow(label = "Bid amount", value = formatRupees(bidAmount))
-                PriceRow(label = "GST (18%)", value = formatRupees(gstAmount))
+                PriceRow(
+                    label = "Taxable value",
+                    value = com.equipseva.app.core.util.formatRupeesPaise(breakdown.taxableValue),
+                )
+                PriceRow(
+                    label = "GST (18%, included)",
+                    value = com.equipseva.app.core.util.formatRupeesPaise(breakdown.gstIncluded),
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -149,7 +155,7 @@ fun OrderSummarySheet(
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        formatRupees(totalAmount),
+                        formatRupees(breakdown.total),
                         color = SevaInk900,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
@@ -168,7 +174,9 @@ fun OrderSummarySheet(
 
             Spacer(Modifier.height(4.dp))
             EsBtn(
-                text = "Pay ${formatRupees(totalAmount)}",
+                // Matches the actual Razorpay debit (escrow.amount_rupees =
+                // the bid) and the downstream pay sheet's "Pay ₹X" label.
+                text = "Pay ${formatRupees(breakdown.total)}",
                 kind = EsBtnKind.Primary,
                 full = true,
                 onClick = onProceedToPayment,
@@ -176,6 +184,35 @@ fun OrderSummarySheet(
             Spacer(Modifier.height(8.dp))
         }
     }
+}
+
+/**
+ * r1499 — GST-inclusive price breakdown for the pre-checkout order summary.
+ *
+ * Mirrors the server exactly:
+ *   - the charge is the bid verbatim (create-repair-job-payment-order uses
+ *     escrow.amount_rupees, which accept_repair_bid sets to the bid), so
+ *     [total] == bidAmount, always;
+ *   - the round449 GST invoice reverses 18% INCLUSIVE tax out of the gross:
+ *     taxable = round(gross / 1.18, 2), gst = gross − taxable. The sheet's
+ *     rows must foot to the same invoice the hospital later downloads.
+ *
+ * Pin: total is NEVER bid × 1.18 — the old additive math promised ₹2,950 on
+ * a ₹2,500 charge.
+ */
+internal data class OrderSummaryBreakdown(
+    val taxableValue: Double,
+    val gstIncluded: Double,
+    val total: Double,
+)
+
+internal fun orderSummaryBreakdown(bidAmount: Double): OrderSummaryBreakdown {
+    val taxable = kotlin.math.round(bidAmount / 1.18 * 100.0) / 100.0
+    return OrderSummaryBreakdown(
+        taxableValue = taxable,
+        gstIncluded = kotlin.math.round((bidAmount - taxable) * 100.0) / 100.0,
+        total = bidAmount,
+    )
 }
 
 @Composable
