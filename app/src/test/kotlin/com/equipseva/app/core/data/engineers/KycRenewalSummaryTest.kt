@@ -8,8 +8,15 @@ class KycRenewalSummaryTest {
 
     // ---- renewalUrgency -----------------------------------------------
 
-    @Test fun `negative days is overdue`() {
-        assertEquals("overdue", renewalUrgency(-0.1))
+    @Test fun `just past due within half a day stays due soon`() {
+        // r1459: pill must not say Overdue while formatRenewalDue still reads
+        // "Due today" (the -0.5..0 window). Overdue cut aligned to <= -0.5.
+        assertEquals("due_soon", renewalUrgency(-0.1))
+        assertEquals("due_soon", renewalUrgency(-0.4))
+    }
+
+    @Test fun `half a day or more past due is overdue`() {
+        assertEquals("overdue", renewalUrgency(-0.5))
         assertEquals("overdue", renewalUrgency(-30.0))
     }
 

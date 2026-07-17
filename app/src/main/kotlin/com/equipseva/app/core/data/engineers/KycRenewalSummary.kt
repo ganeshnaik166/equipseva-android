@@ -6,13 +6,14 @@ import kotlin.math.roundToInt
 /**
  * Urgency band for a re-KYC cycle from `days_until_due` (negative = past the
  * due date, into the grace window). Pinned cut-points:
- *   * `overdue`   — days < 0 (past due; verification will lapse at grace end)
- *   * `due_soon`  — 0 ≤ days ≤ 14
+ *   * `overdue`   — days ≤ -0.5 (matches formatRenewalDue's "Overdue by" band,
+ *                   so the pill and the "Due today"/"Overdue by" headline agree)
+ *   * `due_soon`  — -0.5 < days ≤ 14 (includes the "Due today" window)
  *   * `scheduled` — days > 14
  * These drive the nudge pill (Danger / Warn / Info).
  */
 internal fun renewalUrgency(daysUntilDue: Double): String = when {
-    daysUntilDue < 0.0 -> "overdue"
+    daysUntilDue <= -0.5 -> "overdue"
     daysUntilDue <= 14.0 -> "due_soon"
     else -> "scheduled"
 }

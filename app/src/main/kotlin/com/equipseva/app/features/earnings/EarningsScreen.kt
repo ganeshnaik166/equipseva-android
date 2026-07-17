@@ -373,7 +373,14 @@ private fun EscrowSummaryCard(
                 modifier = Modifier.size(20.dp),
             )
             Text(
-                text = "Money in flight",
+                // "Money in flight" only fits when something is actually held/
+                // pending/disputed; when the card shows solely released-30d
+                // (nothing active) that title contradicts the content.
+                text = if (summary.countHeld > 0 || summary.countInDispute > 0 || summary.countPendingPayment > 0) {
+                    "Money in flight"
+                } else {
+                    "Recently released"
+                },
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = SevaInk900,
