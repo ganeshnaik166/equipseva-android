@@ -220,9 +220,11 @@ internal fun producerKindLabel(kind: String?): String = when (kind) {
 internal fun formatBytes(bytes: Long): String {
     if (bytes < 1024) return "$bytes B"
     val kb = bytes / 1024.0
-    if (kb < 1024) return "${round1(kb)} KB"
+    // Compare the ROUNDED value against the unit ceiling so a size that rounds
+    // up to 1024 rolls to the next unit (else "1024 KB" instead of "1.0 MB").
+    if (kotlin.math.round(kb * 10.0) / 10.0 < 1024.0) return "${round1(kb)} KB"
     val mb = kb / 1024.0
-    if (mb < 1024) return "${round1(mb)} MB"
+    if (kotlin.math.round(mb * 10.0) / 10.0 < 1024.0) return "${round1(mb)} MB"
     return "${round1(mb / 1024.0)} GB"
 }
 

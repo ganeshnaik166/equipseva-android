@@ -32,6 +32,12 @@ class EvidenceVaultHelpersTest {
         assertEquals("1 MB", formatBytes(1024L * 1024))
     }
 
+    @Test fun `byte size just under a unit rolls up not to 1024`() {
+        // r1461: 1 byte under 1 MiB must render "1 MB", not "1024 KB" (the
+        // pre-rounded value passed the < 1024 guard, then round1 rounded it up).
+        assertEquals("1 MB", formatBytes(1024L * 1024 - 1))
+    }
+
     @Test fun `short hash truncates long, keeps short`() {
         assertEquals("abcdef0123…", shortHash("abcdef0123456789"))
         assertEquals("short", shortHash("short"))

@@ -226,7 +226,7 @@ fun EarningsScreen(
                                 }
                             }
                         }
-                        if (state.rows.isEmpty() && state.amcEarnings.isEmpty()) {
+                        if (state.rows.isEmpty() && state.amcEarnings.isEmpty() && state.payouts.isEmpty()) {
                             item("empty") {
                                 EmptyStateView(
                                     icon = Icons.Outlined.Payments,
