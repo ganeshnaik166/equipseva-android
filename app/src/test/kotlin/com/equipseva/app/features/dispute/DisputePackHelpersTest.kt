@@ -19,4 +19,26 @@ class DisputePackHelpersTest {
         assertEquals("Dsr pdf", evidenceKindLabel("dsr_pdf"))
         assertEquals("Evidence", evidenceKindLabel(""))
     }
+
+    // r1501 — the file gate mirrors the server's
+    // pack_must_have_evidence_or_dsr_before_submit guard, blocking ONLY on
+    // positive knowledge that both evidence and DSR are absent.
+
+    @Test fun `needs evidence when none selected and job positively has no DSR`() {
+        assertEquals(true, disputePackNeedsEvidence(selectedEvidenceCount = 0, hasDsr = false))
+    }
+
+    @Test fun `selecting any evidence clears the gate`() {
+        assertEquals(false, disputePackNeedsEvidence(selectedEvidenceCount = 1, hasDsr = false))
+    }
+
+    @Test fun `a linked DSR clears the gate even with zero evidence`() {
+        assertEquals(false, disputePackNeedsEvidence(selectedEvidenceCount = 0, hasDsr = true))
+    }
+
+    @Test fun `unknown DSR state never blocks (server backstops)`() {
+        // null = still loading or the lookup failed — blocking here would
+        // wrongly lock out a filer whose job HAS a DSR.
+        assertEquals(false, disputePackNeedsEvidence(selectedEvidenceCount = 0, hasDsr = null))
+    }
 }

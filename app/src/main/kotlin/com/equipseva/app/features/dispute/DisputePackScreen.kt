@@ -76,6 +76,10 @@ class DisputePackViewModel @Inject constructor(
     savedState: SavedStateHandle,
     private val repo: DisputePackRepository,
     private val evidenceRepo: EvidenceRepository,
+    // r1501 — the server rejects a pack with no evidence AND no DSR
+    // (pack_must_have_evidence_or_dsr_before_submit); knowing whether a DSR
+    // exists lets the screen block that doomed submit up front.
+    private val dsrRepo: com.equipseva.app.core.data.repair.DsrRepository,
 ) : ViewModel() {
     private val escrowId: String = savedState.get<String>(Routes.DISPUTE_PACK_ARG_ESCROW_ID).orEmpty()
     private val repairJobId: String = savedState.get<String>(Routes.DISPUTE_PACK_ARG_JOB_ID).orEmpty()
@@ -89,12 +93,23 @@ class DisputePackViewModel @Inject constructor(
         val error: String? = null,
         val filed: Boolean = false,
         val filedEvidence: List<DisputePackRepository.PackEvidence> = emptyList(),
+        // r1501 — whether the job has a DSR the server can auto-link. null =
+        // unknown (still loading / fetch failed): the gate stays permissive
+        // and the server's friendly copy backstops.
+        val hasDsr: Boolean? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    init { loadEvidence() }
+    init {
+        loadEvidence()
+        viewModelScope.launch {
+            dsrRepo.fetch(repairJobId)
+                .onSuccess { d -> _state.update { it.copy(hasDsr = d != null) } }
+            // onFailure: leave hasDsr null — never block on unknown.
+        }
+    }
 
     fun loadEvidence() {
         _state.update { it.copy(loadingEvidence = true) }
@@ -201,6 +216,18 @@ fun DisputePackScreen(
                     state.error?.let { msg ->
                         item(key = "error") { Text(msg, style = EsType.BodySm, color = SevaDanger500) }
                     }
+                    // r1501 — the server hard-rejects a pack with no evidence
+                    // AND no DSR. When we positively know both are absent,
+                    // explain instead of letting the doomed submit fail.
+                    if (disputePackNeedsEvidence(selected.size, state.hasDsr)) {
+                        item(key = "needs-evidence") {
+                            Text(
+                                "Attach at least one evidence item — this job has no signed service report to fall back on.",
+                                style = EsType.BodySm,
+                                color = SevaInk700,
+                            )
+                        }
+                    }
                     item(key = "file") {
                         EsBtn(
                             text = if (state.submitting) "Filing…" else "File for mediation",
@@ -208,7 +235,9 @@ fun DisputePackScreen(
                             kind = EsBtnKind.Primary,
                             size = EsBtnSize.Lg,
                             full = true,
-                            disabled = state.submitting || !isValidPositionStatement(statement),
+                            disabled = state.submitting ||
+                                !isValidPositionStatement(statement) ||
+                                disputePackNeedsEvidence(selected.size, state.hasDsr),
                         )
                     }
                     item(key = "tail") { Spacer(Modifier.height(8.dp)) }
@@ -279,6 +308,17 @@ private fun EvidencePickRow(
 
 /** Position statement must be >= 20 trimmed chars (mirrors the server guard). */
 internal fun isValidPositionStatement(statement: String): Boolean = statement.trim().length >= 20
+
+/**
+ * r1501 — true when filing now would hit the server's
+ * pack_must_have_evidence_or_dsr_before_submit guard: zero evidence selected
+ * AND the job POSITIVELY has no DSR to auto-link (hasDsr == false). While DSR
+ * presence is unknown (null: still loading, or the lookup failed) this stays
+ * false — never block a filer on missing knowledge; the server's friendly
+ * copy (r1494) backstops that rare path.
+ */
+internal fun disputePackNeedsEvidence(selectedEvidenceCount: Int, hasDsr: Boolean?): Boolean =
+    selectedEvidenceCount == 0 && hasDsr == false
 
 /** Human label for an evidence_kind: de-snake + capitalise. */
 internal fun evidenceKindLabel(kind: String): String =
