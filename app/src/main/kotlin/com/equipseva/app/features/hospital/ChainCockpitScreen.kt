@@ -240,7 +240,7 @@ private fun SiteCard(site: ChainRepository.ChainSite) {
     ) {
         Text(site.siteLabel.ifBlank { "Site" }, style = EsType.Body.copy(fontWeight = FontWeight.Medium), color = SevaInk900)
         Text(chainSiteSummaryLine(site.jobsOpen, site.jobsCompletedWindow, site.jobsDisputedWindow), style = EsType.Caption, color = SevaInk700)
-        Text("${site.amcActive} active AMC · ${formatRupees(site.escrowHeldRupees)} escrow", style = EsType.Caption, color = SevaInk500)
+        Text("${site.amcActive} active ${if (site.amcActive == 1) "AMC" else "AMCs"} · ${formatRupees(site.escrowHeldRupees)} escrow", style = EsType.Caption, color = SevaInk500)
     }
 }
 

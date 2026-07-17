@@ -51,6 +51,7 @@ import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.payments.PendingAmcContractsStore
 import com.equipseva.app.core.payments.PendingAmcPaymentsStore
 import com.equipseva.app.core.payments.RazorpayCheckoutLauncher
+import com.equipseva.app.core.util.sanitizeServerName
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.firstOrNull
 import com.equipseva.app.designsystem.components.EsBottomSheet
@@ -233,7 +234,7 @@ class CreateAmcWizardViewModel @Inject constructor(
         viewModelScope.launch {
             engineerRepo.fetchPublicProfile(primaryEngineerId)
                 .onSuccess { p ->
-                    _state.update { it.copy(primaryEngineerName = p?.fullName ?: "Engineer") }
+                    _state.update { it.copy(primaryEngineerName = sanitizeServerName(p?.fullName) ?: "Engineer") }
                 }
         }
     }
@@ -364,7 +365,7 @@ class CreateAmcWizardViewModel @Inject constructor(
                                 .map { row ->
                                     FallbackOption(
                                         engineerId = row.engineerId,
-                                        name = row.fullName,
+                                        name = sanitizeServerName(row.fullName) ?: "Engineer",
                                         city = row.city,
                                     )
                                 },

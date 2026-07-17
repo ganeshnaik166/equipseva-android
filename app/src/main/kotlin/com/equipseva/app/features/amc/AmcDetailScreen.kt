@@ -49,6 +49,7 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.isWithinDays
+import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.amc.AmcRepository
 import com.equipseva.app.core.network.toUserMessage
@@ -736,7 +737,7 @@ fun AmcDetailScreen(
                 viewModel.dismissTopUp()
                 viewModel.refresh()
             },
-            engineerName = state.hospital!!.primaryEngineerName.takeIf { it.isNotBlank() }
+            engineerName = sanitizeServerName(state.hospital!!.primaryEngineerName)
                 ?: "your engineer",
         )
     }
@@ -904,7 +905,7 @@ private fun LowPoolBanner(bufferMonths: Double, onTopUp: () -> Unit) {
     val bufferStr = if (bufferMonths < 1.0)
         "less than a month"
     else
-        "${"%.1f".format(bufferMonths)} months"
+        "${String.format(java.util.Locale.US, "%.1f", bufferMonths)} months"
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -978,7 +979,8 @@ private fun OverviewTab(
     onMessageHospital: () -> Unit = {},
     onSignAffidavit: () -> Unit = {},
 ) {
-    val title = state.hospital?.primaryEngineerName ?: state.engineerView?.hospitalName ?: "—"
+    val title = sanitizeServerName(state.hospital?.primaryEngineerName)
+        ?: sanitizeServerName(state.engineerView?.hospitalName) ?: "—"
     val status = state.hospital?.status ?: state.engineerView?.status ?: "active"
     val freq = state.hospital?.visitFrequency ?: state.engineerView?.visitFrequency ?: ""
     val fee = state.hospital?.monthlyFeeRupees ?: state.engineerView?.monthlyFeeRupees ?: 0.0
@@ -1763,7 +1765,7 @@ private fun DirectoryPickRow(
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(row.fullName, color = SevaInk900, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(sanitizeServerName(row.fullName) ?: "Engineer", color = SevaInk900, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             Text(
                 directoryResultSubtitle(row.city, row.ratingAvg, row.totalJobs),
                 color = SevaInk500,
@@ -1796,7 +1798,7 @@ private fun RotationCard(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                row.engineerName,
+                sanitizeServerName(row.engineerName) ?: "Engineer",
                 color = SevaInk900,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,

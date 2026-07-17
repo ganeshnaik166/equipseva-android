@@ -159,7 +159,7 @@ private fun RateHeroCard(d: CommissionTierRepository.CommissionTier) {
             color = SevaGreen700,
         )
         Text(
-            "${d.completed12m} jobs completed in the last 12 months",
+            "${d.completed12m} ${if (d.completed12m == 1) "job" else "jobs"} completed in the last 12 months",
             style = EsType.Caption,
             color = SevaInk500,
         )
