@@ -748,8 +748,12 @@ private fun JobBody(
             }
         }
 
-        // Bids — hospital + status==requested.
-        if (isHospital && job.status == RepairJobStatus.Requested) {
+        // Bids — hospital + status==requested + genuinely OPEN (unassigned).
+        // Same reason as the UnmatchedJobBanner (r1482): an AMC maintenance
+        // visit is Requested but pre-assigned (engineerId != null) and never
+        // bid on, so the "No bids yet — engineers usually bid within 5–30 min"
+        // card would contradict the "Assigned engineer" section shown above.
+        if (isHospital && job.status == RepairJobStatus.Requested && job.engineerId == null) {
             if (bids.isNotEmpty()) {
                 EsSection(title = "Bids (${bids.size})") {
                     BidsList(
