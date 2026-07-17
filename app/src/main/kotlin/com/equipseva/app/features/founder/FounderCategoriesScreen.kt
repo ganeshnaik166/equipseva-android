@@ -424,7 +424,10 @@ fun FounderCategoriesScreen(
                     ) { Text("Cancel") }
                     Button(
                         onClick = { viewModel.save() },
-                        enabled = !state.saving,
+                        // Also gate on the image upload (like the picker button)
+                        // — saving mid-upload persists the OLD imageUrl and
+                        // silently drops the picture the founder just chose.
+                        enabled = !state.saving && !draft.uploadingImage,
                         modifier = Modifier.weight(1f),
                     ) { Text(if (state.saving) "…" else "Save") }
                 }
