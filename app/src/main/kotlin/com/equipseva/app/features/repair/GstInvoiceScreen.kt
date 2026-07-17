@@ -34,7 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.invoice.GstInvoicePayloadRepository
 import com.equipseva.app.core.network.toUserMessage
-import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.core.util.formatRupeesPaise
 import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
@@ -225,7 +225,7 @@ private fun AmountRow(label: String, value: Double, emphasise: Boolean = false) 
             color = if (emphasise) SevaInk900 else SevaInk700,
         )
         Text(
-            formatRupees(value),
+            formatRupeesPaise(value),
             style = if (emphasise) EsType.Body.copy(fontWeight = FontWeight.Bold) else EsType.Body,
             color = SevaInk900,
         )

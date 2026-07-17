@@ -41,3 +41,18 @@ fun formatRupees(amount: Double): String {
     val abs = kotlin.math.abs(rounded)
     return "$sign₹${groupIndian(abs)}"
 }
+
+/**
+ * Formats a rupee amount WITH paise as `₹1,003.00` (2-decimal, Indian
+ * grouping). Use on legal documents (e.g. GST tax invoices) where the line
+ * items must reconcile to the displayed total — whole-rupee [formatRupees]
+ * rounds each line independently, so components can fail to sum to the total.
+ */
+fun formatRupeesPaise(amount: Double): String {
+    val sign = if (amount < 0) "-" else ""
+    val absVal = kotlin.math.abs(amount)
+    var whole = absVal.toLong()
+    var paise = kotlin.math.round((absVal - whole) * 100.0).toLong()
+    if (paise >= 100) { whole += 1; paise -= 100 }
+    return "$sign₹${groupIndian(whole)}.${paise.toString().padStart(2, '0')}"
+}
