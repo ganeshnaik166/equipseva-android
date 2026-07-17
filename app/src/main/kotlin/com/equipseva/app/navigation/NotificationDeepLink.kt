@@ -135,6 +135,22 @@ object NotificationDeepLink {
             // where the hospital can manually renew.
             KIND_AMC_RENEWAL_DUE ->
                 data["amc_contract_id"]?.takeIfUuid()?.let(Routes::amcContractDetailRoute)
+            // r1502 — server kinds that previously fell to the inbox
+            // fallback. Payout lifecycle (round433/452 triggers) carries
+            // repair_job_id; the job detail's payout status card is the
+            // exact surface for both the "money landed" and the
+            // "transfer failed, see next steps" moments.
+            KIND_ENGINEER_PAYOUT_PROCESSED,
+            KIND_ENGINEER_PAYOUT_FAILED ->
+                data["repair_job_id"]?.takeIfJobIdRoutable()?.let(Routes::repairJobDetailRoute)
+            // round454 — suspension lifted. Symmetric destination with
+            // KIND_ENGINEER_AUTO_SUSPENDED above: Profile reflects the
+            // live suspension state either way.
+            KIND_ENGINEER_SUSPENSION_CLEARED -> Routes.PROFILE
+            // round446 — the OLD engineer is told their AMC visit was
+            // reassigned away. NOT the job detail (they no longer own
+            // that visit) — their visits list shows the updated truth.
+            KIND_AMC_VISIT_UNASSIGNED -> Routes.ENGINEER_AMC_VISITS
             else -> null
         }
     }
@@ -200,4 +216,13 @@ object NotificationDeepLink {
     // notify_expiring_amc_contracts cron when end_date enters the
     // 7-day window. Hospital manually renews via create_amc_contract.
     const val KIND_AMC_RENEWAL_DUE = "amc_renewal_due"
+    // r1502 — payout lifecycle pushes (round433 trigger on
+    // engineer_payouts status flips; round452 kept them through the FSM
+    // hardening). Payload: payout id + repair_job_id.
+    const val KIND_ENGINEER_PAYOUT_PROCESSED = "engineer_payout_processed"
+    const val KIND_ENGINEER_PAYOUT_FAILED = "engineer_payout_failed"
+    // r1502 — round454 suspension lifted (sibling of engineer_auto_suspended).
+    const val KIND_ENGINEER_SUSPENSION_CLEARED = "engineer_suspension_cleared"
+    // r1502 — round446: the previously-assigned engineer loses an AMC visit.
+    const val KIND_AMC_VISIT_UNASSIGNED = "amc_visit_unassigned"
 }
