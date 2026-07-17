@@ -75,6 +75,14 @@ class ChatViewModel @Inject constructor(
         // after relatedJobId is resolved. Falls back to a truncated id
         // when null (e.g. during the first paint or if the lookup fails).
         val relatedJobNumber: String? = null,
+        // r1495 — true when the related repair job is completed/cancelled.
+        // The server ALWAYS rejects sends on such conversations (the
+        // chat_messages_block_on_completed_job trigger raises
+        // chat_conversation_closed), so the input is locked proactively with
+        // a "chat closed" notice instead of letting the user compose a
+        // message that can only fail at send time. False (input active) while
+        // the job status is unknown — a fetch miss must not lock a live chat.
+        val relatedJobClosed: Boolean = false,
     ) {
         val title: String
             get() = chatTopBarTitle(counterpart?.displayName)
@@ -84,6 +92,7 @@ class ChatViewModel @Inject constructor(
                 sending = sending,
                 hasSelfUserId = selfUserId != null,
                 counterpartBlocked = counterpartBlocked,
+                conversationClosed = relatedJobClosed,
             )
         val canSubmitEdit: Boolean
             get() = canSubmitChatEdit(
@@ -390,8 +399,20 @@ class ChatViewModel @Inject constructor(
                         repairJobRepository.fetchById(jobId)
                             .onSuccess { job ->
                                 val num = job?.jobNumber
-                                if (!num.isNullOrBlank()) {
-                                    _state.update { it.copy(relatedJobNumber = num) }
+                                // r1495 — same fetch also tells us whether the
+                                // job has ended; the server rejects every send
+                                // on completed/cancelled jobs, so lock the
+                                // input proactively (see UiState.relatedJobClosed).
+                                val closed = job?.status ==
+                                    com.equipseva.app.core.data.repair.RepairJobStatus.Completed ||
+                                    job?.status ==
+                                    com.equipseva.app.core.data.repair.RepairJobStatus.Cancelled
+                                _state.update {
+                                    it.copy(
+                                        relatedJobNumber = num?.takeIf { n -> n.isNotBlank() }
+                                            ?: it.relatedJobNumber,
+                                        relatedJobClosed = closed,
+                                    )
                                 }
                             }
                     }
@@ -486,20 +507,25 @@ internal fun chatTopBarTitle(counterpartDisplayName: String?): String =
  *   4. counterpart is NOT blocked (mutual-block gate; the user blocked
  *      the engineer OR the engineer blocked the user)
  *
- * Pin all four conditions — a refactor that dropped any one would
+ * Pin all five conditions — a refactor that dropped any one would
  * silently unlock a problematic state:
  *   - drop trim → blank-whitespace messages get sent
  *   - drop sending → double-tap races a duplicate insert
  *   - drop self user id → null subject crashes the insert
  *   - drop block check → harassment continues past block (this is a
- *     trust-and-safety regression target).
+ *     trust-and-safety regression target)
+ *   - drop closed check → user composes a message the server is
+ *     guaranteed to reject (chat_messages_block_on_completed_job
+ *     trigger → chat_conversation_closed), r1495.
  */
 internal fun canSendChatMessage(
     draft: String,
     sending: Boolean,
     hasSelfUserId: Boolean,
     counterpartBlocked: Boolean,
-): Boolean = draft.trim().isNotEmpty() && !sending && hasSelfUserId && !counterpartBlocked
+    conversationClosed: Boolean = false,
+): Boolean = draft.trim().isNotEmpty() && !sending && hasSelfUserId &&
+    !counterpartBlocked && !conversationClosed
 
 /**
  * Gate for the chat edit-save button.

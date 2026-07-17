@@ -58,6 +58,23 @@ class ChatCanSendAndEditTest {
         )
     }
 
+    @Test fun `closed conversation blocks send (r1495)`() {
+        // The chat_messages_block_on_completed_job trigger rejects every
+        // INSERT once the related job is completed/cancelled — the client
+        // gate must mirror it so users can't compose a doomed message.
+        assertFalse(
+            canSendChatMessage("hello", false, true, false, conversationClosed = true),
+        )
+    }
+
+    @Test fun `conversationClosed defaults to false (open chats unaffected)`() {
+        // The default keeps every pre-r1495 call site (and a job whose
+        // status hasn't loaded yet) sending normally.
+        assertTrue(
+            canSendChatMessage("hello", false, true, false),
+        )
+    }
+
     // ---- canSubmitChatEdit -------------------------------------------
 
     @Test fun `all edit conditions met returns true`() {
