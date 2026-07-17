@@ -29,6 +29,8 @@ import com.equipseva.app.features.auth.UserRole
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -623,12 +625,18 @@ class ProfileViewModel @Inject constructor(
                 // suspension fetch on every Profile open. Mirrors PR #650 /
                 // #655 — the rendered UI keys off displayedRole already.
                 val displayedRole = profile?.activeRole ?: profile?.role
-                val engineer = if (displayedRole == UserRole.ENGINEER) {
-                    engineerRepository.fetchByUserId(userId).getOrNull()
-                } else null
-                val mySuspension = if (displayedRole == UserRole.ENGINEER) {
-                    engineerRepository.fetchMySuspension().getOrNull()
-                } else null
+                // The engineer row + suspension reads are independent (neither
+                // consumes the other), so fan them out concurrently rather than
+                // awaiting them back-to-back — halves this branch's network wait.
+                val (engineer, mySuspension) = if (displayedRole == UserRole.ENGINEER) {
+                    coroutineScope {
+                        val engineerD = async { engineerRepository.fetchByUserId(userId).getOrNull() }
+                        val suspensionD = async { engineerRepository.fetchMySuspension().getOrNull() }
+                        engineerD.await() to suspensionD.await()
+                    }
+                } else {
+                    null to null
+                }
                 _state.update {
                     it.copy(
                         loading = false,

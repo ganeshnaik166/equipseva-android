@@ -24,6 +24,8 @@ import kotlinx.datetime.Clock
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.firstOrNull
@@ -376,8 +378,16 @@ class KycViewModel @Inject constructor(
         userId = uid
         // Fetch profile for email + phone + full name. KYC submit blocks if
         // either contact field is missing — hospitals reach out via these.
-        val profile = profileRepository.fetchById(uid).getOrNull()
-        engineerRepository.fetchByUserId(uid).fold(
+        // The profile + engineer reads are independent (both keyed on uid), so
+        // fan them out concurrently — the screen hydrates in one round-trip
+        // instead of two stacked. Repo calls return Result (never throw), so
+        // no async{} can fault the enclosing scope.
+        val (profile, engineerResult) = coroutineScope {
+            val profileD = async { profileRepository.fetchById(uid).getOrNull() }
+            val engineerD = async { engineerRepository.fetchByUserId(uid) }
+            profileD.await() to engineerD.await()
+        }
+        engineerResult.fold(
             onSuccess = { engineer ->
                 hydrate(engineer, profile)
                 _state.update {
