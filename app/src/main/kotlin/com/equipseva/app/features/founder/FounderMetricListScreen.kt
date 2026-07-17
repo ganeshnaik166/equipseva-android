@@ -138,7 +138,10 @@ private fun MetricRow(m: FounderMetricRepository.Metric) {
     ) {
         Text(metricLabel(m.metric), style = EsType.Body, color = SevaInk700, modifier = Modifier.weight(1f))
         Text(
-            m.valueText ?: m.valueNumeric?.let { formatMetricNumber(it) } ?: "—",
+            m.valueText
+                ?: m.valueNumeric?.let { formatMetricNumber(it) }
+                ?: m.valueNum?.let { formatMetricNumber(it.toDouble()) }
+                ?: "—",
             style = EsType.Body.copy(fontWeight = FontWeight.Bold),
             color = SevaInk900,
         )

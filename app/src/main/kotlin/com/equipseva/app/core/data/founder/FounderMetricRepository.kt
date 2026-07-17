@@ -24,6 +24,10 @@ class FounderMetricRepository @Inject constructor(
         @SerialName("metric") val metric: String = "",
         @SerialName("value_text") val valueText: String? = null,
         @SerialName("value_numeric") val valueNumeric: Double? = null,
+        // founder_catalog_coverage_summary names its numeric column `value_num`
+        // (bigint), not `value_numeric` — decode it too so its rows don't all
+        // render "—". Other summaries use value_text/value_numeric (null here).
+        @SerialName("value_num") val valueNum: Long? = null,
         @SerialName("ord") val ord: Int? = null,
     )
 
