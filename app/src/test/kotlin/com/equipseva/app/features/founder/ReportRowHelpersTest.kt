@@ -23,10 +23,12 @@ class ReportRowHelpersTest {
         )
     }
 
-    @Test fun `empty reporter name passes through verbatim (not folded)`() {
-        // Pin exact null gate. Empty-string reporter name is preserved
-        // (the wire shouldn't allow this, but pin total-function shape).
-        assertEquals("", reportRowReporterDisplay("", "uid-anything"))
+    @Test fun `empty reporter name folds to userId prefix`() {
+        // r1462: blank/sentinel reporter names are treated as absent (the RPC
+        // coalesces null -> "(unnamed)"), so display folds to the userId
+        // prefix rather than rendering a blank/placeholder reporter.
+        assertEquals("uid-anyt", reportRowReporterDisplay("", "uid-anything"))
+        assertEquals("uid-anyt", reportRowReporterDisplay("(unnamed)", "uid-anything"))
     }
 
     @Test fun `short userId is left intact under the prefix fallback`() {

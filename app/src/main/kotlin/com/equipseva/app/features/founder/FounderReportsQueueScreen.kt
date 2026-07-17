@@ -36,6 +36,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
@@ -312,7 +313,7 @@ private fun ReportRow(
  * more entropic.
  */
 internal fun reportRowReporterDisplay(reporterName: String?, reporterUserId: String): String =
-    reporterName ?: reporterUserId.take(8)
+    sanitizeServerName(reporterName) ?: reporterUserId.take(8)
 
 /**
  * Target-id short slug on the founder reports queue row.

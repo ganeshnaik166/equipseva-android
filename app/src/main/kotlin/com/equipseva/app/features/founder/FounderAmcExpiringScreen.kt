@@ -36,6 +36,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
@@ -166,7 +167,7 @@ private fun ExpiringRow(
             val (text, kind) = expiringAmcPillTextAndKind(row.daysRemaining)
             Pill(text = text, kind = kind)
         }
-        row.primaryEngineerName?.let {
+        sanitizeServerName(row.primaryEngineerName)?.let {
             Text("Engineer: $it", color = SevaInk700, fontSize = 13.sp)
         }
         Text(

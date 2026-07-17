@@ -36,6 +36,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.EmptyStateView
@@ -163,7 +164,7 @@ private fun PausedRow(
             )
             Pill(text = "Paused", kind = PillKind.Danger)
         }
-        row.primaryEngineerName?.let {
+        sanitizeServerName(row.primaryEngineerName)?.let {
             Text("Engineer: $it", color = SevaInk700, fontSize = 13.sp)
         }
         Text(

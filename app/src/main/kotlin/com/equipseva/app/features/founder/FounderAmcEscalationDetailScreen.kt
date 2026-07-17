@@ -35,6 +35,7 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.data.amc.AmcRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.core.util.prettyDateTime
 import com.equipseva.app.designsystem.components.EmptyStateView
@@ -231,7 +232,7 @@ private fun EscalationDetailBody(
         item("contract") {
             DetailCard {
                 SectionLabel("Contract")
-                LabelRow("Hospital", detail.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital")
+                LabelRow("Hospital", sanitizeServerName(detail.hospitalName) ?: "Hospital")
                 detail.contractStatus?.let { LabelRow("Status", it.replaceFirstChar { c -> c.uppercase() }) }
                 detail.visitFrequency?.let { LabelRow("Cadence", it.replaceFirstChar { c -> c.uppercase() }) }
                 detail.monthlyFeeRupees?.let { LabelRow("Monthly fee", formatRupees(it)) }

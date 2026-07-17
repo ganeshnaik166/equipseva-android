@@ -49,6 +49,7 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.storage.StorageRepository
 import com.equipseva.app.core.util.prettyDate
+import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
@@ -334,7 +335,7 @@ private fun ReviewBody(
                     )
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(engineer.fullName, style = EsType.H4, color = SevaInk900)
+                    Text(sanitizeServerName(engineer.fullName) ?: "Engineer", style = EsType.H4, color = SevaInk900)
                     val sub = listOfNotNull(
                         engineer.city,
                         engineer.createdAt?.let { "submitted ${prettyDate(it)}" },
@@ -488,7 +489,7 @@ private fun DocTile(
  * always reviewing an engineer, whereas Users could be any role).
  */
 internal fun kycReviewAvatarInitial(fullName: String): String =
-    fullName.firstOrNull()?.uppercaseChar()?.toString() ?: "E"
+    sanitizeServerName(fullName)?.firstOrNull()?.uppercaseChar()?.toString() ?: "E"
 
 /**
  * Experience-years label on the founder KYC-review coverage section.
