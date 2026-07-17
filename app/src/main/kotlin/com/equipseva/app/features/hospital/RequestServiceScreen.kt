@@ -258,6 +258,7 @@ fun RequestServiceScreen(
                 }
                 StepEquipment(
                     category = state.category,
+                    allowedCategories = state.allowedCategories,
                     brand = state.brand,
                     model = state.model,
                     serial = state.serial,
@@ -468,6 +469,7 @@ private fun StepHeadline(text: String) {
 @Composable
 private fun StepEquipment(
     category: RepairEquipmentCategory,
+    allowedCategories: List<RepairEquipmentCategory>,
     brand: String,
     model: String,
     serial: String,
@@ -487,7 +489,11 @@ private fun StepEquipment(
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        RepairEquipmentCategory.entries
+        // r1496 — offer ONLY taxonomy-allowed categories. The old full-enum
+        // list let hospitals pick 9 types the repair_jobs taxonomy gate
+        // hard-rejects on submit (imaging/life-support/surgical/… are out of
+        // v0.4 scope; physiotherapy/neonatal/… aren't in the taxonomy at all).
+        allowedCategories
             .filter { it != RepairEquipmentCategory.Other }
             .forEach { option ->
                 FilterChip(

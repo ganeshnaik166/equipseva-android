@@ -44,6 +44,10 @@ class RequestServiceViewModel @Inject constructor(
     private val engineerDirectoryRepository: EngineerDirectoryRepository,
     private val analytics: com.equipseva.app.core.data.analytics.AnalyticsClient,
     private val crashReporter: com.equipseva.app.core.observability.CrashReporter,
+    // r1496 — taxonomy read for the category picker (allowedEquipmentTypes
+    // lives here because Code Red needed it first; it's a generic
+    // equipment_taxonomy_class read, not Code-Red-specific).
+    private val codeRedRepository: com.equipseva.app.core.data.codered.CodeRedRepository,
 ) : ViewModel() {
 
     // Round 453 — process-death-safe draft state. Hospital booking is a
@@ -74,7 +78,16 @@ class RequestServiceViewModel @Inject constructor(
     }
 
     data class UiState(
-        val category: RepairEquipmentCategory = RepairEquipmentCategory.ImagingRadiology,
+        // r1496 — default must be a v0.4-SERVICEABLE category. The old default
+        // (ImagingRadiology) is allowed_in_v04=false server-side, so a hospital
+        // who kept the pre-selected chip had their post hard-rejected by the
+        // repair_jobs taxonomy gate every time.
+        val category: RepairEquipmentCategory = RepairEquipmentCategory.PatientMonitoring,
+        // Categories offered by the picker. Seeded with the static mirror of
+        // the server taxonomy; refreshed live on init so the list never
+        // drifts from the server's hard-gate (same pattern as Code Red).
+        val allowedCategories: List<RepairEquipmentCategory> =
+            RepairEquipmentCategory.V04_ALLOWED,
         val urgency: RepairJobUrgency = RepairJobUrgency.Scheduled,
         val brand: String = "",
         val model: String = "",
@@ -120,7 +133,7 @@ class RequestServiceViewModel @Inject constructor(
     private fun restoredInitialState(): UiState {
         val category = savedStateHandle.get<String>(SavedKeys.CATEGORY)
             ?.let { name -> runCatching { RepairEquipmentCategory.valueOf(name) }.getOrNull() }
-            ?: RepairEquipmentCategory.ImagingRadiology
+            ?: RepairEquipmentCategory.PatientMonitoring
         val urgency = savedStateHandle.get<String>(SavedKeys.URGENCY)
             ?.let { name -> runCatching { RepairJobUrgency.valueOf(name) }.getOrNull() }
             ?: RepairJobUrgency.Scheduled
@@ -183,6 +196,37 @@ class RequestServiceViewModel @Inject constructor(
         // create().onSuccess; this captures the "started but maybe didn't
         // submit" cohort for drop-off analysis.
         analytics.track(com.equipseva.app.core.data.analytics.AnalyticsEvent.JOB_POST_STARTED)
+        // r1496 — refresh the picker's category list from the live taxonomy
+        // (allowed_in_v04 = true rows) so it never drifts from the server's
+        // hard-gate. Best-effort: on failure the static V04_ALLOWED mirror
+        // stays in place, which is still strictly safer than the old
+        // full-enum picker (9 of 14 options were guaranteed server rejects).
+        viewModelScope.launch {
+            codeRedRepository.allowedEquipmentTypes().onSuccess { keys ->
+                val live = keys
+                    .map { RepairEquipmentCategory.fromKey(it) }
+                    .filter { it != RepairEquipmentCategory.Other }
+                if (live.isNotEmpty()) {
+                    _state.update { s ->
+                        s.copy(
+                            allowedCategories = live,
+                            // Snap a now-disallowed selection to the first
+                            // allowed category — but only if the user hasn't
+                            // started describing that equipment (brand/model/
+                            // issue untouched); otherwise leave their input
+                            // alone and let the server's friendly copy guide.
+                            category = if (s.category !in live &&
+                                s.brand.isBlank() && s.model.isBlank() && s.issue.isBlank()
+                            ) {
+                                live.first()
+                            } else {
+                                s.category
+                            },
+                        )
+                    }
+                }
+            }
+        }
         // v0.3.5 fix #9 — pin engineerId nav-arg into SavedKeys so a
         // process kill mid-typing recovers correctly (the original
         // nav-arg key only lives on the back-stack entry). Also kick
