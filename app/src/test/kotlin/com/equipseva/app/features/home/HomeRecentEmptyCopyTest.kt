@@ -19,9 +19,18 @@ class HomeRecentEmptyCopyTest {
     @Test fun `Hospital points at the Book CTA`() {
         val copy = homeRecentEmptyCopy(UserRole.HOSPITAL)
         assertEquals(
-            "No bookings yet. Tap \"Book a repair engineer\" above to post your first job.",
+            "No activity yet. Tap \"Book a repair engineer\" above to post a new job.",
             copy,
         )
+    }
+
+    @Test fun `Hospital recent-activity copy does not falsely claim zero bookings`() {
+        // r1455 (found on-device): this is the recent-activity/notifications
+        // empty state, not a bookings list. A hospital with an open job but no
+        // recent notifications must not be told "No bookings yet … first job".
+        val copy = homeRecentEmptyCopy(UserRole.HOSPITAL)
+        assertEquals(false, copy.contains("No bookings yet"))
+        assertEquals(false, copy.contains("first job"))
     }
 
     @Test fun `Engineer points at the Jobs tab`() {
