@@ -180,7 +180,7 @@ private fun TdsHeroCard(total: TdsFyTotal) {
             fontWeight = FontWeight.Medium,
         )
         Text(
-            "Effective rate ${String.format(java.util.Locale.ROOT, "%.1f%%", total.effectiveTdsRatePct)} · ${total.deductionCount} deductions",
+            "Effective rate ${String.format(java.util.Locale.ROOT, "%.1f%%", total.effectiveTdsRatePct)} · ${total.deductionCount} ${if (total.deductionCount == 1L) "deduction" else "deductions"}",
             color = SevaInk500,
             fontSize = 11.sp,
         )
@@ -207,7 +207,7 @@ private fun QuarterRow(q: TdsSummaryRepository.TdsQuarterRow) {
             Text("TDS ${formatRupees(q.tdsRupees)}", color = SevaGreen700, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
         }
         Text(
-            "Gross ${formatRupees(q.grossRupees)} · Net ${formatRupees(q.netPayableRupees)} · ${q.deductionCount} payouts",
+            "Gross ${formatRupees(q.grossRupees)} · Net ${formatRupees(q.netPayableRupees)} · ${q.deductionCount} ${if (q.deductionCount == 1L) "payout" else "payouts"}",
             color = SevaInk500,
             fontSize = 12.sp,
         )

@@ -192,8 +192,10 @@ private fun ActiveEscrowRow(
         Text(
             // Mirror rounds 37 / 53 / 54: "(unnamed hospital)" reads as a
             // missing-data bug to engineers, not as a fallback. Collapse
-            // blank/null names to the row category — "Hospital".
-            text = row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital",
+            // blank/null names to the row category — "Hospital". The RPC
+            // coalesces null full_name to the literal "(unnamed)", so strip
+            // that server placeholder too (it passes isNotBlank()).
+            text = row.hospitalName?.takeIf { it.isNotBlank() && it != "(unnamed)" } ?: "Hospital",
             color = SevaInk500,
             fontSize = 12.sp,
         )

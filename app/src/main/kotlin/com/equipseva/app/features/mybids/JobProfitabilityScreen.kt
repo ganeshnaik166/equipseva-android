@@ -237,11 +237,21 @@ private fun NetPayCard(d: ProfitabilityRepository.BidProfitability) {
         Spacer(Modifier.height(6.dp))
         BreakdownRow("Gross bid", d.grossBidRupees, deduction = false)
         BreakdownRow("Platform fee (7%)", d.platformFeeRupees, deduction = true)
-        BreakdownRow("GST on fee", d.gstOnFeeRupees, deduction = true)
         BreakdownRow("TDS estimate", d.tdsEstimateRupees, deduction = true)
         BreakdownRow(travelLabel(d.distanceKm), d.estimatedTravelCostRupees, deduction = true)
         Box(Modifier.fillMaxWidth().height(1.dp).background(BorderDefault))
         BreakdownRow("Estimated net", d.estimatedNetRupees, deduction = false, emphasise = true)
+        // GST on the fee is billed to the hospital under reverse-charge (RCM) —
+        // it never comes out of the engineer's payout. Previously it sat in the
+        // deduction stack above with a "−", so the subtracted lines appeared to
+        // under-total Estimated net by exactly the GST. Show it as an info
+        // footnote instead, so the deductions foot exactly to net.
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "GST on fee (${formatRupees(d.gstOnFeeRupees)}) is billed to the hospital under RCM — not deducted from your payout.",
+            style = EsType.Caption,
+            color = SevaInk500,
+        )
     }
 }
 

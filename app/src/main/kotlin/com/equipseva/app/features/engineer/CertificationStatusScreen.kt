@@ -173,7 +173,7 @@ private fun TierHeroCard(d: CertificationStatusRepository.CertificationStatus) {
             color = SevaGreen700,
         )
         Text(
-            "${d.jobsCompleted} jobs completed · ${formatPercent(d.disputeRatePct)} dispute rate",
+            "${d.jobsCompleted} job${if (d.jobsCompleted == 1) "" else "s"} completed · ${formatPercent(d.disputeRatePct)} dispute rate",
             style = EsType.Caption,
             color = SevaInk500,
         )

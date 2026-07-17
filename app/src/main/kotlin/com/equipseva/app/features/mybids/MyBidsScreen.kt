@@ -196,7 +196,9 @@ private fun BidRowCard(
             )
             row.bid.createdAtInstant?.let { placed ->
                 Text(
-                    text = "Placed ${relativeLabel(placed)} ago",
+                    // relativeLabel returns the standalone "now" for <1min;
+                    // "Placed now ago" reads broken, so special-case it.
+                    text = relativeLabel(placed).let { if (it == "now") "Placed just now" else "Placed $it ago" },
                     style = EsType.Caption,
                     color = SevaInk400,
                 )

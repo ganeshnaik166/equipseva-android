@@ -260,7 +260,14 @@ private fun AttendanceRow(row: AttendanceRepository.Attendance) {
                 Text(meta, style = EsType.Caption, color = SevaInk500)
             }
         }
-        Pill(text = pillText, kind = pillKind)
+        // Only show the on-site/far pill when the server actually measured the
+        // distance. The in-app check-in/out path omits expected coords, so
+        // distanceFromHospitalM is null and suspiciousDistance defaults to
+        // false — a green "On-site" would then falsely assert verified presence
+        // for an event where distance was never computed.
+        if (row.distanceFromHospitalM != null) {
+            Pill(text = pillText, kind = pillKind)
+        }
     }
 }
 
