@@ -34,4 +34,13 @@ data class RepairJobsUiState(
     /** Engineer's registered base coords; null until KYC has them. */
     val baseLatitude: Double? = null,
     val baseLongitude: Double? = null,
+    /**
+     * r1497 — true once the engineer row has been fetched, so null base
+     * coords can be trusted to mean "no service location set" (vs "still
+     * loading"). Gates the nearby-feed pre-empt: without a base the
+     * proximity RPC always fails server-side with a misleading generic
+     * 42501 ("try again after KYC is verified"), so the feed shows an
+     * actionable set-your-location message instead of calling it.
+     */
+    val baseLoaded: Boolean = false,
 )
