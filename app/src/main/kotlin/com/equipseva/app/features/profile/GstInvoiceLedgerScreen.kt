@@ -38,6 +38,7 @@ import com.equipseva.app.core.data.invoice.GstInvoiceLedgerRepository
 import com.equipseva.app.core.data.invoice.summariseGstInvoicesByFiscalYear
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.core.util.formatRupeesPaise
 import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
@@ -181,8 +182,8 @@ private fun FyHeaderCard(group: FyInvoiceGroup) {
             )
         }
         Text(
-            "Taxable ${formatRupees(group.taxableRupees)} · GST ${formatRupees(group.gstRupees)} · " +
-                "Total ${formatRupees(group.totalRupees)}",
+            "Taxable ${formatRupeesPaise(group.taxableRupees)} · GST ${formatRupeesPaise(group.gstRupees)} · " +
+                "Total ${formatRupeesPaise(group.totalRupees)}",
             color = SevaInk700,
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
@@ -221,7 +222,10 @@ private fun InvoiceRow(row: GstInvoiceLedgerRepository.GstInvoiceRow) {
             Pill(text = pillText, kind = pillKind)
         }
         Text(
-            "${formatRupees(row.totalInvoiceRupees)} · ${prettyDate(row.issuedAt)}",
+            "${formatRupees(row.totalInvoiceRupees)} · ${prettyDate(row.issuedAt)}" +
+                // Mark non-issued rows so the reader knows why they're excluded
+                // from the FY roll-up above.
+                if (row.status != "issued") " · ${row.status.replaceFirstChar { it.uppercase() }}" else "",
             color = SevaInk700,
             fontSize = 12.sp,
         )

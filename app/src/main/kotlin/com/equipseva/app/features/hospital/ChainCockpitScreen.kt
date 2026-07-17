@@ -70,6 +70,7 @@ class ChainCockpitViewModel @Inject constructor(
         val multipleChains: Boolean = false,
         val kpis: ChainRepository.ChainKpis? = null,
         val sites: List<ChainRepository.ChainSite> = emptyList(),
+        val sitesLoadFailed: Boolean = false,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -95,7 +96,12 @@ class ChainCockpitViewModel @Inject constructor(
                         return@onSuccess
                     }
                     repo.kpis(chain.id).onSuccess { k -> _state.update { it.copy(kpis = k) } }
-                    repo.perSite(chain.id).onSuccess { s -> _state.update { it.copy(sites = s) } }
+                    // Track a perSite load failure so the empty state can say
+                    // "couldn't load" instead of falsely asserting "No member
+                    // sites yet" while the KPI member count is non-zero.
+                    repo.perSite(chain.id)
+                        .onSuccess { s -> _state.update { it.copy(sites = s, sitesLoadFailed = false) } }
+                        .onFailure { _state.update { it.copy(sitesLoadFailed = true) } }
                     _state.update { it.copy(loading = false) }
                 }
                 .onFailure { e ->
@@ -178,7 +184,12 @@ fun ChainCockpitScreen(
                         }
                         if (state.sites.isEmpty()) {
                             item(key = "no-sites") {
-                                Text("No member sites yet.", style = EsType.Body, color = SevaInk700, modifier = Modifier.padding(horizontal = 4.dp))
+                                Text(
+                                    if (state.sitesLoadFailed) "Couldn't load member sites. Reopen to retry." else "No member sites yet.",
+                                    style = EsType.Body,
+                                    color = SevaInk700,
+                                    modifier = Modifier.padding(horizontal = 4.dp),
+                                )
                             }
                         } else {
                             items(state.sites, key = { it.hospitalUserId }) { site -> SiteCard(site) }

@@ -61,6 +61,21 @@ class GstInvoiceSummaryTest {
         assertEquals(0, summariseGstInvoicesByFiscalYear(emptyList()).size)
     }
 
+    @Test fun `cancelled and revised invoices are excluded from GST sums (r1469)`() {
+        // A cancelled/revised invoice still shows in the list (invoiceCount) but
+        // must not inflate the FY taxable/GST/total — matches founder_gst_summary.
+        val rows = listOf(
+            inv(id = "a", taxable = 1000.0, gst = 180.0, total = 1180.0).copy(status = "issued"),
+            inv(id = "b", taxable = 5000.0, gst = 900.0, total = 5900.0).copy(status = "cancelled"),
+            inv(id = "c", taxable = 3000.0, gst = 540.0, total = 3540.0).copy(status = "revised"),
+        )
+        val g = summariseGstInvoicesByFiscalYear(rows).single()
+        assertEquals(3, g.invoiceCount) // all rows still listed
+        assertEquals(1000.0, g.taxableRupees, 0.0) // only the issued row counts
+        assertEquals(180.0, g.gstRupees, 0.0)
+        assertEquals(1180.0, g.totalRupees, 0.0)
+    }
+
     @Test fun `groups by fiscal year, most recent first, summing and counting`() {
         val rows = listOf(
             inv(id = "a", direction = "incoming", taxable = 1000.0, gst = 180.0, total = 1180.0, issuedAt = "2026-05-01T00:00:00Z"),

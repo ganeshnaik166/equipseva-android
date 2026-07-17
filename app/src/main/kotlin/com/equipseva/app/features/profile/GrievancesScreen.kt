@@ -289,6 +289,11 @@ private fun GrievanceRow(g: GrievanceRepository.Grievance) {
             Text(g.description, color = SevaInk700, fontSize = 12.sp, maxLines = 3)
         }
         val meta = when {
+            // Rejected is terminal — key off status so we don't show "Response
+            // due by …" (contradicts the closed state) or "Resolved …"
+            // (contradicts the Rejected pill).
+            g.status == "rejected" ->
+                g.resolvedAt?.takeIf { it.isNotBlank() }?.let { "Rejected ${prettyDate(it)}" } ?: "Rejected"
             g.resolvedAt?.isNotBlank() == true -> "Resolved ${prettyDate(g.resolvedAt)}"
             g.deadlineAt?.isNotBlank() == true -> "Response due by ${prettyDate(g.deadlineAt)}"
             g.createdAt?.isNotBlank() == true -> "Filed ${prettyDate(g.createdAt)}"

@@ -44,15 +44,21 @@ internal fun summariseGstInvoicesByFiscalYear(
 ): List<FyInvoiceGroup> =
     rows.groupBy { indianFiscalYearLabel(it.issuedAt) }
         .map { (label, groupRows) ->
+            // Only status == "issued" invoices count toward the GST position
+            // (matches the founder_gst_summary WHERE status='issued' contract).
+            // Cancelled/revised rows still appear in the list but must NOT
+            // inflate the FY taxable/GST/total — otherwise a refund/credit-note
+            // overstates the user's GST liability.
+            val issued = groupRows.filter { it.status == "issued" }
             FyInvoiceGroup(
                 fiscalYearLabel = label,
                 rows = groupRows,
                 invoiceCount = groupRows.size,
                 incomingCount = groupRows.count { it.direction == "incoming" },
                 outgoingCount = groupRows.count { it.direction == "outgoing" },
-                taxableRupees = groupRows.sumOf { it.taxableAmountRupees },
-                gstRupees = groupRows.sumOf { it.totalGstRupees },
-                totalRupees = groupRows.sumOf { it.totalInvoiceRupees },
+                taxableRupees = issued.sumOf { it.taxableAmountRupees },
+                gstRupees = issued.sumOf { it.totalGstRupees },
+                totalRupees = issued.sumOf { it.totalInvoiceRupees },
                 rcmCount = groupRows.count { it.rcmApplicable },
             )
         }
