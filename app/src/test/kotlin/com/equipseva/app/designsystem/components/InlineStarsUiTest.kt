@@ -53,10 +53,14 @@ class InlineStarsUiTest {
         composeRule.onNodeWithText("(127)").assertIsDisplayed()
     }
 
-    @Test fun `zero count renders as parens-zero`() {
+    @Test fun `zero rating renders the New chip, not a 0-star score`() {
+        // Ratings are 1–5, so 0.0 means "never rated". Showing "★ 0.0 (0)"
+        // made new engineers look 0-star in the directory; they now render a
+        // "New" chip instead (see InlineStars).
         composeRule.setContent { Themed { InlineStars(rating = 0.0, count = 0) } }
-        composeRule.onNodeWithText("(0)").assertIsDisplayed()
-        composeRule.onNodeWithText("0.0").assertIsDisplayed()
+        composeRule.onNodeWithText("New").assertIsDisplayed()
+        composeRule.onNodeWithText("0.0").assertDoesNotExist()
+        composeRule.onNodeWithText("(0)").assertDoesNotExist()
     }
 
     @Test fun `small variant still renders the same strings`() {
