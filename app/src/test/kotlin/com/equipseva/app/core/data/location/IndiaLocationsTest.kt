@@ -93,4 +93,16 @@ class IndiaLocationsTest {
     @Test fun `compose of all-null returns empty string`() {
         assertEquals("", IndiaLocations.compose(null, null, null))
     }
+
+    @Test fun `canonicalState maps case and Geocoder variants, null on no match`() {
+        // Exact + case/whitespace.
+        assertEquals("Telangana", IndiaLocations.canonicalState("Telangana"))
+        assertEquals("Telangana", IndiaLocations.canonicalState("  telangana "))
+        // Geocoder embeds the state name in a longer phrase.
+        assertEquals("Delhi", IndiaLocations.canonicalState("National Capital Territory of Delhi"))
+        // No match / blank / null -> null (so the field stays unset).
+        org.junit.Assert.assertNull(IndiaLocations.canonicalState("Atlantis"))
+        org.junit.Assert.assertNull(IndiaLocations.canonicalState(""))
+        org.junit.Assert.assertNull(IndiaLocations.canonicalState(null))
+    }
 }
