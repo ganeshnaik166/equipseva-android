@@ -35,6 +35,8 @@ import com.equipseva.app.core.sync.handlers.PhotoUploadStash
 import com.equipseva.app.navigation.Routes
 import java.time.Instant
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -1111,20 +1113,34 @@ class RepairJobDetailViewModel @Inject constructor(
                 return@launch
             }
             val selfId = (authRepository.sessionState.firstOrNull() as? AuthSession.SignedIn)?.userId
-            val selfEngineerRowId = selfId
-                ?.let { engineerRepository.fetchByUserId(it).getOrNull()?.id }
-            // Falls back to in-app active role when the engineers row hasn't
-            // been created yet — a brand-new engineer signed up via the role
-            // tile (PR #225) may have role='engineer' in profiles but no
-            // engineers row until they finish KYC. UserPrefs.activeRole is
-            // also the source of truth for which Hub the user is currently in
-            // (Hub can switch role without touching the auth profile). We
-            // still want Place bid visible for them; server RLS rejects with
-            // a clear error if they tap Submit without an engineers row.
-            val selfProfileRole = selfId
-                ?.let { profileRepository.fetchById(it).getOrNull()?.role?.storageKey }
             val selfActiveRole = userPrefs.activeRole.firstOrNull()
-            val jobResult = jobRepository.fetchById(jobId)
+            // These three reads are mutually independent — the engineer row and
+            // the profile-role key are both keyed only on selfId, and the job is
+            // keyed only on jobId. Fan them out concurrently so the detail
+            // hydrates in one round-trip instead of three stacked (previously
+            // ~3× the network latency before the screen could paint). Each
+            // result is consumed exactly as before; repo calls return Result
+            // (never throw), so no async{} can fault the enclosing scope.
+            //
+            // selfProfileRole falls back to the in-app active role when the
+            // engineers row hasn't been created yet — a brand-new engineer
+            // signed up via the role tile (PR #225) may have role='engineer' in
+            // profiles but no engineers row until they finish KYC. UserPrefs.
+            // activeRole is also the source of truth for which Hub the user is
+            // currently in (Hub can switch role without touching the auth
+            // profile). We still want Place bid visible for them; server RLS
+            // rejects with a clear error if they tap Submit without an
+            // engineers row.
+            val (selfEngineerRowId, selfProfileRole, jobResult) = coroutineScope {
+                val engineerRowD = async {
+                    selfId?.let { engineerRepository.fetchByUserId(it).getOrNull()?.id }
+                }
+                val profileRoleD = async {
+                    selfId?.let { profileRepository.fetchById(it).getOrNull()?.role?.storageKey }
+                }
+                val jobD = async { jobRepository.fetchById(jobId) }
+                Triple(engineerRowD.await(), profileRoleD.await(), jobD.await())
+            }
             jobResult.fold(
                 onSuccess = { job ->
                     val role = resolveViewerRole(job, selfId, selfEngineerRowId, selfProfileRole, selfActiveRole)
