@@ -803,13 +803,7 @@ private fun ProfileBody(
                 Stat(
                     modifier = Modifier.weight(1f),
                     label = "Completion",
-                    // With zero completed jobs the rate is 0/0, which
-                    // formatCompletionRatePct renders as "0%" — reads as a
-                    // terrible completion record rather than "no data yet".
-                    // Show the no-data em-dash instead, matching how the
-                    // directory row hides completion when no real number
-                    // exists (and the "New" rating chip, r1485).
-                    value = if (p.totalJobs <= 0) "—" else formatCompletionRatePct(p.completionRate),
+                    value = completionStatValue(p.totalJobs, p.completionRate),
                     color = SevaGreen700,
                 )
             }
@@ -1310,6 +1304,19 @@ internal fun formatCompletionRatePct(completionRate: Double): String {
     val pct = if (completionRate <= 1.0) completionRate * 100 else completionRate
     return "${pct.toInt()}%"
 }
+
+/**
+ * Value for the public-profile "Completion" stat cell (r1486).
+ *
+ * With zero completed jobs the rate is 0/0, which formatCompletionRatePct would
+ * render as "0%" — reads to a hospital as a terrible completion record rather
+ * than "no data yet". Show the no-data em-dash "—" instead (matching how the
+ * directory row hides completion when no real number exists, and the "New"
+ * rating chip). An engineer WITH jobs but a genuine low rate still shows the
+ * real percentage. Pure + tested so the totalJobs guard can't be dropped.
+ */
+internal fun completionStatValue(totalJobs: Int, completionRate: Double): String =
+    if (totalJobs <= 0) "—" else formatCompletionRatePct(completionRate)
 
 /**
  * Compose the per-category rating chip text shown on
