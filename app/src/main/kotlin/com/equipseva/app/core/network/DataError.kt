@@ -81,6 +81,36 @@ private fun friendlyRestMessage(ex: RestException): String? {
             "This job doesn't have an assigned engineer yet. Pull to refresh and try again once a bid has been accepted."
         raw.contains("valid_email_required", ignoreCase = true) ->
             "That doesn't look like a valid email address. Check it and try again."
+        // r1494 — second batch of user-reachable server codes (traced via the
+        // error-copy-mapping-2 sweep). Same rules: specific literals above the
+        // generic SQLSTATE matchers; the 42501-raised ones stay above the 42501
+        // branch below; repair_job_not_found before job_not_found (substring).
+        raw.contains("not_paged_for_this_code_red", ignoreCase = true) ->
+            "You're no longer on the responder list for this Code Red, so it can't be accepted. Pull to refresh."
+        raw.contains("invite_email_mismatch", ignoreCase = true) ->
+            "This invite was sent to a different email address. Sign in with the account it was emailed to, then try again."
+        raw.contains("engineer_only_can_submit_dsr", ignoreCase = true) ->
+            "Only the engineer awarded this job can file its service report."
+        raw.contains("code_red_not_open", ignoreCase = true) ->
+            "This Code Red is no longer open — another engineer may have accepted it first. It'll clear from your list on the next refresh."
+        raw.contains("no_paged_event_for_caller", ignoreCase = true) ->
+            "You've already responded to this Code Red, or another engineer took it first — pull to refresh."
+        raw.contains("equipment_category_out_of_scope", ignoreCase = true) ->
+            "EquipSeva doesn't cover one of those equipment categories yet. Remove it from the contract, or contact support if you think it should be covered."
+        raw.contains("equipment_type_unknown", ignoreCase = true) ->
+            "EquipSeva doesn't service that equipment type yet. Pick a different equipment category, or contact support if you think it should be covered."
+        raw.contains("renewal_not_pending", ignoreCase = true) ->
+            "This KYC renewal has already been started or closed. Pull to refresh to see its latest status."
+        raw.contains("pack_must_have_evidence_or_dsr_before_submit", ignoreCase = true) ->
+            "Add at least one piece of evidence before filing this dispute for mediation."
+        raw.contains("dsr_not_found", ignoreCase = true) ->
+            "We couldn't find this service report anymore — pull to refresh and try again."
+        raw.contains("bid_not_found", ignoreCase = true) ->
+            "That bid is no longer available — pull to refresh your bids and try again."
+        raw.contains("repair_job_not_found", ignoreCase = true) ->
+            "We couldn't find this repair job anymore — pull to refresh and try again."
+        raw.contains("job_not_found", ignoreCase = true) ->
+            "We couldn't find that repair job anymore — pull to refresh and try again."
         // 42501 = insufficient_privilege; also matches the literal phrase
         // Postgres returns when column-level grants block a SELECT.
         raw.contains("42501") || raw.contains("permission denied", ignoreCase = true) ->

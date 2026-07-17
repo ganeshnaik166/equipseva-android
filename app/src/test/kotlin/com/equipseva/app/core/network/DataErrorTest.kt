@@ -228,4 +228,54 @@ class DataErrorTest {
         val msg = rest("no_accepted_engineer").toUserMessage()
         assertTrue("got: $msg", msg.contains("assigned engineer", ignoreCase = true))
     }
+
+    // ---------------------------------------------------------------------
+    //  r1494 — second batch of user-reachable server codes
+    // ---------------------------------------------------------------------
+
+    @Test fun `not_paged_for_this_code_red beats the generic 42501 copy`() {
+        val msg = rest("not_paged_for_this_code_red (SQLSTATE 42501)").toUserMessage()
+        assertTrue("got: $msg", msg.contains("responder list", ignoreCase = true))
+        assertTrue("must not show KYC copy, got: $msg", !msg.contains("KYC", ignoreCase = true))
+    }
+
+    @Test fun `invite_email_mismatch beats the generic 42501 copy`() {
+        val msg = rest("invite_email_mismatch (SQLSTATE 42501)").toUserMessage()
+        assertTrue("got: $msg", msg.contains("different email", ignoreCase = true))
+        assertTrue("must not show KYC copy, got: $msg", !msg.contains("KYC", ignoreCase = true))
+    }
+
+    @Test fun `engineer_only_can_submit_dsr beats the generic 42501 copy`() {
+        val msg = rest("engineer_only_can_submit_dsr (SQLSTATE 42501)").toUserMessage()
+        assertTrue("got: $msg", msg.contains("file its service report", ignoreCase = true))
+        assertTrue("must not show KYC copy, got: $msg", !msg.contains("KYC", ignoreCase = true))
+    }
+
+    @Test fun `repair_job_not_found maps to friendly copy, not raw code`() {
+        val msg = rest("repair_job_not_found").toUserMessage()
+        assertTrue("got: $msg", msg.contains("repair job", ignoreCase = true))
+        assertTrue("raw code must not leak, got: $msg", !msg.contains("repair_job_not_found"))
+    }
+
+    @Test fun `code_red_not_open maps to already-accepted copy`() {
+        val msg = rest("code_red_not_open").toUserMessage()
+        assertTrue("got: $msg", msg.contains("no longer open", ignoreCase = true))
+    }
+
+    @Test fun `renewal_not_pending maps to friendly copy, not raw code`() {
+        val msg = rest("renewal_not_pending (status=in_progress)").toUserMessage()
+        assertTrue("got: $msg", msg.contains("KYC renewal", ignoreCase = true))
+        assertTrue("raw code must not leak, got: $msg", !msg.contains("renewal_not_pending"))
+    }
+
+    @Test fun `equipment_type_unknown maps to friendly copy, not raw schema hint`() {
+        val msg = rest("equipment_type_unknown").toUserMessage()
+        assertTrue("got: $msg", msg.contains("doesn't service", ignoreCase = true))
+        assertTrue("raw code must not leak, got: $msg", !msg.contains("equipment_type_unknown"))
+    }
+
+    @Test fun `bid_not_found maps to friendly copy`() {
+        val msg = rest("bid_not_found").toUserMessage()
+        assertTrue("got: $msg", msg.contains("bid is no longer", ignoreCase = true))
+    }
 }
