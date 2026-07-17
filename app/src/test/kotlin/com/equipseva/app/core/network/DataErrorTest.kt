@@ -168,4 +168,64 @@ class DataErrorTest {
         val msg = rest("schema column issue / URL: https://x.supabase.co/rest").toUserMessage()
         assertEquals(fallback, msg)
     }
+
+    // ---------------------------------------------------------------------
+    //  r1492 — user-facing server RAISE EXCEPTION codes
+    // ---------------------------------------------------------------------
+
+    @Test fun `only_accepted_engineer_can_checkin beats the generic 42501 copy`() {
+        // Raised server-side with ERRCODE 42501, so the raw text carries both
+        // the literal AND "42501". The dedicated branch must win over the
+        // generic 42501 "KYC verified" copy (the mis-mapping this fixes).
+        val msg = rest("only_accepted_engineer_can_checkin (SQLSTATE 42501)").toUserMessage()
+        assertTrue("got: $msg", msg.contains("awarded this job", ignoreCase = true))
+        assertTrue("must not show KYC copy, got: $msg", !msg.contains("KYC", ignoreCase = true))
+    }
+
+    @Test fun `equipment_type_out_of_scope_for_code_red maps to the code-red copy, not the general one`() {
+        val msg = rest("equipment_type_out_of_scope_for_code_red").toUserMessage()
+        assertTrue("got: $msg", msg.contains("Code Red", ignoreCase = true))
+    }
+
+    @Test fun `equipment_type_out_of_scope maps to the general scope copy`() {
+        val msg = rest("equipment_type_out_of_scope").toUserMessage()
+        assertTrue("got: $msg", msg.contains("doesn't service", ignoreCase = true))
+        assertTrue("general copy must not mention Code Red, got: $msg", !msg.contains("Code Red", ignoreCase = true))
+    }
+
+    @Test fun `invite_not_found_or_expired maps to the expired-invite copy, not the shorter one`() {
+        val msg = rest("invite_not_found_or_expired").toUserMessage()
+        assertTrue("got: $msg", msg.contains("expired", ignoreCase = true))
+    }
+
+    @Test fun `invite_not_found maps to the refresh copy`() {
+        val msg = rest("invite_not_found").toUserMessage()
+        assertTrue("got: $msg", msg.contains("no longer available", ignoreCase = true))
+    }
+
+    @Test fun `chat_conversation_closed maps to job-ended copy`() {
+        val msg = rest("chat_conversation_closed").toUserMessage()
+        assertTrue("got: $msg", msg.contains("closed", ignoreCase = true))
+    }
+
+    @Test fun `chat_rate_limited_user maps to slow-down copy`() {
+        val msg = rest("chat_rate_limited_user").toUserMessage()
+        assertTrue("got: $msg", msg.contains("too many messages", ignoreCase = true))
+    }
+
+    @Test fun `code_red_sla_expired maps to window-passed copy`() {
+        val msg = rest("code_red_sla_expired").toUserMessage()
+        assertTrue("got: $msg", msg.contains("response window", ignoreCase = true))
+    }
+
+    @Test fun `amc_contract_not_found maps to friendly copy, not raw code`() {
+        val msg = rest("amc_contract_not_found").toUserMessage()
+        assertTrue("got: $msg", msg.contains("AMC contract", ignoreCase = true))
+        assertTrue("raw code must not leak, got: $msg", !msg.contains("amc_contract_not_found"))
+    }
+
+    @Test fun `no_accepted_engineer maps to friendly copy`() {
+        val msg = rest("no_accepted_engineer").toUserMessage()
+        assertTrue("got: $msg", msg.contains("assigned engineer", ignoreCase = true))
+    }
 }

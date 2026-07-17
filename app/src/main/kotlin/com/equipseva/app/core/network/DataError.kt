@@ -43,6 +43,44 @@ private fun friendlyRestMessage(ex: RestException): String? {
             raw.contains("jwt is invalid", ignoreCase = true) ||
             raw.contains("invalid_jwt", ignoreCase = true) ->
             "Your session expired. Tap retry — if this keeps happening, sign in again."
+        // r1492 — user-facing server RAISE EXCEPTION codes, traced from
+        // supabase/migrations to real hospital/engineer client callers. These
+        // sit ABOVE the generic SQLSTATE matchers so a specific code wins —
+        // most importantly only_accepted_engineer_can_checkin, which is raised
+        // with ERRCODE 42501 and would otherwise get the wrong KYC-flavoured
+        // 42501 copy below. Substring-collision rule: longer literal first.
+        raw.contains("only_accepted_engineer_can_checkin", ignoreCase = true) ->
+            "Only the engineer awarded this job can check in or out on site."
+        raw.contains("equipment_type_out_of_scope_for_code_red", ignoreCase = true) ->
+            "That equipment type isn't eligible for a Code Red. Pick one of the listed types and try again."
+        raw.contains("equipment_type_out_of_scope", ignoreCase = true) ->
+            "EquipSeva doesn't service that equipment type yet. Pick a different equipment category, or contact support if you think it should be covered."
+        raw.contains("invite_not_found_or_expired", ignoreCase = true) ->
+            "That invite code didn't work — it may have expired or already been used. Ask the chain admin to send you a fresh invite."
+        raw.contains("invite_not_found", ignoreCase = true) ->
+            "That invite is no longer available — refresh and try again."
+        raw.contains("chat_conversation_closed", ignoreCase = true) ->
+            "This chat is closed because the repair job has ended. Contact support if you still need to reach the other party."
+        raw.contains("chat_rate_limited_conversation", ignoreCase = true) ->
+            "You're sending messages too quickly. Wait a moment, then try again."
+        raw.contains("chat_rate_limited_user", ignoreCase = true) ->
+            "You've sent too many messages in a short time. Take a short break and try again later."
+        raw.contains("code_red_sla_expired", ignoreCase = true) ->
+            "This Code Red's response window has passed, so it can no longer be accepted. It'll clear from your list on the next refresh."
+        raw.contains("code_red_not_found", ignoreCase = true) ->
+            "This Code Red is no longer available — pull to refresh."
+        raw.contains("escrow_not_found", ignoreCase = true) ->
+            "We couldn't find that escrow anymore — pull to refresh and try again."
+        raw.contains("amc_contract_not_found", ignoreCase = true) ->
+            "We couldn't find this AMC contract — it may have been cancelled. Pull to refresh and try again."
+        raw.contains("address_not_found", ignoreCase = true) ->
+            "That address is no longer saved. Refresh your address list and try again."
+        raw.contains("renewal_not_in_progress", ignoreCase = true) ->
+            "This KYC renewal has already been closed. Pull to refresh to see its latest status."
+        raw.contains("no_accepted_engineer", ignoreCase = true) ->
+            "This job doesn't have an assigned engineer yet. Pull to refresh and try again once a bid has been accepted."
+        raw.contains("valid_email_required", ignoreCase = true) ->
+            "That doesn't look like a valid email address. Check it and try again."
         // 42501 = insufficient_privilege; also matches the literal phrase
         // Postgres returns when column-level grants block a SELECT.
         raw.contains("42501") || raw.contains("permission denied", ignoreCase = true) ->
