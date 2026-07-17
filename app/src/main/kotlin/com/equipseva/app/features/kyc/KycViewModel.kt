@@ -45,6 +45,7 @@ class KycViewModel @Inject constructor(
     private val storageRepository: StorageRepository,
     private val savedStateHandle: SavedStateHandle,
     private val analytics: AnalyticsClient,
+    private val crashReporter: com.equipseva.app.core.observability.CrashReporter,
 ) : ViewModel() {
 
     // Snapshot of doc paths that were already persisted server-side at
@@ -1041,6 +1042,11 @@ class KycViewModel @Inject constructor(
                     _effects.emit(Effect.Submitted)
                 },
                 onFailure = { ex ->
+                    // KYC submit is a direct write (not offline-queued like the
+                    // doc uploads above). A silent failure blocks the engineer's
+                    // verification — they can't earn — so report it; the friendly
+                    // toast is still shown.
+                    crashReporter.report(ex, "kyc submit (engineer upsert) failed")
                     _state.update { it.copy(saving = false) }
                     _effects.emit(Effect.ShowMessage(ex.toUserMessage()))
                 },

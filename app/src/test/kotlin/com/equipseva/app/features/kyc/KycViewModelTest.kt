@@ -125,6 +125,7 @@ class KycViewModelTest {
             storageRepository = storageRepo,
             savedStateHandle = savedState,
             analytics = mockk(relaxed = true),
+            crashReporter = mockk(relaxed = true),
         )
         return vm to engineerRepo
     }
