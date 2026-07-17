@@ -140,7 +140,11 @@ fun EngineerSlaScreen(
 
 @Composable
 private fun OnTimeCard(onTimePct: Double) {
-    val (bandText, bandKind) = onTimePillTextAndKind(onTimePct)
+    // Round once and band on the rounded value so the big number and the pill
+    // can't disagree (94.6 shows "95%" — must not pill "Good" when 95% is the
+    // "Excellent" cutpoint).
+    val shownPct = Math.round(onTimePct).toInt()
+    val (bandText, bandKind) = onTimePillTextAndKind(shownPct.toDouble())
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -158,7 +162,7 @@ private fun OnTimeCard(onTimePct: Double) {
             Pill(text = bandText, kind = bandKind)
         }
         Text(
-            "%.0f%%".format(Locale.ROOT, onTimePct),
+            "$shownPct%",
             style = EsType.H3.copy(fontWeight = FontWeight.Bold),
             color = SevaGreen700,
         )
@@ -185,7 +189,11 @@ private fun StatRow(label: String, value: String) {
 
 @Composable
 private fun DisputeRow(disputeRatePct: Double, disputed: Int) {
-    val (pillText, pillKind) = disputeRatePillTextAndKind(disputeRatePct)
+    // Round to the 1 decimal the caption shows, then band on it, so the number
+    // and the pill agree at the cutpoints (4.97 shows "5.0%" → band Elevated,
+    // not "Low"; 0.04 shows "0.0%" → Clean, not Low).
+    val shownRate = Math.round(disputeRatePct * 10.0) / 10.0
+    val (pillText, pillKind) = disputeRatePillTextAndKind(shownRate)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -199,7 +207,7 @@ private fun DisputeRow(disputeRatePct: Double, disputed: Int) {
         Column(modifier = Modifier.weight(1f)) {
             Text("Dispute rate", style = EsType.Body, color = SevaInk900)
             Text(
-                "%.1f%% · %d disputed".format(Locale.ROOT, disputeRatePct, disputed),
+                "%.1f%% · %d disputed".format(Locale.ROOT, shownRate, disputed),
                 style = EsType.Caption,
                 color = SevaInk500,
             )

@@ -118,7 +118,7 @@ fun ProfileCompletenessScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        ScoreCard(score = d.score, band = d.band)
+                        ScoreCard(score = d.score, band = d.band, hasMissingItems = d.missingItems.isNotEmpty())
                         if (d.missingItems.isEmpty()) {
                             Text(
                                 "Your profile is fully complete — you're as visible to hospitals as it gets.",
@@ -151,8 +151,12 @@ fun ProfileCompletenessScreen(
 }
 
 @Composable
-private fun ScoreCard(score: Int, band: String) {
-    val (bandText, bandKind) = completenessBandTextAndKind(band)
+private fun ScoreCard(score: Int, band: String, hasMissingItems: Boolean) {
+    // Server band "complete" starts at score 90, but 90–99 can still have
+    // missing items. Don't show the green "Complete" pill while the screen
+    // below lists items "To reach 100%".
+    val effectiveBand = if (band == "complete" && hasMissingItems) "partial" else band
+    val (bandText, bandKind) = completenessBandTextAndKind(effectiveBand)
     Column(
         modifier = Modifier
             .fillMaxWidth()

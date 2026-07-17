@@ -247,8 +247,8 @@ private fun GraduationContent(
                 d.disputeRatePct <= d.maxDisputeRateForNext
             GateCard(
                 label = "Dispute rate (max)",
-                current = "%.1f%%".format(d.disputeRatePct),
-                target = d.maxDisputeRateForNext?.let { "≤ %.1f%%".format(it) } ?: "—",
+                current = String.format(java.util.Locale.ROOT, "%.1f%%", d.disputeRatePct),
+                target = d.maxDisputeRateForNext?.let { String.format(java.util.Locale.ROOT, "≤ %.1f%%", it) } ?: "—",
                 met = disputeMet,
             )
 
