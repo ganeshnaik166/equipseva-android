@@ -2021,10 +2021,20 @@ private fun LocationCard(
             }
         } else {
             Text(
+                // Engineer reaching this branch usually means the address
+                // exists but is gated until they win the bid — hence the
+                // "your bid" framing. The HOSPITAL, though, can always see
+                // its own address (canShowAddress = hasAddressOnFile for
+                // them), so reaching here means no address was captured at
+                // all — e.g. an AMC auto-visit that didn't inherit a site.
+                // The old "shared once the bid is accepted" copy was wrong on
+                // both counts (the hospital owns the address; an AMC visit is
+                // never bid on) and contradicted the "No address on file yet"
+                // tile shown right above it.
                 text = if (isEngineer)
                     "Full address shows up after the hospital accepts your bid."
                 else
-                    "Address will be shared once the bid is accepted.",
+                    "No service address on file for this job.",
                 fontSize = 12.sp,
                 color = SevaInk500,
                 modifier = Modifier.padding(top = 8.dp),
