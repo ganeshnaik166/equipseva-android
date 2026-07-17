@@ -388,6 +388,9 @@ class RepairJobDetailViewModel @Inject constructor(
                     refreshEscrow()
                 }
                 .onFailure { err ->
+                    // Money-critical: the engineer's dispute defence not
+                    // landing silently skews the admin's release/refund call.
+                    crashReporter.report(err, "escrow dispute engineer response failed")
                     _state.update { it.copy(submittingEngineerResponse = false) }
                     _messages.emit(err.toUserMessage())
                 }
@@ -408,6 +411,10 @@ class RepairJobDetailViewModel @Inject constructor(
                     refreshEscrow()
                 }
                 .onFailure { err ->
+                    // Money-critical: a silent dispute-open failure leaves the
+                    // 48h auto-release clock running against the hospital's
+                    // intent — funds release despite their contest attempt.
+                    crashReporter.report(err, "escrow dispute open failed")
                     _state.update { it.copy(openingEscrowDispute = false) }
                     _messages.emit(err.toUserMessage())
                 }
