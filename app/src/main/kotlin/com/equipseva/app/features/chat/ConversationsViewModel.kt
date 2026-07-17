@@ -13,6 +13,9 @@ import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.sync.OutboxKinds
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -174,13 +177,32 @@ class ConversationsViewModel @Inject constructor(
     }
 
     private suspend fun buildRows(selfUserId: String, list: List<ChatConversation>) {
+        // First inbox load used to fetch each counterpart profile one-at-a-time
+        // in this map loop, so an inbox with N new conversations blocked on ~N
+        // network round-trips before it could paint. Fetch the still-uncached
+        // counterparts CONCURRENTLY instead — the inbox lands in ~1 RTT.
+        //
+        // Cache-safety: membership is read and fetched results are merged only
+        // on THIS (parent) coroutine — the async{}s just fetch and return
+        // (id, profile) pairs — so the plain mutableMap is never mutated from
+        // more than one coroutine at once. Cached results (including cached
+        // nulls) are reused exactly as before; on realtime ticks after the
+        // first load every id is already cached, so no fetch fans out.
+        val neededIds = list
+            .mapNotNull { it.counterpartId(selfUserId) }
+            .distinct()
+            .filter { it !in profileCache }
+        if (neededIds.isNotEmpty()) {
+            val fetched = coroutineScope {
+                neededIds
+                    .map { id -> async { id to profileRepository.fetchById(id).getOrNull() } }
+                    .awaitAll()
+            }
+            fetched.forEach { (id, profile) -> profileCache[id] = profile }
+        }
         val rows = list.map { convo ->
             val otherId = convo.counterpartId(selfUserId)
-            val profile = otherId?.let { id ->
-                if (profileCache.containsKey(id)) profileCache[id]
-                else profileRepository.fetchById(id).getOrNull().also { profileCache[id] = it }
-            }
-            Row(convo, profile)
+            Row(convo, otherId?.let { profileCache[it] })
         }
         // No dummy fallback: empty list shows the screen's empty state. The
         // hardcoded "Satish Naidu / Priyanka Reddy / …" rows used to land
