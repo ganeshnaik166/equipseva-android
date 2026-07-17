@@ -343,6 +343,14 @@ fun RepairJobDetailScreen(
                 if (job != null
                     && state.viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
                     && job.status == RepairJobStatus.Requested
+                    // Only for genuinely OPEN, unassigned marketplace jobs. An
+                    // AMC maintenance-visit job is created in Requested status
+                    // but comes pre-assigned to the contract's engineer
+                    // (engineerId != null) and never goes out for bidding — so
+                    // the "No bids yet · raise your budget · engineers bid
+                    // faster" nudge is nonsense there and contradicts the
+                    // "Assigned engineer" card shown right below it.
+                    && job.engineerId == null
                     && state.bids.isEmpty()
                 ) {
                     val nowInstant = java.time.Instant.now()
