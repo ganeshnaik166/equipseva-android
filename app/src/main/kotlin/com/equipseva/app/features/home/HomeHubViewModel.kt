@@ -23,6 +23,8 @@ import com.equipseva.app.features.auth.UserRole
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -260,82 +262,106 @@ class HomeHubViewModel @Inject constructor(
             }
         }
         if (_state.value.role == UserRole.ENGINEER) {
-            engineerRepository.fetchByUserId(userId).onSuccess { eng ->
-                if (eng != null) {
-                    _state.update {
-                        it.copy(
-                            kycStatus = eng.verificationStatus,
-                            directoryGate = computeDirectoryGate(eng),
-                        )
+            // These three reads are independent — fan them out concurrently so
+            // the hero strip paints in one round-trip's time, not three stacked
+            // (previously ~3× the latency on a slow mobile link).
+            coroutineScope {
+                val engD = async { engineerRepository.fetchByUserId(userId) }
+                val bidsD = async { bidRepository.fetchMyBids() }
+                val assignedD = async { jobRepository.fetchAssignedToMe() }
+
+                engD.await().onSuccess { eng ->
+                    if (eng != null) {
+                        _state.update {
+                            it.copy(
+                                kycStatus = eng.verificationStatus,
+                                directoryGate = computeDirectoryGate(eng),
+                            )
+                        }
                     }
                 }
-            }
-            // Engineer hero strip: pending bids + active assigned jobs.
-            // "Nearby" left as "—" until a per-radius RPC stream lands here.
-            val pendingBids = bidRepository.fetchMyBids().getOrNull()
-                ?.count { it.status == RepairBidStatus.Pending }
-            val activeMine = jobRepository.fetchAssignedToMe().getOrNull()
-                ?.count {
-                    it.status in listOf(
-                        RepairJobStatus.Assigned,
-                        RepairJobStatus.EnRoute,
-                        RepairJobStatus.InProgress,
-                    )
+                // Engineer hero strip: pending bids + active assigned jobs.
+                // "Nearby" left as "—" until a per-radius RPC stream lands here.
+                val pendingBids = bidsD.await().getOrNull()
+                    ?.count { it.status == RepairBidStatus.Pending }
+                val activeMine = assignedD.await().getOrNull()
+                    ?.count {
+                        it.status in listOf(
+                            RepairJobStatus.Assigned,
+                            RepairJobStatus.EnRoute,
+                            RepairJobStatus.InProgress,
+                        )
+                    }
+                _state.update {
+                    it.copy(pendingBidsCount = pendingBids, activeCount = activeMine)
                 }
-            _state.update {
-                it.copy(pendingBidsCount = pendingBids, activeCount = activeMine)
             }
         } else if (_state.value.role == UserRole.HOSPITAL) {
             // Hospital hero strip: open + in-progress job counts +
             // verified engineers visible in the directory. The engineers
             // count uses an unfiltered search (limit caps at 200) so it
             // reads the platform-wide pool, not a per-district slice.
-            val jobs = jobRepository.fetchByHospitalUser(userId).getOrNull().orEmpty()
-            val open = jobs.count { it.status == RepairJobStatus.Requested }
-            val active = jobs.count {
-                it.status in listOf(
-                    RepairJobStatus.Assigned,
-                    RepairJobStatus.EnRoute,
-                    RepairJobStatus.InProgress,
-                )
-            }
-            val engineers = engineerDirectoryRepository.search(limit = 200)
-                .getOrNull()?.size
-            // Cold-start onboarding: detect if any job exists (new hospital
-            // has never posted). Sticky flag: once true, stays true for the
-            // lifetime of the signed-in session. On next cold-start, it reads
-            // from userPrefs and the hero stats appear immediately.
-            val hasAnyJob = jobs.isNotEmpty()
-            if (hasAnyJob && !_state.value.hospitalHasPostedFirstJob) {
-                viewModelScope.launch { userPrefs.setHospitalPostedFirstJob() }
-            }
-            _state.update {
-                it.copy(
-                    openCount = open,
-                    activeCount = active,
-                    nearbyEngineersCount = engineers,
-                )
-            }
-            // PR-B: kick off the recommended-engineers carousel fetch.
-            // Best-effort: GPS may not be granted, the RPC may return
-            // zero rows, etc. — the UI just hides the section.
-            loadRecommendedCarousel()
-            // PR-D1: ask the cash-survey RPC whether a completed job
-            // is awaiting feedback. Quiet on errors — the bottom-sheet
-            // simply doesn't appear if the call fails.
-            cashSurveyRepository.fetchPending().onSuccess { pending ->
-                _state.update { it.copy(pendingCashSurvey = pending) }
-            }
-            // PR-D43: spot-audit invitation (1-in-20 sample of completed
-            // jobs). Quiet on errors; sheet just won't render.
-            spotAuditRepository.fetchPending().onSuccess { pending ->
-                _state.update { it.copy(pendingSpotAudit = pending) }
-            }
-            // PR-D34: pull hospital's recent AMC SLA credits summary.
-            // Quiet on errors — card just won't render.
-            amcRepository.hospitalRecentAmcSlaCredits().onSuccess { sum ->
-                if (sum.totalCreditRupees > 0.0) {
-                    _state.update { it.copy(recentSlaCredits = sum) }
+            //
+            // These five reads are mutually independent — fan them out
+            // concurrently so the hub paints in one round-trip's time rather
+            // than five stacked (~5× the latency on a slow mobile link). Each
+            // result is still handled exactly as before; only the waiting
+            // overlaps. All repository calls return Result (never throw), so
+            // no async{} can fault the enclosing coroutineScope.
+            coroutineScope {
+                val jobsD = async { jobRepository.fetchByHospitalUser(userId).getOrNull().orEmpty() }
+                val engineersD = async { engineerDirectoryRepository.search(limit = 200).getOrNull()?.size }
+                // PR-B: kick off the recommended-engineers carousel fetch.
+                // Best-effort: GPS may not be granted, the RPC may return
+                // zero rows, etc. — the UI just hides the section. (Already
+                // launches its own coroutine, so it doesn't block this scope.)
+                loadRecommendedCarousel()
+                // PR-D1: ask the cash-survey RPC whether a completed job
+                // is awaiting feedback. Quiet on errors — the bottom-sheet
+                // simply doesn't appear if the call fails.
+                val cashD = async { cashSurveyRepository.fetchPending() }
+                // PR-D43: spot-audit invitation (1-in-20 sample of completed
+                // jobs). Quiet on errors; sheet just won't render.
+                val auditD = async { spotAuditRepository.fetchPending() }
+                // PR-D34: pull hospital's recent AMC SLA credits summary.
+                // Quiet on errors — card just won't render.
+                val slaD = async { amcRepository.hospitalRecentAmcSlaCredits() }
+
+                val jobs = jobsD.await()
+                val open = jobs.count { it.status == RepairJobStatus.Requested }
+                val active = jobs.count {
+                    it.status in listOf(
+                        RepairJobStatus.Assigned,
+                        RepairJobStatus.EnRoute,
+                        RepairJobStatus.InProgress,
+                    )
+                }
+                val engineers = engineersD.await()
+                // Cold-start onboarding: detect if any job exists (new hospital
+                // has never posted). Sticky flag: once true, stays true for the
+                // lifetime of the signed-in session. On next cold-start, it reads
+                // from userPrefs and the hero stats appear immediately.
+                val hasAnyJob = jobs.isNotEmpty()
+                if (hasAnyJob && !_state.value.hospitalHasPostedFirstJob) {
+                    viewModelScope.launch { userPrefs.setHospitalPostedFirstJob() }
+                }
+                _state.update {
+                    it.copy(
+                        openCount = open,
+                        activeCount = active,
+                        nearbyEngineersCount = engineers,
+                    )
+                }
+                cashD.await().onSuccess { pending ->
+                    _state.update { it.copy(pendingCashSurvey = pending) }
+                }
+                auditD.await().onSuccess { pending ->
+                    _state.update { it.copy(pendingSpotAudit = pending) }
+                }
+                slaD.await().onSuccess { sum ->
+                    if (sum.totalCreditRupees > 0.0) {
+                        _state.update { it.copy(recentSlaCredits = sum) }
+                    }
                 }
             }
         }
