@@ -93,7 +93,10 @@ fun EarningsScreen(
             // self-serve path so the founder doesn't have to chase.
             val hasEarnings = (state.paidTotal + state.pendingTotal + state.amcPaidTotal) > 0.0
             if (!state.loading && !state.payoutMethodVerified && hasEarnings) {
-                PayoutMethodNudge(onSetUp = onBankDetails)
+                PayoutMethodNudge(
+                    methodExists = state.payoutMethodExists,
+                    onSetUp = onBankDetails,
+                )
             }
             PullToRefreshBox(
                 isRefreshing = state.refreshing,
@@ -846,7 +849,8 @@ internal fun payoutSubtitle(p: EngineerPayoutRow): String? = when (p.status) {
  * (see founder /engineers-missing-payout r726).
  */
 @Composable
-private fun PayoutMethodNudge(onSetUp: () -> Unit) {
+private fun PayoutMethodNudge(methodExists: Boolean, onSetUp: () -> Unit) {
+    val copy = payoutNudgeCopy(methodExists)
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -858,16 +862,32 @@ private fun PayoutMethodNudge(onSetUp: () -> Unit) {
     ) {
         Column {
             Text(
-                "You have earnings — verify your UPI to get paid.",
+                copy.first,
                 color = SevaWarning500,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                "Tap to set up your payout method.",
+                copy.second,
                 color = SevaWarning500,
                 fontSize = 11.sp,
             )
         }
     }
 }
+
+/**
+ * r1513 — payout-nudge copy, accurate to the engineer's actual state. The
+ * old single copy mixed both cases ("verify your UPI" + "tap to SET UP your
+ * payout method"): an engineer who had already saved UPI + bank in payout
+ * onboarding was told to set one up — confusing at the exact moment they're
+ * chasing their money.
+ */
+internal fun payoutNudgeCopy(methodExists: Boolean): Pair<String, String> =
+    if (methodExists) {
+        "You have earnings — your payout method is awaiting verification." to
+            "Payouts flow automatically once it's approved. Tap to review your details."
+    } else {
+        "You have earnings — add a payout method to get paid." to
+            "Tap to add your UPI and bank details."
+    }

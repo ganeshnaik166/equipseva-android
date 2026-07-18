@@ -39,6 +39,15 @@ depends on the contract:
   GST to be additive on top of bids, that's a server + pricing decision —
   today's server never adds it.
 
+## 3b. Growth lever: engineers get NO push when a new job is posted
+Confirmed via the notification-kind census: there is no `repair_job_new`-style
+kind — engineers only discover jobs by opening the app, while the feed itself
+tells them "bids in the first 10 min get accepted 3× more often." A server
+trigger paging engineers on new-job INSERT (targeted by district/service-area
+to control spam) would directly move bid latency and match rate. Server-side
+decision (trigger + targeting radius + quiet hours); the client half is a
+5-line deep-link mapping once the kind exists.
+
 ## 4. Product nits parked (cheap, need only your taste)
 - Earnings banner says "verify your UPI … set up your payout method" even
   when a method exists but is unverified — sub-line wording.

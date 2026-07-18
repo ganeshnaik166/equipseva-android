@@ -68,6 +68,9 @@ class EarningsViewModel @Inject constructor(
         // nudge banner urging VPA verification (analog of founder
         // /engineers-missing-payout r726).
         val payoutMethodVerified: Boolean = false,
+        // r1513 — distinguishes "no method at all" from "method exists,
+        // awaiting verification" so the earnings nudge says the right thing.
+        val payoutMethodExists: Boolean = false,
         // r1389 — referral earnings roll-up. Null while loading or on RPC
         // failure; the Earnings referral row falls back to a CTA subtitle.
         val referralSummary: ReferralSummary? = null,
@@ -199,7 +202,12 @@ class EarningsViewModel @Inject constructor(
                 val hasVerified = methods.any {
                     it.verificationStatus == PayoutMethodVerification.Verified
                 }
-                _state.update { it.copy(payoutMethodVerified = hasVerified) }
+                _state.update {
+                    it.copy(
+                        payoutMethodVerified = hasVerified,
+                        payoutMethodExists = methods.isNotEmpty(),
+                    )
+                }
             }
             .onFailure {
                 // Safe default: don't pop a banner on transient errors.
