@@ -104,6 +104,12 @@ class RepairJobDetailViewModel @Inject constructor(
         val bidComposerOpen: Boolean = false,
         val openingChat: Boolean = false,
         val viewerRole: ViewerRole = ViewerRole.Other,
+        // r1516 — true when the signed-in engineer IS the job's assigned
+        // engineer (engineers-row id match). Gates the AMC "Confirm visit"
+        // CTA precisely: a pre-assigned Requested visit shows it ONLY to the
+        // engineer it belongs to (any other engineer viewer gets no primary
+        // CTA there — Place bid would be absurd on a pre-assigned job).
+        val isAssignedEngineerViewer: Boolean = false,
         val updatingStatus: Boolean = false,
         val submittingRating: Boolean = false,
         /**
@@ -735,6 +741,22 @@ class RepairJobDetailViewModel @Inject constructor(
     )
 
     /**
+     * r1516 — the assigned engineer confirms a pre-assigned AMC visit.
+     * AMC visits are born Requested WITH engineer_id set: `requested` is the
+     * server's "engineer hasn't responded yet" state (the round446 SLA-breach
+     * sweep counts exactly those), and the round452 FSM allows
+     * requested → assigned as the engineer's first flip. Check-in can't be
+     * the first action here — the check-in RPC requires an accepted BID,
+     * which AMC visits never have.
+     */
+    fun confirmAmcVisit() = transitionStatus(
+        target = RepairJobStatus.Assigned,
+        allowedFrom = setOf(RepairJobStatus.Requested),
+        requireEngineer = true,
+        successMessage = "Visit confirmed — the hospital can see you're on it.",
+    )
+
+    /**
      * Engineer taps "Mark done" → we open a sheet to capture proof photos
      * (after_photos). [closeProofSheet] dismisses without committing;
      * [submitCompletionProof] enqueues each photo via [photoUploadStash] and
@@ -1193,6 +1215,8 @@ class RepairJobDetailViewModel @Inject constructor(
                             ownBid = ownBid,
                             bids = bids,
                             viewerRole = role,
+                            isAssignedEngineerViewer = selfEngineerRowId != null &&
+                                selfEngineerRowId == job?.engineerId,
                             engineerNames = engineerNames,
                             hospitalName = hospitalProfile?.displayName,
                             hospitalLocation = hospitalProfile?.locationLine,

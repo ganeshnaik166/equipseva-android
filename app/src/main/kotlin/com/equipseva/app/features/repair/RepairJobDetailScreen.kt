@@ -297,10 +297,12 @@ fun RepairJobDetailScreen(
                     job = job,
                     ownBid = state.ownBid,
                     viewerRole = state.viewerRole,
+                    isAssignedEngineerViewer = state.isAssignedEngineerViewer,
                     updatingStatus = state.updatingStatus,
                     queuedStatusCount = state.queuedStatusCount,
                     pendingCostRevision = state.pendingCostRevision,
                     onPlaceBid = viewModel::openBidComposer,
+                    onConfirmVisit = viewModel::confirmAmcVisit,
                     onCheckIn = { checkinSheetOpen = true },
                     onMarkDone = viewModel::openProofSheet,
                     onRate = { rateSheetOpen = true },
@@ -2082,10 +2084,14 @@ private fun StickyBottomBar(
     job: RepairJob,
     ownBid: RepairBid?,
     viewerRole: RepairJobDetailViewModel.ViewerRole,
+    // r1516 — precise assigned-engineer match (engineers-row id) so the
+    // ConfirmVisit CTA never shows to a bystander engineer.
+    isAssignedEngineerViewer: Boolean,
     updatingStatus: Boolean,
     queuedStatusCount: Int,
     pendingCostRevision: com.equipseva.app.core.data.repair.CostRevision?,
     onPlaceBid: () -> Unit,
+    onConfirmVisit: () -> Unit,
     onCheckIn: () -> Unit,
     onMarkDone: () -> Unit,
     onRate: () -> Unit,
@@ -2118,6 +2124,13 @@ private fun StickyBottomBar(
     // Resolve which primary CTA to show. Null = no primary (e.g. Other role,
     // or terminal states without a CTA + without cancel).
     val primaryKind: PrimaryCta? = when {
+        // r1516 — a Requested job that already HAS an engineer is an AMC
+        // pre-assignment, never a biddable job. The assigned engineer's
+        // correct first action is confirming the visit (requested →
+        // assigned, the FSM's sanctioned flip); any OTHER engineer gets no
+        // primary CTA — "Place bid" on a pre-assigned visit was absurd.
+        isEngineer && job.status == RepairJobStatus.Requested && job.engineerId != null ->
+            if (isAssignedEngineerViewer) PrimaryCta.ConfirmVisit else null
         isEngineer && job.status == RepairJobStatus.Requested ->
             PrimaryCta.PlaceBid(editing = ownBid?.status == RepairBidStatus.Pending)
         isEngineer && job.status == RepairJobStatus.Assigned -> PrimaryCta.CheckIn
@@ -2162,6 +2175,19 @@ private fun StickyBottomBar(
                 kind = EsBtnKind.Primary,
                 full = true,
                 size = EsBtnSize.Lg,
+                modifier = Modifier.weight(1f),
+            )
+            PrimaryCta.ConfirmVisit -> EsBtn(
+                text = when {
+                    updatingStatus -> "Working…"
+                    queuedStatusCount > 0 -> "Queued — back online"
+                    else -> "Confirm visit"
+                },
+                onClick = onConfirmVisit,
+                kind = EsBtnKind.Primary,
+                full = true,
+                size = EsBtnSize.Lg,
+                disabled = updatingStatus || queuedStatusCount > 0,
                 modifier = Modifier.weight(1f),
             )
             PrimaryCta.CheckIn -> EsBtn(
@@ -2272,6 +2298,9 @@ private fun StickyBottomBar(
 
 private sealed interface PrimaryCta {
     data class PlaceBid(val editing: Boolean) : PrimaryCta
+    // r1516 — the assigned engineer's first action on a pre-assigned AMC
+    // visit (requested → assigned per the round452 FSM).
+    data object ConfirmVisit : PrimaryCta
     data object CheckIn : PrimaryCta
     data object MarkDone : PrimaryCta
     data object Rate : PrimaryCta

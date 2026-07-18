@@ -13,16 +13,16 @@ leg and then audit the never-reached states with real data: EnRoute →
 InProgress → Completed, DSR, invoice, payout rows, escrow release/dispute.
 *(Also confirm whether the debug build points at a Razorpay TEST key.)*
 
-## 2. AMC visits: should they be created in `Assigned` status? (backend)
-AMC maintenance visits are `repair_jobs` rows created in **Requested** but
-pre-assigned (`engineer_id` set). Client-side fallout was fixed (r1482–84,
-guarded r1487), but one gap remains: the **assigned engineer opening their own
-visit sees a "Place bid" CTA** (the CTA keys off `Requested`). The right fix
-depends on the contract:
-- If visits *should* be `Assigned` from birth → backend migration; client CTA
-  then just works (shows Check-in).
-- If `Requested` is intentional → tell me the intended engineer CTA for that
-  state and I'll ship it client-side.
+## 2. AMC visits — RESOLVED (r1516): `Requested` is intentional; CTA fixed
+Investigation answered the question from the server design itself: `requested`
+on AMC visits is load-bearing — the round446 SLA-breach sweep counts exactly
+the still-`requested` visits as "engineer never responded", and the round452
+FSM sanctions `requested → assigned` as the engineer's first flip (check-in
+can't be first: it requires an accepted bid, which visits never have).
+Shipped: the assigned engineer now sees a **"Confirm visit"** CTA (flips
+Requested → Assigned, offline-queue safe, precise engineers-row-id gating);
+bystander engineers get no CTA instead of the absurd "Place bid". No backend
+change needed.
 
 ## 3. Server-side leads found while testing (not client bugs)
 - **Graduation RPCs throw for a fresh verified engineer** — `my_supervision_
