@@ -42,4 +42,19 @@ class HospitalCodeRedHelpersTest {
         assertEquals("Patient monitoring", equipmentTypeLabel("patient_monitoring"))
         assertEquals("Laboratory", equipmentTypeLabel("laboratory"))
     }
+
+    @Test fun `timed_out carries next-step guidance (r1512)`() {
+        val g = codeRedTerminalGuidance("timed_out")
+        org.junit.Assert.assertNotNull(g)
+        // Pin both escape hatches the copy names: page again + normal job.
+        org.junit.Assert.assertTrue(g!!.contains("new Code Red"))
+        org.junit.Assert.assertTrue(g.contains("repair job"))
+    }
+
+    @Test fun `other states carry no guidance line`() {
+        // resolved needs none; cancelled was the hospital's own action;
+        // open/accepted are live states with their own UI.
+        listOf("open", "engineer_accepted", "resolved", "cancelled", "future_x")
+            .forEach { org.junit.Assert.assertNull(codeRedTerminalGuidance(it)) }
+    }
 }

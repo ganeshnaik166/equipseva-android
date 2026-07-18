@@ -274,6 +274,12 @@ private fun HospitalCodeRedCard(req: CodeRedRepository.HospitalCodeRed, now: Lon
             style = EsType.Caption,
             color = SevaInk500,
         )
+        // r1512 — terminal guidance. A timed-out Code Red is the app's
+        // highest-stakes dead end: the emergency still exists but the card
+        // previously offered nothing beyond a red "Timed out" pill.
+        codeRedTerminalGuidance(req.status)?.let { guidance ->
+            Text(guidance, style = EsType.Caption, color = SevaInk700)
+        }
         // r1437 — one-tap into the emergency coordination channel while the
         // Code Red is still active. Only shows when ops attached a war-room link.
         val warroom = req.warroomUrl?.takeIf { it.isNotBlank() }
@@ -409,6 +415,20 @@ internal fun codeRedRequestStatusPill(status: String): Pair<String, PillKind> = 
     "timed_out" -> "Timed out" to PillKind.Danger
     "cancelled" -> "Cancelled" to PillKind.Neutral
     else -> status.replace('_', ' ').replaceFirstChar { it.uppercase() } to PillKind.Neutral
+}
+
+/**
+ * r1512 — next-step line for terminal Code Red states. The hospital's
+ * emergency doesn't end when the request does: a timed-out page with no
+ * guidance is the app's worst dead end (equipment down, no engineer, no
+ * path). Only timed_out carries guidance — resolved needs none, and
+ * cancelled was the hospital's own action. Null = no line.
+ */
+internal fun codeRedTerminalGuidance(status: String): String? = when (status) {
+    "timed_out" ->
+        "No engineer could take this in time. Fire a new Code Red to page again, " +
+            "or post a same-day repair job so engineers can bid."
+    else -> null
 }
 
 /** Description must be 10-2000 chars (mirrors the server CHECK). */
