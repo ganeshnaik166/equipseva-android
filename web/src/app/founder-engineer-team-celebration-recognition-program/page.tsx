@@ -71,7 +71,7 @@ export default async function Page() {
       <header>
         <h1 className="text-2xl font-bold">Engineer Team Celebration & Recognition Program</h1>
         <p className="text-sm text-gray-600 mt-1">
-          Track personal milestones celebrated with engineers & the engagement > retention signal that follows.
+          Track personal milestones celebrated with engineers & the engagement &gt; retention signal that follows.
         </p>
       </header>
 

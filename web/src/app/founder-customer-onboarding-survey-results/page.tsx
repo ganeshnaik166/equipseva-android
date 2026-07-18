@@ -70,7 +70,7 @@ export default async function Page() {
   return (
     <div style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Customer Onboarding Survey Results</h1>
-      <p style={{ color: '#555', marginBottom: 24 }}>Hospital > survey wave > NPS > CSAT > verbatim themes > follow-up actions.</p>
+      <p style={{ color: '#555', marginBottom: 24 }}>Hospital &gt; survey wave &gt; NPS &gt; CSAT &gt; verbatim themes &gt; follow-up actions.</p>
 
       <section style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>NPS Distribution</h2>

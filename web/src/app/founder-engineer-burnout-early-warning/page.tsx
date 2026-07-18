@@ -164,7 +164,7 @@ export default async function FounderEngineerBurnoutEarlyWarningPage() {
         Engineer Burnout Early Warning
       </h1>
       <p style={{ color: '#6b7280', marginBottom: 24 }}>
-        Rolling 7-day signals: work hours & no-rest days & CSAT slip & cancellations => early intervention
+        Rolling 7-day signals: work hours & no-rest days & CSAT slip & cancellations =&gt; early intervention
       </p>
 
       <section

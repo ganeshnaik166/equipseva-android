@@ -122,7 +122,7 @@ export default async function FounderQuarterlyPayYourselfCheckPage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold mb-2">Low-Comfort Focus (score <= 5)</h2>
+        <h2 className="text-lg font-semibold mb-2">Low-Comfort Focus (score &lt;= 5)</h2>
         <DataTable
           rows={focus}
           columns={focusColumns}

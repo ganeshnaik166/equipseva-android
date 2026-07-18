@@ -69,7 +69,7 @@ export default async function Page() {
     <main style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
       <h1 style={{ fontSize: 24, fontWeight: 600, marginBottom: 8 }}>Founder Cap Table History & Snapshot</h1>
       <p style={{ color: '#666', marginBottom: 24 }}>
-        Snapshot date > cap table > dilution events > founder ownership > ESOP > notes.
+        Snapshot date &gt; cap table &gt; dilution events &gt; founder ownership &gt; ESOP &gt; notes.
       </p>
 
       {latestRow && (

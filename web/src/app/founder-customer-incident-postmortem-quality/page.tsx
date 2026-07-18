@@ -210,7 +210,7 @@ export default async function CustomerIncidentPostmortemQualityPage() {
       <header>
         <h1 className="text-xl font-semibold">Customer incident postmortem quality — r2548</h1>
         <p className="mt-1 text-xs text-gray-500">
-          Track every hospital incident => did we run a postmortem, how deep did we go, how many action items
+          Track every hospital incident =&gt; did we run a postmortem, how deep did we go, how many action items
           shipped, and did the same problem stay dead? Founder-only.
         </p>
       </header>
@@ -245,7 +245,7 @@ export default async function CustomerIncidentPostmortemQualityPage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold">All postmortems</h2>
         <p className="text-xs text-gray-500">
-          Every hospital incident logged. Depth score >= 70 => deep RCA. Follow-through < 50% => risk of repeat.
+          Every hospital incident logged. Depth score &gt;= 70 =&gt; deep RCA. Follow-through &lt; 50% =&gt; risk of repeat.
         </p>
         <DataTable
           rows={postmortems}
@@ -271,7 +271,7 @@ export default async function CustomerIncidentPostmortemQualityPage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Follow-through by postmortem status</h2>
         <p className="text-xs text-gray-500">
-          Completed postmortems should have high follow-through. Skipped => zero by definition.
+          Completed postmortems should have high follow-through. Skipped =&gt; zero by definition.
         </p>
         <DataTable
           rows={followThrough}
@@ -297,7 +297,7 @@ export default async function CustomerIncidentPostmortemQualityPage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold">All action items</h2>
         <p className="text-xs text-gray-500">
-          Every line item from every postmortem. Owner + due date + outcome => this is the accountability layer.
+          Every line item from every postmortem. Owner + due date + outcome =&gt; this is the accountability layer.
         </p>
         <DataTable
           rows={actionItems}
@@ -310,7 +310,7 @@ export default async function CustomerIncidentPostmortemQualityPage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Action-item completion funnel</h2>
         <p className="text-xs text-gray-500">
-          Where action items sit by status & outcome. Many open + pending => backlog risk.
+          Where action items sit by status & outcome. Many open + pending =&gt; backlog risk.
         </p>
         <DataTable
           rows={actionCompletion}

@@ -102,7 +102,7 @@ export default async function CustomerCsatRecoveryPlaybookPage() {
         Customer CSAT Recovery Playbook
       </h1>
       <p style={{ color: '#666', marginBottom: '24px' }}>
-        Detect CSAT drops > track recovery actions => close the loop & restore NPS.
+        Detect CSAT drops &gt; track recovery actions =&gt; close the loop & restore NPS.
       </p>
 
       <section style={{ marginBottom: '32px' }}>

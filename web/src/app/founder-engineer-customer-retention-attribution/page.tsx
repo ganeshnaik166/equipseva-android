@@ -133,7 +133,7 @@ export default async function FounderEngineerCustomerRetentionAttributionPage() 
       </h1>
       <p style={{ color: '#555', marginBottom: 24 }}>
         Track how individual engineers drive retention saves & losses — dollar impact per
-        customer relationship, factor analysis > gut feel.
+        customer relationship, factor analysis &gt; gut feel.
       </p>
 
       <section style={{ marginBottom: 32 }}>

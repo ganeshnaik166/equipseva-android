@@ -84,7 +84,7 @@ export default async function FounderCustomerEquipmentAcceptanceHandoverRunbookP
     <div className="p-6 space-y-8">
       <header>
         <h1 className="text-2xl font-bold">Customer Equipment Acceptance & Handover Runbook</h1>
-        <p className="text-sm text-gray-600">Equipment > delivery > installation > UAT > signoff > revenue release — runbook view.</p>
+        <p className="text-sm text-gray-600">Equipment &gt; delivery &gt; installation &gt; UAT &gt; signoff &gt; revenue release — runbook view.</p>
       </header>
 
       <section>

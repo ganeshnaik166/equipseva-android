@@ -76,7 +76,7 @@ export default async function Page() {
       <div>
         <h1 className="text-2xl font-bold">Engineer & Customer Language Fluency Coverage</h1>
         <p className="text-sm text-gray-600 mt-1">
-          Language > engineer > proficiency > hospital > gap & translator usage. Spot no-coverage languages before they bite.
+          Language &gt; engineer &gt; proficiency &gt; hospital &gt; gap & translator usage. Spot no-coverage languages before they bite.
         </p>
       </div>
 

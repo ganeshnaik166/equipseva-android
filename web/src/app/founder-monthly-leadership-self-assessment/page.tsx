@@ -93,7 +93,7 @@ export default async function FounderMonthlyLeadershipSelfAssessmentPage() {
     <div className="p-6 space-y-8">
       <header>
         <h1 className="text-2xl font-bold">Founder Monthly Leadership Self-Assessment</h1>
-        <p className="text-sm text-gray-600">Month > clarity & delegation > velocity & empathy > focus & decision quality => overall.</p>
+        <p className="text-sm text-gray-600">Month &gt; clarity & delegation &gt; velocity & empathy &gt; focus & decision quality =&gt; overall.</p>
       </header>
 
       <section>

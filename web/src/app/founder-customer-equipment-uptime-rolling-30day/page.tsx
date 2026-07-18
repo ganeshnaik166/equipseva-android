@@ -111,7 +111,7 @@ export default async function FounderCustomerEquipmentUptimeRolling30DayPage() {
       </h1>
       <p style={{ color: '#666', marginBottom: 24 }}>
         Rolling 30-day uptime per hospital equipment with SLO breach counts, severity
-        ladder (green > amber > red > critical), and breach-action calendar.
+        ladder (green &gt; amber &gt; red &gt; critical), and breach-action calendar.
       </p>
 
       <section style={{ marginBottom: 32 }}>

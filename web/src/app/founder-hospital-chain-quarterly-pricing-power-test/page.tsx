@@ -101,7 +101,7 @@ export default async function Page() {
     <main style={{ padding: '24px', maxWidth: 1400, margin: '0 auto' }}>
       <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>Hospital Chain Quarterly Pricing Power Test</h1>
       <p style={{ color: '#666', marginBottom: 24 }}>
-        Quarterly campaigns testing pricing-power on multi-site chains > baseline. Track uplift, churn, retention and pick net-positive segments to scale.
+        Quarterly campaigns testing pricing-power on multi-site chains &gt; baseline. Track uplift, churn, retention and pick net-positive segments to scale.
       </p>
 
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 24 }}>

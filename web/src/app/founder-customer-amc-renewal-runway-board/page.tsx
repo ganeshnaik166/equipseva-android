@@ -260,7 +260,7 @@ export default async function FounderCustomerAmcRenewalRunwayBoardPage() {
       </h1>
       <p style={{ color: '#666', marginBottom: 24 }}>
         AMC renewal & days-to-expiry & renewal probability & discount asked
-        & negotiation owner & follow-up calendar. Status: green > yellow > red > lost > renewed.
+        & negotiation owner & follow-up calendar. Status: green &gt; yellow &gt; red &gt; lost &gt; renewed.
       </p>
 
       <section style={{ marginBottom: 32 }}>

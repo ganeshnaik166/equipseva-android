@@ -103,7 +103,7 @@ export default async function FounderCustomerQuarterlyEquipmentAuditPage() {
       <header>
         <h1 className="text-2xl font-bold">Customer Quarterly Equipment Audit</h1>
         <p className="text-sm text-gray-600 mt-1">
-          Hospital > audit cycle > findings > compliance score > corrective actions > NABH alignment.
+          Hospital &gt; audit cycle &gt; findings &gt; compliance score &gt; corrective actions &gt; NABH alignment.
         </p>
       </header>
 

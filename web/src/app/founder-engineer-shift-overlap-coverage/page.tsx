@@ -90,7 +90,7 @@ export default async function FounderEngineerShiftOverlapCoveragePage() {
       <header>
         <h1 className="text-2xl font-bold">Engineer Shift Overlap & Coverage</h1>
         <p className="text-sm text-gray-600">
-          Track overlap windows between outgoing & incoming engineers; flag gaps > 0 and remediate.
+          Track overlap windows between outgoing & incoming engineers; flag gaps &gt; 0 and remediate.
         </p>
       </header>
 

@@ -89,7 +89,7 @@ export default async function FounderStrategyDocVersioningPage() {
 
   return (
     <main style={{ padding: 24, maxWidth: 1280, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Founder > Strategy Doc Versioning</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Founder &gt; Strategy Doc Versioning</h1>
       <p style={{ color: '#666', marginBottom: 24 }}>
         Strategy doc & version & delta from last & decisions changed & stakeholder review & locked-in.
       </p>
@@ -125,7 +125,7 @@ export default async function FounderStrategyDocVersioningPage() {
       </section>
 
       <section style={{ marginBottom: 32 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Pending Reviews => Founder Focus</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Pending Reviews =&gt; Founder Focus</h2>
         <DataTable
           rows={pending}
           columns={pendingCols}

@@ -161,7 +161,7 @@ export default async function FounderEngineerCustomerOnboardingBuddyProgramPage(
       <section className="space-y-3">
         <h2 className="text-base font-semibold">All pairings</h2>
         <p className="text-xs text-gray-500">
-          New engineer paired with a buddy. Days paired >= 14 with positive signal => ramp on track.
+          New engineer paired with a buddy. Days paired &gt;= 14 with positive signal =&gt; ramp on track.
         </p>
         <DataTable
           rows={buddies}
@@ -174,7 +174,7 @@ export default async function FounderEngineerCustomerOnboardingBuddyProgramPage(
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Outcomes log</h2>
         <p className="text-xs text-gray-500">
-          Outcome observed per pairing. Revenue impact > 0 => buddy program paying back.
+          Outcome observed per pairing. Revenue impact &gt; 0 =&gt; buddy program paying back.
         </p>
         <DataTable
           rows={outcomes}

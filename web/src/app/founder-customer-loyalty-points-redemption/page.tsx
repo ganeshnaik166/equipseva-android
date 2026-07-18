@@ -205,7 +205,7 @@ export default async function FounderCustomerLoyaltyPointsRedemptionPage() {
       <header>
         <h1 className="text-xl font-semibold">Customer loyalty points redemption — r2524</h1>
         <p className="mt-1 text-xs text-gray-500">
-          Hospital & loyalty point redemptions: kind > satisfaction > repeat-redeem rate. Identify champions
+          Hospital & loyalty point redemptions: kind &gt; satisfaction &gt; repeat-redeem rate. Identify champions
           to spotlight & at-risk hospitals to re-engage.
         </p>
       </header>

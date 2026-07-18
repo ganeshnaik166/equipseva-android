@@ -119,7 +119,7 @@ export default async function FounderEngineerShiftHandoverQualityPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold">Low-quality handovers (grade C/D/F or <70%)</h2>
+        <h2 className="text-xl font-semibold">Low-quality handovers (grade C/D/F or &lt;70%)</h2>
         <DataTable
           rows={lowQuality}
           columns={lowQualityCols}

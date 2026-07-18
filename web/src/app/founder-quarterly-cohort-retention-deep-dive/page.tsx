@@ -169,7 +169,7 @@ export default async function Page() {
       <section style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Top LTV impact cohorts ({ltv.length})</h2>
         <p style={{ color: '#666', marginBottom: 8, fontSize: 13 }}>
-          Cohorts with worst LTV impact (most negative => biggest loss).
+          Cohorts with worst LTV impact (most negative =&gt; biggest loss).
         </p>
         <DataTable
           rows={ltv}

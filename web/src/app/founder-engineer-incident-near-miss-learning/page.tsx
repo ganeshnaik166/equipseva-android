@@ -91,7 +91,7 @@ export default async function EngineerIncidentNearMissLearningPage() {
       <header>
         <h1 className="text-2xl font-bold">Engineer Incident & Near-Miss Learning</h1>
         <p className="text-sm text-gray-600">
-          Incident > near-miss > root cause > shared lessons > runbook update > follow-up audit.
+          Incident &gt; near-miss &gt; root cause &gt; shared lessons &gt; runbook update &gt; follow-up audit.
         </p>
       </header>
 

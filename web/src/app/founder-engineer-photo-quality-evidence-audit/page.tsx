@@ -170,7 +170,7 @@ export default async function EngineerPhotoQualityEvidenceAuditPage() {
       </section>
 
       <section>
-        <h2 style={{ fontSize: 18, fontWeight: 600 }}>Low-Quality Audits (<70 or insurance=no)</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 600 }}>Low-Quality Audits (&lt;70 or insurance=no)</h2>
         <DataTable
           rows={lowQuality}
           columns={lowQualityCols}

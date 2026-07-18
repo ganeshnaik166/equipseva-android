@@ -32,7 +32,7 @@ export default async function FounderWeeklyMoodJournalPage() {
     { key: 'decisions_made_count', header: 'Decisions', render: (r: any) => String(r.decisions_made_count ?? 0) },
     { key: 'decisions_regret_count', header: 'Regretted', render: (r: any) => String(r.decisions_regret_count ?? 0) },
     { key: 'what_worked_md', header: 'What worked', render: (r: any) => String(r.what_worked_md ?? '').slice(0, 80) },
-    { key: 'what_didnt_md', header: 'What didn't', render: (r: any) => String(r.what_didnt_md ?? '').slice(0, 80) },
+    { key: 'what_didnt_md', header: "What didn't", render: (r: any) => String(r.what_didnt_md ?? '').slice(0, 80) },
     { key: 'notes', header: 'Notes', render: (r: any) => String(r.notes ?? '') },
   ];
 
@@ -93,7 +93,7 @@ export default async function FounderWeeklyMoodJournalPage() {
     <main style={{ padding: 24, maxWidth: 1280, margin: '0 auto' }}>
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Founder Weekly Mood Journal</h1>
       <p style={{ color: '#555', marginBottom: 24 }}>
-        Track week > dominant emotion > what worked & what didn't > decisions vs emotion > red-flag patterns.
+        Track week &gt; dominant emotion &gt; what worked & what didn't &gt; decisions vs emotion &gt; red-flag patterns.
       </p>
 
       <section style={{ marginBottom: 32 }}>
@@ -107,7 +107,7 @@ export default async function FounderWeeklyMoodJournalPage() {
       </section>
 
       <section style={{ marginBottom: 32 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Emotion <=> decision correlations</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Emotion &lt;=&gt; decision correlations</h2>
         <DataTable
           rows={corrRows}
           columns={corrCols}

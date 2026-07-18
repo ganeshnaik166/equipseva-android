@@ -149,7 +149,7 @@ export default async function FounderCustomerFeedbackLoopClosurePage() {
       <header>
         <h1 className="text-xl font-semibold">Founder customer feedback loop closure — r2432</h1>
         <p className="mt-1 text-xs text-gray-500">
-          Every complaint, bug, and feature request tracked through root cause => fix shipped => loop closed =>
+          Every complaint, bug, and feature request tracked through root cause =&gt; fix shipped =&gt; loop closed =&gt;
           NPS recovery. Founder-only. Closing the loop turns detractors into promoters.
         </p>
       </header>

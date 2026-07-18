@@ -94,7 +94,7 @@ export default async function EngineerCalloutOvertimeTrackerPage() {
         <h1 className="text-2xl font-bold">Engineer Callout & Overtime Tracker</h1>
         <p className="text-sm text-gray-600">
           Track engineer callouts, overtime premium, consent & fatigue impact. Watch for burnout
-          when rest compliance < 50% & severe fatigue > 1/week.
+          when rest compliance &lt; 50% & severe fatigue &gt; 1/week.
         </p>
       </header>
 

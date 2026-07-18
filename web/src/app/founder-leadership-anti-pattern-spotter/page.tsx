@@ -78,7 +78,7 @@ export default async function FounderLeadershipAntiPatternSpotterPage() {
     <div style={{ padding: 24, display: 'grid', gap: 24 }}>
       <header>
         <h1 style={{ fontSize: 22, fontWeight: 600 }}>Founder Leadership Anti-Pattern Spotter</h1>
-        <p style={{ color: '#555', fontSize: 13 }}>Anti-pattern > frequency > cost > correction > root cause > kill plan.</p>
+        <p style={{ color: '#555', fontSize: 13 }}>Anti-pattern &gt; frequency &gt; cost &gt; correction &gt; root cause &gt; kill plan.</p>
       </header>
 
       <section>

@@ -95,7 +95,7 @@ export default async function FounderEngineerUniformPpeIssuanceTrackerPage() {
       <div>
         <h1 className="text-2xl font-bold">Engineer Uniform & PPE Issuance Tracker</h1>
         <p className="text-sm text-gray-600 mt-1">
-          Engineer => PPE item => size => replacement cycle => compliance audit => supplier => cost (r2462)
+          Engineer =&gt; PPE item =&gt; size =&gt; replacement cycle =&gt; compliance audit =&gt; supplier =&gt; cost (r2462)
         </p>
       </div>
 

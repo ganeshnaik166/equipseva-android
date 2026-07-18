@@ -82,7 +82,7 @@ export default async function Page() {
       <header>
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>Customer Quarterly Relationship Temperature Check</h1>
         <p style={{ color: '#555', marginTop: 4 }}>
-          Founder pulse on hospital relationships > cold & cool accounts get owner-assigned interventions.
+          Founder pulse on hospital relationships &gt; cold & cool accounts get owner-assigned interventions.
         </p>
       </header>
 

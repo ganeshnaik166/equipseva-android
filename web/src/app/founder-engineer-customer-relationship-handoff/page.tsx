@@ -79,7 +79,7 @@ export default async function Page() {
   return (
     <div className="p-6 space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold">Engineer > Customer Relationship Handoff</h1>
+        <h1 className="text-2xl font-semibold">Engineer &gt; Customer Relationship Handoff</h1>
         <p className="text-sm text-gray-600">Track engineer-to-engineer handoffs & downstream retention impact.</p>
       </header>
 

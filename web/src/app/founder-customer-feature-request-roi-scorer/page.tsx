@@ -105,7 +105,7 @@ export default async function Page() {
         Customer Feature Request ROI Scorer
       </h1>
       <p style={{ color: '#555', marginBottom: 24 }}>
-        Request × frequency × revenue impact × engineering cost × ROI => prioritization rank.
+        Request × frequency × revenue impact × engineering cost × ROI =&gt; prioritization rank.
       </p>
 
       <section style={{ marginBottom: 32 }}>

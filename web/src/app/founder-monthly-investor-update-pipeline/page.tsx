@@ -110,7 +110,7 @@ export default async function FounderMonthlyInvestorUpdatePipelinePage() {
       <header>
         <h1 className="text-2xl font-bold">Founder — Monthly Investor Update Pipeline</h1>
         <p className="text-sm text-gray-600">
-          Month & status funnel: draft => sent => opened => replied => closed. KPI hits, asks & commitments tracked per month.
+          Month & status funnel: draft =&gt; sent =&gt; opened =&gt; replied =&gt; closed. KPI hits, asks & commitments tracked per month.
         </p>
       </header>
 

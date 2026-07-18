@@ -93,9 +93,9 @@ export default async function FounderWeeklyNoShowPulsePage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 1400, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>Founder > Weekly No-Show Pulse</h1>
+      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>Founder &gt; Weekly No-Show Pulse</h1>
       <p style={{ color: '#666', marginBottom: 24 }}>
-        Appointments & no-shows tracked across investor, customer, internal, event & training. Reason => impact => prevention action => repeat offender flag.
+        Appointments & no-shows tracked across investor, customer, internal, event & training. Reason =&gt; impact =&gt; prevention action =&gt; repeat offender flag.
       </p>
 
       <section style={{ marginBottom: 32, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>

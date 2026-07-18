@@ -99,7 +99,7 @@ export default async function Page() {
       </p>
 
       <section style={{ marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '12px' }}>Low Adherence Focus (<75%)</h2>
+        <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '12px' }}>Low Adherence Focus (&lt;75%)</h2>
         <DataTable
           rows={lowAdherence}
           columns={lowAdherenceCols}

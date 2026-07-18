@@ -73,7 +73,7 @@ export default async function Page() {
       <header>
         <h1 style={{ fontSize: 22, fontWeight: 700 }}>Hospital Chain C-Suite Language & Tone Tracker</h1>
         <p style={{ color: '#555', marginTop: 4 }}>
-          Track how each C-suite stakeholder prefers to be spoken to > flag misalignment risk > log tone adjustment actions.
+          Track how each C-suite stakeholder prefers to be spoken to &gt; flag misalignment risk &gt; log tone adjustment actions.
         </p>
       </header>
 

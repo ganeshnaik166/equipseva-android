@@ -107,9 +107,9 @@ export default async function FounderQuarterlyProductStrategyDocPage() {
   return (
     <main className="mx-auto max-w-7xl p-6 space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold">Founder > Quarterly Product Strategy Doc</h1>
+        <h1 className="text-2xl font-semibold">Founder &gt; Quarterly Product Strategy Doc</h1>
         <p className="text-sm text-gray-600 mt-1">
-          Quarter & version > pivots & kill candidates & greenlights > board alignment & founder confidence.
+          Quarter & version &gt; pivots & kill candidates & greenlights &gt; board alignment & founder confidence.
         </p>
       </header>
 
@@ -184,6 +184,4 @@ export default async function FounderQuarterlyProductStrategyDocPage() {
       </section>
     </main>
   );
-}
-</parameter>
-</invoke>
+}

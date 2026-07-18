@@ -117,7 +117,7 @@ export default async function FounderWeeklySalesPipelinePulsePage() {
   return (
     <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <header>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 600 }}>Founder > Weekly Sales Pipeline Pulse</h1>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 600 }}>Founder &gt; Weekly Sales Pipeline Pulse</h1>
         <p style={{ color: '#666', marginTop: '0.25rem' }}>
           Stage-level weekly movement & deal commitments — r2513
         </p>

@@ -103,7 +103,7 @@ export default async function FounderMonthlyPublicSpeakingImpactPage() {
           Founder monthly public speaking impact
         </h1>
         <p style={{ color: '#555', fontSize: 14 }}>
-          Tracks every speaking slot the founder takes & the downstream pipeline it generates > from MQL to closed_won.
+          Tracks every speaking slot the founder takes & the downstream pipeline it generates &gt; from MQL to closed_won.
         </p>
       </header>
 

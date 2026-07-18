@@ -125,7 +125,7 @@ export default async function CustomerMonthlyUptimeSlaCreditApplicationPage() {
     <div style={{ padding: 24, maxWidth: 1280, margin: '0 auto' }}>
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4 }}>Customer Monthly Uptime SLA Credit Application</h1>
       <p style={{ color: '#666', marginBottom: 20, fontSize: 14 }}>
-        Hospital × month × actual uptime vs SLA target & credit owed/applied/paid. Pending > applied > paid funnel keeps refunds on track.
+        Hospital × month × actual uptime vs SLA target & credit owed/applied/paid. Pending &gt; applied &gt; paid funnel keeps refunds on track.
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 28 }}>

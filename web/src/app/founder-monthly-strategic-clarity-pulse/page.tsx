@@ -85,7 +85,7 @@ export default async function Page() {
         Founder Monthly Strategic Clarity Pulse
       </h1>
       <p style={{ color: '#555', marginBottom: 16 }}>
-        Monthly self-rated clarity on north-star & top-3 priorities & kills => track when focus goes blurry & what recovery actions move it back to aligned.
+        Monthly self-rated clarity on north-star & top-3 priorities & kills =&gt; track when focus goes blurry & what recovery actions move it back to aligned.
       </p>
 
       <section style={{ marginBottom: 24, padding: 12, background: '#f6f6f6', borderRadius: 8 }}>

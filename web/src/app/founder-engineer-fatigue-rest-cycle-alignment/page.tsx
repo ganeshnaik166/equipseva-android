@@ -78,7 +78,7 @@ export default async function Page() {
     <main style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
       <h1 style={{ fontSize: 24, fontWeight: 600, marginBottom: 8 }}>Engineer Fatigue & Rest Cycle Alignment</h1>
       <p style={{ color: '#666', marginBottom: 24 }}>
-        Per-week > work hours > rest days > fatigue score > consent > auto-block > peer share.
+        Per-week &gt; work hours &gt; rest days &gt; fatigue score &gt; consent &gt; auto-block &gt; peer share.
       </p>
 
       {summaryRow && (

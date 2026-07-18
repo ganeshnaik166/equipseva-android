@@ -133,7 +133,7 @@ export default async function FounderInvestorRelationsPulsePage() {
       </p>
 
       <section style={{ marginBottom: 32 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12 }}>Overdue Pulse (gap > target)</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12 }}>Overdue Pulse (gap &gt; target)</h2>
         <DataTable
           rows={overdue}
           columns={overdueCols}

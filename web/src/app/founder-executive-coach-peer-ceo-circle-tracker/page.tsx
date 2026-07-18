@@ -107,7 +107,7 @@ export default async function Page() {
         Founder Executive Coach & Peer-CEO Circle Tracker
       </h1>
       <p style={{ color: '#555', marginBottom: '24px' }}>
-        Quarterly coaching cadence, peer CEO feedback candor, blind-spot log and commitment closure >= 80% target.
+        Quarterly coaching cadence, peer CEO feedback candor, blind-spot log and commitment closure &gt;= 80% target.
       </p>
 
       <section style={{ marginBottom: '32px' }}>

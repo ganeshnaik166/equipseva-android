@@ -86,7 +86,7 @@ export default async function FounderEnergyManagementTrackerPage() {
       <header>
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>Founder energy management tracker</h1>
         <p style={{ color: '#555', marginTop: 4 }}>
-          Daily energy & sleep & exercise & nutrition => peak hours, low hours, and pattern actions.
+          Daily energy & sleep & exercise & nutrition =&gt; peak hours, low hours, and pattern actions.
         </p>
       </header>
 

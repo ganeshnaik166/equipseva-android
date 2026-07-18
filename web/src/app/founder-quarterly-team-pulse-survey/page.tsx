@@ -97,7 +97,7 @@ export default async function FounderQuarterlyTeamPulseSurveyPage() {
         Founder Quarterly Team Pulse Survey
       </h1>
       <p style={{ color: '#666', marginBottom: '2rem' }}>
-        Quarter > team size > pulse score > responses > top concern > action plan. Founder-only.
+        Quarter &gt; team size &gt; pulse score &gt; responses &gt; top concern &gt; action plan. Founder-only.
       </p>
 
       <section style={{ marginBottom: '2.5rem' }}>

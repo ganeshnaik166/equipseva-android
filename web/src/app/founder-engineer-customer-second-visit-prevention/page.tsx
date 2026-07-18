@@ -62,7 +62,7 @@ export default async function Page() {
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold">Engineer & Customer Second-Visit Prevention</h1>
-      <p className="text-sm text-gray-600">Track second-visit root causes & prevention actions to cut repeat visits => lower cost.</p>
+      <p className="text-sm text-gray-600">Track second-visit root causes & prevention actions to cut repeat visits =&gt; lower cost.</p>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="border rounded p-3"><div className="text-xs text-gray-500">Total Cost</div><div className="text-xl font-bold">Rs {cs.total_cost}</div></div>

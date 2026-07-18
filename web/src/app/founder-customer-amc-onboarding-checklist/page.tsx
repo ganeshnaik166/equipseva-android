@@ -91,7 +91,7 @@ export default async function FounderCustomerAmcOnboardingChecklistPage() {
       <div>
         <h1 className="text-2xl font-bold">Customer AMC Onboarding Checklist</h1>
         <p className="text-sm text-gray-600 mt-1">
-          Hospital > onboarding step > status > days > auto reminders > handover signoff (r2460)
+          Hospital &gt; onboarding step &gt; status &gt; days &gt; auto reminders &gt; handover signoff (r2460)
         </p>
       </div>
 
@@ -106,7 +106,7 @@ export default async function FounderCustomerAmcOnboardingChecklistPage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold mb-2">Stuck Steps (>= 3 days)</h2>
+        <h2 className="text-lg font-semibold mb-2">Stuck Steps (&gt;= 3 days)</h2>
         <DataTable
           rows={stuckRows}
           columns={stuckCols}

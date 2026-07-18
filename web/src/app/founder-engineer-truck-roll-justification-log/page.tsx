@@ -96,7 +96,7 @@ export default async function EngineerTruckRollJustificationLogPage() {
         Engineer Truck Roll Justification Log
       </h1>
       <p style={{ color: '#555', marginBottom: 24 }}>
-        Every site visit logged with reason, avoidability & phone-fix attempt => kill avoidable rolls, save cost.
+        Every site visit logged with reason, avoidability & phone-fix attempt =&gt; kill avoidable rolls, save cost.
       </p>
 
       <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 24, marginBottom: 8 }}>Truck rolls</h2>

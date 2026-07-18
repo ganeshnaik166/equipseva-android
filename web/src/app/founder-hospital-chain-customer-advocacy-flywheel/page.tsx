@@ -116,7 +116,7 @@ export default async function Page() {
       <header>
         <h1 className="text-2xl font-bold">Hospital Chain Customer Advocacy Flywheel</h1>
         <p className="text-sm text-gray-600 mt-1">
-          Chain × advocate score × referrals & case studies × LinkedIn & conferences => bonus pipeline.
+          Chain × advocate score × referrals & case studies × LinkedIn & conferences =&gt; bonus pipeline.
         </p>
       </header>
 

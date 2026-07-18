@@ -115,7 +115,7 @@ export default async function Page() {
         Hospital Chain C-Suite Introductions Log
       </h1>
       <p style={{ color: '#555', marginBottom: 24 }}>
-        Chain > C-suite name > intro source > intro at > follow-up > deal influence > deck shared.
+        Chain &gt; C-suite name &gt; intro source &gt; intro at &gt; follow-up &gt; deal influence &gt; deck shared.
       </p>
 
       <section style={{ marginBottom: 32 }}>

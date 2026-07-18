@@ -97,7 +97,7 @@ export default async function Page() {
       <header>
         <h1 style={{ fontSize: 22, fontWeight: 700 }}>Engineer & Customer Photo Feedback Loop</h1>
         <p style={{ color: '#555', marginTop: 4 }}>
-          Close the loop between engineer site photos and hospital reactions > track redo actions until signoff.
+          Close the loop between engineer site photos and hospital reactions &gt; track redo actions until signoff.
         </p>
       </header>
 

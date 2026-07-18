@@ -107,7 +107,7 @@ export default async function FounderStrategicHirePipelinePage() {
       <header>
         <h1 className="text-2xl font-bold">Founder Strategic Hire Pipeline</h1>
         <p className="text-sm text-gray-600">
-          Role > candidate > stage > culture-fit > velocity-fit > references > offer-status > close prob.
+          Role &gt; candidate &gt; stage &gt; culture-fit &gt; velocity-fit &gt; references &gt; offer-status &gt; close prob.
         </p>
       </header>
 

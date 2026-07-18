@@ -193,7 +193,7 @@ export default async function FounderCustomerProductAdoptionTrackerPage() {
       <section>
         <h2 className="text-lg font-semibold mb-2">Stuck users & help focus</h2>
         <p className="text-xs text-gray-500 mb-2">
-          Rows where stuck_users > 0 OR help_needed=true OR status in (lapsed, dropped). Sorted by focus_score desc.
+          Rows where stuck_users &gt; 0 OR help_needed=true OR status in (lapsed, dropped). Sorted by focus_score desc.
         </p>
         <DataTable
           rows={stuck}

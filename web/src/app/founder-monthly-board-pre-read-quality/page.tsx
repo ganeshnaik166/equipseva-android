@@ -73,7 +73,7 @@ export default async function Page() {
     <main style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
       <h1 style={{ fontSize: 24, fontWeight: 600, marginBottom: 8 }}>Founder Monthly Board Pre-Read Quality</h1>
       <p style={{ color: '#666', marginBottom: 24 }}>
-        Pre-read pack > sections > clarity > completeness > board feedback > iteration.
+        Pre-read pack &gt; sections &gt; clarity &gt; completeness &gt; board feedback &gt; iteration.
       </p>
 
       {pulseRow && (

@@ -105,7 +105,7 @@ export default async function EngineerPersonalDevelopmentPlanPage() {
       </div>
 
       <section>
-        <h2 className="text-lg font-semibold mb-2">Top Promotion-Ready (>=70%)</h2>
+        <h2 className="text-lg font-semibold mb-2">Top Promotion-Ready (&gt;=70%)</h2>
         <DataTable
           rows={topReady}
           columns={topReadyCols}

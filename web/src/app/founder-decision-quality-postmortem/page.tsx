@@ -91,7 +91,7 @@ export default async function FounderDecisionQualityPostmortemPage() {
       <header>
         <h1 className="text-2xl font-bold">Founder Decision-Quality Post-Mortem</h1>
         <p className="text-sm text-gray-600">
-          Decision > hypothesis > actual outcome > delta > root cause > lesson > repeat-avoidance.
+          Decision &gt; hypothesis &gt; actual outcome &gt; delta &gt; root cause &gt; lesson &gt; repeat-avoidance.
         </p>
       </header>
 

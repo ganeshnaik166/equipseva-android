@@ -101,7 +101,7 @@ export default async function EngineerWeekendOvertimeFairnessPage() {
       <header>
         <h1 className="text-2xl font-bold">Engineer Weekend Overtime Fairness</h1>
         <p className="text-sm text-gray-600">
-          Weekend OT & consent & distribution fairness & premium & peer comparison & refusal log => balanced rota.
+          Weekend OT & consent & distribution fairness & premium & peer comparison & refusal log =&gt; balanced rota.
         </p>
       </header>
 

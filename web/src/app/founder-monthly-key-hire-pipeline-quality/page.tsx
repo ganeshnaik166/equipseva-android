@@ -85,10 +85,10 @@ export default async function FounderMonthlyKeyHirePipelineQualityPage() {
   return (
     <div style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4 }}>
-        Founder > Monthly Key-Hire Pipeline Quality
+        Founder &gt; Monthly Key-Hire Pipeline Quality
       </h1>
       <p style={{ color: '#555', marginBottom: 24 }}>
-        Role & month > candidates > bar passed > diversity > velocity > close probability.
+        Role & month &gt; candidates &gt; bar passed &gt; diversity &gt; velocity &gt; close probability.
       </p>
 
       <section style={{ marginBottom: 32 }}>

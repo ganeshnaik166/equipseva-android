@@ -91,7 +91,7 @@ export default async function HospitalChainQuarterlyCustomerSuccessStoryboardPag
         Hospital Chain Quarterly Customer Success Storyboard
       </h1>
       <p style={{ color: '#666', marginBottom: '2rem' }}>
-        Track quarterly success stories from hospital chains & distribution reach across channels => case studies, conferences & sales decks.
+        Track quarterly success stories from hospital chains & distribution reach across channels =&gt; case studies, conferences & sales decks.
       </p>
 
       <section style={{ marginBottom: '2.5rem' }}>

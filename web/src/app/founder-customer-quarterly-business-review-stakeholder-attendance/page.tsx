@@ -155,7 +155,7 @@ export default async function CustomerQbrStakeholderAttendancePage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold mb-2">High-Influence Attendees (>=70)</h2>
+        <h2 className="text-lg font-semibold mb-2">High-Influence Attendees (&gt;=70)</h2>
         <DataTable
           rows={highInfluence}
           columns={highInfluenceColumns}

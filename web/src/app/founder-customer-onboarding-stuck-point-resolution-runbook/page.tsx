@@ -87,7 +87,7 @@ export default async function Page() {
       <header>
         <h1 style={{ fontSize: 24, fontWeight: 600 }}>Customer Onboarding Stuck-Point Resolution Runbook</h1>
         <p style={{ color: '#666', marginTop: 4 }}>
-          Hospital > stage > kind > playbook > outcome. Where onboarding gets stuck & how we unblocked it.
+          Hospital &gt; stage &gt; kind &gt; playbook &gt; outcome. Where onboarding gets stuck & how we unblocked it.
         </p>
       </header>
 

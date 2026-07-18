@@ -97,7 +97,7 @@ export default async function FounderMonthlyVacationRestorativeTrackerPage() {
         Founder Monthly Vacation & Restorative Tracker
       </h1>
       <p style={{ color: '#666', marginBottom: '24px' }}>
-        Days off & restorative practices > creative-time > stress score > month-over-month trend.
+        Days off & restorative practices &gt; creative-time &gt; stress score &gt; month-over-month trend.
       </p>
 
       {pulse && (

@@ -91,7 +91,7 @@ export default async function Page() {
     <main style={{ padding: 24, maxWidth: 1280, margin: '0 auto' }}>
       <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>Engineer On-the-Job Coaching Hours</h1>
       <p style={{ color: '#666', marginBottom: 24 }}>
-        Senior => junior on-job coaching tracker: hours, topics, outcomes & certification credit progress.
+        Senior =&gt; junior on-job coaching tracker: hours, topics, outcomes & certification credit progress.
       </p>
 
       <section style={{ marginBottom: 32 }}>

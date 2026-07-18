@@ -217,7 +217,7 @@ export default async function CustomerContractRenewalDiscountJustificationLedger
         <h1 className="text-xl font-semibold">Customer contract renewal discount justification ledger — r2536</h1>
         <p className="mt-1 text-xs text-gray-500">
           Every renewal discount: asked vs given & reason & ROI estimate & founder approval.
-          Forces explicit justification => stops casual margin leak.
+          Forces explicit justification =&gt; stops casual margin leak.
         </p>
       </header>
 
@@ -274,7 +274,7 @@ export default async function CustomerContractRenewalDiscountJustificationLedger
       <section className="space-y-3">
         <h2 className="text-base font-semibold">All renewal discount cases</h2>
         <p className="text-xs text-gray-500">
-          Asked vs given & reason & ROI estimate. Anything > founder threshold needs explicit founder OK.
+          Asked vs given & reason & ROI estimate. Anything &gt; founder threshold needs explicit founder OK.
         </p>
         <DataTable
           rows={discounts}
@@ -287,7 +287,7 @@ export default async function CustomerContractRenewalDiscountJustificationLedger
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Top discount focus</h2>
         <p className="text-xs text-gray-500">
-          Ranked by given pct & ROI. Use to spot margin leak => biggest givebacks at top.
+          Ranked by given pct & ROI. Use to spot margin leak =&gt; biggest givebacks at top.
         </p>
         <DataTable
           rows={top}
@@ -300,7 +300,7 @@ export default async function CustomerContractRenewalDiscountJustificationLedger
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Reason-kind breakdown</h2>
         <p className="text-xs text-gray-500">
-          Where do we leak margin? Competitive_pressure & founder_judgement => usually deeper givebacks.
+          Where do we leak margin? Competitive_pressure & founder_judgement =&gt; usually deeper givebacks.
         </p>
         <DataTable
           rows={reasons}
@@ -313,7 +313,7 @@ export default async function CustomerContractRenewalDiscountJustificationLedger
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Monthly trend</h2>
         <p className="text-xs text-gray-500">
-          Cases & avg given & total ROI per renewal month. Watch the line — drift up => bad.
+          Cases & avg given & total ROI per renewal month. Watch the line — drift up =&gt; bad.
         </p>
         <DataTable
           rows={monthly}
@@ -326,7 +326,7 @@ export default async function CustomerContractRenewalDiscountJustificationLedger
       <section className="space-y-3">
         <h2 className="text-base font-semibold">ROI distribution</h2>
         <p className="text-xs text-gray-500">
-          Bucket by ROI estimate. 0_no_roi cases => discount with no quantified payback => investigate.
+          Bucket by ROI estimate. 0_no_roi cases =&gt; discount with no quantified payback =&gt; investigate.
         </p>
         <DataTable
           rows={roi}

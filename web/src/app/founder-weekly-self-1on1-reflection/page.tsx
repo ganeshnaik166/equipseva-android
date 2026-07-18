@@ -296,7 +296,7 @@ export default async function FounderWeeklySelf1on1ReflectionPage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold">All weekly reflections</h2>
         <p className="text-xs text-gray-500">
-          One reflection per week. Wins => what landed. Misses => what slipped. Lessons => what changes next
+          One reflection per week. Wins =&gt; what landed. Misses =&gt; what slipped. Lessons =&gt; what changes next
           week.
         </p>
         <DataTable
@@ -353,7 +353,7 @@ export default async function FounderWeeklySelf1on1ReflectionPage() {
         <h2 className="text-base font-semibold">Commitment achievement rate by kind</h2>
         <p className="text-xs text-gray-500">
           Which commitment kinds (strategic / tactical / relationship / health / family) actually land vs slip.
-          Persistent drops in family / health => founder burnout risk.
+          Persistent drops in family / health =&gt; founder burnout risk.
         </p>
         <DataTable
           rows={achievement}

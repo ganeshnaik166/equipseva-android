@@ -63,7 +63,7 @@ export default async function Page() {
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold">Engineer & Customer Thank-You Note Program</h1>
-      <p className="text-sm text-gray-600">Track thank-you notes sent by engineers to hospital customers => warmer relationships, more renewals.</p>
+      <p className="text-sm text-gray-600">Track thank-you notes sent by engineers to hospital customers =&gt; warmer relationships, more renewals.</p>
 
       <section className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div className="border rounded p-3"><div className="text-xs text-gray-500">Total Notes</div><div className="text-xl font-bold">{rr.total_notes}</div></div>

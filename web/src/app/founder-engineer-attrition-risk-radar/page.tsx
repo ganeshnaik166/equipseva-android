@@ -89,7 +89,7 @@ export default async function EngineerAttritionRiskRadarPage() {
       </header>
 
       <section>
-        <h2 className="text-lg font-semibold mb-2">Top risk engineers (>=60)</h2>
+        <h2 className="text-lg font-semibold mb-2">Top risk engineers (&gt;=60)</h2>
         <DataTable
           rows={topRisk}
           columns={topRiskCols}

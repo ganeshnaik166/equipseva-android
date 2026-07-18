@@ -102,7 +102,7 @@ export default async function HospitalChainProcurementCycleTrackerPage() {
       <div>
         <h1 className="text-2xl font-bold">Hospital Chain Procurement Cycle Tracker</h1>
         <p className="text-sm text-gray-600 mt-1">
-          Chain > PO raised > approved > delivered cycle & bottleneck stage tracking.
+          Chain &gt; PO raised &gt; approved &gt; delivered cycle & bottleneck stage tracking.
         </p>
       </div>
 

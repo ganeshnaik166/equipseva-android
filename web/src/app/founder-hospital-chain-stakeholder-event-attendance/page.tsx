@@ -94,7 +94,7 @@ export default async function Page() {
       <header>
         <h1 className="text-2xl font-bold">Hospital Chain Stakeholder Event Attendance</h1>
         <p className="text-sm text-gray-600">
-          Track chain & event & stakeholder attended & prep & follow-up & deal influence & cost => founder ops insight.
+          Track chain & event & stakeholder attended & prep & follow-up & deal influence & cost =&gt; founder ops insight.
         </p>
       </header>
 

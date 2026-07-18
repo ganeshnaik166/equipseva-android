@@ -261,7 +261,7 @@ export default async function HospitalChainEquipmentUptimeSlaBoardPage() {
           Hospital Chain Equipment Uptime & SLA Board
         </h1>
         <p style={{ color: '#555' }}>
-          Chain > equipment > uptime % > SLA target > penalty earned > credits owed.
+          Chain &gt; equipment &gt; uptime % &gt; SLA target &gt; penalty earned &gt; credits owed.
         </p>
       </header>
 

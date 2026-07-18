@@ -136,7 +136,7 @@ export default async function Page() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold mb-2">Top decayed engineers (>90 days)</h2>
+        <h2 className="text-lg font-semibold mb-2">Top decayed engineers (&gt;90 days)</h2>
         <DataTable
           rows={topRows}
           columns={topCols}

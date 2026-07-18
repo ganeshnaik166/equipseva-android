@@ -92,7 +92,7 @@ export default async function HospitalChainQuarterlyProcurementVelocityPage() {
       <header>
         <h1 className="text-2xl font-bold">Hospital Chain Quarterly Procurement Velocity</h1>
         <p className="text-sm text-gray-600 mt-1">
-          Track RFP => PO => Payment cycle time across chain customers and the acceleration actions taken to unblock slow chains.
+          Track RFP =&gt; PO =&gt; Payment cycle time across chain customers and the acceleration actions taken to unblock slow chains.
         </p>
       </header>
 

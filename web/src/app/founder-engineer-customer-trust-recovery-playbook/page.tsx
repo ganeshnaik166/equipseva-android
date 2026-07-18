@@ -73,7 +73,7 @@ export default async function Page() {
     <div className="p-6 space-y-8">
       <header>
         <h1 className="text-2xl font-bold">Engineer & Customer Trust Recovery Playbook</h1>
-        <p className="text-sm text-gray-600">Track trust breaks > recovery paths > outcomes per engineer-hospital pair.</p>
+        <p className="text-sm text-gray-600">Track trust breaks &gt; recovery paths &gt; outcomes per engineer-hospital pair.</p>
       </header>
 
       <section>

@@ -89,7 +89,7 @@ export default async function Page() {
         Customer onboarding & feedback trends
       </h1>
       <p style={{ color: '#64748b', marginBottom: 24 }}>
-        Hospital wave > NPS & CSAT > top compliment & complaint > action taken & deflection.
+        Hospital wave &gt; NPS & CSAT &gt; top compliment & complaint &gt; action taken & deflection.
       </p>
 
       <section style={{ marginBottom: 32 }}>

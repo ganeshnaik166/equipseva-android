@@ -179,8 +179,8 @@ export default async function FounderEngineerSupervisorFeedbackLoopPage() {
       <header>
         <h1 className="text-xl font-semibold">Founder engineer supervisor feedback loop — r2602</h1>
         <p className="mt-1 text-xs text-gray-500">
-          Every weekly supervisor signal on every engineer tracked from praise => concern => coachable moment =>
-          growth action => measured outcome. Founder-only. Coaching at scale is the moat.
+          Every weekly supervisor signal on every engineer tracked from praise =&gt; concern =&gt; coachable moment =&gt;
+          growth action =&gt; measured outcome. Founder-only. Coaching at scale is the moat.
         </p>
       </header>
 
@@ -228,7 +228,7 @@ export default async function FounderEngineerSupervisorFeedbackLoopPage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Signal kind breakdown</h2>
         <p className="text-xs text-gray-500">
-          Praise-to-concern ratio per signal. Healthy team = praise > concern by 3x. Escalations should be rare;
+          Praise-to-concern ratio per signal. Healthy team = praise &gt; concern by 3x. Escalations should be rare;
           improved-outcome rate should rise quarter-over-quarter.
         </p>
         <DataTable
@@ -284,8 +284,8 @@ export default async function FounderEngineerSupervisorFeedbackLoopPage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Growth outcomes</h2>
         <p className="text-xs text-gray-500">
-          Did the coaching actually work? Improved => behaviour stuck. Regressed => coaching failed, escalate.
-          No-change => need a different lever.
+          Did the coaching actually work? Improved =&gt; behaviour stuck. Regressed =&gt; coaching failed, escalate.
+          No-change =&gt; need a different lever.
         </p>
         <DataTable
           rows={outcomes}
@@ -298,7 +298,7 @@ export default async function FounderEngineerSupervisorFeedbackLoopPage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold">All feedback items</h2>
         <p className="text-xs text-gray-500">
-          Complete log of every supervisor => engineer signal. Praise & recognition build culture;
+          Complete log of every supervisor =&gt; engineer signal. Praise & recognition build culture;
           concern & coachable_moment build growth; escalation gates founder attention.
         </p>
         <DataTable

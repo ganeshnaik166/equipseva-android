@@ -79,7 +79,7 @@ export default async function Page() {
     <main style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 32 }}>
       <header>
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>Engineer On-Call Shift Handover Ledger</h1>
-        <p style={{ color: '#555' }}>Shift > outgoing & incoming engineers > items, signoff, discrepancies.</p>
+        <p style={{ color: '#555' }}>Shift &gt; outgoing & incoming engineers &gt; items, signoff, discrepancies.</p>
       </header>
 
       <section>

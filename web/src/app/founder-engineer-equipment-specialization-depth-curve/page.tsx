@@ -129,7 +129,7 @@ export default async function Page() {
         <h1 className="text-2xl font-semibold">Engineer Equipment Specialization & Depth Curve</h1>
         <p className="text-sm text-[var(--color-muted)]">
           Track engineer depth per equipment model. Spot plateau & decay early so we can
-          cross-train, refresh certs, or diversify before diminishing returns >= 15% hit revenue.
+          cross-train, refresh certs, or diversify before diminishing returns &gt;= 15% hit revenue.
         </p>
       </header>
 
@@ -146,7 +146,7 @@ export default async function Page() {
       <section className="space-y-3">
         <h2 className="text-lg font-medium">Plateau & Decay Focus</h2>
         <p className="text-xs text-[var(--color-muted)]">
-          Rows where status is plateau/decay OR diminishing returns >= 15%.
+          Rows where status is plateau/decay OR diminishing returns &gt;= 15%.
         </p>
         <DataTable
           columns={plateauCols}

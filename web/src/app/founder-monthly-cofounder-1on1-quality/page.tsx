@@ -120,7 +120,7 @@ export default async function FounderMonthlyCofounder1on1QualityPage() {
   return (
     <main style={{ padding: '24px', maxWidth: 1280, margin: '0 auto' }}>
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>
-        Founder > Monthly Cofounder 1:1 Quality
+        Founder &gt; Monthly Cofounder 1:1 Quality
       </h1>
       <p style={{ color: '#666', marginBottom: 24 }}>
         Cofounder & 1:1 cadence & agenda quality & decisions & alignment & tension flags.

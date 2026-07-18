@@ -80,7 +80,7 @@ export default async function Page() {
       <header>
         <h1 style={{ fontSize: 22, fontWeight: 700 }}>Customer Equipment End-of-Life Replacement Incentive</h1>
         <p style={{ color: '#555', fontSize: 14 }}>
-          Old equipment trade-in & replacement upgrade incentives => close probability & realized ARR. Round r2608.
+          Old equipment trade-in & replacement upgrade incentives =&gt; close probability & realized ARR. Round r2608.
         </p>
       </header>
 

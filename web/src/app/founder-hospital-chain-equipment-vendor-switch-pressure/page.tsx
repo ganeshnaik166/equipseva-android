@@ -80,7 +80,7 @@ export default async function HospitalChainEquipmentVendorSwitchPressurePage() {
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>Hospital Chain — Equipment Vendor Switch Pressure</h1>
         <p style={{ color: '#555' }}>
           Track which chains are actively shopping alternatives, signal strength & decision risk, and counter-actions
-          to keep the account. Escalated => founder owns within 48h.
+          to keep the account. Escalated =&gt; founder owns within 48h.
         </p>
       </header>
 

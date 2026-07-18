@@ -151,7 +151,7 @@ export default async function Page() {
       <header className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Hospital chain M&A watch</h1>
         <p className="text-sm text-gray-600 mt-1">
-          Track IPO chatter, PE stakes, strategic acquirers, board & CFO changes across customer chains => trigger contract renegotiation before ownership flips.
+          Track IPO chatter, PE stakes, strategic acquirers, board & CFO changes across customer chains =&gt; trigger contract renegotiation before ownership flips.
         </p>
       </header>
 
@@ -177,7 +177,7 @@ export default async function Page() {
       <section className="bg-white border rounded-lg mb-8">
         <div className="px-4 py-3 border-b">
           <h2 className="font-semibold text-gray-900">All M&A signals</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Latest first. Strength weak =< confirmed; status open => monitoring => escalated => closed.</p>
+          <p className="text-xs text-gray-500 mt-0.5">Latest first. Strength weak =&lt; confirmed; status open =&gt; monitoring =&gt; escalated =&gt; closed.</p>
         </div>
         <DataTable<any>
           columns={signalCols}
@@ -190,7 +190,7 @@ export default async function Page() {
       <section className="bg-white border rounded-lg mb-8">
         <div className="px-4 py-3 border-b">
           <h2 className="font-semibold text-gray-900">Renegotiation plans</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Pre-ownership-change leverage actions => price lock, change-of-control, walkaway, expand scope.</p>
+          <p className="text-xs text-gray-500 mt-0.5">Pre-ownership-change leverage actions =&gt; price lock, change-of-control, walkaway, expand scope.</p>
         </div>
         <DataTable<any>
           columns={planCols}
@@ -204,7 +204,7 @@ export default async function Page() {
         <div className="bg-white border rounded-lg">
           <div className="px-4 py-3 border-b">
             <h2 className="font-semibold text-gray-900">Confirmed/strong open signals</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Aging queue => act before deal closes.</p>
+            <p className="text-xs text-gray-500 mt-0.5">Aging queue =&gt; act before deal closes.</p>
           </div>
           <DataTable<any>
             columns={focusCols}
@@ -260,8 +260,8 @@ export default async function Page() {
       <section className="bg-white border rounded-lg p-4">
         <h3 className="font-semibold text-gray-900 mb-2">Playbook</h3>
         <ol className="text-sm text-gray-700 space-y-1 list-decimal pl-5">
-          <li>Analyst logs signal (IPO chatter, PE stake, strategic acquirer, board/CFO change, divestment) with strength weak => confirmed.</li>
-          <li>Founder reviews escalated rows => assigns owner for renegotiation plan.</li>
+          <li>Analyst logs signal (IPO chatter, PE stake, strategic acquirer, board/CFO change, divestment) with strength weak =&gt; confirmed.</li>
+          <li>Founder reviews escalated rows =&gt; assigns owner for renegotiation plan.</li>
           <li>Choose action: contract review · price lock · ownership clause trigger · walkaway · scope expansion.</li>
           <li>Lock in pre-deal leverage before ownership transition removes our hand.</li>
           <li>Track outcome positive/neutral/negative once deal closes.</li>

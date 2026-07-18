@@ -95,7 +95,7 @@ export default async function CustomerQuarterlyBudgetCycleDiscountAskPage() {
       <header>
         <h1 className="text-2xl font-bold">Customer Quarterly Budget-Cycle Discount Asks</h1>
         <p className="text-sm text-gray-600">
-          Hospital > quarter > budget tightening > discount ask > decision > ARR impact.
+          Hospital &gt; quarter &gt; budget tightening &gt; discount ask &gt; decision &gt; ARR impact.
         </p>
       </header>
 

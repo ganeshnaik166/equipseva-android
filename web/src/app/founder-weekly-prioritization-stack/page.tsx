@@ -111,7 +111,7 @@ export default async function FounderWeeklyPrioritizationStackPage() {
       <header>
         <h1 className="text-3xl font-bold mb-2">Founder Weekly Prioritization Stack</h1>
         <p className="text-gray-600">
-          Top 5 priorities each week & track started => done/blocked/dropped & realized ROI vs effort
+          Top 5 priorities each week & track started =&gt; done/blocked/dropped & realized ROI vs effort
         </p>
       </header>
 

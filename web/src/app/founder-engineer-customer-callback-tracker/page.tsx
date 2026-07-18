@@ -104,7 +104,7 @@ export default async function FounderEngineerCustomerCallbackTrackerPage() {
         Engineer Customer Callback Tracker
       </h1>
       <p style={{ color: '#555', marginBottom: '24px' }}>
-        Post-visit callbacks > topic > outcome > CSAT > upsell & loose-end resolution.
+        Post-visit callbacks &gt; topic &gt; outcome &gt; CSAT &gt; upsell & loose-end resolution.
       </p>
 
       <h2 style={{ fontSize: '18px', fontWeight: 600, margin: '16px 0 8px' }}>Callbacks</h2>

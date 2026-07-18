@@ -112,7 +112,7 @@ export default async function Page() {
         Hospital Chain Decision-Maker Relationship Map
       </h1>
       <p style={{ color: '#555', marginBottom: 24 }}>
-        Chain > decision-maker > role > influence score > last touch > strength > red flags.
+        Chain &gt; decision-maker &gt; role &gt; influence score &gt; last touch &gt; strength &gt; red flags.
       </p>
 
       <section style={{ marginBottom: 32 }}>

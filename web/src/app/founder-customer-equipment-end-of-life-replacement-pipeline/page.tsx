@@ -112,7 +112,7 @@ export default async function CustomerEquipmentEndOfLifeReplacementPipelinePage(
       <header>
         <h1 className="text-2xl font-bold">Customer Equipment End-of-Life Replacement Pipeline</h1>
         <p className="text-sm text-gray-600">
-          Equipment > age > replacement urgency > replacement cost > upsell opportunity > decision date.
+          Equipment &gt; age &gt; replacement urgency &gt; replacement cost &gt; upsell opportunity &gt; decision date.
         </p>
       </header>
 

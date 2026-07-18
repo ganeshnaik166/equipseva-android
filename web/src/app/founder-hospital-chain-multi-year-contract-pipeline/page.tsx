@@ -96,7 +96,7 @@ export default async function Page() {
       <header>
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>Hospital Chain Multi-Year Contract Pipeline</h1>
         <p style={{ color: '#666', marginTop: 4 }}>
-          Track 2-5 year chain AMC deals => lock-in clauses, escalators, win probability, weighted pipeline.
+          Track 2-5 year chain AMC deals =&gt; lock-in clauses, escalators, win probability, weighted pipeline.
         </p>
       </header>
 

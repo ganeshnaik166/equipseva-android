@@ -93,7 +93,7 @@ export default async function FounderHospitalChainEquipmentHandoverQualityScorec
         Hospital Chain — Equipment Handover Quality Scorecard
       </h1>
       <p style={{ color: '#555', marginBottom: '2rem' }}>
-        Chain > equipment handover > completeness > engineer > CSAT > dispute risk.
+        Chain &gt; equipment handover &gt; completeness &gt; engineer &gt; CSAT &gt; dispute risk.
         Tracks every handover quality signal so red ones never reach the chain CXO before we do.
       </p>
 
@@ -119,7 +119,7 @@ export default async function FounderHospitalChainEquipmentHandoverQualityScorec
 
       <section style={{ marginBottom: '2.5rem' }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem' }}>
-          Low completeness focus (< 80%)
+          Low completeness focus (&lt; 80%)
         </h2>
         <DataTable
           rows={lowFocus.data ?? []}

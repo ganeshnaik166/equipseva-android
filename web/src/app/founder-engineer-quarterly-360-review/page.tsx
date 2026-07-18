@@ -85,7 +85,7 @@ export default async function FounderEngineerQuarterly360ReviewPage() {
     <div className="p-6 space-y-8">
       <header>
         <h1 className="text-2xl font-bold">Engineer Quarterly 360 Review</h1>
-        <p className="text-sm text-gray-600">Peer & hospital & self & manager scores => composite => growth track => actionable feedback.</p>
+        <p className="text-sm text-gray-600">Peer & hospital & self & manager scores =&gt; composite =&gt; growth track =&gt; actionable feedback.</p>
       </header>
 
       <section>

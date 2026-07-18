@@ -235,7 +235,7 @@ export default async function CustomerEquipmentCybersecurityPosturePage() {
         <h1 className="text-xl font-semibold">Customer equipment cybersecurity posture — r2540</h1>
         <p className="mt-1 text-xs text-gray-500">
           Every customer machine: OS & patch level & vuln count & air-gapped & NABH & remediation plan.
-          XP boxes on hospital LAN => ransomware vector => patient safety risk. Show the gap, drive remediation.
+          XP boxes on hospital LAN =&gt; ransomware vector =&gt; patient safety risk. Show the gap, drive remediation.
         </p>
       </header>
 
@@ -292,7 +292,7 @@ export default async function CustomerEquipmentCybersecurityPosturePage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold">All equipment cybersecurity posture</h2>
         <p className="text-xs text-gray-500">
-          Sorted by status severity then vuln count. Windows XP on hospital LAN => immediate critical.
+          Sorted by status severity then vuln count. Windows XP on hospital LAN =&gt; immediate critical.
         </p>
         <DataTable
           rows={postures}
@@ -305,7 +305,7 @@ export default async function CustomerEquipmentCybersecurityPosturePage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Critical focus</h2>
         <p className="text-xs text-gray-500">
-          Critical & quarantined & vuln-count >= 10 & XP boxes. Top of remediation queue.
+          Critical & quarantined & vuln-count &gt;= 10 & XP boxes. Top of remediation queue.
         </p>
         <DataTable
           rows={critical}
@@ -331,7 +331,7 @@ export default async function CustomerEquipmentCybersecurityPosturePage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold">OS-kind breakdown</h2>
         <p className="text-xs text-gray-500">
-          Where the vuln mass sits. XP/proprietary cluster => either air-gap or replace path.
+          Where the vuln mass sits. XP/proprietary cluster =&gt; either air-gap or replace path.
         </p>
         <DataTable
           rows={osBreakdown}
@@ -344,7 +344,7 @@ export default async function CustomerEquipmentCybersecurityPosturePage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Top vulnerable hospitals</h2>
         <p className="text-xs text-gray-500">
-          Ranked by aggregate vuln count. Founder conversation targets => AMC upsell on cyber hygiene.
+          Ranked by aggregate vuln count. Founder conversation targets =&gt; AMC upsell on cyber hygiene.
         </p>
         <DataTable
           rows={hospitals}

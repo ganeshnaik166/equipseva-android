@@ -106,7 +106,7 @@ export default async function Page() {
         Customer Reference Call Program (r2480)
       </h1>
       <p style={{ color: '#666', marginBottom: 24 }}>
-        Hospital references & deal influence => thank-you discipline => revenue attribution
+        Hospital references & deal influence =&gt; thank-you discipline =&gt; revenue attribution
       </p>
 
       <section style={{ marginBottom: 32 }}>

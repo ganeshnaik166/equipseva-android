@@ -188,6 +188,4 @@ function PulseCard({ label, value }: { label: string; value: string }) {
       <div style={{ fontSize: 20, fontWeight: 700, color: '#111' }}>{value}</div>
     </div>
   );
-}
-</parameter>
-</invoke>
+}

@@ -105,7 +105,7 @@ export default async function FounderBoardMeetingActionTrackerPage() {
       <header>
         <h1 className="text-2xl font-bold">Board Meeting & Action Tracker</h1>
         <p className="text-sm text-gray-600">
-          Meeting decisions => action items => owner => due date => completion
+          Meeting decisions =&gt; action items =&gt; owner =&gt; due date =&gt; completion
         </p>
       </header>
 

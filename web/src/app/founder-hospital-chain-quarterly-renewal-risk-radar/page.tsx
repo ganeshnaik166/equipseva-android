@@ -86,7 +86,7 @@ export default async function Page() {
         Hospital Chain Quarterly Renewal Risk Radar
       </h1>
       <p style={{ color: '#555', marginBottom: 20 }}>
-        Track chain renewals at risk > intervene early > protect ARR.
+        Track chain renewals at risk &gt; intervene early &gt; protect ARR.
       </p>
 
       <h2 style={{ fontSize: 16, fontWeight: 600, margin: '20px 0 8px' }}>Top Critical Focus</h2>

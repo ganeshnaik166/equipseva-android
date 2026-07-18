@@ -106,7 +106,7 @@ export default async function FounderMonthlyKeyCustomerPersonalRelationshipPage(
         </h1>
         <p style={{ color: '#555', maxWidth: 820 }}>
           Founder-owned personal bond & loyalty tracker for key hospital decision-makers. Bond kind
-          (weak => developing => strong => champion), shared interests, event attendance, founder touch
+          (weak =&gt; developing =&gt; strong =&gt; champion), shared interests, event attendance, founder touch
           log and dormant focus list.
         </p>
       </header>

@@ -92,7 +92,7 @@ export default async function HospitalChainAssetUtilizationBenchmarkPage() {
       <header>
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>Hospital Chain Asset Utilization Benchmark</h1>
         <p style={{ color: '#666', marginTop: 4 }}>
-          Chain & asset class vs market benchmark & top quartile => growth opportunity in ₹
+          Chain & asset class vs market benchmark & top quartile =&gt; growth opportunity in ₹
         </p>
       </header>
 

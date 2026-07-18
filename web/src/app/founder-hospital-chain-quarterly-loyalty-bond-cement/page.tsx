@@ -89,7 +89,7 @@ export default async function Page() {
         Hospital Chain Quarterly Loyalty Bond Cement
       </h1>
       <p style={{ color: '#555', marginBottom: 20 }}>
-        Track exclusive pricing, joint marketing, co-innovation, founder gifts & strategic reviews => quarterly bond strength.
+        Track exclusive pricing, joint marketing, co-innovation, founder gifts & strategic reviews =&gt; quarterly bond strength.
       </p>
 
       <section style={{ marginBottom: 28 }}>

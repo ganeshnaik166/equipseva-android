@@ -87,7 +87,7 @@ export default async function Page() {
     <main style={{ padding: 24, display: 'grid', gap: 24 }}>
       <header>
         <h1 style={{ fontSize: 22, fontWeight: 700 }}>Monthly investor data room freshness — r2609</h1>
-        <p style={{ color: '#555' }}>Sections & refresh actions: stale sections > cadence get flagged for founder triage.</p>
+        <p style={{ color: '#555' }}>Sections & refresh actions: stale sections &gt; cadence get flagged for founder triage.</p>
       </header>
 
       <section>

@@ -96,7 +96,7 @@ export default async function Page() {
       <header>
         <h1 className="text-2xl font-bold">Customer Quarterly Stickiness Grade Card</h1>
         <p className="text-sm text-gray-600">
-          Grade each hospital A => F on equipment count, integration depth & switching cost; track improvement actions per quarter.
+          Grade each hospital A =&gt; F on equipment count, integration depth & switching cost; track improvement actions per quarter.
         </p>
       </header>
 

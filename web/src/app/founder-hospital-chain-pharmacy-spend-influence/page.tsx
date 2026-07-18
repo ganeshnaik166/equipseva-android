@@ -149,7 +149,7 @@ export default async function Page() {
     <div style={{ padding: '24px', maxWidth: 1280, margin: '0 auto' }}>
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Hospital Chain — Pharmacy Spend & Influence</h1>
       <p style={{ color: '#555', marginBottom: 24 }}>
-        Per-chain pharmacy spend & our influence kind => cross-sell / upsell opportunities from pharmacy data.
+        Per-chain pharmacy spend & our influence kind =&gt; cross-sell / upsell opportunities from pharmacy data.
       </p>
 
       <section style={{ marginBottom: 32 }}>

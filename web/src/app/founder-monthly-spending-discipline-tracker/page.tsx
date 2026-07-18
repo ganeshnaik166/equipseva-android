@@ -92,7 +92,7 @@ export default async function FounderMonthlySpendingDisciplineTrackerPage() {
         Founder Monthly Spending Discipline Tracker
       </h1>
       <p style={{ color: '#555', marginBottom: '1.5rem' }}>
-        Month > discretionary > required > debt-pay > savings > budget breach > correction action.
+        Month &gt; discretionary &gt; required &gt; debt-pay &gt; savings &gt; budget breach &gt; correction action.
       </p>
 
       {pulse && (

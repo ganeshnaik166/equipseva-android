@@ -84,7 +84,7 @@ export default async function FounderEngineerTeamPairingEffectivenessPage() {
         Engineer Team Pairing Effectiveness
       </h1>
       <p style={{ color: '#666', marginBottom: '24px' }}>
-        Pairing > duration > cases worked > lift vs solo > engineer satisfaction > continue/swap.
+        Pairing &gt; duration &gt; cases worked &gt; lift vs solo &gt; engineer satisfaction &gt; continue/swap.
       </p>
 
       <section style={{ marginBottom: '32px' }}>

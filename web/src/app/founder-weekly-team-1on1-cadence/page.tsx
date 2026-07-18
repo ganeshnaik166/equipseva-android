@@ -135,7 +135,7 @@ export default async function Page() {
       </section>
 
       <section style={{ marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '12px' }}>Overdue 1:1s (gap > 14 days)</h2>
+        <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '12px' }}>Overdue 1:1s (gap &gt; 14 days)</h2>
         <DataTable
           rows={overdue}
           columns={overdueCols}

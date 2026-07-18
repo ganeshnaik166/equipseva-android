@@ -95,7 +95,7 @@ export default async function Page() {
     <main className="p-6 space-y-8">
       <header>
         <h1 className="text-2xl font-bold">Engineer Job Photo Customer Share Quality</h1>
-        <p className="text-sm text-gray-500">r2510 · photos shared with customers > channel > views > feedback > privacy</p>
+        <p className="text-sm text-gray-500">r2510 · photos shared with customers &gt; channel &gt; views &gt; feedback &gt; privacy</p>
       </header>
 
       <section className="grid grid-cols-2 md:grid-cols-5 gap-4">

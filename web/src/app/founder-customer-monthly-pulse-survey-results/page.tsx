@@ -197,7 +197,7 @@ export default async function FounderCustomerMonthlyPulseSurveyResultsPage() {
       <header>
         <h1 className="text-xl font-semibold">Founder customer monthly pulse survey results — r2576</h1>
         <p className="mt-1 text-xs text-gray-500">
-          Monthly hospital pulse: NPS, CSAT, verbatims, top concerns & follow-up actions. Catch detractors early => close the loop fast.
+          Monthly hospital pulse: NPS, CSAT, verbatims, top concerns & follow-up actions. Catch detractors early =&gt; close the loop fast.
         </p>
       </header>
 
@@ -236,7 +236,7 @@ export default async function FounderCustomerMonthlyPulseSurveyResultsPage() {
         <div className="space-y-3">
           <h2 className="text-base font-semibold">NPS distribution</h2>
           <p className="text-xs text-gray-500">
-            Promoter (9-10) > Passive (7-8) > Detractor (0-6). NPS = %promoter − %detractor.
+            Promoter (9-10) &gt; Passive (7-8) &gt; Detractor (0-6). NPS = %promoter − %detractor.
           </p>
           <DataTable
             rows={npsDist}
@@ -248,7 +248,7 @@ export default async function FounderCustomerMonthlyPulseSurveyResultsPage() {
         <div className="space-y-3">
           <h2 className="text-base font-semibold">CSAT distribution</h2>
           <p className="text-xs text-gray-500">
-            CSAT 0-5 scale. 5 => delighted, 0 => furious. Watch the <= 3 tail.
+            CSAT 0-5 scale. 5 =&gt; delighted, 0 =&gt; furious. Watch the &lt;= 3 tail.
           </p>
           <DataTable
             rows={csatDist}
@@ -262,7 +262,7 @@ export default async function FounderCustomerMonthlyPulseSurveyResultsPage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Monthly completion trend</h2>
         <p className="text-xs text-gray-500">
-          Survey wave => sent vs completed, plus avg NPS & CSAT per wave. Low completion => channel/timing issue.
+          Survey wave =&gt; sent vs completed, plus avg NPS & CSAT per wave. Low completion =&gt; channel/timing issue.
         </p>
         <DataTable
           rows={trend}
@@ -275,7 +275,7 @@ export default async function FounderCustomerMonthlyPulseSurveyResultsPage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Top concerns</h2>
         <p className="text-xs text-gray-500">
-          Verbatim-tagged top concern. Cluster mentions => product/process roadmap input.
+          Verbatim-tagged top concern. Cluster mentions =&gt; product/process roadmap input.
         </p>
         <DataTable
           rows={concerns}
@@ -288,7 +288,7 @@ export default async function FounderCustomerMonthlyPulseSurveyResultsPage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Top hospitals by avg NPS</h2>
         <p className="text-xs text-gray-500">
-          Highest-loyalty hospitals first => spotlight, case study & referral candidates.
+          Highest-loyalty hospitals first =&gt; spotlight, case study & referral candidates.
         </p>
         <DataTable
           rows={topHosp}
@@ -301,7 +301,7 @@ export default async function FounderCustomerMonthlyPulseSurveyResultsPage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold">All surveys</h2>
         <p className="text-xs text-gray-500">
-          Per-hospital monthly pulse. Detractors (NPS 0-6) => trigger same-week follow-up action.
+          Per-hospital monthly pulse. Detractors (NPS 0-6) =&gt; trigger same-week follow-up action.
         </p>
         <DataTable
           rows={surveys}
@@ -314,7 +314,7 @@ export default async function FounderCustomerMonthlyPulseSurveyResultsPage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Follow-up actions</h2>
         <p className="text-xs text-gray-500">
-          Close-the-loop log: call > visit > training > refund > feature_request. Open + in_progress => founder owns until done.
+          Close-the-loop log: call &gt; visit &gt; training &gt; refund &gt; feature_request. Open + in_progress =&gt; founder owns until done.
         </p>
         <DataTable
           rows={followups}

@@ -117,7 +117,7 @@ export default async function Page() {
       </p>
 
       <section style={{ marginBottom: 32 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Urgent Reorders (<=7 days)</h2>
+        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Urgent Reorders (&lt;=7 days)</h2>
         <DataTable
           rows={urgent}
           columns={urgentCols}

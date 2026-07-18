@@ -106,7 +106,7 @@ export default async function FounderEngineerCustomerTrustCreditScorePage() {
       </h1>
       <p style={{ color: '#555', marginBottom: '24px' }}>
         Per engineer & hospital trust ledger. Promises made/kept/broken, decay-per-week score 0..100, status
-        (building => strong => champion or strained => broken). Event log shows extra-mile boosts & missed-callback
+        (building =&gt; strong =&gt; champion or strained =&gt; broken). Event log shows extra-mile boosts & missed-callback
         debits. Broken focus pane drives weekly CSM saves.
       </p>
 

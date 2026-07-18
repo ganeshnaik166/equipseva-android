@@ -95,7 +95,7 @@ export default async function HospitalChainVipCustomerTierTrackerPage() {
         Hospital Chain VIP Customer Tier Tracker
       </h1>
       <p style={{ color: '#666', marginBottom: '24px' }}>
-        Chain > tier (gold/platinum/diamond) > white-glove SLAs > dedicated rep > exec QBR cadence.
+        Chain &gt; tier (gold/platinum/diamond) &gt; white-glove SLAs &gt; dedicated rep &gt; exec QBR cadence.
       </p>
 
       <section style={{ marginBottom: '32px' }}>

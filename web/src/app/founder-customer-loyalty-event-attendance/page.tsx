@@ -116,7 +116,7 @@ export default async function FounderCustomerLoyaltyEventAttendancePage() {
       </h1>
       <p style={{ color: '#555', marginBottom: 24 }}>
         Track customer event invitations, attendance, engagement & ARR uplift from bond-strengthening
-        moments => identify champions, salvage no-shows.
+        moments =&gt; identify champions, salvage no-shows.
       </p>
 
       <section style={{ marginBottom: 32 }}>

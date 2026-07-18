@@ -88,7 +88,7 @@ export default async function Page() {
       <header>
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>Hospital Chain Board Resolution Tracker</h1>
         <p style={{ color: '#666', marginTop: 4 }}>
-          Track board-level decisions at hospital chains & our counter-actions => revenue protect & expand.
+          Track board-level decisions at hospital chains & our counter-actions =&gt; revenue protect & expand.
         </p>
       </header>
 

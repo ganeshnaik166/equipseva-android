@@ -237,7 +237,7 @@ export default async function FounderCustomerQuarterlyEquipmentUtilizationBenchP
       <header>
         <h1 className="text-xl font-semibold">Founder customer quarterly equipment utilization bench — r2580</h1>
         <p className="mt-1 text-xs text-gray-500">
-          Per-hospital quarterly equipment utilization vs peer benchmark & top-quartile. Gap-to-top > 10% => growth-lever conversation.
+          Per-hospital quarterly equipment utilization vs peer benchmark & top-quartile. Gap-to-top &gt; 10% =&gt; growth-lever conversation.
         </p>
       </header>
 
@@ -275,7 +275,7 @@ export default async function FounderCustomerQuarterlyEquipmentUtilizationBenchP
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Top gap focus list</h2>
         <p className="text-xs text-gray-500">
-          Monitoring + in-discussion rows ordered by gap-to-top %. Biggest deltas => biggest revenue unlock.
+          Monitoring + in-discussion rows ordered by gap-to-top %. Biggest deltas =&gt; biggest revenue unlock.
         </p>
         <DataTable
           rows={focus}
@@ -289,7 +289,7 @@ export default async function FounderCustomerQuarterlyEquipmentUtilizationBenchP
         <div className="space-y-3">
           <h2 className="text-base font-semibold">Equipment-kind summary</h2>
           <p className="text-xs text-gray-500">
-            Average utilization vs peer & top-quartile per equipment kind. Highest avg-gap => biggest segment opportunity.
+            Average utilization vs peer & top-quartile per equipment kind. Highest avg-gap =&gt; biggest segment opportunity.
           </p>
           <DataTable
             rows={kinds}
@@ -315,7 +315,7 @@ export default async function FounderCustomerQuarterlyEquipmentUtilizationBenchP
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Quarterly utilization trend</h2>
         <p className="text-xs text-gray-500">
-          Quarter-over-quarter movement on ours vs peer vs top. Trend up => bench actions working.
+          Quarter-over-quarter movement on ours vs peer vs top. Trend up =&gt; bench actions working.
         </p>
         <DataTable
           rows={trend}
@@ -328,7 +328,7 @@ export default async function FounderCustomerQuarterlyEquipmentUtilizationBenchP
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Owner load</h2>
         <p className="text-xs text-gray-500">
-          Per-owner row count, open vs done actions, expected uplift ₹. Imbalance => reassign.
+          Per-owner row count, open vs done actions, expected uplift ₹. Imbalance =&gt; reassign.
         </p>
         <DataTable
           rows={owners}
@@ -354,7 +354,7 @@ export default async function FounderCustomerQuarterlyEquipmentUtilizationBenchP
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Growth-lever actions</h2>
         <p className="text-xs text-gray-500">
-          Action log per utilization row: open => in_progress => done/dropped. Expected uplift ₹ tracks ROI.
+          Action log per utilization row: open =&gt; in_progress =&gt; done/dropped. Expected uplift ₹ tracks ROI.
         </p>
         <DataTable
           rows={actions}

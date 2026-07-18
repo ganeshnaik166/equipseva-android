@@ -104,7 +104,7 @@ export default async function CustomerPainPointsHeatmapPage() {
       <header>
         <h1 className="text-2xl font-bold">Customer Pain Points Heatmap</h1>
         <p className="text-sm text-gray-600">
-          Pain point signatures & fix actions across hospitals — frequency > severity > revenue at risk > kill priority.
+          Pain point signatures & fix actions across hospitals — frequency &gt; severity &gt; revenue at risk &gt; kill priority.
         </p>
       </header>
 

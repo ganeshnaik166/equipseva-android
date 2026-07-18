@@ -72,9 +72,9 @@ export default async function FounderFundraisingFunnelPage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 1400, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>Founder > Fundraising Funnel</h1>
+      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>Founder &gt; Fundraising Funnel</h1>
       <p style={{ color: '#666', marginBottom: 24 }}>
-        Investor pipeline: intro => meeting => diligence => term sheet => close. ARR & valuation offers tracked.
+        Investor pipeline: intro =&gt; meeting =&gt; diligence =&gt; term sheet =&gt; close. ARR & valuation offers tracked.
       </p>
 
       <section style={{ marginBottom: 32, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
@@ -83,15 +83,15 @@ export default async function FounderFundraisingFunnelPage() {
           <div style={{ fontSize: 24, fontWeight: 700 }}>{conv.total_intros ?? 0}</div>
         </div>
         <div style={{ padding: 16, border: '1px solid #ddd', borderRadius: 8 }}>
-          <div style={{ fontSize: 12, color: '#666' }}>Intro => Meeting</div>
+          <div style={{ fontSize: 12, color: '#666' }}>Intro =&gt; Meeting</div>
           <div style={{ fontSize: 24, fontWeight: 700 }}>{conv.intro_to_meeting_pct ?? 0}%</div>
         </div>
         <div style={{ padding: 16, border: '1px solid #ddd', borderRadius: 8 }}>
-          <div style={{ fontSize: 12, color: '#666' }}>Meeting => Diligence</div>
+          <div style={{ fontSize: 12, color: '#666' }}>Meeting =&gt; Diligence</div>
           <div style={{ fontSize: 24, fontWeight: 700 }}>{conv.meeting_to_diligence_pct ?? 0}%</div>
         </div>
         <div style={{ padding: 16, border: '1px solid #ddd', borderRadius: 8 }}>
-          <div style={{ fontSize: 12, color: '#666' }}>Diligence => Term Sheet</div>
+          <div style={{ fontSize: 12, color: '#666' }}>Diligence =&gt; Term Sheet</div>
           <div style={{ fontSize: 24, fontWeight: 700 }}>{conv.diligence_to_term_pct ?? 0}%</div>
         </div>
         <div style={{ padding: 16, border: '1px solid #ddd', borderRadius: 8 }}>

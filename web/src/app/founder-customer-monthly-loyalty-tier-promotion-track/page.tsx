@@ -74,7 +74,7 @@ export default async function Page() {
   return (
     <main style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
       <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>Customer Monthly Loyalty Tier Promotion Track</h1>
-      <p style={{ color: '#555', marginBottom: 24 }}>Founder view > track per-hospital monthly loyalty tier progression & promotion log.</p>
+      <p style={{ color: '#555', marginBottom: 24 }}>Founder view &gt; track per-hospital monthly loyalty tier progression & promotion log.</p>
 
       <section style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8 }}>30-Day Projection Summary</h2>

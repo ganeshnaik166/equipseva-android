@@ -89,7 +89,7 @@ export default async function FounderMonthlyInvestorBoardDeckBuilderPage() {
       <header>
         <h1 className="text-2xl font-bold">Monthly Investor Board Deck Builder</h1>
         <p className="text-sm text-gray-600">
-          Track deck sections month-over-month: draft > in review > finalized > sent. Anticipated questions
+          Track deck sections month-over-month: draft &gt; in review &gt; finalized &gt; sent. Anticipated questions
           & owner load surfaced for tight prep cycles.
         </p>
       </header>

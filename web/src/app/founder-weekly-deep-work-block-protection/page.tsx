@@ -76,7 +76,7 @@ export default async function Page() {
     <main style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
       <h1 style={{ fontSize: 24, fontWeight: 600, marginBottom: 8 }}>Founder Weekly Deep-Work Block Protection</h1>
       <p style={{ color: '#666', marginBottom: 24 }}>
-        Day > planned hours > actual > interruptions > top stealer > commitment device.
+        Day &gt; planned hours &gt; actual &gt; interruptions &gt; top stealer &gt; commitment device.
       </p>
 
       {summaryRow && (

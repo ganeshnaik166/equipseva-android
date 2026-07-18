@@ -88,7 +88,7 @@ export default async function Page() {
     <main style={{ padding: 24, maxWidth: 1280, margin: '0 auto' }}>
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Hospital Chain Board Engagement Quality</h1>
       <p style={{ color: '#666', marginBottom: 24 }}>
-        Chain > board exposure > our board reach > engagement > deal advancement.
+        Chain &gt; board exposure &gt; our board reach &gt; engagement &gt; deal advancement.
       </p>
 
       <section style={{ marginBottom: 32 }}>

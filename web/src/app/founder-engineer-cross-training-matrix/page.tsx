@@ -204,7 +204,7 @@ export default async function Page() {
       <section style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Certification pipeline ({pipeline.length})</h2>
         <p style={{ color: '#666', marginBottom: 8, fontSize: 13 }}>
-          Engineers not-yet-certified on a skill. cert_ready = yes when shadow_jobs >= 5 and proficiency >= intermediate.
+          Engineers not-yet-certified on a skill. cert_ready = yes when shadow_jobs &gt;= 5 and proficiency &gt;= intermediate.
         </p>
         <DataTable
           rows={pipeline}

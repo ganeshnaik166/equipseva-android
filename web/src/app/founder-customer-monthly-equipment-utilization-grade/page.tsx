@@ -92,7 +92,7 @@ export default async function Page() {
       <header>
         <h1 className="text-2xl font-bold">Customer Monthly Equipment Utilization Grade</h1>
         <p className="text-sm text-gray-600">
-          Per-equipment monthly utilization grades (A >= 85%, B 70-84%, C 55-69%, D 40-54%, F < 40%) and
+          Per-equipment monthly utilization grades (A &gt;= 85%, B 70-84%, C 55-69%, D 40-54%, F &lt; 40%) and
           improvement actions taken to lift under-utilized assets.
         </p>
       </header>

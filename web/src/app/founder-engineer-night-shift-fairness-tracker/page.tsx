@@ -94,7 +94,7 @@ export default async function Page() {
     <main style={{ padding: 24, maxWidth: 1400, margin: '0 auto', fontFamily: 'system-ui, sans-serif' }}>
       <h1 style={{ fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Engineer Night-Shift Fairness Tracker</h1>
       <p style={{ color: '#666', marginBottom: 20, fontSize: 14 }}>
-        Night & weekend & holiday shift assignments > fairness rotation deltas > premium pay earned > consent & refusal log.
+        Night & weekend & holiday shift assignments &gt; fairness rotation deltas &gt; premium pay earned &gt; consent & refusal log.
       </p>
 
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>

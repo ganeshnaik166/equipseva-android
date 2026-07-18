@@ -102,7 +102,7 @@ export default async function HospitalChainAmcRenewalFunnelAccelerationPage() {
         Hospital Chain AMC Renewal Funnel Acceleration
       </h1>
       <p style={{ color: '#555', marginBottom: '1.5rem' }}>
-        Chain > AMC contracts > upcoming renewals > acceleration action > win probability > ARR at stake.
+        Chain &gt; AMC contracts &gt; upcoming renewals &gt; acceleration action &gt; win probability &gt; ARR at stake.
       </p>
 
       <section style={{ marginBottom: '2rem' }}>

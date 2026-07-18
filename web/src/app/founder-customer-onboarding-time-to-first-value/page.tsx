@@ -102,7 +102,7 @@ export default async function CustomerOnboardingTimeToFirstValuePage() {
       <header>
         <h1 className="text-2xl font-bold">Customer Onboarding & Time-to-First-Value</h1>
         <p className="mt-1 text-sm text-gray-600">
-          Hospital signup => first PM => first repair => first AMC. Track bottlenecks &
+          Hospital signup =&gt; first PM =&gt; first repair =&gt; first AMC. Track bottlenecks &
           north-star score.
         </p>
       </header>

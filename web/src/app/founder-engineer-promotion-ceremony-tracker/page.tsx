@@ -94,7 +94,7 @@ export default async function FounderEngineerPromotionCeremonyTrackerPage() {
     <main style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
       <h1 style={{ fontSize: '28px', marginBottom: '8px' }}>Engineer Promotion Ceremony Tracker</h1>
       <p style={{ color: '#666', marginBottom: '24px' }}>
-        Promotion => ceremony => bonus => team celebration => engineer pride => retention boost. Round r2546.
+        Promotion =&gt; ceremony =&gt; bonus =&gt; team celebration =&gt; engineer pride =&gt; retention boost. Round r2546.
       </p>
 
       <section style={{ marginBottom: '32px' }}>

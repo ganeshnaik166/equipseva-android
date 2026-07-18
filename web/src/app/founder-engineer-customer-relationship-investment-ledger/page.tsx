@@ -98,7 +98,7 @@ export default async function FounderEngineerCustomerRelationshipInvestmentLedge
     <main className="mx-auto max-w-7xl px-4 py-8 space-y-8">
       <header className="space-y-1">
         <h1 className="text-2xl font-bold">Engineer customer relationship investment ledger</h1>
-        <p className="text-sm text-gray-600">r2654 — Track time, money & favors invested in hospital relationships and the realized ARR uplift > outcomes flow.</p>
+        <p className="text-sm text-gray-600">r2654 — Track time, money & favors invested in hospital relationships and the realized ARR uplift &gt; outcomes flow.</p>
       </header>
 
       {summary && (

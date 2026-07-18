@@ -99,7 +99,7 @@ export default async function Page() {
         Hospital Chain Quote-to-Cash Cycle
       </h1>
       <p style={{ color: '#666', marginBottom: 24 }}>
-        Chain > quote > PO > invoice > cash days & DSO impact tracker.
+        Chain &gt; quote &gt; PO &gt; invoice &gt; cash days & DSO impact tracker.
       </p>
 
       <section style={{ marginBottom: 32 }}>

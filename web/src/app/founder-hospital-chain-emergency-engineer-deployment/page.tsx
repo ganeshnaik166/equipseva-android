@@ -101,7 +101,7 @@ export default async function Page() {
         Hospital Chain Emergency Engineer Deployment
       </h1>
       <p style={{ color: '#555', marginBottom: '24px' }}>
-        Chain > emergency > response time > engineer > CSAT > ARR saved > repeat-risk.
+        Chain &gt; emergency &gt; response time &gt; engineer &gt; CSAT &gt; ARR saved &gt; repeat-risk.
       </p>
 
       <section style={{ marginBottom: '32px' }}>

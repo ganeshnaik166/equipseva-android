@@ -89,7 +89,7 @@ export default async function FounderCustomerEmergencyEscalationRunbookPage() {
       <header>
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>Customer emergency escalation runbook</h1>
         <p style={{ color: '#555', marginTop: 4 }}>
-          Incident & severity & escalation path & response time & resolution => lessons captured.
+          Incident & severity & escalation path & response time & resolution =&gt; lessons captured.
         </p>
       </header>
 

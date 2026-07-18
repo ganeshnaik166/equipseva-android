@@ -86,7 +86,7 @@ export default async function FounderQuarterlyOkrGradingPage() {
       <header>
         <h1 className="text-2xl font-bold">Founder Quarterly OKR Grading</h1>
         <p className="text-sm text-gray-600">
-          Quarter > OKR > target & actual > grade > lessons > next-quarter carryover.
+          Quarter &gt; OKR &gt; target & actual &gt; grade &gt; lessons &gt; next-quarter carryover.
         </p>
       </header>
 

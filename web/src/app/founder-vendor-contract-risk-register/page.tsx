@@ -116,7 +116,7 @@ export default async function FounderVendorContractRiskRegisterPage() {
       </section>
 
       <section style={{ marginBottom: 32 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Expiring in <= 60 Days</h2>
+        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Expiring in &lt;= 60 Days</h2>
         <DataTable
           rows={expiring}
           columns={expiringCols}

@@ -84,7 +84,7 @@ export default async function Page() {
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Hospital Chain Implementation Burndown</h1>
-        <p className="text-sm text-gray-500">Chain & milestones > planned vs actual > burndown & at-risk slips.</p>
+        <p className="text-sm text-gray-500">Chain & milestones &gt; planned vs actual &gt; burndown & at-risk slips.</p>
       </div>
 
       <section>

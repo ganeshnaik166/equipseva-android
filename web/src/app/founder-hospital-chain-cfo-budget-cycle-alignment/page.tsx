@@ -96,7 +96,7 @@ export default async function Page() {
         Hospital Chain CFO Budget Cycle Alignment
       </h1>
       <p style={{ color: '#555', marginBottom: 24 }}>
-        Track each chain's CFO budget calendar & pitch in the optimal window => higher win rate.
+        Track each chain's CFO budget calendar & pitch in the optimal window =&gt; higher win rate.
       </p>
 
       <section style={{ marginBottom: 32 }}>

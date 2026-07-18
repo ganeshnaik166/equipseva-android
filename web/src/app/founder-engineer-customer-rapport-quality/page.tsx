@@ -98,7 +98,7 @@ export default async function FounderEngineerCustomerRapportQualityPage() {
     <div style={{ padding: 24, maxWidth: 1400, margin: '0 auto' }}>
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Engineer & Customer Rapport Quality</h1>
       <p style={{ color: '#666', marginBottom: 24, fontSize: 14 }}>
-        Per-engineer × hospital rapport scores. Small-talk topics, first-name basis, empathy moments & repeat-customer rate => long-term stickiness.
+        Per-engineer × hospital rapport scores. Small-talk topics, first-name basis, empathy moments & repeat-customer rate =&gt; long-term stickiness.
       </p>
 
       <section style={{ marginBottom: 32 }}>

@@ -98,7 +98,7 @@ export default async function CustomerMonthlyBusinessReviewTrackerPage() {
       <header>
         <h1 className="text-2xl font-bold">Customer Monthly Business Review Tracker</h1>
         <p className="text-sm text-gray-600">
-          Hospital & MBR meetings > KPIs reviewed > action items & follow-ups > MBR effectiveness score.
+          Hospital & MBR meetings &gt; KPIs reviewed &gt; action items & follow-ups &gt; MBR effectiveness score.
         </p>
       </header>
 

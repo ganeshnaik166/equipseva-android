@@ -123,7 +123,7 @@ export default async function HospitalChainKeyAccountHealthScorePage() {
         Hospital Chain Key Account Health Score
       </h1>
       <p style={{ color: '#666', marginBottom: 24, fontSize: 14 }}>
-        Chain × NPS × MRR × tickets × engagement × renewal probability => composite health label
+        Chain × NPS × MRR × tickets × engagement × renewal probability =&gt; composite health label
       </p>
 
       <section style={{ marginBottom: 32 }}>
