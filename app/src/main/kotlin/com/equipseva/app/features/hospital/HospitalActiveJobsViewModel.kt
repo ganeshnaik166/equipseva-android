@@ -9,6 +9,7 @@ import com.equipseva.app.core.data.repair.RepairJobRepository
 import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.network.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +23,11 @@ import javax.inject.Inject
 class HospitalActiveJobsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val jobRepository: RepairJobRepository,
+    // r1509 — best-effort escrow lookups so Assigned-but-unpaid jobs can wear
+    // an "Awaiting payment" badge at the list level (the revenue leak: a
+    // hospital who accepts a bid then dismisses the pay sheet had NO nudge
+    // anywhere — the job stalled silently and the engineer stayed blocked).
+    private val escrowRepository: com.equipseva.app.core.data.escrow.RepairJobEscrowRepository,
 ) : ViewModel() {
 
     enum class Filter { All, Open, Active, Closed }
@@ -34,6 +40,9 @@ class HospitalActiveJobsViewModel @Inject constructor(
         val closedJobs: List<RepairJob> = emptyList(),
         val errorMessage: String? = null,
         val filter: Filter = Filter.All,
+        // r1509 — job ids whose escrow is still 'pending' (accepted bid,
+        // payment not completed). Best-effort: empty on lookup failure.
+        val awaitingPaymentJobIds: Set<String> = emptySet(),
     ) {
         val visibleJobs: List<RepairJob>
             get() = when (filter) {
@@ -102,6 +111,28 @@ class HospitalActiveJobsViewModel @Inject constructor(
                             errorMessage = null,
                         )
                     }
+                    // r1509 — check escrow for the Assigned slice only (an
+                    // accepted-but-unpaid job is always Assigned; pre-check-in
+                    // there are at most a handful). Best-effort + concurrent;
+                    // any lookup failure just leaves that badge off.
+                    val checkIds = assignedJobIdsForEscrowCheck(jobs)
+                    if (checkIds.isNotEmpty()) {
+                        viewModelScope.launch {
+                            val pending = kotlinx.coroutines.coroutineScope {
+                                checkIds.map { id ->
+                                    async {
+                                        id.takeIf {
+                                            escrowRepository.fetchByJob(id)
+                                                .getOrNull()?.isPending == true
+                                        }
+                                    }
+                                }.mapNotNull { it.await() }
+                            }.toSet()
+                            _state.update { it.copy(awaitingPaymentJobIds = pending) }
+                        }
+                    } else {
+                        _state.update { it.copy(awaitingPaymentJobIds = emptySet()) }
+                    }
                 }
                 .onFailure { ex ->
                     _state.update {
@@ -121,4 +152,20 @@ class HospitalActiveJobsViewModel @Inject constructor(
         }
     }
 }
+
+/**
+ * r1509 — which jobs get a best-effort escrow lookup for the
+ * "Awaiting payment" badge. Only Assigned jobs can be accepted-but-unpaid
+ * (accept flips Requested → Assigned; payment flips the escrow pending →
+ * held while the job STAYS Assigned until check-in), and pre-check-in there
+ * are at most a handful — capped at [cap] as an N+1 safety valve so a
+ * pathological account can't fan out dozens of lookups.
+ */
+internal fun assignedJobIdsForEscrowCheck(
+    jobs: List<RepairJob>,
+    cap: Int = 5,
+): List<String> =
+    jobs.filter { it.status == RepairJobStatus.Assigned }
+        .map { it.id }
+        .take(cap)
 

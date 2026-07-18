@@ -133,6 +133,7 @@ fun HospitalActiveJobsScreen(
                         items(items = state.visibleJobs, key = { it.id }) { job ->
                             HospitalBookingCard(
                                 job = job,
+                                awaitingPayment = job.id in state.awaitingPaymentJobIds,
                                 onClick = { onJobClick(job.id) },
                             )
                         }
@@ -228,6 +229,10 @@ private fun FilterChip(
 @Composable
 private fun HospitalBookingCard(
     job: RepairJob,
+    // r1509 — true when the job's escrow is still pending (bid accepted,
+    // payment never completed). The engineer is blocked until it lands, and
+    // before this badge NOTHING at list level said so.
+    awaitingPayment: Boolean = false,
     onClick: () -> Unit,
 ) {
     val shape = RoundedCornerShape(12.dp)
@@ -273,12 +278,31 @@ private fun HospitalBookingCard(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 StatusPill(status = job.status)
+                if (awaitingPayment) {
+                    com.equipseva.app.designsystem.components.Pill(
+                        text = "Awaiting payment",
+                        kind = com.equipseva.app.designsystem.components.PillKind.Warn,
+                    )
+                }
                 if (job.urgency == RepairJobUrgency.Emergency ||
                     job.urgency == RepairJobUrgency.SameDay
                 ) {
                     UrgencyPill(urgency = job.urgency)
                 }
             }
+        }
+
+        // r1509 — accepted-but-unpaid: make the stall visible where the
+        // hospital triages. The engineer literally cannot start until the
+        // escrow is funded; before this line the job just read "Assigned".
+        if (awaitingPayment) {
+            Text(
+                text = "Engineer can't start until you pay into escrow — tap to complete payment.",
+                style = EsType.Caption,
+                color = SevaInk600,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
 
         // Terminal-state subtitle — when the job is Cancelled (with a
