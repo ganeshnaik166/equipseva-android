@@ -116,6 +116,8 @@ fun HomeHubScreen(
     // Null safety: caller may not wire this up yet; banner stays
     // visible but tap becomes a no-op.
     onOpenAmcContractDetail: (contractId: String) -> Unit = {},
+    // r1515 — pending-escrow banner tap → job detail (its Pay CTA).
+    onOpenRepairJob: (jobId: String) -> Unit = {},
     onShowMessage: (String) -> Unit = {},
     viewModel: HomeHubViewModel = hiltViewModel(),
 ) {
@@ -232,6 +234,24 @@ fun HomeHubScreen(
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                     PendingAmcContractBanner(
                         onClick = { onOpenAmcContractDetail(pendingContractId) },
+                    )
+                }
+            }
+
+            // r1515 — accepted-but-unpaid repair jobs. Sibling of the AMC
+            // banner above: the engineer is blocked until escrow is funded,
+            // and before this the only pay CTA lived inside the job detail
+            // (r1509 badges the Bookings list; this catches them on Home).
+            val pendingEscrow = state.pendingEscrowPayments.firstOrNull()
+            if (role == UserRole.HOSPITAL && pendingEscrow != null) {
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    PendingEscrowPaymentBanner(
+                        copy = pendingEscrowBannerCopy(
+                            jobNumber = pendingEscrow.jobNumber,
+                            amountRupees = pendingEscrow.amountRupees,
+                            totalCount = state.pendingEscrowPayments.size,
+                        ),
+                        onClick = { onOpenRepairJob(pendingEscrow.repairJobId) },
                     )
                 }
             }
@@ -1106,6 +1126,51 @@ private fun PendingAmcContractBanner(onClick: () -> Unit) {
     }
 }
 
+/**
+ * r1515 — Home banner for accepted-but-unpaid repair jobs. Same chrome as
+ * [PendingAmcContractBanner]; copy computed by [pendingEscrowBannerCopy].
+ */
+@Composable
+private fun PendingEscrowPaymentBanner(copy: Pair<String, String>, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(SevaWarning50)
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(
+            Icons.Outlined.Warning,
+            contentDescription = null,
+            tint = SevaWarning500,
+            modifier = Modifier.size(20.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                copy.first,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = SevaInk900,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                copy.second,
+                fontSize = 11.sp,
+                color = SevaInk600,
+            )
+        }
+        Icon(
+            Icons.AutoMirrored.Outlined.ArrowForward,
+            contentDescription = null,
+            tint = SevaInk500,
+            modifier = Modifier.size(18.dp),
+        )
+    }
+}
+
 private enum class TileAccent { Default, Admin }
 
 @Composable
@@ -1583,4 +1648,22 @@ internal fun homeKycBannerCopy(status: VerificationStatus?): HomeKycBannerCopy =
         title = "Become a verified engineer",
         subtitle = "Submit KYC to start bidding on jobs.",
     )
+}
+
+/**
+ * r1515 — title + subtitle for the pending-escrow Home banner.
+ *
+ * Title names the job (falls back to "your repair job" when job_number is
+ * absent) and the exact amount due; a count > 1 appends "+N more". Subtitle
+ * explains the stakes — the engineer is blocked, not just an unpaid bill.
+ */
+internal fun pendingEscrowBannerCopy(
+    jobNumber: String?,
+    amountRupees: Double,
+    totalCount: Int,
+): Pair<String, String> {
+    val job = jobNumber?.takeIf { it.isNotBlank() } ?: "your repair job"
+    val extra = if (totalCount > 1) " · +${totalCount - 1} more" else ""
+    return "Complete payment for $job — ${com.equipseva.app.core.util.formatRupees(amountRupees)}$extra" to
+        "The engineer can't start until escrow is funded. Tap to pay."
 }

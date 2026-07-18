@@ -56,6 +56,9 @@ class HomeHubViewModel @Inject constructor(
     private val spotAuditRepository: com.equipseva.app.core.data.spotaudit.SpotAuditRepository,
     private val amcRepository: com.equipseva.app.core.data.amc.AmcRepository,
     private val userPrefs: UserPrefs,
+    // r1515 — Home-level "complete your payment" banner for accepted-but-
+    // unpaid jobs (hospital_pending_escrows RPC).
+    private val escrowRepository: com.equipseva.app.core.data.escrow.RepairJobEscrowRepository,
     private val pendingAmcPaymentsStore: com.equipseva.app.core.payments.PendingAmcPaymentsStore,
     // Round 477 — payment-first AMC. The wizard now stashes a contract
     // marker when create_amc_contract returns; we expose its first id
@@ -110,6 +113,10 @@ class HomeHubViewModel @Inject constructor(
         // with "Complete payment" CTA → navigates to AMC detail, which
         // re-uses the top-up sheet to drive Razorpay + verify.
         val pendingAmcContractId: String? = null,
+        // r1515 — escrows awaiting payment on Assigned jobs (accepted bid,
+        // payment never completed). Home renders a "complete your payment"
+        // banner for the first + a count; tap opens the job detail's Pay CTA.
+        val pendingEscrowPayments: List<com.equipseva.app.core.data.escrow.RepairJobEscrowRepository.HospitalPendingEscrowRow> = emptyList(),
         // Engineer-side directory visibility gate. Hospital's
         // [EngineerDirectoryViewModel.filteredRows] requires both
         // hourly_rate and at least one specialization on the engineer
@@ -326,6 +333,9 @@ class HomeHubViewModel @Inject constructor(
                 // PR-D34: pull hospital's recent AMC SLA credits summary.
                 // Quiet on errors — card just won't render.
                 val slaD = async { amcRepository.hospitalRecentAmcSlaCredits() }
+                // r1515: escrows awaiting payment (accepted-but-unpaid jobs).
+                // Quiet on errors — banner just won't render.
+                val pendingEscrowD = async { escrowRepository.fetchHospitalPendingEscrows() }
 
                 val jobs = jobsD.await()
                 val open = jobs.count { it.status == RepairJobStatus.Requested }
@@ -362,6 +372,9 @@ class HomeHubViewModel @Inject constructor(
                     if (sum.totalCreditRupees > 0.0) {
                         _state.update { it.copy(recentSlaCredits = sum) }
                     }
+                }
+                pendingEscrowD.await().onSuccess { rows ->
+                    _state.update { it.copy(pendingEscrowPayments = rows) }
                 }
             }
         }

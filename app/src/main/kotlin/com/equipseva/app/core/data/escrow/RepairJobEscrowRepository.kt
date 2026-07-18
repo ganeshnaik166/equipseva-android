@@ -138,6 +138,28 @@ class RepairJobEscrowRepository @Inject constructor(
     }
 
     @Serializable
+    data class HospitalPendingEscrowRow(
+        @SerialName("escrow_id") val escrowId: String,
+        @SerialName("repair_job_id") val repairJobId: String,
+        @SerialName("job_number") val jobNumber: String? = null,
+        @SerialName("amount_rupees") val amountRupees: Double,
+        @SerialName("equipment_brand") val equipmentBrand: String? = null,
+        @SerialName("equipment_model") val equipmentModel: String? = null,
+        @SerialName("equipment_type") val equipmentType: String? = null,
+    )
+
+    /**
+     * r1515 — caller-scoped escrows awaiting payment on Assigned jobs
+     * (round1515 RPC). Feeds the hospital Home "complete your payment"
+     * banner: accepted-but-unpaid jobs stall the engineer and previously
+     * had no Home-level signal.
+     */
+    suspend fun fetchHospitalPendingEscrows(): Result<List<HospitalPendingEscrowRow>> = runCatching {
+        supabase.postgrest.rpc(function = "hospital_pending_escrows")
+            .decodeList<HospitalPendingEscrowRow>()
+    }
+
+    @Serializable
     data class HospitalDisputeRow(
         @SerialName("escrow_id") val escrowId: String,
         @SerialName("repair_job_id") val repairJobId: String,

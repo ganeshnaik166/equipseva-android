@@ -62,6 +62,13 @@ enabling. The trigger goes live only when you deploy migrations.
 - Hospital "Open" count includes AMC visits (consistent everywhere, but
   debatable semantics).
 
+## 5. hospital_pending_escrows RPC — SHIPPED (r1515), pending your deploy
+Migration 20261485000000 + Home banner: accepted-but-unpaid jobs now get a
+"Complete payment for RPR-NNNNN — ₹X" banner on hospital Home (tap → the
+job's Pay CTA). Renders only once the migration is deployed; until then the
+RPC call fails quietly and Home is unchanged. Pairs with the r1509 Bookings
+badge.
+
 ## Standing references
 - E2E recipe + test-account state: memory `emulator-verify`
 - All bug classes + guards: memory `screen-ux-audit`, `error-copy-mapping`,

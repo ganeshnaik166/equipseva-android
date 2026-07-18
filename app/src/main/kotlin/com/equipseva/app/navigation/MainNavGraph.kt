@@ -327,6 +327,10 @@ fun MainNavGraph(
                     onOpenAddPhone = { navController.navigate(Routes.ADD_PHONE) },
                     onOpenMyBookings = { navController.navigate(Routes.HOSPITAL_ACTIVE_JOBS) },
                     onOpenMessages = { navController.navigate(Routes.CONVERSATIONS) },
+                    // r1515 — pending-escrow banner → the job's Pay CTA.
+                    onOpenRepairJob = { jobId ->
+                        navController.navigate(Routes.repairJobDetailRoute(jobId))
+                    },
                     onOpenActiveWork = { navController.navigate(Routes.ACTIVE_WORK) },
                     onOpenEarnings = { navController.navigate(Routes.EARNINGS) },
                     onOpenEngineerProfile = { id ->
