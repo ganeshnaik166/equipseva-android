@@ -1424,9 +1424,19 @@ private fun VisitRow(
     assigning: Boolean,
     onAssign: () -> Unit,
 ) {
-    val statusColor = when (v.status) {
-        "completed" -> SevaGreen700
-        "cancelled" -> SevaInk500
+    // r1510 — an overdue visit (scheduled date already past, still not
+    // completed/cancelled) must not read as a calm "Requested": the hospital
+    // pays monthly for these visits and this row is their only slippage
+    // signal (the SLA machinery pages the founder, not them).
+    val display = amcVisitStatusDisplay(
+        status = v.status,
+        scheduledDate = v.scheduledDate,
+        today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")),
+    )
+    val statusColor = when {
+        display.overdue -> SevaDanger500
+        v.status == "completed" -> SevaGreen700
+        v.status == "cancelled" -> SevaInk500
         else -> SevaWarning500
     }
     Column(
@@ -1455,7 +1465,7 @@ private fun VisitRow(
                 }
             }
             Text(
-                v.status.replaceFirstChar { it.uppercase() },
+                display.label,
                 color = statusColor,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -1949,6 +1959,40 @@ internal fun amcVisitHeaderLine(
     val n = amcVisitNumber?.toString() ?: "-"
     val job = jobNumber?.takeIf { it.isNotBlank() }
     return if (job != null) "Visit #$n · $job" else "Visit #$n"
+}
+
+/**
+ * r1510 — status text for an AMC visit row, overdue-aware.
+ *
+ * A visit whose scheduled date is already past but which is still OPEN (not
+ * completed / cancelled) reads "Overdue" (Danger tint) instead of the calm
+ * raw status — a hospital paying a monthly fee sees their visit slipping
+ * without opening every row (the SLA-breach machinery pages the FOUNDER,
+ * not them).
+ *
+ * Conservative parsing: [scheduledDate] is the wire's bare `yyyy-MM-dd`; an
+ * unparseable / missing date NEVER flags overdue (falls back to the raw
+ * status). "Due today" is NOT overdue — the visit still has all day.
+ */
+internal data class AmcVisitStatusDisplay(val label: String, val overdue: Boolean)
+
+internal fun amcVisitStatusDisplay(
+    status: String,
+    scheduledDate: String?,
+    today: java.time.LocalDate,
+): AmcVisitStatusDisplay {
+    val open = status != "completed" && status != "cancelled"
+    val date = scheduledDate
+        ?.let { runCatching { java.time.LocalDate.parse(it.take(10)) }.getOrNull() }
+    val overdue = open && date != null && date.isBefore(today)
+    return if (overdue) {
+        AmcVisitStatusDisplay(label = "Overdue", overdue = true)
+    } else {
+        AmcVisitStatusDisplay(
+            label = status.replaceFirstChar { it.uppercase() },
+            overdue = false,
+        )
+    }
 }
 
 /**
