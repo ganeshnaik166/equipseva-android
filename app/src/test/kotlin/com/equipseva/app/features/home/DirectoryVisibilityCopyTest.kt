@@ -8,21 +8,24 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Pins the home-screen directory-visibility banner copy + the gate
- * enum's `isHidden` semantic. The banner only renders for engineers
- * whose KYC has cleared but who are still filtered out of the hospital
- * directory by the client-side `isBookable` predicate (missing
- * `hourly_rate` or empty `specializations`). The copy below is the
- * engineer's first signal that they're invisible — a regression that
- * swapped or null-collapsed the variants would either re-introduce the
- * silent-failure bug or nag verified engineers who are already shown.
+ * Pins the home-screen directory-completeness banner copy + the gate
+ * enum's `isHidden` semantic.
+ *
+ * r1511 — copy re-pinned as TRUTHFUL against the server contract:
+ * engineers_directory_search filters only verified + role, so a verified
+ * engineer with no rate/specs IS listed in plain browse. The banner now
+ * nudges about what's genuinely at stake (absent from specialization-
+ * FILTERED searches; a "Bids vary" card) instead of falsely claiming
+ * "you're not visible" — which told already-listed engineers they were
+ * hidden. A regression back to "not visible / hidden from the directory"
+ * phrasing must fail here.
  */
 class DirectoryVisibilityCopyTest {
 
-    @Test fun `MissingBoth shows the most explicit invisible-yet copy`() {
+    @Test fun `MissingBoth nudges completeness without falsely claiming invisibility`() {
         val copy = directoryVisibilityCopy(HomeHubViewModel.DirectoryGate.MissingBoth)
         assertNotNull(copy)
-        assertEquals("You're not visible to hospitals yet", copy?.first)
+        assertEquals("Your profile looks empty to hospitals", copy?.first)
         assertTrue(
             "subtitle should mention BOTH rate AND specialization",
             copy?.second?.contains("hourly rate", ignoreCase = true) == true &&
@@ -30,10 +33,25 @@ class DirectoryVisibilityCopyTest {
         )
     }
 
+    @Test fun `no variant falsely claims the engineer is invisible or hidden`() {
+        // The server lists every verified engineer in plain browse — claiming
+        // otherwise is demotivating and wrong (r1511).
+        HomeHubViewModel.DirectoryGate.values()
+            .mapNotNull { directoryVisibilityCopy(it) }
+            .forEach { (title, subtitle) ->
+                val text = "$title $subtitle"
+                assertFalse(
+                    "must not claim invisibility: '$text'",
+                    text.contains("not visible", ignoreCase = true) ||
+                        text.contains("hidden from the directory", ignoreCase = true),
+                )
+            }
+    }
+
     @Test fun `MissingRate copy points at the rate only`() {
         val copy = directoryVisibilityCopy(HomeHubViewModel.DirectoryGate.MissingRate)
         assertNotNull(copy)
-        assertEquals("Add your hourly rate to start getting bookings", copy?.first)
+        assertEquals("Add your hourly rate", copy?.first)
         assertTrue(
             "subtitle should mention rate but not specialization",
             copy?.second?.contains("rate", ignoreCase = true) == true,
