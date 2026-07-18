@@ -54,6 +54,9 @@ object NotificationDeepLink {
         if (kind.isNullOrBlank()) return null
         return when (kind) {
             KIND_CHAT_MESSAGE_NEW -> data["conversation_id"]?.takeIfUuid()?.let(Routes::chatRoute)
+            // r1514 — nearby-engineer paging on new job posts (round1514
+            // trigger). Straight to the job detail where Place bid lives.
+            KIND_REPAIR_JOB_NEW_NEARBY,
             KIND_REPAIR_BID_NEW,
             KIND_REPAIR_BID_ACCEPTED,
             KIND_REPAIR_BID_REJECTED,
@@ -225,4 +228,7 @@ object NotificationDeepLink {
     const val KIND_ENGINEER_SUSPENSION_CLEARED = "engineer_suspension_cleared"
     // r1502 — round446: the previously-assigned engineer loses an AMC visit.
     const val KIND_AMC_VISIT_UNASSIGNED = "amc_visit_unassigned"
+    // r1514 — round1514 trigger pages nearby verified engineers when an open
+    // marketplace job is posted (the "bids in the first 10 min" loop).
+    const val KIND_REPAIR_JOB_NEW_NEARBY = "repair_job_new_nearby"
 }

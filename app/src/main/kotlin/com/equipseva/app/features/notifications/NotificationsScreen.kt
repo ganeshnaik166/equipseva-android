@@ -378,6 +378,8 @@ internal fun notificationIconStyle(
     kind: String?,
     data: Map<String, String> = emptyMap(),
 ): NotificationIconStyle = when (kind) {
+    // r1513 — nearby new-job page shares the bid-family icon.
+    "repair_job_new_nearby",
     "repair_bid_new",
     "repair_bid_accepted",
     "repair_bid_rejected",

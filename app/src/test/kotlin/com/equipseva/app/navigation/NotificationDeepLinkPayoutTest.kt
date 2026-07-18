@@ -66,6 +66,16 @@ class NotificationDeepLinkPayoutTest {
         )
     }
 
+    @Test fun `nearby new-job page routes to the job detail (r1514)`() {
+        assertEquals(
+            Routes.repairJobDetailRoute(jobUuid),
+            NotificationDeepLink.routeFor(
+                NotificationDeepLink.KIND_REPAIR_JOB_NEW_NEARBY,
+                mapOf("repair_job_id" to jobUuid),
+            ),
+        )
+    }
+
     @Test fun `amc visit unassigned routes to the engineer visits list, not the lost job`() {
         assertEquals(
             Routes.ENGINEER_AMC_VISITS,
