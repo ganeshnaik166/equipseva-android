@@ -278,4 +278,11 @@ class DataErrorTest {
         val msg = rest("bid_not_found").toUserMessage()
         assertTrue("got: $msg", msg.contains("bid is no longer", ignoreCase = true))
     }
+
+    @Test fun `referral_revoked maps to friendly copy, not raw code`() {
+        // r1506 — the last user-reachable code from the full 107-code census.
+        val msg = rest("referral_revoked").toUserMessage()
+        assertTrue("got: $msg", msg.contains("bounty was revoked", ignoreCase = true))
+        assertTrue("raw code must not leak, got: $msg", !msg.contains("referral_revoked"))
+    }
 }

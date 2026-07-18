@@ -111,6 +111,10 @@ private fun friendlyRestMessage(ex: RestException): String? {
             "We couldn't find this repair job anymore — pull to refresh and try again."
         raw.contains("job_not_found", ignoreCase = true) ->
             "We couldn't find that repair job anymore — pull to refresh and try again."
+        // r1506 — final census batch: an engineer confirming a pending
+        // referral whose bounty was revoked (round568 guard, ERRCODE 22023).
+        raw.contains("referral_revoked", ignoreCase = true) ->
+            "This referral's bounty was revoked, so it can no longer be confirmed. It'll clear from your list on the next refresh — contact support if you think this is a mistake."
         // 42501 = insufficient_privilege; also matches the literal phrase
         // Postgres returns when column-level grants block a SELECT.
         raw.contains("42501") || raw.contains("permission denied", ignoreCase = true) ->
