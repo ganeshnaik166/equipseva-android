@@ -28,7 +28,12 @@ depends on the contract:
 - **Graduation RPCs throw for a fresh verified engineer** — `my_supervision_
   graduation_status` + `my_tier_earnings_projection` error (not empty-return)
   for play-review-engineer, so Tier progress / Earnings projection show error
-  states. Likely needs a baseline row or a null-safe path in the fns.
+  states. UPDATE (r1516 analysis): both fns were audited in-repo and are
+  null-safe — the ladder seeds a 'none' tier (display_order 0) and the
+  graduation fn has an explicit no-progress-row baseline. The live failure is
+  therefore NOT explainable from this repo: check whether prod has migrations
+  round578/round587 applied, and pull the Postgres logs for the actual error
+  when play-review-engineer opens Tier progress.
 - **Code Red feed errored for the same account** (before a service location
   was set) — probably the same class; re-check after the RPC fix.
 - **Junk test jobs on play-review-hospital** ("Yyyy Shah", "Shsj Zjsj",
