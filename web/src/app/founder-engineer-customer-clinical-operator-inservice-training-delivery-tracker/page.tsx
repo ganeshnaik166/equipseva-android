@@ -1,0 +1,261 @@
+import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { DataTable, type Column } from '@/components/ui/DataTable';
+
+export const dynamic = 'force-dynamic';
+
+type VerdictRow = { delivery_verdict: string; sessions: number; pct: number };
+type HospRow = {
+  hospital_name: string;
+  total_sessions: number;
+  effective: number;
+  needs_followup: number;
+  not_effective: number;
+  total_attendees: number;
+  avg_pass_rate_pct: number | null;
+  avg_feedback: number | null;
+  effective_pct: number;
+};
+type MatrixRow = {
+  equipment_type: string;
+  session_type: string;
+  sessions: number;
+  effective: number;
+  avg_pass_rate_pct: number | null;
+  avg_feedback: number | null;
+};
+type TrendRow = {
+  session_date: string;
+  sessions: number;
+  effective: number;
+  not_delivered: number;
+  total_attendees: number;
+  total_no_shows: number;
+};
+type CapaRow = {
+  capa_status: string;
+  findings: number;
+  avg_cost_rupees: number | null;
+  overdue_flag: number;
+};
+type CauseRow = {
+  root_cause: string;
+  occurrences: number;
+  total_cost_rupees: number;
+  pct: number;
+};
+type RegRow = {
+  regulatory_impact: string;
+  findings: number;
+  open_findings: number;
+  total_cost_rupees: number;
+};
+type RiskRow = {
+  hospital_name: string;
+  engineer_name: string;
+  equipment_type: string;
+  session_date: string;
+  delivery_verdict: string;
+  cadre: string;
+  pass_rate_pct: number | null;
+  customer_feedback_score: number | null;
+  no_show_count: number;
+  notes: string | null;
+};
+
+export default async function Page() {
+  const supabase = await getSupabaseServerClient();
+
+  const [
+    verdictRes,
+    hospRes,
+    matrixRes,
+    trendRes,
+    capaRes,
+    causeRes,
+    regRes,
+    riskRes,
+  ] = await Promise.all([
+    supabase.rpc('founder_r3288_delivery_verdict_rollup'),
+    supabase.rpc('founder_r3288_hospital_scorecard'),
+    supabase.rpc('founder_r3288_equipment_session_matrix'),
+    supabase.rpc('founder_r3288_daily_delivery_trend'),
+    supabase.rpc('founder_r3288_capa_status_board'),
+    supabase.rpc('founder_r3288_root_cause_pareto'),
+    supabase.rpc('founder_r3288_regulatory_impact_digest'),
+    supabase.rpc('founder_r3288_high_risk_queue'),
+  ]);
+
+  const verdictRows: VerdictRow[] = (verdictRes.data as VerdictRow[]) ?? [];
+  const hospRows: HospRow[] = (hospRes.data as HospRow[]) ?? [];
+  const matrixRows: MatrixRow[] = (matrixRes.data as MatrixRow[]) ?? [];
+  const trendRows: TrendRow[] = (trendRes.data as TrendRow[]) ?? [];
+  const capaRows: CapaRow[] = (capaRes.data as CapaRow[]) ?? [];
+  const causeRows: CauseRow[] = (causeRes.data as CauseRow[]) ?? [];
+  const regRows: RegRow[] = (regRes.data as RegRow[]) ?? [];
+  const riskRows: RiskRow[] = (riskRes.data as RiskRow[]) ?? [];
+
+  const verdictCols: Column<VerdictRow>[] = [
+    { key: 'delivery_verdict', header: 'Delivery Verdict' },
+    { key: 'sessions', header: 'Sessions' },
+    { key: 'pct', header: 'Share %' },
+  ];
+
+  const hospCols: Column<HospRow>[] = [
+    { key: 'hospital_name', header: 'Hospital' },
+    { key: 'total_sessions', header: 'Sessions' },
+    { key: 'effective', header: 'Effective' },
+    { key: 'needs_followup', header: 'Needs Follow-up' },
+    { key: 'not_effective', header: 'Not Effective' },
+    { key: 'total_attendees', header: 'Attendees' },
+    { key: 'avg_pass_rate_pct', header: 'Avg Pass %' },
+    { key: 'avg_feedback', header: 'Avg Feedback' },
+    { key: 'effective_pct', header: 'Effective %' },
+  ];
+
+  const matrixCols: Column<MatrixRow>[] = [
+    { key: 'equipment_type', header: 'Equipment' },
+    { key: 'session_type', header: 'Session Type' },
+    { key: 'sessions', header: 'Sessions' },
+    { key: 'effective', header: 'Effective' },
+    { key: 'avg_pass_rate_pct', header: 'Avg Pass %' },
+    { key: 'avg_feedback', header: 'Avg Feedback' },
+  ];
+
+  const trendCols: Column<TrendRow>[] = [
+    { key: 'session_date', header: 'Date' },
+    { key: 'sessions', header: 'Sessions' },
+    { key: 'effective', header: 'Effective' },
+    { key: 'not_delivered', header: 'Not Delivered' },
+    { key: 'total_attendees', header: 'Attendees' },
+    { key: 'total_no_shows', header: 'No-Shows' },
+  ];
+
+  const capaCols: Column<CapaRow>[] = [
+    { key: 'capa_status', header: 'CAPA Status' },
+    { key: 'findings', header: 'Findings' },
+    { key: 'avg_cost_rupees', header: 'Avg Cost (INR)' },
+    { key: 'overdue_flag', header: 'Overdue / Escalated' },
+  ];
+
+  const causeCols: Column<CauseRow>[] = [
+    { key: 'root_cause', header: 'Root Cause' },
+    { key: 'occurrences', header: 'Occurrences' },
+    { key: 'total_cost_rupees', header: 'Total Cost (INR)' },
+    { key: 'pct', header: 'Share %' },
+  ];
+
+  const regCols: Column<RegRow>[] = [
+    { key: 'regulatory_impact', header: 'Regulatory Impact' },
+    { key: 'findings', header: 'Findings' },
+    { key: 'open_findings', header: 'Open' },
+    { key: 'total_cost_rupees', header: 'Total Cost (INR)' },
+  ];
+
+  const riskCols: Column<RiskRow>[] = [
+    { key: 'hospital_name', header: 'Hospital' },
+    { key: 'engineer_name', header: 'Engineer' },
+    { key: 'equipment_type', header: 'Equipment' },
+    { key: 'session_date', header: 'Date' },
+    { key: 'delivery_verdict', header: 'Verdict' },
+    { key: 'cadre', header: 'Cadre' },
+    { key: 'pass_rate_pct', header: 'Pass %' },
+    { key: 'customer_feedback_score', header: 'Feedback' },
+    { key: 'no_show_count', header: 'No-Shows' },
+    { key: 'notes', header: 'Notes' },
+  ];
+
+  return (
+    <main style={{ padding: '2rem', maxWidth: 1400, margin: '0 auto' }}>
+      <h1 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>
+        Engineer &amp; Customer — Clinical / Operator In-Service Training Delivery Tracker
+      </h1>
+      <p style={{ color: '#555', marginBottom: '2rem' }}>
+        Per-session training log — engineer &times; hospital &times; equipment type &times; session
+        type &times; clinical cadre &times; competency assessment &times; pass rate &times; customer
+        feedback &times; no-shows &times; delivery verdict &amp; CAPA re-training. Founder-gated view:
+        delivery verdicts, hospital scorecards, equipment&times;session matrix, root-cause pareto and
+        regulatory-impact digest across NABH &amp; ISO 13485 training surfaces.
+      </p>
+
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>1. Delivery verdict distribution</h2>
+        <DataTable
+          rows={verdictRows}
+          columns={verdictCols}
+          emptyMessage="No training sessions logged yet."
+          rowKey={(r, i) => String(r.delivery_verdict ?? i)}
+        />
+      </section>
+
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>2. Hospital training scorecard</h2>
+        <DataTable
+          rows={hospRows}
+          columns={hospCols}
+          emptyMessage="No hospital rollups."
+          rowKey={(r, i) => String(r.hospital_name ?? i)}
+        />
+      </section>
+
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>3. Equipment &times; session type matrix</h2>
+        <DataTable
+          rows={matrixRows}
+          columns={matrixCols}
+          emptyMessage="No sessions by equipment."
+          rowKey={(r, i) => `${r.equipment_type}-${r.session_type}-${i}`}
+        />
+      </section>
+
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>4. Daily delivery trend</h2>
+        <DataTable
+          rows={trendRows}
+          columns={trendCols}
+          emptyMessage="No trend data."
+          rowKey={(r, i) => String(r.session_date ?? i)}
+        />
+      </section>
+
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>5. CAPA status board</h2>
+        <DataTable
+          rows={capaRows}
+          columns={capaCols}
+          emptyMessage="No CAPA findings."
+          rowKey={(r, i) => String(r.capa_status ?? i)}
+        />
+      </section>
+
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>6. Root cause pareto</h2>
+        <DataTable
+          rows={causeRows}
+          columns={causeCols}
+          emptyMessage="No root-cause data."
+          rowKey={(r, i) => String(r.root_cause ?? i)}
+        />
+      </section>
+
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>7. Regulatory impact digest</h2>
+        <DataTable
+          rows={regRows}
+          columns={regCols}
+          emptyMessage="No regulatory-impact rollups."
+          rowKey={(r, i) => String(r.regulatory_impact ?? i)}
+        />
+      </section>
+
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>8. High-risk training queue</h2>
+        <DataTable
+          rows={riskRows}
+          columns={riskCols}
+          emptyMessage="No high-risk sessions."
+          rowKey={(r, i) => `${r.hospital_name}-${r.session_date}-${i}`}
+        />
+      </section>
+    </main>
+  );
+}
