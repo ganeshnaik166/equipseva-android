@@ -111,7 +111,7 @@ begin
     cycle_verdict, released_at, notes
   )
   select v_org_id, q.hosp, q.ot, q.tag, q.model,
-    q.cn, q.cd, q.cs::timestamptz, q.ce::timestamptz,
+    q.cn::int, q.cd::date, q.cs::timestamptz, q.ce::timestamptz,
     q.lt, q.prog, q.pt, q.ht, q.hs, q.pp,
     q.bd, q.vl, q.vv, q.biu, q.br, q.he,
     q.cv, q.rel::timestamptz, q.nt
