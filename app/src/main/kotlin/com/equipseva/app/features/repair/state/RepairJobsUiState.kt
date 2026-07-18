@@ -4,6 +4,14 @@ import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairJob
 
 /**
+ * Default open-feed radius (km). Matches the KYC default service radius
+ * engineers register with. r1508: also the sentinel loadEngineerBase() checks
+ * to know the user hasn't touched the filter yet — keep the UiState default
+ * and this constant identical.
+ */
+const val DEFAULT_RADIUS_KM = 50
+
+/**
  * Single state object the repair feed screen reads. Matches the shape of the
  * marketplace one so the two screens behave consistently (pull-to-refresh,
  * paging, error banner).
@@ -24,9 +32,12 @@ data class RepairJobsUiState(
     /**
      * Distance filter for the open-feed (km). `null` disables the filter and
      * falls back to the unfiltered open-feed query. Default 50 km matches the
-     * KYC default service radius engineers register with.
+     * KYC default service radius engineers register with. r1508: engineers
+     * with NO service location get flipped to All on first load (see
+     * loadEngineerBase) so their first feed shows real jobs, not the
+     * set-your-location wall.
      */
-    val radiusKm: Int? = 50,
+    val radiusKm: Int? = DEFAULT_RADIUS_KM,
     /** Distance from engineer base coords to each open-feed job, by job id. */
     val distanceByJobId: Map<String, Double> = emptyMap(),
     /** Hospital coords for each open-feed job, by job id. Used by the map. */

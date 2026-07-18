@@ -11,6 +11,7 @@ import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.repair.RepairBidRepository
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobRepository
+import com.equipseva.app.features.repair.state.DEFAULT_RADIUS_KM
 import com.equipseva.app.features.repair.state.RepairJobsUiState
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.firstOrNull
@@ -90,6 +91,20 @@ class RepairJobsViewModel @Inject constructor(
                     baseLongitude = fetched.longitude,
                     baseLoaded = true,
                 )
+            }
+            // r1508 (activation) — a brand-new engineer has no service
+            // location, so the DEFAULT 50 km radius filter can only show the
+            // set-your-location wall. Their first feed open should show real
+            // jobs: flip the filter to All (non-geo query) — but only when
+            // the filter is still the untouched default, so an engineer who
+            // deliberately picked a radius isn't overridden.
+            if (fetched.latitude == null || fetched.longitude == null) {
+                val untouchedDefault = _state.value.radiusKm == DEFAULT_RADIUS_KM
+                if (untouchedDefault) {
+                    _state.update { it.copy(radiusKm = null) }
+                    refresh()
+                    return@launch
+                }
             }
             // The init refresh() raced ahead of this fetch. If it went to the
             // proximity RPC without a base, it surfaced the misleading
