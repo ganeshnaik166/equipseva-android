@@ -1,0 +1,259 @@
+import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { DataTable, type Column } from '@/components/ui/DataTable';
+
+export const dynamic = 'force-dynamic';
+
+type VerdictRow = {
+  supplier_verdict: string;
+  suppliers: number;
+  total_spend_rupees: number;
+  pct: number;
+};
+type CatRow = {
+  supplier_category: string;
+  total_suppliers: number;
+  single_source: number;
+  distressed: number;
+  de_risk_urgent: number;
+  total_spend_rupees: number;
+  avg_on_time_pct: number;
+};
+type MatrixRow = {
+  supplier_category: string;
+  criticality: string;
+  suppliers: number;
+  total_spend_rupees: number;
+  avg_lead_time_days: number;
+};
+type TrendRow = {
+  last_review_date: string;
+  reviews: number;
+  distressed: number;
+  de_risk_urgent: number;
+  single_source: number;
+};
+type CapaRow = {
+  capa_status: string;
+  findings: number;
+  avg_cost_rupees: number;
+  overdue_flag: number;
+};
+type CauseRow = {
+  root_cause: string;
+  occurrences: number;
+  total_cost_rupees: number;
+  pct: number;
+};
+type RegRow = {
+  regulatory_impact: string;
+  findings: number;
+  open_findings: number;
+  total_cost_rupees: number;
+};
+type RiskRow = {
+  supplier_name: string;
+  supplier_code: string;
+  supplier_category: string;
+  criticality: string;
+  financial_health: string;
+  contract_status: string;
+  supplier_verdict: string;
+  second_source_identified: boolean;
+  continuity_plan_ready: boolean;
+  notes: string | null;
+};
+
+export default async function Page() {
+  const supabase = await getSupabaseServerClient();
+
+  const [
+    verdictRes,
+    catRes,
+    matrixRes,
+    trendRes,
+    capaRes,
+    causeRes,
+    regRes,
+    riskRes,
+  ] = await Promise.all([
+    supabase.rpc('founder_r3385_supplier_verdict_rollup'),
+    supabase.rpc('founder_r3385_category_scorecard'),
+    supabase.rpc('founder_r3385_category_criticality_matrix'),
+    supabase.rpc('founder_r3385_review_trend'),
+    supabase.rpc('founder_r3385_capa_status_board'),
+    supabase.rpc('founder_r3385_root_cause_pareto'),
+    supabase.rpc('founder_r3385_regulatory_impact_digest'),
+    supabase.rpc('founder_r3385_high_risk_suppliers'),
+  ]);
+
+  const verdictRows: VerdictRow[] = (verdictRes.data as VerdictRow[]) ?? [];
+  const catRows: CatRow[] = (catRes.data as CatRow[]) ?? [];
+  const matrixRows: MatrixRow[] = (matrixRes.data as MatrixRow[]) ?? [];
+  const trendRows: TrendRow[] = (trendRes.data as TrendRow[]) ?? [];
+  const capaRows: CapaRow[] = (capaRes.data as CapaRow[]) ?? [];
+  const causeRows: CauseRow[] = (causeRes.data as CauseRow[]) ?? [];
+  const regRows: RegRow[] = (regRes.data as RegRow[]) ?? [];
+  const riskRows: RiskRow[] = (riskRes.data as RiskRow[]) ?? [];
+
+  const verdictCols: Column<VerdictRow>[] = [
+    { key: 'supplier_verdict', header: 'Verdict' },
+    { key: 'suppliers', header: 'Suppliers' },
+    { key: 'total_spend_rupees', header: 'Total Spend (INR)' },
+    { key: 'pct', header: 'Share %' },
+  ];
+
+  const catCols: Column<CatRow>[] = [
+    { key: 'supplier_category', header: 'Category' },
+    { key: 'total_suppliers', header: 'Suppliers' },
+    { key: 'single_source', header: 'Single-Source' },
+    { key: 'distressed', header: 'Distressed' },
+    { key: 'de_risk_urgent', header: 'De-Risk / Exit' },
+    { key: 'total_spend_rupees', header: 'Total Spend (INR)' },
+    { key: 'avg_on_time_pct', header: 'Avg OTD %' },
+  ];
+
+  const matrixCols: Column<MatrixRow>[] = [
+    { key: 'supplier_category', header: 'Category' },
+    { key: 'criticality', header: 'Criticality' },
+    { key: 'suppliers', header: 'Suppliers' },
+    { key: 'total_spend_rupees', header: 'Total Spend (INR)' },
+    { key: 'avg_lead_time_days', header: 'Avg Lead Time (days)' },
+  ];
+
+  const trendCols: Column<TrendRow>[] = [
+    { key: 'last_review_date', header: 'Review Date' },
+    { key: 'reviews', header: 'Reviews' },
+    { key: 'distressed', header: 'Distressed' },
+    { key: 'de_risk_urgent', header: 'De-Risk / Exit' },
+    { key: 'single_source', header: 'Single-Source' },
+  ];
+
+  const capaCols: Column<CapaRow>[] = [
+    { key: 'capa_status', header: 'CAPA Status' },
+    { key: 'findings', header: 'Findings' },
+    { key: 'avg_cost_rupees', header: 'Avg Cost (INR)' },
+    { key: 'overdue_flag', header: 'Overdue / Escalated' },
+  ];
+
+  const causeCols: Column<CauseRow>[] = [
+    { key: 'root_cause', header: 'Root Cause' },
+    { key: 'occurrences', header: 'Occurrences' },
+    { key: 'total_cost_rupees', header: 'Total Cost (INR)' },
+    { key: 'pct', header: 'Share %' },
+  ];
+
+  const regCols: Column<RegRow>[] = [
+    { key: 'regulatory_impact', header: 'Regulatory Impact' },
+    { key: 'findings', header: 'Findings' },
+    { key: 'open_findings', header: 'Open' },
+    { key: 'total_cost_rupees', header: 'Total Cost (INR)' },
+  ];
+
+  const riskCols: Column<RiskRow>[] = [
+    { key: 'supplier_name', header: 'Supplier' },
+    { key: 'supplier_code', header: 'Code' },
+    { key: 'supplier_category', header: 'Category' },
+    { key: 'criticality', header: 'Criticality' },
+    { key: 'financial_health', header: 'Financial Health' },
+    { key: 'contract_status', header: 'Contract' },
+    { key: 'supplier_verdict', header: 'Verdict' },
+    { key: 'second_source_identified', header: '2nd Source?' },
+    { key: 'continuity_plan_ready', header: 'Continuity Plan?' },
+    { key: 'notes', header: 'Notes' },
+  ];
+
+  return (
+    <main style={{ padding: '2rem', maxWidth: 1400, margin: '0 auto' }}>
+      <h1 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>
+        Founder Supplier / OEM Risk, Financial-Health &amp; Supply-Continuity Board
+      </h1>
+      <p style={{ color: '#555', marginBottom: '2rem' }}>
+        EquipSeva supply-chain risk register — supplier category &times; criticality &times; financial
+        health &times; lead-time trend &times; on-time delivery &times; quality reject rate &times;
+        second-source readiness &times; contract status &times; continuity plan &times; supplier verdict
+        &amp; CAPA closure. Founder-gated view: verdict rollups, category scorecards, root-cause pareto,
+        and regulatory-impact digest across CDSCO import &amp; ISO 13485 supplier-control surfaces.
+      </p>
+
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>1. Supplier verdict distribution</h2>
+        <DataTable
+          rows={verdictRows}
+          columns={verdictCols}
+          emptyMessage="No suppliers assessed yet."
+          rowKey={(r, i) => String(r.supplier_verdict ?? i)}
+        />
+      </section>
+
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>2. Supplier category scorecard</h2>
+        <DataTable
+          rows={catRows}
+          columns={catCols}
+          emptyMessage="No category rollups."
+          rowKey={(r, i) => String(r.supplier_category ?? i)}
+        />
+      </section>
+
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>3. Category &times; criticality matrix</h2>
+        <DataTable
+          rows={matrixRows}
+          columns={matrixCols}
+          emptyMessage="No suppliers by category."
+          rowKey={(r, i) => `${r.supplier_category}-${r.criticality}-${i}`}
+        />
+      </section>
+
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>4. Supplier review-date trend</h2>
+        <DataTable
+          rows={trendRows}
+          columns={trendCols}
+          emptyMessage="No trend data."
+          rowKey={(r, i) => String(r.last_review_date ?? i)}
+        />
+      </section>
+
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>5. CAPA status board</h2>
+        <DataTable
+          rows={capaRows}
+          columns={capaCols}
+          emptyMessage="No CAPA findings."
+          rowKey={(r, i) => String(r.capa_status ?? i)}
+        />
+      </section>
+
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>6. Root cause pareto</h2>
+        <DataTable
+          rows={causeRows}
+          columns={causeCols}
+          emptyMessage="No root-cause data."
+          rowKey={(r, i) => String(r.root_cause ?? i)}
+        />
+      </section>
+
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>7. Regulatory impact digest</h2>
+        <DataTable
+          rows={regRows}
+          columns={regCols}
+          emptyMessage="No regulatory-impact rollups."
+          rowKey={(r, i) => String(r.regulatory_impact ?? i)}
+        />
+      </section>
+
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>8. High-risk supplier queue</h2>
+        <DataTable
+          rows={riskRows}
+          columns={riskCols}
+          emptyMessage="No high-risk suppliers."
+          rowKey={(r, i) => `${r.supplier_code}-${i}`}
+        />
+      </section>
+    </main>
+  );
+}
