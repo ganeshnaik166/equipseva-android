@@ -13,6 +13,8 @@ const SECTIONS: OpsSection[] = [
       { href: "/cross-tabs-index", title: "Cross-tabs index ★", desc: "11 month × status surfaces in one place (r976 / PR #1600 milestone)", round: "r976★" },
       { href: "/platform-pulse", title: "Platform pulse", desc: "12 KPIs at a glance · executive snapshot", round: "r700★" },
       { href: "/dashboard", title: "Hero dashboard", desc: "Top-line KPIs + today vs yesterday", round: "r597+" },
+      { href: "/founder-runbook", title: "Founder runbook", desc: "Operating runbook · per-section intent + why-it-matters", round: "r723" },
+      { href: "/founder-incidents", title: "Founder incidents ★", desc: "Historical fire record · auto-created from action-center criticals >24h · root-cause notes", round: "r1311★" },
     ],
   },
   {
