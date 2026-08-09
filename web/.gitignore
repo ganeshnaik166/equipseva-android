@@ -7,4 +7,4 @@ out
 .DS_Store
 .turbo
 next-env.d.ts
-tsconfig.tsbuildinfo
+*.tsbuildinfo
