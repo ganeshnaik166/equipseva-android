@@ -3,9 +3,17 @@ import type { ReactNode } from "react";
 export type Column<T> = {
   key: string;
   header: string;
-  render: (row: T, index: number) => ReactNode;
+  // Optional: when omitted, the cell renders row[key] directly. Hundreds of
+  // generated founder pages rely on this key-based fallback.
+  render?: (row: T, index: number) => ReactNode;
   width?: string;
 };
+
+function defaultCell<T>(row: T, key: string): ReactNode {
+  const v = (row as Record<string, unknown>)[key];
+  if (v === null || v === undefined || v === "") return "—";
+  return String(v);
+}
 
 export function DataTable<T>({
   columns,
@@ -45,7 +53,7 @@ export function DataTable<T>({
             >
               {columns.map((c) => (
                 <td key={c.key} className="px-3 py-2.5 align-top text-[var(--color-fg)]">
-                  {c.render(row, i)}
+                  {c.render ? c.render(row, i) : defaultCell(row, c.key)}
                 </td>
               ))}
             </tr>
