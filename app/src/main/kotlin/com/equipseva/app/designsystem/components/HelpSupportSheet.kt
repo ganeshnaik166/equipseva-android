@@ -37,11 +37,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
+import com.equipseva.app.R
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaGreen50
@@ -90,7 +92,7 @@ fun HelpSupportSheet(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = "Reach our team — we usually reply within 24h on business days.",
+                text = stringResource(R.string.helpsupport_reach_our_team),
                 fontSize = 12.sp,
                 color = SevaInk500,
             )
@@ -175,7 +177,7 @@ private fun ReportFormSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                "Tell us what happened. We'll respond from $SUPPORT_EMAIL.",
+                stringResource(R.string.helpsupport_tell_us_what_happened, SUPPORT_EMAIL),
                 fontSize = 12.sp,
                 color = SevaInk500,
             )

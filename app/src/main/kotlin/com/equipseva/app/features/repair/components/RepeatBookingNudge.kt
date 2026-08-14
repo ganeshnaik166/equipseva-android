@@ -28,10 +28,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.equipseva.app.R
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
 import com.equipseva.app.core.util.initialsOf
 import com.equipseva.app.designsystem.components.InlineStars
@@ -96,7 +98,7 @@ fun RepeatBookingNudge(
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = "Try a verified local engineer to cut travel time + cost.",
+                    text = stringResource(R.string.repeat_booking_nudge_subtitle),
                     fontSize = 11.sp,
                     color = SevaInk500,
                     lineHeight = 16.sp,

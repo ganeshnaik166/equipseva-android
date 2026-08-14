@@ -11,9 +11,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equipseva.app.R
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.EsBottomSheet
 import com.equipseva.app.designsystem.components.EsBtn
@@ -100,7 +102,7 @@ fun ReviseQuoteSheet(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                text = "Current contracted amount",
+                text = stringResource(R.string.revise_quote_current_contracted_amount),
                 fontSize = 12.sp,
                 color = SevaInk500,
             )
@@ -119,7 +121,7 @@ fun ReviseQuoteSheet(
             )
             if (parsedAmount != null && parsedAmount <= currentContractedRupees) {
                 Text(
-                    text = "Revised amount must exceed the current contracted amount.",
+                    text = stringResource(R.string.revise_quote_amount_must_exceed),
                     fontSize = 11.sp,
                     color = SevaInk500,
                 )
@@ -132,7 +134,7 @@ fun ReviseQuoteSheet(
                 type = EsFieldType.Multiline,
             )
             Text(
-                text = "$reasonLen / $REASON_MAX",
+                text = stringResource(R.string.revise_quote_reason_count, reasonLen, REASON_MAX),
                 fontSize = 11.sp,
                 color = if (reasonValid || reasonLen == 0) SevaInk500 else SevaInk700,
             )

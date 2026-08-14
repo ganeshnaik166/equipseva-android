@@ -12,9 +12,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equipseva.app.R
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk700
 
@@ -33,9 +35,9 @@ fun CallConnectingDialog(
     AlertDialog(
         onDismissRequest = onCancel,
         confirmButton = {
-            TextButton(onClick = onCancel) { Text("Cancel") }
+            TextButton(onClick = onCancel) { Text(stringResource(R.string.common_cancel)) }
         },
-        title = { Text("Connecting…") },
+        title = { Text(stringResource(R.string.call_connecting_dialog_title)) },
         text = {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -51,7 +53,7 @@ fun CallConnectingDialog(
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    text = "Your phone will ring shortly. Real numbers stay private — calls route through EquipSeva's secure line.",
+                    text = stringResource(R.string.call_connecting_dialog_secure_note),
                     color = SevaInk500,
                     fontSize = 11.sp,
                     textAlign = TextAlign.Center,

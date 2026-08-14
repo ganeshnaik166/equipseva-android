@@ -43,11 +43,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.app.Application
+import com.equipseva.app.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -437,7 +439,7 @@ private fun EmptyEngineersError(message: String, onRetry: () -> Unit) {
         )
         Spacer(Modifier.height(12.dp))
         Text(
-            "Couldn't load engineers",
+            stringResource(R.string.engineer_directory_error_title),
             color = SevaInk900,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
@@ -479,7 +481,7 @@ private fun EmptyEngineers(
         )
         Spacer(Modifier.height(12.dp))
         Text(
-            "No engineers match",
+            stringResource(R.string.create_amc_wizard_picker_no_results),
             color = SevaInk700,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
@@ -516,7 +518,7 @@ private fun FilterSheet(
     EsBottomSheet(onClose = onClose, title = "Filters") {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "Sort by",
+                stringResource(R.string.engineer_directory_sort_by_label),
                 color = SevaInk700,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -549,14 +551,14 @@ private fun FilterSheet(
             if (!hasLocation && !resolvingLocation) {
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Enable location for distance-based sort",
+                    stringResource(R.string.engineer_directory_location_hint),
                     color = SevaInk500,
                     fontSize = 11.sp,
                 )
             }
             Spacer(Modifier.height(16.dp))
             Text(
-                "Specialization",
+                stringResource(R.string.engineer_directory_specialization_label),
                 color = SevaInk700,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -679,7 +681,7 @@ private fun EngCard(
                 // 20 jobs. Hide the field when no real number exists.
                 row.completionPctOverride?.let { pct ->
                     Text(
-                        "$pct% complete",
+                        stringResource(R.string.engineer_directory_completion_pct, pct),
                         color = SevaInk400,
                         fontSize = 11.sp,
                     )
@@ -758,7 +760,7 @@ internal fun InlineVerifiedBadge(small: Boolean = false) {
             modifier = Modifier.size(if (small) 11.dp else 13.dp),
         )
         Text(
-            "Verified",
+            stringResource(R.string.verified_badge_label),
             color = SevaGreen700,
             fontSize = if (small) 10.sp else 11.sp,
             fontWeight = FontWeight.SemiBold,

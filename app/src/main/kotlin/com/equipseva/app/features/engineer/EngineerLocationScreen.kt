@@ -19,8 +19,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.equipseva.app.R
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
@@ -71,7 +73,7 @@ fun EngineerLocationScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = "Drag the pin or use the location button to set the centre of your service area. The radius circle on Available Jobs always anchors here.",
+                    text = stringResource(R.string.engineer_location_drag_pin_instructions),
                     style = EsType.BodySm,
                     color = SevaInk500,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),

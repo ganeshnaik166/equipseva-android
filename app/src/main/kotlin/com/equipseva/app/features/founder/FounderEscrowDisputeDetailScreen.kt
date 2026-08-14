@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,6 +37,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.prettyDateTime
 import com.equipseva.app.designsystem.components.EmptyStateView
@@ -216,7 +218,11 @@ private fun EscrowEventRow(row: FounderRepository.EscrowEventRow) {
                 color = SevaInk900,
             )
             row.occurredAt?.let {
-                Text("Occurred: ${prettyDateTime(it)}", color = SevaInk500, fontSize = 11.sp)
+                Text(
+                    stringResource(R.string.founder_escrow_dispute_detail_occurred, prettyDateTime(it)),
+                    color = SevaInk500,
+                    fontSize = 11.sp,
+                )
             }
             val actorLabel = escrowEventActorLine(row.actorName, row.actorUserId)
             if (actorLabel != null) {
@@ -251,7 +257,7 @@ private fun TrackRecordCard(rec: FounderRepository.DisputePartyTrackRecord) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            text = "PARTY TRACK RECORD · LAST 90 DAYS",
+            text = stringResource(R.string.founder_escrow_dispute_detail_party_track_record_header),
             color = SevaInk500,
             fontSize = 11.sp,
             fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
@@ -275,7 +281,7 @@ private fun TrackRecordCard(rec: FounderRepository.DisputePartyTrackRecord) {
         )
         if (rec.hospitalDisputesFiled >= 3 || rec.engineerDisputesRecv >= 3) {
             Text(
-                text = "Pattern flag — 3+ disputes in window. Weight evidence accordingly.",
+                text = stringResource(R.string.founder_escrow_dispute_detail_pattern_flag),
                 color = SevaWarning500,
                 fontSize = 11.sp,
                 fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,

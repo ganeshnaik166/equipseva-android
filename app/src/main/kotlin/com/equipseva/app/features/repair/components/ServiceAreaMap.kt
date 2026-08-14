@@ -10,7 +10,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.equipseva.app.R
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.Spacing
 import com.google.android.gms.maps.model.CameraPosition
@@ -48,7 +50,7 @@ fun ServiceAreaMap(
             tonalElevation = 1.dp,
         ) {
             Text(
-                text = "No service-area pin yet — ask the engineer to add their base location.",
+                text = stringResource(R.string.service_area_map_no_pin_yet),
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(Spacing.md),
             )

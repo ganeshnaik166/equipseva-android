@@ -18,8 +18,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.equipseva.app.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -98,21 +100,32 @@ fun HomeEngineerTierChip(
         when {
             d.nextTier == null -> {
                 Text(
-                    text = "${d.currentTier.replaceFirstChar { it.uppercase() }} tier · top of ladder",
+                    text = stringResource(
+                        R.string.home_engineer_tier_chip_top_of_ladder,
+                        d.currentTier.replaceFirstChar { it.uppercase() },
+                    ),
                     style = EsType.BodySm.copy(fontWeight = FontWeight.SemiBold),
                     color = SevaInk900,
                 )
             }
             d.projectedMonthlyUpliftRupees > 0.0 -> {
                 Text(
-                    text = "Reach ${d.nextTier.replaceFirstChar { it.uppercase() }} → ${formatRupees(d.projectedMonthlyUpliftRupees)}/mo more",
+                    text = stringResource(
+                        R.string.home_engineer_tier_chip_reach_uplift,
+                        d.nextTier.replaceFirstChar { it.uppercase() },
+                        formatRupees(d.projectedMonthlyUpliftRupees),
+                    ),
                     style = EsType.BodySm.copy(fontWeight = FontWeight.SemiBold),
                     color = SevaInk900,
                 )
             }
             else -> {
                 Text(
-                    text = "Currently ${d.currentTier.replaceFirstChar { it.uppercase() }} · next ${d.nextTier.replaceFirstChar { it.uppercase() }}",
+                    text = stringResource(
+                        R.string.home_engineer_tier_chip_currently_next,
+                        d.currentTier.replaceFirstChar { it.uppercase() },
+                        d.nextTier.replaceFirstChar { it.uppercase() },
+                    ),
                     style = EsType.BodySm.copy(fontWeight = FontWeight.SemiBold),
                     color = SevaInk900,
                 )

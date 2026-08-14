@@ -29,10 +29,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equipseva.app.R
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
@@ -90,7 +92,7 @@ fun RequestSentScreen(
                 }
                 Spacer(Modifier.height(24.dp))
                 Text(
-                    text = "Request posted",
+                    text = stringResource(R.string.request_sent_title),
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.24).sp,
@@ -108,7 +110,7 @@ fun RequestSentScreen(
                     )
                 } else {
                     Text(
-                        text = "Your repair request is live. Verified engineers in your area can now bid.",
+                        text = stringResource(R.string.request_sent_default_body),
                         fontSize = 13.sp,
                         lineHeight = 19.5.sp,
                         color = SevaInk600,
@@ -166,7 +168,7 @@ private fun NextStepsCard() {
             .padding(14.dp),
     ) {
         Text(
-            text = "WHAT HAPPENS NEXT",
+            text = stringResource(R.string.request_sent_next_steps_heading),
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
             color = SevaInk500,

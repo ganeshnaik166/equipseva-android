@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -26,6 +27,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.location.IndiaLocations
@@ -174,14 +176,13 @@ fun HospitalOnboardingScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                "Welcome to EquipSeva",
+                stringResource(R.string.hospital_onboarding_welcome_title),
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = SevaInk900,
             )
             Text(
-                "A few quick details so engineers can reach you and we can match jobs near you. " +
-                    "You can change these anytime in Profile.",
+                stringResource(R.string.hospital_onboarding_intro),
                 fontSize = 14.sp,
                 color = SevaInk500,
             )
@@ -195,16 +196,16 @@ fun HospitalOnboardingScreen(
             OutlinedTextField(
                 value = s.phone,
                 onValueChange = viewModel::onPhoneChange,
-                label = { Text("Phone") },
-                placeholder = { Text("+91 98765 43210") },
+                label = { Text(stringResource(R.string.engineer_onboarding_phone_label)) },
+                placeholder = { Text(stringResource(R.string.engineer_onboarding_phone_placeholder)) },
                 supportingText = {
                     if (phoneInputError) {
                         Text(
-                            "Enter a valid 10-digit Indian mobile number.",
+                            stringResource(R.string.engineer_onboarding_phone_error),
                             color = androidx.compose.material3.MaterialTheme.colorScheme.error,
                         )
                     } else {
-                        Text("We send job updates here. 10-digit Indian mobile.")
+                        Text(stringResource(R.string.hospital_onboarding_phone_helper))
                     }
                 },
                 isError = phoneInputError,

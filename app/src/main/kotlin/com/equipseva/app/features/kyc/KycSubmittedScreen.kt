@@ -26,10 +26,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equipseva.app.R
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
@@ -78,7 +80,7 @@ fun KycSubmittedScreen(
                 }
                 Spacer(Modifier.height(24.dp))
                 Text(
-                    text = "Submitted for review",
+                    text = stringResource(R.string.job_status_submitted_for_review),
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = SevaInk900,
@@ -86,7 +88,7 @@ fun KycSubmittedScreen(
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "We'll verify your documents within 4–24 hours and notify you. Until then you can browse jobs but not bid.",
+                    text = stringResource(R.string.kyc_submitted_verify_notice),
                     fontSize = 13.sp,
                     lineHeight = 19.sp,
                     color = SevaInk600,

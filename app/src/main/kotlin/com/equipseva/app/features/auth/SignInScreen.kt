@@ -25,12 +25,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.R
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
@@ -87,7 +89,7 @@ fun SignInScreen(
                     .padding(horizontal = 20.dp, vertical = 8.dp),
             ) {
                 Text(
-                    text = "Welcome back",
+                    text = stringResource(R.string.sign_in_welcome_back),
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.24).sp,
@@ -95,7 +97,7 @@ fun SignInScreen(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "Sign in to your EquipSeva account.",
+                    text = stringResource(R.string.sign_in_subtitle),
                     fontSize = 13.sp,
                     color = SevaInk500,
                 )
@@ -126,7 +128,7 @@ fun SignInScreen(
                 // Forgot link, right-aligned.
                 Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.End) {
                     Text(
-                        text = "Forgot password?",
+                        text = stringResource(R.string.sign_in_forgot_password),
                         style = EsType.Caption.copy(fontWeight = FontWeight.SemiBold),
                         color = SevaGreen700,
                         modifier = Modifier.clickable(enabled = !state.form.submitting, onClick = onForgotPassword),
@@ -162,12 +164,12 @@ fun SignInScreen(
                     horizontalArrangement = Arrangement.Center,
                 ) {
                     Text(
-                        text = "New here? ",
+                        text = stringResource(R.string.sign_in_new_here),
                         fontSize = 13.sp,
                         color = SevaInk600,
                     )
                     Text(
-                        text = "Create account",
+                        text = stringResource(R.string.welcome_create_account),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = SevaGreen700,
@@ -188,7 +190,7 @@ private fun OrDivider() {
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(modifier = Modifier.weight(1f).height(1.dp).background(BorderDefault))
-        Text(text = "or", fontSize = 12.sp, color = SevaInk400, textAlign = TextAlign.Center)
+        Text(text = stringResource(R.string.or_divider_label), fontSize = 12.sp, color = SevaInk400, textAlign = TextAlign.Center)
         Box(modifier = Modifier.weight(1f).height(1.dp).background(BorderDefault))
     }
 }

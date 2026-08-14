@@ -21,8 +21,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equipseva.app.R
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
@@ -58,7 +60,7 @@ fun MaskedContactPanel(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
-            text = "Contact engineer",
+            text = stringResource(R.string.masked_contact_panel_title),
             fontSize = 13.sp,
             color = SevaInk900,
         )
@@ -124,7 +126,7 @@ fun MaskedContactPanel(
                         .size(16.dp),
                 )
                 Text(
-                    text = "Calls route through EquipSeva's secure line. Your real number — and the engineer's — stay private.",
+                    text = stringResource(R.string.masked_contact_panel_secure_note),
                     color = SevaInfo500,
                     fontSize = 12.sp,
                     lineHeight = 17.sp,
@@ -147,7 +149,7 @@ fun MaskedContactPanelComingSoon(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text(text = "Contact engineer", fontSize = 13.sp, color = SevaInk900)
+        Text(text = stringResource(R.string.masked_contact_panel_title), fontSize = 13.sp, color = SevaInk900)
         Box(modifier = Modifier.fillMaxWidth()) {
             EsBtn(
                 text = if (chatBusy) "Opening…" else "Open chat",
@@ -159,7 +161,7 @@ fun MaskedContactPanelComingSoon(
             )
         }
         Text(
-            text = "In-app calls coming soon — chat for now to keep your details private.",
+            text = stringResource(R.string.masked_contact_panel_coming_soon_note),
             color = SevaInk500,
             fontSize = 12.sp,
         )

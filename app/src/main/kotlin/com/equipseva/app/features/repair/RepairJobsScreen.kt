@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -48,6 +49,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.R
 import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobStatus
@@ -252,7 +254,7 @@ fun RepairJobsScreen(
                         } else if (state.endReached && openJobs.isNotEmpty()) {
                             item("end") {
                                 Text(
-                                    text = "That's all the open jobs we have right now.",
+                                    text = stringResource(R.string.repair_jobs_end_of_list),
                                     style = EsType.Caption,
                                     color = SevaInk500,
                                     textAlign = TextAlign.Center,
@@ -550,7 +552,7 @@ private fun MapPreviewBox(
                     // map circle stays bounded, but the label must NOT
                     // claim "50 km radius" — that lies about the active
                     // filter. Show "All radii" instead.
-                    text = if (radiusKm == null) "All radii" else "${effectiveRadiusKm} km radius",
+                    text = if (radiusKm == null) stringResource(R.string.repair_jobs_map_all_radii) else stringResource(R.string.repair_jobs_map_km_radius, effectiveRadiusKm),
                     style = EsType.Caption.copy(fontSize = 11.sp, fontWeight = FontWeight.Medium),
                     color = SevaInk700,
                 )
@@ -571,7 +573,7 @@ private fun MapPreviewBox(
                         // Jobs → Service location, not the KYC wizard.
                         // The old "Set base in KYC" hint sent users back
                         // through a flow they'd already finished.
-                        text = "Set service location",
+                        text = stringResource(R.string.repair_jobs_map_set_service_location),
                         style = EsType.Caption.copy(fontSize = 11.sp, fontWeight = FontWeight.Medium),
                         color = SevaWarning700,
                     )

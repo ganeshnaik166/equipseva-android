@@ -28,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -38,6 +39,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.data.payouts.EngineerPayoutRepository
 import com.equipseva.app.core.data.payouts.PayoutMethodKind
@@ -399,12 +401,10 @@ fun EngineerPayoutOnboardingScreen(
     if (s.signOutConfirmOpen) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = viewModel::dismissSignOutConfirm,
-            title = { Text("Sign out and finish later?") },
+            title = { Text(stringResource(R.string.engineer_payout_onboarding_sign_out_confirm_title)) },
             text = {
                 Text(
-                    "You'll need to add a UPI ID and bank account before " +
-                        "you can accept jobs. Sign back in any time to " +
-                        "continue.",
+                    stringResource(R.string.engineer_payout_onboarding_sign_out_confirm_body),
                 )
             },
             confirmButton = {
@@ -412,13 +412,13 @@ fun EngineerPayoutOnboardingScreen(
                     onClick = viewModel::confirmSignOut,
                     enabled = !s.signingOut,
                 ) {
-                    Text(if (s.signingOut) "Signing out…" else "Sign out")
+                    Text(if (s.signingOut) stringResource(R.string.profile_signout_in_progress_label) else stringResource(R.string.profile_signout_action_label))
                 }
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(
                     onClick = viewModel::dismissSignOutConfirm,
-                ) { Text("Stay here") }
+                ) { Text(stringResource(R.string.engineer_payout_onboarding_stay_here)) }
             },
         )
     }
@@ -440,15 +440,13 @@ fun EngineerPayoutOnboardingScreen(
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
             Text(
-                "Add payout details",
+                stringResource(R.string.engineer_payout_onboarding_title),
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = SevaInk900,
             )
             Text(
-                "We save both so your earnings can always reach you. " +
-                    "UPI is the fastest path; bank account is the fallback " +
-                    "if UPI ever fails. Both required before you can accept jobs.",
+                stringResource(R.string.engineer_payout_onboarding_description),
                 fontSize = 14.sp,
                 color = SevaInk500,
             )
@@ -531,7 +529,7 @@ fun EngineerPayoutOnboardingScreen(
                         s.ifscLookupInFlight -> {
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                "Looking up bank…",
+                                stringResource(R.string.engineer_payout_onboarding_ifsc_looking_up),
                                 fontSize = 12.sp,
                                 color = SevaInk500,
                             )
@@ -539,7 +537,12 @@ fun EngineerPayoutOnboardingScreen(
                         s.ifscResolved != null -> {
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                "✓ ${s.ifscResolved!!.bank} · ${s.ifscResolved!!.branch}, ${s.ifscResolved!!.city}",
+                                stringResource(
+                                    R.string.engineer_payout_onboarding_ifsc_resolved,
+                                    s.ifscResolved!!.bank,
+                                    s.ifscResolved!!.branch,
+                                    s.ifscResolved!!.city,
+                                ),
                                 fontSize = 12.sp,
                                 color = SevaGreen700,
                                 fontWeight = FontWeight.Medium,
@@ -548,7 +551,7 @@ fun EngineerPayoutOnboardingScreen(
                         s.ifscLookupFailed -> {
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                "Couldn't verify IFSC — double-check, then save anyway.",
+                                stringResource(R.string.engineer_payout_onboarding_ifsc_unverified),
                                 fontSize = 12.sp,
                                 color = SevaInk500,
                             )

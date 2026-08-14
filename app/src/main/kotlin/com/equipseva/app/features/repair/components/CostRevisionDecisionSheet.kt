@@ -14,9 +14,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equipseva.app.R
 import com.equipseva.app.core.data.repair.CostRevision
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.EsBottomSheet
@@ -75,7 +77,7 @@ fun CostRevisionDecisionSheet(
                 }
             }
             Text(
-                text = "Engineer's note",
+                text = stringResource(R.string.cost_revision_engineers_note),
                 fontSize = 12.sp,
                 color = SevaInk500,
                 fontWeight = FontWeight.SemiBold,
@@ -122,7 +124,7 @@ private fun DeltaRow(delta: Double, pct: Double) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "Difference",
+            text = stringResource(R.string.cost_revision_difference),
             fontSize = 12.sp,
             color = SevaInk500,
         )

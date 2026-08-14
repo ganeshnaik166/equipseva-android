@@ -17,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.profile.ProfileRepository
@@ -143,7 +145,7 @@ fun AddPhoneScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    "Enter your mobile number",
+                    stringResource(R.string.add_phone_title_prompt),
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = SevaInk900,
@@ -154,7 +156,7 @@ fun AddPhoneScreen(
                     // MSG91 round-trip yet. Saying it's verified would be
                     // a lie. Keep the masked-call promise (that's real —
                     // Exotel bridge handles it).
-                    "Used to coordinate active jobs. Calls between you and the other party route through EquipSeva — your real number stays private.",
+                    stringResource(R.string.add_phone_privacy_note),
                     fontSize = 13.sp,
                     color = SevaInk500,
                 )
@@ -168,7 +170,7 @@ fun AddPhoneScreen(
                 OutlinedTextField(
                     value = state.phone,
                     onValueChange = viewModel::onPhoneChange,
-                    label = { Text("Phone (e.g. +919999999999)") },
+                    label = { Text(stringResource(R.string.add_phone_field_hint)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Phone,

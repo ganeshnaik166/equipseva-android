@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.R
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
@@ -83,15 +85,13 @@ fun HospitalPhoneOnboardingScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    "One last step",
+                    stringResource(R.string.hospital_phone_onboarding_title),
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = SevaInk900,
                 )
                 Text(
-                    "We need your mobile number to coordinate active jobs. " +
-                        "Calls between you and the engineer route through EquipSeva " +
-                        "— your real number stays private.",
+                    stringResource(R.string.hospital_phone_onboarding_subtitle),
                     fontSize = 13.sp,
                     color = SevaInk500,
                 )
@@ -102,7 +102,7 @@ fun HospitalPhoneOnboardingScreen(
                 OutlinedTextField(
                     value = state.phone,
                     onValueChange = viewModel::onPhoneChange,
-                    label = { Text("Phone (e.g. +919999999999)") },
+                    label = { Text(stringResource(R.string.hospital_phone_onboarding_phone_placeholder)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Phone,

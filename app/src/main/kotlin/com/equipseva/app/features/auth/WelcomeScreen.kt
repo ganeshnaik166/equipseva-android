@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -78,7 +79,7 @@ fun WelcomeScreen(
                 )
                 Spacer(Modifier.height(28.dp))
                 Text(
-                    text = "EquipSeva",
+                    text = stringResource(R.string.app_name),
                     fontFamily = EsFontFamily,
                     fontSize = 36.sp,
                     fontWeight = FontWeight.Bold,
@@ -88,7 +89,7 @@ fun WelcomeScreen(
                 )
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = "Hospitals book verified biomedical engineers. Engineers find local jobs and get paid on time.",
+                    text = stringResource(R.string.welcome_tagline),
                     fontFamily = EsFontFamily,
                     fontSize = 16.sp,
                     lineHeight = 23.sp,
@@ -120,7 +121,7 @@ fun WelcomeScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "Create account",
+                    text = stringResource(R.string.welcome_create_account),
                     fontFamily = EsFontFamily,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,

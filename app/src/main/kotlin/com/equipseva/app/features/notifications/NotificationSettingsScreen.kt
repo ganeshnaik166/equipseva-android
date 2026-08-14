@@ -32,12 +32,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.R
 import com.equipseva.app.core.data.prefs.QuietHoursPrefs
 import com.equipseva.app.designsystem.components.EsField
 import com.equipseva.app.designsystem.components.EsSection
@@ -250,13 +252,13 @@ private fun QuietHoursCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Silence push during a window",
+                    text = stringResource(R.string.notification_settings_silence_push_window),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = SevaInk900,
                 )
                 Text(
-                    text = "Notifications still land in your inbox.",
+                    text = stringResource(R.string.notification_settings_notifications_still_land),
                     fontSize = 11.sp,
                     color = SevaInk500,
                     modifier = Modifier.padding(top = 2.dp),
@@ -313,9 +315,9 @@ private fun QuietHoursCard(
                 val spansMidnight = prefs.endMinutes < prefs.startMinutes
                 Text(
                     text = if (spansMidnight) {
-                        "Quiet hours span midnight (overnight)."
+                        stringResource(R.string.notification_settings_quiet_hours_span_midnight)
                     } else {
-                        "Quiet hours stay within the same day."
+                        stringResource(R.string.notification_settings_quiet_hours_same_day)
                     },
                     fontSize = 11.sp,
                     color = SevaInk500,
@@ -324,7 +326,7 @@ private fun QuietHoursCard(
                 // Start == End is a backend-silent disable in QuietHours.kt.
                 // Surface it so the user doesn't think the toggle works.
                 Text(
-                    text = "Start and end can't match — quiet hours won't apply.",
+                    text = stringResource(R.string.notification_settings_quiet_hours_start_end_match),
                     fontSize = 11.sp,
                     color = SevaInk500,
                 )
@@ -346,19 +348,18 @@ private fun PermissionDeniedBanner(onOpenSystemSettings: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            text = "Notifications are turned off",
+            text = stringResource(R.string.notification_settings_notifications_turned_off),
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             color = SevaInk900,
         )
         Text(
-            text = "EquipSeva can't post any notifications until you grant the permission in system Settings. " +
-                "The toggles below still save your preferences for when it's re-enabled.",
+            text = stringResource(R.string.notification_settings_permission_denied_body),
             fontSize = 12.sp,
             color = SevaInk500,
         )
         Text(
-            text = "Open system Settings",
+            text = stringResource(R.string.notification_settings_open_system_settings),
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
             color = SevaGreen700,

@@ -15,7 +15,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import com.equipseva.app.R
 import com.equipseva.app.core.data.location.IndiaLocations
 
 /**
@@ -46,7 +48,7 @@ fun OnboardingStateDropdown(
         OutlinedTextField(
             value = value,
             onValueChange = { /* readOnly */ },
-            label = { Text("State") },
+            label = { Text(stringResource(R.string.kyc_review_state_label)) },
             readOnly = true,
             enabled = enabled,
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -88,7 +90,7 @@ fun OnboardingDistrictField(
             OutlinedTextField(
                 value = value,
                 onValueChange = { /* readOnly */ },
-                label = { Text("District") },
+                label = { Text(stringResource(R.string.onboarding_location_district_label)) },
                 readOnly = true,
                 enabled = enabled,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -115,14 +117,14 @@ fun OnboardingDistrictField(
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            label = { Text("District") },
+            label = { Text(stringResource(R.string.onboarding_location_district_label)) },
             singleLine = true,
             enabled = enabled,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             modifier = Modifier.fillMaxWidth(),
             supportingText = {
                 if (enabled) {
-                    Text("Type your district (we don't have a list for this state yet).")
+                    Text(stringResource(R.string.onboarding_location_district_hint))
                 }
             },
         )

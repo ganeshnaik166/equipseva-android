@@ -11,6 +11,11 @@
     -->
     <string name="razorpay_api_key" translatable="false"></string>
 
+    <!-- AddPhoneScreen -->
+    <string name="add_phone_title_prompt">Enter your mobile number</string>
+    <string name="add_phone_privacy_note">Used to coordinate active jobs. Calls between you and the other party route through EquipSeva — your real number stays private.</string>
+    <string name="add_phone_field_hint">Phone (e.g. +919999999999)</string>
+
     <!--
         Round 514 (v0.4 P5 #9) â i18n seed. These 30 keys cover the
         hottest hospital + engineer surfaces. NO Compose call-sites are
@@ -58,11 +63,14 @@
     <!-- Call masking -->
     <string name="call_secure_line_note">Calls route through EquipSeva\'s secure line</string>
     <string name="call_scoped_note">Book a job or open chat first â calls are scoped to active jobs</string>
+    <string name="call_connecting_dialog_title">Connecting…</string>
+    <string name="call_connecting_dialog_secure_note">Your phone will ring shortly. Real numbers stay private — calls route through EquipSeva\'s secure line.</string>
 
     <!-- KYC -->
     <string name="kyc_review_window">After submit: typically reviewed within 4â24 hours</string>
     <string name="kyc_photo_hint">Capture 1â4 photos of the equipment before you start</string>
     <string name="kyc_verify_window">We\'ll verify your documents within 4â24 hours and notify you</string>
+    <string name="kyc_submitted_verify_notice">We\'ll verify your documents within 4–24 hours and notify you. Until then you can browse jobs but not bid.</string>
 
     <!-- KYC screen (KycScreen.kt) -->
     <string name="kyc_verify_your_email">Verify your email</string>
@@ -182,6 +190,16 @@
     <string name="engineer_onboarding_phone_placeholder">+91 98765 43210</string>
     <string name="engineer_onboarding_phone_error">Enter a valid 10-digit Indian mobile number.</string>
     <string name="engineer_onboarding_phone_helper">Hospitals reach you here when a job is assigned.</string>
+
+    <!-- Hospital onboarding -->
+    <string name="hospital_onboarding_welcome_title">Welcome to EquipSeva</string>
+    <string name="hospital_onboarding_intro">A few quick details so engineers can reach you and we can match jobs near you. You can change these anytime in Profile.</string>
+    <string name="hospital_onboarding_phone_helper">We send job updates here. 10-digit Indian mobile.</string>
+
+    <!-- Hospital phone onboarding gate -->
+    <string name="hospital_phone_onboarding_title">One last step</string>
+    <string name="hospital_phone_onboarding_subtitle">We need your mobile number to coordinate active jobs. Calls between you and the engineer route through EquipSeva — your real number stays private.</string>
+    <string name="hospital_phone_onboarding_phone_placeholder">Phone (e.g. +919999999999)</string>
 
     <!-- Engineer payout method -->
     <string name="payout_method_send_earnings_question">Where should we send your earnings?</string>
@@ -625,4 +643,93 @@
     <string name="amc_detail_rotation_empty_hospital">The primary engineer takes visits first. If they\'re unavailable, the next priority engineer is dispatched. Add fallbacks from any engineer\'s profile.</string>
     <string name="amc_detail_rotation_empty_engineer">The primary engineer takes visits first. Fallbacks step in when the primary is unavailable.</string>
     <string name="amc_detail_rotation_add_fallback_hint">Add fallback engineers from the engineer directory — open a profile and tap \'Set up monthly maintenance\'.</string>
+    <string name="repeat_booking_nudge_subtitle">Try a verified local engineer to cut travel time + cost.</string>
+    <string name="service_area_map_no_pin_yet">No service-area pin yet — ask the engineer to add their base location.</string>
+    <string name="revise_quote_current_contracted_amount">Current contracted amount</string>
+    <string name="revise_quote_amount_must_exceed">Revised amount must exceed the current contracted amount.</string>
+    <string name="revise_quote_reason_count">%1$d / %2$d</string>
+
+    <!-- Masked contact panel -->
+    <string name="masked_contact_panel_title">Contact engineer</string>
+    <string name="masked_contact_panel_secure_note">Calls route through EquipSeva\'s secure line. Your real number — and the engineer\'s — stay private.</string>
+    <string name="masked_contact_panel_coming_soon_note">In-app calls coming soon — chat for now to keep your details private.</string>
+
+    <!-- CostRevisionBanner -->
+    <string name="cost_revision_banner_title">Engineer requested a revised quote</string>
+
+    <!-- EngineerDirectoryScreen -->
+    <string name="engineer_directory_error_title">Couldn\'t load engineers</string>
+    <string name="engineer_directory_sort_by_label">Sort by</string>
+    <string name="engineer_directory_location_hint">Enable location for distance-based sort</string>
+    <string name="engineer_directory_specialization_label">Specialization</string>
+    <string name="engineer_directory_completion_pct">%1$d%% complete</string>
+    <!-- TourScreen -->
+    <string name="tour_skip">Skip</string>
+
+    <!-- CostRevisionDecisionSheet -->
+    <string name="cost_revision_engineers_note">Engineer\'s note</string>
+    <string name="cost_revision_difference">Difference</string>
+
+    <!-- RepairJobsScreen -->
+    <string name="repair_jobs_end_of_list">That\'s all the open jobs we have right now.</string>
+    <string name="repair_jobs_map_all_radii">All radii</string>
+    <string name="repair_jobs_map_km_radius">%1$d km radius</string>
+    <string name="repair_jobs_map_set_service_location">Set service location</string>
+
+    <!-- OnboardingLocationFields -->
+    <string name="onboarding_location_district_label">District</string>
+    <string name="onboarding_location_district_hint">Type your district (we don\'t have a list for this state yet).</string>
+
+    <!-- NotificationSettingsScreen -->
+    <string name="notification_settings_silence_push_window">Silence push during a window</string>
+    <string name="notification_settings_notifications_still_land">Notifications still land in your inbox.</string>
+    <string name="notification_settings_quiet_hours_span_midnight">Quiet hours span midnight (overnight).</string>
+    <string name="notification_settings_quiet_hours_same_day">Quiet hours stay within the same day.</string>
+    <string name="notification_settings_quiet_hours_start_end_match">Start and end can\'t match — quiet hours won\'t apply.</string>
+    <string name="notification_settings_notifications_turned_off">Notifications are turned off</string>
+    <string name="notification_settings_permission_denied_body">EquipSeva can\'t post any notifications until you grant the permission in system Settings. The toggles below still save your preferences for when it\'s re-enabled.</string>
+    <string name="notification_settings_open_system_settings">Open system Settings</string>
+
+    <!-- HomeEngineerTierChip -->
+    <string name="home_engineer_tier_chip_top_of_ladder">%1$s tier · top of ladder</string>
+    <string name="home_engineer_tier_chip_reach_uplift">Reach %1$s → %2$s/mo more</string>
+    <string name="home_engineer_tier_chip_currently_next">Currently %1$s · next %2$s</string>
+
+    <!-- EngineerPayoutOnboardingScreen -->
+    <string name="engineer_payout_onboarding_sign_out_confirm_title">Sign out and finish later?</string>
+    <string name="engineer_payout_onboarding_sign_out_confirm_body">You\'ll need to add a UPI ID and bank account before you can accept jobs. Sign back in any time to continue.</string>
+    <string name="engineer_payout_onboarding_stay_here">Stay here</string>
+    <string name="engineer_payout_onboarding_title">Add payout details</string>
+    <string name="engineer_payout_onboarding_description">We save both so your earnings can always reach you. UPI is the fastest path; bank account is the fallback if UPI ever fails. Both required before you can accept jobs.</string>
+    <string name="engineer_payout_onboarding_ifsc_looking_up">Looking up bank…</string>
+    <string name="engineer_payout_onboarding_ifsc_resolved">✓ %1$s · %2$s, %3$s</string>
+    <string name="engineer_payout_onboarding_ifsc_unverified">Couldn\'t verify IFSC — double-check, then save anyway.</string>
+
+    <!-- EngineerLocationScreen -->
+    <string name="engineer_location_drag_pin_instructions">Drag the pin or use the location button to set the centre of your service area. The radius circle on Available Jobs always anchors here.</string>
+
+    <!-- WelcomeScreen -->
+    <string name="welcome_tagline">Hospitals book verified biomedical engineers. Engineers find local jobs and get paid on time.</string>
+    <string name="welcome_create_account">Create account</string>
+
+    <!-- RequestSentScreen -->
+    <string name="request_sent_title">Request posted</string>
+    <string name="request_sent_default_body">Your repair request is live. Verified engineers in your area can now bid.</string>
+    <string name="request_sent_next_steps_heading">WHAT HAPPENS NEXT</string>
+
+    <!-- FounderEscrowDisputeDetailScreen -->
+    <string name="founder_escrow_dispute_detail_occurred">Occurred: %1$s</string>
+    <string name="founder_escrow_dispute_detail_party_track_record_header">PARTY TRACK RECORD · LAST 90 DAYS</string>
+    <string name="founder_escrow_dispute_detail_pattern_flag">Pattern flag — 3+ disputes in window. Weight evidence accordingly.</string>
+
+    <!-- HelpSupportSheet -->
+    <string name="helpsupport_reach_our_team">Reach our team — we usually reply within 24h on business days.</string>
+    <string name="helpsupport_tell_us_what_happened">Tell us what happened. We\'ll respond from %1$s.</string>
+
+    <!-- SignInScreen -->
+    <string name="sign_in_welcome_back">Welcome back</string>
+    <string name="sign_in_subtitle">Sign in to your EquipSeva account.</string>
+    <string name="sign_in_forgot_password">Forgot password?</string>
+    <string name="sign_in_new_here">New here? </string>
+    <string name="or_divider_label">or</string>
 </resources>

@@ -19,9 +19,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equipseva.app.R
 import com.equipseva.app.core.data.repair.CostRevision
 import com.equipseva.app.core.util.formatRupees
 
@@ -59,7 +61,7 @@ fun CostRevisionBanner(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
-                text = "Engineer requested a revised quote",
+                text = stringResource(R.string.cost_revision_banner_title),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = BANNER_INK,
