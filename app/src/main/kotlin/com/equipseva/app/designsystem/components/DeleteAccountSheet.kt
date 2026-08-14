@@ -20,7 +20,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import com.equipseva.app.R
 import com.equipseva.app.designsystem.theme.Ink700
 import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
@@ -52,7 +54,7 @@ fun DeleteAccountSheet(
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             Text(
-                text = "Delete your account?",
+                text = stringResource(R.string.account_delete_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = Ink900,
@@ -63,18 +65,15 @@ fun DeleteAccountSheet(
                 // no 30-day grace period and support cannot restore the
                 // account once this runs. List the real scope so the user
                 // sees what's about to disappear.
-                text = "Deletes your profile, repair jobs, bids, AMC contracts, " +
-                    "messages, payments, saved addresses, and uploaded files. All " +
-                    "device sessions are signed out immediately. This is permanent — " +
-                    "support cannot restore the account after this runs.",
+                text = stringResource(R.string.delete_account_sheet_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Ink700,
             )
             OutlinedTextField(
                 value = reason,
                 onValueChange = onReasonChange,
-                label = { Text("Reason (optional)") },
-                supportingText = { Text("${reason.length}/500") },
+                label = { Text(stringResource(R.string.delete_account_sheet_reason_label)) },
+                supportingText = { Text(stringResource(R.string.delete_account_sheet_reason_count, reason.length)) },
                 enabled = !deleting,
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
@@ -89,7 +88,7 @@ fun DeleteAccountSheet(
             OutlinedTextField(
                 value = password,
                 onValueChange = onPasswordChange,
-                label = { Text("Confirm with your password") },
+                label = { Text(stringResource(R.string.delete_account_sheet_password_label)) },
                 isError = passwordError != null,
                 supportingText = passwordError?.let { { Text(it) } },
                 visualTransformation = PasswordVisualTransformation(),
@@ -116,7 +115,7 @@ fun DeleteAccountSheet(
                     },
                     enabled = !deleting,
                     modifier = Modifier.weight(1f),
-                ) { Text("Cancel") }
+                ) { Text(stringResource(R.string.common_cancel)) }
                 // Destructive action — must read as red, not brand-primary
                 // green. PrimaryButton previously made the confirm look
                 // identical to a "Save" CTA on every other sheet.

@@ -1,5 +1,6 @@
 package com.equipseva.app.features.auth
 
+import com.equipseva.app.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -95,7 +97,7 @@ fun SignUpScreen(
                     .padding(horizontal = 20.dp, vertical = 8.dp),
             ) {
                 Text(
-                    text = "Get started",
+                    text = stringResource(R.string.signup_get_started_title),
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.24).sp,
@@ -108,7 +110,7 @@ fun SignUpScreen(
                     // role tiles read as a hospital requirement and added
                     // friction. The engineer-specific KYC note now lives
                     // inside the engineer RoleTile subtitle below.
-                    text = "Free to join. Takes about a minute.",
+                    text = stringResource(R.string.signup_get_started_subtitle),
                     fontSize = 13.sp,
                     color = SevaInk500,
                 )
@@ -151,7 +153,7 @@ fun SignUpScreen(
 
                 Spacer(Modifier.height(20.dp))
                 Text(
-                    text = "I'm signing up as",
+                    text = stringResource(R.string.signup_role_prompt),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = SevaInk900,
@@ -195,12 +197,12 @@ fun SignUpScreen(
                     horizontalArrangement = Arrangement.Center,
                 ) {
                     Text(
-                        text = "Already have an account? ",
+                        text = stringResource(R.string.signup_already_have_account),
                         fontSize = 13.sp,
                         color = SevaInk600,
                     )
                     Text(
-                        text = "Sign in",
+                        text = stringResource(R.string.signup_sign_in_link),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = SevaGreen700,

@@ -17,9 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equipseva.app.R
 import com.equipseva.app.designsystem.theme.BrandGreenDark
 import com.equipseva.app.designsystem.theme.Spacing
 import java.util.Locale
@@ -44,7 +46,7 @@ fun EarningsHeroCard(
                 .padding(Spacing.lg),
         ) {
             Text(
-                text = "This month",
+                text = stringResource(R.string.earnings_hero_this_month),
                 style = MaterialTheme.typography.labelMedium,
                 color = Color.White.copy(alpha = 0.70f),
             )
@@ -62,8 +64,8 @@ fun EarningsHeroCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
             ) {
-                EarningsSplit(label = "Paid", valueRupees = paidRupees, modifier = Modifier.weight(1f))
-                EarningsSplit(label = "Pending", valueRupees = pendingRupees, modifier = Modifier.weight(1f))
+                EarningsSplit(label = stringResource(R.string.earnings_hero_paid_label), valueRupees = paidRupees, modifier = Modifier.weight(1f))
+                EarningsSplit(label = stringResource(R.string.earnings_hero_pending_label), valueRupees = pendingRupees, modifier = Modifier.weight(1f))
             }
             Spacer(Modifier.height(Spacing.md))
             // Withdraw pill — white-on-brand-700, TonalButton-style
@@ -76,7 +78,7 @@ fun EarningsHeroCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Withdraw",
+                    text = stringResource(R.string.earnings_hero_withdraw),
                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
                     color = BrandGreenDark,
                 )

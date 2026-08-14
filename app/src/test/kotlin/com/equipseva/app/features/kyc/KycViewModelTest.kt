@@ -3,6 +3,7 @@ package com.equipseva.app.features.kyc
 import androidx.lifecycle.SavedStateHandle
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.data.analytics.AnalyticsClient
 import com.equipseva.app.core.data.engineers.Engineer
 import com.equipseva.app.core.data.engineers.EngineerCertificate
 import com.equipseva.app.core.data.engineers.EngineerRepository
@@ -113,6 +114,7 @@ class KycViewModelTest {
         val locationFetcher = mockk<LocationFetcher>(relaxed = true)
         val userPrefs = mockk<UserPrefs>(relaxed = true)
         val storageRepo = mockk<StorageRepository>(relaxed = true)
+        val analytics = mockk<AnalyticsClient>(relaxed = true)
         val savedState = SavedStateHandle()
         val vm = KycViewModel(
             authRepository = authRepo,
@@ -124,6 +126,7 @@ class KycViewModelTest {
             userPrefs = userPrefs,
             storageRepository = storageRepo,
             savedStateHandle = savedState,
+            analytics = analytics,
         )
         return vm to engineerRepo
     }

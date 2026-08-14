@@ -1,5 +1,6 @@
 package com.equipseva.app.designsystem.components
 
+import com.equipseva.app.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,7 +58,7 @@ fun VerifiedBadgeWithInfo(
             modifier = Modifier.size(if (small) 11.dp else 13.dp),
         )
         Text(
-            "Verified",
+            stringResource(R.string.verified_badge_label),
             color = SevaGreen700,
             fontSize = if (small) 10.sp else 11.sp,
             fontWeight = FontWeight.SemiBold,
@@ -104,7 +106,7 @@ private fun VerificationInfoSheet(
             verifiedAt?.let { dateStr ->
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "Verified on $dateStr",
+                    text = stringResource(R.string.verified_badge_info_verified_on_date, dateStr),
                     color = SevaInk500,
                     fontSize = 12.sp,
                 )

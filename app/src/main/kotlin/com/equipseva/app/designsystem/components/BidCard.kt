@@ -1,5 +1,6 @@
 package com.equipseva.app.designsystem.components
 
+import com.equipseva.app.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.util.Locale
@@ -124,7 +126,7 @@ fun BidCard(
                     color = Ink700,
                 )
                 Text(
-                    text = " ($ratingCount)",
+                    text = stringResource(R.string.bid_card_rating_count_paren, ratingCount),
                     style = MaterialTheme.typography.bodySmall,
                     color = Ink500,
                 )

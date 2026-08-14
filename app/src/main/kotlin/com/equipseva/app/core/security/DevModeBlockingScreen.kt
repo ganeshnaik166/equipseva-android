@@ -24,9 +24,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equipseva.app.R
 
 /**
  * Round 470: full-screen blocker shown when the device has Developer Options
@@ -73,15 +75,14 @@ fun DevModeBlockingScreen(verdict: DeviceIntegrityCheck.Verdict) {
                     .padding(bottom = 24.dp),
             )
             Text(
-                text = "Developer Mode is on",
+                text = stringResource(R.string.devmode_block_title),
                 style = MaterialTheme.typography.headlineSmall,
                 fontSize = 22.sp,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(16.dp))
             Text(
-                text = "EquipSeva can't run while Developer Options or USB debugging is enabled on your phone. " +
-                    "These let other apps intercept payments and account data.",
+                text = stringResource(R.string.devmode_block_reason),
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -102,7 +103,7 @@ fun DevModeBlockingScreen(verdict: DeviceIntegrityCheck.Verdict) {
                 Spacer(Modifier.height(24.dp))
             }
             Text(
-                text = "Steps: Settings → System → Developer Options → toggle off",
+                text = stringResource(R.string.devmode_block_steps),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -130,11 +131,11 @@ fun DevModeBlockingScreen(verdict: DeviceIntegrityCheck.Verdict) {
                     containerColor = MaterialTheme.colorScheme.primary,
                 ),
             ) {
-                Text("Open Settings")
+                Text(stringResource(R.string.devmode_open_settings_button))
             }
             Spacer(Modifier.height(12.dp))
             Text(
-                text = "Return to EquipSeva after disabling — it'll let you in automatically.",
+                text = stringResource(R.string.devmode_return_note),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

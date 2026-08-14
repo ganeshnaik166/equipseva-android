@@ -1,5 +1,6 @@
 package com.equipseva.app.designsystem.components
 
+import com.equipseva.app.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -14,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.equipseva.app.designsystem.theme.EsRadius
 import com.equipseva.app.designsystem.theme.EsType
@@ -41,6 +43,6 @@ fun VerifiedBadge(modifier: Modifier = Modifier, small: Boolean = false) {
             tint = SevaGreen700,
             modifier = Modifier.size(iconSize),
         )
-        Text(text = "Verified", style = EsType.Caption, color = SevaGreen700)
+        Text(text = stringResource(R.string.verified_badge_label), style = EsType.Caption, color = SevaGreen700)
     }
 }

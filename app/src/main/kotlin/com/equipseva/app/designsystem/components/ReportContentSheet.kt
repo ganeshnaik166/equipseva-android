@@ -24,7 +24,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import com.equipseva.app.R
 import com.equipseva.app.core.data.moderation.ContentReportReason
 import com.equipseva.app.designsystem.theme.Ink700
 import com.equipseva.app.designsystem.theme.Ink900
@@ -75,7 +77,7 @@ fun ReportContentSheet(
                 color = Ink900,
             )
             Text(
-                text = "Reports help keep EquipSeva safe. Our team reviews each one.",
+                text = stringResource(R.string.report_content_safety_note),
                 style = MaterialTheme.typography.bodySmall,
                 color = Ink700,
             )
@@ -101,8 +103,8 @@ fun ReportContentSheet(
             OutlinedTextField(
                 value = notes,
                 onValueChange = { if (it.length <= 1000) notes = it },
-                label = { Text("Notes (optional)") },
-                supportingText = { Text("${notes.length}/1000") },
+                label = { Text(stringResource(R.string.report_content_notes_label)) },
+                supportingText = { Text(stringResource(R.string.report_content_notes_count, notes.length)) },
                 enabled = !submitting,
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
@@ -116,7 +118,7 @@ fun ReportContentSheet(
                     onClick = dismissWithAnim,
                     enabled = !submitting,
                     modifier = Modifier.weight(1f),
-                ) { Text("Cancel") }
+                ) { Text(stringResource(R.string.common_cancel)) }
                 PrimaryButton(
                     label = if (submitting) "Submitting…" else "Submit report",
                     onClick = { onSubmit(selected, notes.trim().ifEmpty { null }) },

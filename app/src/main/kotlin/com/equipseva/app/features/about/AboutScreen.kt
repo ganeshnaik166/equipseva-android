@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -78,14 +79,18 @@ fun AboutScreen(
                     )
                     Spacer(Modifier.height(16.dp))
                     Text(
-                        text = "EquipSeva",
+                        text = stringResource(R.string.app_name),
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = SevaInk900,
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "Version ${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})",
+                        text = stringResource(
+                            R.string.about_version_label,
+                            BuildConfig.VERSION_NAME,
+                            BuildConfig.VERSION_CODE,
+                        ),
                         fontSize = 12.sp,
                         color = SevaInk500,
                     )
@@ -200,7 +205,7 @@ fun AboutScreen(
 
                 Spacer(Modifier.height(24.dp))
                 Text(
-                    text = "© ${java.time.Year.now().value} EquipSeva",
+                    text = stringResource(R.string.about_copyright, java.time.Year.now().value),
                     fontSize = 12.sp,
                     color = SevaInk500,
                     modifier = Modifier

@@ -26,12 +26,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.R
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
@@ -72,7 +74,7 @@ fun ForgotPasswordScreen(
                     SentBlock(email = state.email.trim().ifBlank { "your email" }, onBack = onBack)
                 } else {
                     Text(
-                        text = "Enter your email. We'll send a link to reset your password.",
+                        text = stringResource(R.string.forgot_password_email_instructions),
                         fontSize = 13.sp,
                         lineHeight = 19.5.sp,
                         color = SevaInk600,
@@ -134,14 +136,14 @@ private fun SentBlock(email: String, onBack: () -> Unit) {
         }
         Spacer(Modifier.height(20.dp))
         Text(
-            text = "Check your email",
+            text = stringResource(R.string.forgot_password_check_email),
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = SevaInk900,
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "We've sent a reset link to $email.",
+            text = stringResource(R.string.forgot_password_reset_link_sent, email),
             fontSize = 13.sp,
             lineHeight = 19.5.sp,
             color = SevaInk500,

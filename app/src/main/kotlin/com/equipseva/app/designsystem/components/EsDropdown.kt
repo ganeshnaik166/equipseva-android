@@ -1,5 +1,6 @@
 package com.equipseva.app.designsystem.components
 
+import com.equipseva.app.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -131,7 +133,7 @@ fun EsDropdown(
                     OutlinedTextField(
                         value = query,
                         onValueChange = { query = it },
-                        placeholder = { Text("Search…", style = EsType.Caption, color = SevaInk500) },
+                        placeholder = { Text(stringResource(R.string.es_dropdown_search_placeholder), style = EsType.Caption, color = SevaInk500) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                         shape = RoundedCornerShape(EsRadius.Sm),
@@ -148,7 +150,7 @@ fun EsDropdown(
                 }
                 if (filtered.isEmpty()) {
                     DropdownMenuItem(
-                        text = { Text("No matches", style = EsType.Caption, color = SevaInk500) },
+                        text = { Text(stringResource(R.string.es_dropdown_no_matches), style = EsType.Caption, color = SevaInk500) },
                         onClick = {},
                         enabled = false,
                     )
