@@ -33,12 +33,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.data.addresses.AddressRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.ESBackTopBar
@@ -184,7 +186,7 @@ fun AddressBookScreen(
                         val isDefault = row?.isDefault == true
                         AlertDialog(
                             onDismissRequest = { pendingDeleteId = null },
-                            title = { Text("Delete this address?") },
+                            title = { Text(stringResource(R.string.address_book_delete_dialog_title)) },
                             text = {
                                 Text(
                                     if (isDefault) {
@@ -198,10 +200,10 @@ fun AddressBookScreen(
                                 TextButton(onClick = {
                                     pendingDeleteId = null
                                     viewModel.delete(target)
-                                }) { Text("Delete") }
+                                }) { Text(stringResource(R.string.address_book_delete_action)) }
                             },
                             dismissButton = {
-                                TextButton(onClick = { pendingDeleteId = null }) { Text("Cancel") }
+                                TextButton(onClick = { pendingDeleteId = null }) { Text(stringResource(R.string.common_cancel)) }
                             },
                         )
                     }
@@ -245,7 +247,7 @@ private fun AddressRowCard(
                         .padding(horizontal = 10.dp, vertical = 3.dp),
                 ) {
                     Text(
-                        "Default",
+                        stringResource(R.string.address_book_default_badge),
                         color = BrandGreenDeep,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
@@ -253,14 +255,18 @@ private fun AddressRowCard(
                 }
             }
         }
-        Text("${row.fullName} · ${row.phone}", color = Ink700, fontSize = 13.sp)
+        Text(
+            stringResource(R.string.address_book_name_phone_line, row.fullName, row.phone),
+            color = Ink700,
+            fontSize = 13.sp,
+        )
         Text(
             listOfNotNull(row.line1, row.line2, row.landmark).joinToString(", "),
             color = Ink700,
             fontSize = 13.sp,
         )
         Text(
-            "${row.city}, ${row.state} ${row.pincode}",
+            stringResource(R.string.address_book_city_state_pincode, row.city, row.state, row.pincode),
             color = Ink500,
             fontSize = 12.sp,
         )
@@ -277,10 +283,14 @@ private fun AddressRowCard(
                 }
             }
             TextButton(onClick = onEdit, enabled = !actingThis) {
-                Text("Edit", fontSize = 12.sp)
+                Text(stringResource(R.string.address_book_edit_action), fontSize = 12.sp)
             }
             TextButton(onClick = onDelete, enabled = !actingThis) {
-                Text("Delete", fontSize = 12.sp, color = androidx.compose.material3.MaterialTheme.colorScheme.error)
+                Text(
+                    stringResource(R.string.address_book_delete_action),
+                    fontSize = 12.sp,
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                )
             }
         }
     }

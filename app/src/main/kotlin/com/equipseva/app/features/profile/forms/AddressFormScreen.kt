@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,6 +40,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.data.addresses.AddressRepository
 import com.equipseva.app.core.data.location.IndiaLocations
 import com.equipseva.app.core.network.toUserMessage
@@ -280,7 +282,7 @@ fun AddressFormScreen(
             ) {
                 Icon(Icons.Filled.MyLocation, contentDescription = null, modifier = Modifier.size(18.dp))
                 Text(
-                    if (state.locating) "Reading your location…" else "Use my current location",
+                    if (state.locating) stringResource(R.string.address_form_reading_location) else stringResource(R.string.address_form_use_current_location),
                     modifier = Modifier.padding(start = 6.dp),
                 )
             }
@@ -372,7 +374,7 @@ fun AddressFormScreen(
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Set as default", color = Ink700, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.address_form_set_as_default), color = Ink700, modifier = Modifier.weight(1f))
                 Switch(
                     checked = state.form.isDefault,
                     onCheckedChange = { v -> viewModel.update { it.copy(isDefault = v) } },
@@ -382,7 +384,11 @@ fun AddressFormScreen(
 
             if (state.form.latitude != null && state.form.longitude != null) {
                 Text(
-                    "Coords captured: ${"%.5f".format(java.util.Locale.US, state.form.latitude)}, ${"%.5f".format(java.util.Locale.US, state.form.longitude)}",
+                    stringResource(
+                        R.string.address_form_coords_captured,
+                        "%.5f".format(java.util.Locale.US, state.form.latitude),
+                        "%.5f".format(java.util.Locale.US, state.form.longitude),
+                    ),
                     color = AccentLime.let { _ -> BrandGreenDeep },
                     fontSize = 11.sp,
                 )
@@ -412,11 +418,19 @@ fun AddressFormScreen(
                 enabled = !state.saving && !state.locating && canSave,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(if (state.saving) "Saving…" else if (state.form.id == null) "Save address" else "Save changes")
+                Text(
+                    if (state.saving) {
+                        stringResource(R.string.address_form_saving)
+                    } else if (state.form.id == null) {
+                        stringResource(R.string.address_form_save_address)
+                    } else {
+                        stringResource(R.string.address_form_save_changes)
+                    },
+                )
             }
 
             Text(
-                "Lat/lng captured here is used to match nearby engineers and show distances. You can edit any field after autofill.",
+                stringResource(R.string.address_form_latlng_note),
                 color = Ink500,
                 fontSize = 11.sp,
             )

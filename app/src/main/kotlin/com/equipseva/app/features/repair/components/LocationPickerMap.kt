@@ -33,10 +33,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.equipseva.app.R
 import com.equipseva.app.core.util.fetchCurrentLocation
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.Ink500
@@ -178,16 +180,16 @@ fun LocationPickerMap(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    "Pin the exact spot",
+                    stringResource(R.string.location_picker_pin_exact_spot),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Ink900,
                 )
                 Text(
                     text = if (permissionDenied) {
-                        "Location permission denied. Drag the pin once it loads, or grant location access in Settings."
+                        stringResource(R.string.location_picker_permission_denied)
                     } else {
-                        "Tap below to pin your current location, then drag to refine."
+                        stringResource(R.string.location_picker_tap_to_pin)
                     },
                     fontSize = 12.sp,
                     color = Ink500,
@@ -207,7 +209,7 @@ fun LocationPickerMap(
                         contentDescription = null,
                         modifier = Modifier.size(14.dp),
                     )
-                    Text("  Use my current location", fontSize = 13.sp)
+                    Text(stringResource(R.string.location_picker_use_my_location), fontSize = 13.sp)
                 }
             }
         }
@@ -272,7 +274,11 @@ fun LocationPickerMap(
                     .background(BrandGreen),
             )
             Text(
-                text = "  ${"%.5f".format(java.util.Locale.US, selected.latitude)}, ${"%.5f".format(java.util.Locale.US, selected.longitude)}",
+                text = stringResource(
+                    R.string.location_picker_coordinates,
+                    "%.5f".format(java.util.Locale.US, selected.latitude),
+                    "%.5f".format(java.util.Locale.US, selected.longitude),
+                ),
                 fontSize = 11.sp,
                 color = Ink500,
                 fontWeight = FontWeight.SemiBold,
@@ -305,7 +311,7 @@ fun LocationPickerMap(
                         strokeWidth = 1.5.dp,
                         color = MaterialTheme.colorScheme.primary,
                     )
-                    Text("  Locating…", fontSize = 11.sp)
+                    Text(stringResource(R.string.location_picker_locating), fontSize = 11.sp)
                 } else {
                     Icon(
                         imageVector = Icons.Filled.MyLocation,
@@ -313,7 +319,7 @@ fun LocationPickerMap(
                         modifier = Modifier.size(12.dp),
                         tint = MaterialTheme.colorScheme.primary,
                     )
-                    Text("  My location", fontSize = 11.sp)
+                    Text(stringResource(R.string.location_picker_my_location), fontSize = 11.sp)
                 }
             }
         }

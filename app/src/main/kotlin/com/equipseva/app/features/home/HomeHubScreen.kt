@@ -54,6 +54,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -473,7 +474,7 @@ private fun SpotAuditSheetBody(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            text = "Quick quality check",
+            text = stringResource(R.string.home_spot_audit_title),
             style = EsType.H2,
             color = SevaInk900,
         )
@@ -521,7 +522,7 @@ private fun SpotAuditSheetBody(
             value = feedback,
             onValueChange = { if (it.length <= 500) feedback = it },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Optional comments (e.g. parts replaced as expected, slow response, etc.)") },
+            placeholder = { Text(stringResource(R.string.home_spot_audit_feedback_placeholder)) },
             minLines = 2,
             maxLines = 5,
         )
@@ -550,7 +551,7 @@ private fun CashSurveySheetBody(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            text = "Quick check-in",
+            text = stringResource(R.string.home_cash_survey_title),
             style = EsType.H2,
             color = SevaInk900,
         )
@@ -560,7 +561,7 @@ private fun CashSurveySheetBody(
             color = SevaInk700,
         )
         Text(
-            text = "Your answer is private and only visible to our team.",
+            text = stringResource(R.string.home_cash_survey_privacy_note),
             style = EsType.Caption,
             color = SevaInk500,
         )
@@ -682,7 +683,7 @@ private fun HomeTopBar(
         )
         Spacer(Modifier.size(10.dp))
         Text(
-            text = "EquipSeva",
+            text = stringResource(R.string.app_name),
             style = EsType.H5,
             color = SevaInk900,
             modifier = Modifier.weight(1f),
@@ -766,9 +767,9 @@ private fun FirstJobCtaCard(onClick: () -> Unit) {
             Icon(Icons.Filled.Build, contentDescription = null, tint = SevaGreen700, modifier = Modifier.size(24.dp))
         }
         Column(modifier = Modifier.weight(1f)) {
-            Text("Book your first repair", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = SevaInk900)
+            Text(stringResource(R.string.home_first_job_cta_title), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = SevaInk900)
             Spacer(Modifier.height(4.dp))
-            Text("Find verified engineers near you", fontSize = 12.sp, color = SevaInk500, lineHeight = 16.sp)
+            Text(stringResource(R.string.home_first_job_cta_subtitle), fontSize = 12.sp, color = SevaInk500, lineHeight = 16.sp)
         }
         Icon(
             Icons.Outlined.ChevronRight,
@@ -979,14 +980,14 @@ private fun PhoneMissingBanner(onClick: () -> Unit) {
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                "Add your phone number",
+                stringResource(R.string.home_phone_missing_banner_title),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = SevaInk900,
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                "Engineers call this number during a job. Without it they can't reach you.",
+                stringResource(R.string.home_phone_missing_banner_subtitle),
                 fontSize = 11.sp,
                 color = SevaInk600,
             )
@@ -1027,8 +1028,7 @@ private fun PendingAmcPaymentBanner(count: Int) {
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                "If your bank shows the charge but your AMC pool hasn't credited yet, " +
-                    "contact support and we'll reconcile.",
+                stringResource(R.string.home_pending_amc_payment_banner_subtitle),
                 fontSize = 11.sp,
                 color = SevaInk600,
             )
@@ -1075,14 +1075,14 @@ private fun PendingAmcContractBanner(onClick: () -> Unit) {
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                "Complete AMC payment",
+                stringResource(R.string.home_pending_amc_contract_banner_title),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = SevaInk900,
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                "Your new AMC contract will be cancelled in 24 hours if not paid. Tap to finish.",
+                stringResource(R.string.home_pending_amc_contract_banner_subtitle),
                 fontSize = 11.sp,
                 color = SevaInk600,
             )
@@ -1330,7 +1330,7 @@ private fun RecommendedEngineerCard(
             // happens; the actual booking starts from the profile's
             // sticky "Post a repair job" CTA.
             Text(
-                text = "View",
+                text = stringResource(R.string.home_recommended_engineer_view_label),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = SevaGreen700,

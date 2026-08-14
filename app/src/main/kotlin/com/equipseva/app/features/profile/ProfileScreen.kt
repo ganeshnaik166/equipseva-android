@@ -1,5 +1,6 @@
 package com.equipseva.app.features.profile
 
+import com.equipseva.app.R
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -73,6 +74,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
@@ -215,13 +217,13 @@ fun ProfileScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            if (msg != null) "Couldn't load your profile" else "Finishing setup…",
+                            if (msg != null) stringResource(R.string.profile_load_error_title) else stringResource(R.string.profile_finishing_setup_title),
                             fontWeight = FontWeight.Bold,
                             color = Ink900,
                         )
                         Spacer(Modifier.height(Spacing.sm))
                         Text(
-                            msg ?: "We're loading your profile. Tap retry if this doesn't clear.",
+                            msg ?: stringResource(R.string.profile_loading_fallback_body),
                             color = Ink500,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                         )
@@ -232,7 +234,7 @@ fun ProfileScreen(
                                     ?: viewModel.onRetryFromAuth()
                             },
                         ) {
-                            Text("Retry")
+                            Text(stringResource(R.string.common_retry))
                         }
                     }
                 }
@@ -300,20 +302,20 @@ fun ProfileScreen(
     if (state.exportConfirmOpen) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = viewModel::onDismissExportConfirm,
-            title = { androidx.compose.material3.Text("Export your data?") },
+            title = { androidx.compose.material3.Text(stringResource(R.string.profile_export_confirm_title)) },
             text = {
                 androidx.compose.material3.Text(
-                    "We'll bundle your profile, addresses, messages and repair-job history into a JSON file and open the share sheet so you can save or send it. Anyone you share it with will be able to read it.",
+                    stringResource(R.string.profile_export_confirm_body),
                 )
             },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = viewModel::onExportMyData) {
-                    androidx.compose.material3.Text("Export")
+                    androidx.compose.material3.Text(stringResource(R.string.profile_export_confirm_action))
                 }
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = viewModel::onDismissExportConfirm) {
-                    androidx.compose.material3.Text("Cancel")
+                    androidx.compose.material3.Text(stringResource(R.string.common_cancel))
                 }
             },
         )
@@ -322,10 +324,10 @@ fun ProfileScreen(
     if (state.signOutConfirmOpen) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = viewModel::onDismissSignOutConfirm,
-            title = { androidx.compose.material3.Text("Sign out?") },
+            title = { androidx.compose.material3.Text(stringResource(R.string.profile_signout_confirm_title)) },
             text = {
                 androidx.compose.material3.Text(
-                    "You'll need your email and password to sign back in. Drafts and unsent messages on this device will be cleared.",
+                    stringResource(R.string.profile_signout_confirm_body),
                 )
             },
             confirmButton = {
@@ -334,7 +336,7 @@ fun ProfileScreen(
                     enabled = !state.signingOut,
                 ) {
                     androidx.compose.material3.Text(
-                        if (state.signingOut) "Signing out…" else "Sign out",
+                        if (state.signingOut) stringResource(R.string.profile_signout_in_progress_label) else stringResource(R.string.profile_signout_action_label),
                         color = ErrorRed,
                     )
                 }
@@ -343,7 +345,7 @@ fun ProfileScreen(
                 androidx.compose.material3.TextButton(
                     onClick = viewModel::onDismissSignOutConfirm,
                     enabled = !state.signingOut,
-                ) { androidx.compose.material3.Text("Stay signed in") }
+                ) { androidx.compose.material3.Text(stringResource(R.string.profile_signout_stay_action)) }
             },
         )
     }
@@ -529,7 +531,7 @@ private fun EngineerSuspensionBanner(
                 modifier = Modifier.size(18.dp),
             )
             Text(
-                text = "Account paused — under review",
+                text = stringResource(R.string.profile_suspension_title),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = com.equipseva.app.designsystem.theme.SevaDanger500,
@@ -542,13 +544,13 @@ private fun EngineerSuspensionBanner(
         )
         suspension.suspendedAt?.let {
             Text(
-                text = "Paused: ${formatSuspensionTimestamp(it)}",
+                text = stringResource(R.string.profile_suspension_paused_at, formatSuspensionTimestamp(it)),
                 fontSize = 11.sp,
                 color = com.equipseva.app.designsystem.theme.SevaInk500,
             )
         }
         Text(
-            text = "Reach support to walk through the flagged jobs and reactivate.",
+            text = stringResource(R.string.profile_suspension_support_note),
             fontSize = 12.sp,
             color = com.equipseva.app.designsystem.theme.SevaInk700,
         )
@@ -559,7 +561,7 @@ private fun EngineerSuspensionBanner(
 private fun AccountTypeSection(role: UserRole?, onEditRole: () -> Unit) {
     val (title, subtitle) = accountTypeSectionCopy(role)
     Text(
-        text = "Account type",
+        text = stringResource(R.string.profile_account_type_title),
         fontSize = 18.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = (-0.18).sp,
@@ -942,7 +944,7 @@ private fun ProfileHero(
                     .padding(horizontal = 10.dp, vertical = 6.dp),
             ) {
                 Text(
-                    text = "Edit",
+                    text = stringResource(R.string.address_book_edit_action),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = com.equipseva.app.designsystem.theme.SevaInk700,
@@ -1054,14 +1056,14 @@ private fun SignedOutPrompt(onSignIn: () -> Unit) {
         }
         Spacer(Modifier.height(Spacing.lg))
         Text(
-            "Sign in to continue",
+            stringResource(R.string.profile_signed_out_title),
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
             color = Ink900,
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "Sign in to post repair jobs, message engineers, and manage your contracts. Browsing stays open without an account.",
+            stringResource(R.string.profile_signed_out_body),
             fontSize = 13.sp,
             color = com.equipseva.app.designsystem.theme.Ink500,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -1072,7 +1074,7 @@ private fun SignedOutPrompt(onSignIn: () -> Unit) {
             onClick = onSignIn,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Sign in / Sign up", fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.profile_signed_out_cta), fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -1100,12 +1102,12 @@ private fun RoleEditorSheet(
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             Text(
-                "Change your role",
+                stringResource(R.string.profile_role_editor_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                "This changes what you see across the app. You can switch again anytime.",
+                stringResource(R.string.profile_role_editor_subtitle),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1138,9 +1140,9 @@ private fun RoleEditorSheet(
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                     Spacer(Modifier.size(Spacing.sm))
-                    Text("Saving…")
+                    Text(stringResource(R.string.profile_action_saving))
                 } else {
-                    Text("Save")
+                    Text(stringResource(R.string.common_save))
                 }
             }
         }
@@ -1197,7 +1199,7 @@ private fun RoleOption(
                     if (current) {
                         AssistChip(
                             onClick = onClick,
-                            label = { Text("Current") },
+                            label = { Text(stringResource(R.string.profile_role_current_chip)) },
                             colors = AssistChipDefaults.assistChipColors(
                                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                                 labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -1208,7 +1210,7 @@ private fun RoleOption(
                         AssistChip(
                             onClick = {},
                             enabled = false,
-                            label = { Text("Soon") },
+                            label = { Text(stringResource(R.string.profile_role_soon_chip)) },
                             border = null,
                         )
                     }
@@ -1248,7 +1250,7 @@ private fun EditProfileSheet(
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             Text(
-                "Edit profile",
+                stringResource(R.string.profile_edit_sheet_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -1256,7 +1258,7 @@ private fun EditProfileSheet(
                 // Same fix as AddPhoneScreen: don't claim SMS verification —
                 // we don't run the OTP round-trip in v1. Phone is saved
                 // directly to profiles.phone via updateBasicInfo.
-                "Phone is managed separately. Tap below to add or change it.",
+                stringResource(R.string.profile_edit_sheet_phone_note),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1264,7 +1266,7 @@ private fun EditProfileSheet(
             OutlinedTextField(
                 value = fullName,
                 onValueChange = onFullNameChange,
-                label = { Text("Full name") },
+                label = { Text(stringResource(R.string.profile_edit_sheet_fullname_label)) },
                 singleLine = true,
                 enabled = !saving,
                 // Full name is a proper noun — capitalize each word
@@ -1280,7 +1282,7 @@ private fun EditProfileSheet(
             OutlinedTextField(
                 value = phone.ifBlank { "Not set" },
                 onValueChange = {},
-                label = { Text("Phone") },
+                label = { Text(stringResource(R.string.engineer_onboarding_phone_label)) },
                 singleLine = true,
                 readOnly = true,
                 enabled = false,
@@ -1291,7 +1293,7 @@ private fun EditProfileSheet(
                 enabled = !saving,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(if (phone.isBlank()) "Add phone" else "Change phone")
+                Text(if (phone.isBlank()) stringResource(R.string.profile_edit_sheet_add_phone_action) else stringResource(R.string.profile_edit_sheet_change_phone_action))
             }
             if (error != null) {
                 Text(
@@ -1308,7 +1310,7 @@ private fun EditProfileSheet(
                     onClick = onDismiss,
                     enabled = !saving,
                     modifier = Modifier.weight(1f),
-                ) { Text("Cancel") }
+                ) { Text(stringResource(R.string.common_cancel)) }
                 Button(
                     onClick = onSave,
                     enabled = !saving,
@@ -1321,9 +1323,9 @@ private fun EditProfileSheet(
                             color = MaterialTheme.colorScheme.onPrimary,
                         )
                         Spacer(Modifier.size(Spacing.sm))
-                        Text("Saving…")
+                        Text(stringResource(R.string.profile_action_saving))
                     } else {
-                        Text("Save")
+                        Text(stringResource(R.string.common_save))
                     }
                 }
             }

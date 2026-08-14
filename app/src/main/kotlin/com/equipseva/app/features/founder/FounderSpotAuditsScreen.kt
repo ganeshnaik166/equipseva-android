@@ -25,12 +25,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.prettyDateTime
 import com.equipseva.app.designsystem.components.EmptyStateView
@@ -172,7 +174,11 @@ private fun AuditRow(row: FounderRepository.SpotAuditResponseRow) {
                     fontSize = 14.sp,
                 )
                 Text(
-                    "${row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"} → ${row.engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"}",
+                    stringResource(
+                        R.string.founder_spot_audits_hospital_to_engineer_format,
+                        row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital",
+                        row.engineerName?.takeIf { it.isNotBlank() } ?: "Engineer",
+                    ),
                     color = SevaInk700,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
@@ -184,7 +190,11 @@ private fun AuditRow(row: FounderRepository.SpotAuditResponseRow) {
             Text(row.feedback, color = SevaInk700, fontSize = 13.sp)
         }
         row.respondedAt?.let {
-            Text("Responded: ${prettyDateTime(it)}", color = SevaInk500, fontSize = 11.sp)
+            Text(
+                stringResource(R.string.founder_spot_audits_responded_at_format, prettyDateTime(it)),
+                color = SevaInk500,
+                fontSize = 11.sp,
+            )
         }
     }
 }

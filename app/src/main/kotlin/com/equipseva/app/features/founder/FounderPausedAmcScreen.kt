@@ -28,12 +28,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.prettyDate
@@ -164,7 +166,7 @@ private fun PausedRow(
             Pill(text = "Paused", kind = PillKind.Danger)
         }
         row.primaryEngineerName?.let {
-            Text("Engineer: $it", color = SevaInk700, fontSize = 13.sp)
+            Text(stringResource(R.string.founder_paused_amc_engineer_label, it), color = SevaInk700, fontSize = 13.sp)
         }
         Text(
             text = pausedAmcTermLine(
@@ -182,7 +184,7 @@ private fun PausedRow(
         )
         row.pausedAt?.let { iso ->
             val rel = relativeLabel(iso)
-            if (rel != null) Text("Paused $rel ago", color = SevaInk500, fontSize = 11.sp)
+            if (rel != null) Text(stringResource(R.string.founder_paused_amc_paused_ago, rel), color = SevaInk500, fontSize = 11.sp)
         }
     }
 }

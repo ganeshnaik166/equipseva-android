@@ -31,12 +31,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
@@ -240,7 +242,11 @@ fun FounderKycQueueScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    if (state.rejectMode) "Reject ${state.sheetUserName}" else "Approve ${state.sheetUserName}",
+                    if (state.rejectMode) {
+                        stringResource(R.string.founder_kyc_queue_reject_user_title, state.sheetUserName.toString())
+                    } else {
+                        stringResource(R.string.founder_kyc_queue_approve_user_title, state.sheetUserName.toString())
+                    },
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = SevaInk900,
@@ -249,13 +255,13 @@ fun FounderKycQueueScreen(
                     OutlinedTextField(
                         value = state.reasonDraft,
                         onValueChange = viewModel::onReasonChange,
-                        label = { Text("Reason") },
+                        label = { Text(stringResource(R.string.founder_kyc_queue_reason_label)) },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !state.acting,
                     )
                 } else {
                     Text(
-                        "Engineer can take repair jobs immediately after approval.",
+                        stringResource(R.string.founder_kyc_queue_approval_note),
                         color = SevaInk500,
                         fontSize = 13.sp,
                     )

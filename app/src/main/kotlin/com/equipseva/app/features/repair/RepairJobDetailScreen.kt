@@ -78,6 +78,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -86,6 +87,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.equipseva.app.R
 import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.data.repair.RepairJob
@@ -259,7 +261,7 @@ fun RepairJobDetailScreen(
                                     onDismissRequest = { menuOpen = false },
                                 ) {
                                     DropdownMenuItem(
-                                        text = { Text("Report job") },
+                                        text = { Text(stringResource(R.string.repair_detail_report_job)) },
                                         onClick = {
                                             menuOpen = false
                                             viewModel.onOpenReport()
@@ -547,8 +549,8 @@ fun RepairJobDetailScreen(
             onDismissRequest = {
                 if (!state.withdrawingBid) withdrawConfirmOpen = false
             },
-            title = { Text("Withdraw this bid?") },
-            text = { Text("The hospital will no longer see your quote. You can re-bid while the job is still open.") },
+            title = { Text(stringResource(R.string.repair_detail_withdraw_dialog_title)) },
+            text = { Text(stringResource(R.string.repair_detail_withdraw_dialog_body)) },
             confirmButton = {
                 TextButton(
                     enabled = !state.withdrawingBid,
@@ -559,13 +561,13 @@ fun RepairJobDetailScreen(
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error,
                     ),
-                ) { Text("Withdraw") }
+                ) { Text(stringResource(R.string.repair_detail_withdraw_confirm)) }
             },
             dismissButton = {
                 TextButton(
                     enabled = !state.withdrawingBid,
                     onClick = { withdrawConfirmOpen = false },
-                ) { Text("Keep bid") }
+                ) { Text(stringResource(R.string.repair_detail_keep_bid)) }
             },
         )
     }
@@ -806,8 +808,7 @@ private fun InvoiceDownloadCard(
         verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            text = "GST tax invoice for your records and input-tax credit claim. " +
-                "Opens in your browser — use Print → Save as PDF.",
+            text = stringResource(R.string.repair_invoice_download_body),
             style = MaterialTheme.typography.bodySmall,
         )
         EsBtn(
@@ -834,7 +835,7 @@ private fun EscrowDisputeSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                "Tell us what went wrong. Funds stay paused until our team reviews. Disputes must be opened within 48h of completion.",
+                stringResource(R.string.repair_dispute_open_body),
                 fontSize = 12.sp,
                 color = SevaInk500,
             )
@@ -842,7 +843,7 @@ private fun EscrowDisputeSheet(
                 value = reason,
                 onValueChange = { if (it.length <= 500) reason = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("e.g. Engineer asked for extra cash on-site to swap parts.") },
+                placeholder = { Text(stringResource(R.string.repair_dispute_open_placeholder)) },
                 minLines = 3,
                 maxLines = 6,
             )
@@ -859,7 +860,7 @@ private fun EscrowDisputeSheet(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    if (submitting) "Opening…" else "Open dispute",
+                    if (submitting) stringResource(R.string.repair_dispute_opening) else stringResource(R.string.repair_dispute_open_action),
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp,
@@ -885,7 +886,7 @@ private fun EngineerResponseSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                "Tell EquipSeva your side of the story. Admin reviews both before deciding release vs refund. You can only respond once — make it count.",
+                stringResource(R.string.repair_dispute_respond_body),
                 fontSize = 12.sp,
                 color = SevaInk500,
             )
@@ -893,7 +894,7 @@ private fun EngineerResponseSheet(
                 value = response,
                 onValueChange = { if (it.length <= 500) response = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("e.g. Replaced the failing PCB on-site, hospital signed off the work order, photos uploaded.") },
+                placeholder = { Text(stringResource(R.string.repair_dispute_respond_placeholder)) },
                 minLines = 3,
                 maxLines = 6,
             )
@@ -910,7 +911,7 @@ private fun EngineerResponseSheet(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    if (submitting) "Submitting…" else "Submit response",
+                    if (submitting) stringResource(R.string.repair_dispute_submitting) else stringResource(R.string.repair_dispute_submit_response),
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp,
@@ -942,13 +943,13 @@ private fun EscrowMissingPlaceholderCard() {
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
-            "Escrow not set up yet",
+            stringResource(R.string.repair_escrow_missing_title),
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             color = SevaInk900,
         )
         Text(
-            "Pull down to refresh. If this stays after a minute, contact support — your engineer can't be paid until the escrow row exists.",
+            stringResource(R.string.repair_escrow_missing_body),
             fontSize = 12.sp,
             color = SevaInk700,
         )
@@ -1008,14 +1009,14 @@ private fun EscrowStatusCard(
         if (escrow.isInDispute) {
             if (!escrow.disputeReason.isNullOrBlank()) {
                 Text(
-                    "Hospital: ${escrow.disputeReason}",
+                    stringResource(R.string.repair_escrow_dispute_hospital_prefix, escrow.disputeReason),
                     color = SevaInk700,
                     fontSize = 13.sp,
                 )
             }
             if (!escrow.engineerResponse.isNullOrBlank()) {
                 Text(
-                    "Engineer: ${escrow.engineerResponse}",
+                    stringResource(R.string.repair_escrow_dispute_engineer_prefix, escrow.engineerResponse),
                     color = SevaInk700,
                     fontSize = 13.sp,
                 )
@@ -1034,7 +1035,7 @@ private fun EscrowStatusCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        "Respond to dispute",
+                        stringResource(R.string.repair_escrow_respond_to_dispute),
                         color = SevaDanger500,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 14.sp,
@@ -1053,7 +1054,7 @@ private fun EscrowStatusCard(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    "Pay ${formatRupees(escrow.amountRupees)} to escrow",
+                    stringResource(R.string.repair_escrow_pay_amount, formatRupees(escrow.amountRupees)),
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp,
@@ -1075,7 +1076,7 @@ private fun EscrowStatusCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        if (confirmingRelease) "Releasing…" else "Confirm + release",
+                        if (confirmingRelease) stringResource(R.string.repair_escrow_releasing) else stringResource(R.string.repair_escrow_confirm_release),
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 14.sp,
@@ -1093,7 +1094,7 @@ private fun EscrowStatusCard(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            "Open dispute",
+                            stringResource(R.string.repair_dispute_open_action),
                             color = SevaDanger500,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 14.sp,
@@ -1121,13 +1122,13 @@ private fun ServiceReportCard(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
-            text = "Service report (HTML)",
+            text = stringResource(R.string.repair_service_report_title),
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             color = SevaInk900,
         )
         Text(
-            text = "Audit-trail of equipment, work performed, parts replaced, photos and timeline. Suitable for NABH / JCI compliance archives.",
+            text = stringResource(R.string.repair_service_report_body),
             fontSize = 12.sp,
             color = SevaInk500,
         )
@@ -1141,7 +1142,7 @@ private fun ServiceReportCard(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = if (loading) "Generating…" else "Download report",
+                text = if (loading) stringResource(R.string.repair_service_report_generating) else stringResource(R.string.repair_service_report_download),
                 color = Color.White,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
@@ -1202,13 +1203,13 @@ private fun WarrantyBanner() {
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Covered by 30-day warranty",
+                text = stringResource(R.string.repair_warranty_title),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = SevaGreen900,
             )
             Text(
-                text = "Service fee waived — within 30 days of an earlier completed repair on the same equipment.",
+                text = stringResource(R.string.repair_warranty_body),
                 fontSize = 11.sp,
                 color = SevaInk500,
             )
@@ -1572,13 +1573,13 @@ private fun NoBidsYetCard() {
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
-            text = "No bids yet",
+            text = stringResource(R.string.repair_nobids_title),
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             color = SevaInk900,
         )
         Text(
-            text = "Verified engineers in your area usually bid within 5–30 min. We'll send a push the moment one arrives.",
+            text = stringResource(R.string.repair_nobids_body),
             fontSize = 12.sp,
             color = SevaInk500,
         )
@@ -1631,7 +1632,7 @@ private fun BidCard(
                 )
                 bid.createdAtInstant?.let { placed ->
                     Text(
-                        text = "${relativeLabel(placed)} ago",
+                        text = stringResource(R.string.repair_bidcard_placed_ago, relativeLabel(placed)),
                         fontSize = 10.sp,
                         color = SevaInk400,
                     )
@@ -1713,7 +1714,7 @@ private fun YourBidCard(ownBid: RepairBid, onWithdraw: () -> Unit) {
             .padding(14.dp),
     ) {
         Text(
-            text = "Your bid",
+            text = stringResource(R.string.repair_yourbid_label),
             fontSize = 12.sp,
             color = SevaInk500,
         )
@@ -1725,7 +1726,7 @@ private fun YourBidCard(ownBid: RepairBid, onWithdraw: () -> Unit) {
             modifier = Modifier.padding(top = 2.dp),
         )
         Text(
-            text = "Status: ${ownBid.status.displayName}",
+            text = stringResource(R.string.repair_yourbid_status_prefix, ownBid.status.displayName),
             fontSize = 12.sp,
             color = SevaInk700,
             modifier = Modifier.padding(top = 4.dp),
@@ -1900,9 +1901,9 @@ private fun LocationCard(
         } else {
             Text(
                 text = if (isEngineer)
-                    "Full address shows up after the hospital accepts your bid."
+                    stringResource(R.string.repair_location_address_hidden_engineer)
                 else
-                    "Address will be shared once the bid is accepted.",
+                    stringResource(R.string.repair_location_address_hidden_hospital),
                 fontSize = 12.sp,
                 color = SevaInk500,
                 modifier = Modifier.padding(top = 8.dp),
@@ -1940,7 +1941,7 @@ private fun CompletionProofCard(urls: List<String>) {
             }
         }
         Text(
-            text = "Photos uploaded by the engineer.",
+            text = stringResource(R.string.repair_completion_proof_body),
             fontSize = 12.sp,
             color = SevaInk500,
             modifier = Modifier.padding(top = 10.dp),
@@ -2206,7 +2207,7 @@ private fun BidComposerSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = if (existingBid != null) "Update your bid" else "Place your bid",
+                text = if (existingBid != null) stringResource(R.string.repair_bidcomposer_update_title) else stringResource(R.string.repair_bidcomposer_place_title),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = SevaInk900,
@@ -2214,7 +2215,7 @@ private fun BidComposerSheet(
             // Price field
             Column {
                 Text(
-                    text = "Your price (₹)",
+                    text = stringResource(R.string.repair_bidcomposer_price_label),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = SevaInk700,
@@ -2245,7 +2246,7 @@ private fun BidComposerSheet(
                 )
                 if (amountError) {
                     Text(
-                        text = "Enter a valid amount",
+                        text = stringResource(R.string.repair_bidcomposer_amount_error),
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(start = 4.dp, top = 4.dp),
@@ -2304,7 +2305,7 @@ private fun BidComposerSheet(
                     // re-opens as "Update your bid" when an existingBid is
                     // present, and there's a withdrawBid flow on YourBidCard.
                     // Tell engineers what they can actually do.
-                    text = "Hospital sees your verified profile. You can edit or withdraw your bid until they accept it.",
+                    text = stringResource(R.string.repair_bidcomposer_info_body),
                     fontSize = 11.sp,
                     color = SevaInfo500,
                 )
@@ -2371,18 +2372,18 @@ private fun CheckinSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "Check in on-site",
+                text = stringResource(R.string.repair_checkin_title),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = SevaInk900,
             )
             Text(
-                text = "Capture 1–4 photos of the equipment before you start. Required by hospital compliance archives.",
+                text = stringResource(R.string.repair_checkin_body),
                 fontSize = 12.sp,
                 color = SevaInk500,
             )
             Text(
-                text = "Before-photos (required)",
+                text = stringResource(R.string.repair_checkin_photos_label),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = SevaInk700,
@@ -2540,7 +2541,7 @@ private fun CompletionProofSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "Mark job done",
+                text = stringResource(R.string.repair_markdone_title),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = SevaInk900,
@@ -2551,13 +2552,12 @@ private fun CompletionProofSheet(
             // archives consume these images) so the bar is clear before
             // the picker opens.
             Text(
-                text = "Capture 1–$maxPhotos photos of the equipment working after the repair. " +
-                    "Hospitals archive these for NABH / JCI compliance.",
+                text = stringResource(R.string.repair_markdone_body, maxPhotos),
                 fontSize = 12.sp,
                 color = SevaInk600,
             )
             Text(
-                text = "After-photos (required)",
+                text = stringResource(R.string.repair_markdone_photos_label),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = SevaInk700,
@@ -2759,7 +2759,7 @@ private fun RateSheet(
                 }
             }
             Text(
-                text = if (rating == 0) "Tap to rate" else labels[rating - 1],
+                text = if (rating == 0) stringResource(R.string.repair_rate_tap_to_rate) else labels[rating - 1],
                 fontSize = 13.sp,
                 color = SevaInk500,
                 textAlign = TextAlign.Center,
@@ -2818,7 +2818,7 @@ private fun CancelSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "Cancel job?",
+                text = stringResource(R.string.repair_cancel_title),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = SevaInk900,
@@ -2830,16 +2830,16 @@ private fun CancelSheet(
             Text(
                 text = when {
                     isAssignedOrLater ->
-                        "The engineer may have already started travel — they'll be notified immediately."
+                        stringResource(R.string.repair_cancel_body_assigned)
                     else ->
-                        "This cannot be undone. The other party will be notified."
+                        stringResource(R.string.repair_cancel_body_default)
                 },
                 fontSize = 13.sp,
                 color = SevaInk600,
             )
             if (escrowHeldRupees != null) {
                 Text(
-                    text = "₹$escrowHeldRupees in escrow will be refunded to your account within 3 working days.",
+                    text = stringResource(R.string.repair_cancel_escrow_refund, escrowHeldRupees),
                     fontSize = 12.sp,
                     color = SevaInk700,
                 )
@@ -2848,9 +2848,9 @@ private fun CancelSheet(
                 value = reason,
                 onValueChange = { reason = it.take(500) },
                 label = {
-                    Text(if (reasonRequired) "Reason (required, 10+ chars)" else "Reason (optional)")
+                    Text(if (reasonRequired) stringResource(R.string.repair_cancel_reason_required_label) else stringResource(R.string.delete_account_sheet_reason_label))
                 },
-                placeholder = { Text("e.g. equipment self-repaired, schedule conflict…") },
+                placeholder = { Text(stringResource(R.string.repair_cancel_reason_placeholder)) },
                 isError = reasonRequired && reason.isNotEmpty() && !reasonOk,
                 minLines = 2,
                 maxLines = 5,
@@ -2908,7 +2908,7 @@ private fun QueuedOutboxPill(bidCount: Int, statusCount: Int) {
             modifier = Modifier.size(16.dp),
         )
         Text(
-            text = "${parts.joinToString(" + ")} queued — will sync when back online",
+            text = stringResource(R.string.repair_queued_outbox_body, parts.joinToString(" + ")),
             fontSize = 12.sp,
             color = SevaInk900,
         )
@@ -2923,7 +2923,7 @@ private fun NotFoundState(onBack: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            "This repair job is no longer available.",
+            stringResource(R.string.repair_notfound_body),
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,
             color = SevaInk900,
@@ -3275,7 +3275,7 @@ private fun EngineerPayoutStatusCard(
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            "₹${String.format(java.util.Locale.ENGLISH, "%.2f", rupees)}",
+            stringResource(R.string.repair_payout_amount, String.format(java.util.Locale.ENGLISH, "%.2f", rupees)),
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
             color = SevaInk900,
@@ -3288,7 +3288,7 @@ private fun EngineerPayoutStatusCard(
         if (!p.utr.isNullOrBlank() && p.status == com.equipseva.app.core.data.payouts.PayoutStatus.Processed) {
             Spacer(Modifier.height(2.dp))
             Text(
-                "UTR ${p.utr}",
+                stringResource(R.string.repair_payout_utr, p.utr),
                 fontSize = 12.sp,
                 color = SevaGreen700,
                 fontWeight = FontWeight.Medium,

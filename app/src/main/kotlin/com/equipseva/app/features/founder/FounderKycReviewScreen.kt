@@ -1,5 +1,6 @@
 package com.equipseva.app.features.founder
 
+import com.equipseva.app.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -263,12 +265,12 @@ fun FounderKycReviewScreen(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text("Reject KYC", style = EsType.H4, color = SevaInk900)
+                Text(stringResource(R.string.kyc_review_reject_kyc_title), style = EsType.H4, color = SevaInk900)
                 OutlinedTextField(
                     value = state.reasonDraft,
                     onValueChange = viewModel::onReasonChange,
-                    label = { Text("Reason (shown to engineer)") },
-                    placeholder = { Text("e.g. Aadhaar photo unreadable") },
+                    label = { Text(stringResource(R.string.kyc_review_reason_label)) },
+                    placeholder = { Text(stringResource(R.string.kyc_review_reason_placeholder)) },
                     enabled = !state.acting,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -348,18 +350,18 @@ private fun ReviewBody(
 
         ReviewSection(title = "Identity") {
             Row(modifier = Modifier.fillMaxWidth()) {
-                Text("Email", color = SevaInk500, modifier = Modifier.width(90.dp))
+                Text(stringResource(R.string.kyc_review_email_label), color = SevaInk500, modifier = Modifier.width(90.dp))
                 Text(engineer.email ?: "—", color = SevaInk900, fontWeight = FontWeight.Medium)
             }
             Row(modifier = Modifier.fillMaxWidth()) {
-                Text("Phone", color = SevaInk500, modifier = Modifier.width(90.dp))
+                Text(stringResource(R.string.engineer_onboarding_phone_label), color = SevaInk500, modifier = Modifier.width(90.dp))
                 Text(engineer.phone ?: "—", color = SevaInk900, fontWeight = FontWeight.Medium)
             }
             if (engineer.aadhaarVerified) {
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    Text("Aadhaar", color = SevaInk500, modifier = Modifier.width(90.dp))
+                    Text(stringResource(R.string.kyc_review_aadhaar_label), color = SevaInk500, modifier = Modifier.width(90.dp))
                     Text(
-                        "verified",
+                        stringResource(R.string.kyc_review_aadhaar_verified),
                         color = SevaGreen700,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -371,7 +373,7 @@ private fun ReviewBody(
             ReviewSection(title = "Coverage") {
                 engineer.experienceYears?.let {
                     Row(modifier = Modifier.fillMaxWidth()) {
-                        Text("Experience", color = SevaInk500, modifier = Modifier.width(120.dp))
+                        Text(stringResource(R.string.kyc_review_experience_label), color = SevaInk500, modifier = Modifier.width(120.dp))
                         Text(
                             text = experienceYearsLabel(it),
                             color = SevaInk900,
@@ -381,13 +383,13 @@ private fun ReviewBody(
                 }
                 engineer.serviceRadiusKm?.let {
                     Row(modifier = Modifier.fillMaxWidth()) {
-                        Text("Service radius", color = SevaInk500, modifier = Modifier.width(120.dp))
-                        Text("$it km", color = SevaInk900, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.kyc_review_service_radius_label), color = SevaInk500, modifier = Modifier.width(120.dp))
+                        Text(stringResource(R.string.kyc_review_service_radius_value, it), color = SevaInk900, fontWeight = FontWeight.Medium)
                     }
                 }
                 engineer.state?.let {
                     Row(modifier = Modifier.fillMaxWidth()) {
-                        Text("State", color = SevaInk500, modifier = Modifier.width(120.dp))
+                        Text(stringResource(R.string.kyc_review_state_label), color = SevaInk500, modifier = Modifier.width(120.dp))
                         Text(it, color = SevaInk900, fontWeight = FontWeight.Medium)
                     }
                 }

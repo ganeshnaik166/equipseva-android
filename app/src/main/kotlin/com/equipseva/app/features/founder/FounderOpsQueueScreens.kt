@@ -29,10 +29,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import com.equipseva.app.R
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -220,7 +222,7 @@ private fun EscrowDisputeRow(
             Text(row.disputeReason, color = SevaInk700, fontSize = 13.sp)
         }
         if (!row.disputeOpenedAt.isNullOrBlank()) {
-            Text("Opened: ${prettyDateTime(row.disputeOpenedAt)}", color = SevaInk500, fontSize = 11.sp)
+            Text(stringResource(R.string.hospital_dispute_opened, prettyDateTime(row.disputeOpenedAt)), color = SevaInk500, fontSize = 11.sp)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             EsBtn(
@@ -377,7 +379,7 @@ private fun AmcEscalationRow(
             Text(row.notes, color = SevaInk700, fontSize = 13.sp)
         }
         if (!row.createdAt.isNullOrBlank()) {
-            Text("Raised: ${prettyDateTime(row.createdAt)}", color = SevaInk500, fontSize = 11.sp)
+            Text(stringResource(R.string.founder_ops_amc_raised_line, prettyDateTime(row.createdAt)), color = SevaInk500, fontSize = 11.sp)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             EsBtn(
@@ -529,7 +531,7 @@ private fun CashSuspendedRow(
             Text(row.reason, color = SevaInk700, fontSize = 13.sp)
         }
         if (!row.suspendedAt.isNullOrBlank()) {
-            Text("Since: ${prettyDateTime(row.suspendedAt)}", color = SevaInk500, fontSize = 11.sp)
+            Text(stringResource(R.string.founder_ops_cash_since_line, prettyDateTime(row.suspendedAt)), color = SevaInk500, fontSize = 11.sp)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             EsBtn(
@@ -655,7 +657,7 @@ private fun PartsOutlierRow(row: FounderRepository.PartsCostOutlier) {
             fontSize = 12.sp,
         )
         if (!row.completedAt.isNullOrBlank()) {
-            Text("Completed: ${prettyDate(row.completedAt)}", color = SevaInk500, fontSize = 11.sp)
+            Text(stringResource(R.string.founder_ops_parts_completed_line, prettyDate(row.completedAt)), color = SevaInk500, fontSize = 11.sp)
         }
     }
 }
@@ -744,21 +746,25 @@ private fun AdminResolveDisputeSheet(
         ) {
             target?.let {
                 Text(
-                    "${it.jobNumber ?: "RPR-${it.repairJobId.take(6)}"} · ${formatRupees(it.amountRupees)} held",
+                    stringResource(
+                        R.string.founder_ops_dispute_sheet_summary_line,
+                        it.jobNumber ?: "RPR-${it.repairJobId.take(6)}",
+                        formatRupees(it.amountRupees),
+                    ),
                     color = SevaInk900,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 13.sp,
                 )
                 if (!it.disputeReason.isNullOrBlank()) {
                     Text(
-                        "Hospital: ${it.disputeReason}",
+                        stringResource(R.string.founder_resolved_disputes_hospital_reason, it.disputeReason),
                         color = SevaInk700,
                         fontSize = 12.sp,
                     )
                 }
             }
             Text(
-                "Pick an outcome and (optionally) record a short note explaining the call. Note appears in the audit timeline.",
+                stringResource(R.string.founder_ops_dispute_sheet_instructions),
                 color = SevaInk500,
                 fontSize = 12.sp,
             )
@@ -778,7 +784,7 @@ private fun AdminResolveDisputeSheet(
                 value = note,
                 onValueChange = { if (it.length <= 500) note = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("e.g. Engineer's response confirmed by completion photos and hospital sign-off log.") },
+                placeholder = { Text(stringResource(R.string.founder_ops_dispute_sheet_note_placeholder)) },
                 minLines = 2,
                 maxLines = 5,
             )

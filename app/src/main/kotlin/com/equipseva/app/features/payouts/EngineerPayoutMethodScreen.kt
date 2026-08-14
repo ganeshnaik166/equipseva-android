@@ -31,11 +31,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.R
 import com.equipseva.app.core.data.payouts.EngineerPayoutMethod
 import com.equipseva.app.core.data.payouts.PayoutMethodKind
 import com.equipseva.app.core.data.payouts.PayoutMethodVerification
@@ -91,14 +93,13 @@ fun EngineerPayoutMethodScreen(
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Text(
-                    "Where should we send your earnings?",
+                    stringResource(R.string.payout_method_send_earnings_question),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = SevaInk900,
                 )
                 Text(
-                    "After a hospital confirms a completed job, we transfer your share " +
-                        "automatically to the destination below — usually within minutes via UPI.",
+                    stringResource(R.string.payout_method_transfer_note),
                     fontSize = 13.sp,
                     color = SevaInk500,
                 )
@@ -187,8 +188,8 @@ private fun CurrentDestinationCard(method: EngineerPayoutMethod) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 when (method.kind) {
-                    PayoutMethodKind.Upi -> "Current: UPI"
-                    PayoutMethodKind.Bank -> "Current: Bank"
+                    PayoutMethodKind.Upi -> stringResource(R.string.payout_method_current_upi)
+                    PayoutMethodKind.Bank -> stringResource(R.string.payout_method_current_bank)
                 },
                 fontSize = 12.sp,
                 color = SevaInk500,
@@ -378,11 +379,14 @@ private fun InfoNote() {
             modifier = Modifier.size(18.dp),
         )
         Column {
-            Text("How payouts work", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = SevaInk900)
             Text(
-                "When a hospital confirms a job, your share is transferred to this destination. " +
-                    "UPI typically lands in seconds; bank IMPS in minutes. " +
-                    "EquipSeva's commission is deducted automatically.",
+                stringResource(R.string.payout_method_how_it_works_title),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = SevaInk900,
+            )
+            Text(
+                stringResource(R.string.payout_method_how_it_works_body),
                 fontSize = 12.sp,
                 color = SevaInk500,
             )

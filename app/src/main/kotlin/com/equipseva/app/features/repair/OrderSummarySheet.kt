@@ -14,9 +14,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equipseva.app.R
 import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.util.formatRupees
@@ -84,7 +86,7 @@ fun OrderSummarySheet(
                     .background(Paper2)
                     .padding(12.dp),
             ) {
-                Text("Engineer", color = SevaInk500, fontSize = 11.sp)
+                Text(stringResource(R.string.order_summary_engineer_label), color = SevaInk500, fontSize = 11.sp)
                 Text(
                     engineerName,
                     color = SevaInk900,
@@ -96,7 +98,7 @@ fun OrderSummarySheet(
             // Repair scope
             Column {
                 Text(
-                    "Repair scope",
+                    stringResource(R.string.order_summary_repair_scope_label),
                     color = SevaInk500,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -113,13 +115,13 @@ fun OrderSummarySheet(
             bid.etaHours?.let { eta ->
                 Column {
                     Text(
-                        "Timeline",
+                        stringResource(R.string.order_summary_timeline_label),
                         color = SevaInk500,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
-                        "Engineer arrives within $eta hours",
+                        stringResource(R.string.order_summary_eta_arrival, eta),
                         color = SevaInk700,
                         fontSize = 13.sp,
                     )
@@ -143,7 +145,7 @@ fun OrderSummarySheet(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        "Total",
+                        stringResource(R.string.order_summary_total_label),
                         color = SevaInk900,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
@@ -159,8 +161,7 @@ fun OrderSummarySheet(
 
             // Escrow assurance
             Text(
-                "Held safe in EquipSeva escrow until you confirm the job is " +
-                    "complete. Auto-releases after 48 hours, or refundable if cancelled.",
+                stringResource(R.string.order_summary_escrow_note),
                 color = SevaInk500,
                 fontSize = 12.sp,
                 lineHeight = 17.sp,

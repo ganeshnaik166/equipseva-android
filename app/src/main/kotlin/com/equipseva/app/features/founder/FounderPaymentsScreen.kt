@@ -1,5 +1,6 @@
 package com.equipseva.app.features.founder
 
+import com.equipseva.app.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -29,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -245,7 +247,7 @@ private fun PaymentRow(
             // give a touch slop. Material guideline: clickable text rows
             // need either explicit min-height or sufficient padding.
             Text(
-                text = "Open invoice",
+                text = stringResource(R.string.founder_payments_open_invoice),
                 color = SevaGreen700,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -273,7 +275,7 @@ private fun PaymentsStatsCard(stats: FounderRepository.RecentPaymentsStats) {
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
-            "Last ${stats.windowDays} days",
+            stringResource(R.string.founder_payments_last_n_days, stats.windowDays),
             color = SevaInk500,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
@@ -299,7 +301,7 @@ private fun PaymentsStatsCard(stats: FounderRepository.RecentPaymentsStats) {
         }
         if (stats.gmvRefundedInr > 0.0) {
             Text(
-                text = "Refunded: ${formatRupees(stats.gmvRefundedInr)}",
+                text = stringResource(R.string.founder_payments_refunded_amount, formatRupees(stats.gmvRefundedInr)),
                 color = SevaInk500,
                 fontSize = 12.sp,
             )

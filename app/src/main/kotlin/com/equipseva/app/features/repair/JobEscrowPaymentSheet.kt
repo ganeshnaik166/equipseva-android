@@ -22,11 +22,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import com.equipseva.app.R
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
@@ -214,7 +216,7 @@ fun JobEscrowPaymentSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                "Funds sit in EquipSeva escrow until the engineer completes the job. Released automatically 48 hours after completion, or anytime you confirm — and refundable if the job is cancelled.",
+                stringResource(R.string.job_escrow_payment_note),
                 color = SevaInk500,
                 fontSize = 12.sp,
             )
@@ -231,11 +233,11 @@ fun JobEscrowPaymentSheet(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column {
-                        Text("Engineer", color = SevaInk500, fontSize = 11.sp)
+                        Text(stringResource(R.string.order_summary_engineer_label), color = SevaInk500, fontSize = 11.sp)
                         Text(engineerName, color = SevaInk900, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text("Amount", color = SevaInk500, fontSize = 11.sp)
+                        Text(stringResource(R.string.job_escrow_amount_label), color = SevaInk500, fontSize = 11.sp)
                         Text(
                             formatRupees(amountRupees),
                             color = SevaInk900,
@@ -246,7 +248,7 @@ fun JobEscrowPaymentSheet(
                 }
             }
             Text(
-                "You'll be redirected to Razorpay to complete payment. UPI, cards, and net banking are all supported.",
+                stringResource(R.string.job_escrow_razorpay_note),
                 color = SevaInk700,
                 fontSize = 12.sp,
             )

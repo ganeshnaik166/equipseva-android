@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,6 +46,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.relativeLabel
@@ -376,7 +378,13 @@ fun FounderEngineerPayoutsScreen(
                         onClick = viewModel::exportCsv,
                         enabled = !s.exporting && !s.loading,
                     ) {
-                        Text(if (s.exporting) "Exporting…" else "Export CSV")
+                        Text(
+                            if (s.exporting) {
+                                stringResource(R.string.founder_payouts_exporting)
+                            } else {
+                                stringResource(R.string.founder_payouts_export_csv)
+                            },
+                        )
                     }
                 },
             )
@@ -544,13 +552,17 @@ private fun PayoutAdminRow(
                     fontWeight = FontWeight.Medium,
                 )
                 Text(
-                    "₹${formatRupees(amountRupees)} → ${row.engineerName ?: "Unknown engineer"}",
+                    stringResource(
+                        R.string.founder_payouts_amount_arrow_engineer,
+                        formatRupees(amountRupees),
+                        row.engineerName ?: "Unknown engineer",
+                    ),
                     fontSize = 15.sp,
                     color = SevaInk900,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    row.destinationLabel ?: "No payout method on file",
+                    row.destinationLabel ?: stringResource(R.string.founder_payouts_no_payout_method_short),
                     fontSize = 12.sp,
                     color = SevaInk500,
                 )
@@ -566,7 +578,7 @@ private fun PayoutAdminRow(
                         else -> "Queued"
                     }
                     Text(
-                        "$prefix $ageLabel",
+                        stringResource(R.string.founder_payouts_age_stamp, prefix, ageLabel),
                         fontSize = 12.sp,
                         color = SevaInk500,
                     )
@@ -578,14 +590,14 @@ private fun PayoutAdminRow(
                     val tone = if (row.status == "failed") SevaDanger500 else SevaInk500
                     val tag = if (row.status == "failed") "Failed" else "Cancelled"
                     Text(
-                        "$tag: ${row.failureReason}",
+                        stringResource(R.string.founder_payouts_failure_tag, tag, row.failureReason.orEmpty()),
                         fontSize = 12.sp,
                         color = tone,
                     )
                 }
                 if (row.status == "processed" && !row.utr.isNullOrBlank()) {
                     Text(
-                        "UTR ${row.utr}",
+                        stringResource(R.string.repair_payout_utr, row.utr.orEmpty()),
                         fontSize = 12.sp,
                         color = SevaGreen700,
                     )
@@ -663,9 +675,19 @@ private fun MarkPaidSheet(
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Mark paid", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = SevaInk900)
         Text(
-            "${p.jobNumber} · ₹${formatRupees(amountRupees)} → ${p.engineerName ?: "engineer"}",
+            stringResource(R.string.founder_payouts_mark_paid_title),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = SevaInk900,
+        )
+        Text(
+            stringResource(
+                R.string.founder_payouts_job_summary_line,
+                p.jobNumber,
+                formatRupees(amountRupees),
+                p.engineerName ?: "engineer",
+            ),
             fontSize = 13.sp,
             color = SevaInk500,
         )
@@ -685,8 +707,8 @@ private fun MarkPaidSheet(
         OutlinedTextField(
             value = state.utr,
             onValueChange = onUtrChange,
-            label = { Text("UTR / Reference (required, min 6 chars)") },
-            placeholder = { Text("e.g. 426012345678") },
+            label = { Text(stringResource(R.string.founder_payouts_utr_field_label)) },
+            placeholder = { Text(stringResource(R.string.founder_payouts_utr_field_placeholder)) },
             singleLine = true,
             enabled = !state.sheetSaving,
             modifier = Modifier.fillMaxWidth(),
@@ -695,7 +717,12 @@ private fun MarkPaidSheet(
         // Free text invited typos ("UPi") that downstream reports would
         // bucket wrong (and silent mismatch with the engineer_payouts.mode
         // CHECK constraint).
-        Text("Mode", fontSize = 13.sp, color = SevaInk500, fontWeight = FontWeight.Medium)
+        Text(
+            stringResource(R.string.founder_payouts_mode_label),
+            fontSize = 13.sp,
+            color = SevaInk500,
+            fontWeight = FontWeight.Medium,
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("UPI", "IMPS", "NEFT", "cash", "other").forEach { opt ->
                 ModeChip(
@@ -709,8 +736,8 @@ private fun MarkPaidSheet(
         OutlinedTextField(
             value = state.notes,
             onValueChange = onNotesChange,
-            label = { Text("Notes (founder-only audit)") },
-            placeholder = { Text("e.g. Sent via GPay from personal account") },
+            label = { Text(stringResource(R.string.founder_payouts_notes_field_label)) },
+            placeholder = { Text(stringResource(R.string.founder_payouts_notes_field_placeholder)) },
             enabled = !state.sheetSaving,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -760,17 +787,27 @@ private fun CancelPayoutSheet(
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Cancel payout", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = SevaInk900)
         Text(
-            "${p.jobNumber} · ₹${formatRupees(amountRupees)} → ${p.engineerName ?: "engineer"}",
+            stringResource(R.string.founder_payouts_cancel_title),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = SevaInk900,
+        )
+        Text(
+            stringResource(
+                R.string.founder_payouts_job_summary_line,
+                p.jobNumber,
+                formatRupees(amountRupees),
+                p.engineerName ?: "engineer",
+            ),
             fontSize = 13.sp,
             color = SevaInk500,
         )
         OutlinedTextField(
             value = state.cancelReason,
             onValueChange = onReasonChange,
-            label = { Text("Reason (min 5 chars)") },
-            placeholder = { Text("e.g. dispute resolved against engineer; no payout due") },
+            label = { Text(stringResource(R.string.founder_payouts_cancel_reason_label)) },
+            placeholder = { Text(stringResource(R.string.founder_payouts_cancel_reason_placeholder)) },
             enabled = !state.sheetSaving,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -833,7 +870,7 @@ private fun DestinationActionRow(
 ) {
     if (destination.isNullOrBlank()) {
         Text(
-            "No payout method on file — engineer must add one before payout.",
+            stringResource(R.string.founder_payouts_no_destination_body),
             fontSize = 12.sp,
             color = SevaDanger500,
         )
@@ -850,7 +887,7 @@ private fun DestinationActionRow(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            if (isUpi) "UPI: $destination" else destination,
+            if (isUpi) stringResource(R.string.founder_payouts_upi_prefix, destination) else destination,
             fontSize = 14.sp,
             color = SevaInk900,
             fontWeight = FontWeight.SemiBold,

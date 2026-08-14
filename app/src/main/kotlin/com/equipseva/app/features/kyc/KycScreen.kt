@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -99,6 +100,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Path
+import com.equipseva.app.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -218,7 +220,7 @@ fun KycScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(state.errorMessage!!, style = MaterialTheme.typography.bodyLarge)
-                        Button(onClick = viewModel::retry) { Text("Retry") }
+                        Button(onClick = viewModel::retry) { Text(stringResource(R.string.common_retry)) }
                     }
                 }
                 else -> KycStepperBody(
@@ -294,12 +296,12 @@ private fun EmailVerifySheet(
                 .padding(horizontal = Spacing.lg, vertical = Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            Text("Verify your email", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ink900)
-            Text("Code sent to $email", fontSize = 13.sp, color = Ink500)
+            Text(stringResource(R.string.kyc_verify_your_email), fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ink900)
+            Text(stringResource(R.string.kyc_email_code_sent, email), fontSize = 13.sp, color = Ink500)
             OutlinedTextField(
                 value = code,
                 onValueChange = onCodeChange,
-                label = { Text("6-digit code") },
+                label = { Text(stringResource(R.string.kyc_email_otp_label)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.NumberPassword,
@@ -314,7 +316,7 @@ private fun EmailVerifySheet(
                 ),
                 enabled = !verifying,
                 supportingText = if (sending) {
-                    { Text("Sending code…", fontSize = 12.sp, color = Ink500) }
+                    { Text(stringResource(R.string.kyc_email_sending_code), fontSize = 12.sp, color = Ink500) }
                 } else null,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -323,7 +325,7 @@ private fun EmailVerifySheet(
                     onClick = onResend,
                     enabled = !sending && !verifying,
                     modifier = Modifier.weight(1f),
-                ) { Text(if (sending) "Resending…" else "Resend code") }
+                ) { Text(if (sending) stringResource(R.string.kyc_email_resending) else stringResource(R.string.kyc_email_resend_code)) }
                 Button(
                     onClick = onSubmit,
                     enabled = !verifying && code.length == 6,
@@ -336,9 +338,9 @@ private fun EmailVerifySheet(
                             color = MaterialTheme.colorScheme.onPrimary,
                         )
                         Spacer(Modifier.size(Spacing.sm))
-                        Text("Verifying…")
+                        Text(stringResource(R.string.kyc_email_verifying))
                     } else {
-                        Text("Verify")
+                        Text(stringResource(R.string.kyc_verify_action))
                     }
                 }
             }
@@ -407,8 +409,8 @@ private fun KycStepperBody(
             )
             Text(
                 text = when (state.currentStep) {
-                    KycStep.Personal -> "How hospitals reach you and where you operate."
-                    KycStep.Documents -> "Upload identity and qualification proof."
+                    KycStep.Personal -> stringResource(R.string.kyc_step_personal_caption)
+                    KycStep.Documents -> stringResource(R.string.kyc_step_documents_caption)
                 },
                 fontSize = 12.sp,
                 color = Ink500,
@@ -500,7 +502,7 @@ private fun PersonalStep(
                         modifier = Modifier.padding(end = 6.dp),
                     ) {
                         Text(
-                            text = if (state.savingEmail) "Saving…" else "Save",
+                            text = if (state.savingEmail) stringResource(R.string.address_form_saving) else stringResource(R.string.common_save),
                             color = SevaGreen700,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -519,7 +521,7 @@ private fun PersonalStep(
                             .padding(horizontal = 10.dp, vertical = 4.dp),
                     ) {
                         Text(
-                            text = "Verified",
+                            text = stringResource(R.string.verified_badge_label),
                             color = SevaGreen700,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -532,7 +534,7 @@ private fun PersonalStep(
                         modifier = Modifier.padding(end = 6.dp),
                     ) {
                         Text(
-                            text = if (state.sendingEmailOtp) "Sending…" else "Verify",
+                            text = if (state.sendingEmailOtp) stringResource(R.string.kyc_email_otp_sending) else stringResource(R.string.kyc_verify_action),
                             color = SevaGreen700,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -565,7 +567,7 @@ private fun PersonalStep(
             readOnly = true,
             singleLine = true,
             colors = phoneReadOnlyColors,
-            placeholder = { Text("+91 98765 43210", color = Ink500) },
+            placeholder = { Text(stringResource(R.string.engineer_onboarding_phone_placeholder), color = Ink500) },
             trailingIcon = {
                 if (state.phone.isNullOrBlank()) {
                     androidx.compose.material3.TextButton(
@@ -573,7 +575,7 @@ private fun PersonalStep(
                         modifier = Modifier.padding(end = 6.dp),
                     ) {
                         Text(
-                            text = "Add",
+                            text = stringResource(R.string.kyc_phone_add),
                             color = SevaGreen700,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -592,7 +594,7 @@ private fun PersonalStep(
                             // round-trip — so don't paint it "Verified".
                             // Email above DOES go through Supabase email
                             // OTP and keeps the Verified pill.
-                            text = "Saved",
+                            text = stringResource(R.string.kyc_phone_saved_pill),
                             color = SevaGreen700,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -607,7 +609,7 @@ private fun PersonalStep(
             // bridge, and calling out a third-party app implies hospitals
             // will message you direct (anti-leak hole). Calls go through
             // EquipSeva's masked-line bridge; chat lives in the app.
-            text = "Used to coordinate active jobs. Not for login.",
+            text = stringResource(R.string.kyc_phone_hint),
             fontSize = 11.sp,
             color = Ink500,
         )
@@ -681,7 +683,7 @@ private fun AadhaarSection(
         OutlinedTextField(
             value = digits,
             onValueChange = onAadhaarNumberChange,
-            label = { Text("12-digit Aadhaar") },
+            label = { Text(stringResource(R.string.kyc_aadhaar_number_label)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
             singleLine = true,
             isError = digits.length == 12 && !checksumOk,
@@ -721,7 +723,7 @@ private fun PanSection(
         OutlinedTextField(
             value = pan,
             onValueChange = onPanNumberChange,
-            label = { Text("PAN number") },
+            label = { Text(stringResource(R.string.kyc_pan_number_label)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
             singleLine = true,
             isError = pan.length == 10 && !panOk,
@@ -756,7 +758,7 @@ private fun CertificateSection(state: KycViewModel.UiState, onPickCertificate: (
             onClick = onPickCertificate,
         )
         Text(
-            text = "Upload your degree, diploma or trade certificate. You can add more after submitting.",
+            text = stringResource(R.string.kyc_certificate_hint),
             fontSize = 11.sp,
             color = Ink500,
         )
@@ -808,7 +810,7 @@ private fun AttestationSection(state: KycViewModel.UiState, onAttestationChange:
             }
         }
         Text(
-            text = "I confirm the above information is accurate and the documents are mine. False info may lead to permanent ban.",
+            text = stringResource(R.string.kyc_attestation_text),
             fontSize = 12.sp,
             color = Ink700,
             lineHeight = 17.sp,
@@ -817,7 +819,7 @@ private fun AttestationSection(state: KycViewModel.UiState, onAttestationChange:
     }
     Spacer(Modifier.height(6.dp))
     Text(
-        text = "After submit: typically reviewed within 4–24 hours. We'll push-notify you with the outcome.",
+        text = stringResource(R.string.kyc_attestation_review_note),
         fontSize = 11.sp,
         color = Info,
     )
@@ -886,7 +888,7 @@ private fun VerifiedSummaryCard(state: KycViewModel.UiState) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Success, modifier = Modifier.size(20.dp))
             Text(
-                text = "Hospitals can now find you in the directory and send job requests.",
+                text = stringResource(R.string.kyc_verified_summary_message),
                 fontSize = 13.sp,
                 color = Ink700,
             )
@@ -924,7 +926,7 @@ private fun StatusBanner(status: VerificationStatus, submitted: Boolean) {
     ) {
         Icon(imageVector = icon, contentDescription = null, tint = fg, modifier = Modifier.size(14.dp))
         Text(
-            text = "$label · $subtitle",
+            text = stringResource(R.string.kyc_status_banner_line, label, subtitle),
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
             color = fg,
@@ -996,9 +998,9 @@ private fun ReuploadCta(
         ) {
             Text(
                 text = if (flaggedLabel != null)
-                    "Re-upload required: $flaggedLabel"
+                    stringResource(R.string.kyc_reupload_required_label, flaggedLabel)
                 else
-                    "Your documents were rejected",
+                    stringResource(R.string.kyc_reupload_rejected_label),
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = ErrorRed,
@@ -1007,7 +1009,7 @@ private fun ReuploadCta(
                 // Admin's free-text reason — prefixed with "Why:" so the
                 // engineer can see at a glance what went wrong.
                 Text(
-                    text = "Why: $notes",
+                    text = stringResource(R.string.kyc_reupload_why_notes, notes),
                     fontSize = 13.sp,
                     color = Ink700,
                     fontWeight = FontWeight.Medium,
@@ -1015,9 +1017,9 @@ private fun ReuploadCta(
             }
             Text(
                 text = if (flaggedLabel != null)
-                    "Tap below to clear the flagged doc(s) and re-pick them. Your other approved docs stay as-is."
+                    stringResource(R.string.kyc_reupload_flagged_instructions)
                 else
-                    "Please re-upload your Aadhaar and qualification certificate. Your submission will go back into review once saved.",
+                    stringResource(R.string.kyc_reupload_generic_instructions),
                 fontSize = 13.sp,
                 color = Ink700,
             )
@@ -1031,7 +1033,7 @@ private fun ReuploadCta(
             ) {
                 Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.size(Spacing.sm))
-                Text(if (flaggedLabel != null) "Re-upload flagged docs" else "Re-upload documents")
+                Text(if (flaggedLabel != null) stringResource(R.string.kyc_reupload_button_flagged) else stringResource(R.string.kyc_reupload_button_generic))
             }
         }
     }
@@ -1182,7 +1184,7 @@ private fun StepperBottomBar(
                 modifier = Modifier
                     .weight(1f)
                     .height(Spacing.MinTouchTarget),
-            ) { Text("Back") }
+            ) { Text(stringResource(R.string.kyc_back_button)) }
         }
         Button(
             onClick = if (isLast) onSubmit else onNext,
@@ -1198,7 +1200,7 @@ private fun StepperBottomBar(
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
                 Spacer(Modifier.size(Spacing.sm))
-                Text("Saving…")
+                Text(stringResource(R.string.address_form_saving))
             } else {
                 Text(nextLabel)
             }

@@ -61,11 +61,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.R
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.data.repair.RepairJobUrgency
 import com.equipseva.app.core.util.MIME_JPEG
@@ -348,7 +350,7 @@ private fun EngineerReassuranceHeader(
         Avatar(initials = initials, size = 36.dp)
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Booking $name",
+                text = stringResource(R.string.request_service_booking_name, name),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Ink900,
@@ -358,7 +360,7 @@ private fun EngineerReassuranceHeader(
                 ?: "New"
             val jobsLabel = if (jobCount == 1) "1 job" else "$jobCount jobs"
             Text(
-                text = "$ratingLabel · $jobsLabel",
+                text = stringResource(R.string.request_service_rating_jobs_summary, ratingLabel, jobsLabel),
                 fontSize = 12.sp,
                 color = Ink700,
             )
@@ -381,7 +383,7 @@ private fun DraftRecoveryBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "Resume your draft?",
+            text = stringResource(R.string.request_service_resume_draft),
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
             color = BrandGreenDark,
@@ -443,9 +445,9 @@ private fun SubmitBar(
             Spacer(Modifier.width(6.dp))
             Text(
                 when {
-                    submitting -> "Submitting…"
-                    uploadingPhoto -> "Uploading photo…"
-                    else -> "Submit request"
+                    submitting -> stringResource(R.string.request_service_submitting)
+                    uploadingPhoto -> stringResource(R.string.request_service_uploading_photo)
+                    else -> stringResource(R.string.request_service_submit_request)
                 },
             )
         }
@@ -478,7 +480,7 @@ private fun StepEquipment(
 ) {
     StepHeadline("Which equipment?")
     Text(
-        text = "Equipment type",
+        text = stringResource(R.string.request_service_equipment_type_label),
         fontSize = 13.sp,
         fontWeight = FontWeight.Medium,
         color = Ink700,
@@ -500,8 +502,8 @@ private fun StepEquipment(
     OutlinedTextField(
         value = brand,
         onValueChange = onBrand,
-        label = { Text("Brand") },
-        placeholder = { Text("e.g. Siemens") },
+        label = { Text(stringResource(R.string.request_service_brand_label)) },
+        placeholder = { Text(stringResource(R.string.request_service_brand_placeholder)) },
         singleLine = true,
         // Brand names are proper nouns ("Siemens", "GE Healthcare",
         // "Philips") — capitalize each word on the soft keyboard.
@@ -513,8 +515,8 @@ private fun StepEquipment(
     OutlinedTextField(
         value = model,
         onValueChange = onModel,
-        label = { Text("Model") },
-        placeholder = { Text("e.g. SOMATOM go.Up") },
+        label = { Text(stringResource(R.string.request_service_model_label)) },
+        placeholder = { Text(stringResource(R.string.request_service_model_placeholder)) },
         singleLine = true,
         // Model names are also proper nouns. The default sentence-
         // case keyboard would only capitalize the FIRST word, but
@@ -528,8 +530,8 @@ private fun StepEquipment(
     OutlinedTextField(
         value = serial,
         onValueChange = onSerial,
-        label = { Text("Serial number (optional)") },
-        placeholder = { Text("Usually behind the unit") },
+        label = { Text(stringResource(R.string.request_service_serial_label)) },
+        placeholder = { Text(stringResource(R.string.request_service_serial_placeholder)) },
         singleLine = true,
         // Serials are almost always uppercase alphanumeric on the
         // unit plate. Characters capitalization means every typed
@@ -563,8 +565,8 @@ private fun StepIssue(
     OutlinedTextField(
         value = issue,
         onValueChange = onIssue,
-        label = { Text("Description") },
-        placeholder = { Text("Describe the issue clearly — symptoms, error codes, when it started.") },
+        label = { Text(stringResource(R.string.request_service_description_label)) },
+        placeholder = { Text(stringResource(R.string.request_service_description_placeholder)) },
         isError = issueError != null,
         supportingText = issueError?.let { { Text(it) } },
         minLines = 5,
@@ -578,7 +580,7 @@ private fun StepIssue(
         onRemovePhoto = onRemovePhoto,
     )
     Text(
-        text = "Severity",
+        text = stringResource(R.string.request_service_severity_label),
         fontSize = 13.sp,
         fontWeight = FontWeight.Medium,
         color = Ink700,
@@ -621,13 +623,13 @@ private fun PhotoPickerSection(
     onRemovePhoto: (String) -> Unit,
 ) {
     Text(
-        text = "Photos (optional)",
+        text = stringResource(R.string.request_service_photos_label),
         fontSize = 13.sp,
         fontWeight = FontWeight.Medium,
         color = Ink700,
     )
     Text(
-        text = "Attach photos of the nameplate or fault. Up to 5 images, JPEG/PNG/WEBP.",
+        text = stringResource(R.string.request_service_photos_hint),
         fontSize = 12.sp,
         color = Ink700,
     )
@@ -643,7 +645,7 @@ private fun PhotoPickerSection(
                 modifier = Modifier.size(18.dp),
             )
             Spacer(Modifier.width(6.dp))
-            Text("Take photo")
+            Text(stringResource(R.string.request_service_take_photo))
         }
         OutlinedButton(
             onClick = onPickFromGallery,
@@ -656,7 +658,7 @@ private fun PhotoPickerSection(
                 modifier = Modifier.size(18.dp),
             )
             Spacer(Modifier.width(6.dp))
-            Text("From gallery")
+            Text(stringResource(R.string.request_service_from_gallery))
         }
     }
     if (uploading) {
@@ -669,7 +671,7 @@ private fun PhotoPickerSection(
                 strokeWidth = 2.dp,
             )
             Text(
-                text = "Uploading…",
+                text = stringResource(R.string.request_service_uploading),
                 fontSize = 12.sp,
                 color = Ink700,
             )
@@ -759,7 +761,7 @@ private fun StepWhen(
 ) {
     StepHeadline("When?")
     Text(
-        text = "Preferred slot",
+        text = stringResource(R.string.request_service_preferred_slot_label),
         fontSize = 13.sp,
         fontWeight = FontWeight.Medium,
         color = Ink700,
@@ -828,11 +830,11 @@ private fun StepWhen(
                     onPickedDateChange(datePickerState.selectedDateMillis)
                     onSelectSlot(4)
                     datePickerOpen = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.request_service_date_picker_ok)) }
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { datePickerOpen = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.common_cancel))
                 }
             },
         ) {
@@ -859,8 +861,8 @@ private fun StepWhere(
     OutlinedTextField(
         value = siteAddress,
         onValueChange = onSiteAddress,
-        label = { Text("Address") },
-        placeholder = { Text("Hospital name, street, city — type if you can't pin on the map") },
+        label = { Text(stringResource(R.string.request_service_address_label)) },
+        placeholder = { Text(stringResource(R.string.request_service_address_placeholder)) },
         // Surface the VM's address requirement inline. The submit
         // handler also stamps this when the field is too short, so
         // the user sees both the banner at top and the field-level
@@ -874,8 +876,8 @@ private fun StepWhere(
     OutlinedTextField(
         value = siteLocation,
         onValueChange = onSiteLocation,
-        label = { Text("Note for the engineer") },
-        placeholder = { Text("Ward · Department · Floor · Gate to enter from") },
+        label = { Text(stringResource(R.string.request_service_engineer_note_label)) },
+        placeholder = { Text(stringResource(R.string.request_service_engineer_note_placeholder)) },
         singleLine = false,
         minLines = 2,
         modifier = Modifier.fillMaxWidth(),
@@ -890,8 +892,8 @@ private fun StepWhere(
     OutlinedTextField(
         value = budget,
         onValueChange = { onBudget(it.filter { c -> c in '0'..'9' || c == '.' }) },
-        label = { Text("Budget (₹, optional)") },
-        placeholder = { Text("e.g. 5000") },
+        label = { Text(stringResource(R.string.request_service_budget_label)) },
+        placeholder = { Text(stringResource(R.string.request_service_budget_placeholder)) },
         isError = budgetError != null,
         supportingText = budgetError?.let { { Text(it) } },
         singleLine = true,

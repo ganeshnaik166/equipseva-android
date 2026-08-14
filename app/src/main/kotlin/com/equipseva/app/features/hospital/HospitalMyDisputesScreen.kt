@@ -26,12 +26,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
@@ -194,13 +196,18 @@ private fun DisputeRow(
             Text(row.disputeReason, color = SevaInk700, fontSize = 12.sp)
         }
         if (!row.resolutionNote.isNullOrBlank()) {
-            Text("EquipSeva note: ${row.resolutionNote}", color = SevaInk900, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Text(
+                stringResource(R.string.hospital_dispute_resolution_note, row.resolutionNote),
+                color = SevaInk900,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+            )
         }
         row.disputeOpenedAt?.let {
-            Text("Opened: ${prettyDate(it)}", color = SevaInk500, fontSize = 11.sp)
+            Text(stringResource(R.string.hospital_dispute_opened, prettyDate(it)), color = SevaInk500, fontSize = 11.sp)
         }
         row.disputeResolvedAt?.let {
-            Text("Resolved: ${prettyDate(it)}", color = SevaInk500, fontSize = 11.sp)
+            Text(stringResource(R.string.hospital_dispute_resolved, prettyDate(it)), color = SevaInk500, fontSize = 11.sp)
         }
     }
 }

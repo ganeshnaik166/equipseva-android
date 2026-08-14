@@ -32,10 +32,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.R
 import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.relativeLabel
@@ -193,7 +195,7 @@ private fun BidRowCard(
             )
             row.bid.createdAtInstant?.let { placed ->
                 Text(
-                    text = "Placed ${relativeLabel(placed)} ago",
+                    text = stringResource(R.string.mybids_row_placed_ago, relativeLabel(placed)),
                     style = EsType.Caption,
                     color = SevaInk400,
                 )

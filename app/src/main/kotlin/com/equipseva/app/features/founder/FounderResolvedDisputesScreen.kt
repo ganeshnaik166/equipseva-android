@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,6 +46,7 @@ import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk700
 import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -185,13 +187,13 @@ private fun ResolvedRow(
             fontSize = 12.sp,
         )
         if (!row.disputeReason.isNullOrBlank()) {
-            Text("Hospital: ${row.disputeReason}", color = SevaInk700, fontSize = 12.sp)
+            Text(stringResource(R.string.founder_resolved_disputes_hospital_reason, row.disputeReason), color = SevaInk700, fontSize = 12.sp)
         }
         if (!row.engineerResponse.isNullOrBlank()) {
-            Text("Engineer: ${row.engineerResponse}", color = SevaInk700, fontSize = 12.sp)
+            Text(stringResource(R.string.founder_resolved_disputes_engineer_response, row.engineerResponse), color = SevaInk700, fontSize = 12.sp)
         }
         if (!row.resolutionNote.isNullOrBlank()) {
-            Text("Admin note: ${row.resolutionNote}", color = SevaInk900, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Text(stringResource(R.string.founder_resolved_disputes_admin_note, row.resolutionNote), color = SevaInk900, fontSize = 12.sp, fontWeight = FontWeight.Medium)
         }
         row.resolvedAt?.let {
             Text(

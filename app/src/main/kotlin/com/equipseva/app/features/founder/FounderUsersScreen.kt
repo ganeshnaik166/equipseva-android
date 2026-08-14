@@ -1,5 +1,6 @@
 package com.equipseva.app.features.founder
 
+import com.equipseva.app.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -38,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -207,7 +209,7 @@ fun FounderUsersScreen(
                 OutlinedTextField(
                     value = state.query,
                     onValueChange = viewModel::onQueryChange,
-                    label = { Text("Search name, email, phone") },
+                    label = { Text(stringResource(R.string.founder_users_search_placeholder)) },
                     singleLine = true,
                     // Round 466 — show a Search icon on the IME so the
                     // user knows this is the search field, and dismiss
@@ -292,13 +294,16 @@ fun FounderUsersScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    text = "Change role · ${state.sheetUserName ?: "user"}",
+                    text = stringResource(
+                        R.string.founder_users_change_role_sheet_title,
+                        state.sheetUserName ?: "user",
+                    ),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = SevaInk900,
                 )
                 Text(
-                    text = "Pick the new role. This change is immediate.",
+                    text = stringResource(R.string.founder_users_change_role_sheet_note),
                     color = SevaInk500,
                     fontSize = 13.sp,
                 )

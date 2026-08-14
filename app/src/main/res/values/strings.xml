@@ -12,10 +12,10 @@
     <string name="razorpay_api_key" translatable="false"></string>
 
     <!--
-        Round 514 (v0.4 P5 #9) — i18n seed. These 30 keys cover the
+        Round 514 (v0.4 P5 #9) â i18n seed. These 30 keys cover the
         hottest hospital + engineer surfaces. NO Compose call-sites are
         rewired in this round; the resources exist so a native-speaker
-        review pass can land before we flip Text("…") → stringResource().
+        review pass can land before we flip Text("â¦") â stringResource().
         Until then `values/strings.xml` stays the source of truth at
         runtime even on Hindi/Telugu devices.
     -->
@@ -33,7 +33,7 @@
     <!-- Account -->
     <string name="account_delete_title">Delete your account?</string>
     <string name="account_delete_body">Deletes your profile, repair jobs, bids, AMC contracts</string>
-    <string name="delete_account_sheet_body">Deletes your profile, repair jobs, bids, AMC contracts, messages, payments, saved addresses, and uploaded files. All device sessions are signed out immediately. This is permanent — support cannot restore the account after this runs.</string>
+    <string name="delete_account_sheet_body">Deletes your profile, repair jobs, bids, AMC contracts, messages, payments, saved addresses, and uploaded files. All device sessions are signed out immediately. This is permanent â support cannot restore the account after this runs.</string>
     <string name="delete_account_sheet_reason_label">Reason (optional)</string>
     <string name="delete_account_sheet_reason_count">%1$d/500</string>
     <string name="delete_account_sheet_password_label">Confirm with your password</string>
@@ -51,26 +51,58 @@
     <string name="devmode_block_title">Developer Mode is on</string>
     <string name="devmode_block_body">EquipSeva can\'t run while Developer Options or USB debugging is enabled</string>
     <string name="devmode_block_reason">EquipSeva can\'t run while Developer Options or USB debugging is enabled on your phone. These let other apps intercept payments and account data.</string>
-    <string name="devmode_block_steps">Steps: Settings → System → Developer Options → toggle off</string>
+    <string name="devmode_block_steps">Steps: Settings â System â Developer Options â toggle off</string>
     <string name="devmode_open_settings_button">Open Settings</string>
-    <string name="devmode_return_note">Return to EquipSeva after disabling — it\'ll let you in automatically.</string>
+    <string name="devmode_return_note">Return to EquipSeva after disabling â it\'ll let you in automatically.</string>
 
     <!-- Call masking -->
     <string name="call_secure_line_note">Calls route through EquipSeva\'s secure line</string>
-    <string name="call_scoped_note">Book a job or open chat first — calls are scoped to active jobs</string>
+    <string name="call_scoped_note">Book a job or open chat first â calls are scoped to active jobs</string>
 
     <!-- KYC -->
-    <string name="kyc_review_window">After submit: typically reviewed within 4–24 hours</string>
-    <string name="kyc_photo_hint">Capture 1–4 photos of the equipment before you start</string>
-    <string name="kyc_verify_window">We\'ll verify your documents within 4–24 hours and notify you</string>
+    <string name="kyc_review_window">After submit: typically reviewed within 4â24 hours</string>
+    <string name="kyc_photo_hint">Capture 1â4 photos of the equipment before you start</string>
+    <string name="kyc_verify_window">We\'ll verify your documents within 4â24 hours and notify you</string>
+
+    <!-- KYC screen (KycScreen.kt) -->
+    <string name="kyc_verify_your_email">Verify your email</string>
+    <string name="kyc_email_code_sent">Code sent to %1$s</string>
+    <string name="kyc_email_otp_label">6-digit code</string>
+    <string name="kyc_email_sending_code">Sending code…</string>
+    <string name="kyc_email_resending">Resending…</string>
+    <string name="kyc_email_resend_code">Resend code</string>
+    <string name="kyc_email_verifying">Verifying…</string>
+    <string name="kyc_verify_action">Verify</string>
+    <string name="kyc_step_personal_caption">How hospitals reach you and where you operate.</string>
+    <string name="kyc_step_documents_caption">Upload identity and qualification proof.</string>
+    <string name="kyc_email_otp_sending">Sending…</string>
+    <string name="kyc_phone_add">Add</string>
+    <string name="kyc_phone_saved_pill">Saved</string>
+    <string name="kyc_phone_hint">Used to coordinate active jobs. Not for login.</string>
+    <string name="kyc_aadhaar_number_label">12-digit Aadhaar</string>
+    <string name="kyc_pan_number_label">PAN number</string>
+    <string name="kyc_certificate_hint">Upload your degree, diploma or trade certificate. You can add more after submitting.</string>
+    <string name="kyc_attestation_text">I confirm the above information is accurate and the documents are mine. False info may lead to permanent ban.</string>
+    <string name="kyc_attestation_review_note">After submit: typically reviewed within 4–24 hours. We\'ll push-notify you with the outcome.</string>
+    <string name="kyc_verified_summary_message">Hospitals can now find you in the directory and send job requests.</string>
+    <string name="kyc_status_banner_line">%1$s · %2$s</string>
+    <string name="kyc_reupload_required_label">Re-upload required: %1$s</string>
+    <string name="kyc_reupload_rejected_label">Your documents were rejected</string>
+    <string name="kyc_reupload_why_notes">Why: %1$s</string>
+    <string name="kyc_reupload_flagged_instructions">Tap below to clear the flagged doc(s) and re-pick them. Your other approved docs stay as-is.</string>
+    <string name="kyc_reupload_generic_instructions">Please re-upload your Aadhaar and qualification certificate. Your submission will go back into review once saved.</string>
+    <string name="kyc_reupload_button_flagged">Re-upload flagged docs</string>
+    <string name="kyc_reupload_button_generic">Re-upload documents</string>
+    <string name="kyc_back_button">Back</string>
+
 
     <!-- Job lifecycle -->
     <string name="job_live">Your repair request is live</string>
-    <string name="job_bid_window">Verified engineers in your area usually bid within 5–30 min</string>
+    <string name="job_bid_window">Verified engineers in your area usually bid within 5â30 min</string>
     <string name="job_status_submitted_for_review">Submitted for review</string>
     <string name="job_status_withdrawn">Withdrawn by hospital</string>
 
-    <!-- Payments — see PaymentBridge.friendlyFailureMessage for the matching codes -->
+    <!-- Payments â see PaymentBridge.friendlyFailureMessage for the matching codes -->
     <string name="payment_razorpay_failed">Payment via Razorpay failed</string>
     <string name="payment_cancelled">Payment cancelled.</string>
     <string name="payment_network_error">Network error during payment. Check your connection and retry.</string>
@@ -79,7 +111,7 @@
     <string name="payment_generic_failure">Payment failed. Please try a different method or contact your bank.</string>
 
     <!-- Moderation -->
-    <string name="moderation_pattern_flag">Pattern flag — 3+ disputes in window</string>
+    <string name="moderation_pattern_flag">Pattern flag â 3+ disputes in window</string>
 
     <!-- Hospital my-disputes -->
     <string name="hospital_dispute_resolution_note">EquipSeva note: %1$s</string>
@@ -92,7 +124,7 @@
     <string name="location_picker_tap_to_pin">Tap below to pin your current location, then drag to refine.</string>
     <string name="location_picker_use_my_location">  Use my current location</string>
     <string name="location_picker_coordinates">  %1$s, %2$s</string>
-    <string name="location_picker_locating">  Locating…</string>
+    <string name="location_picker_locating">  Locatingâ¦</string>
     <string name="location_picker_my_location">  My location</string>
 
     <!-- Order summary sheet (pre-checkout) -->
@@ -115,7 +147,7 @@
 
     <!-- About screen -->
     <string name="about_version_label">Version %1$s (build %2$s)</string>
-    <string name="about_copyright">© %1$s EquipSeva</string>
+    <string name="about_copyright">Â© %1$s EquipSeva</string>
 
     <!-- Forgot password -->
     <string name="forgot_password_email_instructions">Enter your email. We\'ll send a link to reset your password.</string>
@@ -123,7 +155,7 @@
     <string name="forgot_password_reset_link_sent">We\'ve sent a reset link to %1$s.</string>
 
     <!-- EsDropdown -->
-    <string name="es_dropdown_search_placeholder">Search…</string>
+    <string name="es_dropdown_search_placeholder">Searchâ¦</string>
     <string name="es_dropdown_no_matches">No matches</string>
 
     <!-- Earnings hero card -->
@@ -139,4 +171,260 @@
     <string name="report_content_safety_note">Reports help keep EquipSeva safe. Our team reviews each one.</string>
     <string name="report_content_notes_label">Notes (optional)</string>
     <string name="report_content_notes_count">%1$d/1000</string>
+
+    <!-- Engineer onboarding -->
+    <string name="engineer_onboarding_welcome_title">Welcome, engineer</string>
+    <string name="engineer_onboarding_intro">Tell us how hospitals can reach you and the area you service. Right after this you\'ll complete KYC â verified engineers appear in the public directory and start receiving jobs.</string>
+    <string name="engineer_onboarding_phone_label">Phone</string>
+    <string name="engineer_onboarding_phone_placeholder">+91 98765 43210</string>
+    <string name="engineer_onboarding_phone_error">Enter a valid 10-digit Indian mobile number.</string>
+    <string name="engineer_onboarding_phone_helper">Hospitals reach you here when a job is assigned.</string>
+
+    <!-- Engineer payout method -->
+    <string name="payout_method_send_earnings_question">Where should we send your earnings?</string>
+    <string name="payout_method_transfer_note">After a hospital confirms a completed job, we transfer your share automatically to the destination below â usually within minutes via UPI.</string>
+    <string name="payout_method_current_upi">Current: UPI</string>
+    <string name="payout_method_current_bank">Current: Bank</string>
+    <string name="payout_method_how_it_works_title">How payouts work</string>
+    <string name="payout_method_how_it_works_body">When a hospital confirms a job, your share is transferred to this destination. UPI typically lands in seconds; bank IMPS in minutes. EquipSeva\'s commission is deducted automatically.</string>
+
+    <!-- Job escrow payment sheet -->
+    <string name="job_escrow_payment_note">Funds sit in EquipSeva escrow until the engineer completes the job. Released automatically 48 hours after completion, or anytime you confirm â and refundable if the job is cancelled.</string>
+    <string name="job_escrow_amount_label">Amount</string>
+    <string name="job_escrow_razorpay_note">You\'ll be redirected to Razorpay to complete payment. UPI, cards, and net banking are all supported.</string>
+
+    <!-- Address book -->
+    <string name="address_book_delete_dialog_title">Delete this address?</string>
+    <string name="address_book_delete_action">Delete</string>
+    <string name="address_book_default_badge">Default</string>
+    <string name="address_book_name_phone_line">%1$s Â· %2$s</string>
+    <string name="address_book_city_state_pincode">%1$s, %2$s %3$s</string>
+    <string name="address_book_edit_action">Edit</string>
+
+    <!-- Address form -->
+    <string name="address_form_reading_location">Reading your location&#8230;</string>
+    <string name="address_form_use_current_location">Use my current location</string>
+    <string name="address_form_set_as_default">Set as default</string>
+    <string name="address_form_coords_captured">Coords captured: %1$s, %2$s</string>
+    <string name="address_form_saving">Saving&#8230;</string>
+    <string name="address_form_save_address">Save address</string>
+    <string name="address_form_save_changes">Save changes</string>
+    <string name="address_form_latlng_note">Lat/lng captured here is used to match nearby engineers and show distances. You can edit any field after autofill.</string>
+
+    <!-- Founder Users screen -->
+    <string name="founder_users_search_placeholder">Search name, email, phone</string>
+    <string name="founder_users_change_role_sheet_title">Change role Â· %1$s</string>
+    <string name="founder_users_change_role_sheet_note">Pick the new role. This change is immediate.</string>
+
+    <!-- Founder Reports Queue screen -->
+    <string name="founder_reports_queue_reporter_line">Reporter: %1$s</string>
+    <string name="founder_reports_queue_target_line">Target: %1$s</string>
+    <string name="founder_reports_queue_confirm_dialog_title">Take action on this report?</string>
+    <string name="founder_reports_queue_confirm_dialog_body">This marks the report as actioned and removes it from the queue. Apply any user-level enforcement (ban, suspend) separately.</string>
+    <string name="founder_reports_queue_confirm_action">Confirm</string>
+
+    <!-- Founder Spot Audits screen -->
+    <string name="founder_spot_audits_hospital_to_engineer_format">%1$s â %2$s</string>
+    <string name="founder_spot_audits_responded_at_format">Responded: %1$s</string>
+
+    <!-- Request service screen -->
+    <string name="request_service_booking_name">Booking %1$s</string>
+    <string name="request_service_rating_jobs_summary">%1$s Â· %2$s</string>
+    <string name="request_service_resume_draft">Resume your draft?</string>
+    <string name="request_service_submitting">Submittingâ¦</string>
+    <string name="request_service_uploading_photo">Uploading photoâ¦</string>
+    <string name="request_service_submit_request">Submit request</string>
+    <string name="request_service_equipment_type_label">Equipment type</string>
+    <string name="request_service_brand_label">Brand</string>
+    <string name="request_service_brand_placeholder">e.g. Siemens</string>
+    <string name="request_service_model_label">Model</string>
+    <string name="request_service_model_placeholder">e.g. SOMATOM go.Up</string>
+    <string name="request_service_serial_label">Serial number (optional)</string>
+    <string name="request_service_serial_placeholder">Usually behind the unit</string>
+    <string name="request_service_description_label">Description</string>
+    <string name="request_service_description_placeholder">Describe the issue clearly â symptoms, error codes, when it started.</string>
+    <string name="request_service_severity_label">Severity</string>
+    <string name="request_service_photos_label">Photos (optional)</string>
+    <string name="request_service_photos_hint">Attach photos of the nameplate or fault. Up to 5 images, JPEG/PNG/WEBP.</string>
+    <string name="request_service_take_photo">Take photo</string>
+    <string name="request_service_from_gallery">From gallery</string>
+    <string name="request_service_uploading">Uploadingâ¦</string>
+    <string name="request_service_preferred_slot_label">Preferred slot</string>
+    <string name="request_service_date_picker_ok">OK</string>
+    <string name="request_service_address_label">Address</string>
+    <string name="request_service_address_placeholder">Hospital name, street, city â type if you can\'t pin on the map</string>
+    <string name="request_service_engineer_note_label">Note for the engineer</string>
+    <string name="request_service_engineer_note_placeholder">Ward Â· Department Â· Floor Â· Gate to enter from</string>
+    <string name="request_service_budget_label">Budget (â¹, optional)</string>
+    <string name="request_service_budget_placeholder">e.g. 5000</string>
+    <string name="founder_payments_open_invoice">Open invoice</string>
+    <string name="founder_payments_last_n_days">Last %1$d days</string>
+    <string name="founder_payments_refunded_amount">Refunded: %1$s</string>
+
+    <!-- Founder Resolved Disputes screen (FounderResolvedDisputesScreen) -->
+    <string name="founder_resolved_disputes_hospital_reason">Hospital: %1$s</string>
+    <string name="founder_resolved_disputes_engineer_response">Engineer: %1$s</string>
+    <string name="founder_resolved_disputes_admin_note">Admin note: %1$s</string>
+
+    <!-- Founder paused AMCs (FounderPausedAmcScreen) -->
+    <string name="founder_paused_amc_engineer_label">Engineer: %1$s</string>
+    <string name="founder_paused_amc_paused_ago">Paused %1$s ago</string>
+
+    <!-- Founder Ops Queue screens (FounderOpsQueueScreens) -->
+    <string name="founder_ops_amc_raised_line">Raised: %1$s</string>
+    <string name="founder_ops_cash_since_line">Since: %1$s</string>
+    <string name="founder_ops_parts_completed_line">Completed: %1$s</string>
+    <string name="founder_ops_dispute_sheet_summary_line">%1$s · %2$s held</string>
+    <string name="founder_ops_dispute_sheet_instructions">Pick an outcome and (optionally) record a short note explaining the call. Note appears in the audit timeline.</string>
+    <string name="founder_ops_dispute_sheet_note_placeholder">e.g. Engineer\'s response confirmed by completion photos and hospital sign-off log.</string>
+
+    <!-- Home hub (HomeHubScreen) -->
+    <string name="home_spot_audit_title">Quick quality check</string>
+    <string name="home_spot_audit_feedback_placeholder">Optional comments (e.g. parts replaced as expected, slow response, etc.)</string>
+    <string name="home_cash_survey_title">Quick check-in</string>
+    <string name="home_cash_survey_privacy_note">Your answer is private and only visible to our team.</string>
+    <string name="home_first_job_cta_title">Book your first repair</string>
+    <string name="home_first_job_cta_subtitle">Find verified engineers near you</string>
+    <string name="home_phone_missing_banner_title">Add your phone number</string>
+    <string name="home_phone_missing_banner_subtitle">Engineers call this number during a job. Without it they can\'t reach you.</string>
+    <string name="home_pending_amc_payment_banner_subtitle">If your bank shows the charge but your AMC pool hasn\'t credited yet, contact support and we\'ll reconcile.</string>
+    <string name="home_pending_amc_contract_banner_title">Complete AMC payment</string>
+    <string name="home_pending_amc_contract_banner_subtitle">Your new AMC contract will be cancelled in 24 hours if not paid. Tap to finish.</string>
+    <string name="home_recommended_engineer_view_label">View</string>
+
+    <!-- Engineer public profile -->
+    <string name="engineer_public_profile_map_preview">Map preview</string>
+    <string name="engineer_public_profile_service_radius_km">Service radius: %1$s km</string>
+    <string name="engineer_public_profile_call_scoped_note">Book a job or open chat first — calls are scoped to active jobs.</string>
+    <string name="engineer_public_profile_use_message_note">Use Message above — direct calls are scoped to hospital ↔ engineer job pairs.</string>
+    <string name="engineer_public_profile_privacy_note">Real numbers stay private. Use Message above to start a conversation.</string>
+    <string name="engineer_public_profile_reviews_loading">Loading reviews…</string>
+    <string name="engineer_public_profile_reviews_empty">No reviews yet — be the first to leave one after a completed job.</string>
+
+    <!-- Founder KYC review -->
+    <string name="kyc_review_reject_kyc_title">Reject KYC</string>
+    <string name="kyc_review_reason_label">Reason (shown to engineer)</string>
+    <string name="kyc_review_reason_placeholder">e.g. Aadhaar photo unreadable</string>
+    <string name="kyc_review_email_label">Email</string>
+    <string name="kyc_review_aadhaar_label">Aadhaar</string>
+    <string name="kyc_review_aadhaar_verified">verified</string>
+    <string name="kyc_review_experience_label">Experience</string>
+    <string name="kyc_review_service_radius_label">Service radius</string>
+    <string name="kyc_review_service_radius_value">%1$d km</string>
+    <string name="kyc_review_state_label">State</string>
+
+    <!-- Founder KYC queue -->
+    <string name="founder_kyc_queue_reject_user_title">Reject %1$s</string>
+    <string name="founder_kyc_queue_approve_user_title">Approve %1$s</string>
+    <string name="founder_kyc_queue_reason_label">Reason</string>
+    <string name="founder_kyc_queue_approval_note">Engineer can take repair jobs immediately after approval.</string>
+
+    <!-- Repair job detail screen -->
+    <string name="repair_detail_report_job">Report job</string>
+    <string name="repair_detail_withdraw_dialog_title">Withdraw this bid?</string>
+    <string name="repair_detail_withdraw_dialog_body">The hospital will no longer see your quote. You can re-bid while the job is still open.</string>
+    <string name="repair_detail_withdraw_confirm">Withdraw</string>
+    <string name="repair_detail_keep_bid">Keep bid</string>
+    <string name="repair_invoice_download_body">GST tax invoice for your records and input-tax credit claim. Opens in your browser — use Print → Save as PDF.</string>
+    <string name="repair_dispute_open_body">Tell us what went wrong. Funds stay paused until our team reviews. Disputes must be opened within 48h of completion.</string>
+    <string name="repair_dispute_open_placeholder">e.g. Engineer asked for extra cash on-site to swap parts.</string>
+    <string name="repair_dispute_opening">Opening…</string>
+    <string name="repair_dispute_open_action">Open dispute</string>
+    <string name="repair_dispute_respond_body">Tell EquipSeva your side of the story. Admin reviews both before deciding release vs refund. You can only respond once — make it count.</string>
+    <string name="repair_dispute_respond_placeholder">e.g. Replaced the failing PCB on-site, hospital signed off the work order, photos uploaded.</string>
+    <string name="repair_dispute_submitting">Submitting…</string>
+    <string name="repair_dispute_submit_response">Submit response</string>
+    <string name="repair_escrow_missing_title">Escrow not set up yet</string>
+    <string name="repair_escrow_missing_body">Pull down to refresh. If this stays after a minute, contact support — your engineer can\'t be paid until the escrow row exists.</string>
+    <string name="repair_escrow_dispute_hospital_prefix">Hospital: %1$s</string>
+    <string name="repair_escrow_dispute_engineer_prefix">Engineer: %1$s</string>
+    <string name="repair_escrow_respond_to_dispute">Respond to dispute</string>
+    <string name="repair_escrow_pay_amount">Pay %1$s to escrow</string>
+    <string name="repair_escrow_releasing">Releasing…</string>
+    <string name="repair_escrow_confirm_release">Confirm + release</string>
+    <string name="repair_service_report_title">Service report (HTML)</string>
+    <string name="repair_service_report_body">Audit-trail of equipment, work performed, parts replaced, photos and timeline. Suitable for NABH / JCI compliance archives.</string>
+    <string name="repair_service_report_generating">Generating…</string>
+    <string name="repair_service_report_download">Download report</string>
+    <string name="repair_warranty_title">Covered by 30-day warranty</string>
+    <string name="repair_warranty_body">Service fee waived — within 30 days of an earlier completed repair on the same equipment.</string>
+    <string name="repair_nobids_title">No bids yet</string>
+    <string name="repair_nobids_body">Verified engineers in your area usually bid within 5–30 min. We\'ll send a push the moment one arrives.</string>
+    <string name="repair_yourbid_label">Your bid</string>
+    <string name="repair_yourbid_status_prefix">Status: %1$s</string>
+    <string name="repair_bidcard_placed_ago">%1$s ago</string>
+    <string name="repair_location_address_hidden_engineer">Full address shows up after the hospital accepts your bid.</string>
+    <string name="repair_location_address_hidden_hospital">Address will be shared once the bid is accepted.</string>
+    <string name="repair_completion_proof_body">Photos uploaded by the engineer.</string>
+    <string name="repair_bidcomposer_update_title">Update your bid</string>
+    <string name="repair_bidcomposer_place_title">Place your bid</string>
+    <string name="repair_bidcomposer_price_label">Your price (₹)</string>
+    <string name="repair_bidcomposer_amount_error">Enter a valid amount</string>
+    <string name="repair_bidcomposer_info_body">Hospital sees your verified profile. You can edit or withdraw your bid until they accept it.</string>
+    <string name="repair_checkin_title">Check in on-site</string>
+    <string name="repair_checkin_body">Capture 1–4 photos of the equipment before you start. Required by hospital compliance archives.</string>
+    <string name="repair_checkin_photos_label">Before-photos (required)</string>
+    <string name="repair_markdone_title">Mark job done</string>
+    <string name="repair_markdone_body">Capture 1–%1$d photos of the equipment working after the repair. Hospitals archive these for NABH / JCI compliance.</string>
+    <string name="repair_markdone_photos_label">After-photos (required)</string>
+    <string name="repair_rate_tap_to_rate">Tap to rate</string>
+    <string name="repair_cancel_title">Cancel job?</string>
+    <string name="repair_cancel_body_assigned">The engineer may have already started travel — they\'ll be notified immediately.</string>
+    <string name="repair_cancel_body_default">This cannot be undone. The other party will be notified.</string>
+    <string name="repair_cancel_escrow_refund">₹%1$d in escrow will be refunded to your account within 3 working days.</string>
+    <string name="repair_cancel_reason_required_label">Reason (required, 10+ chars)</string>
+    <string name="repair_cancel_reason_placeholder">e.g. equipment self-repaired, schedule conflict…</string>
+    <string name="repair_notfound_body">This repair job is no longer available.</string>
+    <string name="repair_payout_amount">₹%1$s</string>
+    <string name="repair_payout_utr">UTR %1$s</string>
+    <string name="repair_queued_outbox_body">%1$s queued — will sync when back online</string>
+
+    <!-- Founder engineer payouts -->
+    <string name="founder_payouts_export_csv">Export CSV</string>
+    <string name="founder_payouts_exporting">Exporting…</string>
+    <string name="founder_payouts_amount_arrow_engineer">₹%1$s → %2$s</string>
+    <string name="founder_payouts_no_payout_method_short">No payout method on file</string>
+    <string name="founder_payouts_age_stamp">%1$s %2$s</string>
+    <string name="founder_payouts_failure_tag">%1$s: %2$s</string>
+    <string name="founder_payouts_mark_paid_title">Mark paid</string>
+    <string name="founder_payouts_job_summary_line">%1$s · ₹%2$s → %3$s</string>
+    <string name="founder_payouts_utr_field_label">UTR / Reference (required, min 6 chars)</string>
+    <string name="founder_payouts_utr_field_placeholder">e.g. 426012345678</string>
+    <string name="founder_payouts_mode_label">Mode</string>
+    <string name="founder_payouts_notes_field_label">Notes (founder-only audit)</string>
+    <string name="founder_payouts_notes_field_placeholder">e.g. Sent via GPay from personal account</string>
+    <string name="founder_payouts_cancel_title">Cancel payout</string>
+    <string name="founder_payouts_cancel_reason_label">Reason (min 5 chars)</string>
+    <string name="founder_payouts_cancel_reason_placeholder">e.g. dispute resolved against engineer; no payout due</string>
+    <string name="founder_payouts_no_destination_body">No payout method on file — engineer must add one before payout.</string>
+    <string name="founder_payouts_upi_prefix">UPI: %1$s</string>
+    <!-- Profile screen -->
+    <string name="profile_load_error_title">Couldn\'t load your profile</string>
+    <string name="profile_finishing_setup_title">Finishing setup&#8230;</string>
+    <string name="profile_loading_fallback_body">We\'re loading your profile. Tap retry if this doesn\'t clear.</string>
+    <string name="profile_export_confirm_title">Export your data?</string>
+    <string name="profile_export_confirm_body">We\'ll bundle your profile, addresses, messages and repair-job history into a JSON file and open the share sheet so you can save or send it. Anyone you share it with will be able to read it.</string>
+    <string name="profile_export_confirm_action">Export</string>
+    <string name="profile_signout_confirm_title">Sign out?</string>
+    <string name="profile_signout_confirm_body">You\'ll need your email and password to sign back in. Drafts and unsent messages on this device will be cleared.</string>
+    <string name="profile_signout_in_progress_label">Signing out&#8230;</string>
+    <string name="profile_signout_action_label">Sign out</string>
+    <string name="profile_signout_stay_action">Stay signed in</string>
+    <string name="profile_suspension_title">Account paused &#8212; under review</string>
+    <string name="profile_suspension_paused_at">Paused: %1$s</string>
+    <string name="profile_suspension_support_note">Reach support to walk through the flagged jobs and reactivate.</string>
+    <string name="profile_account_type_title">Account type</string>
+    <string name="profile_signed_out_title">Sign in to continue</string>
+    <string name="profile_signed_out_body">Sign in to post repair jobs, message engineers, and manage your contracts. Browsing stays open without an account.</string>
+    <string name="profile_signed_out_cta">Sign in / Sign up</string>
+    <string name="profile_role_editor_title">Change your role</string>
+    <string name="profile_role_editor_subtitle">This changes what you see across the app. You can switch again anytime.</string>
+    <string name="profile_action_saving">Saving&#8230;</string>
+    <string name="profile_role_current_chip">Current</string>
+    <string name="profile_role_soon_chip">Soon</string>
+    <string name="profile_edit_sheet_title">Edit profile</string>
+    <string name="profile_edit_sheet_phone_note">Phone is managed separately. Tap below to add or change it.</string>
+    <string name="profile_edit_sheet_fullname_label">Full name</string>
+    <string name="profile_edit_sheet_add_phone_action">Add phone</string>
+    <string name="profile_edit_sheet_change_phone_action">Change phone</string>
 </resources>

@@ -29,12 +29,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
@@ -218,7 +220,10 @@ private fun ReportRow(
             Pill(text = "Open", kind = PillKind.Danger)
         }
         Text(
-            "Reporter: ${reportRowReporterDisplay(row.reporterName, row.reporterUserId)}",
+            stringResource(
+                R.string.founder_reports_queue_reporter_line,
+                reportRowReporterDisplay(row.reporterName, row.reporterUserId),
+            ),
             color = SevaInk500,
             fontSize = 12.sp,
         )
@@ -226,7 +231,7 @@ private fun ReportRow(
         // the row stays scannable. Founders who need the exact id can copy
         // it from the action handler / detail page.
         Text(
-            "Target: ${reportRowTargetIdSlug(row.targetId)}",
+            stringResource(R.string.founder_reports_queue_target_line, reportRowTargetIdSlug(row.targetId)),
             color = SevaInk500,
             fontSize = 11.sp,
         )
@@ -274,11 +279,10 @@ private fun ReportRow(
         if (confirmStatus != null) {
             AlertDialog(
                 onDismissRequest = { confirmStatus = null },
-                title = { Text("Take action on this report?") },
+                title = { Text(stringResource(R.string.founder_reports_queue_confirm_dialog_title)) },
                 text = {
                     Text(
-                        "This marks the report as actioned and removes it from the queue. " +
-                            "Apply any user-level enforcement (ban, suspend) separately.",
+                        stringResource(R.string.founder_reports_queue_confirm_dialog_body),
                     )
                 },
                 confirmButton = {
@@ -286,10 +290,10 @@ private fun ReportRow(
                         val s = confirmStatus
                         confirmStatus = null
                         if (s != null) onAction(s)
-                    }) { Text("Confirm") }
+                    }) { Text(stringResource(R.string.founder_reports_queue_confirm_action)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { confirmStatus = null }) { Text("Cancel") }
+                    TextButton(onClick = { confirmStatus = null }) { Text(stringResource(R.string.common_cancel)) }
                 },
             )
         }

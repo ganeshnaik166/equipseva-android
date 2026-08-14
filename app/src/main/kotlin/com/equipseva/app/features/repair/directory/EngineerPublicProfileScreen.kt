@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,6 +44,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
@@ -888,7 +890,7 @@ private fun ProfileBody(
                     }
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Service radius: ${p.serviceRadiusKm ?: "—"} km",
+                        stringResource(R.string.engineer_public_profile_service_radius_km, (p.serviceRadiusKm ?: "—").toString()),
                         color = SevaInk500,
                         fontSize = 12.sp,
                     )
@@ -906,14 +908,14 @@ private fun ProfileBody(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            "Map preview",
+                            stringResource(R.string.engineer_public_profile_map_preview),
                             color = SevaInk500,
                             fontSize = 12.sp,
                         )
                     }
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Service radius: ${p.serviceRadiusKm ?: 25} km",
+                        stringResource(R.string.engineer_public_profile_service_radius_km, (p.serviceRadiusKm ?: 25).toString()),
                         color = SevaInk500,
                         fontSize = 12.sp,
                     )
@@ -951,7 +953,7 @@ private fun ProfileBody(
                         .fillMaxWidth(),
                 ) {
                     Text(
-                        text = "Book a job or open chat first — calls are scoped to active jobs.",
+                        text = stringResource(R.string.engineer_public_profile_call_scoped_note),
                         color = SevaInk500,
                         fontSize = 12.sp,
                     )
@@ -982,7 +984,7 @@ private fun ProfileBody(
                             .size(16.dp),
                     )
                     Text(
-                        "Use Message above — direct calls are scoped to hospital ↔ engineer job pairs.",
+                        stringResource(R.string.engineer_public_profile_use_message_note),
                         color = SevaInfo500,
                         fontSize = 12.sp,
                         lineHeight = 17.sp,
@@ -1011,7 +1013,7 @@ private fun ProfileBody(
                             .size(16.dp),
                     )
                     Text(
-                        "Real numbers stay private. Use Message above to start a conversation.",
+                        stringResource(R.string.engineer_public_profile_privacy_note),
                         color = SevaInfo500,
                         fontSize = 12.sp,
                         lineHeight = 17.sp,
@@ -1082,13 +1084,13 @@ private fun ReviewsSection(
         }
         when {
             loading && reviews.isEmpty() -> Text(
-                text = "Loading reviews…",
+                text = stringResource(R.string.engineer_public_profile_reviews_loading),
                 color = SevaInk500,
                 fontSize = 12.sp,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
             reviews.isEmpty() -> Text(
-                text = "No reviews yet — be the first to leave one after a completed job.",
+                text = stringResource(R.string.engineer_public_profile_reviews_empty),
                 color = SevaInk500,
                 fontSize = 12.sp,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
