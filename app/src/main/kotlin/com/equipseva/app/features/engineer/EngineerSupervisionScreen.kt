@@ -31,12 +31,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
@@ -265,7 +267,7 @@ fun EngineerSupervisionScreen(
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Text("Couldn't load", style = EsType.H4, color = SevaInk900)
+                        Text(stringResource(R.string.engineer_supervision_couldnt_load), style = EsType.H4, color = SevaInk900)
                         Spacer(Modifier.height(8.dp))
                         Text(state.error ?: "", style = EsType.Body, color = SevaInk500)
                     }
@@ -345,11 +347,11 @@ fun EngineerSupervisionScreen(
     if (declineId != null) {
         AlertDialog(
             onDismissRequest = { declineFor = null },
-            title = { Text("Decline supervision") },
+            title = { Text(stringResource(R.string.engineer_supervision_decline_title)) },
             text = {
                 Column {
                     Text(
-                        "Tell the trainee why (min 10 chars — logged forever).",
+                        stringResource(R.string.engineer_supervision_decline_hint),
                         style = EsType.BodySm,
                         color = SevaInk500,
                     )
@@ -374,10 +376,10 @@ fun EngineerSupervisionScreen(
                         viewModel.decline(declineId, r)
                         declineFor = null
                     }
-                }) { Text("Decline") }
+                }) { Text(stringResource(R.string.engineer_supervision_decline_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { declineFor = null }) { Text("Cancel") }
+                TextButton(onClick = { declineFor = null }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -386,16 +388,16 @@ fun EngineerSupervisionScreen(
     if (signoffId != null) {
         AlertDialog(
             onDismissRequest = { signoffFor = null },
-            title = { Text("Sign off supervision") },
+            title = { Text(stringResource(R.string.engineer_supervision_signoff_title)) },
             text = {
                 Column {
                     Text(
-                        "Hospital must have signed the DSR first. Pick an outcome and add notes (min 10 chars).",
+                        stringResource(R.string.engineer_supervision_signoff_hint),
                         style = EsType.BodySm,
                         color = SevaInk500,
                     )
                     Spacer(Modifier.height(8.dp))
-                    Text("Outcome", style = EsType.BodySm, color = SevaInk600)
+                    Text(stringResource(R.string.engineer_supervision_outcome_label), style = EsType.BodySm, color = SevaInk600)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         listOf("successful", "failed", "disputed").forEach { o ->
                             EsBtn(
@@ -428,10 +430,10 @@ fun EngineerSupervisionScreen(
                         viewModel.signoff(signoffId, signoffOutcome, n)
                         signoffFor = null
                     }
-                }) { Text("Sign off") }
+                }) { Text(stringResource(R.string.engineer_supervision_signoff_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { signoffFor = null }) { Text("Cancel") }
+                TextButton(onClick = { signoffFor = null }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -492,7 +494,7 @@ private fun AssignmentCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "Job ${row.repairJobId.take(8)}",
+                    stringResource(R.string.engineer_supervision_job_id_label, row.repairJobId.take(8)),
                     style = EsType.Body.copy(fontWeight = FontWeight.SemiBold),
                     color = SevaInk900,
                 )
@@ -500,14 +502,18 @@ private fun AssignmentCard(
             }
             Spacer(Modifier.height(4.dp))
             Text(
-                "Trainee ${row.traineeTier.replaceFirstChar { it.uppercase() }} · Supervisor ${row.supervisorTier.replaceFirstChar { it.uppercase() }}",
+                stringResource(
+                    R.string.engineer_supervision_trainee_supervisor_tier,
+                    row.traineeTier.replaceFirstChar { it.uppercase() },
+                    row.supervisorTier.replaceFirstChar { it.uppercase() },
+                ),
                 style = EsType.BodySm,
                 color = SevaInk500,
             )
             if (row.signoffOutcome != null) {
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    "Outcome: ${row.signoffOutcome}",
+                    stringResource(R.string.engineer_supervision_outcome_value, row.signoffOutcome),
                     style = EsType.BodySm,
                     color = SevaInk600,
                 )
@@ -569,7 +575,7 @@ private fun RequestSupervisionDialog(
 
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text("Request supervision") },
+        title = { Text(stringResource(R.string.engineer_supervision_request_dialog_title)) },
         text = {
             if (state.pickerLoading) {
                 Box(
@@ -583,10 +589,10 @@ private fun RequestSupervisionDialog(
                     Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text("Pick a job", style = EsType.H5, color = SevaInk900)
+                    Text(stringResource(R.string.engineer_supervision_pick_job_label), style = EsType.H5, color = SevaInk900)
                     if (state.pickerJobs.isEmpty()) {
                         Text(
-                            "No accepted jobs available for supervision.",
+                            stringResource(R.string.engineer_supervision_no_jobs),
                             style = EsType.BodySm,
                             color = SevaInk500,
                         )
@@ -602,10 +608,10 @@ private fun RequestSupervisionDialog(
                         }
                     }
                     Spacer(Modifier.height(4.dp))
-                    Text("Pick a supervisor", style = EsType.H5, color = SevaInk900)
+                    Text(stringResource(R.string.engineer_supervision_pick_supervisor_label), style = EsType.H5, color = SevaInk900)
                     if (state.pickerSupervisors.isEmpty()) {
                         Text(
-                            "No higher-tier engineers found.",
+                            stringResource(R.string.engineer_supervision_no_supervisors),
                             style = EsType.BodySm,
                             color = SevaInk500,
                         )
@@ -641,11 +647,11 @@ private fun RequestSupervisionDialog(
                 },
                 enabled = selectedJob != null && selectedSup != null && !state.submitting,
             ) {
-                Text(if (state.submitting) "Sending…" else "Send request")
+                Text(if (state.submitting) stringResource(R.string.kyc_email_otp_sending) else stringResource(R.string.engineer_supervision_send_request))
             }
         },
         dismissButton = {
-            TextButton(onClick = onCancel) { Text("Cancel") }
+            TextButton(onClick = onCancel) { Text(stringResource(R.string.common_cancel)) }
         },
     )
 }
@@ -682,10 +688,10 @@ private fun EmptyState() {
         Modifier.fillMaxWidth().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("No supervision yet", style = EsType.H4, color = SevaInk900)
+        Text(stringResource(R.string.engineer_supervision_empty_title), style = EsType.H4, color = SevaInk900)
         Spacer(Modifier.height(8.dp))
         Text(
-            "When you're a trainee, request supervision from a higher-tier engineer on a job. When you're a supervisor, pending requests show here for accept/decline.",
+            stringResource(R.string.engineer_supervision_empty_body),
             style = EsType.BodySm,
             color = SevaInk500,
         )

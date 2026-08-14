@@ -63,11 +63,13 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.equipseva.app.R
 import com.equipseva.app.core.data.chat.ChatMessage
 import com.equipseva.app.core.util.initialsOf
 import com.equipseva.app.designsystem.components.Avatar
@@ -292,7 +294,7 @@ private fun TypingIndicatorRow(visible: Boolean) {
             )
         }
         Text(
-            text = "typing…",
+            text = stringResource(R.string.chat_typing_indicator),
             fontSize = 12.sp,
             color = SevaInk500,
         )
@@ -386,7 +388,13 @@ private fun ChatTopBar(
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         DropdownMenuItem(
                             text = {
-                                Text(if (counterpartBlocked) "Unblock user" else "Block user")
+                                Text(
+                                    if (counterpartBlocked) {
+                                        stringResource(R.string.chat_unblock_user)
+                                    } else {
+                                        stringResource(R.string.chat_block_user)
+                                    },
+                                )
                             },
                             onClick = {
                                 menuOpen = false
@@ -465,7 +473,7 @@ private fun MessageRow(
                 Column {
                     if (isDeleted) {
                         Text(
-                            text = "Message deleted",
+                            text = stringResource(R.string.chat_message_deleted),
                             fontSize = 13.sp,
                             lineHeight = (13 * 1.4f).sp,
                             color = textColor,
@@ -521,7 +529,7 @@ private fun MessageRow(
                         ) {
                             if (message.isEdited && !isDeleted) {
                                 Text(
-                                    text = "edited",
+                                    text = stringResource(R.string.chat_edited_label),
                                     fontSize = 10.sp,
                                     fontStyle = FontStyle.Italic,
                                     color = metaColor,
@@ -554,14 +562,14 @@ private fun MessageRow(
                     onDismissRequest = { menuOpen = false },
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Edit") },
+                        text = { Text(stringResource(R.string.address_book_edit_action)) },
                         onClick = {
                             menuOpen = false
                             onEdit(message.id)
                         },
                     )
                     DropdownMenuItem(
-                        text = { Text("Delete") },
+                        text = { Text(stringResource(R.string.address_book_delete_action)) },
                         onClick = {
                             menuOpen = false
                             onDelete(message.id)
@@ -608,7 +616,7 @@ private fun ChatInputBar(
                 ) {
                     if (draft.isEmpty()) {
                         Text(
-                            text = "Message…",
+                            text = stringResource(R.string.chat_message_placeholder),
                             fontSize = 14.sp,
                             color = SevaInk500,
                         )
@@ -686,7 +694,7 @@ private fun EditMessageBar(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = "Edit message",
+                text = stringResource(R.string.chat_edit_message_header),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = SevaGreen700,
@@ -706,10 +714,16 @@ private fun EditMessageBar(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 TextButton(onClick = onCancel, enabled = !submitting) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.common_cancel))
                 }
                 TextButton(onClick = onSubmit, enabled = canSubmit) {
-                    Text(if (submitting) "Saving…" else "Save")
+                    Text(
+                        if (submitting) {
+                            stringResource(R.string.address_form_saving)
+                        } else {
+                            stringResource(R.string.common_save)
+                        },
+                    )
                 }
             }
         }
@@ -841,7 +855,7 @@ private fun JobContextStrip(jobId: String, jobNumber: String?, onClick: () -> Un
                     color = SevaGreen900,
                 )
                 Text(
-                    text = " · Repair job",
+                    text = stringResource(R.string.chat_repair_job_suffix),
                     fontSize = 12.sp,
                     color = SevaGreen900,
                 )

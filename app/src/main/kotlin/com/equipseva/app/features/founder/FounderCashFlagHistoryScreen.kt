@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.designsystem.components.EmptyStateView
@@ -176,10 +178,18 @@ private fun CashFlagRow(row: FounderRepository.CashFlagHistoryRow) {
             Pill(text = pillText, kind = pillKind)
         }
         row.respondedAt?.let {
-            Text("Responded: ${cashFlagRespondedAtLabel(it)}", color = SevaInk500, fontSize = 11.sp)
+            Text(
+                stringResource(R.string.founder_spot_audits_responded_at_format, cashFlagRespondedAtLabel(it)),
+                color = SevaInk500,
+                fontSize = 11.sp,
+            )
         }
         row.completedAt?.let {
-            Text("Job completed: ${prettyDate(it)}", color = SevaInk500, fontSize = 11.sp)
+            Text(
+                stringResource(R.string.founder_cash_flag_history_completed_label, prettyDate(it)),
+                color = SevaInk500,
+                fontSize = 11.sp,
+            )
         }
     }
 }

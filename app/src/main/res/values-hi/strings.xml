@@ -113,6 +113,9 @@
     <string name="hospital_dispute_opened">Opened: %1$s</string>
     <string name="hospital_dispute_resolved">Resolved: %1$s</string>
 
+    <!-- Engineer my-disputes (English placeholder) -->
+    <string name="engineer_my_disputes_you_response">You: %1$s</string>
+
     <!-- Location picker map (English placeholder â pending native-speaker review) -->
     <string name="location_picker_pin_exact_spot">Pin the exact spot</string>
     <string name="location_picker_permission_denied">Location permission denied. Drag the pin once it loads, or grant location access in Settings.</string>
@@ -419,4 +422,209 @@
     <string name="founder_payouts_cancel_reason_placeholder">e.g. dispute resolved against engineer; no payout due</string>
     <string name="founder_payouts_no_destination_body">No payout method on file — engineer must add one before payout.</string>
     <string name="founder_payouts_upi_prefix">UPI: %1$s</string>
+
+    <!-- Engineer profile (edit) screen (English placeholder — pending native-speaker review) -->
+    <string name="engineer_profile_availability_label">Availability</string>
+    <string name="engineer_profile_specializations_label">Specializations</string>
+
+    <!-- Founder engineer map screen (English placeholder — pending native-speaker review) -->
+    <string name="founder_engineer_map_no_engineers">No verified engineers available yet.</string>
+    <string name="founder_engineer_map_no_pins">No coordinates pinned yet — engineers haven\'t dropped service-area pins.</string>
+
+    <!-- Engineer earnings projection screen (English placeholder — pending native-speaker review) -->
+    <string name="earnings_projection_load_error_title">Couldn\'t load</string>
+    <string name="earnings_projection_no_data">No projection data yet.</string>
+    <string name="earnings_projection_top_tier_title">You\'re at the top tier.</string>
+    <string name="earnings_projection_top_tier_sub">Gold rates are the lowest we offer (5%).</string>
+    <string name="earnings_projection_reach_tier_title">Reach %1$s to unlock benefits.</string>
+    <string name="earnings_projection_reach_tier_sub">Silver and Gold offer lower platform fees.</string>
+    <string name="earnings_projection_reach_uplift_title">Reach %1$s → earn %2$s/mo more</string>
+    <string name="earnings_projection_current_pace_sub">Estimate at your current pace (avg %1$s/mo gross).</string>
+    <string name="earnings_projection_footer_note">Projection updates daily after the 03:17 cron tick. Manual overrides bypass this calculation.</string>
+    <string name="founder_dashboard_jobs_posted_today_label">Jobs posted today</string>
+    <string name="founder_dashboard_top_engineer_rank_label">#%1$d</string>
+    <string name="engineer_graduation_error_title">Couldn\'t load tier progress</string>
+    <string name="engineer_graduation_no_data_title">No tier data yet</string>
+    <string name="engineer_graduation_no_data_body">Complete a job or finish KYC to start.</string>
+    <string name="engineer_graduation_current_tier_label">Current tier</string>
+    <string name="engineer_graduation_next_tier">Next: %1$s</string>
+    <string name="engineer_graduation_top_tier">You\'re at the top tier.</string>
+    <string name="engineer_graduation_what_you_need">What you need for %1$s</string>
+    <string name="engineer_graduation_refresh_note">Daily compute job refreshes these numbers — your tier updates automatically when all gates pass.</string>
+    <string name="engineer_graduation_promotion_history_title">Promotion history</string>
+    <string name="engineer_graduation_history_row">%1$s · %2$s</string>
+    <string name="engineer_graduation_gate_target">  / %1$s</string>
+    <string name="founder_cash_flag_history_completed_label">Job completed: %1$s</string>
+
+    <!-- Founder AMC escalation detail screen (English placeholder — pending native-speaker review) -->
+    <string name="founder_amc_escalation_detail_no_engineers_rotation">No engineers in rotation.</string>
+    <string name="founder_amc_escalation_detail_inactive">Inactive</string>
+    <!-- Founder Buyer KYC queue (English placeholder — pending native-speaker review) -->
+    <string name="founder_buyer_kyc_queue_reject_reason_label">Rejection reason (shown to buyer)</string>
+    <string name="founder_buyer_kyc_queue_approve_note">Buyer can place orders immediately after approval.</string>
+    <string name="founder_buyer_kyc_queue_gstin_row">GSTIN: %1$s</string>
+    <string name="founder_buyer_kyc_queue_submitted_row">Submitted: %1$s</string>
+
+    <!-- EngineerAmcVisitsScreen -->
+    <string name="engineer_amc_visits_job_number_fallback">AMC visit</string>
+    <string name="engineer_amc_visits_scheduled_line">Scheduled: %1$s</string>
+
+    <!-- EngineerActiveEscrowsScreen (English placeholder — pending native-speaker review) -->
+    <string name="engineer_active_escrows_job_number_fallback">RPR-%1$s</string>
+    <string name="engineer_active_escrows_hospital_fallback">Hospital</string>
+    <string name="engineer_active_escrows_releases_line">Releases: %1$s</string>
+    <string name="engineer_active_escrows_disputed_line">Disputed: %1$s</string>
+    <string name="engineer_active_escrows_awaiting_payment">Awaiting hospital payment into escrow.</string>
+
+    <!-- Engineer supervision screen -->
+    <string name="engineer_supervision_couldnt_load">Couldn\'t load</string>
+    <string name="engineer_supervision_decline_title">Decline supervision</string>
+    <string name="engineer_supervision_decline_hint">Tell the trainee why (min 10 chars — logged forever).</string>
+    <string name="engineer_supervision_decline_confirm">Decline</string>
+    <string name="engineer_supervision_signoff_title">Sign off supervision</string>
+    <string name="engineer_supervision_signoff_hint">Hospital must have signed the DSR first. Pick an outcome and add notes (min 10 chars).</string>
+    <string name="engineer_supervision_outcome_label">Outcome</string>
+    <string name="engineer_supervision_signoff_confirm">Sign off</string>
+    <string name="engineer_supervision_job_id_label">Job %1$s</string>
+    <string name="engineer_supervision_trainee_supervisor_tier">Trainee %1$s · Supervisor %2$s</string>
+    <string name="engineer_supervision_outcome_value">Outcome: %1$s</string>
+    <string name="engineer_supervision_request_dialog_title">Request supervision</string>
+    <string name="engineer_supervision_pick_job_label">Pick a job</string>
+    <string name="engineer_supervision_no_jobs">No accepted jobs available for supervision.</string>
+    <string name="engineer_supervision_pick_supervisor_label">Pick a supervisor</string>
+    <string name="engineer_supervision_no_supervisors">No higher-tier engineers found.</string>
+    <string name="engineer_supervision_send_request">Send request</string>
+    <string name="engineer_supervision_empty_title">No supervision yet</string>
+    <string name="engineer_supervision_empty_body">When you\'re a trainee, request supervision from a higher-tier engineer on a job. When you\'re a supervisor, pending requests show here for accept/decline.</string>
+
+    <!-- Founder categories screen -->
+    <string name="founder_categories_new_category">New category</string>
+    <string name="founder_categories_edit_key">Edit %1$s</string>
+    <string name="founder_categories_uploading">Uploading…</string>
+    <string name="founder_categories_pick_image">Pick image</string>
+    <string name="founder_categories_replace_image">Replace image</string>
+    <string name="founder_categories_set_key_first">Set the key first</string>
+    <string name="founder_categories_set_image_scope_hint">Set image first if scope = both</string>
+    <string name="founder_categories_key_label">Key (snake_case)</string>
+    <string name="founder_categories_display_name_label">Display name</string>
+    <string name="founder_categories_sort_order_label">Sort order</string>
+    <string name="founder_categories_active_label">Active</string>
+    <string name="founder_categories_key_value">key: %1$s</string>
+
+    <!-- ChatScreen (English placeholder — pending native-speaker review) -->
+    <string name="chat_typing_indicator">typing&#8230;</string>
+    <string name="chat_unblock_user">Unblock user</string>
+    <string name="chat_block_user">Block user</string>
+    <string name="chat_message_deleted">Message deleted</string>
+    <string name="chat_edited_label">edited</string>
+    <string name="chat_message_placeholder">Message&#8230;</string>
+    <string name="chat_edit_message_header">Edit message</string>
+    <string name="chat_repair_job_suffix"> · Repair job</string>
+
+    <!-- MaintenanceContractsScreen (English placeholder — pending native-speaker review) -->
+    <string name="amc_contract_next_visit">Next visit: %1$s</string>
+
+    <!-- HospitalAmcTierPerksScreen (English placeholder — pending native-speaker review) -->
+    <string name="hospital_amc_tier_perks_couldnt_load">Couldn\'t load</string>
+    <string name="hospital_amc_tier_perks_active_count">Your active AMC contracts (%1$d)</string>
+    <string name="hospital_amc_tier_perks_sorted_note">Sorted by soonest-expiring first. Renewal is automatic for contracts with auto_renew enabled.</string>
+    <string name="hospital_amc_tier_perks_active_until">Active until %1$s</string>
+    <string name="hospital_amc_tier_perks_empty_title">No active AMC contracts</string>
+    <string name="hospital_amc_tier_perks_empty_body">AMC unlocks priority response, preventive visits, and parts discounts. Create one from the maintenance contracts screen.</string>
+
+    <!-- ChangeEmailScreen (English placeholder — pending native-speaker review) -->
+    <string name="change_email_description">Updates the contact email shown on your profile. Your sign-in email stays unchanged.</string>
+    <string name="change_email_current_password_label">Current password</string>
+    <string name="change_email_new_contact_email_label">New contact email</string>
+
+    <!-- CreateAmcWizardScreen (English placeholder — pending native-speaker review) -->
+    <string name="create_amc_wizard_renewing_banner_title">Renewing your prior contract</string>
+    <string name="create_amc_wizard_renewing_banner_body">Scope, frequency, fee, and auto-renew are pre-filled from your last contract. Edit anything that should change for the new term.</string>
+    <string name="create_amc_wizard_categories_hint">Pick everything this contract covers. Engineers in the rotation must service at least one of these.</string>
+    <string name="create_amc_wizard_selected_engineer_fallback">Selected engineer</string>
+    <string name="create_amc_wizard_primary_engineer_hint">Primary is the engineer whose profile launched this wizard.</string>
+    <string name="create_amc_wizard_fallback_empty_hint">Optional. Backup engineers get auto-assigned if the primary is unavailable.</string>
+    <string name="create_amc_wizard_renewal_reminders_title">Renewal reminders</string>
+    <string name="create_amc_wizard_renewal_reminders_body">We\'ll remind you 7, 3 and 1 day before expiry so you can renew before service pauses.</string>
+    <string name="create_amc_wizard_picker_empty_query_hint">Type a search query above</string>
+    <string name="create_amc_wizard_picker_no_results">No engineers match</string>
+
+    <!-- AmcPaymentSheet (English placeholder — pending native-speaker review) -->
+    <string name="amc_payment_prepay_note">Pre-pay 1 to 12 months of monthly fee. Engineer\'s per-visit share is deducted automatically as visits complete.</string>
+    <string name="amc_payment_monthly_fee_label">Monthly fee</string>
+    <string name="amc_payment_months_label">Months</string>
+    <string name="amc_payment_months_value">%1$d</string>
+
+    <!-- EngineerDemandSignalsScreen (English placeholder \x{2014} pending native-speaker review) -->
+    <string name="engineer_demand_signals_intro">Tell us when a part you needed was not on the platform. The founder sees aggregated demand and bonds the right suppliers.</string>
+    <string name="engineer_demand_signals_no_reports">No reports yet.</string>
+    <string name="engineer_demand_signals_your_reports_count">Your reports (%1$d)</string>
+    <string name="engineer_demand_signals_unspecified">(unspecified)</string>
+    <string name="engineer_demand_signals_part_number">Part #%1$s</string>
+    <string name="engineer_demand_signals_urgency_days_open">Urgency: %1$s · %2$dd open</string>
+    <string name="engineer_demand_signals_resolved_via">Resolved via %1$s</string>
+    <string name="engineer_demand_signals_report_dialog_title">Report a missing part</string>
+    <string name="engineer_demand_signals_provide_one_field_hint">Provide at least one of brand / model / part number / description.</string>
+    <string name="engineer_demand_signals_urgency_label">Urgency</string>
+    <string name="engineer_demand_signals_reporting">Reporting…</string>
+    <string name="engineer_demand_signals_report_action">Report</string>
+
+    <!-- ChangePasswordScreen (English placeholder — pending native-speaker review) -->
+    <string name="change_password_subtitle">Choose a new password for your EquipSeva account.</string>
+    <string name="change_password_new_label">New password</string>
+    <string name="change_password_confirm_label">Confirm new password</string>
+
+    <!-- UnmatchedJobBanner (English placeholder — pending native-speaker review) -->
+    <string name="unmatched_job_banner_no_bids_yet">No bids yet · %1$d days posted.</string>
+    <string name="unmatched_job_banner_suggestion">Try raising the budget or adding more equipment detail. Engineers usually bid faster when scope is concrete.</string>
+
+    <!-- EarningsScreen (English placeholder — pending native-speaker review) -->
+    <string name="earnings_hero_all_time_label">All-time</string>
+    <string name="earnings_escrow_money_in_flight_title">Money in flight</string>
+    <string name="earnings_escrow_held_amount">%1$s held in escrow</string>
+    <string name="earnings_escrow_next_release">Next release: %1$s</string>
+    <string name="earnings_transaction_job_title_fallback">Repair job</string>
+    <string name="earnings_transaction_commission">Commission: %1$s</string>
+    <string name="earnings_amc_visit_cost_platform">Visit cost %1$s · Platform %2$s</string>
+    <string name="earnings_self_rank_window_days">Your last %1$d days</string>
+    <string name="earnings_self_rank_number">#%1$d</string>
+    <string name="earnings_self_rank_of_total">of %1$d</string>
+    <string name="earnings_no_payout_method">No payout method</string>
+    <string name="earnings_update_payout_method_cta">Update payout method →</string>
+    <string name="earnings_payout_nudge_verify_upi">You have earnings — verify your UPI to get paid.</string>
+    <string name="earnings_payout_nudge_tap_setup">Tap to set up your payout method.</string>
+
+    <!-- AmcDetailScreen (English placeholder — pending native-speaker review) -->
+    <string name="amc_detail_contract_not_found">Contract not found.</string>
+    <string name="amc_detail_cancel_dialog_title">Cancel this contract?</string>
+    <string name="amc_detail_cancel_dialog_body">Cancelling ends the maintenance contract. Assigned engineers stop receiving visit notifications. Any unused pool balance is settled per the contract terms — our team will reach out within 7 business days. This can\'t be undone.</string>
+    <string name="amc_detail_cancelling_ellipsis">Cancelling…</string>
+    <string name="amc_detail_cancel_contract_confirm">Cancel contract</string>
+    <string name="amc_detail_keep_contract">Keep contract</string>
+    <string name="amc_detail_pending_payment_title">Payment required to activate this AMC</string>
+    <string name="amc_detail_pending_payment_body">Contract will be cancelled in 24 hours if not paid.</string>
+    <string name="amc_detail_paused_banner">Contract paused — top up to resume.</string>
+    <string name="amc_detail_expiring_soon_title">AMC expiring %1$s.</string>
+    <string name="amc_detail_expiring_soon_body">Renew now to keep visits + SLA on track.</string>
+    <string name="amc_detail_renew_button">Renew</string>
+    <string name="amc_detail_low_pool_title">AMC pool running low — about %1$s left.</string>
+    <string name="amc_detail_low_pool_body">Top up before the next visit to avoid auto-pause.</string>
+    <string name="amc_detail_top_up_button">Top up</string>
+    <string name="amc_detail_pool_description">Pre-paid balance held in escrow. Each completed visit deducts the per-visit fair share automatically.</string>
+    <string name="amc_detail_ledger_empty">Ledger entries appear here once visits complete or top-ups land.</string>
+    <string name="amc_detail_autopay_cold_body">Pay your monthly fee automatically. We\'ll send a payment-authorization link for your bank or UPI app, then debit each month with no further action needed.</string>
+    <string name="amc_detail_autopay_pending_body">We\'ve started setting up auto-pay. Once you authorize the mandate, monthly debits will resume here.</string>
+    <string name="amc_detail_autopay_paying_via">Paying via %1$s</string>
+    <string name="amc_detail_autopay_next_debit">Next debit: %1$s</string>
+    <string name="amc_detail_autopay_charges_count">%1$d successful debits to date</string>
+    <string name="amc_detail_autopay_paused_body">Auto-pay is paused — usually because of insufficient balance on your linked instrument. We retry automatically.</string>
+    <string name="amc_detail_autopay_last_issue">Last issue: %1$s</string>
+    <string name="amc_detail_ledger_balance">Bal %1$s</string>
+    <string name="amc_detail_visits_empty">No visits yet. Scheduled visits appear here as the engineer logs them.</string>
+    <string name="amc_detail_sla_empty">No breaches recorded — every visit met its response window so far.</string>
+    <string name="amc_detail_sla_visit_code">Visit %1$s</string>
+    <string name="amc_detail_sla_recorded">Recorded %1$s</string>
+    <string name="amc_detail_rotation_empty_hospital">The primary engineer takes visits first. If they\'re unavailable, the next priority engineer is dispatched. Add fallbacks from any engineer\'s profile.</string>
+    <string name="amc_detail_rotation_empty_engineer">The primary engineer takes visits first. Fallbacks step in when the primary is unavailable.</string>
+    <string name="amc_detail_rotation_add_fallback_hint">Add fallback engineers from the engineer directory — open a profile and tap \'Set up monthly maintenance\'.</string>
 </resources>

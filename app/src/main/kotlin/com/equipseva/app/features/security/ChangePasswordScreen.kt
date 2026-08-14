@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -37,6 +38,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.R
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
@@ -91,7 +93,7 @@ fun ChangePasswordScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     Text(
-                        "Choose a new password for your EquipSeva account.",
+                        stringResource(R.string.change_password_subtitle),
                         style = EsType.BodySm,
                         color = SevaInk500,
                     )
@@ -99,7 +101,7 @@ fun ChangePasswordScreen(
                     OutlinedTextField(
                         value = state.currentPassword,
                         onValueChange = viewModel::onCurrentPasswordChange,
-                        label = { Text("Current password") },
+                        label = { Text(stringResource(R.string.change_email_current_password_label)) },
                         singleLine = true,
                         enabled = !state.submitting,
                         isError = state.currentPasswordError != null,
@@ -126,7 +128,7 @@ fun ChangePasswordScreen(
                     OutlinedTextField(
                         value = state.newPassword,
                         onValueChange = viewModel::onNewPasswordChange,
-                        label = { Text("New password") },
+                        label = { Text(stringResource(R.string.change_password_new_label)) },
                         singleLine = true,
                         enabled = !state.submitting,
                         isError = state.newPasswordError != null,
@@ -155,7 +157,7 @@ fun ChangePasswordScreen(
                     OutlinedTextField(
                         value = state.confirmPassword,
                         onValueChange = viewModel::onConfirmPasswordChange,
-                        label = { Text("Confirm new password") },
+                        label = { Text(stringResource(R.string.change_password_confirm_label)) },
                         singleLine = true,
                         enabled = !state.submitting,
                         isError = state.confirmPasswordError != null,

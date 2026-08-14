@@ -26,12 +26,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
@@ -165,7 +167,7 @@ private fun ActiveEscrowRow(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = row.jobNumber ?: "RPR-${row.repairJobId.take(6)}",
+                    text = row.jobNumber ?: stringResource(R.string.engineer_active_escrows_job_number_fallback, row.repairJobId.take(6)),
                     color = SevaInk900,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
@@ -183,14 +185,14 @@ private fun ActiveEscrowRow(
             // Mirror rounds 37 / 53 / 54: "(unnamed hospital)" reads as a
             // missing-data bug to engineers, not as a fallback. Collapse
             // blank/null names to the row category — "Hospital".
-            text = row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital",
+            text = row.hospitalName?.takeIf { it.isNotBlank() } ?: stringResource(R.string.engineer_active_escrows_hospital_fallback),
             color = SevaInk500,
             fontSize = 12.sp,
         )
         when (row.status) {
             "held" -> row.scheduledReleaseAt?.let {
                 Text(
-                    text = "Releases: ${prettyDateTime(it)}",
+                    text = stringResource(R.string.engineer_active_escrows_releases_line, prettyDateTime(it)),
                     color = SevaInk500,
                     fontSize = 11.sp,
                 )
@@ -198,7 +200,7 @@ private fun ActiveEscrowRow(
             "in_dispute" -> {
                 row.disputeOpenedAt?.let {
                     Text(
-                        text = "Disputed: ${prettyDateTime(it)}",
+                        text = stringResource(R.string.engineer_active_escrows_disputed_line, prettyDateTime(it)),
                         color = SevaInk500,
                         fontSize = 11.sp,
                     )
@@ -212,7 +214,7 @@ private fun ActiveEscrowRow(
                 // engineer's check-in was the gate. The actual gate is
                 // hospital payment → escrow funded → status flips. Use a
                 // passive phrase that doesn't imply engineer action.
-                text = "Awaiting hospital payment into escrow.",
+                text = stringResource(R.string.engineer_active_escrows_awaiting_payment),
                 color = SevaInk500,
                 fontSize = 11.sp,
             )

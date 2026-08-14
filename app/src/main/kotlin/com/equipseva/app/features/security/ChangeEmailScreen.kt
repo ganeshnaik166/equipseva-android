@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -28,6 +29,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.R
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
@@ -73,8 +75,7 @@ fun ChangeEmailScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     Text(
-                        text = "Updates the contact email shown on your profile. " +
-                            "Your sign-in email stays unchanged.",
+                        text = stringResource(R.string.change_email_description),
                         style = EsType.BodySm,
                         color = SevaInk500,
                     )
@@ -82,7 +83,7 @@ fun ChangeEmailScreen(
                     OutlinedTextField(
                         value = state.currentPassword,
                         onValueChange = viewModel::onPasswordChange,
-                        label = { Text("Current password") },
+                        label = { Text(stringResource(R.string.change_email_current_password_label)) },
                         singleLine = true,
                         enabled = !state.submitting,
                         isError = state.passwordError != null,
@@ -107,7 +108,7 @@ fun ChangeEmailScreen(
                         // sign in with". Naming the field for the
                         // narrower thing keeps the two emails distinct
                         // for users skimming.
-                        label = { Text("New contact email") },
+                        label = { Text(stringResource(R.string.change_email_new_contact_email_label)) },
                         singleLine = true,
                         enabled = !state.submitting,
                         isError = state.emailError != null,

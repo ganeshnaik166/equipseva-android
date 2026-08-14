@@ -28,9 +28,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equipseva.app.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -249,7 +251,7 @@ fun AmcPaymentSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                "Pre-pay 1 to 12 months of monthly fee. Engineer's per-visit share is deducted automatically as visits complete.",
+                stringResource(R.string.amc_payment_prepay_note),
                 color = SevaInk500,
                 fontSize = 12.sp,
             )
@@ -280,7 +282,7 @@ fun AmcPaymentSheet(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text("Monthly fee", color = SevaInk700, fontSize = 13.sp)
+                        Text(stringResource(R.string.amc_payment_monthly_fee_label), color = SevaInk700, fontSize = 13.sp)
                         Text(
                             // Earlier .toInt() truncated fractional rupees —
                             // ₹2999.50 rendered as ₹2999 while the total
@@ -296,9 +298,9 @@ fun AmcPaymentSheet(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text("Months", color = SevaInk700, fontSize = 13.sp)
+                        Text(stringResource(R.string.amc_payment_months_label), color = SevaInk700, fontSize = 13.sp)
                         Text(
-                            "$months",
+                            stringResource(R.string.amc_payment_months_value, months),
                             color = SevaInk900,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -309,7 +311,7 @@ fun AmcPaymentSheet(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text("Total", color = SevaInk900, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.order_summary_total_label), color = SevaInk900, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         Text(
                             formatRupees(total),
                             color = SevaInk900,

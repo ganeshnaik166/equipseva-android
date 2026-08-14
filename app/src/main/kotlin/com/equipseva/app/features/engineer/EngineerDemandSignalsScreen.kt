@@ -31,12 +31,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
@@ -164,7 +166,7 @@ fun EngineerDemandSignalsScreen(
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Text("Couldn't load", style = EsType.H4, color = SevaInk900)
+                        Text(stringResource(R.string.earnings_projection_load_error_title), style = EsType.H4, color = SevaInk900)
                         Spacer(Modifier.height(8.dp))
                         Text(state.error ?: "", style = EsType.Body, color = SevaInk500)
                     }
@@ -185,7 +187,7 @@ fun EngineerDemandSignalsScreen(
                             full = true,
                         )
                         Text(
-                            "Tell us when a part you needed was not on the platform. The founder sees aggregated demand and bonds the right suppliers.",
+                            stringResource(R.string.engineer_demand_signals_intro),
                             style = EsType.BodySm,
                             color = SevaInk500,
                         )
@@ -193,13 +195,13 @@ fun EngineerDemandSignalsScreen(
                         if (state.rows.isEmpty()) {
                             Spacer(Modifier.height(16.dp))
                             Text(
-                                "No reports yet.",
+                                stringResource(R.string.engineer_demand_signals_no_reports),
                                 style = EsType.Body,
                                 color = SevaInk500,
                             )
                         } else {
                             Text(
-                                "Your reports (${state.rows.size})",
+                                stringResource(R.string.engineer_demand_signals_your_reports_count, state.rows.size),
                                 style = EsType.H5,
                                 color = SevaInk900,
                                 modifier = Modifier.padding(top = 6.dp),
@@ -263,7 +265,7 @@ private fun SignalCard(row: EngineerGraduationRepository.MyDemandSignal) {
                 Text(
                     listOfNotNull(row.equipmentBrand, row.equipmentModel)
                         .joinToString(" ")
-                        .ifBlank { row.partNumber ?: "(unspecified)" },
+                        .ifBlank { row.partNumber ?: stringResource(R.string.engineer_demand_signals_unspecified) },
                     style = EsType.Body.copy(fontWeight = FontWeight.SemiBold),
                     color = SevaInk900,
                 )
@@ -271,18 +273,18 @@ private fun SignalCard(row: EngineerGraduationRepository.MyDemandSignal) {
             }
             if (!row.partNumber.isNullOrBlank()) {
                 Spacer(Modifier.height(2.dp))
-                Text("Part #${row.partNumber}", style = EsType.BodySm, color = SevaInk600)
+                Text(stringResource(R.string.engineer_demand_signals_part_number, row.partNumber.orEmpty()), style = EsType.BodySm, color = SevaInk600)
             }
             Spacer(Modifier.height(4.dp))
             Text(
-                "Urgency: ${row.urgency} · ${row.daysOpen}d open",
+                stringResource(R.string.engineer_demand_signals_urgency_days_open, row.urgency, row.daysOpen),
                 style = EsType.BodySm,
                 color = SevaInk500,
             )
             if (resolved) {
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    "Resolved via ${row.resolvedVia ?: "—"}",
+                    stringResource(R.string.engineer_demand_signals_resolved_via, row.resolvedVia ?: "—"),
                     style = EsType.BodySm,
                     color = SevaInk500,
                 )
@@ -339,14 +341,14 @@ private fun ReportDialog(
 
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text("Report a missing part") },
+        title = { Text(stringResource(R.string.engineer_demand_signals_report_dialog_title)) },
         text = {
             Column(
                 Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
-                    "Provide at least one of brand / model / part number / description.",
+                    stringResource(R.string.engineer_demand_signals_provide_one_field_hint),
                     style = EsType.BodySm,
                     color = SevaInk500,
                 )
@@ -375,7 +377,7 @@ private fun ReportDialog(
                     placeholder = "What you need; symptoms; vendor quotes",
                 )
                 Spacer(Modifier.height(4.dp))
-                Text("Urgency", style = EsType.BodySm, color = SevaInk600)
+                Text(stringResource(R.string.engineer_demand_signals_urgency_label), style = EsType.BodySm, color = SevaInk600)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("standard", "urgent", "critical").forEach { u ->
                         EsBtn(
@@ -409,11 +411,11 @@ private fun ReportDialog(
                 },
                 enabled = !submitting,
             ) {
-                Text(if (submitting) "Reporting…" else "Report")
+                Text(if (submitting) stringResource(R.string.engineer_demand_signals_reporting) else stringResource(R.string.engineer_demand_signals_report_action))
             }
         },
         dismissButton = {
-            TextButton(onClick = onCancel) { Text("Cancel") }
+            TextButton(onClick = onCancel) { Text(stringResource(R.string.common_cancel)) }
         },
     )
 }

@@ -38,12 +38,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.EsSection
@@ -353,7 +355,7 @@ private fun FounderHero(jobsToday: Int?) {
         )
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Jobs posted today",
+                text = stringResource(R.string.founder_dashboard_jobs_posted_today_label),
                 fontSize = 12.sp,
                 color = Color.White.copy(alpha = 0.65f),
             )
@@ -878,7 +880,7 @@ private fun TopEngineerRow(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
-            text = "#$rank",
+            text = stringResource(R.string.founder_dashboard_top_engineer_rank_label, rank),
             color = SevaInk500,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,

@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,6 +43,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.amc.AmcRepository
@@ -729,14 +731,14 @@ private fun ScopeStep(state: CreateAmcWizardViewModel.UiState, vm: CreateAmcWiza
         ) {
             Column {
                 Text(
-                    "Renewing your prior contract",
+                    stringResource(R.string.create_amc_wizard_renewing_banner_title),
                     color = com.equipseva.app.designsystem.theme.SevaInfo500,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    "Scope, frequency, fee, and auto-renew are pre-filled from your last contract. Edit anything that should change for the new term.",
+                    stringResource(R.string.create_amc_wizard_renewing_banner_body),
                     color = SevaInk700,
                     fontSize = 12.sp,
                 )
@@ -746,7 +748,7 @@ private fun ScopeStep(state: CreateAmcWizardViewModel.UiState, vm: CreateAmcWiza
     EsSection(title = "Equipment categories") {
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
             Text(
-                "Pick everything this contract covers. Engineers in the rotation must service at least one of these.",
+                stringResource(R.string.create_amc_wizard_categories_hint),
                 color = SevaInk500,
                 fontSize = 12.sp,
             )
@@ -854,14 +856,14 @@ private fun EngineerStep(
         ) {
             Column {
                 Text(
-                    state.primaryEngineerName.ifBlank { "Selected engineer" },
+                    state.primaryEngineerName.ifBlank { stringResource(R.string.create_amc_wizard_selected_engineer_fallback) },
                     color = SevaInk900,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    "Primary is the engineer whose profile launched this wizard.",
+                    stringResource(R.string.create_amc_wizard_primary_engineer_hint),
                     color = SevaInk500,
                     fontSize = 12.sp,
                 )
@@ -879,7 +881,7 @@ private fun EngineerStep(
         ) {
             if (state.fallbackEngineers.isEmpty()) {
                 Text(
-                    "Optional. Backup engineers get auto-assigned if the primary is unavailable.",
+                    stringResource(R.string.create_amc_wizard_fallback_empty_hint),
                     color = SevaInk500,
                     fontSize = 12.sp,
                 )
@@ -931,7 +933,7 @@ private fun EngineerStep(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Renewal reminders",
+                    stringResource(R.string.create_amc_wizard_renewal_reminders_title),
                     color = SevaInk900,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -942,8 +944,7 @@ private fun EngineerStep(
                 // expiry; auto-charge worker isn't shipped yet. Old
                 // copy promised an auto-charge that doesn't happen.
                 Text(
-                    "We'll remind you 7, 3 and 1 day before expiry so " +
-                        "you can renew before service pauses.",
+                    stringResource(R.string.create_amc_wizard_renewal_reminders_body),
                     color = SevaInk500,
                     fontSize = 12.sp,
                 )
@@ -988,7 +989,11 @@ private fun FallbackPickerSheet(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            if (query.isBlank()) "Type a search query above" else "No engineers match",
+                            if (query.isBlank()) {
+                                stringResource(R.string.create_amc_wizard_picker_empty_query_hint)
+                            } else {
+                                stringResource(R.string.create_amc_wizard_picker_no_results)
+                            },
                             color = SevaInk500,
                             fontSize = 13.sp,
                         )
@@ -1018,7 +1023,12 @@ private fun FallbackPickerSheet(
                                         Text(it, color = SevaInk500, fontSize = 11.sp)
                                     }
                                 }
-                                Text("Add", color = SevaGreen700, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    stringResource(R.string.kyc_phone_add),
+                                    color = SevaGreen700,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
                             }
                         }
                     }

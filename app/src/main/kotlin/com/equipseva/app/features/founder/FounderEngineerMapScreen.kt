@@ -39,10 +39,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.equipseva.app.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
@@ -125,7 +127,7 @@ fun FounderEngineerMapScreen(
                     Text(state.error!!, color = MaterialTheme.colorScheme.error)
                     Spacer(modifier = Modifier.size(12.dp))
                     TextButton(onClick = { viewModel.refresh() }) {
-                        Text("Retry")
+                        Text(stringResource(R.string.common_retry))
                     }
                 }
                 state.rows.isEmpty() -> Column(
@@ -140,7 +142,7 @@ fun FounderEngineerMapScreen(
                         modifier = Modifier.size(48.dp),
                     )
                     Text(
-                        "No verified engineers available yet.",
+                        stringResource(R.string.founder_engineer_map_no_engineers),
                         fontSize = 14.sp,
                         color = SevaInk500,
                     )
@@ -212,7 +214,7 @@ private fun ZoneMap(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                "No coordinates pinned yet — engineers haven't dropped service-area pins.",
+                stringResource(R.string.founder_engineer_map_no_pins),
                 fontSize = 12.sp,
                 color = SevaInk500,
             )

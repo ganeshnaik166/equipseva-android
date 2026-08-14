@@ -21,12 +21,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.theme.BorderDefault
@@ -108,7 +110,7 @@ fun EngineerEarningsProjectionScreen(
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Text("Couldn't load", style = EsType.H4, color = SevaInk900)
+                        Text(stringResource(R.string.earnings_projection_load_error_title), style = EsType.H4, color = SevaInk900)
                         Spacer(Modifier.height(8.dp))
                         Text(state.error ?: "", style = EsType.Body, color = SevaInk500)
                     }
@@ -121,7 +123,7 @@ fun EngineerEarningsProjectionScreen(
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                "No projection data yet.",
+                                stringResource(R.string.earnings_projection_no_data),
                                 style = EsType.Body,
                                 color = SevaInk500,
                             )
@@ -157,13 +159,13 @@ private fun ProjectionContent(d: EngineerGraduationRepository.TierEarningsProjec
                 when {
                     d.nextTier == null -> {
                         Text(
-                            "You're at the top tier.",
+                            stringResource(R.string.earnings_projection_top_tier_title),
                             style = EsType.H4.copy(fontWeight = FontWeight.SemiBold),
                             color = SevaInk900,
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "Gold rates are the lowest we offer (5%).",
+                            stringResource(R.string.earnings_projection_top_tier_sub),
                             style = EsType.BodySm,
                             color = SevaGreen700,
                         )
@@ -171,26 +173,36 @@ private fun ProjectionContent(d: EngineerGraduationRepository.TierEarningsProjec
                     d.currentPlatformFeePct == (d.nextPlatformFeePct ?: 0.0) -> {
                         // none → bronze quirk (both 7.00 fee in r550 seed)
                         Text(
-                            "Reach ${d.nextTier.replaceFirstChar { it.uppercase() }} to unlock benefits.",
+                            stringResource(
+                                R.string.earnings_projection_reach_tier_title,
+                                d.nextTier.replaceFirstChar { it.uppercase() },
+                            ),
                             style = EsType.H4.copy(fontWeight = FontWeight.SemiBold),
                             color = SevaInk900,
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "Silver and Gold offer lower platform fees.",
+                            stringResource(R.string.earnings_projection_reach_tier_sub),
                             style = EsType.BodySm,
                             color = SevaGreen700,
                         )
                     }
                     else -> {
                         Text(
-                            "Reach ${d.nextTier.replaceFirstChar { it.uppercase() }} → earn ${formatRupees(d.projectedMonthlyUpliftRupees)}/mo more",
+                            stringResource(
+                                R.string.earnings_projection_reach_uplift_title,
+                                d.nextTier.replaceFirstChar { it.uppercase() },
+                                formatRupees(d.projectedMonthlyUpliftRupees),
+                            ),
                             style = EsType.H4.copy(fontWeight = FontWeight.SemiBold),
                             color = SevaInk900,
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "Estimate at your current pace (avg ${formatRupees(d.avgMonthlyGrossRupees)}/mo gross).",
+                            stringResource(
+                                R.string.earnings_projection_current_pace_sub,
+                                formatRupees(d.avgMonthlyGrossRupees),
+                            ),
                             style = EsType.BodySm,
                             color = SevaGreen700,
                         )
@@ -228,7 +240,7 @@ private fun ProjectionContent(d: EngineerGraduationRepository.TierEarningsProjec
 
         Spacer(Modifier.height(8.dp))
         Text(
-            "Projection updates daily after the 03:17 cron tick. Manual overrides bypass this calculation.",
+            stringResource(R.string.earnings_projection_footer_note),
             style = EsType.BodySm,
             color = SevaInk500,
         )

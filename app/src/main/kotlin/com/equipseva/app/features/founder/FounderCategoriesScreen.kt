@@ -42,6 +42,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -51,6 +52,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil3.compose.AsyncImage
+import com.equipseva.app.R
 import com.equipseva.app.core.storage.StorageRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.MIME_JPEG
@@ -286,7 +288,7 @@ fun FounderCategoriesScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    if (draft.isNew) "New category" else "Edit ${draft.key}",
+                    if (draft.isNew) stringResource(R.string.founder_categories_new_category) else stringResource(R.string.founder_categories_edit_key, draft.key),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = SevaInk900,
@@ -329,16 +331,16 @@ fun FounderCategoriesScreen(
                         ) {
                             Icon(Icons.Filled.AddPhotoAlternate, contentDescription = null, modifier = Modifier.size(18.dp))
                             Text(
-                                if (draft.uploadingImage) "Uploading…"
-                                else if (url(draft) == null) "Pick image"
-                                else "Replace image",
+                                if (draft.uploadingImage) stringResource(R.string.founder_categories_uploading)
+                                else if (url(draft) == null) stringResource(R.string.founder_categories_pick_image)
+                                else stringResource(R.string.founder_categories_replace_image),
                                 modifier = Modifier.padding(start = 6.dp),
                                 fontSize = 13.sp,
                             )
                         }
                         Text(
-                            if (draft.key.isBlank()) "Set the key first"
-                            else "Set image first if scope = both",
+                            if (draft.key.isBlank()) stringResource(R.string.founder_categories_set_key_first)
+                            else stringResource(R.string.founder_categories_set_image_scope_hint),
                             color = SevaInk500,
                             fontSize = 11.sp,
                             modifier = Modifier.padding(top = 4.dp),
@@ -352,7 +354,7 @@ fun FounderCategoriesScreen(
                     // + RPC guard. Founder is the only caller so accidental
                     // paste-bombs are the realistic risk, not abuse.
                     onValueChange = { v -> viewModel.onDraftChange { it.copy(key = v.take(50)) } },
-                    label = { Text("Key (snake_case)") },
+                    label = { Text(stringResource(R.string.founder_categories_key_label)) },
                     enabled = draft.isNew && !state.saving,
                     singleLine = true,
                     // snake_case identifier — disable autocorrect and
@@ -371,7 +373,7 @@ fun FounderCategoriesScreen(
                     // Round 415 — cap at 200 chars matching the server CHECK
                     // + RPC guard.
                     onValueChange = { v -> viewModel.onDraftChange { it.copy(displayName = v.take(200)) } },
-                    label = { Text("Display name") },
+                    label = { Text(stringResource(R.string.founder_categories_display_name_label)) },
                     enabled = !state.saving,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -396,7 +398,7 @@ fun FounderCategoriesScreen(
                 OutlinedTextField(
                     value = draft.sortOrder,
                     onValueChange = { v -> viewModel.onDraftChange { it.copy(sortOrder = v.filter { ch -> ch in '0'..'9' }) } },
-                    label = { Text("Sort order") },
+                    label = { Text(stringResource(R.string.founder_categories_sort_order_label)) },
                     enabled = !state.saving,
                     singleLine = true,
                     // Numeric input — surface the number keyboard so
@@ -408,7 +410,7 @@ fun FounderCategoriesScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Active", color = SevaInk700, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.founder_categories_active_label), color = SevaInk700, modifier = Modifier.weight(1f))
                     Switch(
                         checked = draft.isActive,
                         onCheckedChange = { v -> viewModel.onDraftChange { it.copy(isActive = v) } },
@@ -420,12 +422,12 @@ fun FounderCategoriesScreen(
                         onClick = { viewModel.closeSheet() },
                         enabled = !state.saving,
                         modifier = Modifier.weight(1f),
-                    ) { Text("Cancel") }
+                    ) { Text(stringResource(R.string.common_cancel)) }
                     Button(
                         onClick = { viewModel.save() },
                         enabled = !state.saving,
                         modifier = Modifier.weight(1f),
-                    ) { Text(if (state.saving) "…" else "Save") }
+                    ) { Text(if (state.saving) "…" else stringResource(R.string.common_save)) }
                 }
             }
         }
@@ -482,7 +484,7 @@ private fun CategoryRowCard(
                     fontWeight = FontWeight.Medium,
                 )
             }
-            Text("key: ${row.key}", color = SevaInk500, fontSize = 12.sp)
+            Text(stringResource(R.string.founder_categories_key_value, row.key), color = SevaInk500, fontSize = 12.sp)
             Text(categoryScopeOrderLine(row.scope, row.sortOrder), color = SevaInk700, fontSize = 12.sp)
         }
     }

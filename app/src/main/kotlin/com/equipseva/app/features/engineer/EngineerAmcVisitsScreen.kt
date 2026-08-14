@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -32,6 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.data.amc.AmcRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.prettyDate
@@ -163,7 +165,7 @@ private fun VisitRow(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    row.jobNumber ?: "AMC visit",
+                    row.jobNumber ?: stringResource(R.string.engineer_amc_visits_job_number_fallback),
                     color = SevaInk900,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
@@ -188,10 +190,10 @@ private fun VisitRow(
             )
         }
         row.scheduledDate?.let {
-            Text("Scheduled: ${prettyDate(it)}", color = SevaInk500, fontSize = 11.sp)
+            Text(stringResource(R.string.engineer_amc_visits_scheduled_line, prettyDate(it)), color = SevaInk500, fontSize = 11.sp)
         }
         row.completedAt?.let {
-            Text("Completed: ${prettyDate(it)}", color = SevaInk500, fontSize = 11.sp)
+            Text(stringResource(R.string.founder_ops_parts_completed_line, prettyDate(it)), color = SevaInk500, fontSize = 11.sp)
         }
         if (row.breachCount > 0) {
             Pill(

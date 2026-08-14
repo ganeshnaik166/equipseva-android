@@ -22,12 +22,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
@@ -107,7 +109,7 @@ fun HospitalAmcTierPerksScreen(
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Text("Couldn't load", style = EsType.H4, color = SevaInk900)
+                        Text(stringResource(R.string.hospital_amc_tier_perks_couldnt_load), style = EsType.H4, color = SevaInk900)
                         Spacer(Modifier.height(8.dp))
                         Text(state.error ?: "", style = EsType.Body, color = SevaInk500)
                     }
@@ -124,14 +126,14 @@ fun HospitalAmcTierPerksScreen(
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             Text(
-                                "Your active AMC contracts (${state.rows.size})",
+                                stringResource(R.string.hospital_amc_tier_perks_active_count, state.rows.size),
                                 style = EsType.H5,
                                 color = SevaInk900,
                             )
                             state.rows.forEach { row -> PerksCard(row) }
                             Spacer(Modifier.height(8.dp))
                             Text(
-                                "Sorted by soonest-expiring first. Renewal is automatic for contracts with auto_renew enabled.",
+                                stringResource(R.string.hospital_amc_tier_perks_sorted_note),
                                 style = EsType.BodySm,
                                 color = SevaInk500,
                             )
@@ -174,7 +176,7 @@ private fun PerksCard(row: HospitalAmcTierPerksRepository.TierPerks) {
             }
             Spacer(Modifier.height(2.dp))
             Text(
-                "Active until ${row.endDate}",
+                stringResource(R.string.hospital_amc_tier_perks_active_until, row.endDate),
                 style = EsType.BodySm,
                 color = SevaInk500,
             )
@@ -228,10 +230,10 @@ private fun EmptyState() {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("No active AMC contracts", style = EsType.H4, color = SevaInk900)
+        Text(stringResource(R.string.hospital_amc_tier_perks_empty_title), style = EsType.H4, color = SevaInk900)
         Spacer(Modifier.height(8.dp))
         Text(
-            "AMC unlocks priority response, preventive visits, and parts discounts. Create one from the maintenance contracts screen.",
+            stringResource(R.string.hospital_amc_tier_perks_empty_body),
             style = EsType.BodySm,
             color = SevaInk500,
         )

@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,6 +41,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.isWithinDays
@@ -352,7 +354,7 @@ fun AmcDetailScreen(
 
                     state.hospital == null && state.engineerView == null ->
                         Text(
-                            state.error ?: "Contract not found.",
+                            state.error ?: stringResource(R.string.amc_detail_contract_not_found),
                             color = SevaInk500,
                             fontSize = 13.sp,
                             modifier = Modifier.padding(16.dp),
@@ -507,7 +509,7 @@ fun AmcDetailScreen(
     if (state.cancelConfirmOpen) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { viewModel.dismissCancelConfirm() },
-            title = { Text("Cancel this contract?") },
+            title = { Text(stringResource(R.string.amc_detail_cancel_dialog_title)) },
             text = {
                 Text(
                     // Earlier copy promised a "wallet refund" — there is no
@@ -517,11 +519,7 @@ fun AmcDetailScreen(
                     // engineer notifications. Refund-of-pool handling is
                     // out-of-band per terms; surface that fact instead of
                     // promising a flow we don't ship.
-                    "Cancelling ends the maintenance contract. Assigned " +
-                        "engineers stop receiving visit notifications. " +
-                        "Any unused pool balance is settled per the contract " +
-                        "terms — our team will reach out within 7 business " +
-                        "days. This can't be undone.",
+                    stringResource(R.string.amc_detail_cancel_dialog_body),
                 )
             },
             confirmButton = {
@@ -530,7 +528,7 @@ fun AmcDetailScreen(
                     enabled = !state.cancelling,
                 ) {
                     Text(
-                        if (state.cancelling) "Cancelling…" else "Cancel contract",
+                        if (state.cancelling) stringResource(R.string.amc_detail_cancelling_ellipsis) else stringResource(R.string.amc_detail_cancel_contract_confirm),
                         color = SevaDanger500,
                     )
                 }
@@ -539,7 +537,7 @@ fun AmcDetailScreen(
                 androidx.compose.material3.TextButton(
                     onClick = { viewModel.dismissCancelConfirm() },
                     enabled = !state.cancelling,
-                ) { Text("Keep contract") }
+                ) { Text(stringResource(R.string.amc_detail_keep_contract)) }
             },
         )
     }
@@ -593,13 +591,13 @@ private fun PendingPaymentBanner(isHospital: Boolean, onPayNow: () -> Unit) {
                 )
                 Column {
                     Text(
-                        "Payment required to activate this AMC",
+                        stringResource(R.string.amc_detail_pending_payment_title),
                         color = SevaWarning700,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
-                        "Contract will be cancelled in 24 hours if not paid.",
+                        stringResource(R.string.amc_detail_pending_payment_body),
                         color = SevaInk700,
                         fontSize = 12.sp,
                     )
@@ -638,7 +636,7 @@ private fun PausedBanner() {
                 modifier = Modifier.width(18.dp),
             )
             Text(
-                "Contract paused — top up to resume.",
+                stringResource(R.string.amc_detail_paused_banner),
                 color = SevaDanger500,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -681,19 +679,19 @@ private fun ExpiringSoonBanner(daysToExpiry: Long, onRenew: () -> Unit) {
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "AMC expiring $daysStr.",
+                    stringResource(R.string.amc_detail_expiring_soon_title, daysStr),
                     color = fg,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    "Renew now to keep visits + SLA on track.",
+                    stringResource(R.string.amc_detail_expiring_soon_body),
                     color = fg,
                     fontSize = 11.sp,
                 )
             }
             TextButton(onClick = onRenew) {
-                Text("Renew", color = fg, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.amc_detail_renew_button), color = fg, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -730,19 +728,19 @@ private fun LowPoolBanner(bufferMonths: Double, onTopUp: () -> Unit) {
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "AMC pool running low — about $bufferStr left.",
+                    stringResource(R.string.amc_detail_low_pool_title, bufferStr),
                     color = SevaWarning700,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    "Top up before the next visit to avoid auto-pause.",
+                    stringResource(R.string.amc_detail_low_pool_body),
                     color = SevaWarning700,
                     fontSize = 11.sp,
                 )
             }
             TextButton(onClick = onTopUp) {
-                Text("Top up", color = SevaWarning700, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.amc_detail_top_up_button), color = SevaWarning700, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -917,7 +915,7 @@ private fun PoolTab(
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                "Pre-paid balance held in escrow. Each completed visit deducts the per-visit fair share automatically.",
+                stringResource(R.string.amc_detail_pool_description),
                 color = SevaInk500,
                 fontSize = 12.sp,
             )
@@ -945,7 +943,7 @@ private fun PoolTab(
     EsSection(title = "Recent activity") {
         if (state.poolLedger.isEmpty()) {
             Text(
-                "Ledger entries appear here once visits complete or top-ups land.",
+                stringResource(R.string.amc_detail_ledger_empty),
                 color = SevaInk500,
                 fontSize = 12.sp,
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -984,7 +982,7 @@ private fun AutoPaySection(
                 null -> {
                     // Cold state — never enrolled.
                     Text(
-                        "Pay your monthly fee automatically. We'll send a payment-authorization link for your bank or UPI app, then debit each month with no further action needed.",
+                        stringResource(R.string.amc_detail_autopay_cold_body),
                         color = SevaInk500,
                         fontSize = 12.sp,
                     )
@@ -998,7 +996,7 @@ private fun AutoPaySection(
                 "pending", "authenticated" -> {
                     Pill(text = "Pending authorization", kind = PillKind.Warn)
                     Text(
-                        "We've started setting up auto-pay. Once you authorize the mandate, monthly debits will resume here.",
+                        stringResource(R.string.amc_detail_autopay_pending_body),
                         color = SevaInk500,
                         fontSize = 12.sp,
                     )
@@ -1012,18 +1010,18 @@ private fun AutoPaySection(
                 "active" -> {
                     Pill(text = "Active", kind = PillKind.Success)
                     sub.mandateSummary?.takeIf { it.isNotBlank() }?.let { summary ->
-                        Text("Paying via $summary", color = SevaInk700, fontSize = 13.sp)
+                        Text(stringResource(R.string.amc_detail_autopay_paying_via, summary), color = SevaInk700, fontSize = 13.sp)
                     }
                     sub.nextChargeAt?.let { next ->
                         Text(
-                            "Next debit: ${prettyDate(next)}",
+                            stringResource(R.string.amc_detail_autopay_next_debit, prettyDate(next)),
                             color = SevaInk500,
                             fontSize = 12.sp,
                         )
                     }
                     if (sub.totalChargesSucceeded > 0) {
                         Text(
-                            "${sub.totalChargesSucceeded} successful debits to date",
+                            stringResource(R.string.amc_detail_autopay_charges_count, sub.totalChargesSucceeded),
                             color = SevaInk500,
                             fontSize = 12.sp,
                         )
@@ -1038,7 +1036,7 @@ private fun AutoPaySection(
                 "paused" -> {
                     Pill(text = "Paused", kind = PillKind.Warn)
                     Text(
-                        "Auto-pay is paused — usually because of insufficient balance on your linked instrument. We retry automatically.",
+                        stringResource(R.string.amc_detail_autopay_paused_body),
                         color = SevaInk500,
                         fontSize = 12.sp,
                     )
@@ -1053,7 +1051,7 @@ private fun AutoPaySection(
                     Pill(text = autoPayHaltedPillText(status), kind = PillKind.Default)
                     sub.lastFailureReason?.takeIf { it.isNotBlank() }?.let { reason ->
                         Text(
-                            "Last issue: $reason",
+                            stringResource(R.string.amc_detail_autopay_last_issue, reason),
                             color = SevaInk500,
                             fontSize = 12.sp,
                         )
@@ -1103,7 +1101,7 @@ private fun PoolLedgerRow(row: AmcRepository.PoolLedgerRow) {
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                "Bal ${formatRupees(row.balanceAfter)}",
+                stringResource(R.string.amc_detail_ledger_balance, formatRupees(row.balanceAfter)),
                 color = SevaInk500,
                 fontSize = 11.sp,
             )
@@ -1140,7 +1138,7 @@ private fun VisitsTab(state: AmcDetailViewModel.UiState) {
             // anyway. Honest user-facing copy: visits land here once the
             // first scheduled date rolls around.
             Text(
-                "No visits yet. Scheduled visits appear here as the engineer logs them.",
+                stringResource(R.string.amc_detail_visits_empty),
                 color = SevaInk500,
                 fontSize = 12.sp,
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -1196,7 +1194,7 @@ private fun SlaTab(state: AmcDetailViewModel.UiState) {
     EsSection(title = "SLA breaches") {
         if (state.breaches.isEmpty()) {
             Text(
-                "No breaches recorded — every visit met its response window so far.",
+                stringResource(R.string.amc_detail_sla_empty),
                 color = SevaInk500,
                 fontSize = 13.sp,
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -1237,7 +1235,7 @@ private fun SlaBreachCard(b: AmcRepository.AmcSlaBreach) {
             )
         }
         if (!b.visitCode.isNullOrBlank()) {
-            Text("Visit ${b.visitCode}", color = SevaInk500, fontSize = 12.sp)
+            Text(stringResource(R.string.amc_detail_sla_visit_code, b.visitCode), color = SevaInk500, fontSize = 12.sp)
         }
         Text(
             amcBreachWindowLine(b.expectedWithinHours, b.actualHours),
@@ -1251,7 +1249,7 @@ private fun SlaBreachCard(b: AmcRepository.AmcSlaBreach) {
             )
         }
         Text(
-            "Recorded ${prettyDate(b.detectedAt)}",
+            stringResource(R.string.amc_detail_sla_recorded, prettyDate(b.detectedAt)),
             color = SevaInk500,
             fontSize = 11.sp,
         )
@@ -1271,9 +1269,9 @@ private fun RotationTab(
             // works + the canonical add-fallback path.
             Text(
                 if (state.viewerIsHospital)
-                    "The primary engineer takes visits first. If they're unavailable, the next priority engineer is dispatched. Add fallbacks from any engineer's profile."
+                    stringResource(R.string.amc_detail_rotation_empty_hospital)
                 else
-                    "The primary engineer takes visits first. Fallbacks step in when the primary is unavailable.",
+                    stringResource(R.string.amc_detail_rotation_empty_engineer),
                 color = SevaInk500,
                 fontSize = 13.sp,
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -1292,7 +1290,7 @@ private fun RotationTab(
                 }
                 if (state.viewerIsHospital) {
                     Text(
-                        "Add fallback engineers from the engineer directory — open a profile and tap 'Set up monthly maintenance'.",
+                        stringResource(R.string.amc_detail_rotation_add_fallback_hint),
                         color = SevaInk500,
                         fontSize = 12.sp,
                     )

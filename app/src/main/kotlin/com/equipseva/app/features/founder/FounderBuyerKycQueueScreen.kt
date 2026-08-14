@@ -31,6 +31,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.equipseva.app.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -237,20 +239,20 @@ fun FounderBuyerKycQueueScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    if (state.rejectMode) "Reject ${state.sheetUserName}" else "Approve ${state.sheetUserName}",
+                    if (state.rejectMode) stringResource(R.string.founder_kyc_queue_reject_user_title, state.sheetUserName.toString()) else stringResource(R.string.founder_kyc_queue_approve_user_title, state.sheetUserName.toString()),
                     fontSize = 18.sp, fontWeight = FontWeight.Bold, color = SevaInk900,
                 )
                 if (state.rejectMode) {
                     OutlinedTextField(
                         value = state.reasonDraft,
                         onValueChange = viewModel::onReasonChange,
-                        label = { Text("Rejection reason (shown to buyer)") },
+                        label = { Text(stringResource(R.string.founder_buyer_kyc_queue_reject_reason_label)) },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !state.acting,
                     )
                 } else {
                     Text(
-                        "Buyer can place orders immediately after approval.",
+                        stringResource(R.string.founder_buyer_kyc_queue_approve_note),
                         color = SevaInk500, fontSize = 13.sp,
                     )
                 }
@@ -304,9 +306,9 @@ private fun BuyerKycRowCard(
             color = SevaInk500, fontSize = 12.sp,
         )
         if (!row.gstNumber.isNullOrBlank()) {
-            Text("GSTIN: ${row.gstNumber}", color = SevaInk700, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Text(stringResource(R.string.founder_buyer_kyc_queue_gstin_row, row.gstNumber), color = SevaInk700, fontSize = 12.sp, fontWeight = FontWeight.Medium)
         }
-        Text("Submitted: ${prettyDate(row.submittedAt)}", color = SevaInk500, fontSize = 11.sp)
+        Text(stringResource(R.string.founder_buyer_kyc_queue_submitted_row, prettyDate(row.submittedAt)), color = SevaInk500, fontSize = 11.sp)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(modifier = Modifier.weight(1f)) {
                 EsBtn(

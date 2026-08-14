@@ -27,11 +27,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.R
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
@@ -208,7 +210,7 @@ private fun EngineerProfileForm(
         // Availability (Available / Busy buttons)
         Column {
             Text(
-                text = "Availability",
+                text = stringResource(R.string.engineer_profile_availability_label),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = SevaInk700,
@@ -239,7 +241,7 @@ private fun EngineerProfileForm(
         // Specializations chips (FlowRow toggles)
         Column {
             Text(
-                text = "Specializations",
+                text = stringResource(R.string.engineer_profile_specializations_label),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = SevaInk700,

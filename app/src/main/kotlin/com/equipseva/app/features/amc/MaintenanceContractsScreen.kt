@@ -27,12 +27,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.auth.AuthSession
@@ -337,7 +339,7 @@ private fun ContractCard(
         }
         if (!item.nextVisitAt.isNullOrBlank()) {
             Text(
-                text = "Next visit: ${prettyDate(item.nextVisitAt)}",
+                text = stringResource(R.string.amc_contract_next_visit, prettyDate(item.nextVisitAt)),
                 color = SevaInk500,
                 fontSize = 12.sp,
             )

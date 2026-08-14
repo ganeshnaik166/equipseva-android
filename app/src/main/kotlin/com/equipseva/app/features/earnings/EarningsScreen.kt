@@ -32,11 +32,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.R
 import com.equipseva.app.core.data.payouts.EngineerPayoutRow
 import com.equipseva.app.core.data.payouts.PayoutStatus
 import com.equipseva.app.core.data.repair.RepairJobStatus
@@ -285,7 +287,7 @@ private fun EarningsHero(paidTotal: Double, pendingTotal: Double) {
         // "This month" was misleading for bank reconciliation; show the
         // honest "All-time" label until a per-month rollup ships.
         Text(
-            text = "All-time",
+            text = stringResource(R.string.earnings_hero_all_time_label),
             fontSize = 12.sp,
             color = Color.White.copy(alpha = 0.7f),
         )
@@ -335,7 +337,7 @@ private fun EscrowSummaryCard(
                 modifier = Modifier.size(20.dp),
             )
             Text(
-                text = "Money in flight",
+                text = stringResource(R.string.earnings_escrow_money_in_flight_title),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = SevaInk900,
@@ -343,7 +345,7 @@ private fun EscrowSummaryCard(
         }
         if (summary.countHeld > 0) {
             Text(
-                text = "${formatRupees(summary.totalHeldRupees)} held in escrow",
+                text = stringResource(R.string.earnings_escrow_held_amount, formatRupees(summary.totalHeldRupees)),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.44).sp,
@@ -357,7 +359,7 @@ private fun EscrowSummaryCard(
             // scheduled_release_at on those rows).
             summary.nextReleaseAt?.let { iso ->
                 Text(
-                    text = "Next release: ${prettyDateTime(iso)}",
+                    text = stringResource(R.string.earnings_escrow_next_release, prettyDateTime(iso)),
                     fontSize = 12.sp,
                     color = SevaInk500,
                 )
@@ -457,7 +459,7 @@ private fun TransactionRow(
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = row.job?.title ?: "Repair job",
+                text = row.job?.title ?: stringResource(R.string.earnings_transaction_job_title_fallback),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = SevaInk900,
@@ -482,7 +484,7 @@ private fun TransactionRow(
                 val commission = row.job?.platformCommissionRupees
                 if (commission != null && commission > 0.0) {
                     Text(
-                        text = "Commission: ${formatRupees(commission)}",
+                        text = stringResource(R.string.earnings_transaction_commission, formatRupees(commission)),
                         fontSize = 10.sp,
                         color = SevaInk500,
                     )
@@ -505,7 +507,7 @@ private fun TransactionRow(
                 color = SevaInk900,
             )
             Text(
-                text = if (paid) "Paid" else "Pending",
+                text = stringResource(if (paid) R.string.earnings_hero_paid_label else R.string.earnings_hero_pending_label),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = if (paid) SevaGreen700 else SevaWarning500,
@@ -537,14 +539,17 @@ internal fun AmcEarningsList(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "AMC visit",
+                        text = stringResource(R.string.engineer_amc_visits_job_number_fallback),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = SevaInk900,
                     )
                     Text(
-                        text = "Visit cost ${formatRupees(row.perVisitCostRupees)} · " +
-                            "Platform ${formatRupees(row.platformTakeRupees)}",
+                        text = stringResource(
+                            R.string.earnings_amc_visit_cost_platform,
+                            formatRupees(row.perVisitCostRupees),
+                            formatRupees(row.platformTakeRupees),
+                        ),
                         fontSize = 11.sp,
                         color = SevaInk500,
                     )
@@ -557,7 +562,7 @@ internal fun AmcEarningsList(
                         color = SevaInk900,
                     )
                     Text(
-                        text = "Paid",
+                        text = stringResource(R.string.earnings_hero_paid_label),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = SevaGreen700,
@@ -587,7 +592,7 @@ private fun SelfRankCard(rank: com.equipseva.app.core.data.escrow.RepairJobEscro
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
-            text = "Your last ${rank.windowDays} days",
+            text = stringResource(R.string.earnings_self_rank_window_days, rank.windowDays),
             color = Color.White.copy(alpha = 0.65f),
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
@@ -597,14 +602,14 @@ private fun SelfRankCard(rank: com.equipseva.app.core.data.escrow.RepairJobEscro
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = "#$rk",
+                text = stringResource(R.string.earnings_self_rank_number, rk),
                 color = Color.White,
                 fontSize = 30.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.6).sp,
             )
             Text(
-                text = "of ${rank.totalRanked}",
+                text = stringResource(R.string.earnings_self_rank_of_total, rank.totalRanked),
                 color = Color.White.copy(alpha = 0.75f),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -712,7 +717,11 @@ private fun PayoutTransferRow(
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                "₹${formatRupees(amountRupees)} → ${p.destinationLabel ?: "No payout method"}",
+                stringResource(
+                    R.string.founder_payouts_amount_arrow_engineer,
+                    formatRupees(amountRupees),
+                    p.destinationLabel ?: stringResource(R.string.earnings_no_payout_method),
+                ),
                 fontSize = 15.sp,
                 color = SevaInk900,
                 fontWeight = FontWeight.SemiBold,
@@ -732,7 +741,7 @@ private fun PayoutTransferRow(
             if (onFixMethod != null) {
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Update payout method →",
+                    stringResource(R.string.earnings_update_payout_method_cta),
                     fontSize = 12.sp,
                     color = SevaGreen700,
                     fontWeight = FontWeight.SemiBold,
@@ -807,13 +816,13 @@ private fun PayoutMethodNudge(onSetUp: () -> Unit) {
     ) {
         Column {
             Text(
-                "You have earnings — verify your UPI to get paid.",
+                stringResource(R.string.earnings_payout_nudge_verify_upi),
                 color = SevaWarning500,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                "Tap to set up your payout method.",
+                stringResource(R.string.earnings_payout_nudge_tap_setup),
                 color = SevaWarning500,
                 fontSize = 11.sp,
             )

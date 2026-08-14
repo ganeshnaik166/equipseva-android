@@ -17,9 +17,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equipseva.app.R
 import com.equipseva.app.designsystem.theme.SevaWarning50
 import com.equipseva.app.designsystem.theme.SevaWarning500
 import com.equipseva.app.designsystem.theme.SevaWarning700
@@ -58,14 +60,13 @@ fun UnmatchedJobBanner(daysOld: Long) {
             )
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    "No bids yet · $daysOld days posted.",
+                    stringResource(R.string.unmatched_job_banner_no_bids_yet, daysOld),
                     color = SevaWarning700,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    "Try raising the budget or adding more equipment detail. " +
-                        "Engineers usually bid faster when scope is concrete.",
+                    stringResource(R.string.unmatched_job_banner_suggestion),
                     color = SevaWarning700,
                     fontSize = 11.sp,
                 )

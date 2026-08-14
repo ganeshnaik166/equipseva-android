@@ -22,12 +22,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.R
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
@@ -128,7 +130,7 @@ fun EngineerGraduationScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            "Couldn't load tier progress",
+                            stringResource(R.string.engineer_graduation_error_title),
                             style = EsType.H4,
                             color = SevaInk900,
                         )
@@ -151,13 +153,13 @@ fun EngineerGraduationScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             Text(
-                                "No tier data yet",
+                                stringResource(R.string.engineer_graduation_no_data_title),
                                 style = EsType.H4,
                                 color = SevaInk900,
                             )
                             Spacer(Modifier.height(8.dp))
                             Text(
-                                "Complete a job or finish KYC to start.",
+                                stringResource(R.string.engineer_graduation_no_data_body),
                                 style = EsType.Body,
                                 color = SevaInk500,
                             )
@@ -194,7 +196,7 @@ private fun GraduationContent(
         ) {
             Column {
                 Text(
-                    "Current tier",
+                    stringResource(R.string.engineer_graduation_current_tier_label),
                     style = EsType.BodySm,
                     color = SevaInk600,
                 )
@@ -207,14 +209,17 @@ private fun GraduationContent(
                 if (d.nextTier != null) {
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "Next: ${d.nextTier.replaceFirstChar { it.uppercase() }}",
+                        stringResource(
+                            R.string.engineer_graduation_next_tier,
+                            d.nextTier.replaceFirstChar { it.uppercase() },
+                        ),
                         style = EsType.BodySm,
                         color = SevaGreen700,
                     )
                 } else {
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "You're at the top tier.",
+                        stringResource(R.string.engineer_graduation_top_tier),
                         style = EsType.BodySm,
                         color = SevaGreen700,
                     )
@@ -224,7 +229,10 @@ private fun GraduationContent(
 
         if (d.nextTier != null) {
             Text(
-                "What you need for ${d.nextTier.replaceFirstChar { it.uppercase() }}",
+                stringResource(
+                    R.string.engineer_graduation_what_you_need,
+                    d.nextTier.replaceFirstChar { it.uppercase() },
+                ),
                 style = EsType.H5,
                 color = SevaInk900,
                 modifier = Modifier.padding(top = 4.dp),
@@ -271,7 +279,7 @@ private fun GraduationContent(
 
         Spacer(Modifier.height(8.dp))
         Text(
-            "Daily compute job refreshes these numbers — your tier updates automatically when all gates pass.",
+            stringResource(R.string.engineer_graduation_refresh_note),
             style = EsType.BodySm,
             color = SevaInk400,
         )
@@ -281,7 +289,7 @@ private fun GraduationContent(
         if (history.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
             Text(
-                "Promotion history",
+                stringResource(R.string.engineer_graduation_promotion_history_title),
                 style = EsType.H5,
                 color = SevaInk900,
             )
@@ -311,7 +319,11 @@ private fun TierHistoryRow(h: EngineerGraduationRepository.TierHistoryEntry) {
         Column {
             Text(arrow, style = EsType.Body.copy(fontWeight = FontWeight.SemiBold), color = SevaInk900)
             Spacer(Modifier.height(2.dp))
-            Text("$kindLabel · ${h.changedAt.take(10)}", style = EsType.BodySm, color = SevaInk500)
+            Text(
+                stringResource(R.string.engineer_graduation_history_row, kindLabel, h.changedAt.take(10)),
+                style = EsType.BodySm,
+                color = SevaInk500,
+            )
         }
     }
 }
@@ -353,7 +365,7 @@ private fun GateCard(
                 )
                 Spacer(Modifier.height(0.dp))
                 Text(
-                    "  / $target",
+                    stringResource(R.string.engineer_graduation_gate_target, target),
                     style = EsType.Body,
                     color = SevaInk500,
                 )
