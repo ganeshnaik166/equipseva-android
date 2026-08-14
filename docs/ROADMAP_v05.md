@@ -126,12 +126,12 @@ These must close before Phase 1 starts:
 
 - [x] v0.4 backend shipped (r481 → r522) — **DONE**
 - [x] BMC Web Console v0.5 deployed — **DONE**
-- [ ] Cashfree KYC closure — payout pipeline live
-- [ ] Clove warm-intro accepted — Phase 1 trigger
-- [ ] PI Policy ₹10Cr bound — protects new geo + new vertical engineers
-- [ ] First bonded supplier registered (via r523 form)
-- [ ] Hindi + Telugu native-speaker translation review — flip Compose Text to stringResource
-- [ ] Audit-11 + audit-12 confirmed findings closed (r522 + any audit-12 follow-up)
+- [ ] Cashfree KYC closure — payout pipeline live. **Engineering is 100% done** (server + Android payout UI fully built and production-hardened per SETUP.md); the ONLY remaining step is Cashfree's own external merchant-account KYC approval, then founder pastes 2 prod API keys + funds the prepaid wallet — zero code changes required. Not actionable by engineering until Cashfree approves.
+- [ ] Clove warm-intro accepted — Phase 1 trigger (founder business action, not engineering)
+- [ ] PI Policy ₹10Cr bound — protects new geo + new vertical engineers (founder legal/insurance action, not engineering)
+- [ ] First bonded supplier registered (via r523 form) — **BUG FIXED r3754**: `founder_register_bonded_supplier` / `founder_record_bonded_intake` were shipped service_role-only (same class as r847-849) so every real submission 42501'd silently; r3754 added the missing `GRANT ... TO authenticated`. Form is now actually usable — remaining work is purely business (recruit a real supplier to fill it out).
+- [ ] Hindi + Telugu native-speaker translation review — flip Compose Text to stringResource. Audited r3754: resource files + hi/te scaffold text already exist (r514) but 0/517 hardcoded Compose `Text()` call-sites are wired to `stringResource()` — the entire plumbing/extraction step is still open and is pure engineering work (in progress); the hi/te text itself still needs native-speaker review before it can ship as a selectable locale.
+- [x] Audit-11 + audit-12 confirmed findings closed (r522 + any audit-12 follow-up) — **DONE**, verified r3754: audit-11 (r522) and audit-12 (r529) patches are both merged to `main` and present on the current branch; 0 open findings. (Note: audit-13/16/17/18 remediation branches exist on `origin` unmerged — separate, larger backlog if a "close all audits" push is ever wanted.)
 
 ---
 
