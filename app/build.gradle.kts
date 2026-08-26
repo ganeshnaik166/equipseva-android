@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
@@ -161,14 +162,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-        freeCompilerArgs += listOf(
-            "-Xjvm-default=all",
-            "-opt-in=kotlin.RequiresOptIn",
-        )
-    }
-
     sourceSets {
         named("main") {
             java.srcDirs("src/main/kotlin")
@@ -204,6 +197,19 @@ android {
                 "/META-INF/NOTICE*",
             )
         }
+    }
+}
+
+// Migrated off the deprecated android.kotlinOptions { jvmTarget = "17" }
+// DSL (AGP 9.1.1 warning: "Please migrate to the compilerOptions DSL") to
+// the Kotlin Gradle plugin's own top-level extension.
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
+        freeCompilerArgs.addAll(
+            "-Xjvm-default=all",
+            "-opt-in=kotlin.RequiresOptIn",
+        )
     }
 }
 
