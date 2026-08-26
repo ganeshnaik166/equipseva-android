@@ -45,11 +45,11 @@ val hasReleaseKeystore: Boolean =
 
 android {
     namespace = "com.equipseva.app"
-    // compileSdk = 36 lets the compiler see the Android 16 / API 36
-    // declarations. Required by androidx.core 1.18.0.
-    // targetSdk stays at 35 — opting in to Android 16 RUNTIME behavior
-    // changes is a separate decision.
-    compileSdk = 36
+    // compileSdk = 37, bumped for AGP 9.1.1 + net.zetetic:sqlcipher-android
+    // 4.18.0 (requires API 37). targetSdk stays at 35 — opting in to newer
+    // RUNTIME behavior changes is a separate decision from compileSdk,
+    // which only affects which APIs the compiler can see.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.equipseva.app"
