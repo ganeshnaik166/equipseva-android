@@ -44,7 +44,7 @@
     <string name="signup_get_started_title">Get started</string>
     <string name="signup_get_started_subtitle">Free to join. Takes about a minute.</string>
     <string name="signup_role_prompt">I\'m signing up as</string>
-    <string name="signup_already_have_account">Already have an account? </string>
+    <string name="signup_already_have_account">"Already have an account? "</string>
     <string name="signup_sign_in_link">Sign in</string>
 
     <!-- Device integrity -->
@@ -128,10 +128,10 @@
     <string name="location_picker_pin_exact_spot">Pin the exact spot</string>
     <string name="location_picker_permission_denied">Location permission denied. Drag the pin once it loads, or grant location access in Settings.</string>
     <string name="location_picker_tap_to_pin">Tap below to pin your current location, then drag to refine.</string>
-    <string name="location_picker_use_my_location">  Use my current location</string>
-    <string name="location_picker_coordinates">  %1$s, %2$s</string>
-    <string name="location_picker_locating">  Locatingâ¦</string>
-    <string name="location_picker_my_location">  My location</string>
+    <string name="location_picker_use_my_location">"  Use my current location"</string>
+    <string name="location_picker_coordinates">"  %1$s, %2$s"</string>
+    <string name="location_picker_locating">"  Locating…"</string>
+    <string name="location_picker_my_location">"  My location"</string>
 
     <!-- Order summary sheet (pre-checkout) (English placeholder â pending native-speaker review) -->
     <string name="order_summary_engineer_label">Engineer</string>
@@ -145,7 +145,7 @@
     <string name="mybids_row_placed_ago">Placed %1$s ago</string>
 
     <!-- Bid card (English placeholder â pending native-speaker review) -->
-    <string name="bid_card_rating_count_paren"> (%1$d)</string>
+    <string name="bid_card_rating_count_paren">" (%1$d)"</string>
 
     <!-- Role select (English placeholder â pending native-speaker review) -->
     <string name="role_select_switch_later_note">You can switch later from your profile.</string>
@@ -160,7 +160,7 @@
     <string name="forgot_password_reset_link_sent">We\'ve sent a reset link to %1$s.</string>
 
     <!-- EsDropdown (English placeholder â pending native-speaker review) -->
-    <string name="es_dropdown_search_placeholder">Searchâ¦</string>
+    <string name="es_dropdown_search_placeholder">Search…</string>
     <string name="es_dropdown_no_matches">No matches</string>
 
     <!-- Earnings hero card (English placeholder â pending native-speaker review) -->
@@ -243,8 +243,8 @@
     <string name="request_service_booking_name">Booking %1$s</string>
     <string name="request_service_rating_jobs_summary">%1$s Â· %2$s</string>
     <string name="request_service_resume_draft">Resume your draft?</string>
-    <string name="request_service_submitting">Submittingâ¦</string>
-    <string name="request_service_uploading_photo">Uploading photoâ¦</string>
+    <string name="request_service_submitting">Submitting…</string>
+    <string name="request_service_uploading_photo">Uploading photo…</string>
     <string name="request_service_submit_request">Submit request</string>
     <string name="request_service_equipment_type_label">Equipment type</string>
     <string name="request_service_brand_label">Brand</string>
@@ -260,7 +260,7 @@
     <string name="request_service_photos_hint">Attach photos of the nameplate or fault. Up to 5 images, JPEG/PNG/WEBP.</string>
     <string name="request_service_take_photo">Take photo</string>
     <string name="request_service_from_gallery">From gallery</string>
-    <string name="request_service_uploading">Uploadingâ¦</string>
+    <string name="request_service_uploading">Uploading…</string>
     <string name="request_service_preferred_slot_label">Preferred slot</string>
     <string name="request_service_date_picker_ok">OK</string>
     <string name="request_service_address_label">Address</string>
@@ -471,7 +471,7 @@
     <string name="engineer_graduation_refresh_note">Daily compute job refreshes these numbers — your tier updates automatically when all gates pass.</string>
     <string name="engineer_graduation_promotion_history_title">Promotion history</string>
     <string name="engineer_graduation_history_row">%1$s · %2$s</string>
-    <string name="engineer_graduation_gate_target">  / %1$s</string>
+    <string name="engineer_graduation_gate_target">"  / %1$s"</string>
     <string name="founder_cash_flag_history_completed_label">Job completed: %1$s</string>
 
     <!-- Founder AMC escalation detail screen (English placeholder — pending native-speaker review) -->
@@ -537,7 +537,7 @@
     <string name="chat_edited_label">edited</string>
     <string name="chat_message_placeholder">Message&#8230;</string>
     <string name="chat_edit_message_header">Edit message</string>
-    <string name="chat_repair_job_suffix"> · Repair job</string>
+    <string name="chat_repair_job_suffix">" · Repair job"</string>
 
     <!-- MaintenanceContractsScreen (English placeholder — pending native-speaker review) -->
     <string name="amc_contract_next_visit">Next visit: %1$s</string>
@@ -723,7 +723,7 @@
     <string name="sign_in_welcome_back">Welcome back</string>
     <string name="sign_in_subtitle">Sign in to your EquipSeva account.</string>
     <string name="sign_in_forgot_password">Forgot password?</string>
-    <string name="sign_in_new_here">New here? </string>
+    <string name="sign_in_new_here">"New here? "</string>
     <string name="or_divider_label">or</string>
 
     <!-- HelpSupportSheet -->
