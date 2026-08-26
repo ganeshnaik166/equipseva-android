@@ -380,13 +380,29 @@ tasks.register("checkApkSize") {
     group = "verification"
     description = "Fail if release APK exceeds the size budget"
     dependsOn("assembleRelease")
+    // Config-cache requires task actions to not capture Project/script
+    // references. Both `apkSizeBudget` (a top-level script val, captured by
+    // reference to the script object) and a bare `layout` read inside
+    // doLast (captured by reference to Project) tripped this — resolved by
+    // reading both into plain, cache-serializable values here at
+    // configuration time, then only closing over those from doLast.
+    val apkDir = layout.buildDirectory.dir("outputs/apk/release")
+    val budgetBytes = apkSizeBudget
     doLast {
-        val apk = layout.buildDirectory.file("outputs/apk/release/app-release.apk").get().asFile
-        require(apk.exists()) { "APK not found at ${apk.path}" }
+        // AGP names the output `app-release.apk` when signed, but
+        // `app-release-unsigned.apk` when no release signingConfig is
+        // applied (local dev / PRECHECK_LOOSE CI dry-runs never carry a
+        // real keystore). Don't hardcode either name — pick whatever .apk
+        // actually landed in the release output dir.
+        val dir = apkDir.get().asFile
+        val candidates = dir.listFiles { f -> f.extension == "apk" }.orEmpty()
+        val apk = candidates.firstOrNull { it.name == "app-release.apk" }
+            ?: candidates.firstOrNull()
+        requireNotNull(apk) { "No .apk found in ${dir.path}" }
         val actual = apk.length()
-        println("Release APK: ${actual / 1024 / 1024} MB (budget ${apkSizeBudget / 1024 / 1024} MB)")
-        check(actual <= apkSizeBudget) {
-            "APK size ${actual / 1024 / 1024} MB exceeds budget ${apkSizeBudget / 1024 / 1024} MB. " +
+        println("Release APK: ${actual / 1024 / 1024} MB (budget ${budgetBytes / 1024 / 1024} MB)")
+        check(actual <= budgetBytes) {
+            "APK size ${actual / 1024 / 1024} MB exceeds budget ${budgetBytes / 1024 / 1024} MB. " +
             "Investigate with ./gradlew :app:analyze before increasing apkSizeBudgetMb in gradle.properties."
         }
     }
