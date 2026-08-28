@@ -148,6 +148,10 @@
 
     <!-- My bids -->
     <string name="mybids_row_placed_ago">Placed %1$s ago</string>
+    <!-- r1457: relativeLabel() returns the standalone "now" for <1 minute
+         elapsed, which would render "Placed now ago" if fed into the
+         template above — special-case it with a dedicated string. -->
+    <string name="mybids_row_placed_just_now">Placed just now</string>
 
     <!-- Bid card -->
     <string name="bid_card_rating_count_paren">" (%1$d)"</string>
@@ -597,6 +601,11 @@
     <!-- EarningsScreen -->
     <string name="earnings_hero_all_time_label">All-time</string>
     <string name="earnings_escrow_money_in_flight_title">Money in flight</string>
+    <!-- r1459: the card's render gate ORs in totalReleased30d > 0, so it can
+         show with only a released-30d figure and nothing actually held/
+         pending/disputed — "Money in flight" would then contradict the
+         content. Shown instead when nothing is active. -->
+    <string name="earnings_escrow_recently_released_title">Recently released</string>
     <string name="earnings_escrow_held_amount">%1$s held in escrow</string>
     <string name="earnings_escrow_next_release">Next release: %1$s</string>
     <string name="earnings_transaction_job_title_fallback">Repair job</string>

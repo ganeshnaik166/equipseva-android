@@ -500,7 +500,7 @@ private fun AssignmentCard(
                     style = EsType.Body.copy(fontWeight = FontWeight.SemiBold),
                     color = SevaInk900,
                 )
-                StatusPill(row.status)
+                StatusPill(row.status, row.signoffOutcome)
             }
             Spacer(Modifier.height(4.dp))
             Text(
@@ -553,14 +553,20 @@ private fun AssignmentCard(
 }
 
 @Composable
-private fun StatusPill(status: String) {
-    val (label, kind) = when (status) {
-        "pending_supervisor_accept" -> "Awaiting accept" to PillKind.Warn
-        "active" -> "Active" to PillKind.Info
-        "completed_successful" -> "Success" to PillKind.Success
-        "completed_failed" -> "Failed" to PillKind.Danger
-        "declined" -> "Declined" to PillKind.Neutral
-        "revoked" -> "Revoked" to PillKind.Neutral
+private fun StatusPill(status: String, signoffOutcome: String? = null) {
+    // r1460 — the server collapses BOTH "failed" and "disputed" signoff
+    // choices into status="completed_failed", keeping the real choice in
+    // signoffOutcome. A disputed sign-off (quality contested) is materially
+    // different from a failed one (trainee failed), so don't render both
+    // as a red "Failed".
+    val (label, kind) = when {
+        status == "pending_supervisor_accept" -> "Awaiting accept" to PillKind.Warn
+        status == "active" -> "Active" to PillKind.Info
+        status == "completed_successful" -> "Success" to PillKind.Success
+        status == "completed_failed" && signoffOutcome == "disputed" -> "Disputed" to PillKind.Warn
+        status == "completed_failed" -> "Failed" to PillKind.Danger
+        status == "declined" -> "Declined" to PillKind.Neutral
+        status == "revoked" -> "Revoked" to PillKind.Neutral
         else -> status to PillKind.Default
     }
     Pill(text = label, kind = kind)

@@ -240,7 +240,11 @@ internal fun engineerDisputesSubtitle(
 ): String? {
     if (rows.isEmpty()) return null
     val open = rows.count { it.status == "in_dispute" }
-    val won = rows.count { it.outcome == "release" }
+    // Match the pill's status-wins precedence (engineerDisputePillTextAndKind):
+    // an in_dispute row shows "Under review", so a provisional "release"
+    // outcome written during resolution must NOT also count as released/won —
+    // otherwise the header says "1 open · 1 released" for a single unresolved row.
+    val won = rows.count { it.status != "in_dispute" && it.outcome == "release" }
     return "$open open · $won released to you · last 12 months"
 }
 

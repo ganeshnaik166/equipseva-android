@@ -216,7 +216,10 @@ private fun VisitRow(
  * to engineers. Pin so a regression to a dev-placeholder surfaces.
  */
 internal fun amcVisitHospitalName(hospitalName: String?): String =
-    hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"
+    // The RPC coalesces a null profiles.full_name to the literal "(unnamed)",
+    // so guard that server placeholder too — otherwise it renders verbatim and
+    // reads as a missing-data bug (the exact thing this helper prevents).
+    hospitalName?.takeIf { it.isNotBlank() && it != "(unnamed)" } ?: "Hospital"
 
 /**
  * Pretty-print a wire status string for the visit-row Pill: replace

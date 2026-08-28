@@ -179,13 +179,13 @@ internal fun queuedStatusChangePillText(count: Int): String =
  * completed rows as in-progress. Pin the per-bucket counts.
  *
  * Pin the asymmetric "completed" vs "done" wording — single-bucket
- * uses the formal "completed" (matches the wire status name); the
- * combined form uses the shorter "done" so the subtitle fits on
- * one line.
+ * uses "closed" — the completedJobs bucket holds BOTH Completed and
+ * Cancelled jobs, so "completed"/"done" would mislabel the cancelled
+ * ones as done (each row still shows its own Completed/Cancelled pill).
  */
 internal fun activeWorkSubtitle(activeCount: Int, completedCount: Int): String? = when {
     activeCount <= 0 && completedCount <= 0 -> null
     completedCount <= 0 -> "$activeCount in progress"
-    activeCount <= 0 -> "$completedCount completed"
-    else -> "$activeCount in progress · $completedCount done"
+    activeCount <= 0 -> "$completedCount closed"
+    else -> "$activeCount in progress · $completedCount closed"
 }

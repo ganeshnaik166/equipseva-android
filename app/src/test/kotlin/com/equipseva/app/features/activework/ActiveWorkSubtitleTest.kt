@@ -14,39 +14,45 @@ class ActiveWorkSubtitleTest {
         assertEquals("3 in progress", activeWorkSubtitle(3, 0))
     }
 
-    @Test fun `only completed reads N completed (formal wire-status form)`() {
-        // Pin "completed" not "done" — single-bucket uses formal form
-        // matching the wire status name.
-        assertEquals("5 completed", activeWorkSubtitle(0, 5))
+    @Test fun `only closed reads N closed`() {
+        // r1457: the completedJobs bucket holds Completed AND Cancelled jobs,
+        // so the label is "closed" — "completed"/"done" mislabeled cancelled.
+        assertEquals("5 closed", activeWorkSubtitle(0, 5))
     }
 
-    @Test fun `both lists reads X in progress dot Y done`() {
+    @Test fun `both lists reads X in progress dot Y closed`() {
         // Critical pin — per-bucket counts. Previous behaviour used
-        // combined.size for "in progress" which miscounted completed
-        // rows.
+        // combined.size for "in progress" which miscounted completed rows.
         assertEquals(
-            "3 in progress · 5 done",
+            "3 in progress · 5 closed",
             activeWorkSubtitle(3, 5),
         )
     }
 
-    @Test fun `combined form uses done not completed (line-fit)`() {
-        // Pin "done" — shorter to fit on one line in the top bar.
+    @Test fun `combined form uses closed not done`() {
         val out = activeWorkSubtitle(3, 5)
-        assertEquals(true, out!!.endsWith(" done"))
+        assertEquals(true, out!!.endsWith(" closed"))
     }
 
-    @Test fun `1 in progress 0 completed reads 1 in progress`() {
+    @Test fun `no bucket label calls cancelled jobs done or completed`() {
+        // r1457 regression pin: cancelled jobs land in completedCount, so the
+        // subtitle must never assert "done"/"completed".
+        val out = activeWorkSubtitle(3, 5)!!
+        assertEquals(false, out.contains("done"))
+        assertEquals(false, out.contains("completed"))
+    }
+
+    @Test fun `1 in progress 0 closed reads 1 in progress`() {
         assertEquals("1 in progress", activeWorkSubtitle(1, 0))
     }
 
-    @Test fun `0 in progress 1 completed reads 1 completed`() {
-        assertEquals("1 completed", activeWorkSubtitle(0, 1))
+    @Test fun `0 in progress 1 closed reads 1 closed`() {
+        assertEquals("1 closed", activeWorkSubtitle(0, 1))
     }
 
     @Test fun `large counts interpolate verbatim`() {
         assertEquals(
-            "42 in progress · 100 done",
+            "42 in progress · 100 closed",
             activeWorkSubtitle(42, 100),
         )
     }

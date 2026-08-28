@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -49,6 +50,7 @@ import com.equipseva.app.designsystem.components.EsFieldType
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaDanger50
 import com.equipseva.app.designsystem.theme.SevaDanger500
 import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaGreen700
@@ -169,20 +171,28 @@ fun EngineerPayoutMethodScreen(
 
 @Composable
 private fun CurrentDestinationCard(method: EngineerPayoutMethod) {
+    // r1459 — Chrome must match the verification status: a green success
+    // card + green check next to red "Last payout failed" copy contradicts
+    // itself.
+    val isInvalid = method.verificationStatus == PayoutMethodVerification.Invalid
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(SevaGreen50)
-            .border(width = 1.dp, color = BorderDefault, shape = RoundedCornerShape(12.dp))
+            .background(if (isInvalid) SevaDanger50 else SevaGreen50)
+            .border(
+                width = 1.dp,
+                color = if (isInvalid) SevaDanger500 else BorderDefault,
+                shape = RoundedCornerShape(12.dp),
+            )
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Icon(
-            imageVector = Icons.Outlined.CheckCircle,
+            imageVector = if (isInvalid) Icons.Outlined.ErrorOutline else Icons.Outlined.CheckCircle,
             contentDescription = null,
-            tint = SevaGreen700,
+            tint = if (isInvalid) SevaDanger500 else SevaGreen700,
             modifier = Modifier.size(20.dp),
         )
         Column(modifier = Modifier.fillMaxWidth()) {

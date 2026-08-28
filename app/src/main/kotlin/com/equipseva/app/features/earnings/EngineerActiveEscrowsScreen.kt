@@ -191,7 +191,11 @@ private fun ActiveEscrowRow(
             // Mirror rounds 37 / 53 / 54: "(unnamed hospital)" reads as a
             // missing-data bug to engineers, not as a fallback. Collapse
             // blank/null names to the row category — "Hospital".
-            text = row.hospitalName?.takeIf { it.isNotBlank() } ?: stringResource(R.string.engineer_active_escrows_hospital_fallback),
+            // r1457 — the RPC coalesces a null full_name to the literal
+            // "(unnamed)", which passes isNotBlank() and rendered verbatim —
+            // the exact missing-data-looking placeholder this guard exists
+            // to prevent. Strip that server placeholder too.
+            text = row.hospitalName?.takeIf { it.isNotBlank() && it != "(unnamed)" } ?: stringResource(R.string.engineer_active_escrows_hospital_fallback),
             color = SevaInk500,
             fontSize = 12.sp,
         )

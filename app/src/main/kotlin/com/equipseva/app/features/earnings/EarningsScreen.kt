@@ -190,7 +190,11 @@ fun EarningsScreen(
                                 }
                             }
                         }
-                        if (state.rows.isEmpty() && state.amcEarnings.isEmpty()) {
+                        // r1461 — also check payouts.isEmpty(): an engineer with
+                        // payout/transfer rows but no completed-job rows was
+                        // shown the empty state, hiding the Transfers section
+                        // (incl. the failed-transfer "Update payout method" CTA).
+                        if (state.rows.isEmpty() && state.amcEarnings.isEmpty() && state.payouts.isEmpty()) {
                             item("empty") {
                                 EmptyStateView(
                                     icon = Icons.Outlined.Payments,
@@ -337,7 +341,15 @@ private fun EscrowSummaryCard(
                 modifier = Modifier.size(20.dp),
             )
             Text(
-                text = stringResource(R.string.earnings_escrow_money_in_flight_title),
+                // r1459 — "Money in flight" only fits when something is
+                // actually held/pending/disputed; when the card shows solely
+                // released-30d (nothing active) that title contradicts the
+                // content.
+                text = if (summary.countHeld > 0 || summary.countInDispute > 0 || summary.countPendingPayment > 0) {
+                    stringResource(R.string.earnings_escrow_money_in_flight_title)
+                } else {
+                    stringResource(R.string.earnings_escrow_recently_released_title)
+                },
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = SevaInk900,

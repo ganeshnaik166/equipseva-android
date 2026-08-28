@@ -500,7 +500,15 @@ private fun ProfileContent(
 
         sections.forEach { section ->
             if (section.title == "Danger zone") {
-                AccountTypeSection(role = profile.role, onEditRole = onEditRole)
+                // Use displayedRole (activeRole ?: scalar), NOT the raw
+                // profile.role scalar — same auto-seed correction the hero
+                // pill + section gating already use above. A hospital admin
+                // auto-seeded as ENGINEER was seeing "Account type: Biomedical
+                // engineer / You bid on and complete repair jobs" here while
+                // the hero pill (also displayedRole) correctly said "Hospital
+                // admin". The comment on ProfileHero notes the two are meant
+                // to match. (Found on-device, r1456.)
+                AccountTypeSection(role = displayedRole, onEditRole = onEditRole)
             }
             ProfileSectionView(section)
         }

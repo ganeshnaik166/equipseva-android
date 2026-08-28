@@ -235,7 +235,10 @@ private fun ProjectionContent(d: EngineerGraduationRepository.TierEarningsProjec
         StatCard(
             label = "Supervised completions",
             value = "${d.supervisedCompletionsAtEval}",
-            sub = "Counted toward your next tier (r578 gate)",
+            // r1457 — don't claim they count "toward your next tier" when
+            // there is no next tier (top-tier engineer) — that contradicts
+            // the hero's "You're at the top tier." message.
+            sub = if (d.nextTier != null) "Counted toward your next tier (r578 gate)" else "Verified supervised completions to date",
         )
 
         Spacer(Modifier.height(8.dp))

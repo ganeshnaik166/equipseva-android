@@ -202,7 +202,7 @@ private fun EngineerProfileForm(
             value = state.serviceAreas,
             onChange = onServiceAreasChange,
             label = "Service areas",
-            placeholder = "Hyderabad, Rangareddy, Medak",
+            placeholder = "Hyderabad, Nalgonda, Warangal",
             hint = "Comma-separated Telangana districts. Hospitals filtering by district see you when one matches.",
             enabled = !state.saving,
         )

@@ -1547,10 +1547,17 @@ internal fun canSubmitSpotAudit(rating: Int, submitting: Boolean): Boolean =
  * "Your bookings, bids, and messages will appear here." for all
  * three roles. That stated the obvious without telling the user how
  * to get unstuck — role-aware copy points at the next CTA.
+ *
+ * Pinned regression (r1455, found on-device): this is the *recent
+ * activity* (notifications) empty state, NOT a bookings list — the
+ * hospital copy must not claim "No bookings yet … your first job",
+ * which is false for a hospital that already has an open/active job
+ * but no recent notifications. Keep it about activity + a still-valid
+ * CTA ("post a new job", not "your first job").
  */
 internal fun homeRecentEmptyCopy(role: UserRole?): String = when (role) {
     UserRole.HOSPITAL ->
-        "No bookings yet. Tap \"Book a repair engineer\" above to post your first job."
+        "No activity yet. Tap \"Book a repair engineer\" above to post a new job."
     UserRole.ENGINEER ->
         "No activity yet. Tap the Jobs tab to find open repair jobs you can bid on."
     else ->

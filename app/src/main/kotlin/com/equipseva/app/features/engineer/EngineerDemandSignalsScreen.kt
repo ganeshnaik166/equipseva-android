@@ -87,7 +87,10 @@ class EngineerDemandSignalsViewModel @Inject constructor(
         viewModelScope.launch {
             repo.fetchMyDemandSignals()
                 .onSuccess { list ->
-                    _state.update { UiState(status = Status.Loaded, rows = list) }
+                    // it.copy (not a fresh UiState) so a pending "Reported"
+                    // toast set by submit() survives this reload — a fresh
+                    // UiState reset toast=null and the confirmation never showed.
+                    _state.update { it.copy(status = Status.Loaded, rows = list, error = null) }
                 }
                 .onFailure { e ->
                     _state.update {

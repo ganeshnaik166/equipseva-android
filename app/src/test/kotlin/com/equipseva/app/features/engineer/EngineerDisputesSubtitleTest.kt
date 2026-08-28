@@ -77,6 +77,15 @@ class EngineerDisputesSubtitleTest {
         assertEquals("1 open · 0 released to you · last 12 months", out)
     }
 
+    @Test fun `in_dispute row with provisional release outcome counts as open only`() {
+        // r1461: the pill shows "Under review" (status wins) during resolution,
+        // so a provisional "release" outcome on an in_dispute row must not also
+        // count as released/won — else the header reads "1 open · 1 released"
+        // for one unresolved row.
+        val out = engineerDisputesSubtitle(listOf(row("in_dispute", outcome = "release")))
+        assertEquals("1 open · 0 released to you · last 12 months", out)
+    }
+
     @Test fun `case-sensitive outcome match (server wire format is lowercase)`() {
         // "Release" / "RELEASE" don't match — pin the strict contract.
         val out = engineerDisputesSubtitle(

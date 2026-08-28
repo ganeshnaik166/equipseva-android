@@ -196,8 +196,15 @@ private fun BidRowCard(
                 color = SevaGreen700,
             )
             row.bid.createdAtInstant?.let { placed ->
+                // r1457 — relativeLabel() returns the standalone "now" for
+                // <1min elapsed; "Placed now ago" reads broken, so special-case it.
+                val rel = relativeLabel(placed)
                 Text(
-                    text = stringResource(R.string.mybids_row_placed_ago, relativeLabel(placed)),
+                    text = if (rel == "now") {
+                        stringResource(R.string.mybids_row_placed_just_now)
+                    } else {
+                        stringResource(R.string.mybids_row_placed_ago, rel)
+                    },
                     style = EsType.Caption,
                     color = SevaInk400,
                 )

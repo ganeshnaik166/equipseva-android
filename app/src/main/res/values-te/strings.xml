@@ -143,6 +143,7 @@
 
     <!-- My bids (English placeholder â pending native-speaker review) -->
     <string name="mybids_row_placed_ago">Placed %1$s ago</string>
+    <string name="mybids_row_placed_just_now">Placed just now</string>
 
     <!-- Bid card (English placeholder â pending native-speaker review) -->
     <string name="bid_card_rating_count_paren">" (%1$d)"</string>
@@ -600,6 +601,7 @@
     <!-- EarningsScreen (English placeholder — pending native-speaker review) -->
     <string name="earnings_hero_all_time_label">All-time</string>
     <string name="earnings_escrow_money_in_flight_title">Money in flight</string>
+    <string name="earnings_escrow_recently_released_title">Recently released</string>
     <string name="earnings_escrow_held_amount">%1$s held in escrow</string>
     <string name="earnings_escrow_next_release">Next release: %1$s</string>
     <string name="earnings_transaction_job_title_fallback">Repair job</string>
