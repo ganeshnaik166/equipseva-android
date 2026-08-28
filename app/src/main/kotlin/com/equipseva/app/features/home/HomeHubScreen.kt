@@ -68,6 +68,7 @@ import com.equipseva.app.core.data.cashsurvey.CashSurveyRepository
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.initialsOf
+import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.designsystem.components.EsSection
 import com.equipseva.app.designsystem.components.HelpSupportSheet
@@ -482,7 +483,7 @@ private fun SpotAuditSheetBody(
             text = spotAuditQuestionBody(
                 jobNumber = invitation.jobNumber,
                 repairJobId = invitation.repairJobId,
-                engineerName = invitation.engineerName,
+                engineerName = sanitizeServerName(invitation.engineerName) ?: "the engineer",
             ),
             style = EsType.Body,
             color = SevaInk700,
@@ -556,7 +557,7 @@ private fun CashSurveySheetBody(
             color = SevaInk900,
         )
         Text(
-            text = cashSurveyQuestionBody(survey.jobNumber, survey.repairJobId, survey.engineerName),
+            text = cashSurveyQuestionBody(survey.jobNumber, survey.repairJobId, sanitizeServerName(survey.engineerName) ?: "the engineer"),
             style = EsType.Body,
             color = SevaInk700,
         )
@@ -1240,6 +1241,7 @@ private fun RecommendedEngineerCard(
     row: EngineerDirectoryRepository.RecommendedRow,
     onPick: () -> Unit,
 ) {
+    val name = sanitizeServerName(row.fullName) ?: "Engineer"
     Column(
         modifier = Modifier
             .width(220.dp)
@@ -1271,7 +1273,7 @@ private fun RecommendedEngineerCard(
                     )
                 } else {
                     Text(
-                        text = initialsOf(row.fullName),
+                        text = initialsOf(name),
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 14.sp,
@@ -1281,7 +1283,7 @@ private fun RecommendedEngineerCard(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = row.fullName,
+                        text = name,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = SevaInk900,

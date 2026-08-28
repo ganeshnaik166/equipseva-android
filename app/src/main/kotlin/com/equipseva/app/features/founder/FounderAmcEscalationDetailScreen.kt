@@ -49,6 +49,7 @@ import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaDanger500
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk700
 import com.equipseva.app.designsystem.theme.SevaInk900
@@ -182,6 +183,7 @@ fun FounderAmcEscalationDetailScreen(
                         resolving = state.resolving,
                         resolved = state.resolved,
                         onResolve = viewModel::resolve,
+                        error = state.error,
                     )
                 }
             }
@@ -196,6 +198,7 @@ private fun EscalationDetailBody(
     resolving: Boolean,
     resolved: Boolean,
     onResolve: () -> Unit,
+    error: String? = null,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -284,6 +287,17 @@ private fun EscalationDetailBody(
                     disabled = resolving,
                     onClick = onResolve,
                     full = true,
+                )
+            }
+            // Surface a resolve failure — state.error is otherwise only shown by
+            // the detail==null cold-load branch, so an action error while the
+            // detail is loaded was captured into state but never displayed.
+            if (error != null) {
+                Text(
+                    error,
+                    color = SevaDanger500,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(top = 8.dp),
                 )
             }
         }

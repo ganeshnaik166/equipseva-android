@@ -37,6 +37,7 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.R
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.amc.AmcRepository
 import com.equipseva.app.core.data.prefs.UserPrefs
@@ -171,7 +172,7 @@ class MaintenanceContractsViewModel @Inject constructor(
 
     private fun toItemHospital(c: AmcRepository.HospitalContract) = AmcListItem(
         id = c.id,
-        title = c.primaryEngineerName,
+        title = sanitizeServerName(c.primaryEngineerName) ?: "Engineer",
         titleSubtitle = "${formatRupees(c.monthlyFeeRupees)} / month",
         status = c.status,
         visitFrequency = c.visitFrequency,
@@ -185,7 +186,7 @@ class MaintenanceContractsViewModel @Inject constructor(
 
     private fun toItemEngineer(c: AmcRepository.EngineerContract) = AmcListItem(
         id = c.id,
-        title = c.hospitalName,
+        title = sanitizeServerName(c.hospitalName) ?: "Hospital",
         titleSubtitle = if (c.isPrimary) "Primary" else "Fallback",
         status = c.status,
         visitFrequency = c.visitFrequency,

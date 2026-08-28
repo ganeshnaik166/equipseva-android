@@ -608,7 +608,11 @@ private fun QueuesCard(
             iconTint = SevaInfo500,
             title = "Buyer KYC",
             subtitle = "Trade docs",
-            trailingPill = pendingSellers.takeIf { it > 0 }?.toString() to PillKind.Info,
+            // No pill: pendingSellers counts seller_verification_requests, a
+            // DIFFERENT queue than the buyer-KYC list this row opens, so the
+            // number routinely disagreed with the list. Drop it until a real
+            // pending-buyer-KYC count is surfaced in DashboardStats.
+            trailingPill = null to PillKind.Info,
             onClick = onOpenBuyerKyc,
             showDivider = true,
         )

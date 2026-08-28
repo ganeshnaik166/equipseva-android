@@ -157,7 +157,7 @@ fun FounderEngineerMapScreen(
                         val zones = state.rows.size
                         val engineers = state.rows.sumOf { it.engineerCount }
                         val zoneLabel = if (zones == 1) "1 zone" else "$zones zones"
-                        val engLabel = if (engineers == 1) "1 verified engineer" else "$engineers verified engineers"
+                        val engLabel = if (engineers == 1) "1 available engineer" else "$engineers available engineers"
                         "$zoneLabel · $engLabel"
                     }
                     Text(
@@ -258,7 +258,7 @@ private fun ZoneMap(
             Marker(
                 state = rememberMarkerState(key = row.district, position = LatLng(lat, lng)),
                 title = row.district,
-                snippet = "${row.engineerCount} verified engineer${if (row.engineerCount == 1) "" else "s"}",
+                snippet = "${row.engineerCount} available engineer${if (row.engineerCount == 1) "" else "s"}",
                 alpha = if (selected == null || isSel) 1f else 0.45f,
             )
         }

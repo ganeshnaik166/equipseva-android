@@ -142,8 +142,16 @@ fun FounderIntegrityScreen(
                     )
                     state.rows.isEmpty() -> EmptyStateView(
                         icon = Icons.Outlined.Security,
-                        title = "No integrity events yet",
-                        subtitle = "Play Integrity attestations appear here",
+                        // Buyer-scoped copy when drilled in from a Payments-row
+                        // tap — the global "none yet" wrongly implies the whole
+                        // system has no attestations when it's just this buyer
+                        // (or this buyer's events fell outside the recent window).
+                        title = if (state.filterUserId != null) "No integrity events for this buyer" else "No integrity events yet",
+                        subtitle = if (state.filterUserId != null) {
+                            "This buyer has no Play Integrity attestations in the recent window."
+                        } else {
+                            "Play Integrity attestations appear here"
+                        },
                     )
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),

@@ -41,10 +41,10 @@ class CashFlagHistorySubtitleTest {
         assertTrue(out!!.contains(" · "))
     }
 
-    @Test fun `1 row reads 1 responses plural (documented behaviour)`() {
-        // Plural-blind. A future singular fix should be deliberate.
+    @Test fun `1 row reads singular 1 response`() {
+        // r1463 — deliberate singular/plural fix (was "1 responses").
         assertEquals(
-            "1 responses · last 365d",
+            "1 response · last 365d",
             cashFlagHistorySubtitle(1),
         )
     }

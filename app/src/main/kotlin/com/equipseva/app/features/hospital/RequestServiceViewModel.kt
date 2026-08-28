@@ -15,6 +15,7 @@ import com.equipseva.app.core.data.repair.RequestServiceDraftStore
 import com.equipseva.app.core.data.repair.RequestServiceFormDraft
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.storage.StorageRepository
+import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.core.util.timestampedName
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -410,7 +411,7 @@ class RequestServiceViewModel @Inject constructor(
             if (profile != null) {
                 _state.update {
                     it.copy(
-                        prefilledEngineerName = profile.fullName,
+                        prefilledEngineerName = sanitizeServerName(profile.fullName),
                         prefilledEngineerRating = profile.ratingAvg,
                         prefilledEngineerJobCount = profile.totalJobs,
                     )

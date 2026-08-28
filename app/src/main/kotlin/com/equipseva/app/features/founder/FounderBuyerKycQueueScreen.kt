@@ -50,6 +50,7 @@ import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaDanger500
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk700
 import com.equipseva.app.designsystem.theme.SevaInk900
@@ -255,6 +256,13 @@ fun FounderBuyerKycQueueScreen(
                         stringResource(R.string.founder_buyer_kyc_queue_approve_note),
                         color = SevaInk500, fontSize = 13.sp,
                     )
+                }
+                // Surface validation/action errors inside the sheet — the main
+                // content's error branch is gated on rows.isEmpty(), which is
+                // never true while this sheet (opened from a row) is showing, so
+                // "Reason required to reject" was written but never rendered.
+                if (state.error != null) {
+                    Text(state.error!!, color = SevaDanger500, fontSize = 13.sp)
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Box(modifier = Modifier.weight(1f)) {

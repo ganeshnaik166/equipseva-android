@@ -264,4 +264,4 @@ internal fun renewalRemindersSentLabel(count: Int): String =
  * fix should be a deliberate change, not a slip.
  */
 internal fun expiringAmcsSubtitle(rowCount: Int): String? =
-    if (rowCount > 0) "$rowCount contracts in next 30 days" else null
+    if (rowCount > 0) "$rowCount ${if (rowCount == 1) "contract" else "contracts"} in next 30 days" else null

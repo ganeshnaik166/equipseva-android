@@ -197,7 +197,7 @@ private fun PerksCard(row: HospitalAmcTierPerksRepository.TierPerks) {
             if (row.partsDiscountPct != null && row.partsDiscountPct > 0.0) {
                 PerkLine(
                     label = "Parts discount",
-                    value = "${"%.1f".format(row.partsDiscountPct)}%",
+                    value = "${String.format(java.util.Locale.US, "%.1f", row.partsDiscountPct)}%",
                 )
             }
             if (row.trustedPartnerBadge) {

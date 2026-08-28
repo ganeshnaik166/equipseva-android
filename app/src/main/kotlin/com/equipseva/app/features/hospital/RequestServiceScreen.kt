@@ -356,7 +356,7 @@ private fun EngineerReassuranceHeader(
                 color = Ink900,
             )
             val ratingLabel = rating?.takeIf { it > 0.0 }
-                ?.let { String.format("%.1f ★", it) }
+                ?.let { String.format(java.util.Locale.ENGLISH, "%.1f ★", it) }
                 ?: "New"
             val jobsLabel = if (jobCount == 1) "1 job" else "$jobCount jobs"
             Text(

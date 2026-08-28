@@ -27,12 +27,10 @@ class ExpiringAmcsSubtitleTest {
         assertTrue(out!!.endsWith(" in next 30 days"))
     }
 
-    @Test fun `1 row reads 1 contracts plural (documented current behaviour)`() {
-        // Pin current behaviour — plural-blind. A "1 contracts" surface
-        // is technically wrong but pinning it documents the state; a
-        // future fix should be deliberate, not a slip.
+    @Test fun `1 row reads singular 1 contract`() {
+        // r1463 — deliberate singular/plural fix (was "1 contracts").
         assertEquals(
-            "1 contracts in next 30 days",
+            "1 contract in next 30 days",
             expiringAmcsSubtitle(1),
         )
     }

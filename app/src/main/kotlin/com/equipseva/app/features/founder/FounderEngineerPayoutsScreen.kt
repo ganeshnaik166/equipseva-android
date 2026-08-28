@@ -581,9 +581,14 @@ private fun PayoutAdminRow(
                 val ageAnchor = row.processedAt ?: row.queuedAt
                 val ageLabel = relativeLabel(ageAnchor)
                 if (ageLabel != null) {
-                    val prefix = when (row.status) {
-                        "processed" -> "Paid"
-                        "cancelled" -> "Cancelled"
+                    // r1464 — a cancelled payout never stamps processed_at, so
+                    // ageAnchor falls back to queued_at — labeling it
+                    // "Cancelled X ago" would imply the cancellation time.
+                    // Anchor the prefix on the timestamp actually used
+                    // (processed_at present = settled).
+                    val prefix = when {
+                        row.status == "processed" -> "Paid"
+                        row.status == "cancelled" && row.processedAt != null -> "Cancelled"
                         else -> "Queued"
                     }
                     Text(

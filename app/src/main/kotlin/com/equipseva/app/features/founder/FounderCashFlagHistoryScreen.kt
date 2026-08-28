@@ -275,4 +275,4 @@ internal fun cashFlagRespondedAtLabel(rawIso: String): String =
  * trigger counts asked_cash responses specifically.
  */
 internal fun cashFlagHistorySubtitle(rowCount: Int): String? =
-    if (rowCount > 0) "$rowCount responses · last 365d" else null
+    if (rowCount > 0) "$rowCount ${if (rowCount == 1) "response" else "responses"} · last 365d" else null

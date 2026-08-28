@@ -38,6 +38,7 @@ import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.prettyDate
+import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
@@ -287,6 +288,6 @@ internal fun hospitalDisputeAmountAndEngineerLine(
     amountRupees: Double,
     engineerName: String?,
 ): String {
-    val eng = engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"
+    val eng = sanitizeServerName(engineerName) ?: "Engineer"
     return "${formatRupees(amountRupees)} · $eng"
 }
