@@ -65,6 +65,7 @@ class JobEscrowPaymentViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val launcher: RazorpayCheckoutLauncher,
     private val pendingEscrowPaymentsStore: PendingEscrowPaymentsStore,
+    private val crashReporter: com.equipseva.app.core.observability.CrashReporter,
 ) : ViewModel() {
 
     data class UiState(val busy: Boolean = false, val error: String? = null)
@@ -169,7 +170,10 @@ class JobEscrowPaymentViewModel @Inject constructor(
                     onFailure = { e ->
                         // Verify failed AFTER Razorpay reported Success
                         // — payment likely captured server-side, leave
-                        // marker for reconciler to resolve.
+                        // marker for reconciler to resolve. Highest-consequence
+                        // money case (hospital charged, escrow not marked paid),
+                        // so report it even though the reconciler will recover.
+                        crashReporter.report(e, "escrow payment verify failed after Razorpay success")
                         _state.update { it.copy(busy = false, error = e.toUserMessage()) }
                         false
                     },

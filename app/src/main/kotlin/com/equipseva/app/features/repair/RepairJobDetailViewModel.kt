@@ -71,6 +71,7 @@ class RepairJobDetailViewModel @Inject constructor(
     private val payoutRepository: com.equipseva.app.core.data.payouts.EngineerPayoutRepository,
     private val json: Json,
     private val analytics: AnalyticsClient,
+    private val crashReporter: com.equipseva.app.core.observability.CrashReporter,
 ) : ViewModel() {
 
     sealed interface Effect {
@@ -356,6 +357,9 @@ class RepairJobDetailViewModel @Inject constructor(
                     refreshEscrow()
                 }
                 .onFailure { err ->
+                    // Money-critical: a silent escrow-release failure leaves the
+                    // engineer unpaid on a completed job. Report it.
+                    crashReporter.report(err, "escrow release failed")
                     _state.update { it.copy(confirmingEscrowRelease = false) }
                     _messages.emit(err.toUserMessage())
                 }
@@ -382,6 +386,9 @@ class RepairJobDetailViewModel @Inject constructor(
                     refreshEscrow()
                 }
                 .onFailure { err ->
+                    // Money-critical: the engineer's dispute defence not
+                    // landing silently skews the admin's release/refund call.
+                    crashReporter.report(err, "escrow dispute engineer response failed")
                     _state.update { it.copy(submittingEngineerResponse = false) }
                     _messages.emit(err.toUserMessage())
                 }
@@ -402,6 +409,10 @@ class RepairJobDetailViewModel @Inject constructor(
                     refreshEscrow()
                 }
                 .onFailure { err ->
+                    // Money-critical: a silent dispute-open failure leaves the
+                    // 48h auto-release clock running against the hospital's
+                    // intent — funds release despite their contest attempt.
+                    crashReporter.report(err, "escrow dispute open failed")
                     _state.update { it.copy(openingEscrowDispute = false) }
                     _messages.emit(err.toUserMessage())
                 }
@@ -1056,6 +1067,9 @@ class RepairJobDetailViewModel @Inject constructor(
                     _messages.emit("Bid accepted — engineer notified")
                 },
                 onFailure = { ex ->
+                    // Core-flow write: a silent accept-bid failure strands the
+                    // job unassigned + blocks escrow. Report so the team sees it.
+                    crashReporter.report(ex, "accept repair bid failed")
                     _state.update { it.copy(acceptingBidId = null) }
                     _messages.emit(ex.toUserMessage())
                 },

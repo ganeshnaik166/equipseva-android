@@ -42,6 +42,7 @@ class RequestServiceViewModel @Inject constructor(
     private val draftStore: RequestServiceDraftStore,
     private val engineerDirectoryRepository: EngineerDirectoryRepository,
     private val analytics: com.equipseva.app.core.data.analytics.AnalyticsClient,
+    private val crashReporter: com.equipseva.app.core.observability.CrashReporter,
 ) : ViewModel() {
 
     // Round 453 — process-death-safe draft state. Hospital booking is a
@@ -600,6 +601,12 @@ class RequestServiceViewModel @Inject constructor(
                     effectChannel.tryEmit(Effect.Submitted(jobId = job.id, jobNumber = job.jobNumber))
                 }
                 .onFailure { error ->
+                    // Report the raw failure (PII-scrubbed) so a hospital that
+                    // CAN'T post jobs is visible to the team — the friendly
+                    // toUserMessage() ("Something went wrong") otherwise hides
+                    // org-linkage RLS rejections and other systemic failures on
+                    // the core revenue path, and "try again" won't help them.
+                    crashReporter.report(error, "repair job post failed")
                     _state.update { it.copy(submitting = false, errorMessage = error.toUserMessage()) }
                 }
         }

@@ -66,6 +66,7 @@ class AmcPaymentViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val launcher: RazorpayCheckoutLauncher,
     private val pendingPaymentsStore: com.equipseva.app.core.payments.PendingAmcPaymentsStore,
+    private val crashReporter: com.equipseva.app.core.observability.CrashReporter,
 ) : ViewModel() {
 
     data class UiState(val busy: Boolean = false, val error: String? = null)
@@ -188,6 +189,9 @@ class AmcPaymentViewModel @Inject constructor(
                         // is still pending. DO NOT clear the marker;
                         // PendingAmcPaymentsReconciler will recover on
                         // next cold-start once status flips paid/failed.
+                        // Report it — hospital charged, contract not yet
+                        // credited is the highest-consequence money case.
+                        crashReporter.report(e, "amc payment verify failed after Razorpay success")
                         _state.update { it.copy(busy = false, error = e.toUserMessage()) }
                         false
                     },
