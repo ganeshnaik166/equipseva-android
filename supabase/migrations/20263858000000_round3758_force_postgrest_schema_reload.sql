@@ -1,0 +1,25 @@
+-- Round 3758 — force a PostgREST schema-cache reload.
+--
+-- Diagnostic during on-device smoke test: EVERY REST/RPC call (not just
+-- one function) started returning
+--   {"code":"PGRST002","message":"Could not query the database for the
+--   schema cache. Retrying."}  (HTTP 503)
+-- persistently across 60+ seconds of retries. Isolated via `supabase db
+-- push --dry-run` (a direct-Postgres-protocol connection, bypassing
+-- PostgREST entirely) succeeding cleanly ("Remote database is up to
+-- date") at the same time — so the underlying database is healthy; only
+-- PostgREST's own schema-introspection cache is stuck. This is a known
+-- PostgREST failure mode when its internal schema-cache-building query
+-- can't complete (timeout / lock contention) — plausible here given how
+-- large this schema has grown (2,922+ ships from the ops-dashboard
+-- sprint, several tables + functions each).
+--
+-- NOTIFY pgrst, 'reload schema' asks PostgREST to rebuild its cache;
+-- issuing it via a migration runs it over the same connection that just
+-- proved healthy, so if PostgREST's underlying query issue was transient
+-- (contention, a stuck prior attempt) this should unstick it. If the
+-- real cause is the introspection query genuinely timing out under the
+-- schema's current size, this alone won't fix it — but it's a safe,
+-- side-effect-free first attempt before escalating to statement_timeout
+-- tuning or opening a support ticket.
+NOTIFY pgrst, 'reload schema';
