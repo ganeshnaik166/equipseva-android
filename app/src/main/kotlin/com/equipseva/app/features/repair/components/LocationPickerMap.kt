@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MyLocation
@@ -209,6 +211,7 @@ fun LocationPickerMap(
                         contentDescription = null,
                         modifier = Modifier.size(14.dp),
                     )
+                    Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.location_picker_use_my_location), fontSize = 13.sp)
                 }
             }
@@ -311,6 +314,7 @@ fun LocationPickerMap(
                         strokeWidth = 1.5.dp,
                         color = MaterialTheme.colorScheme.primary,
                     )
+                    Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.location_picker_locating), fontSize = 11.sp)
                 } else {
                     Icon(
@@ -319,6 +323,7 @@ fun LocationPickerMap(
                         modifier = Modifier.size(12.dp),
                         tint = MaterialTheme.colorScheme.primary,
                     )
+                    Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.location_picker_my_location), fontSize = 11.sp)
                 }
             }

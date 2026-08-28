@@ -27,6 +27,21 @@ import com.equipseva.app.designsystem.theme.SevaWarning500
  */
 @Composable
 fun InlineStars(rating: Double, count: Int, small: Boolean = false) {
+    // Ratings are 1–5, so a 0.0 average can only mean "never rated" — a
+    // brand-new engineer (0 completed jobs) or one whose jobs weren't rated.
+    // Rendering "★ 0.0 (0)" made new engineers look 0-star in the directory /
+    // recommended carousel / public profile, so hospitals skipped them. Show
+    // the marketplace-standard "New" chip instead. (Single-review call sites
+    // pass a real 1–5 rating, so they never hit this branch.)
+    if (rating <= 0.0) {
+        Text(
+            text = "New",
+            color = SevaInk400,
+            fontSize = if (small) 11.sp else 12.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+        return
+    }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),

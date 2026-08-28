@@ -324,16 +324,20 @@ fun RepairJobDetailScreen(
             // refine description without the founder having to outreach.
             run {
                 val job = state.job
-                if (job != null
-                    && state.viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
-                    && job.status == RepairJobStatus.Requested
-                    && state.bids.isEmpty()
-                ) {
-                    val nowInstant = java.time.Instant.now()
+                if (job != null) {
                     val daysOld = job.createdAtInstant?.let {
-                        java.time.Duration.between(it, nowInstant).toDays()
+                        java.time.Duration.between(it, java.time.Instant.now()).toDays()
                     } ?: 0L
-                    if (daysOld >= 7) {
+                    if (
+                        shouldShowUnmatchedJobBanner(
+                            isHospital = state.viewerRole ==
+                                RepairJobDetailViewModel.ViewerRole.Hospital,
+                            status = job.status,
+                            engineerId = job.engineerId,
+                            hasBids = state.bids.isNotEmpty(),
+                            daysOld = daysOld,
+                        )
+                    ) {
                         com.equipseva.app.features.repair.components.UnmatchedJobBanner(
                             daysOld = daysOld,
                         )
@@ -665,8 +669,12 @@ private fun JobBody(
             }
         }
 
-        // Bids — hospital + status==requested.
-        if (isHospital && job.status == RepairJobStatus.Requested) {
+        // Bids — hospital + status==requested + genuinely OPEN (unassigned).
+        // Same reason as the UnmatchedJobBanner (r1482): an AMC maintenance
+        // visit is Requested but pre-assigned (engineerId != null) and never
+        // bid on, so the "No bids yet — engineers usually bid within 5–30 min"
+        // card would contradict the "Assigned engineer" section shown above.
+        if (shouldShowBidsSection(isHospital, job.status, job.engineerId)) {
             if (bids.isNotEmpty()) {
                 EsSection(title = "Bids (${bids.size})") {
                     BidsList(
@@ -3154,6 +3162,50 @@ internal fun bidCardEtaText(etaHours: Int?): String =
  */
 internal fun bidCardDistanceLabel(distanceKm: Double?): String? =
     distanceKm?.let { "· ${"%.1f".format(java.util.Locale.US, it)} km away" }
+
+/** Min days a job sits unmatched before the hospital sees the nudge banner. */
+private const val UNMATCHED_JOB_BANNER_MIN_DAYS = 7L
+
+/**
+ * Whether the "No bids yet · raise your budget" UnmatchedJobBanner shows on
+ * the job detail. Only for a hospital viewing a genuinely OPEN marketplace
+ * job — Requested, UNASSIGNED (engineerId == null), with no bids, sitting for
+ * at least a week.
+ *
+ * The `engineerId == null` clause is load-bearing (r1482): an AMC maintenance
+ * visit is created in Requested status but pre-assigned to the contract's
+ * engineer, so without it the banner nudges the hospital to attract bids on a
+ * job that already has an engineer and never goes out for bidding. Pure +
+ * tested so a future edit can't silently drop that clause.
+ */
+internal fun shouldShowUnmatchedJobBanner(
+    isHospital: Boolean,
+    status: RepairJobStatus,
+    engineerId: String?,
+    hasBids: Boolean,
+    daysOld: Long,
+): Boolean =
+    isHospital &&
+        status == RepairJobStatus.Requested &&
+        engineerId == null &&
+        !hasBids &&
+        daysOld >= UNMATCHED_JOB_BANNER_MIN_DAYS
+
+/**
+ * Whether the hospital-facing "Bids" section (the bid list, or the "No bids
+ * yet" card) shows. Same OPEN-marketplace gate as the banner minus the age /
+ * bid-count checks: a hospital viewing a Requested, UNASSIGNED job. AMC visits
+ * (engineerId != null) are excluded (r1483) so the "engineers usually bid in
+ * 5–30 min" card can't contradict the Assigned-engineer section above it.
+ */
+internal fun shouldShowBidsSection(
+    isHospital: Boolean,
+    status: RepairJobStatus,
+    engineerId: String?,
+): Boolean =
+    isHospital &&
+        status == RepairJobStatus.Requested &&
+        engineerId == null
 
 /**
  * Placeholder copy on the RepairJobDetail location card when we
