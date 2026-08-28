@@ -168,4 +168,64 @@ class DataErrorTest {
         val msg = rest("schema column issue / URL: https://x.supabase.co/rest").toUserMessage()
         assertEquals(fallback, msg)
     }
+
+    // ---------------------------------------------------------------------
+    //  Error-copy census — the 7 codes confirmed reachable on THIS branch
+    //  (see the KDoc block in DataError.kt for the verification method and
+    //  the 23 excluded codes).
+    // ---------------------------------------------------------------------
+
+    @Test fun `equipment_type_out_of_scope maps to the taxonomy-gate copy`() {
+        // repair_jobs_taxonomy_gate() — fires on the direct insert into
+        // repair_jobs that RequestServiceScreen performs.
+        val msg = rest("equipment_type_out_of_scope").toUserMessage()
+        assertTrue("got: $msg", msg.contains("doesn't service", ignoreCase = true))
+        assertTrue("raw code must not leak, got: $msg", !msg.contains("equipment_type_out_of_scope"))
+    }
+
+    @Test fun `equipment_type_unknown maps to friendly copy, not a raw schema hint`() {
+        val msg = rest("equipment_type_unknown").toUserMessage()
+        assertTrue("got: $msg", msg.contains("doesn't service", ignoreCase = true))
+        assertTrue("raw code must not leak, got: $msg", !msg.contains("equipment_type_unknown"))
+    }
+
+    @Test fun `equipment_category_out_of_scope maps to the AMC-specific copy`() {
+        // amc_contracts_taxonomy_gate() — fires via create_amc_contract's
+        // internal insert (the AMC wizard's real submit path).
+        val msg = rest("equipment_category_out_of_scope").toUserMessage()
+        assertTrue("got: $msg", msg.contains("doesn't cover", ignoreCase = true))
+        assertTrue(
+            "AMC copy must not collide with the repair-job wording, got: $msg",
+            !msg.contains("service that equipment type", ignoreCase = true),
+        )
+    }
+
+    @Test fun `chat_conversation_closed maps to job-ended copy`() {
+        // chat_messages_block_on_completed_job() — fires on the direct
+        // insert into chat_messages that ChatViewModel.onSend performs;
+        // this is the server-side backstop for the r1495 client-side lock.
+        val msg = rest("chat_conversation_closed").toUserMessage()
+        assertTrue("got: $msg", msg.contains("closed", ignoreCase = true))
+    }
+
+    @Test fun `chat_rate_limited_user maps to slow-down copy`() {
+        val msg = rest("chat_rate_limited_user").toUserMessage()
+        assertTrue("got: $msg", msg.contains("too many messages", ignoreCase = true))
+    }
+
+    @Test fun `chat_rate_limited_conversation maps to a distinct wait-a-moment copy`() {
+        val msg = rest("chat_rate_limited_conversation").toUserMessage()
+        assertTrue("got: $msg", msg.contains("too quickly", ignoreCase = true))
+        assertTrue(
+            "must read differently from the per-user rate limit, got: $msg",
+            !msg.contains("too many messages", ignoreCase = true),
+        )
+    }
+
+    @Test fun `address_not_found maps to friendly copy, not raw code`() {
+        // address_set_default — a real, called RPC (AddressBookScreen).
+        val msg = rest("address_not_found").toUserMessage()
+        assertTrue("got: $msg", msg.contains("no longer saved", ignoreCase = true))
+        assertTrue("raw code must not leak, got: $msg", !msg.contains("address_not_found"))
+    }
 }

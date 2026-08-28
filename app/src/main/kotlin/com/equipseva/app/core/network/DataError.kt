@@ -43,6 +43,40 @@ private fun friendlyRestMessage(ex: RestException): String? {
             raw.contains("jwt is invalid", ignoreCase = true) ||
             raw.contains("invalid_jwt", ignoreCase = true) ->
             "Your session expired. Tap retry — if this keeps happening, sign in again."
+        // Error-copy census (ported from a historical fix batch, but
+        // RE-VERIFIED against THIS branch's own supabase/migrations + actual
+        // Android RPC/table callers rather than trusted as-is — see the
+        // "Windows handoff" memory note on why that distinction matters
+        // here). The historical batch mapped 30 server RAISE EXCEPTION
+        // codes; only 7 have a live client-reachable path on this branch —
+        // the taxonomy-gate + chat triggers (both fire on this app's actual
+        // direct .insert() calls) and address_set_default. The other 23
+        // (Code Red, hospital-chain invites, DSR/evidence-pack/mediation,
+        // referral bounty, periodic re-KYC, AMC affidavit signing, escrow
+        // force-release, first-job-free, job-profitability) are raised only
+        // by RPCs/screens that don't exist on this branch — including them
+        // would be dead code asserting a false "user-reachable" claim.
+        // Flagship example of why this needed re-verification, not a blind
+        // port: the historical fix's headline case
+        // (only_accepted_engineer_can_checkin, ERRCODE 42501, allegedly
+        // mis-mapped to the KYC-flavoured 42501 copy below) turned out to be
+        // raised by record_engineer_attendance, a function this app's actual
+        // check-in path (engineer_check_in_with_geo) never calls — so it was
+        // excluded here too.
+        raw.contains("equipment_type_out_of_scope", ignoreCase = true) ->
+            "EquipSeva doesn't service that equipment type yet. Pick a different equipment category, or contact support if you think it should be covered."
+        raw.contains("equipment_type_unknown", ignoreCase = true) ->
+            "EquipSeva doesn't service that equipment type yet. Pick a different equipment category, or contact support if you think it should be covered."
+        raw.contains("equipment_category_out_of_scope", ignoreCase = true) ->
+            "EquipSeva doesn't cover one of those equipment categories yet. Remove it from the contract, or contact support if you think it should be covered."
+        raw.contains("chat_conversation_closed", ignoreCase = true) ->
+            "This chat is closed because the repair job has ended. Contact support if you still need to reach the other party."
+        raw.contains("chat_rate_limited_conversation", ignoreCase = true) ->
+            "You're sending messages too quickly. Wait a moment, then try again."
+        raw.contains("chat_rate_limited_user", ignoreCase = true) ->
+            "You've sent too many messages in a short time. Take a short break and try again later."
+        raw.contains("address_not_found", ignoreCase = true) ->
+            "That address is no longer saved. Refresh your address list and try again."
         // 42501 = insufficient_privilege; also matches the literal phrase
         // Postgres returns when column-level grants block a SELECT.
         raw.contains("42501") || raw.contains("permission denied", ignoreCase = true) ->
