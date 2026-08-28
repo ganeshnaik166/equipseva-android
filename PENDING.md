@@ -2,6 +2,20 @@
 
 What's still missing / stubbed / non-functional. Updated 2026-04-30 after PRs #212 (security), #213 (legal docs).
 
+> **⚠️ 2026-08-28 currency note:** this doc describes the v1 launch-prep
+> snapshot from 2026-04-30. Four months of substantial v0.4/v0.5 work has
+> landed since (ops-dashboard admin console — 2,922 ships across 613
+> batches, whole-app i18n plumbing, AGP 9.2.1/Kotlin 2.3.10 migration,
+> a corpus-wide RLS/grant security audit) that this file predates and
+> doesn't reflect. For CURRENT product status see
+> [docs/ROADMAP_v04.md](docs/ROADMAP_v04.md) /
+> [docs/ROADMAP_v05.md](docs/ROADMAP_v05.md) and the founder web
+> console's ops-index. This file's core "NICE TO HAVE" list has been
+> spot-checked against the current repo (below) — the "DESIGN ASSETS"
+> blockers are still genuinely open (need a human designer, not code);
+> everything else marked done here was verified against actual code,
+> not assumed.
+
 **Quick status (2026-04-30):** Code is shippable. Legal URLs live. Drafts ready for every Play Console form. Real remaining work = 3 design assets + user paste-into-Play-Console + one device E2E test + post-upload SHA-256 swap.
 
 **Test-coverage backfill (2026-05-20 / 2026-05-21).** The v1-test gap from PR #255 is closed across four stacked / parallel PRs:
@@ -98,9 +112,27 @@ Legend: 🔴 blocker · 🟠 needs attention · 🟡 nice-to-have · ⚪ beyond 
 
 ## 🟡 NICE TO HAVE — defer post-launch
 
-43. **Content moderation admin queue** — `content_reports` table exists; needs an admin-side review UI. Out of scope for the Android app (separate admin web tool).
-60. **Test hospital + engineer accounts** — manual DB inserts today.
-61. **Equipment categories / brands** — currently hardcoded enums; consider a managed table to add without app release.
+43. ✅ **DONE (verified 2026-08-28).** Content moderation admin queue —
+    `web/src/app/content-reports-moderation-summary/page.tsx` +
+    `web/src/app/chat-moderation-summary/page.tsx` exist in the founder
+    web console.
+60. **Test hospital + engineer accounts** — `play-review-hospital@equipseva.com`
+    / `play-review-engineer@equipseva.com` (password `PlayReview2026!`)
+    are seeded, documented Play-review test accounts (see
+    [docs/launch/STORE_LISTING.md](docs/launch/STORE_LISTING.md) "App
+    access" + the `emulator-verify` dev note) — still manually seeded,
+    not self-serve, but real accounts exist and are actively used for
+    on-device verification.
+61. ✅ **DONE (verified 2026-08-28).** Equipment categories / brands —
+    `supabase/migrations/20260425180000_equipment_categories.sql` created
+    a real `public.equipment_categories` managed table (key, display_name,
+    scope, sort_order, is_active), RLS-enabled with an `is_active`-scoped
+    read policy + a founder-sees-all policy, mutated only via SECURITY
+    DEFINER admin RPCs. The Android client's `PartCategory`/
+    `RepairEquipmentCategory` enum keys stay as stable constants (so old
+    builds keep working) while display name/order/active-status are
+    curatable server-side without an app release — exactly what this
+    item asked for.
 
 ---
 
