@@ -86,4 +86,23 @@ class MoneyTest {
         org.junit.Assert.assertEquals("₹99,999", formatRupees(99999.0))
         org.junit.Assert.assertEquals("₹1,00,000", formatRupees(100000.0))
     }
+
+    @Test fun `formatRupeesPaise shows two decimals with Indian grouping`() {
+        assertEquals("₹1,003.00", formatRupeesPaise(1003.0))
+        assertEquals("₹76.50", formatRupeesPaise(76.5))
+        assertEquals("₹1,00,000.00", formatRupeesPaise(100000.0))
+    }
+
+    @Test fun `formatRupeesPaise line items reconcile (why it exists)`() {
+        // Whole-rupee formatRupees rounds each line independently so components
+        // can fail to sum to the total on a GST invoice. With paise, they foot:
+        // ₹76.50 + ₹76.50 == ₹153.00.
+        assertEquals("₹76.50", formatRupeesPaise(76.5))
+        assertEquals("₹153.00", formatRupeesPaise(153.0))
+    }
+
+    @Test fun `formatRupeesPaise handles paise carry and negatives`() {
+        assertEquals("₹77.00", formatRupeesPaise(76.999))
+        assertEquals("-₹12.34", formatRupeesPaise(-12.34))
+    }
 }

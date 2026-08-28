@@ -34,6 +34,14 @@ class CanProceedAmcWizardStepTest {
         assertFalse(canProceedFrequencyFeeStep("-1000", 12))
     }
 
+    @Test fun `fee above 1 crore blocks (r1507 - numeric(10,2) server overflow)`() {
+        // amc_contracts.monthly_fee_rupees is numeric(10,2); >= ₹10 crore
+        // type-overflows server-side with a raw error at the end of the
+        // payment-first wizard. Cap mirrors the bid-amount convention.
+        assertFalse(canProceedFrequencyFeeStep("10000001", 12))
+        assertTrue(canProceedFrequencyFeeStep("10000000", 12)) // exactly ₹1 crore ok
+    }
+
     @Test fun `blank fee blocks`() {
         assertFalse(canProceedFrequencyFeeStep("", 12))
         assertFalse(canProceedFrequencyFeeStep("   ", 12))

@@ -126,4 +126,32 @@ class EscrowStatusCardCopyTest {
         val copy = escrowStatusCardCopy(row("held"), isHospital = true, payoutFailed = true)
         assertEquals("Funds in escrow", copy.label)
     }
+
+    /* --- r1498: pending + held are role-aware like released ------------ */
+
+    @Test fun `pending as engineer never instructs the viewer to pay`() {
+        // Found live on the assigned-engineer view of RPR-00040: the old
+        // single copy said "Pay ₹2,500 into escrow to release the
+        // engineer" — payer-imperative addressed to the wrong party,
+        // third-person about the viewer.
+        val copy = escrowStatusCardCopy(row("pending"), isHospital = false)
+        assertEquals("Awaiting payment", copy.label)
+        assertTrue("got: ${copy.subtitle}", copy.subtitle.contains("Waiting for the hospital"))
+        assertTrue(copy.subtitle.contains("₹2,500"))
+        assertTrue("engineer must not be told to pay", !copy.subtitle.startsWith("Pay "))
+        assertTrue("no third-person viewer reference", !copy.subtitle.contains("the engineer to start"))
+    }
+
+    @Test fun `pending as hospital still instructs the hospital to pay`() {
+        val copy = escrowStatusCardCopy(row("pending"), isHospital = true)
+        assertTrue("got: ${copy.subtitle}", copy.subtitle.startsWith("Pay "))
+    }
+
+    @Test fun `held as engineer reads auto-released to you, keeping the 48h promise`() {
+        val copy = escrowStatusCardCopy(row("held"), isHospital = false)
+        assertEquals("Funds in escrow", copy.label)
+        assertTrue(copy.subtitle.contains("48h"))
+        assertTrue(copy.subtitle.contains("to you"))
+        assertTrue("no third-person on own view", !copy.subtitle.contains("to engineer"))
+    }
 }

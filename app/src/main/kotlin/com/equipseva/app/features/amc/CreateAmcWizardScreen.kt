@@ -1142,13 +1142,19 @@ internal fun canProceedScopeStep(equipmentCategories: List<String>): Boolean =
  * checkout with a zero fee fails with `amount_mismatch` and the
  * wizard shouldn't pretend a "Pay first month" tap is valid in the
  * first place. Same for blank or non-numeric input.
+ *
+ * r1507 — also capped at ₹1 crore/month: amc_contracts.monthly_fee_rupees
+ * is numeric(10,2), so anything ≥ ₹10 crore type-overflows server-side
+ * with a raw numeric error at the END of the 4-step payment-first wizard.
+ * 1 crore matches the bid-amount cap convention (validateBidInput) and is
+ * far above any real AMC fee.
  */
 internal fun canProceedFrequencyFeeStep(
     monthlyFeeRupees: String,
     visitsPerYear: Int,
 ): Boolean {
     val fee = monthlyFeeRupees.trim().toDoubleOrNull()
-    return fee != null && fee > 0.0 && visitsPerYear > 0
+    return fee != null && fee > 0.0 && fee <= 10_000_000.0 && visitsPerYear > 0
 }
 
 /**

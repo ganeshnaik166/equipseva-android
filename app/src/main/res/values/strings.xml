@@ -617,8 +617,9 @@
     <string name="earnings_self_rank_of_total">of %1$d</string>
     <string name="earnings_no_payout_method">No payout method</string>
     <string name="earnings_update_payout_method_cta">Update payout method →</string>
-    <string name="earnings_payout_nudge_verify_upi">You have earnings — verify your UPI to get paid.</string>
-    <string name="earnings_payout_nudge_tap_setup">Tap to set up your payout method.</string>
+    <!-- r1513: earnings_payout_nudge_verify_upi / earnings_payout_nudge_tap_setup
+         removed — the nudge now branches on payoutMethodExists via the pure,
+         unit-tested payoutNudgeCopy() in EarningsScreen.kt, not a fixed string. -->
 
     <!-- AmcDetailScreen -->
     <string name="amc_detail_contract_not_found">Contract not found.</string>

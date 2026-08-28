@@ -937,22 +937,31 @@ private fun DirectoryVisibilityBanner(
 }
 
 /**
- * Copy for the directory-visibility banner. Returns null for any gate
+ * Copy for the directory-completeness banner. Returns null for any gate
  * state that shouldn't render a banner (Unknown / Visible) — keeps the
  * caller a one-liner.
+ *
+ * r1511 — copy made TRUTHFUL against the actual server contract
+ * (engineers_directory_search WHERE = verified + role only): a verified
+ * engineer with no rate/specs IS listed in plain browse, so the old
+ * "you're not visible / hidden from the directory" claims were false and
+ * demotivating. What's actually at stake: no specializations → absent from
+ * equipment-type-FILTERED searches (the p_specialization ANY() match);
+ * no rate → the card reads "Bids vary" while rivals show a number. Say
+ * that, keep the nudge.
  */
 internal fun directoryVisibilityCopy(
     gate: HomeHubViewModel.DirectoryGate,
 ): Pair<String, String>? = when (gate) {
     HomeHubViewModel.DirectoryGate.MissingBoth ->
-        "You're not visible to hospitals yet" to
-            "Add your hourly rate and at least one specialization so hospitals can find and book you."
+        "Your profile looks empty to hospitals" to
+            "Add your hourly rate and at least one specialization — hospitals filter by equipment type and skip cards without a rate."
     HomeHubViewModel.DirectoryGate.MissingRate ->
-        "Add your hourly rate to start getting bookings" to
-            "Hospitals filter by rate — your profile is hidden from the directory until you set one."
+        "Add your hourly rate" to
+            "Set your rate so the card shows a number — hospitals comparing the directory just see \"Bids vary\" without it."
     HomeHubViewModel.DirectoryGate.MissingSpecs ->
         "Pick at least one specialization" to
-            "Hospitals search by equipment type — your profile won't appear until you select what you service."
+            "Hospitals filter the directory by equipment type — you won't appear in those searches until you pick what you service."
     HomeHubViewModel.DirectoryGate.Unknown,
     HomeHubViewModel.DirectoryGate.Visible -> null
 }

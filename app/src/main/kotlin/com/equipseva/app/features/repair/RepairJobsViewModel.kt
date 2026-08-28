@@ -78,12 +78,31 @@ class RepairJobsViewModel @Inject constructor(
             val session = authRepository.sessionState
                 .filterIsInstance<AuthSession.SignedIn>()
                 .firstOrNull() ?: return@launch
-            val engineer = engineerRepository.fetchByUserId(session.userId).getOrNull() ?: return@launch
+            // r1497 — fetch SUCCESS marks baseLoaded even when the engineer
+            // row (or its coords) is absent: that's exactly the "no service
+            // location set" case the nearby pre-empt needs to trust. A fetch
+            // FAILURE leaves baseLoaded false so a network blip never
+            // mislabels a configured engineer as location-less.
+            val fetched = engineerRepository.fetchByUserId(session.userId).getOrNull() ?: return@launch
             _state.update {
                 it.copy(
-                    baseLatitude = engineer.latitude,
-                    baseLongitude = engineer.longitude,
+                    baseLatitude = fetched.latitude,
+                    baseLongitude = fetched.longitude,
+                    baseLoaded = true,
                 )
+            }
+            // The init refresh() raced ahead of this fetch. If it went to the
+            // proximity RPC without a base, it surfaced the misleading
+            // generic error — re-run now that the pre-empt can take over.
+            if (shouldPreemptNearbyFetch(
+                    radiusKm = _state.value.radiusKm,
+                    queryIsBlank = _state.value.query.isBlank(),
+                    baseLoaded = true,
+                    baseLatitude = fetched.latitude,
+                    baseLongitude = fetched.longitude,
+                )
+            ) {
+                refresh()
             }
         }
     }
@@ -130,6 +149,33 @@ class RepairJobsViewModel @Inject constructor(
         pageJob = viewModelScope.launch {
             val current = _state.value
             val radius = current.radiusKm
+            // r1497 — an engineer with NO service location can't use the
+            // proximity RPC (it fails server-side with a generic 42501 whose
+            // copy misleadingly blames KYC). Once the engineer row is loaded
+            // and confirms the base is missing, skip the doomed call and show
+            // the actionable message instead. The map's "Set service
+            // location" chip and the All filter both remain available.
+            if (shouldPreemptNearbyFetch(
+                    radiusKm = radius,
+                    queryIsBlank = current.query.isBlank(),
+                    baseLoaded = current.baseLoaded,
+                    baseLatitude = current.baseLatitude,
+                    baseLongitude = current.baseLongitude,
+                )
+            ) {
+                _state.update {
+                    it.copy(
+                        items = emptyList(),
+                        distanceByJobId = emptyMap(),
+                        coordsByJobId = emptyMap(),
+                        initialLoading = false,
+                        refreshing = false,
+                        endReached = true,
+                        errorMessage = MISSING_SERVICE_LOCATION_MESSAGE,
+                    )
+                }
+                return@launch
+            }
             val bidsDeferred = async { bidRepository.fetchMyBids() }
             // When a radius is set, prefer the proximity RPC which filters
             // server-side and returns distance per row. The text query isn't
@@ -256,4 +302,38 @@ class RepairJobsViewModel @Inject constructor(
         }
     }
 }
+
+/**
+ * r1497 — actionable copy shown instead of calling the proximity RPC when the
+ * engineer has no service location. Pin the two escape hatches it names: the
+ * map's "Set service location" chip and the All radius filter — both exist on
+ * the screen and both genuinely resolve the state. (Previously the doomed RPC
+ * surfaced the generic 42501 copy "…Try again after KYC is verified", which
+ * blamed verification the engineer already has.)
+ */
+internal const val MISSING_SERVICE_LOCATION_MESSAGE =
+    "Nearby jobs need your service location. Tap 'Set service location' on the map, or pick All to browse every open job."
+
+/**
+ * Whether the nearby-jobs fetch should be skipped in favour of
+ * [MISSING_SERVICE_LOCATION_MESSAGE].
+ *
+ * True ONLY when all hold:
+ *  1. a radius filter is active (radiusKm != null) — the All filter uses the
+ *     non-geo open-feed query which works without a base;
+ *  2. the query is blank — a text search also routes to the non-geo query;
+ *  3. the engineer row has actually LOADED (baseLoaded) — never pre-empt on
+ *     coords that are null merely because the fetch hasn't finished/failed;
+ *  4. the loaded base coords are absent.
+ */
+internal fun shouldPreemptNearbyFetch(
+    radiusKm: Int?,
+    queryIsBlank: Boolean,
+    baseLoaded: Boolean,
+    baseLatitude: Double?,
+    baseLongitude: Double?,
+): Boolean = radiusKm != null &&
+    queryIsBlank &&
+    baseLoaded &&
+    (baseLatitude == null || baseLongitude == null)
 

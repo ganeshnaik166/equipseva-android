@@ -3070,13 +3070,29 @@ internal fun escrowStatusCardCopy(
 ): EscrowStatusCopy = when {
     escrow.isPending -> EscrowStatusCopy(
         label = "Awaiting payment",
-        subtitle = "Pay ${com.equipseva.app.core.util.formatRupees(escrow.amountRupees)} " +
-            "into escrow to release the engineer to start work.",
+        // r1498 — role-aware like Released below. The old single copy told
+        // the ENGINEER "Pay ₹X into escrow to release the engineer" — the
+        // hospital is the payer, and the viewer IS the engineer (found live
+        // on RPR-00040's assigned-engineer view).
+        subtitle = if (isHospital) {
+            "Pay ${com.equipseva.app.core.util.formatRupees(escrow.amountRupees)} " +
+                "into escrow to release the engineer to start work."
+        } else {
+            "Waiting for the hospital to pay " +
+                "${com.equipseva.app.core.util.formatRupees(escrow.amountRupees)} " +
+                "into escrow. You're cleared to start once it lands."
+        },
     )
     escrow.isHeld -> EscrowStatusCopy(
         label = "Funds in escrow",
-        subtitle = "${com.equipseva.app.core.util.formatRupees(escrow.amountRupees)} " +
-            "is held by EquipSeva. Auto-released to engineer 48h after completion.",
+        // Same role split; the 48-hour auto-release promise stays in both.
+        subtitle = if (isHospital) {
+            "${com.equipseva.app.core.util.formatRupees(escrow.amountRupees)} " +
+                "is held by EquipSeva. Auto-released to engineer 48h after completion."
+        } else {
+            "${com.equipseva.app.core.util.formatRupees(escrow.amountRupees)} " +
+                "is held by EquipSeva. Auto-released to you 48h after completion."
+        },
     )
     escrow.isInDispute -> EscrowStatusCopy(
         label = "Dispute open",
