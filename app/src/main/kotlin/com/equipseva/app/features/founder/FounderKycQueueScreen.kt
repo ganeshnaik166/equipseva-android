@@ -40,6 +40,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.R
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
@@ -317,13 +318,13 @@ private fun EngineerRow(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = row.fullName.firstOrNull()?.uppercaseChar()?.toString() ?: "E",
+                    text = sanitizeServerName(row.fullName)?.firstOrNull()?.uppercaseChar()?.toString() ?: "E",
                     color = androidx.compose.ui.graphics.Color.White,
                     fontWeight = FontWeight.Bold,
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(row.fullName, fontWeight = FontWeight.Bold, color = SevaInk900)
+                Text(sanitizeServerName(row.fullName) ?: "Unnamed engineer", fontWeight = FontWeight.Bold, color = SevaInk900)
                 Text(
                     listOfNotNull(row.email, row.phone).joinToString(" · ").ifBlank { "No contact" },
                     color = SevaInk500,

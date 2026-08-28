@@ -37,6 +37,7 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.R
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.prettyDate
+import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
@@ -236,7 +237,7 @@ internal fun cashFlagRowTitle(jobNumber: String?, repairJobId: String): String =
  * other founder queues — null/blank surfaces "Hospital".
  */
 internal fun cashFlagRowHospitalLabel(hospitalName: String?): String =
-    hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"
+    sanitizeServerName(hospitalName) ?: "Hospital"
 
 /**
  * Responded-at timestamp label on the cash-flag-history row.

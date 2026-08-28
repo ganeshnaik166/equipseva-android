@@ -35,6 +35,7 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.R
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.prettyDateTime
+import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
@@ -176,8 +177,8 @@ private fun AuditRow(row: FounderRepository.SpotAuditResponseRow) {
                 Text(
                     stringResource(
                         R.string.founder_spot_audits_hospital_to_engineer_format,
-                        row.hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital",
-                        row.engineerName?.takeIf { it.isNotBlank() } ?: "Engineer",
+                        sanitizeServerName(row.hospitalName) ?: "Hospital",
+                        sanitizeServerName(row.engineerName) ?: "Engineer",
                     ),
                     color = SevaInk700,
                     fontSize = 12.sp,

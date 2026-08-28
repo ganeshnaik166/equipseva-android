@@ -45,6 +45,7 @@ import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.core.util.prettyDateTime
+import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBottomSheet
 import com.equipseva.app.designsystem.components.EsBtn
@@ -894,8 +895,8 @@ internal fun escrowDisputeRowTitle(jobNumber: String?, repairJobId: String): Str
  * fragmentation doesn't surface.
  */
 internal fun escrowDisputePartiesLine(hospitalName: String?, engineerName: String?): String {
-    val h = hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"
-    val e = engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"
+    val h = sanitizeServerName(hospitalName) ?: "Hospital"
+    val e = sanitizeServerName(engineerName) ?: "Engineer"
     return "$h → $e"
 }
 
@@ -906,7 +907,7 @@ internal fun escrowDisputePartiesLine(hospitalName: String?, engineerName: Strin
  * dev-placeholder safety check applies on both surfaces.
  */
 internal fun cashSuspendedRowName(fullName: String?): String =
-    fullName?.takeIf { it.isNotBlank() } ?: "Engineer"
+    sanitizeServerName(fullName) ?: "Engineer"
 
 /**
  * "N flags / 90d" subtitle on the cash-suspended row. Always plural
@@ -929,7 +930,7 @@ internal fun cashSuspendedFlagCountLabel(flagCount90d: Int): String =
  * on the founder's escalation triage queue.
  */
 internal fun amcEscalationHospitalName(hospitalName: String?): String =
-    hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"
+    sanitizeServerName(hospitalName) ?: "Hospital"
 
 /**
  * Reason label on the AMC-escalation row. The wire stores
@@ -1053,8 +1054,8 @@ internal fun partsOutlierComparisonLine(partsCost: Double, categoryAvgParts: Dou
  *      "Engineer → Hospital", not " → " or "engineer → hospital".
  */
 internal fun partsOutlierPartiesLine(engineerName: String?, hospitalName: String?): String {
-    val eng = engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"
-    val hos = hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"
+    val eng = sanitizeServerName(engineerName) ?: "Engineer"
+    val hos = sanitizeServerName(hospitalName) ?: "Hospital"
     return "$eng → $hos"
 }
 

@@ -37,6 +37,7 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.core.util.relativeLabel
+import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
@@ -155,7 +156,7 @@ private fun InactiveEngineerRow(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                row.fullName,
+                sanitizeServerName(row.fullName) ?: "Unnamed engineer",
                 fontWeight = FontWeight.Bold,
                 color = SevaInk900,
                 modifier = Modifier.weight(1f),

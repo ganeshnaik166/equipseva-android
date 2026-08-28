@@ -49,6 +49,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
@@ -429,7 +430,7 @@ private fun RoleChip(role: String?) {
  * so the founder can still tap into a fully-empty backfill row.
  */
 internal fun userAvatarInitial(fullName: String?, email: String?): String =
-    fullName?.firstOrNull()?.uppercaseChar()?.toString()
+    sanitizeServerName(fullName)?.firstOrNull()?.uppercaseChar()?.toString()
         ?: email?.firstOrNull()?.uppercaseChar()?.toString()
         ?: "?"
 
@@ -452,7 +453,7 @@ internal fun userDisplayName(
     phone: String?,
     userId: String,
 ): String =
-    fullName?.takeIf { it.isNotBlank() }
+    sanitizeServerName(fullName)
         ?: email
         ?: phone
         ?: "User · ${userId.take(8)}"

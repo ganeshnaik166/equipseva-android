@@ -39,13 +39,10 @@ class ResolvedDisputeResolvedLineTest {
         assertTrue(out.contains(" · "))
     }
 
-    @Test fun `empty resolvedByName surfaces dot-empty (defensive — caller gates)`() {
-        // Pin null gate (not isNullOrBlank). Empty string surfaces
-        // as a naked trailing " · " — the wire shouldn't allow this
-        // but pin total shape.
-        assertEquals(
-            "Resolved: x · ",
-            resolvedDisputeResolvedLine("x", ""),
-        )
+    @Test fun `empty or sentinel resolvedByName drops the suffix`() {
+        // r1462: blank/sentinel names are treated as absent, so no dangling
+        // " · " separator is rendered (the RPC coalesces null -> "(unknown)").
+        assertEquals("Resolved: x", resolvedDisputeResolvedLine("x", ""))
+        assertEquals("Resolved: x", resolvedDisputeResolvedLine("x", "(unknown)"))
     }
 }

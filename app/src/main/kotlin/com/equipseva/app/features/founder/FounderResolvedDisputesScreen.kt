@@ -37,6 +37,7 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.prettyDateTime
+import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
@@ -249,8 +250,8 @@ internal fun resolvedDisputeOutcomePillTextAndKind(outcome: String): Pair<String
  * subject/object on one of the screens.
  */
 internal fun resolvedDisputePartiesLine(hospitalName: String?, engineerName: String?): String {
-    val hos = hospitalName?.takeIf { it.isNotBlank() } ?: "Hospital"
-    val eng = engineerName?.takeIf { it.isNotBlank() } ?: "Engineer"
+    val hos = sanitizeServerName(hospitalName) ?: "Hospital"
+    val eng = sanitizeServerName(engineerName) ?: "Engineer"
     return "$hos → $eng"
 }
 
@@ -286,4 +287,4 @@ internal fun resolvedDisputeResolvedLine(
     prettyResolvedAt: String,
     resolvedByName: String?,
 ): String = "Resolved: $prettyResolvedAt" +
-    (resolvedByName?.let { " · $it" } ?: "")
+    (sanitizeServerName(resolvedByName)?.let { " · $it" } ?: "")
