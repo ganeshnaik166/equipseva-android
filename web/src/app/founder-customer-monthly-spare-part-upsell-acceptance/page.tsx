@@ -43,7 +43,7 @@ type EngLead = {
 };
 
 type Rejection = {
-  rejection_reason: string;
+  rejection_reason: string | null;
   rejections: number;
   lost_gmv_rupees: number;
   avg_decision_hours: number;
