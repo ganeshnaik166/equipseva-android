@@ -23,6 +23,20 @@ object IndiaLocations {
 
     const val COUNTRY = "India"
 
+    /**
+     * Maps a raw state string (e.g. an Android Geocoder adminArea) to its
+     * canonical [STATES] entry, or null if it can't be matched. Handles
+     * case/whitespace and common Geocoder variants that embed the state name
+     * (e.g. "National Capital Territory of Delhi" -> "Delhi"). Callers use this
+     * so a non-canonical value never fills the state field (the dropdown only
+     * renders canonical members, and non-canonical strings were being saved).
+     */
+    fun canonicalState(raw: String?): String? {
+        val t = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        STATES.firstOrNull { it.equals(t, ignoreCase = true) }?.let { return it }
+        return STATES.firstOrNull { t.contains(it, ignoreCase = true) }
+    }
+
     /** All 28 states + 8 union territories, alphabetical. */
     val STATES: List<String> = listOf(
         // States

@@ -379,10 +379,10 @@ private fun KycStepperBody(
         // verified) as a high-level status header above the wizard.
         KycStatusTimeline(
             status = state.verificationStatus,
-            submitted = state.kycSubmitted,
+            submitted = state.submittedForReview,
         )
 
-        StatusBanner(status = state.verificationStatus, submitted = state.kycSubmitted)
+        StatusBanner(status = state.verificationStatus, submitted = state.submittedForReview)
 
         if (verified) {
             // Verified engineers see a celebratory summary instead of the wizard.

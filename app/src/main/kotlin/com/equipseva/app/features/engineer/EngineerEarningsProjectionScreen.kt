@@ -215,14 +215,14 @@ private fun ProjectionContent(d: EngineerGraduationRepository.TierEarningsProjec
         StatCard(
             label = "Current tier",
             value = d.currentTier.replaceFirstChar { it.uppercase() },
-            sub = "${"%.2f".format(d.currentPlatformFeePct)}% platform fee",
+            sub = "${String.format(java.util.Locale.US, "%.2f", d.currentPlatformFeePct)}% platform fee",
         )
 
         if (d.nextTier != null) {
             StatCard(
                 label = "Next tier",
                 value = d.nextTier.replaceFirstChar { it.uppercase() },
-                sub = "${"%.2f".format(d.nextPlatformFeePct ?: 0.0)}% platform fee",
+                sub = "${String.format(java.util.Locale.US, "%.2f", d.nextPlatformFeePct ?: 0.0)}% platform fee",
             )
         }
 

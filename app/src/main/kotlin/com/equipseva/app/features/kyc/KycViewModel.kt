@@ -137,6 +137,13 @@ class KycViewModel @Inject constructor(
         val loading: Boolean = true,
         val errorMessage: String? = null,
         val verificationStatus: VerificationStatus = VerificationStatus.Pending,
+        // True only when the PERSISTED engineer row already carries all required
+        // docs — i.e. the engineer actually ran Submit (save/upsert), which is
+        // what creates the review-queue entry. Distinct from [kycSubmitted],
+        // which flips on mid-session STORAGE uploads (uploadKycDoc writes the
+        // bucket, not the row) and so would claim "Submitted for review" before
+        // the user ever taps Submit. Drives the banner + timeline.
+        val submittedForReview: Boolean = false,
         val aadhaarVerified: Boolean = false,
         val aadhaarNumber: String = "",
         val panNumber: String = "",
@@ -589,6 +596,14 @@ class KycViewModel @Inject constructor(
                 it.copy(
                     loading = false,
                     verificationStatus = engineer.verificationStatus,
+                    // Persisted-row docs = actually submitted. Recomputed here on
+                    // load AND on save-success (both call hydrate with the server
+                    // row), so a mid-session upload can't flip it; only Submit does.
+                    submittedForReview = isKycSubmitted(
+                        engineer.aadhaarDocPath,
+                        engineer.panDocPath,
+                        engineer.certDocPaths,
+                    ),
                     verificationNotes = engineer.verificationNotes,
                     rejectedDocTypes = engineer.rejectedDocTypes,
                     aadhaarVerified = engineer.aadhaarVerified,

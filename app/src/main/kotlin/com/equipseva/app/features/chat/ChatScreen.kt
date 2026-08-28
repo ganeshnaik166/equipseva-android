@@ -132,7 +132,11 @@ fun ChatScreen(
         val total = info.totalItemsCount
         val nearBottom = total == 0 || lastVisible >= total - 3
         if (nearBottom) {
-            listState.animateScrollToItem(state.messages.lastIndex)
+            // Scroll to the true last LazyColumn item, not messages.lastIndex —
+            // the list also emits a DaySeparator item per day group, so the
+            // message index is short of the real last item and the newest
+            // bubble was left below the fold.
+            listState.animateScrollToItem((info.totalItemsCount - 1).coerceAtLeast(0))
         }
     }
 

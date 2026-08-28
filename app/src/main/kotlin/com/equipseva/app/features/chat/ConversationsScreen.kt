@@ -60,6 +60,7 @@ import com.equipseva.app.designsystem.theme.SevaInk900
 fun ConversationsScreen(
     onBack: () -> Unit,
     onConversationClick: (String) -> Unit,
+    onSignIn: () -> Unit = {},
     viewModel: ConversationsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -87,6 +88,17 @@ fun ConversationsScreen(
                 }
             }
             when {
+                // Signed out (session expired / stale deep link): prompt to sign
+                // in instead of the generic "No conversations yet". The VM sets
+                // isSignedOut for exactly this; without this branch the flag was
+                // dead and the screen fell through to the empty state.
+                state.isSignedOut -> EmptyStateView(
+                    icon = Icons.Outlined.ChatBubbleOutline,
+                    title = "Sign in to see your messages",
+                    subtitle = "Your repair-job chats appear here once you're signed in.",
+                    ctaLabel = "Sign in",
+                    onCta = onSignIn,
+                )
                 state.loading && state.rows.isEmpty() -> ListSkeleton(rows = 8)
                 state.rows.isEmpty() -> EmptyStateView(
                     icon = Icons.Outlined.ChatBubbleOutline,

@@ -173,7 +173,11 @@ class AddressFormViewModel @Inject constructor(
                         line2 = fill(current.line2, resolved?.line2),
                         landmark = fill(current.landmark, resolved?.landmark),
                         city = fill(current.city, resolved?.city),
-                        state = fill(current.state, resolved?.state),
+                        // Canonicalize the Geocoder adminArea to a STATES entry —
+                        // a non-canonical value (e.g. "National Capital Territory
+                        // of Delhi") would show the dropdown placeholder yet save
+                        // as garbage. null (no match) leaves the field blank.
+                        state = fill(current.state, IndiaLocations.canonicalState(resolved?.state)),
                         pincode = fill(current.pincode, resolved?.pincode),
                         latitude = coords.lat,
                         longitude = coords.lng,
@@ -493,7 +497,9 @@ internal fun locationFillInfo(
     val filledFields = buildList {
         if (!resolved?.line1.isNullOrBlank() && current.line1.isBlank()) add("line 1")
         if (!resolved?.city.isNullOrBlank() && current.city.isBlank()) add("city")
-        if (!resolved?.state.isNullOrBlank() && current.state.isBlank()) add("state")
+        // Only claim "state" was filled when the Geocoder value maps to a
+        // canonical STATES entry — otherwise the banner and the dropdown disagree.
+        if (IndiaLocations.canonicalState(resolved?.state) != null && current.state.isBlank()) add("state")
         if (!resolved?.pincode.isNullOrBlank() && current.pincode.isBlank()) add("pincode")
     }
     return when {
