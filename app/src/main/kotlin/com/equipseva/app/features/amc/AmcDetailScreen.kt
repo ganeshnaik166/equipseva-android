@@ -225,8 +225,11 @@ class AmcDetailViewModel @Inject constructor(
                     _state.update { it.copy(cancelling = false) }
                     refresh()
                 }
+                // r1449 — toast the failure; the `error` field is a dead end on a
+                // loaded contract (only rendered when hospital/engineerView are null).
                 .onFailure { e ->
-                    _state.update { it.copy(cancelling = false, error = e.toUserMessage()) }
+                    _state.update { it.copy(cancelling = false) }
+                    _autoPayMessage.tryEmit(e.toUserMessage())
                 }
         }
     }
@@ -239,6 +242,14 @@ class AmcDetailViewModel @Inject constructor(
         kotlinx.coroutines.flow.MutableSharedFlow<String>(extraBufferCapacity = 2)
     val autoPayMessage: kotlinx.coroutines.flow.Flow<String> = _autoPayMessage
 
+    /** r1449 — reload just the subscription slice (no full-screen loading flag),
+     *  so an auto-pay action doesn't blank the whole contract to a spinner. */
+    private fun reloadSubscriptionSilently() {
+        viewModelScope.launch {
+            repo.fetchSubscription(contractId).onSuccess { v -> _state.update { it.copy(subscription = v) } }
+        }
+    }
+
     fun setupAutoPay() {
         if (_state.value.autoPayBusy) return
         _state.update { it.copy(autoPayBusy = true) }
@@ -249,10 +260,13 @@ class AmcDetailViewModel @Inject constructor(
                         "Auto-pay setup requested. You'll receive a payment-authorization link shortly."
                     )
                     _state.update { it.copy(autoPayBusy = false) }
-                    refresh()
+                    reloadSubscriptionSilently()
                 }
+                // r1449 — surface the failure as a toast; the old `error` field
+                // only renders when no contract is loaded, so this was silent.
                 .onFailure { e ->
-                    _state.update { it.copy(autoPayBusy = false, error = e.toUserMessage()) }
+                    _state.update { it.copy(autoPayBusy = false) }
+                    _autoPayMessage.tryEmit(e.toUserMessage())
                 }
         }
     }
@@ -266,10 +280,11 @@ class AmcDetailViewModel @Inject constructor(
                 .onSuccess {
                     _autoPayMessage.tryEmit("Auto-pay cancelled.")
                     _state.update { it.copy(autoPayBusy = false) }
-                    refresh()
+                    reloadSubscriptionSilently()
                 }
                 .onFailure { e ->
-                    _state.update { it.copy(autoPayBusy = false, error = e.toUserMessage()) }
+                    _state.update { it.copy(autoPayBusy = false) }
+                    _autoPayMessage.tryEmit(e.toUserMessage())
                 }
         }
     }
@@ -309,7 +324,8 @@ class AmcDetailViewModel @Inject constructor(
                 .firstOrNull() ?: return@launch
             chatRepository.getOrCreateDirect(session.userId, peer)
                 .onSuccess { conv -> _openConversation.tryEmit(conv.id) }
-                .onFailure { e -> _state.update { it.copy(error = e.toUserMessage()) } }
+                // r1449 — toast; `error` is a dead end on a loaded contract.
+                .onFailure { e -> _autoPayMessage.tryEmit(e.toUserMessage()) }
         }
     }
 }

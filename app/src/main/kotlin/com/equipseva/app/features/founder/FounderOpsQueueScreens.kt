@@ -103,7 +103,12 @@ class FounderEscrowDisputesViewModel @Inject constructor(
         viewModelScope.launch {
             repo.fetchOpenEscrowDisputes()
                 .onSuccess { rows -> _state.update { it.copy(loading = false, refreshing = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, refreshing = false, error = e.toUserMessage()) } }
+                .onFailure { e ->
+                    _state.update {
+                        if (it.rows.isEmpty()) it.copy(loading = false, refreshing = false, error = e.toUserMessage())
+                        else it.copy(loading = false, refreshing = false)
+                    }
+                }
         }
     }
 
@@ -276,7 +281,12 @@ class FounderAmcEscalationsViewModel @Inject constructor(
         viewModelScope.launch {
             repo.fetchOpenAmcEscalations()
                 .onSuccess { rows -> _state.update { it.copy(loading = false, refreshing = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, refreshing = false, error = e.toUserMessage()) } }
+                .onFailure { e ->
+                    _state.update {
+                        if (it.rows.isEmpty()) it.copy(loading = false, refreshing = false, error = e.toUserMessage())
+                        else it.copy(loading = false, refreshing = false)
+                    }
+                }
         }
     }
 
@@ -434,7 +444,12 @@ class FounderCashSuspendedViewModel @Inject constructor(
         viewModelScope.launch {
             repo.fetchCashSuspendedEngineers()
                 .onSuccess { rows -> _state.update { it.copy(loading = false, refreshing = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, refreshing = false, error = e.toUserMessage()) } }
+                .onFailure { e ->
+                    _state.update {
+                        if (it.rows.isEmpty()) it.copy(loading = false, refreshing = false, error = e.toUserMessage())
+                        else it.copy(loading = false, refreshing = false)
+                    }
+                }
         }
     }
 
@@ -585,7 +600,12 @@ class FounderPartsOutliersViewModel @Inject constructor(
         viewModelScope.launch {
             repo.fetchPartsCostOutliers()
                 .onSuccess { rows -> _state.update { it.copy(loading = false, refreshing = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, refreshing = false, error = e.toUserMessage()) } }
+                .onFailure { e ->
+                    _state.update {
+                        if (it.rows.isEmpty()) it.copy(loading = false, refreshing = false, error = e.toUserMessage())
+                        else it.copy(loading = false, refreshing = false)
+                    }
+                }
         }
     }
 }

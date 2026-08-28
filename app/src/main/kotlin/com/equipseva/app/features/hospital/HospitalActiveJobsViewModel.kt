@@ -101,14 +101,17 @@ class HospitalActiveJobsViewModel @Inject constructor(
                 }
                 .onFailure { ex ->
                     _state.update {
-                        UiState(
-                            loading = false,
-                            refreshing = false,
-                            openJobs = emptyList(),
-                            inProgressJobs = emptyList(),
-                            closedJobs = emptyList(),
-                            errorMessage = ex.toUserMessage(),
-                        )
+                        // Keep already-loaded jobs on a transient refresh failure;
+                        // only surface the fatal error when there's nothing to show.
+                        if (it.openJobs.isEmpty() && it.inProgressJobs.isEmpty() && it.closedJobs.isEmpty()) {
+                            UiState(
+                                loading = false,
+                                refreshing = false,
+                                errorMessage = ex.toUserMessage(),
+                            )
+                        } else {
+                            it.copy(loading = false, refreshing = false)
+                        }
                     }
                 }
         }

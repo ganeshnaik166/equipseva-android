@@ -89,7 +89,9 @@ class EngineerSupervisionViewModel @Inject constructor(
     }
 
     fun reload() {
-        _state.update { it.copy(status = Status.Loading, error = null) }
+        // r1451 — only blank to the full-screen loader on the initial load; a
+        // signoff-triggered refresh with rows already shown updates silently.
+        _state.update { it.copy(status = if (it.rows.isEmpty()) Status.Loading else it.status, error = null) }
         viewModelScope.launch {
             repo.fetchSupervisionProgress()
                 .onSuccess { list ->

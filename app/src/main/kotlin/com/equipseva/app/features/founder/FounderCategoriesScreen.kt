@@ -110,7 +110,8 @@ class FounderCategoriesViewModel @Inject constructor(
     init { reload() }
 
     fun reload() {
-        _state.update { it.copy(loading = true, error = null) }
+        // r1451 — silent refresh when rows are already shown (no full-screen flash).
+        _state.update { it.copy(loading = it.rows.isEmpty(), error = null) }
         viewModelScope.launch {
             repo.fetchCategories()
                 .onSuccess { rows -> _state.update { it.copy(loading = false, rows = rows) } }

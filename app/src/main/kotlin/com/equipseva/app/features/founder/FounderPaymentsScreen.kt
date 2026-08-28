@@ -92,7 +92,12 @@ class FounderPaymentsViewModel @Inject constructor(
             }
             repo.fetchRecentPayments(limit = 50)
                 .onSuccess { rows -> _state.update { it.copy(loading = false, refreshing = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, refreshing = false, error = e.toUserMessage()) } }
+                .onFailure { e ->
+                    _state.update {
+                        if (it.rows.isEmpty()) it.copy(loading = false, refreshing = false, error = e.toUserMessage())
+                        else it.copy(loading = false, refreshing = false)
+                    }
+                }
             statsJob.join()
         }
     }

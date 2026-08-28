@@ -143,12 +143,8 @@ class FounderUsersViewModel @Inject constructor(
                 }
                 .onFailure { ex ->
                     _state.update {
-                        it.copy(
-                            loading = false,
-                            refreshing = false,
-                            rows = emptyList(),
-                            error = ex.toUserMessage(),
-                        )
+                        if (it.rows.isEmpty()) it.copy(loading = false, refreshing = false, error = ex.toUserMessage())
+                        else it.copy(loading = false, refreshing = false)
                     }
                 }
         }

@@ -83,7 +83,12 @@ class HospitalMyDisputesViewModel @Inject constructor(
         viewModelScope.launch {
             escrowRepo.fetchHospitalDisputeHistory()
                 .onSuccess { rows -> _state.update { it.copy(loading = false, refreshing = false, rows = rows) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, refreshing = false, error = e.toUserMessage()) } }
+                .onFailure { e ->
+                    _state.update {
+                        if (it.rows.isEmpty()) it.copy(loading = false, refreshing = false, error = e.toUserMessage())
+                        else it.copy(loading = false, refreshing = false)
+                    }
+                }
         }
     }
     fun onPullToRefresh() = reload(initial = false)

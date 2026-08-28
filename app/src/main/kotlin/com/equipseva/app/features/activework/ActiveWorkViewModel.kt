@@ -89,13 +89,9 @@ class ActiveWorkViewModel @Inject constructor(
                 }
                 .onFailure { ex ->
                     _state.update {
-                        it.copy(
-                            loading = false,
-                            refreshing = false,
-                            activeJobs = emptyList(),
-                            completedJobs = emptyList(),
-                            errorMessage = ex.toUserMessage(),
-                        )
+                        if (it.activeJobs.isEmpty() && it.completedJobs.isEmpty())
+                            it.copy(loading = false, refreshing = false, errorMessage = ex.toUserMessage())
+                        else it.copy(loading = false, refreshing = false)
                     }
                 }
         }
