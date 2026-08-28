@@ -33,7 +33,7 @@ type TrendRow = {
   units_lost_total: number;
 };
 type CapaRow = { capa_status: string; actions: number; past_due: number };
-type CauseRow = { root_cause: string; occurrences: number; pct: number };
+type CauseRow = { root_cause: string | null; occurrences: number; pct: number };
 type DigestRow = {
   depot_region: string;
   overdue_entries: number;
