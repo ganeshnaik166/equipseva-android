@@ -109,9 +109,17 @@ serve(async (req) => {
       .gte("updated_at", dedupCutoff)
       .maybeSingle();
     if (existingRow) {
+      // Round 3760 — this dedup branch returned `escrow_id` while the
+      // fresh-order branch below (and this file's own header comment)
+      // return `payment_order_id`. The Android client's
+      // CreatePaymentOrderResponse.escrowId is bound to `payment_order_id`
+      // with no default, so kotlinx.serialization threw a
+      // MissingFieldException on every double-tap-triggered dedup
+      // response — i.e. every repeat "Pay" tap within 5 minutes crashed
+      // instead of re-showing the same payment sheet.
       return json(200, {
         ok: true,
-        escrow_id: escrow.id,
+        payment_order_id: escrow.id,
         razorpay_order_id: escrow.razorpay_order_id,
         amount_paise: Math.round(Number(escrow.amount_rupees) * 100),
         currency: "INR",
