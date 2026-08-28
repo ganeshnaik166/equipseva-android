@@ -7,7 +7,7 @@ import org.junit.Test
 class PayoutsCsvExportTest {
 
     private fun row(
-        jobNumber: String = "RPR-00099",
+        jobNumber: String? = "RPR-00099",
         engineer: String? = "Ravi Kumar",
         phone: String? = "+919876543210",
         amountPaise: Long = 930,
@@ -119,6 +119,16 @@ class PayoutsCsvExportTest {
         // Body cells are wrapped together because the newline inside
         // the failure_reason is enclosed in double quotes.
         assertTrue(csv.contains("\"Invalid VPA\nretry tomorrow\""))
+    }
+
+    @Test
+    fun `null job number falls back to RPR- plus first 6 chars of repair job id`() {
+        // Round 3760 — repair_jobs.job_number can be null on a legacy
+        // row; without a repair_job_id column in this export, a blank
+        // cell here would leave the row completely unidentifiable.
+        val csv = formatPayoutsCsv(listOf(row(jobNumber = null).copy(repairJobId = "abcdef12-3456-7890-abcd-ef1234567890")))
+        val body = csv.lineSequence().drop(1).first()
+        assertTrue(body.startsWith("RPR-abcdef,"))
     }
 
     /* ---- csvFilename ---- */

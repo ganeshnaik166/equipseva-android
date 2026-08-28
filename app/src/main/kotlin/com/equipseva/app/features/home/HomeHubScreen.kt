@@ -556,7 +556,7 @@ private fun CashSurveySheetBody(
             color = SevaInk900,
         )
         Text(
-            text = cashSurveyQuestionBody(survey.jobNumber, survey.engineerName),
+            text = cashSurveyQuestionBody(survey.jobNumber, survey.repairJobId, survey.engineerName),
             style = EsType.Body,
             color = SevaInk700,
         )
@@ -1479,16 +1479,21 @@ internal fun slaCreditsCardTitle(totalCreditRupees: Double): String =
  *    ask for any payment outside the app?"
  *
  * Pinned regions:
- *   * Both interpolations are caller-supplied + non-null on this
- *     code path (the parent survey null-check happens upstream), so
- *     the helper trusts inputs.
+ *   * engineerName is caller-supplied + non-null on this code path
+ *     (the parent survey null-check happens upstream). jobNumber can
+ *     genuinely be null (repair_jobs.job_number is populated async;
+ *     see PendingSurvey's doc comment) so it falls back to
+ *     "RPR-${take(6)}" of the job id — same convention as
+ *     [spotAuditQuestionBody] and the founder queue rows.
  *   * Question phrasing pinned word-for-word — this is the
  *     trust-and-safety signal the founder uses to investigate
  *     cash-flag patterns; the wording was reviewed by product.
  */
-internal fun cashSurveyQuestionBody(jobNumber: String, engineerName: String): String =
-    "Job $jobNumber with $engineerName just wrapped. " +
+internal fun cashSurveyQuestionBody(jobNumber: String?, repairJobId: String, engineerName: String): String {
+    val jobLabel = jobNumber ?: "RPR-${repairJobId.take(6)}"
+    return "Job $jobLabel with $engineerName just wrapped. " +
         "Did the engineer ask for any payment outside the app?"
+}
 
 /**
  * Question prompt on the spot-audit sheet.

@@ -231,7 +231,10 @@ class FounderEngineerPayoutsViewModel @Inject constructor(
             )
                 .onSuccess {
                     _state.update { it.copy(sheetSaving = false, sheetPayout = null) }
-                    _effects.emit(Effect.ShowMessage("${payout.jobNumber} marked paid."))
+                    // Round 3760 — jobNumber can be null on a legacy row;
+                    // same "RPR-${take(6)}" fallback used in the sheets.
+                    val jobLabel = payout.jobNumber ?: "RPR-${payout.repairJobId.take(6)}"
+                    _effects.emit(Effect.ShowMessage("$jobLabel marked paid."))
                     load(initial = false)
                 }
                 .onFailure { e ->
@@ -249,7 +252,8 @@ class FounderEngineerPayoutsViewModel @Inject constructor(
             repo.adminCancelPayout(payoutId = payout.id, reason = s.cancelReason.trim())
                 .onSuccess {
                     _state.update { it.copy(sheetSaving = false, sheetPayout = null) }
-                    _effects.emit(Effect.ShowMessage("${payout.jobNumber} cancelled."))
+                    val jobLabel = payout.jobNumber ?: "RPR-${payout.repairJobId.take(6)}"
+                    _effects.emit(Effect.ShowMessage("$jobLabel cancelled."))
                     load(initial = false)
                 }
                 .onFailure { e ->
@@ -296,7 +300,10 @@ internal fun formatPayoutsCsv(
     sb.append("job_number,engineer_name,engineer_phone,amount_rupees,status,mode,utr,destination,queued_at,processed_at,failure_reason,attempts\n")
     rows.forEach { r ->
         val rupees = String.format(java.util.Locale.ENGLISH, "%.2f", r.amountPaise / 100.0)
-        sb.append(csvField(r.jobNumber)).append(',')
+        // Round 3760 — jobNumber can be null on a legacy row; without a
+        // repair_job_id column in this export, a blank cell here would
+        // leave the row completely unidentifiable to the founder's CA.
+        sb.append(csvField(r.jobNumber ?: "RPR-${r.repairJobId.take(6)}")).append(',')
         sb.append(csvField(r.engineerName)).append(',')
         sb.append(csvField(r.engineerPhone)).append(',')
         sb.append(rupees).append(',')
@@ -546,7 +553,9 @@ private fun PayoutAdminRow(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    row.jobNumber,
+                    // Round 3760 — repair_jobs.job_number can be null on
+                    // a legacy row; same fallback convention as the sheets.
+                    row.jobNumber ?: "RPR-${row.repairJobId.take(6)}",
                     fontSize = 13.sp,
                     color = SevaInk500,
                     fontWeight = FontWeight.Medium,
@@ -663,6 +672,9 @@ private fun MarkPaidSheet(
 ) {
     val p = state.sheetPayout ?: return
     val amountRupees = p.amountPaise / 100.0
+    // Round 3760 — repair_jobs.job_number can be null on a legacy row;
+    // same "RPR-${take(6)}" fallback convention used elsewhere in the app.
+    val jobLabel = p.jobNumber ?: "RPR-${p.repairJobId.take(6)}"
     val context = androidx.compose.ui.platform.LocalContext.current
     Column(
         modifier = Modifier
@@ -684,7 +696,7 @@ private fun MarkPaidSheet(
         Text(
             stringResource(
                 R.string.founder_payouts_job_summary_line,
-                p.jobNumber,
+                jobLabel,
                 formatRupees(amountRupees),
                 p.engineerName ?: "engineer",
             ),
@@ -701,7 +713,7 @@ private fun MarkPaidSheet(
             engineerName = p.engineerName,
             engineerPhone = p.engineerPhone,
             amountRupees = amountRupees,
-            jobNumber = p.jobNumber,
+            jobNumber = jobLabel,
             context = context,
         )
         OutlinedTextField(
@@ -778,6 +790,8 @@ private fun CancelPayoutSheet(
 ) {
     val p = state.sheetPayout ?: return
     val amountRupees = p.amountPaise / 100.0
+    // Round 3760 — see MarkPaidSheet's identical fallback comment.
+    val jobLabel = p.jobNumber ?: "RPR-${p.repairJobId.take(6)}"
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -796,7 +810,7 @@ private fun CancelPayoutSheet(
         Text(
             stringResource(
                 R.string.founder_payouts_job_summary_line,
-                p.jobNumber,
+                jobLabel,
                 formatRupees(amountRupees),
                 p.engineerName ?: "engineer",
             ),

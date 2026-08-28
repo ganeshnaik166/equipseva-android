@@ -7,7 +7,7 @@ data class RepairBid(
     val id: String,
     val repairJobId: String,
     val engineerUserId: String,
-    val amountRupees: Double,
+    val amountRupees: Double?,
     val etaHours: Int?,
     val note: String?,
     val status: RepairBidStatus,

@@ -1625,7 +1625,10 @@ private fun BidCard(
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = formatRupees(bid.amountRupees),
+                    // Round 3760 — repair_job_bids.amount_rupees can be
+                    // null on a legacy/anomalous row; show "—" rather
+                    // than crash or a misleading ₹0.
+                    text = bid.amountRupees?.let { formatRupees(it) } ?: "—",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = SevaGreen700,
@@ -3107,10 +3110,14 @@ internal fun escrowStatusCardCopy(
  * Pin: null etaHours drops the suffix entirely (NO trailing
  * separator). A refactor that always appended " · ETA " would
  * surface a naked trailing dot when ETA is null.
+ *
+ * Pin: null amountRupees (repair_job_bids.amount_rupees can be null on
+ * a legacy/anomalous row — see RepairBidDto's doc comment) renders "—"
+ * in place of the ₹ figure rather than crashing or showing ₹0.
  */
-internal fun ownBidAmountAndEtaLine(amountRupees: Double, etaHours: Int?): String =
+internal fun ownBidAmountAndEtaLine(amountRupees: Double?, etaHours: Int?): String =
     buildString {
-        append(com.equipseva.app.core.util.formatRupees(amountRupees))
+        append(amountRupees?.let { com.equipseva.app.core.util.formatRupees(it) } ?: "—")
         etaHours?.let { append(" · ETA ${it}h") }
     }
 

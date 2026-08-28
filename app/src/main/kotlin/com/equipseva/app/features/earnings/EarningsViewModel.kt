@@ -231,10 +231,14 @@ internal fun computeEarningsSplit(
     rows: List<EarningsViewModel.EarningRow>,
 ): EarningsSplit {
     val resolved = rows.filter { it.job != null }
+    // Round 3760 — repair_job_bids.amount_rupees can be null on a
+    // legacy/anomalous bid row; fold to 0.0 in these SUM aggregates
+    // (rather than crashing or dropping the row from resolvedRows,
+    // which would break the filtering invariants pinned below).
     val paid = resolved.filter { it.job?.status == RepairJobStatus.Completed }
-        .sumOf { it.job?.engineerPayoutRupees ?: it.bid.amountRupees }
+        .sumOf { it.job?.engineerPayoutRupees ?: it.bid.amountRupees ?: 0.0 }
     val pending = resolved.filter { it.job?.status != RepairJobStatus.Completed }
-        .sumOf { it.bid.amountRupees }
+        .sumOf { it.bid.amountRupees ?: 0.0 }
     return EarningsSplit(
         resolvedRows = resolved,
         paidTotal = paid,

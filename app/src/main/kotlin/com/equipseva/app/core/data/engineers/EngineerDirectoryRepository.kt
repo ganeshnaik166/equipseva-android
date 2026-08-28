@@ -77,7 +77,16 @@ class EngineerDirectoryRepository @Inject constructor(
 
     @Serializable
     data class EngineerReview(
-        @SerialName("rating") val rating: Int,
+        // Nullable: repair_jobs.hospital_rating and hospital_review are
+        // independent columns (the round-275 CHECK constraint explicitly
+        // allows `hospital_rating IS NULL`), but engineer_recent_reviews
+        // (20260508110100) only filters on hospital_review being
+        // non-blank — a review can arrive with no star rating. Its
+        // sibling engineer_review_summary_by_category in the same file
+        // does add `AND rj.hospital_rating IS NOT NULL`, confirming this
+        // omission here is a real, in-corpus inconsistency, not a
+        // theoretical case.
+        @SerialName("rating") val rating: Int? = null,
         @SerialName("review") val review: String,
         @SerialName("completed_at") val completedAtIso: String? = null,
         // Hospital identity is NEVER returned — only city. The

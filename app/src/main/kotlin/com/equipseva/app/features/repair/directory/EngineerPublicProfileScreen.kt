@@ -1124,10 +1124,18 @@ private fun ReviewItem(r: EngineerDirectoryRepository.EngineerReview) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            InlineStars(rating = r.rating.toDouble(), count = 0, small = false)
-            // count=0 reads as a redundant "(0)" — strip it via a thin
-            // wrapper that hides the count chip when 0. Falls back to the
-            // shared component for the star + number.
+            // Round 3760 — hospital_rating and hospital_review are
+            // independent, decoupled columns (repair_jobs' own CHECK
+            // constraint explicitly allows hospital_rating IS NULL); the
+            // RPC only filters on hospital_review being non-blank, so a
+            // review can genuinely have no star rating. Omit the stars
+            // row rather than rendering a misleading "0 stars".
+            r.rating?.let { rating ->
+                // count=0 reads as a redundant "(0)" — strip it via a thin
+                // wrapper that hides the count chip when 0. Falls back to
+                // the shared component for the star + number.
+                InlineStars(rating = rating.toDouble(), count = 0, small = false)
+            }
             Text(
                 text = whenAndCityLabel,
                 color = SevaInk500,

@@ -64,9 +64,18 @@ fun OrderSummarySheet(
     onClose: () -> Unit,
     onProceedToPayment: () -> Unit,
 ) {
+    // Round 3760 — repair_job_bids.amount_rupees is nullable at the DB
+    // level (round-479 audit migration's own pre-flight guard treats it
+    // as such); a legacy/unusual bid row could reach this screen with no
+    // amount. Fall back to "—" display rather than silently computing a
+    // misleading ₹0 total — server-authoritative escrow.amount_rupees is
+    // still the real debit amount either way (see KDoc above).
     val bidAmount = bid.amountRupees
-    val gstAmount = bidAmount * 0.18  // GST @ 18% — see KDoc above
-    val totalAmount = bidAmount + gstAmount
+    val gstAmount = bidAmount?.times(0.18)  // GST @ 18% — see KDoc above
+    val totalAmount = bidAmount?.let { it + (gstAmount ?: 0.0) }
+    val bidAmountLabel = bidAmount?.let { formatRupees(it) } ?: "—"
+    val gstAmountLabel = gstAmount?.let { formatRupees(it) } ?: "—"
+    val totalAmountLabel = totalAmount?.let { formatRupees(it) } ?: "—"
 
     EsBottomSheet(
         onClose = onClose,
@@ -138,8 +147,8 @@ fun OrderSummarySheet(
                     .padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                PriceRow(label = "Bid amount", value = formatRupees(bidAmount))
-                PriceRow(label = "GST (18%)", value = formatRupees(gstAmount))
+                PriceRow(label = "Bid amount", value = bidAmountLabel)
+                PriceRow(label = "GST (18%)", value = gstAmountLabel)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -151,7 +160,7 @@ fun OrderSummarySheet(
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        formatRupees(totalAmount),
+                        totalAmountLabel,
                         color = SevaInk900,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
@@ -169,7 +178,7 @@ fun OrderSummarySheet(
 
             Spacer(Modifier.height(4.dp))
             EsBtn(
-                text = "Pay ${formatRupees(totalAmount)}",
+                text = "Pay $totalAmountLabel",
                 kind = EsBtnKind.Primary,
                 full = true,
                 onClick = onProceedToPayment,

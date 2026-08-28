@@ -160,8 +160,11 @@ fun FounderPaymentsScreen(
                                 onOpenIntegrity = {
                                     // Round 360 — tap-through to the
                                     // integrity flag screen, pre-filtered
-                                    // to this buyer.
-                                    onOpenBuyerIntegrity(row.buyerUserId, row.buyerName)
+                                    // to this buyer. Round 3760 —
+                                    // buyer_user_id can be null on a
+                                    // legacy/anomalous order row; no-op
+                                    // rather than navigate with a bogus id.
+                                    row.buyerUserId?.let { onOpenBuyerIntegrity(it, row.buyerName) }
                                 },
                             )
                         }
@@ -192,7 +195,11 @@ private fun PaymentRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                row.orderNumber,
+                // Round 3760 — spare_part_orders.order_number can be null
+                // on a legacy/anomalous row; fall back to a short id
+                // fragment (same convention used for repair job numbers
+                // elsewhere in the app) rather than crashing.
+                row.orderNumber ?: "ORD-${row.orderId.take(6)}",
                 fontWeight = FontWeight.Bold,
                 color = SevaInk900,
                 modifier = Modifier.weight(1f),
@@ -225,7 +232,10 @@ private fun PaymentRow(
             }
         }
         Text(
-            text = formatRupees(row.totalAmount),
+            // Round 3760 — spare_part_orders.total_amount can be null
+            // (uncomputed for service_role-authored rows) on a
+            // legacy/anomalous row.
+            text = row.totalAmount?.let { formatRupees(it) } ?: "—",
             color = SevaInk900,
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,

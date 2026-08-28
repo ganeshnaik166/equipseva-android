@@ -8,7 +8,14 @@ data class RepairBidDto(
     val id: String,
     @SerialName("repair_job_id") val repairJobId: String,
     @SerialName("engineer_user_id") val engineerUserId: String,
-    @SerialName("amount_rupees") val amountRupees: Double,
+    // Nullable: repair_job_bids.amount_rupees has no NOT NULL constraint —
+    // round479's audit8 migration explicitly guards `WHERE amount_rupees
+    // IS NOT NULL` in its own pre-flight check, and its added precision
+    // CHECK (`round(amount_rupees,2)=amount_rupees`) is written so a NULL
+    // row still passes (3-valued CHECK logic). Every INSERT path in this
+    // app (buildRepairBidInsert) always supplies a real value, so this
+    // only bites on legacy/anomalous rows read back.
+    @SerialName("amount_rupees") val amountRupees: Double? = null,
     @SerialName("eta_hours") val etaHours: Int? = null,
     val note: String? = null,
     val status: String? = null,
@@ -38,7 +45,11 @@ internal data class RepairBidWithDistanceDto(
     val id: String,
     @SerialName("repair_job_id") val repairJobId: String,
     @SerialName("engineer_user_id") val engineerUserId: String,
-    @SerialName("amount_rupees") val amountRupees: Double,
+    // Nullable — same repair_job_bids.amount_rupees column as
+    // RepairBidDto (see its comment); list_repair_job_bids_with_distance
+    // selects b.amount_rupees raw with no coalesce, unlike every other
+    // enriched column in the same SELECT.
+    @SerialName("amount_rupees") val amountRupees: Double? = null,
     @SerialName("eta_hours") val etaHours: Int? = null,
     val note: String? = null,
     val status: String? = null,

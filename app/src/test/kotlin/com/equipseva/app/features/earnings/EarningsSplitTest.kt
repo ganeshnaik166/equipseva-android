@@ -26,7 +26,7 @@ class EarningsSplitTest {
 
     private fun bid(
         id: String,
-        amountRupees: Double = 2500.0,
+        amountRupees: Double? = 2500.0,
         status: RepairBidStatus = RepairBidStatus.Accepted,
     ): RepairBid = RepairBid(
         id = id,
@@ -166,6 +166,29 @@ class EarningsSplitTest {
             listOf("a", "b", "c"),
             out.resolvedRows.map { it.bid.id },
         )
+    }
+
+    @Test fun `null bid amount folds to zero rather than crashing the sum`() {
+        // Round 3760 — repair_job_bids.amount_rupees can be null on a
+        // legacy/anomalous row (no NOT NULL constraint; round-479's own
+        // pre-flight audit guards against exactly this). One poisoned
+        // row must not crash the whole Earnings totals — and must not
+        // silently contribute more than ₹0 to either total.
+        val rows = listOf(
+            EarningsViewModel.EarningRow(
+                bid = bid("a", amountRupees = null),
+                job = job("a", RepairJobStatus.Completed, engineerPayoutRupees = null),
+            ),
+            EarningsViewModel.EarningRow(
+                bid = bid("b", amountRupees = null),
+                job = job("b", RepairJobStatus.InProgress),
+            ),
+        )
+        val out = computeEarningsSplit(rows)
+        assertEquals(0.0, out.paidTotal, 0.001)
+        assertEquals(0.0, out.pendingTotal, 0.001)
+        // Still resolved (job present) — only the amount folds to zero.
+        assertEquals(2, out.resolvedRows.size)
     }
 
     @Test fun `cancelled jobs go into pendingTotal (not paid)`() {

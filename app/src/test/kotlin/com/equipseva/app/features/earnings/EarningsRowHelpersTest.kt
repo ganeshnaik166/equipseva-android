@@ -60,7 +60,7 @@ class EarningsRowHelpersTest {
                 paid = true,
                 engineerPayoutRupees = 9000.0,
                 bidAmountRupees = 10_000.0,
-            ),
+            )!!,
             0.0,
         )
     }
@@ -74,7 +74,7 @@ class EarningsRowHelpersTest {
                 paid = true,
                 engineerPayoutRupees = null,
                 bidAmountRupees = 10_000.0,
-            ),
+            )!!,
             0.0,
         )
     }
@@ -88,7 +88,7 @@ class EarningsRowHelpersTest {
                 paid = false,
                 engineerPayoutRupees = 9000.0,
                 bidAmountRupees = 10_000.0,
-            ),
+            )!!,
             0.0,
         )
     }
@@ -100,8 +100,33 @@ class EarningsRowHelpersTest {
                 paid = false,
                 engineerPayoutRupees = null,
                 bidAmountRupees = 5000.0,
-            ),
+            )!!,
             0.0,
+        )
+    }
+
+    @Test fun `paid row with both payout and bid amount null returns null`() {
+        // Round 3760 — repair_job_bids.amount_rupees can itself be null
+        // on a legacy/anomalous row; caller renders "—" for a null
+        // result rather than crashing or showing a misleading ₹0.
+        assertEquals(
+            null,
+            transactionRowDisplayAmount(
+                paid = true,
+                engineerPayoutRupees = null,
+                bidAmountRupees = null,
+            ),
+        )
+    }
+
+    @Test fun `pending row with null bid amount returns null`() {
+        assertEquals(
+            null,
+            transactionRowDisplayAmount(
+                paid = false,
+                engineerPayoutRupees = null,
+                bidAmountRupees = null,
+            ),
         )
     }
 

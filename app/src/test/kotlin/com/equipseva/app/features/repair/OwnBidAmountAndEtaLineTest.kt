@@ -39,4 +39,14 @@ class OwnBidAmountAndEtaLineTest {
         val out = ownBidAmountAndEtaLine(1.0, 720)
         assertTrue(out.endsWith("ETA 720h"))
     }
+
+    @Test fun `null amount renders em-dash placeholder instead of crashing or showing zero`() {
+        // Round 3760 — repair_job_bids.amount_rupees can be null on a
+        // legacy/anomalous row; must not crash and must not silently
+        // render a misleading ₹0.
+        val out = ownBidAmountAndEtaLine(null, 4)
+        assertTrue(out.startsWith("—"))
+        assertEquals(false, out.contains("₹"))
+        assertTrue(out.endsWith(" · ETA 4h"))
+    }
 }

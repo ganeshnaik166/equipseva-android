@@ -189,7 +189,9 @@ private fun BidRowCard(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = formatRupees(row.bid.amountRupees),
+                // Round 3760 — repair_job_bids.amount_rupees can be null
+                // on a legacy/anomalous row.
+                text = row.bid.amountRupees?.let { formatRupees(it) } ?: "—",
                 style = EsType.H5,
                 color = SevaGreen700,
             )

@@ -21,7 +21,15 @@ class CashSurveyRepository @Inject constructor(
     @Serializable
     data class PendingSurvey(
         @SerialName("repair_job_id") val repairJobId: String,
-        @SerialName("job_number") val jobNumber: String,
+        // Nullable: get_pending_cash_survey() (20260517100000) selects
+        // rj.job_number raw with no coalesce, and repair_jobs.job_number is
+        // genuinely nullable in production — over a dozen independent
+        // trigger functions across the migration corpus (e.g.
+        // 20260503120000, 20260513100000, 20260714500000) all defensively
+        // do `COALESCE(NEW.job_number, substring(NEW.id::text, 1, 8))`
+        // before using it. A non-nullable Kotlin field here with no
+        // default would crash kotlinx.serialization on a legacy row.
+        @SerialName("job_number") val jobNumber: String? = null,
         @SerialName("engineer_name") val engineerName: String,
         @SerialName("completed_at") val completedAt: String,
     )

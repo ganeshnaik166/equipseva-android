@@ -501,7 +501,7 @@ private fun TransactionRow(
                 bidAmountRupees = row.bid.amountRupees,
             )
             Text(
-                text = formatRupees(displayAmount),
+                text = displayAmount?.let { formatRupees(it) } ?: "—",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = SevaInk900,
@@ -667,8 +667,11 @@ internal fun transactionRowTimeLine(
 internal fun transactionRowDisplayAmount(
     paid: Boolean,
     engineerPayoutRupees: Double?,
-    bidAmountRupees: Double,
-): Double = if (paid) {
+    // Round 3760 — repair_job_bids.amount_rupees can be null on a
+    // legacy/anomalous row; nullable in, nullable out. Caller renders
+    // "—" for a null result rather than a misleading ₹0.
+    bidAmountRupees: Double?,
+): Double? = if (paid) {
     engineerPayoutRupees ?: bidAmountRupees
 } else {
     bidAmountRupees

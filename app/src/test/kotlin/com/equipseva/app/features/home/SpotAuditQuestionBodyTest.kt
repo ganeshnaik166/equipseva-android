@@ -57,7 +57,7 @@ class SpotAuditQuestionBodyTest {
         // Pin the distinct prompts. Same job context, different
         // questions: cash survey asks about off-platform payment;
         // spot audit asks for a rating.
-        val cashBody = cashSurveyQuestionBody("RPR-1", "Asha")
+        val cashBody = cashSurveyQuestionBody("RPR-1", "abc", "Asha")
         val auditBody = spotAuditQuestionBody("RPR-1", "abc", "Asha")
         assertEquals(false, cashBody == auditBody)
         assertTrue(cashBody.contains("payment outside"))

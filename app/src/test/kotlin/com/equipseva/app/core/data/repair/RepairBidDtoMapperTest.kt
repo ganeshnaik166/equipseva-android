@@ -18,7 +18,7 @@ class RepairBidDtoMapperTest {
         id: String = "b1",
         repairJobId: String = "j1",
         engineerUserId: String = "u1",
-        amountRupees: Double = 2500.0,
+        amountRupees: Double? = 2500.0,
     ) = RepairBidDto(
         id = id,
         repairJobId = repairJobId,
@@ -31,7 +31,7 @@ class RepairBidDtoMapperTest {
         assertEquals("b1", bid.id)
         assertEquals("j1", bid.repairJobId)
         assertEquals("u1", bid.engineerUserId)
-        assertEquals(2500.0, bid.amountRupees, 0.0)
+        assertEquals(2500.0, bid.amountRupees!!, 0.0)
         assertNull(bid.etaHours)
         assertNull(bid.note)
         assertEquals(RepairBidStatus.Unknown, bid.status)
@@ -45,6 +45,16 @@ class RepairBidDtoMapperTest {
         assertNull(bid.engineerTotalJobs)
         assertNull(bid.engineerCity)
         assertNull(bid.distanceKm)
+    }
+
+    @Test fun `null amount passes through as null (legacy row, no NOT NULL constraint)`() {
+        // Round 3760 — repair_job_bids.amount_rupees has no NOT NULL
+        // constraint (round-479's audit migration explicitly guards
+        // WHERE amount_rupees IS NOT NULL before its own precision
+        // check). A legacy/anomalous row must map to a null domain
+        // amount rather than crash the decode.
+        val bid = baseDto(amountRupees = null).toDomain()
+        assertNull(bid.amountRupees)
     }
 
     @Test fun `blank note folds to null`() {

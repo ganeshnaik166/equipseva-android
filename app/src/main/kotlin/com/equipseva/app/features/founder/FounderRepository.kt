@@ -97,10 +97,20 @@ class FounderRepository @Inject constructor(
     @Serializable
     data class RecentPayment(
         @SerialName("order_id") val orderId: String,
-        @SerialName("order_number") val orderNumber: String,
-        @SerialName("buyer_user_id") val buyerUserId: String,
+        // Nullable: admin_recent_payments (round385) selects
+        // o.order_number/buyer_user_id/total_amount raw from
+        // spare_part_orders with no coalesce. All three are genuinely
+        // nullable in production — order_number and buyer_user_id are
+        // both explicitly null-guarded elsewhere in the migration corpus
+        // (notify_on_order_shipped coalesces order_number and RETURNs
+        // early on a null buyer_user_id), and total_amount is left
+        // uncomputed for service_role/postgres-authored rows by
+        // compute_order_totals() and filtered IS NOT NULL by
+        // founder_spare_parts_demand_forecast before aggregating.
+        @SerialName("order_number") val orderNumber: String? = null,
+        @SerialName("buyer_user_id") val buyerUserId: String? = null,
         @SerialName("buyer_name") val buyerName: String? = null,
-        @SerialName("total_amount") val totalAmount: Double,
+        @SerialName("total_amount") val totalAmount: Double? = null,
         @SerialName("payment_status") val paymentStatus: String? = null,
         @SerialName("order_status") val orderStatus: String? = null,
         @SerialName("razorpay_order_id") val razorpayOrderId: String? = null,
@@ -212,7 +222,15 @@ class FounderRepository @Inject constructor(
 
     @Serializable
     data class TopEngineerRow(
-        @SerialName("engineer_user_id") val engineerUserId: String,
+        // Nullable: admin_top_engineers (round374) groups by
+        // repair_job_escrow.engineer_user_id filtered to status =
+        // 'released' — exactly the status round290's FK-relax
+        // (escrow_fk_set_null) exempted from the column's NOT-NULL-
+        // equivalent CHECK (ON DELETE SET NULL when an engineer account
+        // is deleted after their jobs are released/paid out). Unused by
+        // any UI consumer (dashboard only reads fullName/jobsCompleted/
+        // revenueInr/engineerId), so no downstream fallback is needed.
+        @SerialName("engineer_user_id") val engineerUserId: String? = null,
         // Round 374 — engineers.id surrogate so the dashboard row tap can
         // deep-link to engineer_public_profile (which keys on engineers.id,
         // not user_id). Nullable in case the engineers row is missing (a
@@ -768,7 +786,14 @@ class FounderRepository @Inject constructor(
     data class AdminEngineerPayout(
         val id: String,
         @SerialName("repair_job_id") val repairJobId: String,
-        @SerialName("job_number") val jobNumber: String,
+        // Nullable: admin_list_engineer_payouts (round428) selects
+        // rj.job_number raw from repair_jobs with no coalesce.
+        // repair_jobs.job_number is populated asynchronously — a dozen+
+        // independent trigger functions across the migration corpus
+        // (e.g. 20260503120000, 20260513100000, 20260714500000) all
+        // defensively do `COALESCE(NEW.job_number, substring(NEW.id::text,
+        // 1, 8))` before using it, confirming it's genuinely nullable.
+        @SerialName("job_number") val jobNumber: String? = null,
         @SerialName("engineer_user_id") val engineerUserId: String,
         @SerialName("engineer_name") val engineerName: String? = null,
         @SerialName("engineer_phone") val engineerPhone: String? = null,
