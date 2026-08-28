@@ -64,5 +64,24 @@ enum class RepairEquipmentCategory(val storageKey: String, val displayName: Stri
     companion object {
         fun fromKey(key: String?): RepairEquipmentCategory =
             entries.firstOrNull { it.storageKey == key } ?: Other
+
+        /**
+         * r1496 — the v0.4 serviceable categories, mirroring the server's
+         * equipment_taxonomy_class seed (allowed_in_v04 = true): the
+         * repair_jobs / amc_contracts taxonomy-gate triggers HARD-REJECT
+         * every other type (Class C/D + AERB are out of scope; types absent
+         * from the table raise equipment_type_unknown). The round486
+         * migration's design note says "only allowed values are listed in
+         * client-side enums anyway" — pickers must offer ONLY these, else
+         * users compose jobs/contracts the server is guaranteed to reject.
+         * This static mirror must be kept in sync with the seed.
+         */
+        val V04_ALLOWED: List<RepairEquipmentCategory> = listOf(
+            PatientMonitoring,
+            Laboratory,
+            Dental,
+            Ophthalmology,
+            Sterilization,
+        )
     }
 }

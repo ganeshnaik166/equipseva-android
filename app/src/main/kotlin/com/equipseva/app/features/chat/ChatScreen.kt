@@ -169,12 +169,20 @@ fun ChatScreen(
                     )
                 }
                 TypingIndicatorRow(visible = state.typingUserIds.isNotEmpty())
-                ChatInputBar(
-                    draft = state.draft,
-                    canSend = state.canSend,
-                    onDraftChange = viewModel::onDraftChange,
-                    onSend = viewModel::onSend,
-                )
+                // r1495 — the server rejects every send once the related job
+                // is completed/cancelled (chat_conversation_closed trigger).
+                // Swap the input for a notice instead of letting the user
+                // compose a message that can only fail at send time.
+                if (state.relatedJobClosed) {
+                    ChatClosedBar()
+                } else {
+                    ChatInputBar(
+                        draft = state.draft,
+                        canSend = state.canSend,
+                        onDraftChange = viewModel::onDraftChange,
+                        onSend = viewModel::onSend,
+                    )
+                }
             }
         },
     ) { padding ->
@@ -581,6 +589,35 @@ private fun MessageRow(
                     )
                 }
             }
+        }
+    }
+}
+
+// r1495 — replaces the input bar once the related repair job is
+// completed/cancelled. The chat_messages_block_on_completed_job trigger
+// rejects every INSERT on such conversations, so an active input could
+// only ever produce a failed send. History stays readable above.
+@Composable
+private fun ChatClosedBar() {
+    Surface(
+        color = Color.White,
+        tonalElevation = 0.dp,
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(BorderDefault),
+            )
+            Text(
+                text = stringResource(R.string.chat_closed_notice),
+                fontSize = 13.sp,
+                color = SevaInk500,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+            )
         }
     }
 }

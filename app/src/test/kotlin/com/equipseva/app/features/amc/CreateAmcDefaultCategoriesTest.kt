@@ -7,72 +7,46 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Pins the AMC wizard's default equipment-category list. The contract
- * is "every RepairEquipmentCategory storage key EXCEPT `other`" —
- * AMC contracts must cover at least one known equipment family
- * because the engineer-rotation logic downstream can't reason about
- * the generic Other bucket.
+ * Pins the AMC wizard's equipment-category list. Contract since r1496:
+ * ONLY the v0.4 taxonomy-allowed categories (V04_ALLOWED — the static
+ * mirror of equipment_taxonomy_class allowed_in_v04=true). The earlier
+ * full-enum-minus-other list let hospitals tick out-of-scope categories
+ * (imaging_radiology, life_support, surgical, dialysis, cardiology) or
+ * not-in-taxonomy ones (physiotherapy, neonatal, hospital_furniture,
+ * oncology, ent) that the amc_contracts taxonomy gate hard-rejects on
+ * create — the wizard's final submit failed after 4 steps of input.
  *
- * A regression that flipped to "include Other" would let hospitals
- * post AMC contracts with no usable rotation match.
+ * `other` stays excluded too: the engineer-rotation logic can't reason
+ * about the generic Other bucket.
  */
 class CreateAmcDefaultCategoriesTest {
 
-    @Test fun `Other storage key is intentionally absent`() {
-        // Critical: the engineer-rotation RPC can't pick a specialised
-        // engineer for an "other"-category contract.
-        assertFalse(
-            "'other' must not be in the AMC wizard's default category list",
-            DEFAULT_CATEGORIES.contains("other"),
+    @Test fun `list is exactly the v04-allowed storage keys`() {
+        assertEquals(
+            RepairEquipmentCategory.V04_ALLOWED.map { it.storageKey },
+            DEFAULT_CATEGORIES,
         )
-        // Case-sensitivity guard — the enum's name() is "Other" but
-        // storageKey is "other"; both spellings rejected.
+    }
+
+    @Test fun `Other storage key is absent`() {
+        assertFalse(DEFAULT_CATEGORIES.contains("other"))
         assertFalse(DEFAULT_CATEGORIES.contains("Other"))
     }
 
-    @Test fun `count is RepairEquipmentCategory entries minus one`() {
-        assertEquals(
-            RepairEquipmentCategory.entries.size - 1,
-            DEFAULT_CATEGORIES.size,
-        )
+    @Test fun `server-rejected categories are absent (taxonomy hard-gate)`() {
+        // Out of scope (allowed_in_v04 = false): Class C/D + AERB.
+        listOf("imaging_radiology", "life_support", "surgical", "dialysis", "cardiology")
+            .forEach { assertFalse("$it must not be offered", DEFAULT_CATEGORIES.contains(it)) }
+        // Not in the taxonomy table at all (equipment_type_unknown).
+        listOf("physiotherapy", "neonatal", "hospital_furniture", "oncology", "ent")
+            .forEach { assertFalse("$it must not be offered", DEFAULT_CATEGORIES.contains(it)) }
     }
 
-    @Test fun `every non-Other category surfaces`() {
-        RepairEquipmentCategory.entries
-            .filter { it != RepairEquipmentCategory.Other }
-            .forEach { cat ->
-                assertTrue(
-                    "missing ${cat.storageKey} from DEFAULT_CATEGORIES",
-                    DEFAULT_CATEGORIES.contains(cat.storageKey),
-                )
-            }
-    }
-
-    @Test fun `entries are storage keys (server-side wire format)`() {
-        // Pin so a refactor doesn't accidentally start emitting
-        // displayName values which the server-side CHECK constraint
-        // would reject.
-        assertTrue(
-            "imaging_radiology snake-case storage key expected",
-            DEFAULT_CATEGORIES.contains("imaging_radiology"),
-        )
-        assertTrue(
-            "ent lowercase storage key expected",
-            DEFAULT_CATEGORIES.contains("ent"),
-        )
-        // Display names are NOT what gets emitted.
-        assertFalse(DEFAULT_CATEGORIES.contains("Imaging & radiology"))
-        assertFalse(DEFAULT_CATEGORIES.contains("ENT"))
-    }
-
-    @Test fun `list ordering follows the enum declaration order`() {
-        // Pin so a future tweak (e.g. alphabetical sort) is reviewed —
-        // the picker UI assumes the enum order (radiology /
-        // monitoring / life-support first).
-        val expected = RepairEquipmentCategory.entries
-            .map { it.storageKey }
-            .filter { it != "other" }
-        assertEquals(expected, DEFAULT_CATEGORIES)
+    @Test fun `all five serviceable categories are offered as storage keys`() {
+        listOf("patient_monitoring", "laboratory", "dental", "ophthalmology", "sterilization")
+            .forEach { assertTrue("missing $it", DEFAULT_CATEGORIES.contains(it)) }
+        // Display names are NOT what gets emitted (server CHECK expects keys).
+        assertFalse(DEFAULT_CATEGORIES.contains("Patient monitoring"))
     }
 
     @Test fun `no duplicates`() {

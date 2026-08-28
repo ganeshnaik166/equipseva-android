@@ -74,7 +74,15 @@ class RequestServiceViewModel @Inject constructor(
     }
 
     data class UiState(
-        val category: RepairEquipmentCategory = RepairEquipmentCategory.ImagingRadiology,
+        // r1496 — default must be a v0.4-SERVICEABLE category. The old default
+        // (ImagingRadiology) is allowed_in_v04=false server-side, so a hospital
+        // who kept the pre-selected chip had their post hard-rejected by the
+        // repair_jobs taxonomy gate every time.
+        val category: RepairEquipmentCategory = RepairEquipmentCategory.PatientMonitoring,
+        // Categories offered by the picker — the static mirror of the server
+        // taxonomy (allowed_in_v04 = true). See RepairEquipmentCategory.V04_ALLOWED.
+        val allowedCategories: List<RepairEquipmentCategory> =
+            RepairEquipmentCategory.V04_ALLOWED,
         val urgency: RepairJobUrgency = RepairJobUrgency.Scheduled,
         val brand: String = "",
         val model: String = "",
@@ -120,7 +128,7 @@ class RequestServiceViewModel @Inject constructor(
     private fun restoredInitialState(): UiState {
         val category = savedStateHandle.get<String>(SavedKeys.CATEGORY)
             ?.let { name -> runCatching { RepairEquipmentCategory.valueOf(name) }.getOrNull() }
-            ?: RepairEquipmentCategory.ImagingRadiology
+            ?: RepairEquipmentCategory.PatientMonitoring
         val urgency = savedStateHandle.get<String>(SavedKeys.URGENCY)
             ?.let { name -> runCatching { RepairJobUrgency.valueOf(name) }.getOrNull() }
             ?: RepairJobUrgency.Scheduled

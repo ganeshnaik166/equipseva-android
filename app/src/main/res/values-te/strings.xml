@@ -526,6 +526,7 @@
     <string name="chat_message_placeholder">Message&#8230;</string>
     <string name="chat_edit_message_header">Edit message</string>
     <string name="chat_repair_job_suffix">" · Repair job"</string>
+    <string name="chat_closed_notice">This chat is closed — the repair job has ended. You can still read the conversation.</string>
 
     <!-- Founder categories screen -->
     <string name="founder_categories_new_category">New category</string>

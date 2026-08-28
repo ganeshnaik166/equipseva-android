@@ -589,14 +589,16 @@ class CreateAmcWizardViewModel @Inject constructor(
 // duplicate hardcoded list that drifted out of sync (round 318 fixed
 // the divergence; this prevents the next one).
 //
-// "other" is intentionally last per the enum order; we drop it from
-// the picker because AMC contracts always cover at least one known
-// equipment family — `other` would let a hospital create a contract
-// the engineer-rotation logic can't reason about.
+// r1496 — the picker offers ONLY v0.4 taxonomy-allowed categories. The old
+// full-enum list let a hospital tick out-of-scope categories (imaging /
+// life-support / surgical / …) that the amc_contracts taxonomy gate
+// hard-rejects on create (equipment_category_out_of_scope) — the wizard's
+// final submit failed after 4 steps of input. `other` remains excluded
+// (never in V04_ALLOWED): the engineer-rotation logic can't reason about
+// the generic Other bucket.
 internal val DEFAULT_CATEGORIES: List<String> =
-    com.equipseva.app.core.data.repair.RepairEquipmentCategory.entries
+    com.equipseva.app.core.data.repair.RepairEquipmentCategory.V04_ALLOWED
         .map { it.storageKey }
-        .filter { it != "other" }
 
 
 @Composable
