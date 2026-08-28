@@ -62,12 +62,6 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
 
-        // Round 514 (v0.4 P5 #9) — ship only the locales we actually
-        // translate, so Play Asset Delivery doesn't bake stub
-        // translations from AndroidX libraries for ~80 unsupported
-        // languages into the APK.
-        resourceConfigurations += listOf("en", "hi", "te")
-
         buildConfigField("String", "SUPABASE_URL", "\"${localOrEnv("SUPABASE_URL")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localOrEnv("SUPABASE_ANON_KEY")}\"")
         buildConfigField("String", "SENTRY_DSN", "\"${localOrEnv("SENTRY_DSN")}\"")
@@ -163,14 +157,20 @@ android {
     }
 
     sourceSets {
+        // Migrated off the deprecated srcDirs(vararg)/setSrcDirs(Iterable)
+        // (AGP 9.1.1 warning: "Use `directories` mutable set instead.")
+        // Confirmed via javap on the actual AGP 9.2.1 gradle-api.jar that
+        // AndroidSourceDirectorySet.directories is a Set<String> (add-only,
+        // no setter) — applies to `java` regardless of
+        // android.builtInKotlin (this interface isn't built-in-Kotlin-only).
         named("main") {
-            java.srcDirs("src/main/kotlin")
+            java.directories += "src/main/kotlin"
         }
         named("test") {
-            java.srcDirs("src/test/kotlin")
+            java.directories += "src/test/kotlin"
         }
         named("androidTest") {
-            java.srcDirs("src/androidTest/kotlin")
+            java.directories += "src/androidTest/kotlin"
         }
     }
 
@@ -197,6 +197,19 @@ android {
                 "/META-INF/NOTICE*",
             )
         }
+    }
+
+    // Round 514 (v0.4 P5 #9) — ship only the locales we actually
+    // translate, so Play Asset Delivery doesn't bake stub translations
+    // from AndroidX libraries for ~80 unsupported languages into the APK.
+    // Migrated off the deprecated defaultConfig.resourceConfigurations
+    // (AGP 9.1.1 warning: "Support for resource configurations will be
+    // removed... use androidResources.localeFilters") — confirmed via
+    // javap on the actual AGP 9.2.1 gradle-api.jar that localeFilters is
+    // a Set<String> getter (add-only, no setter) on
+    // ApplicationAndroidResources, not defaultConfig/BaseFlavor.
+    androidResources {
+        localeFilters += setOf("en", "hi", "te")
     }
 }
 
