@@ -30,7 +30,7 @@ type TrendRow = {
   return_overdue_records: number;
 };
 type CapaRow = { capa_status: string; findings: number; overdue_flag: number };
-type CauseRow = { root_cause: string; occurrences: number; pct: number };
+type CauseRow = { root_cause: string | null; occurrences: number; pct: number };
 type DigestRow = {
   department: string;
   records: number;

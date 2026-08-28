@@ -31,7 +31,7 @@ type TrendRow = {
   worsening_contracts: number;
 };
 type CapaRow = { capa_status: string; actions: number; overdue_flag: number };
-type CauseRow = { root_cause: string; occurrences: number; pct: number };
+type CauseRow = { root_cause: string | null; occurrences: number; pct: number };
 type DigestRow = {
   contracts_at_risk: number;
   total_leakage_rupees: number;

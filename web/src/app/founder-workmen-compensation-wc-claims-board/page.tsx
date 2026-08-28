@@ -31,7 +31,7 @@ type TrendRow = {
   litigation_claims: number;
 };
 type CapaRow = { capa_status: string; actions: number; overdue_flag: number };
-type CauseRow = { root_cause: string; occurrences: number; pct: number };
+type CauseRow = { root_cause: string | null; occurrences: number; pct: number };
 type DelayRow = {
   incident_location: string;
   delayed_or_pending_claims: number;

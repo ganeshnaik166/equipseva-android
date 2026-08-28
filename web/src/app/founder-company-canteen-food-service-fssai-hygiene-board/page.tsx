@@ -36,7 +36,7 @@ type CapaRow = {
   overdue_flag: number;
 };
 type CauseRow = {
-  root_cause: string;
+  root_cause: string | null;
   occurrences: number;
   pct: number;
 };

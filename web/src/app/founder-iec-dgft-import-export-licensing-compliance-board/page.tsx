@@ -30,7 +30,7 @@ type TrendRow = {
   worsening_registrations: number;
 };
 type CapaRow = { capa_status: string; findings: number; overdue_flag: number };
-type CauseRow = { root_cause: string; occurrences: number; pct: number };
+type CauseRow = { root_cause: string | null; occurrences: number; pct: number };
 type DigestRow = {
   reg_class: string;
   registrations: number;
