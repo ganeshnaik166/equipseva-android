@@ -59,7 +59,7 @@ type FollowUp = {
   topic: string;
   action_item: string;
   owner_name: string;
-  follow_up_notes: string;
+  follow_up_notes: string | null;
   priority: string;
 };
 

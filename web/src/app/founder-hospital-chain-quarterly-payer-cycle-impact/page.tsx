@@ -59,7 +59,7 @@ type DistressedRow = {
   settlement_pct: number;
   amc_invoice_impact_rupees: number;
   our_amc_role: string;
-  notes: string;
+  notes: string | null;
 };
 
 type RoleRow = {

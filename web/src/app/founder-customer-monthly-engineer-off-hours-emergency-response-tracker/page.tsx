@@ -31,7 +31,7 @@ type SlaRow = {
   breached_calls: number;
   penalty_rupees: number;
   contract_value_rupees: number;
-  notes: string;
+  notes: string | null;
 };
 
 type WindowRow = {

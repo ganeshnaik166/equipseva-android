@@ -40,7 +40,7 @@ type CovenantRow = {
   covenant_compliance: string;
   relationship_manager: string;
   rm_phone: string;
-  notes: string;
+  notes: string | null;
 };
 
 type TxnRow = {
@@ -68,7 +68,7 @@ type UnreconRow = {
   amount_rupees: number;
   status: string;
   approver_email: string;
-  notes: string;
+  notes: string | null;
 };
 
 type KpiRow = {
