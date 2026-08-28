@@ -5,13 +5,23 @@ import kotlinx.serialization.Serializable
 
 /**
  * Wire shape for inserting a new `repair_jobs` row. The server fills in id,
- * job_number, created_at, updated_at, and the job_type / urgency / status defaults
- * if we don't supply them. We pass only the fields the hospital user actually
- * captured on the request-service form.
+ * job_number, created_at, updated_at, and the job_type / urgency defaults if we
+ * don't supply them. We pass the fields the hospital user captured on the
+ * request-service form, plus [status] (see below).
+ *
+ * `status` MUST be sent and MUST be a required (no-default) field: the INSERT
+ * RLS policy has `WITH CHECK (status = 'requested')` (20260428180000). The
+ * column's own server-side default isn't pinned by any migration in this
+ * repo — relying on it to happen to equal 'requested' is exactly the kind of
+ * drift that broke this insert on a sibling codebase (r1400: a fix batch
+ * traced hospital "Post new job" failing outright to this same gap). Keeping
+ * `status` non-default/required forces it onto the wire deterministically
+ * regardless of what the column default is or ever becomes.
  */
 @Serializable
 internal data class RepairJobInsertDto(
     @SerialName("hospital_user_id") val hospitalUserId: String,
+    val status: String,
     @SerialName("hospital_org_id") val hospitalOrgId: String? = null,
     @SerialName("equipment_type") val equipmentType: String? = null,
     @SerialName("equipment_brand") val equipmentBrand: String? = null,

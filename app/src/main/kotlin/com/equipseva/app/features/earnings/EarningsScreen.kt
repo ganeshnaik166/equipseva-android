@@ -262,7 +262,9 @@ fun EarningsScreen(
                             if (state.amcEarnings.isNotEmpty()) {
                                 item("amc_history") {
                                     EsSection(
-                                        title = "AMC visit payouts (₹${formatRupees(state.amcPaidTotal)})",
+                                        // r1391 — formatRupees already prepends the ₹ glyph;
+                                        // a literal ₹ prefix here doubled it to "₹₹1,80,000".
+                                        title = "AMC visit payouts (${formatRupees(state.amcPaidTotal)})",
                                     ) {
                                         com.equipseva.app.features.earnings.AmcEarningsList(
                                             rows = state.amcEarnings,

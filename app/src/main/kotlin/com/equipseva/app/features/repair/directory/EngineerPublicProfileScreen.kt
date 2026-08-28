@@ -1235,11 +1235,17 @@ private fun ChipFlowNeutral(items: List<String>) {
  * through without separator. Pin so a refactor doesn't surface
  * ", State" or "City," fragments.
  */
-internal fun formatCityStateLine(city: String?, state: String?): String =
-    listOfNotNull(
-        city?.takeIf { it.isNotBlank() },
-        state?.takeIf { it.isNotBlank() },
-    ).joinToString(", ")
+internal fun formatCityStateLine(city: String?, state: String?): String {
+    val c = city?.trim().orEmpty()
+    val s = state?.trim().orEmpty()
+    if (c.isEmpty()) return s
+    if (s.isEmpty()) return c
+    // De-dupe: some (seed / legacy) engineer rows store "City, State" in the
+    // `city` field, which then rendered as "Hyderabad, Telangana, Telangana".
+    // If the city already equals or ends with the state, don't append it again.
+    if (c.equals(s, ignoreCase = true) || c.endsWith(s, ignoreCase = true)) return c
+    return "$c, $s"
+}
 
 /**
  * Hourly-rate stat-card value: rupee-formatted, or em-dash (U+2014)

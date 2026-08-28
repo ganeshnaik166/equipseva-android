@@ -48,6 +48,7 @@ class BuildRepairJobInsertTest {
     @Test fun `minimal draft maps to lean DTO with everything optional folded to null`() {
         val dto = buildRepairJobInsert(draft())
         assertEquals("u-1", dto.hospitalUserId)
+        assertEquals("requested", dto.status)
         assertNull(dto.hospitalOrgId)
         assertEquals("imaging_radiology", dto.equipmentType)
         assertNull(dto.equipmentBrand)
@@ -132,6 +133,14 @@ class BuildRepairJobInsertTest {
     @Test fun `positive estimated cost passes through`() {
         val dto = buildRepairJobInsert(draft(estimatedCostRupees = 2500.0))
         assertEquals(2500.0, dto.estimatedCost!!, 0.001)
+    }
+
+    @Test fun `status is always requested and never null (INSERT RLS WITH CHECK)`() {
+        // The repair_jobs INSERT policy requires status='requested'. Pin so a
+        // refactor that re-defaults or drops this field can't silently
+        // reintroduce a "hospital can't post a job" outage. r1400.
+        assertEquals("requested", buildRepairJobInsert(draft()).status)
+        assertEquals("requested", buildRepairJobInsert(draft(hospitalOrgId = "org-9")).status)
     }
 
     @Test fun `urgency uses the enum storageKey`() {
