@@ -11,6 +11,11 @@ a scheduler. 20 have none at all.** Nothing failed loudly, because every
 `extname = 'pg_cron'` or wrapped in `EXCEPTION WHEN OTHERS THEN RAISE
 NOTICE`, so the entire set failed silently at migration time.
 
+**19 of those 20 already have their RPC in production**, so for almost
+all of them this is a wiring job, not development work. The single
+exception is `founder_invoice_digest_daily`, whose target is an edge
+function that nothing invokes.
+
 ## Why nothing is scheduled via pg_cron
 
 `pg_cron` **is not installed on this project** — there is no `cron`
@@ -63,8 +68,9 @@ pg_cron jobs (`requeue_stuck_engineer_payouts`,
 
 ## The 20 with NO scheduler
 
-**RPC exists in prod — wiring it into a `cron-tick` slot is all that is
-needed (14):**
+**Every one of these has its RPC present in production. The gap is the
+SCHEDULER, not the implementation — wiring each into a `cron-tick` slot
+is the whole fix (19):**
 
 | job | schedule | RPC | why it matters |
 |---|---|---|---|
@@ -83,17 +89,40 @@ needed (14):**
 | `scan_collusion_pairs_daily` | daily | `scan_collusion_pairs` | fraud |
 | `scan_duplicate_accounts_daily` | daily | `scan_duplicate_accounts` | fraud |
 
-**RPC does NOT exist — the job declaration was aspirational, so there is
-nothing to schedule (4):** `purge_old_analytics_events`,
-`purge_old_nabh_export_audit`, `purge_old_investor_share_view_log`,
-`capture_db_storage_snapshot`. The last one is why
-`founder_db_storage_snapshots_summary` has never had a snapshot to
-report. The three purges are **DPDP retention obligations with no
-implementation at all** — worth confirming against the DPDP commitments
-before launch.
+Plus these five, which are the same "exists but unscheduled" shape:
 
-`founder_invoice_digest_daily` is the 20th: there IS a
-`founder_invoice_digest` edge function, but no workflow invokes it.
+| job | schedule | RPC | why it matters |
+|---|---|---|---|
+| `analytics_events_retention_sweep` | daily | same name | DPDP data-retention |
+| `investor_share_view_log_retention_sweep` | daily | same name | DPDP data-retention |
+| `nabh_export_audit_retention_sweep` | daily | same name | DPDP data-retention |
+| `db_storage_snapshot_sweep` | daily | same name | why `founder_db_storage_snapshots_summary` has no snapshot to report |
+| `recompute_all_engineer_certifications_daily` | daily | `recompute_all_engineer_certifications` | |
+
+> **Correction (same session).** The first version of this document claimed
+> these four RPCs did NOT exist and that the three retention purges were
+> "DPDP retention obligations with no implementation at all". **That was
+> wrong.** The error was mine: when a `cron.schedule()` call's SQL text
+> could not be captured by the extractor, I inferred the RPC name from
+> the job name and guessed the `purge_old_*` convention used by the
+> already-scheduled purges. In fact these four are named *identically to
+> their job*, and all four are present in production:
+> `analytics_events_retention_sweep()`,
+> `investor_share_view_log_retention_sweep()`,
+> `nabh_export_audit_retention_sweep()`, `db_storage_snapshot_sweep()`.
+> So the DPDP retention sweeps ARE implemented — they simply never run.
+> That is a materially smaller problem (wiring, not development) and it is
+> corrected here rather than left to mislead. Lesson: do not infer an
+> object's name from a naming convention when you can ask the catalog.
+
+**The one genuine non-RPC:** `founder_invoice_digest_daily`. There IS a
+`founder_invoice_digest` **edge function**, so it correctly has no
+`pg_proc` entry — but no workflow invokes it, so the daily invoice digest
+never sends.
+
+**One wiring detail:** `run_daily_reconciliation` takes `p_date date`
+(all the others are zero-arg), so a slot for it must pass a date —
+presumably `current_date - 1` to reconcile the completed day.
 
 ## Blast radius — measured, and this is why it is not urgent yet
 
@@ -124,9 +153,9 @@ app — same root cause as the round3786 `evidence_ledger` finding).
    reversible, and the sweeps are idempotent by design.
    `sweep_timed_out_code_reds` wants `*/5`, so it needs its own workflow
    (or accept hourly).
-2. **Decide on the 4 missing RPCs** — in particular whether the three
-   retention purges are required by the DPDP posture. If so they are real
-   work, not wiring.
+2. **Wire `founder_invoice_digest`** — it is an edge function with no
+   caller, so it needs a workflow (or a `cron-tick` slot that invokes it),
+   not an RPC slot.
 3. **Optionally just enable `pg_cron`** (Supabase dashboard → Database →
    Extensions). Every one of the 31 `cron.schedule` calls is already
    written and guarded, so enabling the extension and re-running those
