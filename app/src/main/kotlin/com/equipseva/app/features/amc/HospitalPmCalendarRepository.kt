@@ -13,13 +13,40 @@ import kotlinx.serialization.json.put
 /**
  * Read-side repo for the hospital's Predictive PM (preventive
  * maintenance) calendar (round507, shipped 2026-06 as v0.4 Phase 4 #4).
+ * This repo + [HospitalPmCalendarScreen] (round3770) is the first client
+ * of that backend — no Android screen had ever called it.
  *
- * The backend has run standalone since round507 — a daily cron
- * (`recompute_all_pm_schedules_daily`, 04:00 IST) walks every
- * hospital's signed DSRs and forward-projects the next PM due date
- * per piece of equipment — but no client ever called it; the Android
- * app shipped no screen against it. This repo + [HospitalPmCalendarScreen]
- * (round3770) is the first caller.
+ * ⚠️ EXPECT AN EMPTY CALENDAR IN PRODUCTION TODAY, and do not treat that
+ * as a bug in this repo. Corrected in round3794 — an earlier version of
+ * this comment claimed "a daily cron (`recompute_all_pm_schedules_daily`,
+ * 04:00 IST) walks every hospital's signed DSRs and forward-projects the
+ * next PM due date". That was verified against production and is FALSE
+ * on two independent counts:
+ *
+ *  1. That cron job does not exist. `pg_cron` is not installed on this
+ *     Supabase project at all (no `cron` schema), which is deliberate —
+ *     scheduling is done by a Free-tier substitute: GitHub Actions
+ *     (`.github/workflows/cron-tick-{hourly,daily}.yml`) POSTing to the
+ *     `cron-tick` edge function. But `cron-tick` covers only 11 of the
+ *     31 jobs the migrations declare, and `recompute_all_pm_schedules`
+ *     is NOT one of them. Every `cron.schedule(...)` call site is either
+ *     guarded on `extname='pg_cron'` or wrapped in
+ *     `EXCEPTION WHEN OTHERS`, so the whole set failed silently and
+ *     nothing surfaced.
+ *  2. Even with the cron running it would project from signed DSRs, and
+ *     `dsr_reports` has ZERO rows — there is no DSR-submission path in
+ *     the app producing them (same root cause as the round3786
+ *     evidence_ledger finding).
+ *
+ * Live figures at the time of writing: `equipment_pm_schedule` 0 rows,
+ * `dsr_reports` 0 rows, `equipment_pm_intervals` 5 rows (seed only).
+ *
+ * So the screen is correct and honest — it renders its empty state — but
+ * it cannot show data until either the PM recompute is added to a
+ * `cron-tick` slot or a DSR-submission path exists. Both are backend
+ * work, tracked outside this file; enabling ~14 never-run sweeps at once
+ * against months of accumulated rows is a deliberate operational
+ * decision, not a code cleanup.
  */
 @Singleton
 class HospitalPmCalendarRepository @Inject constructor(
