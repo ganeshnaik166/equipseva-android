@@ -262,6 +262,43 @@ object Routes {
     // round3770 — hospital's Predictive PM calendar (round507 backend,
     // unread by any client until now).
     const val HOSPITAL_PM_CALENDAR = "amc/pm_calendar"
+    // round3771 — hospital's Equipment Fleet Health + asset drill-down
+    // (round508 backend, unread by any client until now).
+    const val HOSPITAL_FLEET_HEALTH = "amc/fleet_health"
+    const val HOSPITAL_ASSET_HISTORY = "amc/asset_history"
+    const val HOSPITAL_ASSET_HISTORY_ARG_SERIAL = "serial"
+    fun hospitalAssetHistoryRoute(equipmentSerial: String): String =
+        "$HOSPITAL_ASSET_HISTORY?$HOSPITAL_ASSET_HISTORY_ARG_SERIAL=" +
+            java.net.URLEncoder.encode(equipmentSerial, "UTF-8")
+    // round3772 — hospital loyalty commission tier self-view (v21
+    // backend, unread by any client until now).
+    const val COMMISSION_TIER = "profile/commission_tier"
+    // round3775 — engineer profile completeness meter (round504
+    // backend, unread by any client until now).
+    const val PROFILE_COMPLETENESS = "profile/completeness"
+    // round3776 — DPDP grievance filing self-service (round485
+    // backend, unread by any client until now).
+    const val DPDP_GRIEVANCE = "profile/dpdp_grievance"
+    // round3777 — engineer-to-engineer referral bounty self-service
+    // (round564 + round568 backend, unread by any client until now).
+    const val ENGINEER_REFERRALS = "profile/referrals"
+    // round3778 — Hospital Portal v2 self-service (round1395 backend,
+    // unread by any client until now).
+    const val HOSPITAL_PORTAL = "amc/hospital_portal"
+    // round3779 — engineer annual KYC renewal self-service (round497
+    // backend, unread by any client until now).
+    const val KYC_RENEWAL = "profile/kyc_renewal"
+    // round3773 — engineer "check profitability before you accept"
+    // (round502 backend, unread by any client until now).
+    const val JOB_PROFITABILITY = "mybids/profitability"
+    const val JOB_PROFITABILITY_ARG_BID_ID = "bidId"
+    fun jobProfitabilityRoute(bidId: String): String = "$JOB_PROFITABILITY/$bidId"
+    // round3774 — engineer "preview payout on an assigned job" (v21
+    // engineer_view_hospital_tier backend, unread by any client until
+    // now).
+    const val HOSPITAL_TIER_PREVIEW = "mybids/hospital_tier"
+    const val HOSPITAL_TIER_PREVIEW_ARG_JOB_ID = "jobId"
+    fun hospitalTierPreviewRoute(repairJobId: String): String = "$HOSPITAL_TIER_PREVIEW/$repairJobId"
     const val AMC_CONTRACT_DETAIL_ARG_ID = "contractId"
     fun amcContractDetailRoute(contractId: String): String =
         "$AMC_CONTRACT_DETAIL/$contractId"

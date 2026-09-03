@@ -207,6 +207,7 @@ fun MaintenanceContractsScreen(
     onBrowseEngineers: () -> Unit,
     onTierPerks: () -> Unit = {},
     onPmCalendar: () -> Unit = {},
+    onFleetHealth: () -> Unit = {},
     viewModel: MaintenanceContractsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -275,6 +276,18 @@ fun MaintenanceContractsScreen(
                                 com.equipseva.app.designsystem.components.EsBtn(
                                     text = stringResource(R.string.maintenance_contracts_view_pm_calendar),
                                     onClick = onPmCalendar,
+                                    kind = com.equipseva.app.designsystem.components.EsBtnKind.Secondary,
+                                    size = com.equipseva.app.designsystem.components.EsBtnSize.Sm,
+                                    full = true,
+                                )
+                            }
+                            // round3771 — same hospital-only gating rationale as
+                            // the PM-calendar entry above: hospital_fleet_health()
+                            // is scoped to hospital_user_id = auth.uid().
+                            item(key = "_fleet_health_entry") {
+                                com.equipseva.app.designsystem.components.EsBtn(
+                                    text = stringResource(R.string.maintenance_contracts_view_fleet_health),
+                                    onClick = onFleetHealth,
                                     kind = com.equipseva.app.designsystem.components.EsBtnKind.Secondary,
                                     size = com.equipseva.app.designsystem.components.EsBtnSize.Sm,
                                     full = true,

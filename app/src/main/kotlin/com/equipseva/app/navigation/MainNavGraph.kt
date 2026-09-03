@@ -498,6 +498,9 @@ fun MainNavGraph(
                     onPmCalendar = {
                         navController.navigate(Routes.HOSPITAL_PM_CALENDAR)
                     },
+                    onFleetHealth = {
+                        navController.navigate(Routes.HOSPITAL_FLEET_HEALTH)
+                    },
                 )
             }
             composable(Routes.AMC_TIER_PERKS) {
@@ -507,6 +510,58 @@ fun MainNavGraph(
             }
             composable(Routes.HOSPITAL_PM_CALENDAR) {
                 com.equipseva.app.features.amc.HospitalPmCalendarScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.COMMISSION_TIER) {
+                com.equipseva.app.features.profile.CommissionTierScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.PROFILE_COMPLETENESS) {
+                com.equipseva.app.features.profile.ProfileCompletenessScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.DPDP_GRIEVANCE) {
+                com.equipseva.app.features.profile.DpdpGrievanceScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.ENGINEER_REFERRALS) {
+                com.equipseva.app.features.profile.EngineerReferralScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.HOSPITAL_PORTAL) {
+                com.equipseva.app.features.amc.HospitalPortalScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.KYC_RENEWAL) {
+                com.equipseva.app.features.profile.KycRenewalScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.HOSPITAL_FLEET_HEALTH) {
+                com.equipseva.app.features.amc.HospitalFleetHealthScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenAsset = { serial ->
+                        navController.navigate(Routes.hospitalAssetHistoryRoute(serial))
+                    },
+                )
+            }
+            composable(
+                route = "${Routes.HOSPITAL_ASSET_HISTORY}?${Routes.HOSPITAL_ASSET_HISTORY_ARG_SERIAL}={${Routes.HOSPITAL_ASSET_HISTORY_ARG_SERIAL}}",
+                arguments = listOf(
+                    navArgument(Routes.HOSPITAL_ASSET_HISTORY_ARG_SERIAL) {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) {
+                com.equipseva.app.features.amc.HospitalAssetHistoryScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -578,6 +633,12 @@ fun MainNavGraph(
                     onOpenMyRepairJobs = { navController.navigate(Routes.HOSPITAL_ACTIVE_JOBS) },
                     onOpenMaintenanceContracts = { navController.navigate(Routes.AMC_CONTRACTS_LIST) },
                     onOpenMyDisputes = { navController.navigate(Routes.HOSPITAL_MY_DISPUTES) },
+                    onOpenCommissionTier = { navController.navigate(Routes.COMMISSION_TIER) },
+                    onOpenProfileCompleteness = { navController.navigate(Routes.PROFILE_COMPLETENESS) },
+                    onOpenDpdpGrievance = { navController.navigate(Routes.DPDP_GRIEVANCE) },
+                    onOpenReferrals = { navController.navigate(Routes.ENGINEER_REFERRALS) },
+                    onOpenHospitalPortal = { navController.navigate(Routes.HOSPITAL_PORTAL) },
+                    onOpenKycRenewal = { navController.navigate(Routes.KYC_RENEWAL) },
                     onOpenPublicPreview = { engineerId ->
                         navController.navigate(Routes.engineerPublicProfileRoute(engineerId))
                     },
@@ -691,6 +752,32 @@ fun MainNavGraph(
                     onBack = { navController.popBackStack() },
                     onJobClick = { jobId -> navController.navigate(Routes.repairJobDetailRoute(jobId)) },
                     onBrowseJobs = { navController.navigate(Routes.REPAIR) },
+                    onCheckProfitability = { bidId ->
+                        navController.navigate(Routes.jobProfitabilityRoute(bidId))
+                    },
+                    onPreviewPayout = { repairJobId ->
+                        navController.navigate(Routes.hospitalTierPreviewRoute(repairJobId))
+                    },
+                )
+            }
+            composable(
+                route = "${Routes.JOB_PROFITABILITY}/{${Routes.JOB_PROFITABILITY_ARG_BID_ID}}",
+                arguments = listOf(
+                    navArgument(Routes.JOB_PROFITABILITY_ARG_BID_ID) { type = NavType.StringType },
+                ),
+            ) {
+                com.equipseva.app.features.mybids.JobProfitabilityScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = "${Routes.HOSPITAL_TIER_PREVIEW}/{${Routes.HOSPITAL_TIER_PREVIEW_ARG_JOB_ID}}",
+                arguments = listOf(
+                    navArgument(Routes.HOSPITAL_TIER_PREVIEW_ARG_JOB_ID) { type = NavType.StringType },
+                ),
+            ) {
+                com.equipseva.app.features.mybids.HospitalTierPreviewScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.EARNINGS) {

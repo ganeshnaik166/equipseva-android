@@ -63,6 +63,14 @@ fun MyBidsScreen(
     onBack: () -> Unit,
     onJobClick: (String) -> Unit,
     onBrowseJobs: () -> Unit = {},
+    // round3773 — "check profitability before you accept" (any bid
+    // status; profitability_for_repair_bid is auth.uid()-scoped to the
+    // bidding engineer regardless of accept state).
+    onCheckProfitability: (bidId: String) -> Unit = {},
+    // round3774 — "preview payout" (accepted bids only; the RPC blocks
+    // pre-bid tier-shopping by requiring the caller be the assigned
+    // engineer on the job).
+    onPreviewPayout: (repairJobId: String) -> Unit = {},
     viewModel: MyBidsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -138,6 +146,8 @@ fun MyBidsScreen(
                             BidRowCard(
                                 row = row,
                                 onClick = { onJobClick(row.bid.repairJobId) },
+                                onCheckProfitability = { onCheckProfitability(row.bid.id) },
+                                onPreviewPayout = { onPreviewPayout(row.bid.repairJobId) },
                             )
                         }
                     }
@@ -151,6 +161,8 @@ fun MyBidsScreen(
 private fun BidRowCard(
     row: MyBidsViewModel.MyBidRow,
     onClick: () -> Unit,
+    onCheckProfitability: () -> Unit = {},
+    onPreviewPayout: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier
@@ -210,7 +222,39 @@ private fun BidRowCard(
                 )
             }
         }
+        // round3773/3774 — small link-style affordances into the two
+        // dormant-RPC payout-preview screens. Profitability check works
+        // for any bid status; the tier-based payout preview requires
+        // the caller to be the assigned engineer, so it's Accepted-only.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            BidLinkAction(
+                text = stringResource(R.string.mybids_check_profitability),
+                onClick = onCheckProfitability,
+            )
+            if (row.bid.status == RepairBidStatus.Accepted) {
+                BidLinkAction(
+                    text = stringResource(R.string.mybids_preview_payout),
+                    onClick = onPreviewPayout,
+                )
+            }
+        }
     }
+}
+
+@Composable
+private fun BidLinkAction(text: String, onClick: () -> Unit) {
+    Text(
+        text = text,
+        style = EsType.Caption.copy(fontWeight = FontWeight.SemiBold),
+        color = SevaGreen700,
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 2.dp),
+    )
 }
 
 @Composable

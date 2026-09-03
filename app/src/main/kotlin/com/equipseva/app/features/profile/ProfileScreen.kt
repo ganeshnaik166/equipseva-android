@@ -30,9 +30,11 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.CheckCircleOutline
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Apartment
@@ -51,6 +53,8 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.SupportAgent
+import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
@@ -125,6 +129,20 @@ fun ProfileScreen(
     onOpenMaintenanceContracts: () -> Unit = {},
     // PR-D41 — hospital self-view of dispute filing history.
     onOpenMyDisputes: () -> Unit = {},
+    // round3772 — hospital self-view of loyalty commission tier
+    // (v21_commission_tier_loyalty backend, unread by any client
+    // until now).
+    onOpenCommissionTier: () -> Unit = {},
+    // round3775 — engineer self-view of profile completeness meter.
+    onOpenProfileCompleteness: () -> Unit = {},
+    // round3776 — role-agnostic DPDP grievance filing self-service.
+    onOpenDpdpGrievance: () -> Unit = {},
+    // round3777 — engineer-to-engineer referral bounty self-service.
+    onOpenReferrals: () -> Unit = {},
+    // round3778 — hospital account self-service portal.
+    onOpenHospitalPortal: () -> Unit = {},
+    // round3779 — engineer annual KYC renewal self-service.
+    onOpenKycRenewal: () -> Unit = {},
     onSwitchService: () -> Unit = {},
     onSignIn: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -265,6 +283,12 @@ fun ProfileScreen(
                         onOpenPublicPreview = onOpenPublicPreview,
                         onOpenMaintenanceContracts = onOpenMaintenanceContracts,
                         onOpenMyDisputes = onOpenMyDisputes,
+                        onOpenCommissionTier = onOpenCommissionTier,
+                        onOpenProfileCompleteness = onOpenProfileCompleteness,
+                        onOpenDpdpGrievance = onOpenDpdpGrievance,
+                        onOpenReferrals = onOpenReferrals,
+                        onOpenHospitalPortal = onOpenHospitalPortal,
+                        onOpenKycRenewal = onOpenKycRenewal,
                         onSwitchService = viewModel::onToggleRoleAndGoHome,
                         onPickAvatar = viewModel::uploadAvatar,
                     )
@@ -405,6 +429,12 @@ private fun ProfileContent(
     onOpenPublicPreview: (engineerId: String) -> Unit,
     onOpenMaintenanceContracts: () -> Unit,
     onOpenMyDisputes: () -> Unit,
+    onOpenCommissionTier: () -> Unit,
+    onOpenProfileCompleteness: () -> Unit,
+    onOpenDpdpGrievance: () -> Unit,
+    onOpenReferrals: () -> Unit,
+    onOpenHospitalPortal: () -> Unit,
+    onOpenKycRenewal: () -> Unit,
     onSwitchService: () -> Unit,
     onPickAvatar: (Uri) -> Unit,
 ) {
@@ -489,6 +519,12 @@ private fun ProfileContent(
             onOpenPublicPreview = onOpenPublicPreview,
             onOpenMaintenanceContracts = onOpenMaintenanceContracts,
             onOpenMyDisputes = onOpenMyDisputes,
+            onOpenCommissionTier = onOpenCommissionTier,
+            onOpenProfileCompleteness = onOpenProfileCompleteness,
+            onOpenDpdpGrievance = onOpenDpdpGrievance,
+            onOpenReferrals = onOpenReferrals,
+            onOpenHospitalPortal = onOpenHospitalPortal,
+            onOpenKycRenewal = onOpenKycRenewal,
             onSwitchService = onSwitchService,
             onSignOut = onSignOut,
             signingOut = state.signingOut,
@@ -685,6 +721,12 @@ private fun buildProfileSections(
     onOpenPublicPreview: (engineerId: String) -> Unit,
     onOpenMaintenanceContracts: () -> Unit,
     onOpenMyDisputes: () -> Unit,
+    onOpenCommissionTier: () -> Unit,
+    onOpenProfileCompleteness: () -> Unit,
+    onOpenDpdpGrievance: () -> Unit,
+    onOpenReferrals: () -> Unit,
+    onOpenHospitalPortal: () -> Unit,
+    onOpenKycRenewal: () -> Unit,
     onSwitchService: () -> Unit,
     onSignOut: () -> Unit,
     signingOut: Boolean,
@@ -717,6 +759,15 @@ private fun buildProfileSections(
         SettingsRow(icon = Icons.Outlined.Notifications, label = "Notifications", onClick = onOpenNotifications),
         SettingsRow(icon = Icons.Outlined.Lock, label = "Change password", onClick = onOpenChangePassword),
         SettingsRow(icon = Icons.Outlined.Email, label = "Change email", onClick = onOpenChangeEmail),
+        // round3776 — DPDP grievance filing self-service (round485
+        // backend, unread by any client until now). Role-agnostic:
+        // DPDP treats every account holder as a data principal
+        // regardless of marketplace role.
+        SettingsRow(
+            icon = Icons.Outlined.Shield,
+            label = "Privacy & data rights",
+            onClick = onOpenDpdpGrievance,
+        ),
     )
 
     val business = mutableListOf<SettingsRow>().apply {
@@ -729,12 +780,37 @@ private fun buildProfileSections(
                 chipTone = kycTone,
                 onClick = onOpenVerification,
             ))
+            // round3779 — annual KYC renewal self-service (round497
+            // backend, unread by any client until now). Only relevant
+            // to already-verified engineers; a not-yet-verified
+            // engineer has no renewal row (my_kyc_renewal returns
+            // none), so this stays visible but shows an empty state
+            // for them rather than being hidden conditionally.
+            add(SettingsRow(
+                icon = Icons.Outlined.Shield,
+                label = "KYC renewal",
+                onClick = onOpenKycRenewal,
+            ))
             add(SettingsRow(
                 icon = Icons.Outlined.CurrencyRupee,
                 label = "Earnings",
                 onClick = onOpenEarnings,
             ))
             add(SettingsRow(icon = Icons.Outlined.AccountBalance, label = "Payout method", onClick = onOpenBankDetails))
+            // round3775 — profile completeness meter (round504 backend,
+            // unread by any client until now).
+            add(SettingsRow(
+                icon = Icons.Outlined.CheckCircleOutline,
+                label = "Profile completeness",
+                onClick = onOpenProfileCompleteness,
+            ))
+            // round3777 — engineer-to-engineer referral bounty (round564
+            // + round568 security patch, unread by any client until now).
+            add(SettingsRow(
+                icon = Icons.Filled.Star,
+                label = "Refer an engineer",
+                onClick = onOpenReferrals,
+            ))
             // Engineers want to see how hospitals see them — the public-
             // preview lambda was already plumbed from MainNavGraph but
             // never wired to a row. Only show when verified + we have
@@ -757,6 +833,21 @@ private fun buildProfileSections(
             add(SettingsRow(icon = Icons.Outlined.Apartment, label = "Hospital settings", onClick = onOpenHospitalSettings))
             // PR-D41 — hospital self-view of dispute filing history.
             add(SettingsRow(icon = Icons.Outlined.Gavel, label = "Your disputes", onClick = onOpenMyDisputes))
+            // round3778 — Hospital Portal v2 self-service (round1395
+            // backend, unread by any client until now).
+            add(SettingsRow(
+                icon = Icons.Outlined.SupportAgent,
+                label = "Account self-service",
+                onClick = onOpenHospitalPortal,
+            ))
+            // round3772 — loyalty commission tier self-view (v21
+            // get_my_commission_tier backend, unread by any client
+            // until now).
+            add(SettingsRow(
+                icon = Icons.Outlined.TrendingUp,
+                label = "Commission tier",
+                onClick = onOpenCommissionTier,
+            ))
             // Messages row removed (v0.3.4) — now a hospital bottom-nav tab.
         }
     }
