@@ -6,7 +6,10 @@ on:
       - "web/**"
       - ".github/workflows/web.yml"
   push:
-    branches: [main]
+    # Round 3768 — was `[main]` only; see android.yml's same-day fix for
+    # why (main is frozen, all real work happens on ops/* branches via
+    # direct push, so this had never once run on the active branch).
+    branches: [main, "ops/**"]
     paths:
       - "web/**"
       - ".github/workflows/web.yml"

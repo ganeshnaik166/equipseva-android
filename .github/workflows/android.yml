@@ -3,7 +3,15 @@ name: android
 on:
   pull_request:
   push:
-    branches: [main]
+    # Round 3768 — was `[main]` only. `main` is a frozen, stale snapshot
+    # (see the ops-branch handoff note); ALL active development happens
+    # directly on ops/* branches via direct pushes, not PRs into main.
+    # That meant this CI (tests + lint + R8 build) had never once run
+    # on any push for the entire multi-week/month duration of the
+    # actual active branch — pure-local `./gradlew` runs were the only
+    # safety net. `ops/**` covers the current branch and any future
+    # similarly-named one without another manual edit.
+    branches: [main, "ops/**"]
 
 permissions:
   contents: read

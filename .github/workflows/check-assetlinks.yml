@@ -10,7 +10,11 @@ on:
       - 'scripts/sync-assetlinks.sh'
       - '.github/workflows/check-assetlinks.yml'
   push:
-    branches: [main]
+    # Round 3768 — was `[main]` only; see android.yml's same-day fix.
+    # The live-URL probe step below stays main-only via its own `if`
+    # (main is what's actually deployed to equipseva.com) — this only
+    # extends the shape/sync validation to also run on ops/* pushes.
+    branches: [main, "ops/**"]
     paths:
       - 'docs/.well-known/assetlinks.json'
       - 'docs/security/assetlinks.json'
