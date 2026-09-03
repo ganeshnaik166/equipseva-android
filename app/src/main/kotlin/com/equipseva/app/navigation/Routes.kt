@@ -259,6 +259,9 @@ object Routes {
     const val AMC_CONTRACT_DETAIL = "amc/contract"
     // r589 — hospital's active AMC tier perks (r587 my_active_amc_tier_perks).
     const val AMC_TIER_PERKS = "amc/tier_perks"
+    // round3770 — hospital's Predictive PM calendar (round507 backend,
+    // unread by any client until now).
+    const val HOSPITAL_PM_CALENDAR = "amc/pm_calendar"
     const val AMC_CONTRACT_DETAIL_ARG_ID = "contractId"
     fun amcContractDetailRoute(contractId: String): String =
         "$AMC_CONTRACT_DETAIL/$contractId"

@@ -206,6 +206,7 @@ fun MaintenanceContractsScreen(
     onOpenContract: (String) -> Unit,
     onBrowseEngineers: () -> Unit,
     onTierPerks: () -> Unit = {},
+    onPmCalendar: () -> Unit = {},
     viewModel: MaintenanceContractsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -263,6 +264,22 @@ fun MaintenanceContractsScreen(
                                 size = com.equipseva.app.designsystem.components.EsBtnSize.Sm,
                                 full = true,
                             )
+                        }
+                        // round3770 — entry point into the Predictive PM
+                        // calendar (round507 backend). Hospital-only:
+                        // hospital_upcoming_pm() is scoped to
+                        // hospital_user_id = auth.uid(), so an engineer
+                        // opening it would only ever see an empty list.
+                        if (state.role == UserRole.HOSPITAL) {
+                            item(key = "_pm_calendar_entry") {
+                                com.equipseva.app.designsystem.components.EsBtn(
+                                    text = stringResource(R.string.maintenance_contracts_view_pm_calendar),
+                                    onClick = onPmCalendar,
+                                    kind = com.equipseva.app.designsystem.components.EsBtnKind.Secondary,
+                                    size = com.equipseva.app.designsystem.components.EsBtnSize.Sm,
+                                    full = true,
+                                )
+                            }
                         }
                         items(state.items, key = { it.id }) { item ->
                             ContractCard(

@@ -495,10 +495,18 @@ fun MainNavGraph(
                     onTierPerks = {
                         navController.navigate(Routes.AMC_TIER_PERKS)
                     },
+                    onPmCalendar = {
+                        navController.navigate(Routes.HOSPITAL_PM_CALENDAR)
+                    },
                 )
             }
             composable(Routes.AMC_TIER_PERKS) {
                 com.equipseva.app.features.amc.HospitalAmcTierPerksScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.HOSPITAL_PM_CALENDAR) {
+                com.equipseva.app.features.amc.HospitalPmCalendarScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
