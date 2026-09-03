@@ -66,6 +66,16 @@ type AuditRow = {
   created_at: string;
 };
 
+type CostRevision = {
+  id: string;
+  original_amount_rupees: number | null;
+  revised_amount_rupees: number | null;
+  reason: string | null;
+  status: string;
+  created_at: string;
+  decided_at: string | null;
+};
+
 export default async function JobDetailPage({
   params,
 }: {
@@ -78,7 +88,7 @@ export default async function JobDetailPage({
   // We do best-effort selects with COALESCE fallback — different
   // migration generations have added different columns. Project a
   // generous SELECT and let unknown columns surface as null.
-  const [jobRes, bidsRes, escrowRes, dsrRes, auditRes] = await Promise.all([
+  const [jobRes, bidsRes, escrowRes, dsrRes, auditRes, costRevisionsRes] = await Promise.all([
     supabase
       .from("repair_jobs")
       .select(
@@ -112,6 +122,12 @@ export default async function JobDetailPage({
       .eq("target_row_id", id)
       .order("created_at", { ascending: false })
       .limit(30),
+    supabase
+      .from("repair_job_cost_revisions")
+      .select("id, original_amount_rupees, revised_amount_rupees, reason, status, created_at, decided_at")
+      .eq("repair_job_id", id)
+      .order("created_at", { ascending: false })
+      .limit(20),
   ]);
 
   const job = (jobRes.error ? null : (jobRes.data as Job | null)) ?? null;
@@ -138,10 +154,21 @@ export default async function JobDetailPage({
   const escrow = (escrowRes.error ? null : (escrowRes.data as Escrow | null)) ?? null;
   const dsr = (dsrRes.error ? null : (dsrRes.data as DsrRow | null)) ?? null;
   const audit = (auditRes.error ? [] : (auditRes.data ?? [])) as AuditRow[];
+  const costRevisions = (costRevisionsRes.error ? [] : (costRevisionsRes.data ?? [])) as CostRevision[];
 
   const acceptedBid = bids.find((b) => b.status === "accepted") ?? null;
   const amountAcceptedFor =
     acceptedBid?.amount_rupees ?? job.contracted_amount_rupees ?? null;
+  // Round 3766 follow-up: contracted_amount_rupees is the authoritative,
+  // revision-inclusive figure (accept_repair_bid sets it at accept-time;
+  // decide_cost_revision keeps it current on every approved revision —
+  // see round3764). "Accepted bid" above is deliberately the FROZEN
+  // original bid amount for the record; this is the one to trust for
+  // "what does the hospital actually owe / what will the engineer be
+  // paid right now". They differ exactly when a revision was approved —
+  // the Cost revisions table below explains why.
+  const contractedAmount = job.contracted_amount_rupees ?? null;
+  const hasApprovedRevision = costRevisions.some((r) => r.status === "approved");
 
   const statusTone =
     job.status === "completed"
@@ -191,6 +218,47 @@ export default async function JobDetailPage({
       key: "note",
       header: "Note",
       render: (b) => <span className="text-xs">{b.note ?? "—"}</span>,
+    },
+  ];
+
+  const costRevisionCols: Column<CostRevision>[] = [
+    { key: "when", header: "Proposed", render: (r) => formatRelativeTime(r.created_at) },
+    { key: "original", header: "Original", render: (r) => formatRupees(r.original_amount_rupees) },
+    { key: "revised", header: "Revised", render: (r) => formatRupees(r.revised_amount_rupees) },
+    {
+      key: "delta",
+      header: "Delta",
+      render: (r) => {
+        const o = r.original_amount_rupees;
+        const v = r.revised_amount_rupees;
+        if (o == null || v == null) return "—";
+        const delta = v - o;
+        return (
+          <span className={delta > 0 ? "text-red-700" : "text-emerald-700"}>
+            {delta > 0 ? "+" : ""}
+            {formatRupees(delta)}
+          </span>
+        );
+      },
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (r) => {
+        const cls =
+          r.status === "approved"
+            ? "bg-green-100 text-[var(--color-ok)]"
+            : r.status === "rejected"
+              ? "bg-gray-100"
+              : "bg-yellow-100 text-[var(--color-warn)]";
+        return <span className={`rounded px-1.5 py-0.5 text-xs ${cls}`}>{r.status}</span>;
+      },
+    },
+    { key: "reason", header: "Reason", render: (r) => <span className="text-xs">{r.reason ?? "—"}</span> },
+    {
+      key: "decided",
+      header: "Decided",
+      render: (r) => <span className="text-xs">{formatRelativeTime(r.decided_at)}</span>,
     },
   ];
 
@@ -257,6 +325,16 @@ export default async function JobDetailPage({
                 : "no acceptance yet"
             }
             tone={acceptedBid ? "ok" : "warn"}
+          />
+          <StatCard
+            label="Contracted amount"
+            value={formatRupees(contractedAmount)}
+            subtext={
+              hasApprovedRevision
+                ? "revised — see Cost revisions below"
+                : "current, revision-inclusive figure"
+            }
+            tone={hasApprovedRevision ? "warn" : "neutral"}
           />
           <StatCard
             label="Escrow"
@@ -337,6 +415,28 @@ export default async function JobDetailPage({
           emptyMessage="No bids yet."
         />
       </section>
+
+      {costRevisions.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-sm font-semibold">
+            Cost revisions{" "}
+            <span className="text-[var(--color-muted)]">({costRevisions.length})</span>
+          </h2>
+          <p className="mb-2 text-xs text-[var(--color-muted)]">
+            Engineer-proposed contract amount changes (round3762/3764/3766). An{" "}
+            <span className="rounded bg-green-100 px-1 py-0.5 text-[var(--color-ok)]">approved</span>{" "}
+            row here is why &quot;Contracted amount&quot; above differs from &quot;Accepted bid&quot; —
+            the escrow amount + engineer payout both follow the contracted amount, not the
+            original bid.
+          </p>
+          <DataTable
+            columns={costRevisionCols}
+            rows={costRevisions}
+            rowKey={(r) => r.id}
+            emptyMessage="No cost revisions."
+          />
+        </section>
+      )}
 
       {escrow && (
         <section className="rounded border border-[var(--color-border)] bg-white p-4 text-sm">
