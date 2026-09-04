@@ -276,3 +276,47 @@ with no notice.
 engineers (NOT `created_at`), and make whatever admin path sets
 `verification_status = 'verified'` stamp it. Until then those latency metrics
 honestly report 0 rather than a fabricated number.
+
+## Final state of the sweep (2026-09-04)
+
+Full re-sweep after round3800: **576 statically-broken functions -> 15.**
+561 repaired across rounds 3780-3800, with **zero regressions** — every
+previously-clean function is still clean, across roughly 600 rewritten
+definitions.
+
+The 15 remaining are not a backlog. They are the answer:
+
+* **6 are false positives**, each verified by EXECUTING it:
+  `founder_cron_status`, `founder_cron_status_summary`,
+  `founder_cron_jobs_recent`, `founder_morning_digest_v2`,
+  `founder_tier_1_home_metadata`, `founder_live_ops_cockpit_v2_heartbeat`.
+  All report 42P01 on `cron.job` / `cron.job_run_details`. pg_cron really
+  is absent, but each wraps the read in its own EXCEPTION handler and
+  degrades that one metric, so the function returns rows normally. Editing
+  them would delete working defensive code to satisfy a static checker.
+
+* **9 are declined**, each with a written rationale in this document: the
+  four `founder_team_comp_*`, `schedule_engineer_kyc_renewals`,
+  `founder_kyc_pipeline_snapshot_summary`,
+  `founder_calendar_burndown_summary`, `founder_eng360_submit`, and
+  `delete_my_account`.
+
+`plpgsql_check` was installed only for this work and has been **dropped**
+again, so the schema is net-zero. Every migration gate that calls it is
+`IF EXISTS`-guarded and replays cleanly without it.
+
+### Two decisions still open, deliberately not taken
+
+1. **The 19 unscheduled cron jobs** — see `docs/CRON_SCHEDULING_GAP.md`.
+   All 19 have their RPC in production; only the wiring is missing. Blast
+   radius measured as negligible today (39 repair jobs, 0 held escrow),
+   which makes now the cheapest time to enable them and launch the worst.
+   Several are DELETE-shaped, so switching them on is an operational
+   go/no-go rather than a code cleanup.
+2. **The verification-timestamp column on `engineers`** — one `ALTER TABLE`
+   would let five sites across two shipped features work coherently. Right
+   now each of those sites explicitly documents the column's absence rather
+   than substituting a silent proxy, which is honest but means three
+   latency metrics report 0. Adding the column means re-pointing all five
+   AND touching the live verification flow, and it interacts with decision
+   (1), since it is what makes KYC renewals schedulable.
