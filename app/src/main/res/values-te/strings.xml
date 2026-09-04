@@ -597,7 +597,7 @@
     <string name="commission_tier_try_again">Try again</string>
     <string name="commission_tier_current_rate_label">Your current platform commission</string>
     <string name="commission_tier_completed_12m">Completed jobs (last 12 months)</string>
-    <string name="commission_tier_explainer">Book more repairs to unlock a lower platform commission — 5% after 10 completed jobs in a rolling 12 months, 3% after 50. Off-platform deals don\'t count.</string>
+    <string name="commission_tier_explainer" formatted="false">Book more repairs to unlock a lower platform commission — 5% after 10 completed jobs in a rolling 12 months, 3% after 50. Off-platform deals don\'t count.</string>
 
     <!-- MyBidsScreen + JobProfitabilityScreen + HospitalTierPreviewScreen (English placeholder — pending native-speaker review) -->
     <string name="mybids_check_profitability">Check profitability</string>
