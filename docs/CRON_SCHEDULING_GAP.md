@@ -339,3 +339,17 @@ these GUCs.
 Also staged: `.github/workflows/cron-tick-code-red.yml` restores the
 declared `*/5` Code Red cadence — **inert until merged to `main`**, same
 merge as the payouts-worker canary fix.
+
+---
+
+## The `main` merge, pre-staged (2026-09-05)
+
+Branch **`ops/main-workflow-fixes`** (commit `584aa28f`) is cut directly
+from `origin/main` and contains ONLY the two workflow changes — the
+payouts-canary `permissions` grant and the new Code Red `*/5` workflow —
+so merging it carries zero exposure to the diverged ops history:
+
+    https://github.com/ganeshnaik166/equipseva-android/pull/new/ops/main-workflow-fixes
+
+Merge that, and both scheduled-workflow fixes go live; nothing else about
+`main` changes.
