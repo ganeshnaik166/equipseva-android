@@ -178,3 +178,25 @@ permanently: `equipment_pm_schedule` has 0 rows, its populating cron does
 not exist, and it projects from `dsr_reports` which also has 0 rows. See
 `HospitalPmCalendarRepository`'s header and
 `docs/CRON_SCHEDULING_GAP.md`.
+
+## Addendum (2026-09-05, later): the last two screens — matrix complete
+
+Driven via Jobs hub → My bids → **Accepted (2)** tab (the CTAs live on
+accepted-bid rows, which is why earlier passes on the default Pending tab
+found nothing):
+
+| screen | round | result |
+|---|---|---|
+| Profitability check | 3773 | rendered — gross bid, "Platform fee (7%)", estimated travel cost, estimated net payout, plus the minimum-floor editor showing the account's real `profitability_floor_rupees` (1500) |
+| Payout preview | 3774 | rendered — "Contracted amount ₹2,500", "Platform commission 7%", "Your take-home ₹2,325", with the loyalty-tier explainer |
+
+Numbers reconcile with the backend probes: ₹2,500 × 0.93 = ₹2,325
+matches `engineer_view_hospital_tier`'s round3781 live output exactly,
+and the floor editor's 1500 matches the value the round3805 write probe
+read and restored. Zero app-attributable crashes.
+
+With these two, every round3770-3779 screen is on-device verified except
+the two documented as structurally empty upstream (PM Calendar, Fleet
+Health — see `docs/CRON_SCHEDULING_GAP.md`; their recompute sweep now
+runs daily as of round3807, but PM projection stays empty until a
+DSR-submission path exists).
