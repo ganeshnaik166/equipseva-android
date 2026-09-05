@@ -277,3 +277,65 @@ touching Cashfree, so the failure loop stops without masking anything.
    issues: write}` added to the worker workflow on this branch takes
    effect only from the default branch. Same merge can carry the
    Code Red `*/5` workflow if wanted.
+
+---
+
+## SAME DISEASE, DIFFERENT LIMB (2026-09-05, round3810): push notifications have NEVER been dispatched
+
+While censusing edge functions for missing callers (how the invoice
+digest was found), the push pipeline turned out to be unwired at **both**
+ends:
+
+* The `notifications_dispatch_push` trigger IS live on
+  `public.notifications` — but it deliberately no-ops unless two database
+  GUCs are set, and **neither `app.push_webhook_url` nor
+  `app.push_webhook_secret` is set at any level** (checked
+  `pg_db_role_setting`: the only `app.*` GUC on the database is
+  `app.settings.jwt_exp`). Every notification INSERT since April took the
+  silent no-op branch.
+* The `send_push_notification` edge function needs `FCM_PROJECT_ID`,
+  `FCM_SERVICE_ACCOUNT_JSON` and `PUSH_WEBHOOK_SECRET` — **none of the
+  three exists in the function secrets.**
+
+So the app registers FCM tokens, r1499 shipped push-kind deep links, the
+dispatcher and the sender both exist — and no push has ever left the
+building. `net._http_response` corroborates: zero pg_net calls recorded.
+
+**This needs a credential only the founder can produce** (the Firebase
+service-account JSON), so it is deliberately NOT wired here. The
+five-minute runbook once you have it:
+
+```bash
+# 1. generate one shared secret
+PUSH_SECRET=$(openssl rand -hex 32)
+
+# 2. function side
+supabase secrets set \
+  FCM_PROJECT_ID=<firebase-project-id> \
+  FCM_SERVICE_ACCOUNT_JSON="$(cat service-account.json)" \
+  PUSH_WEBHOOK_SECRET="$PUSH_SECRET"
+
+# 3. database side (run as postgres; new connections pick it up)
+ALTER DATABASE postgres SET app.push_webhook_url =
+  'https://eyswaywvtartpvtoxtdr.supabase.co/functions/v1/send_push_notification';
+ALTER DATABASE postgres SET app.push_webhook_secret = '<the same PUSH_SECRET>';
+
+# 4. prove it: INSERT a notification for a test account, then
+SELECT status_code, created FROM net._http_response ORDER BY created DESC LIMIT 3;
+```
+
+Do NOT commit the secret value anywhere — that is why no migration sets
+these GUCs.
+
+## Completing the wiring ledger (round3810 census)
+
+| edge function | callers | verdict |
+|---|---|---|
+| `send_push_notification` | pg_net trigger (no-oping) | **unwired at both ends — runbook above** |
+| `export_nabh_bundle` | none anywhere | fully-built auditor bundle with no UI trigger on this branch; the "Asset history → NABH" surface lives in the deferred 59-feature set (founder's scope call) |
+| `ingest_openfda` | none | manual-by-design catalog seeder (own secret, idempotent cursor) — fine |
+| every other function | ≥1 real caller | wired |
+
+Also staged: `.github/workflows/cron-tick-code-red.yml` restores the
+declared `*/5` Code Red cadence — **inert until merged to `main`**, same
+merge as the payouts-worker canary fix.
