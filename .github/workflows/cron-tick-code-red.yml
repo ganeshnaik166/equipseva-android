@@ -1,0 +1,57 @@
+# cron-tick (Code Red timeout sweep, 5-minute cadence)
+#
+# round3809 — STAGED ON ops/*; takes effect ONLY when merged to the
+# default branch (GitHub runs `schedule:` workflows from main alone).
+#
+# Why this exists: the migrations declare sweep_timed_out_code_reds at
+# `*/5 * * * *` — it escalates Code Red safety requests nobody answered.
+# round3807 wired it into the HOURLY cron-tick group as a stopgap
+# (hourly beats the previous never); this workflow restores the declared
+# cadence. Once this is live on main, optionally remove
+# "sweep-code-reds" from the hourly group in
+# supabase/functions/cron-tick/index.ts — harmless to leave, the sweep
+# is idempotent.
+#
+# NB GitHub free-tier schedules are best-effort: */5 in practice fires
+# every 5-15 minutes and can be delayed under load. Still an order of
+# magnitude tighter than hourly for a safety-escalation path.
+#
+# Required repo secrets (same two the other cron-tick workflows use):
+#   CRON_TICK_SECRET, SUPABASE_ANON_KEY
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cron-tick-code-red
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: POST cron-tick ?slot=sweep-code-reds
+        env:
+          CRON_TICK_SECRET: ${{ secrets.CRON_TICK_SECRET }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_TICK_SECRET}" ] || [ -z "${SUPABASE_ANON_KEY}" ]; then
+            echo "::error::CRON_TICK_SECRET / SUPABASE_ANON_KEY not configured."
+            exit 1
+          fi
+          URL="https://eyswaywvtartpvtoxtdr.supabase.co/functions/v1/cron-tick?slot=sweep-code-reds"
+          curl --fail-with-body \
+               --silent --show-error \
+               --max-time 60 \
+               -X POST "$URL" \
+               -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+               -H "x-cron-secret: ${CRON_TICK_SECRET}" \
+               -H "Content-Type: application/json" \
+               -d '{}'
