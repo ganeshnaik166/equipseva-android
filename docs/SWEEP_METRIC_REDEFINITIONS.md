@@ -320,3 +320,63 @@ again, so the schema is net-zero. Every migration gate that calls it is
    latency metrics report 0. Adding the column means re-pointing all five
    AND touching the live verification flow, and it interacts with decision
    (1), since it is what makes KYC renewals schedulable.
+
+## Which founder-console pages this actually unblocked
+
+Cross-referencing the repaired functions against `web/src` route files:
+**151 of the repaired functions are called by the console, across 132 pages.**
+Each of these pages was rendering an error, a blank panel, or a silently
+wrong number for at least one of its data calls.
+
+For contrast, the same cross-reference against the Android app returns
+**zero** — none of the repaired functions is called by the mobile app, so
+this whole sweep is founder-console surface with no user-facing mobile
+impact. That was previously an assumption; it is now measured.
+
+| page | repaired RPCs |
+|---|---|
+| `/founder-hospital-contract-heatmap` | 5 — founder_heatmap_by_category, founder_heatmap_by_hospital, founder_heatmap_cells, … |
+| `/state-overview` | 4 — founder_amc_pool_balance_by_state, founder_amc_revenue_by_state, founder_jobs_by_state, … |
+| `/founder-engineer-competency-test-pass-rate` | 3 — r2302_engineer_leaderboard, r2302_pass_rate_by_topic, r2302_topic_gap_alerts |
+| `/founder-live-ops-cockpit-v2` | 3 — founder_cron_status_summary, founder_live_ops_cockpit_v2_heartbeat, founder_morning_pulse_v2 |
+| `/founder-tier-1-home` | 3 — founder_cron_status_summary, founder_morning_pulse_v2, founder_tier_1_home_metadata |
+| `/chains/[id]` | 2 — chain_kpis, chain_per_site_summary |
+| `/founder-acquisition-attribution` | 2 — founder_acquisition_attribution_by_kind, founder_acquisition_attribution_summary |
+| `/founder-board-prep-checklist` | 2 — founder_board_category_breakdown, founder_board_prep_overview |
+| `/founder-cash-conversion-cycle` | 2 — founder_cash_conversion_cycle_summary, founder_cash_conversion_history |
+| `/founder-cron-status` | 2 — founder_cron_jobs_recent, founder_cron_status_summary |
+| `/founder-customer-health-score` | 2 — founder_customer_health_score_by_hospital, founder_customer_health_score_summary |
+| `/founder-customer-lifetime-value-calculator` | 2 — founder_clv_recent_snapshots, founder_clv_top_customers |
+| `/founder-engineer-skills-matrix` | 2 — founder_engineer_skills_critical_skill_coverage, founder_engineer_skills_proficiency_recent |
+| `/founder-hospital-chains-deep-drilldown` | 2 — founder_hospital_chains_drilldown_by_chain, founder_hospital_chains_drilldown_summary |
+| `/founder-hospital-equipment-procurement-pipeline` | 2 — founder_equipment_procurement_overdue, founder_equipment_procurement_recent |
+| `/founder-hospital-maintenance-calendar-generator` | 2 — founder_hospital_maintenance_calendar_overdue, founder_hospital_maintenance_calendar_recent |
+| `/founder-marketing-content-calendar` | 2 — founder_marketing_content_pieces_recent, founder_marketing_content_upcoming |
+| `/founder-monthly-cash-ledger` | 2 — founder_monthly_cash_ledger_history, founder_monthly_cash_ledger_summary |
+| `/founder-revenue-leakage-tracker` | 2 — founder_revenue_leakage_history, founder_revenue_leakage_summary |
+| `/founder-revenue-recognition` | 2 — founder_revenue_recognition_history, founder_revenue_recognition_summary |
+| `/founder-runway-burn` | 2 — founder_runway_burn_summary, founder_runway_history |
+| `/founder-sales-territory-heatmap` | 2 — founder_sales_territory_by_city, founder_sales_territory_by_pincode |
+| `/admin-top-ops` | 1 — founder_admin_top_ops |
+| `/amc-amount-histogram` | 1 — founder_amc_amount_histogram |
+| `/amc-by-equipment-category` | 1 — founder_amc_by_equipment_category |
+| `/amc-churn-early-warning` | 1 — founder_amc_churn_scores |
+| `/amc-debits-by-engineer` | 1 — founder_amc_debits_by_engineer |
+| `/amc-mrr-by-tier` | 1 — founder_amc_mrr_by_tier |
+| `/amc-payment-orders-status` | 1 — founder_amc_payment_orders_status |
+| `/amc-pool-balance-by-city` | 1 — founder_amc_pool_balance_by_city |
+| `/amc-pool-balance-by-state` | 1 — founder_amc_pool_balance_by_state |
+| `/amc-pool-coverage` | 1 — founder_amc_pool_coverage |
+| `/amc-revenue-by-city` | 1 — founder_amc_revenue_by_city |
+| `/amc-revenue-by-state` | 1 — founder_amc_revenue_by_state |
+| `/amc-revenue-by-tier` | 1 — founder_amc_revenue_by_tier |
+| `/at-risk-revenue` | 1 — founder_at_risk_revenue |
+| `/audit-by-actor` | 1 — founder_audit_by_actor |
+| `/bonded-intake-cumulative` | 1 — founder_bonded_intake_cumulative |
+| `/bonded-intake-trend` | 1 — founder_bonded_intake_trend |
+| `/cash-payment-surveys-summary` | 1 — founder_cash_payment_surveys_summary |
+
+…and 92 further pages with one repaired RPC each.
+
+Full machine-readable mapping was generated during the sweep; regenerate with
+a grep of each repaired function name against `web/src`.
