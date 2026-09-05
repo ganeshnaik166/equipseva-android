@@ -12,9 +12,27 @@ on:
     # safety net. `ops/**` covers the current branch and any future
     # similarly-named one without another manual edit.
     branches: [main, "ops/**"]
+    # Round 3810 — skip docs-only pushes. A single ops session produced
+    # three stacked ~7-minute Android builds for commits touching only
+    # docs/ and workflow files. DELIBERATELY NOT excluded:
+    # supabase/migrations/** — the unit-test suite carries CI drift
+    # guards that mirror server CHECK constraints (r1505), so a
+    # migration push must still run the tests.
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+      - "web/**"
 
 permissions:
   contents: read
+
+# Round 3810 — a superseded run of the same branch is dead weight: only
+# the newest commit's result matters for a direct-push workflow. Cancel
+# in-flight runs when a newer push lands (PRs and main keep their own
+# groups per ref).
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
