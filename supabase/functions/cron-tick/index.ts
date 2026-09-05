@@ -203,6 +203,162 @@ serve(async (req) => {
       if (error) throw error;
       return { rows: typeof data === "number" ? data : undefined };
     },
+
+    // =================================================================
+    // Round 3807 — founder-approved wiring of the 19 declared-but-never-
+    // scheduled jobs (docs/CRON_SCHEDULING_GAP.md). Every migration that
+    // declared these called cron.schedule() behind an `extname='pg_cron'`
+    // guard or an EXCEPTION handler, and pg_cron has never been installed
+    // on this project — so none of them had EVER run. All 18 RPCs already
+    // existed in prod; this file was the only missing piece. Blast radius
+    // was measured before enabling (pre-launch DB: 39 repair jobs, 0 held
+    // escrow), which is exactly why now is the cheapest time to switch
+    // them on.
+    // =================================================================
+
+    // --- hourly additions ---------------------------------------------
+    // Declared '0 * * * *': refunds authorizations expire on an hour
+    // scale; AMC orders stuck in pending_payment likewise.
+    "reap-refund-authorizations": async () => {
+      const { data, error } = await admin.rpc("reap_expired_refund_authorizations");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
+    "reap-stranded-amc-orders": async () => {
+      const { data, error } = await admin.rpc("reap_stranded_pending_payment_amc_contracts");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
+    // Declared '*/5 * * * *' (Code Red safety-escalation timeout). GitHub
+    // Actions cannot honour a 5-minute cadence from this repo without a
+    // dedicated workflow on the default branch, which is frozen — so this
+    // runs HOURLY for now. Hourly beats the current never by a lot; the
+    // 5-minute upgrade path is a one-line workflow on main calling
+    // ?slot=sweep-code-reds, documented in docs/CRON_SCHEDULING_GAP.md.
+    "sweep-code-reds": async () => {
+      const { data, error } = await admin.rpc("sweep_timed_out_code_reds");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
+
+    // --- daily additions ----------------------------------------------
+    "reap-stranded-repair-jobs": async () => {
+      const { data, error } = await admin.rpc("reap_stranded_requested_repair_jobs");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
+    // run_daily_reconciliation(p_date date) is the one argumented sweep:
+    // reconcile the day that has fully ELAPSED in IST, i.e. IST-yesterday.
+    // (Returns the reconciliation row's uuid, not a count.)
+    "daily-reconciliation": async () => {
+      const istYesterday = new Date(Date.now() + (5.5 - 24) * 3600 * 1000)
+        .toISOString().slice(0, 10);
+      const { error } = await admin.rpc("run_daily_reconciliation", { p_date: istYesterday });
+      if (error) throw error;
+      return {};
+    },
+    // KYC renewal pair (round497 backend; functional since round3806
+    // added engineers.verification_status_updated_at). Order within the
+    // daily group matters loosely: schedule first, reap after, matching
+    // the declared '0 21' / '15 21' ordering.
+    "schedule-kyc-renewals": async () => {
+      const { data, error } = await admin.rpc("schedule_engineer_kyc_renewals");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
+    "reap-expired-kyc-renewals": async () => {
+      const { data, error } = await admin.rpc("reap_expired_kyc_renewals");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
+    // Fraud triad — the declared nightly risk pipeline.
+    "daily-risk-scoring": async () => {
+      const { data, error } = await admin.rpc("run_daily_risk_scoring");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
+    "scan-collusion-pairs": async () => {
+      const { data, error } = await admin.rpc("scan_collusion_pairs");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
+    "scan-duplicate-accounts": async () => {
+      const { data, error } = await admin.rpc("scan_duplicate_accounts");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
+    // Backs the round3773/3774 Commission Tier + Payout Preview screens.
+    // NB the bulk sweep is refresh_ALL_engineer_tier_cache();
+    // refresh_engineer_tier_cache(uuid) is the per-engineer variant and
+    // 42883s with no args — the dry run caught exactly that.
+    "refresh-tier-cache": async () => {
+      const { data, error } = await admin.rpc("refresh_all_engineer_tier_cache");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
+    // Backs the round3770 Predictive PM Calendar. Projects from signed
+    // DSRs, so it stays a no-op until a DSR-submission path exists — but
+    // scheduled is the correct resting state either way.
+    "recompute-pm-schedules": async () => {
+      const { data, error } = await admin.rpc("recompute_all_pm_schedules");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
+    "recompute-certifications": async () => {
+      const { data, error } = await admin.rpc("recompute_all_engineer_certifications");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
+    // Backs the round3777 Referral Bounty screen — without this, bounties
+    // never evaluate no matter how many referees finish their first job.
+    "evaluate-referrals": async () => {
+      const { data, error } = await admin.rpc("evaluate_all_pending_referrals");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
+    // DPDP retention sweeps — implemented all along, never scheduled.
+    "purge-analytics-events": async () => {
+      const { data, error } = await admin.rpc("analytics_events_retention_sweep");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
+    "purge-investor-share-views": async () => {
+      const { data, error } = await admin.rpc("investor_share_view_log_retention_sweep");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
+    "purge-nabh-export-audit": async () => {
+      const { data, error } = await admin.rpc("nabh_export_audit_retention_sweep");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
+    // Why founder_db_storage_snapshots_summary never had a snapshot.
+    "db-storage-snapshot": async () => {
+      const { data, error } = await admin.rpc("db_storage_snapshot_sweep");
+      if (error) throw error;
+      return { rows: typeof data === "number" ? data : undefined };
+    },
+    // The one non-RPC job: founder_invoice_digest is a sibling edge
+    // function that was deployed with no caller anywhere. It validates
+    // x-webhook-secret against the SAME CRON_TICK_SECRET this function
+    // holds, so we invoke it server-side and no new secret or workflow
+    // is needed.
+    "invoice-digest": async () => {
+      const res = await fetch(`${supabaseUrl}/functions/v1/founder_invoice_digest`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${serviceKey}`,
+          "x-webhook-secret": expectedSecret,
+          "content-type": "application/json",
+        },
+        body: "{}",
+      });
+      if (!res.ok) {
+        // Same hygiene as the RPC slots: no body echo, just the status.
+        throw Object.assign(new Error("invoice digest failed"), { code: `H${res.status}` });
+      }
+      return {};
+    },
   };
 
   // Slot groups for typical schedules.
@@ -211,7 +367,12 @@ serve(async (req) => {
     // hourly: time-sensitive ones — escrow auto-release, cost-revision
     // TTL expiry, AMC visit creation (so the visit lands within the
     // hour of next_visit_at, not next-day).
-    "hourly": ["escrow-release", "expire-cost-revisions", "amc-create-visits", "payouts-reaper", "amc-sla-sweep"],
+    "hourly": [
+      "escrow-release", "expire-cost-revisions", "amc-create-visits", "payouts-reaper", "amc-sla-sweep",
+      // round3807 — declared hourly (and Code Red, declared */5, riding
+      // hourly until a 5-min workflow lands on main):
+      "reap-refund-authorizations", "reap-stranded-amc-orders", "sweep-code-reds",
+    ],
     // daily: TTL purges off-peak + AMC auto-renewal sweep (end_date
     // is day-granular so one daily pass is plenty).
     "daily": [
@@ -225,6 +386,25 @@ serve(async (req) => {
       "expire-amc-contracts",
       "purge-spot-audit-invitations",
       "purge-chat-moderation-events",
+      // round3807 — the declared-daily set that never ran (see the slot
+      // comments above). schedule before reap, matching the declared
+      // '0 21' / '15 21' ordering of the KYC pair.
+      "reap-stranded-repair-jobs",
+      "daily-reconciliation",
+      "schedule-kyc-renewals",
+      "reap-expired-kyc-renewals",
+      "daily-risk-scoring",
+      "scan-collusion-pairs",
+      "scan-duplicate-accounts",
+      "refresh-tier-cache",
+      "recompute-pm-schedules",
+      "recompute-certifications",
+      "evaluate-referrals",
+      "purge-analytics-events",
+      "purge-investor-share-views",
+      "purge-nabh-export-audit",
+      "db-storage-snapshot",
+      "invoice-digest",
     ],
   };
 

@@ -176,3 +176,47 @@ false positives** in the sense that they do not crash —
 `founder_cron_status()` executes and returns 0 rows because it guards on
 extension presence. Same shape as the wrapped-42883 false positives
 already documented.
+
+---
+
+## RESOLVED (2026-09-05, round3806-3807) — founder-approved
+
+The founder approved options 1+2 together. What shipped:
+
+* **round3806**: `engineers.verification_status_updated_at` added,
+  backfilled to `now()` for the 16 verified engineers (NOT `created_at` —
+  the mass-expiry hazard documented above), made server-authoritative by a
+  stamping trigger on every status change, and guarded against owners
+  moving their own renewal clock. `schedule_engineer_kyc_renewals` now
+  runs (verified: creates exactly 0 renewals on the fresh backfill) and
+  `founder_kyc_pipeline_snapshot_summary` — one of the sweep's nine
+  refusals — is repaired.
+* **round3807**: 19 new cron-tick slots (18 RPCs + an `invoice-digest`
+  slot that server-side-invokes the `founder_invoice_digest` edge function
+  with the shared `CRON_TICK_SECRET`). The hourly/daily GROUPS were
+  extended, so the existing scheduled workflows on `main` pick everything
+  up with **zero default-branch changes**. Deployed; bad-secret probe
+  returns 401.
+* **Every sweep was dry-run (rolled back) before deploy** — which caught
+  one real bug: the job name says `refresh_engineer_tier_cache`, but that
+  function takes a uuid (per-engineer); the bulk sweep is
+  `refresh_all_engineer_tier_cache()`. The naive wiring would have 42883'd
+  on every daily tick.
+* **Then every sweep ran live once**, effects verified: stranded-job
+  reaper cancelled 25 stale test jobs (requested 26 → 1), first DB storage
+  snapshot captured (4,875 relations — the summary page finally has data),
+  first daily reconciliation recorded for IST-yesterday in
+  `reconciliation_runs`, tier cache populated for all 16 engineers, risk
+  scoring wrote 3 scores, duplicate-account scan flagged 16 (expected on a
+  seeded test DB — all review accounts share attributes).
+
+Still open, deliberately:
+
+* **Code Red runs HOURLY, not the declared `*/5`.** A 5-minute cadence
+  needs a one-line workflow on `main` POSTing `?slot=sweep-code-reds` —
+  `main` is frozen, so that is the founder's merge to make.
+* The `invoice-digest` slot proves out on the next scheduled daily tick
+  (it needs the real `CRON_TICK_SECRET`, which nothing local holds). A
+  failure will surface in the workflow email with `error_code: H<status>`.
+* Enabling pg_cron proper (option 3) is now moot unless sub-hourly
+  scheduling is wanted platform-wide.
