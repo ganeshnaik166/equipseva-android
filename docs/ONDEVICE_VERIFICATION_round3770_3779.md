@@ -99,15 +99,15 @@ Zero app-attributable crashes across the engineer run as well.
 
 **Two content observations, flagged rather than changed:**
 
-1. **The KYC renewal empty state makes a promise nothing can keep yet.**
-   "We'll notify you here about 30 days before your annual renewal is
-   due" — but renewal rows are only created by
-   `schedule_engineer_kyc_renewals`, which (a) has no scheduler
-   (`docs/CRON_SCHEDULING_GAP.md`) and (b) is one of the sweep's declined
-   repairs, blocked on the missing `engineers` verification-timestamp
-   column. Until both founder decisions land, no engineer will ever be
-   notified. The screen accurately reflects *current* state; the promise
-   is about machinery that does not run.
+1. **The KYC renewal empty state's promise — RESOLVED later the same day.**
+   When first verified, "We'll notify you here about 30 days before your
+   annual renewal is due" had no machinery behind it:
+   `schedule_engineer_kyc_renewals` had no scheduler and was blocked on
+   the missing verification-timestamp column. Both founder decisions
+   landed as rounds 3806-3807 (`541f7d15`): the column exists (backfilled
+   `now()`, stamp-trigger authoritative) and the scheduler runs on the
+   daily cron-tick. First renewals become due ~335 days post-backfill, so
+   the promise is now real, just quiet for a year by design.
 2. **The referral "code" is the referrer's raw auth UUID.** Verified
    against the backend: `register_engineer_referral(p_referrer_user_id
    uuid)` — the code *is* the user id by round564's design, and
