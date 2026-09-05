@@ -37,6 +37,18 @@ concurrency:
   group: engineer-payouts-worker
   cancel-in-progress: false
 
+# round3809 — the "Alert on cron failure" canary below had NEVER once
+# fired despite ~13 days of consecutive scheduled failures: this workflow
+# had no `permissions:` block, the repo default token is read-only, and
+# issues.create therefore failed — the canary itself errored on every run.
+# A watchdog that cannot bark is worse than none: it reads as "no issue
+# filed, so nothing is wrong". NOTE: scheduled runs execute the copy of
+# this file on the DEFAULT branch, so this grant takes effect only when
+# merged to main.
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   tick:
     runs-on: ubuntu-latest

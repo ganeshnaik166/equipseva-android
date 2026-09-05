@@ -220,3 +220,60 @@ Still open, deliberately:
   failure will surface in the workflow email with `error_code: H<status>`.
 * Enabling pg_cron proper (option 3) is now moot unless sub-hourly
   scheduling is wanted platform-wide.
+
+---
+
+## FOUND WHILE VERIFYING (2026-09-05, round3809): the payouts worker has been failing every ~3 hours since at least Aug 23 — and its canary was structurally mute
+
+Checked the scheduled workflows via GitHub's public API after the
+round3807 deploy. `cron-tick-hourly` and `cron-tick-daily`: green.
+`engineer-payouts-worker`: **failure on every one of its last 150+ runs**
+(every page of history checked, back to 2026-08-23; in reality since
+June — see below).
+
+**Root cause chain, each link verified:**
+
+1. `pick_engineer_payouts_for_processing(25)` returns 1 row — a payout
+   **queued since 2026-06-10**: ₹18.60 to
+   `test-engineer-e2e@equipseva.local` (an E2E-test account) for
+   RPR-00038, with **1,372 attempts** on the row.
+2. A non-empty pick sends the worker into Cashfree auth
+   (`/payout/v1/authorize`), which fails — and has ALWAYS failed:
+   `engineer_payouts` contains **zero rows that ever reached
+   `processed`**. The Cashfree credentials (set 2026-06-03) have never
+   authenticated successfully.
+3. Auth failure → HTTP 503 → `curl --fail-with-body` fails the step →
+   the run fails. The row is never dead-lettered because the 5-attempt
+   cap lives in the `processing`-reaper (`requeue_stuck_engineer_payouts`),
+   and this row keeps cycling through `queued`.
+4. The "Alert on cron failure" canary — designed to open a sticky GitHub
+   issue, with a comment in the yml literally memorializing "gateway 401
+   silently killed cron for weeks before founder noticed" — **failed on
+   every run too**: the workflow has no `permissions:` block, the default
+   token is read-only, and `issues.create` was rejected. The watchdog
+   could not bark, which reads as "no issue filed, nothing wrong".
+
+Gateway auth and `CRON_TICK_SECRET` were ruled out by contrast:
+`cron-tick-hourly` succeeds using the same two repo secrets.
+
+**Contained (autonomous, test-data-only):** the ₹18.60 test payout is
+dead-lettered to `failed` via `record_engineer_payout_dispatch()` with a
+full audit reason — faithful to the worker's own 5-attempt design, some
+1,367 attempts late. Queue now empty; `pick` returns 0; the worker's next
+scheduled run takes its empty-queue `200 processed: 0` path *before*
+touching Cashfree, so the failure loop stops without masking anything.
+
+**Founder decisions, unchanged by the containment:**
+
+1. **The payment rail.** Cashfree payouts have never worked in this
+   environment. Either fix/replace the `CASHFREE_*` credentials, or
+   finish the RazorpayX migration the webhook side already speaks
+   (`payouts-webhook`, `razorpayx_status`), or unset the Cashfree
+   credentials entirely — the worker's own designed off-switch, making it
+   report `configured: false` instead of failing. Until then, the FIRST
+   REAL payout queued at launch will put the worker straight back into
+   this failure loop.
+2. **Merge the canary fix to `main`.** `permissions: {contents: read,
+   issues: write}` added to the worker workflow on this branch takes
+   effect only from the default branch. Same merge can carry the
+   Code Red `*/5` workflow if wanted.
