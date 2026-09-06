@@ -408,6 +408,7 @@ serve(async (req) => {
     ],
   };
 
+  const invokedAt = Date.now();
   const targets: string[] = groups[slot] ?? (slot in slots ? [slot] : []);
   if (targets.length === 0) {
     return json(400, {
@@ -452,6 +453,26 @@ serve(async (req) => {
   }
 
   const allOk = results.every((r) => r.ok);
+
+  // round3813 — persist the outcome. Until now the ONLY record of a red
+  // scheduled run was the HTTP body in the GitHub run log (auth-gated),
+  // and this project runs no pg_cron, so the database held no evidence at
+  // all; the first daily failure had to be diagnosed by re-running every
+  // RPC by hand. Best-effort by design: a logging failure must never turn
+  // a green run red or hide a real slot error.
+  try {
+    await admin.from("cron_tick_runs").insert({
+      slot,
+      targets,
+      ok: allOk,
+      failed_slots: results.filter((r) => !r.ok).map((r) => r.slot),
+      results,
+      duration_ms: Date.now() - invokedAt,
+    });
+  } catch (e) {
+    console.error("cron-tick: could not persist run", e instanceof Error ? e.message : String(e));
+  }
+
   return json(allOk ? 200 : 500, {
     ok: allOk,
     slot,
