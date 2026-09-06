@@ -380,6 +380,11 @@ fun MainNavGraph(
                     // booking with engineerId pre-filled in the route
                     // query arg; RequestServiceViewModel picks it up
                     // and hydrates the reassurance header.
+                    // round3812 — DSR entry from the Completed-job
+                    // compliance section.
+                    onOpenDsr = { jobId, isHospital ->
+                        navController.navigate(Routes.dsrReportRoute(jobId, isHospital))
+                    },
                     onBookAgain = { engineerId ->
                         navController.navigate(Routes.requestServiceRoute(engineerId))
                     },
@@ -777,6 +782,21 @@ fun MainNavGraph(
                 ),
             ) {
                 com.equipseva.app.features.mybids.HospitalTierPreviewScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            // round3812 — Digital Service Report (round494 backend, first
+            // client). Reached from the job-detail Compliance section.
+            composable(
+                route = "${Routes.DSR_REPORT}/{${Routes.DSR_REPORT_ARG_JOB_ID}}/{${Routes.DSR_REPORT_ARG_IS_HOSPITAL}}",
+                arguments = listOf(
+                    navArgument(Routes.DSR_REPORT_ARG_JOB_ID) { type = NavType.StringType },
+                    navArgument(Routes.DSR_REPORT_ARG_IS_HOSPITAL) { type = NavType.BoolType },
+                ),
+            ) { entry ->
+                com.equipseva.app.features.repair.DsrScreen(
+                    jobId = entry.arguments?.getString(Routes.DSR_REPORT_ARG_JOB_ID).orEmpty(),
+                    isHospital = entry.arguments?.getBoolean(Routes.DSR_REPORT_ARG_IS_HOSPITAL) ?: false,
                     onBack = { navController.popBackStack() },
                 )
             }

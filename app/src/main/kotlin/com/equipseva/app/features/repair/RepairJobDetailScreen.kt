@@ -155,6 +155,10 @@ fun RepairJobDetailScreen(
     // Default no-op so existing callsites compile; MainNavGraph
     // overrides with the actual navController.navigate call.
     onBookAgain: (engineerId: String) -> Unit = {},
+    // round3812 — Digital Service Report entry (round494 backend, first
+    // client). The screen passes the job id and its own viewer-role flag;
+    // MainNavGraph turns them into the DSR route.
+    onOpenDsr: (jobId: String, isHospital: Boolean) -> Unit = { _, _ -> },
     viewModel: RepairJobDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -382,6 +386,7 @@ fun RepairJobDetailScreen(
                     onOpenEscrowDispute = viewModel::openEscrowDisputeSheet,
                     onOpenEngineerResponseSheet = viewModel::openEngineerResponseSheet,
                     onOpenPayoutMethod = onOpenPayoutMethod,
+                    onOpenDsr = onOpenDsr,
                 )
             }
         }
@@ -606,6 +611,7 @@ private fun JobBody(
     onOpenEscrowDispute: () -> Unit,
     onOpenEngineerResponseSheet: () -> Unit,
     onOpenPayoutMethod: () -> Unit = {},
+    onOpenDsr: (jobId: String, isHospital: Boolean) -> Unit = { _, _ -> },
 ) {
     val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
     Column(
@@ -781,6 +787,26 @@ private fun JobBody(
         // PR-D3: compliance audit-trail HTML report. Available to both
         // sides on Completed jobs — hospital saves it for NABH/JCI
         // archives, engineer keeps it as proof of work delivered.
+        // round3812 — the Digital Service Report is the PRIMARY compliance
+        // record (IEC 62353 verdict, calibration, work summary, hospital
+        // countersignature); the HTML "Compliance report" below is the
+        // derived artifact. Engineer files it; hospital reviews and signs.
+        // Backed by round494 RPCs that had zero clients until now — which
+        // is why the PM calendar and NABH bundle were structurally empty.
+        // Shown from IN PROGRESS onward, not Completed-only: the natural
+        // filing moment is while wrapping up on-site, and submit_dsr
+        // itself gates on the accepted bid, not on job status.
+        if (job.engineerId != null &&
+            (job.status == RepairJobStatus.InProgress || job.status == RepairJobStatus.Completed)
+        ) {
+            EsSection(title = "Service report (DSR)") {
+                DsrEntryCard(
+                    isHospital = isHospital,
+                    onOpen = { onOpenDsr(job.id, isHospital) },
+                )
+            }
+        }
+
         if (job.status == RepairJobStatus.Completed) {
             EsSection(title = "Compliance report") {
                 ServiceReportCard(
@@ -1110,6 +1136,62 @@ private fun EscrowStatusCard(
                     }
                 }
             }
+        }
+    }
+}
+
+// round3812 — entry card for the Digital Service Report. Static (no
+// per-card fetch: the detail screen is already load-heavy, and the DSR
+// screen itself resolves the record's actual state on open).
+@Composable
+private fun DsrEntryCard(
+    isHospital: Boolean,
+    onOpen: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.dsr_entry_title),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = SevaInk900,
+        )
+        Text(
+            text = if (isHospital) {
+                stringResource(R.string.dsr_entry_body_hospital)
+            } else {
+                stringResource(R.string.dsr_entry_body_engineer)
+            },
+            fontSize = 12.sp,
+            color = SevaInk500,
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(SevaGreen700)
+                .clickable(onClick = onOpen)
+                .padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = if (isHospital) {
+                    stringResource(R.string.dsr_entry_cta_hospital)
+                } else {
+                    stringResource(R.string.dsr_entry_cta_engineer)
+                },
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+            )
         }
     }
 }

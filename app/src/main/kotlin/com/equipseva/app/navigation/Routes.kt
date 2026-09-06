@@ -299,6 +299,15 @@ object Routes {
     const val HOSPITAL_TIER_PREVIEW = "mybids/hospital_tier"
     const val HOSPITAL_TIER_PREVIEW_ARG_JOB_ID = "jobId"
     fun hospitalTierPreviewRoute(repairJobId: String): String = "$HOSPITAL_TIER_PREVIEW/$repairJobId"
+
+    // round3812 — Digital Service Report (round494 backend, first client).
+    // isHospital only picks the affordances to draw; the server enforces
+    // who may submit/sign.
+    const val DSR_REPORT = "repair/dsr"
+    const val DSR_REPORT_ARG_JOB_ID = "jobId"
+    const val DSR_REPORT_ARG_IS_HOSPITAL = "isHospital"
+    fun dsrReportRoute(repairJobId: String, isHospital: Boolean): String =
+        "$DSR_REPORT/$repairJobId/$isHospital"
     const val AMC_CONTRACT_DETAIL_ARG_ID = "contractId"
     fun amcContractDetailRoute(contractId: String): String =
         "$AMC_CONTRACT_DETAIL/$contractId"
