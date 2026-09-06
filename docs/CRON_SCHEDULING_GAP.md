@@ -385,3 +385,40 @@ Also salvaged into the repo: `scripts/verify/orderby_recheck.sql` — the
 self-contained monotonicity probe for the 73 ORDER BY pairs that were
 undetermined at repair time (the round3798/3801 footers pointed at a
 session scratchpad path that no longer exists).
+
+---
+
+## First daily-tick FAILURE, most likely transient (2026-09-06 07:43 UTC)
+
+The first post-deploy `cron-tick-daily` run (07:43 UTC) — the first
+exercise of the 16 new daily slots — FAILED at the `POST ?slot=daily`
+step. Diagnosis so far:
+
+* **Every daily RPC runs clean as service_role.** Re-executed all 24
+  functions the daily group calls (the whole list, plus
+  run_daily_reconciliation) in a single rolled-back service_role
+  transaction: zero errors. So the failure is NOT in the SQL.
+* **invoice-digest is not it:** get_invoice_digest_payload returns 0 rows
+  in the window, so that slot takes its clean early-exit before ever
+  calling Resend.
+* **Most likely cause: the PGRST002 schema-cache wedge.** Around the same
+  window, every app RPC was returning HTTP 503 / PGRST002 ("Could not
+  query the database for the schema cache. Retrying.") — the aftermath of
+  this week's heavy DDL. `NOTIFY pgrst, 'reload schema'` cleared it, and
+  the gateway is healthy now (cron-tick returns 401 on a bad secret, not
+  503). A slot RPC call landing during that reload would 500, failing the
+  step exactly as observed.
+* **The run is self-diagnosing regardless:** cron-tick returns a 500 body
+  `{ok:false, slot:"daily", results:[{slot, error:"slot_failed",
+  error_code:<SQLSTATE|H<status>>}, ...]}`, and the workflow's
+  `curl --fail-with-body` prints it into the run log. Opening
+  run 34019901270 shows exactly which slot(s) failed and why — the
+  diagnosability the round441 error_code design exists for.
+
+NOT patched, because there is nothing to patch if it is the transient it
+appears to be: the daily group is idempotent, and the next scheduled tick
+(~07:30 UTC tomorrow) will confirm green. If it fails again, the run-log
+body names the slot; a slot that fails deterministically (vs the
+schema-cache flake) then gets a targeted fix. The hourly group has run
+green repeatedly through this same period, which is consistent with a
+brief cache reload rather than a broken daily slot.
