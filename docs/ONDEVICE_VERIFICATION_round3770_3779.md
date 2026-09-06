@@ -200,3 +200,48 @@ the two documented as structurally empty upstream (PM Calendar, Fleet
 Health — see `docs/CRON_SCHEDULING_GAP.md`; their recompute sweep now
 runs daily as of round3807, but PM projection stays empty until a
 DSR-submission path exists).
+
+## Addendum 2026-09-06 — full compliance chain on RPR-00040 (check-in → DSR + serial → countersign): PAUSED at step 1
+
+Goal: prove the r3814 serial capture end-to-end on a job with NO booking serial — engineer
+check-in through the 250 m geofence, DSR filed with `SN-IVX450-7781`, hospital countersign,
+then the SQL payoff (`nabh_bundle_for_equipment` rows, `repair_jobs.equipment_serial`
+back-filled, first `engineer_attendance` row, second `equipment_pm_schedule` projection).
+
+State when paused (founder asked to stop and save): RPR-00040 still `assigned`, no attendance
+row, no DSR, no engineer coordinates. Nothing in prod changed except the earlier test-data seed
+of site coords (17.0500, 79.2671) so the geofence is a real positive control.
+
+What the drive established (all verified on the emulator, zero app crashes):
+
+1. **Check-in is a two-gate sheet, not a button.** "Check in on-site" opens a bottom sheet that
+   REQUIRES 1–4 before-photos via the system photo picker before "I'm here · check in" enables
+   (`CheckinSheet`, `disabled = picked.isEmpty()`). The original chain40 script tapped a
+   non-existent "Check in" confirm and dismissed the sheet with swipes — the RPC was never called.
+2. **Photo picker driving recipe** (API 35 `PhotoPickerActivity`): tap "Add photo" → tap a
+   thumbnail (first tile centre 177,817) → the picker's `Add (1)` button appears at
+   [734,2154][1038,2287] (centre 886,2220). The lib's `nodes()` regex MISSES it because system
+   nodes carry a `/` in `resource-id` (`[^/]*?` before `bounds=`); use the raw dump or coordinates
+   for non-Compose UI.
+3. **Emulator location must be injected as a mock provider.** `adb emu geo fix` did NOT reach
+   the framework (last fix stayed the boot-time Hyderabad 17.385,78.4867 — ~90 km from site,
+   which would have raised `too far from site`). Working recipe:
+   `adb shell appops set com.android.shell android:mock_location allow`, then
+   `cmd location providers add-test-provider gps` / `set-test-provider-enabled gps true` /
+   `set-test-provider-location gps --location 17.0500,79.2671 --accuracy 5`; both `gps` and
+   `fused` last-locations flipped to the site coords (flagged `mock`).
+4. **Blocker at pause: the RPC call returned the expired-JWT class** — snackbar "Your session
+   expired. Tap retry — if this keeps happening, sign in again." (DataError maps
+   PGRST301/302 / "jwt expired"). The engineer session was ~75 min old. A second attempt a
+   minute later produced the SAME snackbar, i.e. the SDK did not refresh the token on the next
+   request as the DataError comment assumes. Next step is simply sign out / sign in and re-run
+   `ci40d.sh`; if the second sign-in ALSO fails this way, the refresh path is a real app bug
+   (the `updatingStatus` spinner clears correctly, no crash, retry affordance is present).
+5. **Product observation (not fixed, founder call):** `primaryKind` shows the CheckIn CTA for
+   ANY engineer viewing an `assigned` job (`isEngineer && status == Assigned`), not only the
+   assigned engineer — the server rejects with 42501 (`not the engineer on this job`), so it is
+   safe, but the CTA is misleading for a browsing engineer. `canCancel` already uses
+   `isAssignedEngineer`; CheckIn should too.
+
+Driver scripts (scratchpad, not in repo): `uilib.sh`, `ci40a-d.sh` (sheet → picker → confirm
+with 1.5 s mock-location pulses and a snackbar diff-capture loop), `probe40.sql`, `st40.sql`.
