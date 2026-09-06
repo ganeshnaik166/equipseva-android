@@ -353,3 +353,35 @@ so merging it carries zero exposure to the diverged ops history:
 
 Merge that, and both scheduled-workflow fixes go live; nothing else about
 `main` changes.
+
+---
+
+## VERDICTS IN (2026-09-06 morning): both scheduled paths confirmed green end-to-end
+
+Overnight, GitHub's scheduler delivered the two proofs that local
+verification could not:
+
+* **`cron-tick-hourly`: three consecutive successes post-deploy**
+  (2026-09-05 21:08, 23:48, 2026-09-06 04:27 UTC). The hourly group —
+  including the three round3807 additions (refund-authorization reaper,
+  stranded-AMC-order reaper, Code Red sweep) — runs end-to-end through
+  the real GitHub → gateway → edge-function → RPC path with the real
+  secret.
+* **`engineer-payouts-worker`: three consecutive successes**
+  (23:08, 00:58, 05:48) — after months in which every single run failed.
+  The round3809 dead-letter fixed it exactly as predicted: empty queue →
+  the worker exits `200 processed: 0` before touching Cashfree.
+
+Still pending its first post-deploy fire: **`cron-tick-daily`** (last ran
+07:29 UTC on 2026-09-05, before the deploy; next due ~07:30 UTC daily).
+That run is the first exercise of the 16 new daily slots, including
+`invoice-digest`. A slot failure surfaces in the run output as
+`{slot, error: "slot_failed", error_code: <SQLSTATE|H<status>>}` — every
+underlying RPC was already proven live by direct execution, so the
+residual risk is confined to the TS slot wrappers and the digest's
+Resend call.
+
+Also salvaged into the repo: `scripts/verify/orderby_recheck.sql` — the
+self-contained monotonicity probe for the 73 ORDER BY pairs that were
+undetermined at repair time (the round3798/3801 footers pointed at a
+session scratchpad path that no longer exists).
