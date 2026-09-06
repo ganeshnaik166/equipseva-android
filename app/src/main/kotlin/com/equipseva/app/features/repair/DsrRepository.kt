@@ -57,6 +57,9 @@ class DsrRepository @Inject constructor(
         @SerialName("calibration_within_oem") val calibrationWithinOem: Boolean? = null,
         @SerialName("work_summary") val workSummary: String,
         val recommendations: String? = null,
+        // round3814 — what the DSR attests: the engineer's on-site reading
+        // when supplied, else the job's value, else null
+        @SerialName("equipment_serial") val equipmentSerial: String? = null,
     ) {
         val isSigned: Boolean get() = status == STATUS_SIGNED
         val isPendingSign: Boolean get() = status == STATUS_PENDING_SIGN
@@ -81,6 +84,9 @@ class DsrRepository @Inject constructor(
         calibrationWithinOem: Boolean?,
         calibrationLabRef: String?,
         recommendations: String?,
+        // round3814 — optional on-site serial reading (device plate).
+        // Blank = not provided; the server then keeps the job's serial.
+        equipmentSerial: String? = null,
     ): Result<String> = runCatching {
         val raw = client.postgrest.rpc(
             function = "submit_dsr",
@@ -120,6 +126,11 @@ class DsrRepository @Inject constructor(
                 put(
                     "p_recommendations",
                     recommendations?.trim()?.takeIf { it.isNotEmpty() }
+                        ?.let(::JsonPrimitive) ?: JsonNull,
+                )
+                put(
+                    "p_equipment_serial",
+                    equipmentSerial?.trim()?.takeIf { it.isNotEmpty() }
                         ?.let(::JsonPrimitive) ?: JsonNull,
                 )
             },
@@ -167,6 +178,11 @@ object DsrValidators {
     }
 
     fun signerFieldOk(input: String): Boolean = input.trim().length >= SIGNER_MIN
+
+    /** submit_dsr: length(trim(p_equipment_serial)) <= 64, blank allowed. */
+    const val SERIAL_MAX = 64
+    fun serialProblem(input: String): DsrFieldProblem? =
+        if (input.trim().length > SERIAL_MAX) DsrFieldProblem.TooLong else null
 }
 
 enum class DsrFieldProblem { TooShort, TooLong }

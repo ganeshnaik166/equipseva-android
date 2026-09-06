@@ -557,7 +557,7 @@
     <string name="hospital_pm_calendar_couldnt_load">Couldn\'t load</string>
     <string name="hospital_pm_calendar_try_again">Try again</string>
     <string name="hospital_pm_calendar_empty_title">Nothing scheduled yet</string>
-    <string name="hospital_pm_calendar_empty_body">Your preventive-maintenance calendar builds itself from signed service reports. Book your first repair job to get started.</string>
+    <string name="hospital_pm_calendar_empty_body">Your preventive-maintenance calendar builds itself from signed service reports. Nothing is due in the next 60 days.</string>
     <string name="hospital_pm_calendar_footer_note">Dates are projected from OEM-recommended service intervals and your last signed service report — recalculated daily.</string>
     <string name="hospital_pm_calendar_last_serviced">Last serviced</string>
     <string name="hospital_pm_calendar_never_serviced">Never serviced</string>
@@ -939,5 +939,10 @@
     <string name="dsr_calibration_verdict_label">Calibration verdict</string>
     <string name="dsr_revise">Revise report</string>
     <string name="dsr_revise_footnote">Revising replaces this report and resets the hospital\u0027s sign-off.</string>
+    <string name="dsr_serial_label">Equipment serial number</string>
+    <string name="dsr_serial_hint">As printed on the device plate. Leave blank if the hospital already recorded it when booking. NABH audit bundles are filed per serial.</string>
+    <string name="dsr_serial_too_long">Keep it under %1$d characters</string>
+    <string name="dsr_serial_row">Equipment serial</string>
+    <string name="dsr_serial_missing">Not recorded</string>
     <string name="dsr_entry_cta_hospital">Review / sign report</string>
 </resources>

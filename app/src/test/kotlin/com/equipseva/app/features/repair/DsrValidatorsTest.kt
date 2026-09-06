@@ -62,6 +62,16 @@ class DsrValidatorsTest {
     }
 
     @Test
+    fun `serial mirrors submit_dsr max 64 on the trimmed value, blank allowed`() {
+        assertEquals(64, DsrValidators.SERIAL_MAX)
+        assertNull(DsrValidators.serialProblem(""))
+        assertNull(DsrValidators.serialProblem("   "))
+        assertNull(DsrValidators.serialProblem("a".repeat(64)))
+        assertNull(DsrValidators.serialProblem("  " + "a".repeat(64) + "  "))
+        assertEquals(DsrFieldProblem.TooLong, DsrValidators.serialProblem("a".repeat(65)))
+    }
+
+    @Test
     fun `status helpers match the round494 status literals`() {
         val pending = DsrRepository.Dsr(
             id = "x", status = DsrRepository.STATUS_PENDING_SIGN,

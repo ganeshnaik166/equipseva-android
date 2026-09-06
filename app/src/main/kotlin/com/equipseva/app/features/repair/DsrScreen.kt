@@ -120,10 +120,12 @@ class DsrViewModel @Inject constructor(
         calibrationWithinOem: Boolean?,
         calibrationLabRef: String,
         recommendations: String,
+        equipmentSerial: String = "",
     ) {
         val id = jobId ?: return
         if (_state.value.submitting) return
         if (DsrValidators.workSummaryProblem(workSummary) != null) return
+        if (DsrValidators.serialProblem(equipmentSerial) != null) return
         _state.update { it.copy(submitting = true, actionError = null) }
         viewModelScope.launch {
             repo.submit(
@@ -134,6 +136,7 @@ class DsrViewModel @Inject constructor(
                 calibrationWithinOem = calibrationWithinOem,
                 calibrationLabRef = calibrationLabRef,
                 recommendations = recommendations,
+                equipmentSerial = equipmentSerial,
             )
                 .onSuccess {
                     _state.update { it.copy(submitting = false) }
@@ -222,6 +225,7 @@ fun DsrScreen(
                                 false -> 2
                                 null -> 0
                             },
+                            initialSerial = dsr.equipmentSerial.orEmpty(),
                             onSubmit = viewModel::submit,
                         )
                     } else {
@@ -254,6 +258,7 @@ private fun DsrForm(
     initialSummary: String = "",
     initialRecommendations: String = "",
     initialIecChoice: Int = 0,
+    initialSerial: String = "",
     onSubmit: (
         workSummary: String,
         iec62353Passed: Boolean?,
@@ -261,6 +266,7 @@ private fun DsrForm(
         calibrationWithinOem: Boolean?,
         calibrationLabRef: String,
         recommendations: String,
+        equipmentSerial: String,
     ) -> Unit,
 ) {
     var workSummary by rememberSaveable { mutableStateOf(initialSummary) }
@@ -274,6 +280,10 @@ private fun DsrForm(
     var calibChoice by rememberSaveable { mutableStateOf(-1) }
     var calibrationLabRef by rememberSaveable { mutableStateOf("") }
     var recommendations by rememberSaveable { mutableStateOf(initialRecommendations) }
+    // round3814 — on-site serial reading; the NABH bundle is keyed on it
+    // and 90% of jobs are booked without one.
+    var equipmentSerial by rememberSaveable { mutableStateOf(initialSerial) }
+    val serialProblem = DsrValidators.serialProblem(equipmentSerial)
 
     val summaryProblem = DsrValidators.workSummaryProblem(workSummary)
     val summaryError = when {
@@ -310,6 +320,18 @@ private fun DsrForm(
             ),
             error = summaryError,
             type = EsFieldType.Multiline,
+        )
+
+        EsField(
+            value = equipmentSerial,
+            onChange = { equipmentSerial = it },
+            label = stringResource(R.string.dsr_serial_label),
+            hint = stringResource(R.string.dsr_serial_hint),
+            error = if (serialProblem != null) {
+                stringResource(R.string.dsr_serial_too_long, DsrValidators.SERIAL_MAX)
+            } else {
+                null
+            },
         )
 
         SectionCard(title = stringResource(R.string.dsr_iec_title)) {
@@ -406,11 +428,12 @@ private fun DsrForm(
                     // repository nulls it otherwise as well (belt + braces).
                     if (calibrationPerformed) calibrationLabRef else "",
                     recommendations,
+                    equipmentSerial,
                 )
             },
             // A performed calibration requires an explicit verdict — no
             // silent attestation either way.
-            disabled = submitting || summaryProblem != null ||
+            disabled = submitting || summaryProblem != null || serialProblem != null ||
                 (calibrationPerformed && calibChoice == -1),
             full = true,
         )
@@ -471,6 +494,12 @@ private fun DsrRecord(
         }
 
         SectionCard(title = stringResource(R.string.dsr_verdicts_title)) {
+            VerdictRow(
+                label = stringResource(R.string.dsr_serial_row),
+                value = dsr.equipmentSerial?.takeIf { it.isNotBlank() }
+                    ?: stringResource(R.string.dsr_serial_missing),
+                good = !dsr.equipmentSerial.isNullOrBlank(),
+            )
             VerdictRow(
                 label = stringResource(R.string.dsr_iec_title),
                 value = when (dsr.iec62353Passed) {
