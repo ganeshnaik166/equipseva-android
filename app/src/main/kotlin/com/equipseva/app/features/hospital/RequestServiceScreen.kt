@@ -51,7 +51,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -70,6 +70,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.R
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.data.repair.RepairJobUrgency
+import com.equipseva.app.features.hospital.RequestServiceViewModel.PhotoOperation
+import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.MIME_JPEG
 import com.equipseva.app.designsystem.components.Avatar
 import com.equipseva.app.designsystem.components.ESBackTopBar
@@ -98,74 +100,85 @@ fun RequestServiceScreen(
     viewModel: RequestServiceViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    // v0.2.0 booking flow: single form, no wizard. The user lands here
-    // from the engineer card on the directory and submits the full
-    // request in one shot. `selectedSlot` is the only remaining
-    // multi-step legacy — kept because the When section uses tiles
-    // (one of 4 presets, or Custom + DatePicker) rather than free text.
-    var selectedSlot by rememberSaveable { mutableIntStateOf(-1) }
+    // Capture the rendered scope, never the account current when a late UI
+    // callback happens to run. Selected slot is scoped in SavedStateHandle too.
+    val formSession = state.formSession
+    val selectedSlot = state.selectedSlot
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
-
-    // Camera capture (preview-resolution thumbnail). Encoded to JPEG bytes
-    // before handing to the VM so the upload payload is consistent.
-    //
-    // CAMERA is declared in AndroidManifest, so the system camera intent
-    // backing TakePicturePreview returns a null bitmap when the runtime
-    // grant is missing. Gate the launch on a permission request and only
-    // open the picker after the user grants the permission.
+    // The VM retains launch correlation across Activity recreation. A result
+    // arriving before auth initialization waits for verified form ownership.
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview(),
     ) { bitmap: Bitmap? ->
-        if (bitmap != null) {
-            val bytes = java.io.ByteArrayOutputStream().use { stream ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
-                stream.toByteArray()
+        viewModel.onPhotoOperationResult(PhotoOperation.Camera) { launchedSession ->
+            viewModel.forFormSession(launchedSession) {
+                if (bitmap != null) {
+                    val bytes = java.io.ByteArrayOutputStream().use { stream ->
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
+                        stream.toByteArray()
+                    }
+                    onPhotoPicked(
+                        fileName = "camera-${System.currentTimeMillis()}.jpg",
+                        bytes = bytes,
+                        contentType = MIME_JPEG,
+                    )
+                }
             }
-            viewModel.onPhotoPicked(
-                fileName = "camera-${System.currentTimeMillis()}.jpg",
-                bytes = bytes,
-                contentType = MIME_JPEG,
-            )
         }
     }
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) { granted ->
-        if (granted) {
-            cameraLauncher.launch(null)
-        } else {
-            onShowMessage("Camera permission denied")
+        viewModel.onPhotoOperationResult(PhotoOperation.CameraPermission) { launchedSession ->
+            if (granted) {
+                viewModel.launchPhotoOperation(launchedSession, PhotoOperation.Camera) {
+                    cameraLauncher.launch(null)
+                }
+            } else {
+                onShowMessage("Camera permission denied")
+            }
         }
     }
     val onRequestCamera: () -> Unit = {
-        val granted = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.CAMERA,
-        ) == PackageManager.PERMISSION_GRANTED
-        if (granted) {
-            cameraLauncher.launch(null)
-        } else {
-            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        viewModel.forFormSession(formSession) {
+            val granted = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CAMERA,
+            ) == PackageManager.PERMISSION_GRANTED
+            if (granted) {
+                launchPhotoOperation(formSession, PhotoOperation.Camera) { cameraLauncher.launch(null) }
+            } else {
+                launchPhotoOperation(formSession, PhotoOperation.CameraPermission) {
+                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                }
+            }
         }
     }
-
-    // Gallery pick (image/* only).
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
     ) { uri: android.net.Uri? ->
-        if (uri != null) {
-            // Round 340 — launcher callbacks run on Main. Reading a multi-MB
-            // gallery image with readBytes() on Main is ANR-prone on low-end
-            // devices. Push the read off to IO.
-            scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                val cr = context.contentResolver
-                val mime = cr.getType(uri) ?: MIME_JPEG
-                val bytes = cr.openInputStream(uri)?.use { it.readBytes() }
-                val fileName = uri.lastPathSegment ?: "gallery-${System.currentTimeMillis()}"
-                if (bytes != null) {
-                    viewModel.onPhotoPicked(fileName, bytes, mime)
+        viewModel.onPhotoOperationResult(PhotoOperation.Gallery) { launchedSession ->
+            if (uri != null) {
+                // Read multi-MB images off Main; capture launch ownership before
+                // IO and recheck on Main before the upload enters the form.
+                scope.launch {
+                    try {
+                        val (fileName, bytes, mime) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            val cr = context.contentResolver
+                            val mime = cr.getType(uri) ?: MIME_JPEG
+                            val bytes = cr.openInputStream(uri)?.use { it.readBytes() }
+                            val fileName = uri.lastPathSegment ?: "gallery-${System.currentTimeMillis()}"
+                            Triple(fileName, bytes, mime)
+                        }
+                        viewModel.forFormSession(launchedSession) {
+                            if (bytes != null) onPhotoPicked(fileName, bytes, mime)
+                        }
+                    } catch (error: Exception) {
+                        if (error is kotlinx.coroutines.CancellationException) throw error
+                        viewModel.forFormSession(launchedSession) { onShowMessage(error.toUserMessage()) }
+                    }
                 }
             }
         }
@@ -173,142 +186,166 @@ fun RequestServiceScreen(
 
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
-            when (effect) {
-                is RequestServiceViewModel.Effect.Submitted -> {
-                    onSubmitted(effect.jobId, effect.jobNumber)
-                }
-                is RequestServiceViewModel.Effect.ShowMessage -> {
-                    onShowMessage(effect.text)
+            viewModel.forFormSession(effect.formSession) {
+                when (effect) {
+                    is RequestServiceViewModel.Effect.Submitted -> onSubmitted(effect.jobId, effect.jobNumber)
+                    is RequestServiceViewModel.Effect.ShowMessage -> onShowMessage(effect.text)
+                    is RequestServiceViewModel.Effect.RetryPhotoSelection ->
+                        onShowMessage(context.getString(R.string.request_service_photo_pick_again))
                 }
             }
         }
     }
-
     // Single derived flag — all four legacy step gates rolled into one
     // so the bottom Submit can disable until the user has filled the
     // minimum-valid payload. The submit handler still enforces
     // issue+address as defense-in-depth on the way out.
-    val canSubmit = state.brand.isNotBlank() &&
+    val canSubmit = formSession != null && state.brand.isNotBlank() &&
         state.model.isNotBlank() &&
         state.issue.trim().length >= 10 &&
         (selectedSlot in 0..3 || (selectedSlot == 4 && state.pickedDateMillis != null)) &&
         !state.submitting &&
         !state.uploadingPhoto
 
-    Scaffold(
-        topBar = {
-            Column {
-                ESBackTopBar(
-                    title = "Request service",
-                    onBack = onBack,
-                )
-                // Round 471 — draft recovery sticky bar. Shown when the
-                // ViewModel detected a saved draft from a prior session;
-                // tapping Keep restores all fields, Discard wipes it.
-                if (state.showDraftRecoveryBar) {
-                    DraftRecoveryBar(
-                        onKeep = viewModel::onKeepDraft,
-                        onDiscard = viewModel::onDiscardDraft,
+    // Date dialogs, map permission launchers and GPS coroutines belong to a
+    // single form scope. Disposing them also prevents rememberUpdatedState in
+    // the map from forwarding an old request to a new account's callback.
+    key(formSession) {
+        Scaffold(
+            topBar = {
+                Column {
+                    ESBackTopBar(
+                        title = "Request service",
+                        onBack = onBack,
                     )
+                    // Round 471 — draft recovery sticky bar. Shown when the
+                    // ViewModel detected a saved draft from a prior session;
+                    // tapping Keep restores all fields, Discard wipes it.
+                    if (state.showDraftRecoveryBar && !state.checkingDraftRecovery && state.draftFailure == null) {
+                        DraftRecoveryBar(
+                            onKeep = { viewModel.forFormSession(formSession) { onKeepDraft() } },
+                            onDiscard = { viewModel.forFormSession(formSession) { onDiscardDraft() } },
+                        )
+                    }
+                    state.draftFailure?.let { failure ->
+                        Column(Modifier.padding(horizontal = Spacing.lg)) {
+                            ErrorBanner(message = stringResource(when (failure) {
+                                RequestServiceViewModel.DraftFailure.Check -> R.string.request_service_draft_check_failed
+                                RequestServiceViewModel.DraftFailure.Restore -> R.string.request_service_draft_restore_failed
+                                RequestServiceViewModel.DraftFailure.Discard -> R.string.request_service_draft_discard_failed
+                                RequestServiceViewModel.DraftFailure.Save -> R.string.request_service_draft_save_failed
+                            }))
+                            EsBtn(
+                                text = stringResource(R.string.common_retry),
+                                onClick = { viewModel.forFormSession(formSession) { onRetryDraftOperation() } },
+                                kind = EsBtnKind.Primary,
+                                size = EsBtnSize.Sm,
+                            )
+                        }
+                    }
                 }
-            }
-        },
-        bottomBar = {
-            SubmitBar(
-                submitting = state.submitting,
-                uploadingPhoto = state.uploadingPhoto,
-                canSubmit = canSubmit,
-                onSubmit = { viewModel.onSubmit(selectedSlot) },
-            )
-        },
-    ) { inner ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(inner)
-                .background(MaterialTheme.colorScheme.surface),
-        ) {
-            ErrorBanner(
-                message = state.errorMessage,
-                modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-            )
-            // v0.2.0 booking flow: every field on one scrollable
-            // surface. The user picked an engineer on the previous
-            // screen; this page is everything they need to fill in
-            // before Submit. The section labels carry the visual
-            // load that the HorizontalStepper used to.
+            },
+            bottomBar = {
+                SubmitBar(
+                    submitting = state.submitting,
+                    uploadingPhoto = state.uploadingPhoto,
+                    canSubmit = canSubmit,
+                    onSubmit = { viewModel.forFormSession(formSession) { onSubmit(selectedSlot) } },
+                )
+            },
+        ) { inner ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = Spacing.lg)
-                    .padding(bottom = Spacing.xl),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                    .padding(inner)
+                    .background(MaterialTheme.colorScheme.surface),
             ) {
-                // v0.3.5 fix #9 — engineer reassurance header. Rendered
-                // only when the screen was opened from a Book-again CTA
-                // (engineerId was passed in the route + fetchPublicProfile
-                // resolved a name). Shows the chosen engineer's name,
-                // rating, and total completed jobs so the hospital keeps
-                // confidence through what is otherwise a generic form.
-                if (state.prefilledEngineerName != null) {
-                    EngineerReassuranceHeader(
-                        name = state.prefilledEngineerName!!,
-                        rating = state.prefilledEngineerRating,
-                        jobCount = state.prefilledEngineerJobCount,
+                ErrorBanner(
+                    message = state.errorMessage,
+                    modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                )
+                // v0.2.0 booking flow: every field on one scrollable
+                // surface. The user picked an engineer on the previous
+                // screen; this page is everything they need to fill in
+                // before Submit. The section labels carry the visual
+                // load that the HorizontalStepper used to.
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = Spacing.lg)
+                        .padding(bottom = Spacing.xl),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                ) {
+                    // v0.3.5 fix #9 — engineer reassurance header. Rendered
+                    // only when the screen was opened from a Book-again CTA
+                    // (engineerId was passed in the route + fetchPublicProfile
+                    // resolved a name). Shows the chosen engineer's name,
+                    // rating, and total completed jobs so the hospital keeps
+                    // confidence through what is otherwise a generic form.
+                    if (state.prefilledEngineerName != null) {
+                        EngineerReassuranceHeader(
+                            name = state.prefilledEngineerName!!,
+                            rating = state.prefilledEngineerRating,
+                            jobCount = state.prefilledEngineerJobCount,
+                        )
+                    }
+                    StepEquipment(
+                        category = state.category,
+                        allowedCategories = state.allowedCategories,
+                        brand = state.brand,
+                        model = state.model,
+                        serial = state.serial,
+                        onCategory = { viewModel.forFormSession(formSession) { onCategoryChange(it) } },
+                        onBrand = { viewModel.forFormSession(formSession) { onBrandChange(it) } },
+                        onModel = { viewModel.forFormSession(formSession) { onModelChange(it) } },
+                        onSerial = { viewModel.forFormSession(formSession) { onSerialChange(it) } },
+                    )
+                    SectionDivider()
+                    StepIssue(
+                        issue = state.issue,
+                        issueError = state.issueError,
+                        urgency = state.urgency,
+                        photos = state.photos,
+                        uploadingPhoto = state.uploadingPhoto,
+                        onIssue = { viewModel.forFormSession(formSession) { onIssueChange(it) } },
+                        onUrgency = { viewModel.forFormSession(formSession) { onUrgencyChange(it) } },
+                        onTakePhoto = onRequestCamera,
+                        onPickFromGallery = {
+                            viewModel.forFormSession(formSession) {
+                                launchPhotoOperation(formSession, PhotoOperation.Gallery) {
+                                    galleryLauncher.launch(
+                                        PickVisualMediaRequest(
+                                            ActivityResultContracts.PickVisualMedia.ImageOnly,
+                                        ),
+                                    )
+                                }
+                            }
+                        },
+                        onRemovePhoto = { viewModel.forFormSession(formSession) { onRemovePhoto(it) } },
+                    )
+                    SectionDivider()
+                    StepWhen(
+                        selectedSlot = selectedSlot,
+                        onSelectSlot = { viewModel.forFormSession(formSession) { onSelectedSlotChange(it) } },
+                        pickedDateMillis = state.pickedDateMillis,
+                        onPickedDateChange = { viewModel.forFormSession(formSession) { onPickedDateChange(it) } },
+                    )
+                    SectionDivider()
+                    StepWhere(
+                        siteAddress = state.siteAddress,
+                        siteAddressError = state.siteAddressError,
+                        onSiteAddress = { viewModel.forFormSession(formSession) { onSiteAddressChange(it) } },
+                        siteLocation = state.siteLocation,
+                        onSiteLocation = { viewModel.forFormSession(formSession) { onSiteLocationChange(it) } },
+                        siteLatitude = state.siteLatitude,
+                        siteLongitude = state.siteLongitude,
+                        onSiteCoords = { lat, lng -> viewModel.forFormSession(formSession) { onSiteCoordsChange(lat, lng) } },
+                        budget = state.budget,
+                        budgetError = state.budgetError,
+                        onBudget = { viewModel.forFormSession(formSession) { onBudgetChange(it) } },
                     )
                 }
-                StepEquipment(
-                    category = state.category,
-                    allowedCategories = state.allowedCategories,
-                    brand = state.brand,
-                    model = state.model,
-                    serial = state.serial,
-                    onCategory = viewModel::onCategoryChange,
-                    onBrand = viewModel::onBrandChange,
-                    onModel = viewModel::onModelChange,
-                    onSerial = viewModel::onSerialChange,
-                )
-                SectionDivider()
-                StepIssue(
-                    issue = state.issue,
-                    issueError = state.issueError,
-                    urgency = state.urgency,
-                    photos = state.photos,
-                    uploadingPhoto = state.uploadingPhoto,
-                    onIssue = viewModel::onIssueChange,
-                    onUrgency = viewModel::onUrgencyChange,
-                    onTakePhoto = onRequestCamera,
-                    onPickFromGallery = {
-                        galleryLauncher.launch(
-                            PickVisualMediaRequest(
-                                ActivityResultContracts.PickVisualMedia.ImageOnly,
-                            ),
-                        )
-                    },
-                    onRemovePhoto = viewModel::onRemovePhoto,
-                )
-                SectionDivider()
-                StepWhen(
-                    selectedSlot = selectedSlot,
-                    onSelectSlot = { selectedSlot = it },
-                    pickedDateMillis = state.pickedDateMillis,
-                    onPickedDateChange = viewModel::onPickedDateChange,
-                )
-                SectionDivider()
-                StepWhere(
-                    siteAddress = state.siteAddress,
-                    siteAddressError = state.siteAddressError,
-                    onSiteAddress = viewModel::onSiteAddressChange,
-                    siteLocation = state.siteLocation,
-                    onSiteLocation = viewModel::onSiteLocationChange,
-                    siteLatitude = state.siteLatitude,
-                    siteLongitude = state.siteLongitude,
-                    onSiteCoords = viewModel::onSiteCoordsChange,
-                    budget = state.budget,
-                    budgetError = state.budgetError,
-                    onBudget = viewModel::onBudgetChange,
-                )
             }
         }
     }

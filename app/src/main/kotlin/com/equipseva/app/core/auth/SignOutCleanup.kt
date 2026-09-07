@@ -3,6 +3,7 @@ package com.equipseva.app.core.auth
 import com.equipseva.app.core.data.moderation.UserBlockRepository
 import com.equipseva.app.core.data.dao.OutboxDao
 import com.equipseva.app.core.data.prefs.UserPrefs
+import com.equipseva.app.core.data.repair.RequestServiceDraftStore
 import com.equipseva.app.core.payments.PendingAmcContractsStore
 import com.equipseva.app.core.payments.PendingAmcPaymentsStore
 import com.equipseva.app.core.payments.PendingEscrowPaymentsStore
@@ -47,8 +48,12 @@ class SignOutCleanup @Inject constructor(
     // the next user doesn't see a previous user's stranded AMC contract
     // appear as a "complete payment" banner on Home.
     private val pendingAmcContractsStore: PendingAmcContractsStore,
+    private val requestServiceDraftStore: RequestServiceDraftStore,
 ) {
     suspend fun wipeLocalUserState() {
+        // Revoke draft leases before slow FCM/network cleanup. Even if the disk
+        // clear fails, an old form cannot restore or repopulate a later session.
+        runCatching { requestServiceDraftStore.fenceAndClearForSignOut() }
         runCatching { deviceTokenRegistrar.revoke() }
         runCatching { outboxDao.clearAll() }
         runCatching { outboxScheduler.cancelAll() }

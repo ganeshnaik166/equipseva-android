@@ -3,8 +3,6 @@ package com.equipseva.app.features.hospital
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.equipseva.app.core.auth.AuthRepository
-import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
@@ -23,19 +21,18 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.distinctUntilChangedBy
-import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
 class RequestServiceViewModel @Inject constructor(
-    private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
     private val jobRepository: RepairJobRepository,
     private val storageRepository: StorageRepository,
@@ -52,6 +49,10 @@ class RequestServiceViewModel @Inject constructor(
     // copy-paste a serial number, the OS kills our process in the
     // background, and they return to a blank form with everything lost.
     private object SavedKeys {
+        const val OWNER_ID = "req.ownerId"
+        const val SESSION_ID = "req.sessionId"
+        const val RECOVERY_PENDING = "req.recoveryPending"
+        const val SELECTED_SLOT = "req.selectedSlot"
         const val CATEGORY = "req.category"
         const val URGENCY = "req.urgency"
         const val BRAND = "req.brand"
@@ -73,7 +74,19 @@ class RequestServiceViewModel @Inject constructor(
         const val ENGINEER_ID = "req.engineerId"
     }
 
+    // ActivityResult transport correlation outlives the form/account. Keep it
+    // separate from draft fields until the external result is actually drained.
+    private object PhotoKeys {
+        const val ID = "reqPhoto.id"
+        const val KIND = "reqPhoto.kind"
+        const val OWNER = "reqPhoto.owner"
+        const val SESSION = "reqPhoto.session"
+        const val INVALIDATED = "reqPhoto.invalidated"
+    }
+
     data class UiState(
+        val formSession: RequestServiceDraftStore.Lease? = null,
+        val selectedSlot: Int = -1,
         // r1496 — default must be a v0.4-SERVICEABLE category. The old default
         // (ImagingRadiology) is allowed_in_v04=false server-side, so a hospital
         // who kept the pre-selected chip had their post hard-rejected by the
@@ -105,6 +118,8 @@ class RequestServiceViewModel @Inject constructor(
         // saved draft is recovered from RequestServiceDraftStore. User
         // taps Keep (restore fields) or Discard (wipe + start fresh).
         val showDraftRecoveryBar: Boolean = false,
+        val checkingDraftRecovery: Boolean = false,
+        val draftFailure: DraftFailure? = null,
         // v0.3.5 fix #9 — engineer re-booking. When the hospital taps
         // "Book this engineer again" on a completed job detail, the
         // nav route carries engineerId; this VM fetches the
@@ -117,12 +132,18 @@ class RequestServiceViewModel @Inject constructor(
         val prefilledEngineerJobCount: Int = 0,
     )
 
+    enum class DraftFailure { Check, Restore, Discard, Save }
+    enum class PhotoOperation { CameraPermission, Camera, Gallery }
+
     sealed interface Effect {
-        data class Submitted(val jobId: String, val jobNumber: String?) : Effect
-        data class ShowMessage(val text: String) : Effect
+        val formSession: RequestServiceDraftStore.Lease
+        data class Submitted(val jobId: String, val jobNumber: String?, override val formSession: RequestServiceDraftStore.Lease) : Effect
+        data class ShowMessage(val text: String, override val formSession: RequestServiceDraftStore.Lease) : Effect
+        data class RetryPhotoSelection(override val formSession: RequestServiceDraftStore.Lease) : Effect
     }
 
-    private val _state = MutableStateFlow(restoredInitialState())
+    // Restored values stay hidden until their owner AND login session match.
+    private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     private fun restoredInitialState(): UiState {
@@ -133,6 +154,7 @@ class RequestServiceViewModel @Inject constructor(
             ?.let { name -> runCatching { RepairJobUrgency.valueOf(name) }.getOrNull() }
             ?: RepairJobUrgency.Scheduled
         return UiState(
+            selectedSlot = savedStateHandle.get<Int>(SavedKeys.SELECTED_SLOT) ?: -1,
             category = category,
             urgency = urgency,
             brand = savedStateHandle.get<String>(SavedKeys.BRAND).orEmpty(),
@@ -154,6 +176,10 @@ class RequestServiceViewModel @Inject constructor(
     }
 
     private fun clearSavedDraft() {
+        savedStateHandle.remove<String>(SavedKeys.OWNER_ID)
+        savedStateHandle.remove<String>(SavedKeys.SESSION_ID)
+        savedStateHandle.remove<Boolean>(SavedKeys.RECOVERY_PENDING)
+        savedStateHandle.remove<Int>(SavedKeys.SELECTED_SLOT)
         savedStateHandle.remove<String>(SavedKeys.CATEGORY)
         savedStateHandle.remove<String>(SavedKeys.URGENCY)
         savedStateHandle.remove<String>(SavedKeys.BRAND)
@@ -177,6 +203,17 @@ class RequestServiceViewModel @Inject constructor(
     val effects: kotlinx.coroutines.flow.Flow<Effect> = effectChannel
 
     private var userId: String? = null
+    private var draftSession: RequestServiceDraftStore.Lease? = null
+    private var hasBoundSession = false
+    private data class PendingPhotoOperation(
+        val id: String,
+        val kind: PhotoOperation,
+        val ownerId: String,
+        val sessionId: String?,
+        val lease: RequestServiceDraftStore.Lease? = null,
+        val invalidated: Boolean = false,
+    )
+    private var pendingPhotoOperation: PendingPhotoOperation? = restoredPhotoOperation()
     private var orgId: String? = null
     // Round 324 — hospital phone gate. Submitting a booking without
     // it leaves the engineer with no way to reach the hospital
@@ -191,28 +228,28 @@ class RequestServiceViewModel @Inject constructor(
         // create().onSuccess; this captures the "started but maybe didn't
         // submit" cohort for drop-off analysis.
         analytics.track(com.equipseva.app.core.data.analytics.AnalyticsEvent.JOB_POST_STARTED)
-        // v0.3.5 fix #9 — pin engineerId nav-arg into SavedKeys so a
-        // process kill mid-typing recovers correctly (the original
-        // nav-arg key only lives on the back-stack entry). Also kick
-        // off the engineer-profile fetch for the reassurance header.
-        val initialEngineerId = _state.value.prefilledEngineerId
-        if (!initialEngineerId.isNullOrBlank()) {
-            savedStateHandle[SavedKeys.ENGINEER_ID] = initialEngineerId
-            loadEngineerReassuranceData(initialEngineerId)
-        }
-        // Round 471 — draft recovery. Check for an existing saved draft
-        // before the user starts typing; if one exists, show the sticky
-        // recovery bar so they can choose Keep / Discard. Runs once on
-        // ViewModel construction (cold-start of the screen).
-        // v0.3.5 fix #9 — but suppress the recovery bar when we're in
-        // a re-booking flow. The user clicked "Book again" to start a
-        // fresh booking for THIS engineer; a stale unrelated draft from
-        // a prior session would only confuse them.
         viewModelScope.launch {
-            if (initialEngineerId.isNullOrBlank()) {
-                val existing = draftStore.loadDraft()
-                if (existing != null) {
-                    _state.update { it.copy(showDraftRecoveryBar = true) }
+            draftStore.activeSession.collect { lease ->
+                if (lease == draftSession) return@collect
+                if (hasBoundSession) {
+                    // The root navigation can miss a transient auth boundary while
+                    // backgrounded. Reuse this VM safely with a blank scoped form;
+                    // every old operation and rendered callback keeps its old lease.
+                    draftSession = null
+                    userId = null
+                    orgId = null
+                    hospitalPhone = null
+                    pendingPhotoOperation?.let {
+                        pendingPhotoOperation = it.copy(invalidated = true)
+                        savedStateHandle[PhotoKeys.INVALIDATED] = true
+                    }
+                    clearSavedDraft()
+                    savedStateHandle.remove<String>("engineerId")
+                    _state.value = UiState()
+                }
+                if (lease != null && draftStore.isCurrent(lease)) {
+                    hasBoundSession = true
+                    bindDraftSession(lease)
                 }
             }
         }
@@ -226,7 +263,14 @@ class RequestServiceViewModel @Inject constructor(
         @OptIn(FlowPreview::class)
         viewModelScope.launch {
             _state
-                .map { it.draftSnapshot() }
+                .map {
+                    DraftSave(
+                        draftSession,
+                        it.draftSnapshot(),
+                        it.recoveryPending(),
+                        draftSession?.let(draftStore::writeEpoch),
+                    )
+                }
                 .distinctUntilChanged()
                 .debounce(AUTO_SAVE_DEBOUNCE_MS)
                 .collect { snap ->
@@ -234,62 +278,248 @@ class RequestServiceViewModel @Inject constructor(
                     // the user hasn't typed anything into. The recovery
                     // bar would then appear on next launch for a blank
                     // form, which is just annoying.
-                    if (snap.isEmpty()) return@collect
-                    draftStore.saveDraft(snap)
-                }
-        }
-        viewModelScope.launch {
-            authRepository.sessionState
-                .filterIsInstance<AuthSession.SignedIn>()
-                .distinctUntilChangedBy { it.userId }
-                .collect { session ->
-                    userId = session.userId
-                    val profile = profileRepository.fetchById(session.userId).getOrNull()
-                    orgId = profile?.organizationId
-                    hospitalPhone = profile?.phone?.takeIf { it.isNotBlank() }
-                    // v0.2.0 onboarding captures hospital state + district;
-                    // pre-fill the booking form's "Where" address line so
-                    // the user starts with their saved district/state and
-                    // edits to add a specific landmark, instead of typing
-                    // the city + state from scratch every booking. Only
-                    // applied when the user hasn't already typed something
-                    // (SavedStateHandle restore wins) and when both fields
-                    // are present on the profile.
-                    val state = profile?.state?.takeIf { it.isNotBlank() }
-                    val district = profile?.district?.takeIf { it.isNotBlank() }
-                    if (_state.value.siteAddress.isBlank() && state != null && district != null) {
-                        val seed = "$district, $state"
-                        savedStateHandle[SavedKeys.SITE_ADDRESS] = seed
-                        _state.update { it.copy(siteAddress = seed) }
-                    }
+                    val lease = snap.lease ?: return@collect
+                    if (snap.recoveryPending || _state.value.recoveryPending() ||
+                        snap.draft.isEmpty() || !isCurrent(lease)
+                    ) return@collect
+                    saveSnapshot(lease, snap.draft, snap.writeEpoch)
                 }
         }
     }
 
+    private data class DraftSave(
+        val lease: RequestServiceDraftStore.Lease?,
+        val draft: RequestServiceFormDraft,
+        val recoveryPending: Boolean,
+        val writeEpoch: String?,
+    )
+
+    private fun isCurrent(lease: RequestServiceDraftStore.Lease): Boolean =
+        draftSession == lease && draftStore.isCurrent(lease)
+
+    private fun currentDraftSession(): RequestServiceDraftStore.Lease? =
+        draftSession?.takeIf(::isCurrent)
+
+    /** The caller captures this lease when rendering a control or launching a picker. */
+    fun forFormSession(lease: RequestServiceDraftStore.Lease?, action: RequestServiceViewModel.() -> Unit) {
+        if (lease != null && isCurrent(lease)) action()
+    }
+
+    private fun restoredPhotoOperation(): PendingPhotoOperation? {
+        val id = savedStateHandle.get<String>(PhotoKeys.ID)?.takeIf { it.isNotBlank() } ?: return null
+        val owner = savedStateHandle.get<String>(PhotoKeys.OWNER)?.takeIf { it.isNotBlank() } ?: return null
+        val kind = savedStateHandle.get<String>(PhotoKeys.KIND)
+            ?.let { runCatching { PhotoOperation.valueOf(it) }.getOrNull() } ?: return null
+        return PendingPhotoOperation(id, kind, owner, savedStateHandle.get<String>(PhotoKeys.SESSION),
+            invalidated = savedStateHandle.get<Boolean>(PhotoKeys.INVALIDATED) == true)
+    }
+
+    private fun clearPhotoOperation() {
+        pendingPhotoOperation = null
+        savedStateHandle.remove<String>(PhotoKeys.ID)
+        savedStateHandle.remove<String>(PhotoKeys.KIND)
+        savedStateHandle.remove<String>(PhotoKeys.OWNER)
+        savedStateHandle.remove<String>(PhotoKeys.SESSION)
+        savedStateHandle.remove<Boolean>(PhotoKeys.INVALIDATED)
+    }
+
+    /** One external launch at a time, including an old account's undrained result. */
+    fun launchPhotoOperation(
+        lease: RequestServiceDraftStore.Lease?,
+        kind: PhotoOperation,
+        launch: () -> Unit,
+    ): Boolean {
+        if (lease == null || !isCurrent(lease) || pendingPhotoOperation != null) return false
+        val operation = PendingPhotoOperation(UUID.randomUUID().toString(), kind, lease.identity.ownerId, lease.identity.sessionId, lease)
+        pendingPhotoOperation = operation
+        savedStateHandle[PhotoKeys.ID] = operation.id
+        savedStateHandle[PhotoKeys.KIND] = operation.kind.name
+        savedStateHandle[PhotoKeys.OWNER] = operation.ownerId
+        savedStateHandle[PhotoKeys.SESSION] = operation.sessionId
+        savedStateHandle[PhotoKeys.INVALIDATED] = false
+        return try {
+            launch()
+            true
+        } catch (error: Exception) {
+            clearPhotoOperation()
+            if (error is kotlinx.coroutines.CancellationException) throw error
+            crashReporter.report(error, "request photo picker launch failed")
+            effectChannel.tryEmit(Effect.ShowMessage(error.toUserMessage(), lease))
+            false
+        }
+    }
+
+    /**
+     * A recreated Activity may deliver a result before auth initialization.
+     * Wait for the verified owner/session bind, then consume that operation
+     * once. A stale operation is drained, never relabeled as the current one.
+     */
+    fun onPhotoOperationResult(kind: PhotoOperation, result: (RequestServiceDraftStore.Lease) -> Unit) {
+        val operation = pendingPhotoOperation?.takeIf { it.kind == kind } ?: return
+        viewModelScope.launch {
+            if (!hasBoundSession) state.first { it.formSession != null }
+            val resolved = pendingPhotoOperation?.takeIf { it.id == operation.id } ?: return@launch
+            clearPhotoOperation()
+            val lease = resolved.lease
+            if (!resolved.invalidated && lease != null && isCurrent(lease)) {
+                result(lease)
+            } else if (resolved.sessionId == null) {
+                // Unsupported session claims cannot prove a process-restored
+                // picker result's owner. Same-account UI gets an explicit retry.
+                currentDraftSession()?.takeIf { it.identity.ownerId == resolved.ownerId }?.let {
+                    effectChannel.tryEmit(Effect.RetryPhotoSelection(it))
+                }
+            }
+        }
+    }
+
+    private fun UiState.recoveryPending(): Boolean = showDraftRecoveryBar || checkingDraftRecovery ||
+        (draftFailure != null && draftFailure != DraftFailure.Save)
+
+    private suspend fun saveSnapshot(
+        lease: RequestServiceDraftStore.Lease,
+        draft: RequestServiceFormDraft,
+        writeEpoch: String?,
+    ) {
+        try {
+            draftStore.saveDraft(lease, draft, writeEpoch)
+            if (isCurrent(lease) && _state.value.draftFailure == DraftFailure.Save) {
+                _state.update { it.copy(draftFailure = null) }
+            }
+        } catch (error: Exception) {
+            if (error is kotlinx.coroutines.CancellationException) throw error
+            crashReporter.report(error, "request draft autosave failed")
+            if (isCurrent(lease)) _state.update { it.copy(draftFailure = DraftFailure.Save) }
+        }
+    }
+
+    fun onRetryDraftOperation() {
+        val lease = currentDraftSession() ?: return
+        if (_state.value.checkingDraftRecovery) return
+        when (_state.value.draftFailure) {
+            DraftFailure.Check -> checkDraftRecovery(lease)
+            DraftFailure.Restore -> onKeepDraft()
+            DraftFailure.Discard -> onDiscardDraft()
+            DraftFailure.Save -> {
+                val current = _state.value
+                val epoch = draftStore.writeEpoch(lease)
+                viewModelScope.launch { saveSnapshot(lease, current.draftSnapshot(), epoch) }
+            }
+            null -> Unit
+        }
+    }
+
+    private fun checkDraftRecovery(lease: RequestServiceDraftStore.Lease) {
+        savedStateHandle[SavedKeys.RECOVERY_PENDING] = true
+        _state.update { it.copy(checkingDraftRecovery = true, draftFailure = null) }
+        val recoveryEpoch = draftStore.writeEpoch(lease)
+        viewModelScope.launch {
+            try {
+                val existing = draftStore.loadDraft(lease)
+                if (isCurrent(lease) && draftStore.writeEpoch(lease) == recoveryEpoch) {
+                    savedStateHandle[SavedKeys.RECOVERY_PENDING] = existing != null
+                    _state.update { it.copy(showDraftRecoveryBar = existing != null, checkingDraftRecovery = false) }
+                }
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                crashReporter.report(error, "request draft recovery failed")
+                if (isCurrent(lease) && draftStore.writeEpoch(lease) == recoveryEpoch) {
+                    _state.update { it.copy(checkingDraftRecovery = false, draftFailure = DraftFailure.Check) }
+                }
+            }
+        }
+    }
+
+    private fun bindDraftSession(lease: RequestServiceDraftStore.Lease) {
+        draftSession = lease
+        userId = lease.identity.ownerId
+        val savedOwner = savedStateHandle.get<String>(SavedKeys.OWNER_ID)
+        val savedSession = savedStateHandle.get<String>(SavedKeys.SESSION_ID)
+        val canRestore = lease.identity.sessionId != null && savedOwner == lease.identity.ownerId &&
+            savedSession == lease.identity.sessionId
+        val recoveryUnresolved = canRestore && savedStateHandle.get<Boolean>(SavedKeys.RECOVERY_PENDING) == true
+        // A fresh nav argument is safe only when the handle has no draft fields.
+        val freshRoute = savedOwner == null && savedStateHandle.keys().none { it.startsWith("req.") }
+        val freshEngineerId = if (freshRoute) savedStateHandle.get<String>("engineerId") else null
+        if (!canRestore) {
+            clearSavedDraft()
+            savedStateHandle.remove<String>("engineerId")
+        }
+        savedStateHandle[SavedKeys.OWNER_ID] = lease.identity.ownerId
+        savedStateHandle[SavedKeys.SESSION_ID] = lease.identity.sessionId
+        pendingPhotoOperation?.takeIf { it.lease == null && !it.invalidated }?.let {
+            if (it.sessionId != null && it.ownerId == lease.identity.ownerId && it.sessionId == lease.identity.sessionId) {
+                pendingPhotoOperation = it.copy(lease = lease)
+            } else {
+                pendingPhotoOperation = it.copy(invalidated = true)
+                savedStateHandle[PhotoKeys.INVALIDATED] = true
+            }
+        }
+        _state.value = (if (canRestore) restoredInitialState() else UiState(prefilledEngineerId = freshEngineerId))
+            .copy(formSession = lease)
+        val initialEngineerId = _state.value.prefilledEngineerId
+        if (!initialEngineerId.isNullOrBlank()) {
+            savedStateHandle[SavedKeys.ENGINEER_ID] = initialEngineerId
+            loadEngineerReassuranceData(initialEngineerId, lease)
+        }
+        // Same-session form state does not imply the user resolved the persistent
+        // draft prompt. Preserve that decision across recreation, including a
+        // process death while the initial disk read was still pending.
+        if ((!canRestore || recoveryUnresolved) && initialEngineerId.isNullOrBlank()) {
+            checkDraftRecovery(lease)
+        }
+        viewModelScope.launch {
+            val profile = profileRepository.fetchById(lease.identity.ownerId).getOrNull()
+            if (!isCurrent(lease)) return@launch
+            orgId = profile?.organizationId
+            hospitalPhone = profile?.phone?.takeIf { it.isNotBlank() }
+            // Existing same-session state wins over profile location autofill.
+            val state = profile?.state?.takeIf { it.isNotBlank() }
+            val district = profile?.district?.takeIf { it.isNotBlank() }
+            if (_state.value.siteAddress.isBlank() && state != null && district != null) {
+                val seed = "$district, $state"
+                savedStateHandle[SavedKeys.SITE_ADDRESS] = seed
+                _state.update { it.copy(siteAddress = seed) }
+            }
+        }
+    }
+
+    fun onSelectedSlotChange(value: Int) {
+        if (currentDraftSession() == null) return
+        savedStateHandle[SavedKeys.SELECTED_SLOT] = value
+        _state.update { it.copy(selectedSlot = value) }
+    }
+
     fun onCategoryChange(value: RepairEquipmentCategory) {
+        if (currentDraftSession() == null) return
         savedStateHandle[SavedKeys.CATEGORY] = value.name
         _state.update { it.copy(category = value) }
     }
     fun onUrgencyChange(value: RepairJobUrgency) {
+        if (currentDraftSession() == null) return
         savedStateHandle[SavedKeys.URGENCY] = value.name
         _state.update { it.copy(urgency = value) }
     }
     fun onBrandChange(value: String) {
+        if (currentDraftSession() == null) return
         val capped = value.take(100)
         savedStateHandle[SavedKeys.BRAND] = capped
         _state.update { it.copy(brand = capped) }
     }
     fun onModelChange(value: String) {
+        if (currentDraftSession() == null) return
         val capped = value.take(100)
         savedStateHandle[SavedKeys.MODEL] = capped
         _state.update { it.copy(model = capped) }
     }
     fun onSerialChange(value: String) {
+        if (currentDraftSession() == null) return
         val capped = value.take(100)
         savedStateHandle[SavedKeys.SERIAL] = capped
         _state.update { it.copy(serial = capped) }
     }
     fun onSiteAddressChange(value: String) {
+        if (currentDraftSession() == null) return
         val capped = value.take(500)
         savedStateHandle[SavedKeys.SITE_ADDRESS] = capped
         _state.update {
@@ -297,11 +527,13 @@ class RequestServiceViewModel @Inject constructor(
         }
     }
     fun onSiteLocationChange(value: String) {
+        if (currentDraftSession() == null) return
         val capped = value.take(500)
         savedStateHandle[SavedKeys.SITE_LOCATION] = capped
         _state.update { it.copy(siteLocation = capped) }
     }
     fun onPickedDateChange(value: Long?) {
+        if (currentDraftSession() == null) return
         savedStateHandle[SavedKeys.PICKED_DATE] = value
         _state.update { it.copy(pickedDateMillis = value) }
     }
@@ -312,6 +544,7 @@ class RequestServiceViewModel @Inject constructor(
      * picker only emits non-null pairs.
      */
     fun onSiteCoordsChange(latitude: Double?, longitude: Double?) {
+        if (currentDraftSession() == null) return
         // Reject obviously bad coordinates. A garbled callback or a future
         // hostile callsite could pass (1000, 1000) and the engineer-side
         // distance filter would silently treat the job as unreachable.
@@ -331,6 +564,7 @@ class RequestServiceViewModel @Inject constructor(
         _state.update { it.copy(siteLatitude = latitude, siteLongitude = longitude) }
     }
     fun onIssueChange(value: String) {
+        if (currentDraftSession() == null) return
         // Issue is the long-form bug description; 2000 char cap covers
         // the longest realistic case while preventing a 10 KB paste
         // from wedging the form submit.
@@ -341,6 +575,7 @@ class RequestServiceViewModel @Inject constructor(
         }
     }
     fun onBudgetChange(value: String) {
+        if (currentDraftSession() == null) return
         // Budget is a numeric amount typed as text (parsed later via
         // toDoubleOrNull). Cap at 12 chars — enough for "9999999999.99"
         // (10-digit rupees + 2 decimals); blocks abuse paste.
@@ -358,10 +593,11 @@ class RequestServiceViewModel @Inject constructor(
      * be derived later for display by anyone with access to the row.
      */
     fun onPhotoPicked(fileName: String, bytes: ByteArray, contentType: String?) {
+        val lease = currentDraftSession() ?: return
         val uid = userId
         if (uid == null) {
             viewModelScope.launch {
-                effectChannel.emit(Effect.ShowMessage("Sign in again and retry"))
+                effectChannel.emit(Effect.ShowMessage("Sign in again and retry", lease))
             }
             return
         }
@@ -370,6 +606,7 @@ class RequestServiceViewModel @Inject constructor(
         val stored = "issue-${timestampedName(fileName, fallback = "photo.jpg")}"
         val path = "$uid/$stored"
         viewModelScope.launch {
+            if (!isCurrent(lease)) return@launch
             storageRepository.upload(
                 bucket = StorageRepository.Buckets.REPAIR_PHOTOS,
                 path = path,
@@ -377,6 +614,7 @@ class RequestServiceViewModel @Inject constructor(
                 contentType = contentType,
             ).fold(
                 onSuccess = {
+                    if (!isCurrent(lease)) return@fold
                     _state.update {
                         val nextPhotos = it.photos + path
                         savedStateHandle[SavedKeys.PHOTOS] = nextPhotos.toTypedArray()
@@ -387,14 +625,16 @@ class RequestServiceViewModel @Inject constructor(
                     }
                 },
                 onFailure = { ex ->
+                    if (!isCurrent(lease)) return@fold
                     _state.update { it.copy(uploadingPhoto = false) }
-                    effectChannel.emit(Effect.ShowMessage(ex.toUserMessage()))
+                    effectChannel.emit(Effect.ShowMessage(ex.toUserMessage(), lease))
                 },
             )
         }
     }
 
     fun onRemovePhoto(path: String) {
+        if (currentDraftSession() == null) return
         _state.update {
             val nextPhotos = it.photos - path
             savedStateHandle[SavedKeys.PHOTOS] = nextPhotos.toTypedArray()
@@ -411,12 +651,16 @@ class RequestServiceViewModel @Inject constructor(
      * just stays hidden if the fetch errors, since the rest of the
      * form is fully functional without it.
      */
-    private fun loadEngineerReassuranceData(engineerId: String) {
+    private fun loadEngineerReassuranceData(
+        engineerId: String,
+        lease: RequestServiceDraftStore.Lease,
+    ) {
         viewModelScope.launch {
+            if (!isCurrent(lease)) return@launch
             val profile = engineerDirectoryRepository
                 .fetchPublicProfile(engineerId)
                 .getOrNull()
-            if (profile != null) {
+            if (profile != null && isCurrent(lease)) {
                 _state.update {
                     it.copy(
                         prefilledEngineerName = sanitizeServerName(profile.fullName),
@@ -435,45 +679,62 @@ class RequestServiceViewModel @Inject constructor(
      * UiState, then dismisses the recovery bar.
      */
     fun onKeepDraft() {
+        val lease = currentDraftSession() ?: return
+        if (_state.value.checkingDraftRecovery) return
+        val recoveryEpoch = draftStore.writeEpoch(lease)
+        _state.update { it.copy(checkingDraftRecovery = true, draftFailure = null) }
         viewModelScope.launch {
-            val draft = draftStore.loadDraft()
-            if (draft == null) {
-                // Draft expired / was cleared between bar-show and tap.
-                _state.update { it.copy(showDraftRecoveryBar = false) }
-                return@launch
-            }
-            val category = RepairEquipmentCategory.fromKey(draft.category)
-            val urgency = RepairJobUrgency.fromKey(draft.urgency)
-            savedStateHandle[SavedKeys.CATEGORY] = category.name
-            savedStateHandle[SavedKeys.URGENCY] = urgency.name
-            savedStateHandle[SavedKeys.BRAND] = draft.brand
-            savedStateHandle[SavedKeys.MODEL] = draft.model
-            savedStateHandle[SavedKeys.SERIAL] = draft.serial
-            savedStateHandle[SavedKeys.SITE_ADDRESS] = draft.siteAddress
-            savedStateHandle[SavedKeys.SITE_LOCATION] = draft.siteLocation
-            savedStateHandle[SavedKeys.PICKED_DATE] = draft.pickedDateMillis
-            savedStateHandle[SavedKeys.SITE_LAT] = draft.siteLatitude
-            savedStateHandle[SavedKeys.SITE_LNG] = draft.siteLongitude
-            savedStateHandle[SavedKeys.ISSUE] = draft.issue
-            savedStateHandle[SavedKeys.BUDGET] = draft.budget
-            savedStateHandle[SavedKeys.PHOTOS] = draft.photoUris.toTypedArray()
-            _state.update {
-                it.copy(
-                    category = category,
-                    urgency = urgency,
-                    brand = draft.brand,
-                    model = draft.model,
-                    serial = draft.serial,
-                    siteAddress = draft.siteAddress,
-                    siteLocation = draft.siteLocation,
-                    pickedDateMillis = draft.pickedDateMillis,
-                    siteLatitude = draft.siteLatitude,
-                    siteLongitude = draft.siteLongitude,
-                    issue = draft.issue,
-                    budget = draft.budget,
-                    photos = draft.photoUris,
-                    showDraftRecoveryBar = false,
-                )
+            try {
+                val draft = draftStore.loadDraft(lease)
+                if (!isCurrent(lease) || draftStore.writeEpoch(lease) != recoveryEpoch) return@launch
+                savedStateHandle[SavedKeys.RECOVERY_PENDING] = false
+                if (draft == null) {
+                    // Draft expired / was cleared between bar-show and tap.
+                    _state.update { it.copy(showDraftRecoveryBar = false, checkingDraftRecovery = false) }
+                    return@launch
+                }
+                val category = RepairEquipmentCategory.fromKey(draft.category)
+                val urgency = RepairJobUrgency.fromKey(draft.urgency)
+                savedStateHandle[SavedKeys.CATEGORY] = category.name
+                savedStateHandle[SavedKeys.URGENCY] = urgency.name
+                savedStateHandle[SavedKeys.BRAND] = draft.brand
+                savedStateHandle[SavedKeys.MODEL] = draft.model
+                savedStateHandle[SavedKeys.SERIAL] = draft.serial
+                savedStateHandle[SavedKeys.SITE_ADDRESS] = draft.siteAddress
+                savedStateHandle[SavedKeys.SITE_LOCATION] = draft.siteLocation
+                savedStateHandle[SavedKeys.PICKED_DATE] = draft.pickedDateMillis
+                savedStateHandle[SavedKeys.SITE_LAT] = draft.siteLatitude
+                savedStateHandle[SavedKeys.SITE_LNG] = draft.siteLongitude
+                savedStateHandle[SavedKeys.ISSUE] = draft.issue
+                savedStateHandle[SavedKeys.BUDGET] = draft.budget
+                savedStateHandle[SavedKeys.PHOTOS] = draft.photoUris.toTypedArray()
+                savedStateHandle[SavedKeys.SELECTED_SLOT] = draft.selectedSlot
+                _state.update {
+                    it.copy(
+                        category = category,
+                        urgency = urgency,
+                        brand = draft.brand,
+                        model = draft.model,
+                        serial = draft.serial,
+                        siteAddress = draft.siteAddress,
+                        siteLocation = draft.siteLocation,
+                        pickedDateMillis = draft.pickedDateMillis,
+                        siteLatitude = draft.siteLatitude,
+                        siteLongitude = draft.siteLongitude,
+                        issue = draft.issue,
+                        budget = draft.budget,
+                        photos = draft.photoUris,
+                        selectedSlot = draft.selectedSlot,
+                        showDraftRecoveryBar = false,
+                        checkingDraftRecovery = false,
+                    )
+                }
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                crashReporter.report(error, "request draft restore failed")
+                if (isCurrent(lease) && draftStore.writeEpoch(lease) == recoveryEpoch) {
+                    _state.update { it.copy(checkingDraftRecovery = false, draftFailure = DraftFailure.Restore) }
+                }
             }
         }
     }
@@ -484,13 +745,27 @@ class RequestServiceViewModel @Inject constructor(
      * blank) initial state so the user starts fresh.
      */
     fun onDiscardDraft() {
+        val lease = currentDraftSession() ?: return
+        if (_state.value.checkingDraftRecovery) return
+        _state.update { it.copy(checkingDraftRecovery = true, draftFailure = null) }
         viewModelScope.launch {
-            draftStore.clearDraft()
-            _state.update { it.copy(showDraftRecoveryBar = false) }
+            try {
+                draftStore.clearDraft(lease)
+                if (!isCurrent(lease)) return@launch
+                savedStateHandle[SavedKeys.RECOVERY_PENDING] = false
+                _state.update { it.copy(showDraftRecoveryBar = false, checkingDraftRecovery = false) }
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                crashReporter.report(error, "request draft discard failed")
+                if (isCurrent(lease)) {
+                    _state.update { it.copy(checkingDraftRecovery = false, draftFailure = DraftFailure.Discard) }
+                }
+            }
         }
     }
 
     fun onSubmit(selectedSlot: Int = -1) {
+        val lease = currentDraftSession() ?: return
         val uid = userId
         if (uid == null) {
             _state.update { it.copy(errorMessage = "Sign in again and retry.") }
@@ -505,7 +780,7 @@ class RequestServiceViewModel @Inject constructor(
         if (hospitalPhone.isNullOrBlank()) {
             val msg = "Add your phone number on Profile → Phone number before posting a job — engineers need it to coordinate the visit."
             _state.update { it.copy(errorMessage = msg) }
-            effectChannel.tryEmit(Effect.ShowMessage(msg))
+            effectChannel.tryEmit(Effect.ShowMessage(msg, lease))
             return
         }
         // Block submit when no slot is picked. Earlier code happily wrote
@@ -531,7 +806,7 @@ class RequestServiceViewModel @Inject constructor(
                     errorMessage = msg,
                 )
             }
-            effectChannel.tryEmit(Effect.ShowMessage(msg))
+            effectChannel.tryEmit(Effect.ShowMessage(msg, lease))
             return
         }
         // Require a non-trivial site address OR map coordinates. Without
@@ -549,7 +824,7 @@ class RequestServiceViewModel @Inject constructor(
                     errorMessage = msg,
                 )
             }
-            effectChannel.tryEmit(Effect.ShowMessage(msg))
+            effectChannel.tryEmit(Effect.ShowMessage(msg, lease))
             return
         }
         val budgetText = current.budget.trim()
@@ -574,6 +849,7 @@ class RequestServiceViewModel @Inject constructor(
         )
         _state.update { it.copy(submitting = true, errorMessage = null) }
         viewModelScope.launch {
+            if (!isCurrent(lease)) return@launch
             val draft = RepairJobDraft(
                 hospitalUserId = uid,
                 hospitalOrgId = orgId,
@@ -593,12 +869,22 @@ class RequestServiceViewModel @Inject constructor(
             )
             jobRepository.create(draft)
                 .onSuccess { job ->
+                    if (!isCurrent(lease)) return@onSuccess
                     clearSavedDraft()
+                    _state.value = UiState()
                     // Round 471 — clear persistent draft on successful
                     // submit so the user doesn't see a stale recovery
                     // bar for a job they already created.
-                    draftStore.clearDraft()
-                    _state.update { UiState() }
+                    try {
+                        draftStore.clearDraft(lease)
+                    } catch (error: Exception) {
+                        if (error is kotlinx.coroutines.CancellationException) throw error
+                        // The server already created the job. A local cleanup
+                        // failure must not turn it into a failed submission or
+                        // encourage another tap that creates a duplicate job.
+                        crashReporter.report(error, "submitted request draft cleanup failed")
+                    }
+                    if (!isCurrent(lease)) return@onSuccess
                     // r513 (v0.4 P5 #10) — funnel ping after server-write succeeded.
                     analytics.track(
                         com.equipseva.app.core.data.analytics.AnalyticsEvent.JOB_POST_SUBMITTED,
@@ -607,9 +893,10 @@ class RequestServiceViewModel @Inject constructor(
                             "urgency" to current.urgency.storageKey,
                         ),
                     )
-                    effectChannel.tryEmit(Effect.Submitted(jobId = job.id, jobNumber = job.jobNumber))
+                    effectChannel.tryEmit(Effect.Submitted(jobId = job.id, jobNumber = job.jobNumber, formSession = lease))
                 }
                 .onFailure { error ->
+                    if (!isCurrent(lease)) return@onFailure
                     // Report the raw failure (PII-scrubbed) so a hospital that
                     // CAN'T post jobs is visible to the team — the friendly
                     // toUserMessage() ("Something went wrong") otherwise hides
@@ -641,6 +928,7 @@ class RequestServiceViewModel @Inject constructor(
         issue = issue,
         budget = budget,
         photoUris = photos,
+        selectedSlot = selectedSlot,
     )
 
     /**
@@ -658,6 +946,7 @@ class RequestServiceViewModel @Inject constructor(
             budget.isBlank() &&
             photoUris.isEmpty() &&
             pickedDateMillis == null &&
+            selectedSlot < 0 &&
             siteLatitude == null &&
             siteLongitude == null
 

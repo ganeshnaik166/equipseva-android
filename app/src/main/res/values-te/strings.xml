@@ -946,4 +946,9 @@
     <string name="dsr_serial_row">Equipment serial</string>
     <string name="dsr_serial_missing">Not recorded</string>
     <string name="dsr_entry_cta_hospital">Review / sign report</string>
+    <string name="request_service_draft_check_failed">సేవ్ చేసిన డ్రాఫ్ట్ ఉందో లేదో తనిఖీ చేయలేకపోయాము. డ్రాఫ్ట్ సేవ్ చేయడం కొనసాగించడానికి మళ్లీ ప్రయత్నించండి.</string>
+    <string name="request_service_draft_restore_failed">సేవ్ చేసిన డ్రాఫ్ట్‌ను పునరుద్ధరించలేకపోయాము. మీ ప్రస్తుత ఫారమ్ మారలేదు. మళ్లీ ప్రయత్నించండి.</string>
+    <string name="request_service_draft_discard_failed">సేవ్ చేసిన డ్రాఫ్ట్‌ను తొలగించలేకపోయాము. తొలగించడం పూర్తి చేయడానికి మళ్లీ ప్రయత్నించండి.</string>
+    <string name="request_service_draft_save_failed">మీ డ్రాఫ్ట్‌ను సేవ్ చేయలేకపోయాము. ఈ ఫారమ్‌ను తెరిచి ఉంచి మళ్లీ ప్రయత్నించండి.</string>
+    <string name="request_service_photo_pick_again">మీరు ఎంచుకున్న ఫోటోను పునరుద్ధరించలేకపోయాము. దయచేసి ఫోటోను మళ్లీ ఎంచుకోండి.</string>
 </resources>

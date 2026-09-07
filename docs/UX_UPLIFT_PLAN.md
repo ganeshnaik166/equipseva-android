@@ -1,5 +1,11 @@
 # EquipSeva UX/UI uplift — plan + operating prompt
 
+> Renewal program, 7 September 2026: read [RENEWAL_EXECUTION_PLAN.md](RENEWAL_EXECUTION_PLAN.md)
+> first for the owner's expanded security, login/workflow and independent QA scope.
+> The visual work below remains useful; its historical completion claims require
+> scoped verification, and its behavior-preserving rule does not prohibit reviewed
+> workflow or security fixes authorized by the renewal program.
+
 > Drafted 2026-09-07 at HEAD `5b09bb7b` (branch `ops/r1388-calendar-burndown`, prod through round3819).
 > Author: Claude (acting PM/CEO/QA per the founder's standing delegation). Founder: Ganesh Dhanavath.
 >

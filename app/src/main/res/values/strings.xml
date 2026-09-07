@@ -934,4 +934,9 @@
     <string name="dsr_serial_row">Equipment serial</string>
     <string name="dsr_serial_missing">Not recorded</string>
     <string name="dsr_entry_cta_hospital">Review / sign report</string>
+    <string name="request_service_draft_check_failed">Could not check for a saved draft. Retry to resume draft saving.</string>
+    <string name="request_service_draft_restore_failed">Could not restore your saved draft. Your current form is unchanged. Retry.</string>
+    <string name="request_service_draft_discard_failed">Could not delete your saved draft. Retry to finish discarding it.</string>
+    <string name="request_service_draft_save_failed">Could not save your draft. Keep this form open and retry.</string>
+    <string name="request_service_photo_pick_again">Your photo selection could not be restored. Please select the photo again.</string>
 </resources>

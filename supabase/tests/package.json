@@ -1,0 +1,12 @@
+{
+  "name": "equipseva-supabase-focused-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node evidence_authorization.test.mjs",
+    "test:evidence": "node evidence_authorization.test.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8"
+  }
+}

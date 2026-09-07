@@ -3,15 +3,9 @@ name: android
 on:
   pull_request:
   push:
-    # Round 3768 — was `[main]` only. `main` is a frozen, stale snapshot
-    # (see the ops-branch handoff note); ALL active development happens
-    # directly on ops/* branches via direct pushes, not PRs into main.
-    # That meant this CI (tests + lint + R8 build) had never once run
-    # on any push for the entire multi-week/month duration of the
-    # actual active branch — pure-local `./gradlew` runs were the only
-    # safety net. `ops/**` covers the current branch and any future
-    # similarly-named one without another manual edit.
-    branches: [main, "ops/**"]
+    # Main and ops now share the shipped history. Verify isolated renewal
+    # branches too, before their changes are proposed for integration.
+    branches: [main, "ops/**", "codex/**"]
     # Round 3810 — skip docs-only pushes. A single ops session produced
     # three stacked ~7-minute Android builds for commits touching only
     # docs/ and workflow files. DELIBERATELY NOT excluded:
