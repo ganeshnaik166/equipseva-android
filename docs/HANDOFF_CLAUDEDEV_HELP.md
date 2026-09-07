@@ -42,9 +42,61 @@ Milestone log (newest last; each entry is one commit):
 
 | # | Commit | Scope | Checks run |
 | --- | --- | --- | --- |
-| 0 | this commit | Handoff note for the resuming session; memory of the working agreement | docs only |
+| 0 | `a482f73c` | Handoff note for the resuming session; memory of the working agreement | docs only |
+| 1 | `53be5025` | CI push filters gain `claudedev-help` (and `secret-scan` gains `codex/**`); frozen slice below | workflow + docs edits only |
+| — | (this commit) | **Session stopped by the owner** before implementation began. Nothing of INT-01..04 / DEV-01 is written yet. | docs only |
 
-Sections below are appended per milestone.
+### Where the helper stopped (2026-09-07, after milestone 1)
+
+Done: branch created and pushed; baseline re-verified (2,835 / 336 / 0);
+six read-only investigations of the plan, draft/account code, r3820↔r3821
+photo-evidence contract, backend harness, Android test infrastructure and CI
+conventions (digest kept in the helper's private notes, key facts below);
+slice frozen; a three-lens design critique was launched and cancelled unrun
+when the owner asked to stop.
+
+Not done: every test in the slice table, the local verify chain for them,
+the device drive. **No application source has been changed on this branch.**
+
+Facts worth carrying forward (all cited from the tree at `c927f7f4`):
+
+- r3820 client and r3821 server are shape-compatible on the happy path
+  (`repair-photos/<uid>/<job>/<before|after>-<millis>-<uuid>-<sanitized40>`,
+  lowercase sha, `producer_kind=engineer`, metadata object), but the only
+  client fixture (`EvidenceRegisterPayloadTest`, `repair-photos/u1/before-1.jpg`)
+  has 3 segments and would be rejected by r3821; no client test covers
+  `EvidenceRegisterOutboxHandler`; nothing binds the two layers.
+- Behavioural consequences if r3821 deploys as-is: a swallowed or race-dropped
+  `before_photos`/`after_photos` append (PhotoUploadOutboxHandler is
+  best-effort) → 42501 `evidence_photo_not_attached` → HTTP 403 → silent client
+  GiveUp (CrashReporter only); identical bytes picked twice for one job →
+  42501 `evidence_registration_conflict` (r492 returned the existing id);
+  real Storage `owner_id` / `metadata.size` semantics and the
+  `SECURITY DEFINER … FOR SHARE` privilege on `storage.objects` are unverified.
+- Draft isolation: `RefreshFailure → SignedOut` (SupabaseAuthRepository) wipes a
+  live form + SavedStateHandle without a fence; the sign-out-fails-at-both-scopes
+  path leaves a lease-less "dead form" with no copy; `request_service_draft`
+  has no DataStore corruption handler. These are observations for your issue
+  register, not changes made.
+- Test infra: real on-disk DataStore + real VM + real SavedStateHandle already
+  run on the JVM (RequestServiceDraftPersistenceTest / IsolationTest); a real
+  `SignOutCleanup` must be hand-built (DatabaseModule loads sqlcipher, SyncModule
+  needs WorkManager); Hilt's `TestSupabaseModule` relaxed mock yields a blank
+  user id, so a Hilt-injected draft store never issues a lease (a test could pass
+  proving nothing); no Turbine, no shared MainDispatcherRule; Robolectric SDK
+  pins must be 34/35.
+- Backend harness: PGlite single connection; `denied()` asserts `.code` only;
+  fixture omits r3818 (`gps_checkin` CHECK) and hard-codes `is_founder()` to one
+  uid; `evidence_for_repair_job` has no service-role bypass while the other two
+  RPCs do (possible unintended asymmetry); r3821 dropped r492's `lower()` on the
+  hash, so uppercase hex is now rejected.
+- CI: a push to `claudedev-help` triggers nothing until milestone 1 landed;
+  `release-aab.yml` fires on any `v*` tag; docs pushed to `main` become public
+  on GitHub Pages.
+
+Next action for whoever resumes: implement INT-01..04 exactly as frozen
+(or revise the frozen table first, with a reason), run the Codex-required
+Gradle chain, push, read the CI result, then DEV-01.
 
 ## Frozen slice: M1 integration tests (account switching, draft recovery, photo evidence)
 
