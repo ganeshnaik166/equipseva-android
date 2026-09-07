@@ -7,8 +7,9 @@ npm ci --ignore-scripts
 npm test
 ```
 
-`npm test` runs the evidence SQL suite and the cron handler suite. Run either
-separately with `npm run test:evidence` or `npm run test:cron`.
+`npm test` runs the evidence SQL, cron handler and snapshot migration suites.
+Run them separately with `npm run test:evidence`, `npm run test:cron` or
+`npm run test:snapshot`.
 
 The cron suite executes the real TypeScript handler with isolated SDK, Deno
 serve, environment and fetch stubs. It verifies authorization, all slot
@@ -21,7 +22,23 @@ From the repository root, `python3 scripts/test_cron_response_summary.py`
 executes the actual daily response-summary CLI against synthetic responses.
 It verifies response validation, private-field suppression, curl exit codes,
 and separate reporting of missing/failed history persistence. The backend CI
-workflow runs both suites; changing the cron handler or summarizer triggers it.
+workflow runs all these suites; changing a migration, cron handler, test or
+summarizer triggers it.
+
+## Snapshot migration coverage
+
+`storage_snapshot_timeout.test.mjs` executes the complete historical round601
+migration and the actual round3822 forward migration in disposable PGlite
+databases. It checks apply/reapply, function-only reset rollback, unchanged
+body/owner/ACL/search path and role/database settings, direct role denials,
+authorized service execution, strict retention, relation selection, catalog
+estimates and append semantics. No database URL or credential is read.
+
+This small single-connection fixture does **not** establish an elapsed statement
+deadline, PostgREST metadata hoisting, pool restoration, independent lock waits,
+large-database capacity or deployed Supabase behavior. The separate native
+PostgreSQL/PostgREST evidence and rollout gates are described in
+[`STORAGE_SNAPSHOT_TIMEOUT_ROLLOUT.md`](../../docs/STORAGE_SNAPSHOT_TIMEOUT_ROLLOUT.md).
 
 ## Evidence SQL coverage
 

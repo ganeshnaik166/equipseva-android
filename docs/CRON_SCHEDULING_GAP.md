@@ -37,11 +37,14 @@ empty-payload return. A direct SQL check bypasses the REST timeout path and
 cannot exclude a REST failure. The historical claims below are superseded
 where they conflict with these findings.
 
-Before proposing a snapshot timeout migration, verify the actual REST path,
-finite deadline, unchanged lock bound, transaction rollback and access grants
-in an isolated environment. A function setting depends on PostgREST hoisting
-and schema-cache refresh; inspect the deployed version/configuration before
-rollout. Do not change global or role timeouts or add blind retries.
+The round3822 snapshot candidate sets a finite function-only 30-second budget.
+Source-matched local REST experiments support that candidate, including late
+rollback and the unchanged lock bound. Final migration replay and deployment
+gates are recorded in [the rollout guide](STORAGE_SNAPSHOT_TIMEOUT_ROLLOUT.md).
+A function setting depends on PostgREST hoisting and schema-cache refresh;
+inspect the deployed version/configuration before rollout. A reload notification
+or healthy root endpoint is not proof of fresh metadata. Do not change global
+or role timeouts or add blind retries.
 [PostgREST transaction settings](https://postgrest.org/en/stable/references/transactions.html),
 [Supabase timeouts](https://supabase.com/docs/guides/database/postgres/timeouts).
 

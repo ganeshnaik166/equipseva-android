@@ -47,7 +47,7 @@ jobs:
           package-manager-cache: false
       - name: Install pinned test dependencies
         run: npm ci --ignore-scripts
-      - name: Exercise evidence RPC SQL and cron failure reporting
+      - name: Exercise evidence RPC SQL, cron reporting and snapshot migration
         run: npm test
       - name: Exercise daily workflow response sanitization
         working-directory: .
