@@ -5,7 +5,7 @@ on:
   push:
     # Main and ops now share the shipped history. Verify isolated renewal
     # branches too, before their changes are proposed for integration.
-    branches: [main, "ops/**", "codex/**"]
+    branches: [main, "ops/**", "codex/**", "claudedev-help"]
     # Round 3810 — skip docs-only pushes. A single ops session produced
     # three stacked ~7-minute Android builds for commits touching only
     # docs/ and workflow files. DELIBERATELY NOT excluded:

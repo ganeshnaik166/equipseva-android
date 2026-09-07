@@ -11,7 +11,7 @@ on:
       - "supabase/tests/**"
       - ".github/workflows/evidence-regressions.yml"
   push:
-    branches: [main, "ops/**", "codex/**"]
+    branches: [main, "ops/**", "codex/**", "claudedev-help"]
     paths:
       - "supabase/migrations/**"
       - "supabase/functions/cron-tick/**"
