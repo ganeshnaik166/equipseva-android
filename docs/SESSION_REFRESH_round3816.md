@@ -52,7 +52,20 @@ as ISO-8601 so the encrypted blob decodes unchanged.
 green (see commit). New tests: `EncryptedSessionManagerRobolectricTest`, `IsViewerAssignedEngineerTest`,
 two regression pins in `DataErrorTest`.
 
-**On-device idle test:** see the addendum at the bottom of this file.
+**On-device idle test — PASSED 2026-09-07 (emulator `eqs`, final r3816 APK, play-review-hospital):**
+
+| UTC | event (logcat `Supabase-Auth`, debug build) |
+|---|---|
+| 04:50:52 | fresh sign-in; JWT `exp` 05:50:53; SDK: `Refreshing session in 47m 59s` |
+| 05:38:51 | timer fired while the app sat idle in the foreground: `Session expired. Refreshing session…` → new session saved; realtime channel re-subscribed with a token whose `exp` = 06:38:56; next timer scheduled 06:26:54 |
+| 06:26:54 | **scheduled refresh did NOT run** (nothing logged; the SDK's own `autoRefreshInformation` later showed `refreshingAt=06:26:54`, `lastRefreshedAt=null`, `Auto refresh running: true`) — the exact failure class behind the original bug |
+| 06:37:39 | after 106 min idle: Profile + Home loaded (GET /profiles 200, RPC engineer_has_complete_payout_methods 200), no error copy |
+| 06:39:04 | first request AFTER expiry: `Authenticated request attempted with expired access token … Trying to refresh session before…` → `POST /auth/v1/token` 200 in 1.56 s → engineers/profiles/RPC all 200 → screens rendered; new token `exp` 07:39:06; 0 crashes |
+
+So both 3.6.0 mechanisms were exercised for real: the timer path once, and — because the timer then silently failed exactly as
+it always had — the request-time force-refresh failsafe (`checkSessionOnRequest`) recovered the session transparently. Under
+3.0.3 the 06:39 request would have been the "Your session expired" dead end that needed `pm clear`. Note: the bottom tab is
+labelled **Jobs** for hospitals (the memory's "Bookings" is the screen title), which is why the first probe tap missed.
 
 ## round3817 — app: "Check in on-site" showed for ANY engineer viewing an Assigned job
 
