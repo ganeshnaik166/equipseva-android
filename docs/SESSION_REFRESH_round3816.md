@@ -94,6 +94,37 @@ matched, and `sha256(metadata::text)` equalled `content_sha256` (474 bytes). Pos
 (recompute `sha256(metadata::text)`); `evidence_for_repair_job(job)` now returns the check-in for both
 parties; the founder's `founder_evidence_ledger_65b_summary()` finally has a non-zero `total_evidence_rows`.
 
-Not done here (still open): photo/DSR/signature evidence is still not registered — those kinds need a
-client-side sha256 at upload time (`register_evidence` exists and is unchanged). That is the next
-natural round for the §65B chain.
+## round3819 — db: DSR engineer attestation + hospital countersign become chained §65B evidence
+
+`dsr_reports` was designed (round494) with `engineer_signature_ledger`, `hospital_signature_ledger`,
+`rendered_pdf_ledger`; both live reports (RPR-00041, RPR-00040) had all three NULL and the table had no
+triggers. `submit_dsr` is DELETE+INSERT per submission (a "Revise report" is a fresh INSERT);
+`hospital_sign_dsr` flips `hospital_signature_at` NULL→now.
+
+Migration `20263897000000_round3819_dsr_signatures_65b_ledger.sql` (applied 2026-09-07 ~05:05 UTC):
+* `dsr_engineer_attestation_record(dsr, job_number)` — canonical jsonb of everything the engineer attests
+  (all report content + identities + `engineer_signature_at`).
+* `dsr_hospital_countersign_record(dsr, job_number, attests_sha256)` — canonical jsonb of the countersign
+  that **carries the sha256 of the engineer record it signs**. That is the chain: a resubmit yields a new
+  engineer sha, so an old countersign visibly no longer covers the current report.
+* `register_canonical_evidence(kind, job, record, producer, producer_kind, captured_at, platform)` —
+  shared idempotent writer (sha256 of `record::text`, size, metadata = record).
+* BEFORE INSERT OR UPDATE trigger `dsr_register_signature_evidence_trg`: INSERT → `signature_engineer`
+  row, `NEW.engineer_signature_ledger` set in place; UPDATE with `hospital_signature_at` NULL→set →
+  `signature_hospital` row, `NEW.hospital_signature_ledger` set in place. BEFORE (not AFTER) so there is no
+  self-UPDATE and no recursion. Each branch exception-guarded: can never abort a submit or a sign.
+* Backfill of the 2 signed reports (2 attestations + 2 countersigns, `round3819-backfill`,
+  `captured_at` = the original signature instants). `rendered_pdf_ledger` stays NULL — there is no PDF
+  renderer, and a fake "pdf" record would be compliance theatre.
+* All 4 new functions revoked from PUBLIC/anon/authenticated (default-ACL trap).
+
+Gate (rolled back): a submit-shaped INSERT on a real job with an accepted engineer and no report → engineer
+evidence linked (813 bytes, hash recomputes, record describes the probed report); a countersign-shaped
+UPDATE → hospital evidence linked, `attests_sha256` == the engineer row's sha, signer carried; exactly +2
+ledger rows. Post-apply: ledger 5 rows, all hashes recompute, both DSR chains `chain_ok`, trigger enabled,
+`evidence_for_repair_job(RPR-00040)` now returns `gps_checkin → signature_engineer → signature_hospital`.
+
+## Still open for the §65B chain
+Photos (check-in before-photos, DSR after-photos) are still unregistered — Postgres cannot read Storage
+object bytes, so those need a client-side sha256 at upload time calling the existing `register_evidence`
+RPC (`photo_before` / `photo_after`, source `repair_job`). That is the next round.
