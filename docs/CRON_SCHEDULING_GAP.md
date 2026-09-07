@@ -422,3 +422,27 @@ body names the slot; a slot that fails deterministically (vs the
 schema-cache flake) then gets a targeted fix. The hourly group has run
 green repeatedly through this same period, which is consistent with a
 brief cache reload rather than a broken daily slot.
+
+## 2026-09-07 — first ledger read: "hourly" actually fires every ~3 h (GitHub scheduler), ledger is faithful
+
+`public.cron_tick_runs` (r3813) vs the GitHub Actions run list for `cron-tick-hourly.yml`, same window:
+
+| source | runs since r3813 deploy (2026-09-06 ~10:25 UTC → 2026-09-07 03:30 UTC) |
+|---|---|
+| `cron_tick_runs` rows, slot=hourly | 5, all `ok`, no `failed_slots`, avg 4.8 s |
+| GitHub scheduled runs of cron-tick-hourly | 5 (13:36, 16:56, 19:05, 21:16, 23:47) — all success |
+
+So the ledger matches the runs 1:1 (no lost inserts), and the gap is upstream: over the last 44 h the
+`0 * * * *` schedule produced 14 runs, i.e. one every **~3.1 h**, with individual gaps of 2 h 10 m to
+5 h 7 m. This is documented GitHub behaviour (scheduled workflows are queued with low priority and
+delayed or dropped under load); it is not a bug in cron-tick. Consequences to plan around:
+
+- Every "hourly" slot (stale-job reaper, tier cache, SLA monitors, escrow auto-release …) has an
+  effective worst-case latency of ~5 h, not 1 h. Copy that promises "within the hour" is wrong.
+- The staged Code Red `*/5` workflow will NOT page within 5 minutes on GitHub's scheduler; expect the
+  same multi-hour jitter. A real pager needs an external trigger (Supabase pg_cron once enabled, or a
+  cheap always-on ping such as a Cloudflare Worker cron / UptimeRobot hitting the edge function).
+- `engineer-payouts-worker` shows the same pattern (runs every ~2 h against its schedule) and stays green.
+- `cron-tick-daily`: 2026-09-06 07:43 failure already diagnosed as the transient PGRST002 wedge; the
+  2026-09-07 run had not fired by 03:30 UTC (expected ~07:30–08:00). Read it from the ledger:
+  `select * from public.founder_cron_tick_recent(10)` — a red row carries `failed_slots` + per-slot `results`.
