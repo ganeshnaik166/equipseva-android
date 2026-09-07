@@ -3,6 +3,7 @@ package com.equipseva.app.core.sync.handlers
 import android.util.Log
 import com.equipseva.app.core.data.entities.OutboxEntryEntity
 import com.equipseva.app.core.storage.StorageRepository
+import com.equipseva.app.core.sync.OutboxEnqueuer
 import com.equipseva.app.core.sync.OutboxKindHandler
 import com.equipseva.app.core.sync.classifyOutboxError
 import io.github.jan.supabase.SupabaseClient
@@ -48,6 +49,7 @@ class PhotoUploadOutboxHandler @Inject constructor(
     private val storage: StorageRepository,
     private val supabase: SupabaseClient,
     private val json: Json,
+    private val outbox: OutboxEnqueuer,
 ) : OutboxKindHandler {
 
     override suspend fun handle(entry: OutboxEntryEntity): OutboxKindHandler.Outcome {
@@ -113,6 +115,7 @@ class PhotoUploadOutboxHandler @Inject constructor(
             // skip behaviour identical to the prior local isTransient().
             return classifyOutboxError(uploadError)
         }
+        val receipt = uploadResult.getOrThrow()
 
         // Best-effort: patch the owning row with a URL reference. A signed URL
         // is used instead of a public URL because our photo buckets may be
@@ -124,6 +127,22 @@ class PhotoUploadOutboxHandler @Inject constructor(
             contextId = payload.contextId,
             objectPath = payload.objectPath,
         )
+
+        // round3820 — repair before/after photos are §65B evidence. Hand the
+        // stored bytes' sha256 + size (from the receipt — the post-scrub
+        // object, the only hash a later download can match) to a SEPARATE
+        // outbox kind so registration retries never re-upload the photo and
+        // a registration failure never masquerades as an upload failure.
+        // Enqueueing is a local DB write; if even that fails the upload still
+        // stands, so it is logged rather than allowed to fail this entry.
+        EvidenceRegisterPayload.forUploadedPhoto(payload, receipt, currentUid)?.let { evidence ->
+            runCatching {
+                outbox.enqueue(
+                    kind = com.equipseva.app.core.sync.OutboxKinds.EVIDENCE_REGISTER,
+                    payloadJson = json.encodeToString(EvidenceRegisterPayload.serializer(), evidence),
+                )
+            }.onFailure { Log.w(TAG, "Could not queue evidence registration for ${payload.objectPath}", it) }
+        }
 
         // Clean up the stashed file — on failure just log; the outer worker
         // has no rollback for the remote upload and we don't want to keep

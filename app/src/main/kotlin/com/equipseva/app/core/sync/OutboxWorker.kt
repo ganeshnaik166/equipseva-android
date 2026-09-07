@@ -154,6 +154,11 @@ internal fun poisonDropCopy(kind: String): Pair<String, String> = when (kind) {
         "Open the job to retry your bid — the previous attempt was discarded."
     OutboxKinds.JOB_STATUS -> "Couldn't sync a job status update" to
         "Open the job and re-tap the status button when you're online."
+    // round3820 — the photo itself DID upload; only its evidence-ledger
+    // registration kept failing. Say so, or the user re-attaches a photo
+    // that is already on the job.
+    OutboxKinds.EVIDENCE_REGISTER -> "Couldn't certify a photo as evidence" to
+        "The photo is on the job, but its tamper-proof record could not be filed. Open the job and re-attach it to retry."
     else -> "Couldn't sync a queued action" to
         "Some offline action was discarded after repeated failures."
 }

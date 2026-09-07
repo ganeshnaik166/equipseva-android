@@ -47,12 +47,14 @@ object SupabaseModule {
                 isLenient = true
             },
         )
-        // round3816 — debug builds log the SDK's auth lifecycle (session
-        // import, scheduled refresh, the request-time force-refresh of an
-        // expired token) so an on-device idle test can prove the refresh
-        // MECHANISM in logcat, not just the outcome. Release keeps the
-        // SDK default (INFO). The SDK masks tokens in its own log lines.
-        if (com.equipseva.app.BuildConfig.DEBUG) defaultLogLevel = LogLevel.DEBUG
+        // round3816/3820 — SDK log level stays at the default (INFO) in EVERY
+        // build type. LogLevel.DEBUG was tried for the r3816 idle test and it
+        // prints the FULL UserSession — access token AND refresh token — in
+        // "Importing session …" / "Setting session status …" lines (only the
+        // expired-token error path masks them). A refresh token in logcat is
+        // a session-hijack primitive, so never ship DEBUG, not even for debug
+        // builds; flip it locally for an auth investigation and flip it back.
+        defaultLogLevel = LogLevel.INFO
         install(Auth) {
             // Override the default `SettingsSessionManager` (plain
             // SharedPreferences on Android) with Keystore-backed

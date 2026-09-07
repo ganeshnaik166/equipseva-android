@@ -31,6 +31,16 @@ class PoisonDropCopyTest {
         )
     }
 
+    @Test fun `evidence register kind says the photo itself is already on the job`() {
+        // round3820 — the upload succeeded; only the ledger registration
+        // failed. Copy that reads as "upload failed" would make the user
+        // re-attach a photo that is already there.
+        val (title, body) = poisonDropCopy(OutboxKinds.EVIDENCE_REGISTER)
+        assertEquals("Couldn't certify a photo as evidence", title)
+        assertTrue("body should say the photo is on the job: $body", body.contains("on the job", ignoreCase = true))
+        assertTrue("body should offer a retry path: $body", body.contains("re-attach", ignoreCase = true))
+    }
+
     @Test fun `repair bid kind tells user the previous attempt was discarded`() {
         val (title, body) = poisonDropCopy(OutboxKinds.REPAIR_BID)
         assertEquals("Couldn't place your bid", title)

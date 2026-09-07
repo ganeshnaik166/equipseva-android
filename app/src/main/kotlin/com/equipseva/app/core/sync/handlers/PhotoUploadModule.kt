@@ -24,6 +24,12 @@ abstract class PhotoUploadModule {
     @StringKey(OutboxKinds.PHOTO_UPLOAD)
     abstract fun bindPhotoUploadOutboxHandler(impl: PhotoUploadOutboxHandler): OutboxKindHandler
 
+    /** round3820 — §65B registration of an uploaded repair photo (see [EvidenceRegisterOutboxHandler]). */
+    @Binds
+    @IntoMap
+    @StringKey(OutboxKinds.EVIDENCE_REGISTER)
+    abstract fun bindEvidenceRegisterOutboxHandler(impl: EvidenceRegisterOutboxHandler): OutboxKindHandler
+
     @Binds
     @Singleton
     abstract fun bindPhotoUploadStash(impl: DefaultPhotoUploadStash): PhotoUploadStash

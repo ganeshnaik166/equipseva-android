@@ -34,8 +34,14 @@ human server message through. Under 3.6.0 that would have collapsed EVERY unmapp
 (e.g. `Phone number required to accept jobs.`) into the generic fallback. The pass-through now judges
 the PostgREST body (`description`, else `error`) alone; keyword matchers still see the joined string.
 `TokenExpiredException` (not a `RestException`) now maps to the same session-expired copy as PGRST301.
-Debug builds set the SDK log level to DEBUG so the refresh mechanism is visible in logcat (release
-unchanged).
+
+**Log-level gotcha (found during the idle test, reverted in r3820):** `cb9142af` set the SDK to
+`LogLevel.DEBUG` in debug builds to watch the refresh mechanism. At DEBUG supabase-kt prints the FULL
+`UserSession` — access token AND refresh token — in its "Importing session …" / "Setting session status …"
+lines (only the expired-token error path masks them). A refresh token in logcat is a session-hijack
+primitive, so the level is back at the SDK default (INFO) for every build type; flip it locally for an
+auth investigation and flip it back. The useful DEBUG lines, for the record: `Session imported
+successfully. Starting auto refresh…` and `Refreshing session in 47m 59s` (= 80 % of `expires_in`).
 
 **Stored 3.0.3 sessions survive the upgrade:** the interim 3.6.0 APK installed over the old build
 relaunched straight into the signed-in hospital session (the countersigned RPR-00040 DSR), 0 crashes.
@@ -124,7 +130,40 @@ UPDATE → hospital evidence linked, `attests_sha256` == the engineer row's sha,
 ledger rows. Post-apply: ledger 5 rows, all hashes recompute, both DSR chains `chain_ok`, trigger enabled,
 `evidence_for_repair_job(RPR-00040)` now returns `gps_checkin → signature_engineer → signature_hospital`.
 
+## round3820 — app: repair before/after photos are registered as §65B evidence
+
+Postgres cannot read Storage object bytes, so photo evidence has to be hashed on the client. The photo
+upload path already funnels through `StorageRepository.upload` (MIME allowlist, size cap, EXIF scrub,
+path safety) and the `photo_upload` outbox kind.
+
+* `StorageRepository.upload` now returns `Result<UploadReceipt>` (bucket, object path, **sha256 of the
+  post-scrub bytes**, size) — the stored object is what a later download returns, so that is the only hash
+  `verify_evidence_hash()` can ever match. Every existing caller ignored the `Unit`; none needed changing.
+  `ByteArray.sha256Hex()` (`core/util/Sha256.kt`) is pinned against the FIPS vectors and the exact digest
+  the round3818 prod probe produced for "abc".
+* `PhotoUploadOutboxHandler`, after a successful upload + URL append, enqueues a **new outbox kind**
+  `evidence_register` (`EvidenceRegisterPayload.forUploadedPhoto`) for `repair_job_before` → `photo_before`
+  and `repair_job_after` → `photo_after`. Issue photos (the hospital's booking attachments) and KYC
+  documents are deliberately NOT evidence and map to nothing. Failing to *enqueue* is logged, never fails
+  the upload.
+* `EvidenceRegisterOutboxHandler` calls round492's `register_evidence` RPC (kind, `repair_job`, job id,
+  sha, size, `bucket/path`, producer `engineer`, captured_at = upload instant — stated as such in
+  metadata rather than dressed up as an EXIF time — `platform_version = android/<versionName>`). Owner
+  gate mirrors the photo handler. Transient → Retry; 4xx → GiveUp **after** `CrashReporter.report` (a photo
+  on the job with no ledger row is a compliance gap someone must see); a blank RPC result is treated as a
+  defect, not a success.
+* Why its own kind: `register_evidence` is idempotent on (kind, source, id, sha), so retrying it is free;
+  re-uploading a photo to retry it is not — and a permanent registration failure must never read as
+  "photo upload failed". Poison-drop copy for the new kind says the photo IS on the job.
+* Also in this round: SDK log level back to INFO (see the log-level gotcha above).
+
+Tests: `Sha256Test`, `EvidenceRegisterPayloadTest` (kind mapping incl. the KYC/issue exclusions, payload
+contents, JSON round-trip), `OutboxKindsTest` + `PoisonDropCopyTest` extended.
+
+Not yet proven on-device: an actual before-photo upload through the new path (needs a check-in drive with
+the system photo picker — see the emulator memory recipe). The RPC and its grants were verified
+server-side; the client path is unit-tested and bar-green.
+
 ## Still open for the §65B chain
-Photos (check-in before-photos, DSR after-photos) are still unregistered — Postgres cannot read Storage
-object bytes, so those need a client-side sha256 at upload time calling the existing `register_evidence`
-RPC (`photo_before` / `photo_after`, source `repair_job`). That is the next round.
+`rendered_pdf_ledger` (no PDF renderer exists), chat archives, voice notes, parts receipts — each needs a
+producer first. `generate_65b_certificate()` has no client yet.

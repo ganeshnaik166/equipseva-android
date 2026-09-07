@@ -1,5 +1,6 @@
 package com.equipseva.app.core.storage
 
+import com.equipseva.app.core.util.sha256Hex
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.storage.storage
 import javax.inject.Inject
@@ -24,6 +25,19 @@ class StorageRepository @Inject constructor(
         supabase.storage.from(bucket).publicUrl(path)
 
     /**
+     * round3820 — what actually landed in Storage. [sha256Hex] and [sizeBytes]
+     * describe the bytes AFTER the EXIF scrub, i.e. the object a later
+     * download will return — the only hash a §65B `verify_evidence_hash()`
+     * call can ever match.
+     */
+    data class UploadReceipt(
+        val bucket: String,
+        val objectPath: String,
+        val sha256Hex: String,
+        val sizeBytes: Long,
+    )
+
+    /**
      * Uploads [bytes] to [bucket]/[path]. Enforces:
      *   - MIME type allowlist (per [UploadValidator])
      *   - size ceiling (per [UploadValidator])
@@ -32,23 +46,30 @@ class StorageRepository @Inject constructor(
      *
      * Callers should catch [UploadError] and surface a human-readable message; the bucket
      * policy in Supabase enforces the same rules server-side as a backstop.
+     *
+     * Returns an [UploadReceipt] carrying the sha256 + size of the stored bytes so
+     * evidence-bearing uploads (repair before/after photos) can be registered in
+     * the §65B ledger without re-reading or re-hashing anything.
      */
     suspend fun upload(
         bucket: String,
         path: String,
         bytes: ByteArray,
         contentType: String? = null,
-    ): Result<Unit> = runCatching {
+    ): Result<UploadReceipt> = runCatching {
         validatePath(path).getOrThrow()
-        val policy = UploadValidator.validate(bucket, contentType, bytes.size.toLong()).getOrThrow()
+        UploadValidator.validate(bucket, contentType, bytes.size.toLong()).getOrThrow()
         val scrubbed = ExifScrubber.strip(bytes, contentType)
         supabase.storage.from(bucket).upload(path, scrubbed) {
             upsert = true
             contentType?.let { this.contentType = io.ktor.http.ContentType.parse(it) }
         }
-        // policy is returned to callers who want to branch on the concrete limits.
-        @Suppress("UNUSED_VARIABLE")
-        val _p = policy
+        UploadReceipt(
+            bucket = bucket,
+            objectPath = path,
+            sha256Hex = scrubbed.sha256Hex(),
+            sizeBytes = scrubbed.size.toLong(),
+        )
     }
 
     suspend fun signedUrl(bucket: String, path: String, expiresInMinutes: Int = 15): String {

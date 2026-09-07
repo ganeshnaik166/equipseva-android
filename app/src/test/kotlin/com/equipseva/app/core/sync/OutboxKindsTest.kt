@@ -22,6 +22,7 @@ class OutboxKindsTest {
         assertEquals("job_status", OutboxKinds.JOB_STATUS)
         assertEquals("photo_upload", OutboxKinds.PHOTO_UPLOAD)
         assertEquals("notification_read", OutboxKinds.NOTIFICATION_READ)
+        assertEquals("evidence_register", OutboxKinds.EVIDENCE_REGISTER)
     }
 
     @Test fun `kind ids are all distinct`() {
@@ -31,6 +32,7 @@ class OutboxKindsTest {
             OutboxKinds.JOB_STATUS,
             OutboxKinds.PHOTO_UPLOAD,
             OutboxKinds.NOTIFICATION_READ,
+            OutboxKinds.EVIDENCE_REGISTER,
         )
         assertEquals(ids.size, ids.toSet().size)
     }
