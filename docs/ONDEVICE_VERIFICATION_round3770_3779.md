@@ -245,3 +245,43 @@ What the drive established (all verified on the emulator, zero app crashes):
 
 Driver scripts (scratchpad, not in repo): `uilib.sh`, `ci40a-d.sh` (sheet → picker → confirm
 with 1.5 s mock-location pulses and a snackbar diff-capture loop), `probe40.sql`, `st40.sql`.
+
+### Resumed 2026-09-07 — chain COMPLETE, payoff proven, one prod bug found and fixed (r3815)
+
+Fresh session → check-in → DSR with serial → hospital countersign, all on the emulator, zero app
+crashes. Prod after the run (all read back by SQL, not from the UI):
+
+| proof | value |
+|---|---|
+| `repair_jobs` RPR-00040 | `in_progress`, started 03:43:26 UTC, engineer at 17.0500 / 79.2671 |
+| `engineer_attendance` (first row ever from the app) | `arrival_checkin`, 0 m from site, `suspicious_distance=false` |
+| `dsr_reports` | `signed`, IEC passed, calibration not performed with `lab_ref`/`within_oem` NULL (no self-contradiction), signer "Dr Meera Nair / Biomedical Coordinator" |
+| `repair_jobs.equipment_serial` | NULL → `SN-IVX450-7781` — the r3814 back-fill path, live |
+| `nabh_bundle_for_equipment(hospital, 'SN-IVX450-7781', 12)` | **1 row — the first NABH bundle with content in the project's history** |
+| `equipment_pm_schedule` after recompute | second projection: Philips IntelliVue MX450 / SN-IVX450-7781 due 2027-03-06 |
+
+How the blockers from the paused run resolved:
+
+- **Expired session was not recoverable in-app.** After ~75 min every RPC returned the expired-JWT
+  class and the Profile tab showed "Network problem". Sign-out was impossible (the Sign out button
+  lives on the profile that would not load) and the token never refreshed across three attempts.
+  Recovered only by `pm clear` + fresh sign-in. The host-side check ruled out the anon key (password
+  grant 200, REST answering) and the emulator network (Wi-Fi validated, ping OK). **Open app bug,
+  engineering follow-up:** the supabase-kt refresh path does not recover once the access token has
+  lapsed while the process was idle; a user who leaves the app open over lunch is signed out in all
+  but name and cannot sign out. Repro: sign in, idle > 60 min, tap any RPC-backed action.
+- `pm clear` also resets runtime permissions — re-grant location afterwards or the sheet says "Turn on
+  location to check in" (that copy is correct: `fetchCurrentLocation` returned null, no RPC fired).
+- After the wipe the app shows the onboarding carousel; tap **Skip** until the hub appears. The
+  engineer's "Active work" card is on the **Home** hub, not the Jobs tab (which shows the KYC prompt
+  for this account).
+
+**Bug found by the payoff probe — fixed in prod as round3815
+(`20263895000000_round3815_pm_schedule_null_serial_dupes.sql`):** the GE CARESCAPE_B450 (serial NULL)
+had FOUR identical `equipment_pm_schedule` rows, one per recompute. `pm_schedule_uniq` included
+`equipment_serial` under default NULLS DISTINCT, so `recompute_pm_schedule`'s `ON CONFLICT … DO UPDATE`
+never fired for serial-less equipment and the daily cron would have added one duplicate per hospital
+device per day (90% of jobs have no serial). Fix: dedupe keeping the earliest row, re-create the
+constraint `UNIQUE NULLS NOT DISTINCT` (PG 17.6), gate runs the real recompute twice and asserts the
+row count is stable — NOTICE: `2 rows stable across 2 real recomputes (1 hospitals walked), 1
+NULL-serial rows, 0 duplicate groups`. Function untouched (arbiter inference finds the new index).
