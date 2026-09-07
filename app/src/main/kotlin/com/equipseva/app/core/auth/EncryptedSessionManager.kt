@@ -85,15 +85,28 @@ class EncryptedSessionManager(context: Context) : SessionManager {
         }
     }
 
-    override suspend fun loadSession(): UserSession? {
-        val p = prefs ?: return memorySession
-        val raw = p.getString(KEY, null) ?: return null
-        return runCatching {
+    /**
+     * supabase-kt >= 3.2 contract: return the stored session or THROW —
+     * the SDK wraps every call in try/catch (`loadSessionOrNull`,
+     * `AuthImpl.loadFromStorage`) and treats any exception as "no
+     * session". Returning null is no longer part of the signature.
+     *
+     * A blob that fails to decode (e.g. a session persisted by an older
+     * SDK whose wire shape changed) is cleared before throwing so the
+     * next cold start does not repeat the failure; the user signs in
+     * once more. Only [Exception]s are thrown — the SDK's catch clauses
+     * are `catch (e: Exception)`, so an [Error] would escape them.
+     */
+    override suspend fun loadSession(): UserSession {
+        val p = prefs
+            ?: return memorySession ?: throw NoSuchElementException("No session in volatile memory")
+        val raw = p.getString(KEY, null) ?: throw NoSuchElementException("No stored session")
+        return try {
             json.decodeFromString(UserSession.serializer(), raw)
-        }.getOrElse { t ->
-            Log.w(TAG, "Stored session failed to decode; clearing.", t)
+        } catch (e: Exception) {
+            Log.w(TAG, "Stored session failed to decode; clearing.", e)
             p.edit { remove(KEY) }
-            null
+            throw IllegalStateException("Stored session failed to decode; cleared", e)
         }
     }
 

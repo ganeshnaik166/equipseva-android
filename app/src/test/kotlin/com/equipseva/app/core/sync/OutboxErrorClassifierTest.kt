@@ -1,9 +1,9 @@
 package com.equipseva.app.core.sync
 
 import com.equipseva.app.core.storage.UploadError
+import com.equipseva.app.testing.FakeRest
 import io.github.jan.supabase.exceptions.RestException
 import kotlinx.serialization.SerializationException
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -24,13 +24,11 @@ import java.io.IOException
  */
 class OutboxErrorClassifierTest {
 
+    // round3816 — supabase-kt >= 3.1 RestException wraps a real ktor
+    // HttpResponse (statusCode derives from it); FakeRest builds one via
+    // ktor's MockEngine. `message` is the PostgREST body = `description`.
     private fun rest(statusCode: Int, message: String = "boom"): RestException =
-        RestException(
-            error = "PostgrestError",
-            description = message,
-            statusCode = statusCode,
-            message = message,
-        )
+        FakeRest.rest(statusCode, message)
 
     @Test fun `IOException routes to Retry`() {
         val err = IOException("offline")
@@ -114,19 +112,17 @@ class OutboxErrorClassifierTest {
         assertSame(err, (out as OutboxKindHandler.Outcome.Retry).reason)
     }
 
-    @Test fun `4xx GiveUp reason includes the exception type when message is null`() {
-        // If supabase-kt returned a 4xx with a null message, we still
+    @Test fun `4xx GiveUp reason always carries a hint even when the body is empty`() {
+        // If supabase-kt returned a 4xx with an empty body, we still
         // want to log SOMETHING so the poison-drop notification carries
-        // a hint of what went wrong.
-        val rest = RestException(
-            error = "PostgrestError",
-            description = "",
-            statusCode = 400,
-            message = "",
-        )
+        // a hint of what went wrong. Since supabase-kt 3.x the exception
+        // message is never blank (it embeds the request URL + method), so
+        // the reason is "Permanent 400: " followed by that diagnostic.
+        val rest = FakeRest.rest(400, description = "")
         val out = classifyOutboxError(rest)
         assertTrue(out is OutboxKindHandler.Outcome.GiveUp)
         val reason = (out as OutboxKindHandler.Outcome.GiveUp).reason
-        assertEquals("Permanent 400: ", reason)
+        assertTrue("got: $reason", reason.startsWith("Permanent 400: "))
+        assertTrue("reason must not be the bare prefix: $reason", reason.length > "Permanent 400: ".length)
     }
 }

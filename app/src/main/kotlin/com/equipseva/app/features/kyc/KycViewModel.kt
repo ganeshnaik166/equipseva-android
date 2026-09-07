@@ -20,7 +20,7 @@ import com.equipseva.app.core.storage.StorageRepository
 import com.equipseva.app.core.sync.handlers.PhotoUploadPayload
 import com.equipseva.app.core.sync.handlers.PhotoUploadStash
 import com.equipseva.app.core.util.timestampedName
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

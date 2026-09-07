@@ -328,6 +328,8 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
+    // round3816 — supabase-kt >= 3.1 RestException needs a real ktor HttpResponse; tests build one via MockEngine.
+    testImplementation(libs.ktor.client.mock)
     // Robolectric — JVM Android-simulator for unit tests that need a
     // Context (DataStore, NotificationManager, etc.) without an emulator.
     // Slow per test (~1-3s) so use sparingly; keep the bulk of tests

@@ -14,6 +14,7 @@ import io.github.jan.supabase.annotations.SupabaseInternal
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.functions.Functions
+import io.github.jan.supabase.logging.LogLevel
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.serializer.KotlinXSerializer
@@ -46,6 +47,12 @@ object SupabaseModule {
                 isLenient = true
             },
         )
+        // round3816 — debug builds log the SDK's auth lifecycle (session
+        // import, scheduled refresh, the request-time force-refresh of an
+        // expired token) so an on-device idle test can prove the refresh
+        // MECHANISM in logcat, not just the outcome. Release keeps the
+        // SDK default (INFO). The SDK masks tokens in its own log lines.
+        if (com.equipseva.app.BuildConfig.DEBUG) defaultLogLevel = LogLevel.DEBUG
         install(Auth) {
             // Override the default `SettingsSessionManager` (plain
             // SharedPreferences on Android) with Keystore-backed

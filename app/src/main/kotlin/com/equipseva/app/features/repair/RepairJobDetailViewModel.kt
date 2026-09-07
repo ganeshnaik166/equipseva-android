@@ -102,6 +102,17 @@ class RepairJobDetailViewModel @Inject constructor(
         val bidComposerOpen: Boolean = false,
         val openingChat: Boolean = false,
         val viewerRole: ViewerRole = ViewerRole.Other,
+        /**
+         * round3817 — the viewer's own `engineers.id` (null for hospitals,
+         * signed-out viewers, and engineers who have not finished KYC).
+         * Compared against [RepairJob.engineerId] so the on-site CTAs
+         * (Check in / Mark done / Revise quote / Cancel) render ONLY for
+         * the engineer actually assigned to the job — including AMC visit
+         * jobs that are pre-assigned without a bid — instead of for any
+         * engineer who opens an Assigned job (the server 42501s them, but
+         * a CTA that can only fail is a defect).
+         */
+        val selfEngineerRowId: String? = null,
         val updatingStatus: Boolean = false,
         val submittingRating: Boolean = false,
         /**
@@ -1147,6 +1158,7 @@ class RepairJobDetailViewModel @Inject constructor(
                             ownBid = ownBid,
                             bids = bids,
                             viewerRole = role,
+                            selfEngineerRowId = selfEngineerRowId,
                             engineerNames = engineerNames,
                             hospitalName = hospitalProfile?.displayName,
                             hospitalLocation = hospitalProfile?.locationLine,

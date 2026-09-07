@@ -284,6 +284,7 @@ fun RepairJobDetailScreen(
                 StickyBottomBar(
                     job = job,
                     ownBid = state.ownBid,
+                    selfEngineerRowId = state.selfEngineerRowId,
                     viewerRole = state.viewerRole,
                     updatingStatus = state.updatingStatus,
                     queuedStatusCount = state.queuedStatusCount,
@@ -2047,6 +2048,7 @@ private fun CompletionProofCard(urls: List<String>) {
 private fun StickyBottomBar(
     job: RepairJob,
     ownBid: RepairBid?,
+    selfEngineerRowId: String?,
     viewerRole: RepairJobDetailViewModel.ViewerRole,
     updatingStatus: Boolean,
     queuedStatusCount: Int,
@@ -2074,7 +2076,14 @@ private fun StickyBottomBar(
     // Engineer can cancel only if they're the assigned engineer (Assigned status).
     // Random engineer browsing a Requested job: no Cancel — they haven't
     // committed to anything yet; the negative action would be a no-op.
-    val isAssignedEngineer = isEngineer && job.engineerId != null && ownBid?.status == RepairBidStatus.Accepted
+    // round3817 — "assigned" is decided by isViewerAssignedEngineer(): the
+    // viewer's own engineers.id matches job.engineerId (covers AMC visit
+    // jobs pre-assigned without any bid) OR their bid on this job was
+    // accepted. Previously the on-site CTAs below keyed on bare
+    // `isEngineer`, so ANY engineer opening an Assigned job saw
+    // "Check in on-site" and got a 42501 for their trouble.
+    val isAssignedEngineer = isEngineer &&
+        isViewerAssignedEngineer(job = job, selfEngineerRowId = selfEngineerRowId, ownBid = ownBid)
     val canCancel = when {
         isHospital -> job.status in setOf(RepairJobStatus.Requested, RepairJobStatus.Assigned)
         isAssignedEngineer -> job.status == RepairJobStatus.Assigned
@@ -2086,8 +2095,8 @@ private fun StickyBottomBar(
     val primaryKind: PrimaryCta? = when {
         isEngineer && job.status == RepairJobStatus.Requested ->
             PrimaryCta.PlaceBid(editing = ownBid?.status == RepairBidStatus.Pending)
-        isEngineer && job.status == RepairJobStatus.Assigned -> PrimaryCta.CheckIn
-        isEngineer && (job.status == RepairJobStatus.EnRoute || job.status == RepairJobStatus.InProgress) ->
+        isAssignedEngineer && job.status == RepairJobStatus.Assigned -> PrimaryCta.CheckIn
+        isAssignedEngineer && (job.status == RepairJobStatus.EnRoute || job.status == RepairJobStatus.InProgress) ->
             PrimaryCta.MarkDone
         isHospital && job.status == RepairJobStatus.Completed && !rated -> PrimaryCta.Rate
         isHospital && job.status == RepairJobStatus.Completed && rated -> PrimaryCta.RatedDone
@@ -2222,7 +2231,7 @@ private fun StickyBottomBar(
         // v2 — engineer-only "Revise quote" affordance, only while
         // working the job and only when no proposal is already pending.
         if (
-            isEngineer &&
+            isAssignedEngineer &&
             (job.status == RepairJobStatus.EnRoute || job.status == RepairJobStatus.InProgress) &&
             pendingCostRevision == null
         ) {
@@ -3221,6 +3230,28 @@ internal fun escrowStatusCardCopy(
  * a legacy/anomalous row — see RepairBidDto's doc comment) renders "—"
  * in place of the ₹ figure rather than crashing or showing ₹0.
  */
+/**
+ * round3817 — is the engineer looking at this screen the one assigned to
+ * the job? Two independent signals, either suffices:
+ *   * `job.engineerId` (an `engineers.id`) equals the viewer's own
+ *     engineers row — the authoritative link, and the ONLY one that
+ *     exists for AMC visit jobs, which are pre-assigned without a bid;
+ *   * the viewer's own bid on this job is Accepted — the marketplace
+ *     path, and a fallback for an engineer whose engineers row could
+ *     not be fetched (offline cache, transient error).
+ * Pure so it can be unit-tested; the caller still ANDs it with the
+ * viewer being an engineer at all.
+ */
+internal fun isViewerAssignedEngineer(
+    job: RepairJob,
+    selfEngineerRowId: String?,
+    ownBid: RepairBid?,
+): Boolean {
+    val assignedId = job.engineerId?.takeIf { it.isNotBlank() } ?: return false
+    val ownRow = selfEngineerRowId?.takeIf { it.isNotBlank() }
+    return (ownRow != null && ownRow == assignedId) || ownBid?.status == RepairBidStatus.Accepted
+}
+
 internal fun ownBidAmountAndEtaLine(amountRupees: Double?, etaHours: Int?): String =
     buildString {
         append(amountRupees?.let { com.equipseva.app.core.util.formatRupees(it) } ?: "—")

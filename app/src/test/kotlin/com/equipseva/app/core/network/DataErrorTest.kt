@@ -1,5 +1,7 @@
 package com.equipseva.app.core.network
 
+import com.equipseva.app.testing.FakeRest
+import io.github.jan.supabase.auth.exception.TokenExpiredException
 import io.github.jan.supabase.exceptions.RestException
 import kotlinx.coroutines.CancellationException
 import org.junit.Assert.assertEquals
@@ -82,22 +84,29 @@ class DataErrorTest {
     //  RestException — friendly mapping for SQLSTATE / PostgREST codes
     // ---------------------------------------------------------------------
     //
-    // RestException's primary constructor needs a status + description; the
-    // sealed/abstract status varies across supabase-kt versions. Use the
-    // concrete UnknownRestException subtype which the SDK ships for "any
-    // other postgrest error" — its constructor takes (errorCode, message,
-    // statusCode).
+    // round3816 — supabase-kt >= 3.1 RestException wraps a real ktor
+    // HttpResponse; `message` is derived from it and ALWAYS carries
+    // "URL: …" diagnostics. FakeRest builds one through ktor's MockEngine.
+    // The PostgREST body (RAISE literals, SQLSTATE codes) is `description`.
+    private fun rest(description: String): RestException = FakeRest.rest(400, description)
 
-    // 4-arg ctor on the public class: (error, description, statusCode, message).
-    // toUserMessage's friendlyRestMessage joins all three string fields with
-    // " | ", so any of them carries the matcher text.
-    private fun rest(description: String): RestException =
-        RestException(
-            error = "PostgrestError",
-            description = description,
-            statusCode = 400,
-            message = description,
-        )
+    @Test fun `unmapped human server message still passes through despite the URL diagnostics in message`() {
+        // Regression pin for the 3.6.0 upgrade: RestException.message now
+        // ends with "URL: https://…", which used to trip looksLikeRawDbError
+        // on the JOINED string and collapse every unmapped RAISE message
+        // into the generic fallback. The pass-through must judge the body.
+        val ex = rest("Phone number required to accept jobs.")
+        assertTrue("message should carry URL diagnostics: ${ex.message}", ex.message!!.contains("URL:"))
+        assertEquals("Phone number required to accept jobs.", ex.toUserMessage())
+    }
+
+    @Test fun `TokenExpiredException maps to the session-expired copy`() {
+        // Thrown by the SDK's request-time force-refresh failsafe (3.3+) when
+        // the refresh itself fails — not a RestException, so it needs its own
+        // branch to reach the same friendly copy as PGRST301.
+        val msg = TokenExpiredException().toUserMessage()
+        assertTrue("got: $msg", msg.contains("session expired", ignoreCase = true))
+    }
 
     @Test fun `expired JWT maps to session-expired copy`() {
         val msg = rest("JWT expired").toUserMessage()

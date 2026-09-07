@@ -1,5 +1,6 @@
 package com.equipseva.app.core.network
 
+import io.github.jan.supabase.auth.exception.TokenExpiredException
 import io.github.jan.supabase.exceptions.HttpRequestException
 import io.github.jan.supabase.exceptions.RestException
 import kotlinx.coroutines.CancellationException
@@ -14,6 +15,11 @@ fun Throwable.toUserMessage(fallback: String = "Something went wrong. Please try
     if (this is CancellationException) throw this
     return when (this) {
         is HttpRequestException, is IOException -> "Network problem. Check your connection and retry."
+        // round3816 — supabase-kt >= 3.3 force-refreshes an expired access
+        // token before any authenticated request; when THAT refresh fails
+        // it throws this (not a RestException), so map it to the same
+        // session-expired copy the PGRST301 branch below uses.
+        is TokenExpiredException -> SESSION_EXPIRED_MESSAGE
         // Postgrest errors carry raw SQL text + URL in `message` (e.g.
         // "permission denied for table organizations / URL: ..."). Surfacing
         // that to users leaks schema and reads as gibberish, so map known
@@ -22,6 +28,9 @@ fun Throwable.toUserMessage(fallback: String = "Something went wrong. Please try
         else -> message?.takeIf { it.isNotBlank() && !looksLikeRawDbError(it) } ?: fallback
     }
 }
+
+internal const val SESSION_EXPIRED_MESSAGE =
+    "Your session expired. Tap retry — if this keeps happening, sign in again."
 
 private fun friendlyRestMessage(ex: RestException): String? {
     // supabase-kt v3 puts the PostgREST response body in `ex.description`
@@ -32,6 +41,17 @@ private fun friendlyRestMessage(ex: RestException): String? {
     // regardless of which field the SDK populated this time.
     val raw = listOfNotNull(ex.message, ex.description, ex.error)
         .joinToString(separator = " | ")
+    // round3816 — since supabase-kt 3.x's RestException.message ALWAYS
+    // appends "URL: … / Headers: … / Http Method: …" diagnostics, the
+    // joined `raw` string trips looksLikeRawDbError() on EVERY error.
+    // Keyword matchers below still work on `raw`, but the final
+    // pass-through of an unmapped-yet-human server message (a RAISE
+    // like 'Phone number required to accept jobs.') must judge the
+    // body alone, or every such message collapses into the generic
+    // fallback. Prefer the PostgREST body (`description`); fall back
+    // to the status text (`error`).
+    val passthrough = listOfNotNull(ex.description, ex.error)
+        .firstOrNull { it.isNotBlank() }
     return when {
         // PostgREST stamps PGRST301 on expired JWTs and PGRST302 on missing /
         // malformed ones. The Supabase SDK auto-refreshes on the next request,
@@ -42,7 +62,7 @@ private fun friendlyRestMessage(ex: RestException): String? {
             raw.contains("jwt expired", ignoreCase = true) ||
             raw.contains("jwt is invalid", ignoreCase = true) ||
             raw.contains("invalid_jwt", ignoreCase = true) ->
-            "Your session expired. Tap retry — if this keeps happening, sign in again."
+            SESSION_EXPIRED_MESSAGE
         // Error-copy census (ported from a historical fix batch, but
         // RE-VERIFIED against THIS branch's own supabase/migrations + actual
         // Android RPC/table callers rather than trusted as-is — see the
@@ -128,7 +148,7 @@ private fun friendlyRestMessage(ex: RestException): String? {
             raw.contains("cannot decline from state", ignoreCase = true) ||
             raw.contains("cannot signoff from state", ignoreCase = true) ->
             "This request has moved past that step — pull to refresh."
-        raw.isNotBlank() && !looksLikeRawDbError(raw) -> raw
+        passthrough != null && !looksLikeRawDbError(passthrough) -> passthrough
         else -> null
     }
 }

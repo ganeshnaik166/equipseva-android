@@ -1,6 +1,6 @@
 [versions]
 agp = "9.2.1"
-kotlin = "2.3.10"
+kotlin = "2.3.21"
 ksp = "2.3.11"
 coreKtx = "1.19.0"
 lifecycle = "2.8.7"
@@ -15,8 +15,8 @@ dataStore = "1.2.1"
 workManager = "2.11.2"
 serialization = "1.7.3"
 coroutines = "1.9.0"
-supabase = "3.0.3"
-ktor = "3.0.3"
+supabase = "3.6.0"
+ktor = "3.4.3"
 coil = "3.0.4"
 firebaseBom = "33.7.0"
 googleServices = "4.5.0"
@@ -103,6 +103,7 @@ supabase-realtime = { module = "io.github.jan-tennert.supabase:realtime-kt" }
 supabase-storage = { module = "io.github.jan-tennert.supabase:storage-kt" }
 supabase-functions = { module = "io.github.jan-tennert.supabase:functions-kt" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 
 # Coil
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
