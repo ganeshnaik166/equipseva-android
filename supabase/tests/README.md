@@ -58,11 +58,52 @@ and the unchanged round3819 canonical writer. Fixture identities are synthetic.
 These are real PostgreSQL function executions on a focused fixture. They are
 **not** a replay of all project migrations or proof of effective production
 policies, user-role triggers, Storage service behavior, on-device outbox behavior,
-or legal evidence validity. Rapid duplicate submissions are queued on one
-PGlite connection; an independent-session concurrency/lock test is still needed
-against ordinary PostgreSQL. Registration holds SHARE locks on the job,
-engineer row and object until commit, but this harness cannot prove all live
-lock interactions or deployment-specific constraints.
+or legal evidence validity. Rapid duplicate submissions in this suite are queued
+on one PGlite connection. The native suite below exercises separate sessions.
+Registration holds SHARE locks on the job, engineer row and object until commit;
+neither focused fixture proves deployment-specific constraints or all live lock
+interactions.
+
+## Native evidence concurrency
+
+With Python 3.12+ and PostgreSQL 16+ server binaries installed, run from the
+repository root as an unprivileged user:
+
+```sh
+python3 supabase/tests/evidence_concurrency.py \
+  --pg-bin "$(pg_config --bindir)" \
+  --output-root /path/to/local/test-results
+```
+
+On Windows, supply the directory containing `initdb.exe`, `pg_ctl.exe` and
+`psql.exe` directly to `--pg-bin`. The harness creates its own uniquely named
+synthetic cluster under the output directory. It accepts no database URL and
+does not connect to an existing project. Keep the output for diagnosis,
+including failed attempts; the harness stops its own server after execution.
+The run's `evidence/` directory contains `report.json` and synthetic SQL/session
+logs. Its sibling `data/` directory is the disposable PostgreSQL cluster.
+
+The separate CI job runs on `ubuntu-24.04` with its preinstalled PostgreSQL
+binaries. It starts a private test cluster, not the runner's system service.
+The `evidence-concurrency` artifact retains only intended JSON/log/SQL files for
+14 days, including on failure; database data/configuration are excluded. This
+native dependency is intentionally separate from `npm test`.
+
+The suite uses the exact evidence fixture, historical round492 migration and
+forward round3821 migration. Separate PostgreSQL connections exercise duplicate
+registration, conflicting submissions and changes to job assignment, photo
+attachment, engineer identity and Storage object metadata. Assertions must
+observe the actual waiting/blocking backend relationships before releasing a
+transaction; elapsed time alone is not concurrency evidence. Both transaction
+orderings matter: registration after committed revocation must fail, while
+registration that commits first may remain as a historical ledger entry after
+later source mutation. A valid retry must not alter the original ledger row.
+
+The native fixture still substitutes roles and JWT claim settings locally and
+uses synthetic Storage rows. Its result does not certify HTTP authentication,
+effective full-schema RLS/triggers, real Storage uploads, immutable bytes or
+Android delivery. In particular, later object deletion can be valid after a
+registration commits; these tests do not promise continued object availability.
 
 ## Integration and release checks still required
 
