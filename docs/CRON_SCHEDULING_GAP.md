@@ -1,7 +1,54 @@
 # Scheduled-job coverage gap (found 2026-09-03, round3794)
 
-**Status: real, currently harmless, becomes live at launch. Needs a
-go/no-go from the founder, not a code cleanup.**
+## Current status: 7 September 2026
+
+Daily recovery is **not confirmed**. GitHub run
+[34098444144](https://github.com/ganeshnaik166/equipseva-android/actions/runs/34098444144)
+failed at 08:02 UTC on `fe463756`. A read-only historical ledger query identified
+`db-storage-snapshot`, SQLSTATE `57014` (`query_canceled`), duration 8,409 ms.
+The deployed writer body matches round601 and covers 4,876 regular public tables.
+Selected catalog settings show an 8-second authenticator statement timeout and
+8-second lock timeout, with no service-role or function override. These facts
+support the timeout hypothesis; they do not prove the historical cancellation
+trigger or exclude lock waiting. September 6's cause remains unproved.
+
+The diagnostic candidate now preserves strict SQLSTATE, `PGRSTddd` and `Hddd`
+error codes and removes raw exception logging. The HTTP status and top-level
+`ok` still describe the job results. The additive `persistence` object reports
+whether the single `cron_tick_runs` insert succeeded; returned SDK errors and
+thrown errors both produce `ok: false`, `error: "run_persistence_failed"` and
+an optional safe `error_code`. A history-write failure never retries jobs.
+
+The daily workflow captures the response privately and prints a validated
+summary of known slot names, booleans, bounded counts/durations and safe codes.
+It retains transport failure exit codes and rejects malformed success responses.
+Missing `persistence` on the older deployed handler is shown as **unreported**;
+explicit failure is a warning. Neither means monitoring is healthy. The source
+candidate and local tests do not establish deployment or production recovery.
+
+Do not rerun `daily` to diagnose a failure: it includes purges, reconciliation,
+notification work and an append-only snapshot writer. Each successful snapshot
+call creates another full batch. Read the existing safe summary and ledger
+metadata first. An absent ledger row alone cannot establish that no jobs ran.
+
+Also, an empty invoice digest does **not** rule out missing configuration:
+`founder_invoice_digest` validates recipient/provider settings before its
+empty-payload return. A direct SQL check bypasses the REST timeout path and
+cannot exclude a REST failure. The historical claims below are superseded
+where they conflict with these findings.
+
+Before proposing a snapshot timeout migration, verify the actual REST path,
+finite deadline, unchanged lock bound, transaction rollback and access grants
+in an isolated environment. A function setting depends on PostgREST hoisting
+and schema-cache refresh; inspect the deployed version/configuration before
+rollout. Do not change global or role timeouts or add blind retries.
+[PostgREST transaction settings](https://postgrest.org/en/stable/references/transactions.html),
+[Supabase timeouts](https://supabase.com/docs/guides/database/postgres/timeouts).
+
+## Historical investigation (3–7 September)
+
+The following records earlier observations and hypotheses. It is not the
+current acceptance status or proof that every scheduled path is healthy.
 
 ## Summary
 
@@ -388,19 +435,20 @@ session scratchpad path that no longer exists).
 
 ---
 
-## First daily-tick FAILURE, most likely transient (2026-09-06 07:43 UTC)
+## First daily-tick failure: historical transient hypothesis (2026-09-06 07:43 UTC)
 
 The first post-deploy `cron-tick-daily` run (07:43 UTC) — the first
 exercise of the 16 new daily slots — FAILED at the `POST ?slot=daily`
 step. Diagnosis so far:
 
-* **Every daily RPC runs clean as service_role.** Re-executed all 24
+* **Earlier direct-SQL observation:** re-executed all 24
   functions the daily group calls (the whole list, plus
   run_daily_reconciliation) in a single rolled-back service_role
-  transaction: zero errors. So the failure is NOT in the SQL.
-* **invoice-digest is not it:** get_invoice_digest_payload returns 0 rows
-  in the window, so that slot takes its clean early-exit before ever
-  calling Resend.
+  transaction: zero errors. This bypassed the REST request deadline and
+  does not exclude failure on the real cron path.
+* **Earlier empty-digest observation:** get_invoice_digest_payload returned
+  0 rows. Recipient/provider validation precedes the empty-payload return,
+  so this did not exclude a digest configuration failure.
 * **Most likely cause: the PGRST002 schema-cache wedge.** Around the same
   window, every app RPC was returning HTTP 503 / PGRST002 ("Could not
   query the database for the schema cache. Retrying.") — the aftermath of
@@ -415,10 +463,10 @@ step. Diagnosis so far:
   run 34019901270 shows exactly which slot(s) failed and why — the
   diagnosability the round441 error_code design exists for.
 
-NOT patched, because there is nothing to patch if it is the transient it
-appears to be: the daily group is idempotent, and the next scheduled tick
-(~07:30 UTC tomorrow) will confirm green. If it fails again, the run-log
-body names the slot; a slot that fails deterministically (vs the
+No patch was made then because a transient failure was suspected. The daily
+group must not be assumed retry-idempotent, and the next scheduled tick did
+not confirm recovery. If a run fails, inspect its safe summary and ledger
+for the failed slot; a slot that fails deterministically (vs the
 schema-cache flake) then gets a targeted fix. The hourly group has run
 green repeatedly through this same period, which is consistent with a
 brief cache reload rather than a broken daily slot.
@@ -443,6 +491,6 @@ delayed or dropped under load); it is not a bug in cron-tick. Consequences to pl
   same multi-hour jitter. A real pager needs an external trigger (Supabase pg_cron once enabled, or a
   cheap always-on ping such as a Cloudflare Worker cron / UptimeRobot hitting the edge function).
 - `engineer-payouts-worker` shows the same pattern (runs every ~2 h against its schedule) and stays green.
-- `cron-tick-daily`: 2026-09-06 07:43 failure already diagnosed as the transient PGRST002 wedge; the
+- `cron-tick-daily`: the 2026-09-06 07:43 failure was suspected to be a transient PGRST002 wedge, not proven; the
   2026-09-07 run had not fired by 03:30 UTC (expected ~07:30–08:00). Read it from the ledger:
   `select * from public.founder_cron_tick_recent(10)` — a red row carries `failed_slots` + per-slot `results`.

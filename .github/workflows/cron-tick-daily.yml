@@ -26,11 +26,18 @@ concurrency:
   group: cron-tick-daily
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   tick:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Checkout response summarizer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: POST cron-tick ?slot=daily
         env:
           CRON_TICK_SECRET: ${{ secrets.CRON_TICK_SECRET }}
@@ -46,11 +53,31 @@ jobs:
             exit 1
           fi
           URL="https://eyswaywvtartpvtoxtdr.supabase.co/functions/v1/cron-tick?slot=daily"
-          curl --fail-with-body \
-               --silent --show-error \
+          umask 077
+          RESPONSE_BODY="$(mktemp "${RUNNER_TEMP}/cron-daily-response.XXXXXX")"
+          trap 'rm -f -- "${RESPONSE_BODY}"' EXIT
+          CURL_EXIT=0
+          # The only captured stdout is the numeric HTTP status. Raw response
+          # content and curl errors must never reach Actions logs or summaries.
+          HTTP_STATUS="$(curl --fail-with-body \
+               --silent \
                --max-time 120 \
+               --output "${RESPONSE_BODY}" \
+               --write-out '%{http_code}' \
                -X POST "$URL" \
                -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
                -H "X-Cron-Secret: ${CRON_TICK_SECRET}" \
                -H "Content-Type: application/json" \
-               -d '{}'
+               -d '{}' 2>/dev/null)" || CURL_EXIT=$?
+          SUMMARY_EXIT=0
+          python3 scripts/cron_response_summary.py \
+            --body "${RESPONSE_BODY}" \
+            --http-status "${HTTP_STATUS}" \
+            --curl-exit-code "${CURL_EXIT}" \
+            --summary "${GITHUB_STEP_SUMMARY}" || SUMMARY_EXIT=$?
+          # Reporting cannot erase the actual transport failure. A malformed
+          # HTTP200 body also fails closed; missing/failed persistence only warns.
+          if [ "${CURL_EXIT}" -ne 0 ]; then
+            exit "${CURL_EXIT}"
+          fi
+          exit "${SUMMARY_EXIT}"

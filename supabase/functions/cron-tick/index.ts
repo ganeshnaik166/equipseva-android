@@ -26,27 +26,13 @@
 // purges only at 03:00 IST, escrow every hour). `slot=all` (default)
 // runs everything.
 //
-// Idempotent across overlapping runs: each helper either uses
-// FOR UPDATE SKIP LOCKED (process_due_repair_job_escrow_releases) or
-// is naturally re-runnable (TTL purges + expire helpers). Concurrent
-// invocations don't double-process.
+// Retry behavior belongs to each helper. Some guard concurrent work or are
+// naturally re-runnable; others (such as storage snapshots) append each time.
+// This dispatcher executes each selected slot once and never retries it.
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
-
-type SlotResult = {
-  slot: string;
-  ok: boolean;
-  rows?: number;
-  error?: string;
-  // PostgreSQL SQLSTATE code (5 chars, public per PG docs — e.g.
-  // 23502 = not_null_violation). Round 441: surfacing it lets the
-  // cron runbook diagnose slot failures without round-tripping to
-  // Supabase function logs. NOT sensitive — no message, no table
-  // names, no row data.
-  error_code?: string;
-  duration_ms: number;
-};
+import { runSlotsAndRecord } from "./observability.ts";
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -229,12 +215,9 @@ serve(async (req) => {
       if (error) throw error;
       return { rows: typeof data === "number" ? data : undefined };
     },
-    // Declared '*/5 * * * *' (Code Red safety-escalation timeout). GitHub
-    // Actions cannot honour a 5-minute cadence from this repo without a
-    // dedicated workflow on the default branch, which is frozen — so this
-    // runs HOURLY for now. Hourly beats the current never by a lot; the
-    // 5-minute upgrade path is a one-line workflow on main calling
-    // ?slot=sweep-code-reds, documented in docs/CRON_SCHEDULING_GAP.md.
+    // Code Red safety-escalation timeout. The repository includes a dedicated
+    // five-minute workflow calling ?slot=sweep-code-reds. This helper is also
+    // included in the hourly group below.
     "sweep-code-reds": async () => {
       const { data, error } = await admin.rpc("sweep_timed_out_code_reds");
       if (error) throw error;
@@ -369,8 +352,7 @@ serve(async (req) => {
     // hour of next_visit_at, not next-day).
     "hourly": [
       "escrow-release", "expire-cost-revisions", "amc-create-visits", "payouts-reaper", "amc-sla-sweep",
-      // round3807 — declared hourly (and Code Red, declared */5, riding
-      // hourly until a 5-min workflow lands on main):
+      // round3807 — hourly additions; Code Red also has a dedicated workflow.
       "reap-refund-authorizations", "reap-stranded-amc-orders", "sweep-code-reds",
     ],
     // daily: TTL purges off-peak + AMC auto-renewal sweep (end_date
@@ -409,7 +391,9 @@ serve(async (req) => {
   };
 
   const invokedAt = Date.now();
-  const targets: string[] = groups[slot] ?? (slot in slots ? [slot] : []);
+  const targets: string[] = Object.hasOwn(groups, slot)
+    ? groups[slot]
+    : Object.hasOwn(slots, slot) ? [slot] : [];
   if (targets.length === 0) {
     return json(400, {
       ok: false,
@@ -418,65 +402,14 @@ serve(async (req) => {
     });
   }
 
-  const results: SlotResult[] = [];
-  for (const t of targets) {
-    const start = Date.now();
-    try {
-      const r = await slots[t]();
-      results.push({ slot: t, ok: true, rows: r.rows, duration_ms: Date.now() - start });
-    } catch (e) {
-      // Don't echo raw e.message — it can carry PostgREST hints,
-      // table names, row data. The response body lands in GitHub
-      // Actions / cron-job.org logs (external surfaces). Log full
-      // detail server-side; surface only the slot name, a stable
-      // error code, and the 5-char SQLSTATE (round 441) so the cron
-      // runbook can diagnose without round-tripping to dashboard logs.
-      console.error(`cron-tick slot=${t} failed`, e);
-      // PostgrestError shape: { code: '23502', message: '...', details: '...', hint: '...' }
-      // Native Postgres exceptions thrown by supabase-js include `code`
-      // on the rejected response. Extract it defensively (no PII risk —
-      // SQLSTATE values are documented Postgres constants).
-      const sqlstate = (typeof (e as { code?: unknown })?.code === "string")
-        ? (e as { code: string }).code
-        : undefined;
-      // Only allow the canonical 5-char SQLSTATE form. Anything else
-      // (e.g., a custom string) gets dropped to keep the surface clean.
-      const safeCode = sqlstate && /^[0-9A-Z]{5}$/.test(sqlstate) ? sqlstate : undefined;
-      results.push({
-        slot: t,
-        ok: false,
-        error: "slot_failed",
-        error_code: safeCode,
-        duration_ms: Date.now() - start,
-      });
-    }
-  }
-
-  const allOk = results.every((r) => r.ok);
-
-  // round3813 — persist the outcome. Until now the ONLY record of a red
-  // scheduled run was the HTTP body in the GitHub run log (auth-gated),
-  // and this project runs no pg_cron, so the database held no evidence at
-  // all; the first daily failure had to be diagnosed by re-running every
-  // RPC by hand. Best-effort by design: a logging failure must never turn
-  // a green run red or hide a real slot error.
-  try {
-    await admin.from("cron_tick_runs").insert({
-      slot,
-      targets,
-      ok: allOk,
-      failed_slots: results.filter((r) => !r.ok).map((r) => r.slot),
-      results,
-      duration_ms: Date.now() - invokedAt,
-    });
-  } catch (e) {
-    console.error("cron-tick: could not persist run", e instanceof Error ? e.message : String(e));
-  }
-
-  return json(allOk ? 200 : 500, {
-    ok: allOk,
+  const outcome = await runSlotsAndRecord({
     slot,
     targets,
-    results,
+    slots,
+    invokedAt,
+    persist: (record) => admin.from("cron_tick_runs").insert(record),
+    // Never log raw SDK errors: they can contain messages, hints and row data.
+    log: (diagnostic) => console.error("cron-tick", diagnostic),
   });
+  return json(outcome.ok ? 200 : 500, outcome);
 });

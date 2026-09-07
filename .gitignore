@@ -50,3 +50,4 @@ web/.vercel/
 web/out/
 web/next-env.d.ts
 scratchpad/
+scripts/__pycache__/

@@ -1,15 +1,23 @@
-name: evidence authorization regressions
+name: backend regressions
 
 on:
   pull_request:
     paths:
       - "supabase/migrations/**"
+      - "supabase/functions/cron-tick/**"
+      - "scripts/cron_response_summary.py"
+      - "scripts/test_cron_response_summary.py"
+      - ".github/workflows/cron-tick-daily.yml"
       - "supabase/tests/**"
       - ".github/workflows/evidence-regressions.yml"
   push:
     branches: [main, "ops/**", "codex/**"]
     paths:
       - "supabase/migrations/**"
+      - "supabase/functions/cron-tick/**"
+      - "scripts/cron_response_summary.py"
+      - "scripts/test_cron_response_summary.py"
+      - ".github/workflows/cron-tick-daily.yml"
       - "supabase/tests/**"
       - ".github/workflows/evidence-regressions.yml"
 
@@ -39,5 +47,8 @@ jobs:
           package-manager-cache: false
       - name: Install pinned test dependencies
         run: npm ci --ignore-scripts
-      - name: Exercise actual RPC SQL with populated isolated fixtures
+      - name: Exercise evidence RPC SQL and cron failure reporting
         run: npm test
+      - name: Exercise daily workflow response sanitization
+        working-directory: .
+        run: python3 scripts/test_cron_response_summary.py

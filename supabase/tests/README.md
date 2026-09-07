@@ -1,11 +1,29 @@
-# Focused evidence authorization regression tests
+# Focused backend regression tests
 
-Run from this directory with a supported Node.js runtime:
+Run from this directory with Node.js 24:
 
 ```sh
-npm ci
+npm ci --ignore-scripts
 npm test
 ```
+
+`npm test` runs the evidence SQL suite and the cron handler suite. Run either
+separately with `npm run test:evidence` or `npm run test:cron`.
+
+The cron suite executes the real TypeScript handler with isolated SDK, Deno
+serve, environment and fetch stubs. It verifies authorization, all slot
+groups, sequential execution, safe error codes and both returned and thrown
+run-history failures. It performs no real jobs or network requests. Node's VM
+modules and TypeScript stripping do not replace the separate Deno import/type
+check or deployed Edge integration.
+
+From the repository root, `python3 scripts/test_cron_response_summary.py`
+executes the actual daily response-summary CLI against synthetic responses.
+It verifies response validation, private-field suppression, curl exit codes,
+and separate reporting of missing/failed history persistence. The backend CI
+workflow runs both suites; changing the cron handler or summarizer triggers it.
+
+## Evidence SQL coverage
 
 `package.json` pins `@electric-sql/pglite` to 0.5.8. If dependencies are already
 provisioned elsewhere, set `EQS_PGLITE_PACKAGE` to that package directory before

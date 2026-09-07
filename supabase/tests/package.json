@@ -3,8 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node evidence_authorization.test.mjs",
-    "test:evidence": "node evidence_authorization.test.mjs"
+    "test": "npm run test:evidence && npm run test:cron",
+    "test:evidence": "node evidence_authorization.test.mjs",
+    "test:cron": "node --experimental-vm-modules --test cron_observability.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8"
