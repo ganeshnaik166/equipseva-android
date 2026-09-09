@@ -7,8 +7,9 @@ npm ci --ignore-scripts
 npm test
 ```
 
-`npm test` runs the evidence SQL, cron handler and snapshot migration suites.
-Run them separately with `npm run test:evidence`, `npm run test:cron` or
+`npm test` runs the evidence authorization, repair-photo finalizer, cron handler
+and snapshot migration suites. Run them separately with
+`npm run test:evidence`, `npm run test:finalizer`, `npm run test:cron` or
 `npm run test:snapshot`.
 
 The cron suite executes the real TypeScript handler with isolated SDK, Deno
@@ -105,6 +106,16 @@ effective full-schema RLS/triggers, real Storage uploads, immutable bytes or
 Android delivery. In particular, later object deletion can be valid after a
 registration commits; these tests do not promise continued object availability.
 
+## Repair-photo atomic finalizer
+
+`repair_photo_finalize.test.mjs` executes the exact round3823 migration against
+the populated r492/r3821 fixture. The separate
+`repair_photo_finalize_concurrency.py` runner uses fresh PostgreSQL sessions to
+exercise atomic append/registration, retries, rollback, competing photo appends,
+authority changes and overlap with the existing registration writer. Commands,
+result contracts, artifact layout and the remaining rollout limits are recorded
+in [`repair_photo_finalize.md`](repair_photo_finalize.md).
+
 ## Integration and release checks still required
 
 - Compare the deployed table/Storage schema, function definitions, ownership and
@@ -116,9 +127,10 @@ registration commits; these tests do not promise continued object availability.
 - Test delayed registration after assignment changes. Former engineers cannot
   register or read through the per-job reader after canonical reassignment;
   historical producer hash reads retain their original producer-only contract.
-- A successful upload whose job attachment failed is now denied registration.
-  This is deliberate authorization; durable attach/register reconciliation is
-  separate REL-01 work and is not solved by this migration.
+- Direct r3821 `register_evidence` calls still deny an uploaded object that is
+  not attached to the job. Round3823 adds an authorized atomic append/register
+  finalizer; Android durable transport, upload reconciliation and recovery are
+  still separate REL-01 work.
 - The original ledger uniqueness key omits storage object identity. The same
   digest under a different object or producer returns a conflict instead of
   claiming or overwriting the original row. A future multi-object evidence
