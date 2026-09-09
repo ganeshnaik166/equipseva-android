@@ -44,7 +44,9 @@ Milestone log (newest last; each entry is one commit):
 | --- | --- | --- | --- |
 | 0 | `a482f73c` | Handoff note for the resuming session; memory of the working agreement | docs only |
 | 1 | `53be5025` | CI push filters gain `claudedev-help` (and `secret-scan` gains `codex/**`); frozen slice below | workflow + docs edits only |
-| — | (this commit) | **Session stopped by the owner** before implementation began. Nothing of INT-01..04 / DEV-01 is written yet. | docs only |
+| — | `410332b9` | **Session stopped by the owner** before implementation began (2026-09-07). | docs only; CI secret-scan 34124137324 success |
+| 2 | `52105cf5` | Rubric corrections from the design critique; `testing/TestSupabaseClient.kt` (real supabase-kt client over MockEngine); `supabase/tests/android_evidence_contract.json` | compileDebugUnitTestKotlin only; tests 2835/336/0 unchanged; CI android 34346219562 success, backend regressions 34346219561 success, secret-scan 34346219560 success |
+| 3 | (this commit) | INT-03 `EvidenceRegisterOutboxHandlerIntegrationTest` (10 tests, real client, no fallback taken); DEV-01 recorded BLOCKED (section below) | targeted `--tests` run: 10/10 pass in 22 s; full chain deferred to the final milestone per Working method; Node suites not run locally |
 
 ### Where the helper stopped (2026-09-07, after milestone 1)
 
@@ -158,10 +160,10 @@ milestone is one commit on `claudedev-help`. `git fetch origin` before every
 commit; never run two Gradle builds at once.
 
 Synthetic JWTs are assembled at runtime from a JSON claims string (as
-`RequestServiceDraftStoreTest` already does); no base64 token literal, no
-`eyJ` prefix, no real project ref or key appears in any committed file. The
-MockEngine base URL is a fake host. Before each push: grep the new files for
-`eyJ`.
+`RequestServiceDraftStoreTest` already does); no base64 token literal (no
+encoded JWT header prefix), no real project ref or key appears in any
+committed file. The MockEngine base URL is a fake host. Before each push: grep
+the new files for the three-character encoded-JWT header prefix.
 
 Existing files touched are limited to: `EvidenceRegisterPayloadTest` (two
 fixture path values and the expected string, no assertion added or removed),
@@ -179,6 +181,32 @@ handoff table after the push; existing files touched; and the negatives
 "no application source changed / no migration / no deployment / no main
 merge". The milestone table below records Commit, Files, Tests before → after,
 CI run ids + conclusions, and Not run.
+
+## DEV-01 result: BLOCKED (2026-09-09), owner decision needed
+
+Read-only probes through `supabase db query --linked` (the CLI at
+`C:\Users\lokes\supabase-cli\supabase.exe`, token from the documented local
+file, nothing printed or committed):
+
+- `migration list --linked`: remote applied through `20263897000000`
+  (round3819); `20263898000000` (round3821) and `20263899000000` (round3822)
+  are local-only, exactly as your commit messages state.
+- Jobs assigned to `play-review-engineer`: RPR-00040 and RPR-00041, both
+  `in_progress`, each already holding 2 `before_photos`. No job is in
+  `assigned` or `en_route`, so the before-photo check-in path cannot be driven.
+- `evidence_ledger` for those two jobs holds only the round3818/3819 backfill
+  rows (`gps_checkin`, `signature_*`); no `photo_before`/`photo_after` row
+  exists, i.e. the r3820 client path has still never run in production.
+- The `eqs` emulator was attached at the start of the session and had exited
+  by the time the probes ran.
+
+Per the frozen fixture policy the helper did not create a job, bid or
+acceptance, and did not complete an in-progress job (that would advance escrow
+and payout state). Two ways to unblock, both yours: (a) authorise the hospital
+test account to post a new job and accept a bid from the test engineer, then
+drive the check-in; or (b) accept a `photo_after` drive by marking RPR-00041
+done (money-path side effects). Either way the read path and guards above are
+ready.
 
 ## Open items handed back to you
 

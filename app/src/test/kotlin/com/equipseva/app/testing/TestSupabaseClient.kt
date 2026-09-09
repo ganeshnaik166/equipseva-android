@@ -41,8 +41,8 @@ import java.util.Base64
  *    which throws on the plain JVM.
  *  - No `accessToken` provider: `AuthImpl` refuses to coexist with one.
  *
- * Tokens are assembled at runtime from a JSON claims string — never a literal
- * `eyJ…` token, so the repository's secret scan stays quiet.
+ * Tokens are assembled at runtime from a JSON claims string — never a
+ * base64 token literal, so the repository's secret scan stays quiet.
  */
 object TestSupabaseClient {
 
