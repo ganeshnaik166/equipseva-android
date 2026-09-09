@@ -107,12 +107,12 @@ queued item from your last status. It does not close M1.
 
 | Id | Layer | Test | Proves |
 | --- | --- | --- | --- |
-| INT-01 | Android JVM (Robolectric) | `RequestServiceAccountSwitchIntegrationTest` | Real on-disk Preferences DataStore + real `RequestServiceDraftStore` + real `RequestServiceViewModel` + real `SavedStateHandle` (Bundle round-trip) + real `SignOutCleanup.wipeLocalUserState()` + `FakeAuthRepository` SignedOut/SignedIn emissions. Scenarios: (a) A drafts, signs out, B signs in: B never sees A's draft, B's autosave lands, A's replayed lease/callbacks change nothing; (b) late callbacks after logout (profile fetch, upload, submit) land nowhere; (c) same account again with a new `session_id`: A's draft is gone by design and the handle is rewritten; same-session re-emission (token refresh) keeps the lease and the disk draft; (d) process death via Bundle round-trip: `req.*` keys survive Parcel for the same session and never render for a foreign owner. |
+| INT-01 | Android JVM (Robolectric) | `RequestServiceAccountSwitchIntegrationTest` | Real on-disk Preferences DataStore + real `RequestServiceDraftStore` + real `RequestServiceViewModel` + real `SavedStateHandle` (Bundle round-trip) + real `SignOutCleanup.wipeLocalUserState()` + `FakeAuthRepository` SignedOut/SignedIn emissions. Scenarios: (a) A drafts, signs out, B signs in: B never sees A's draft, B's autosave lands, A's replayed lease/callbacks change nothing; (b) late callbacks after logout (profile fetch, upload, submit) land nowhere; (c) same account again with a new `session_id`: A's draft is gone by design and the handle is rewritten; same-session re-emission (token refresh) keeps the lease and the disk draft; (d) process death via Bundle round-trip: `req.*` keys survive Parcel for the same session and never render for a foreign owner. Every absence assertion is preceded by a presence proof on the raw preferences (owner, session, draft text bytes) and every late callback has a positive control that lands without logout. Real behind `SignOutCleanup`: `RequestServiceDraftStore`, `DefaultPhotoUploadStash`, `UserBlockRepository`; no-op fakes: `DeviceTokenRegistrar`, `OutboxDao`, `OutboxScheduler`, `UserPrefs`, the three pending-payment stores, a `SupabaseClient` without Realtime. |
 | INT-02 | Android JVM (Robolectric) | `RequestServiceDraftIdentityIntegrationTest` | The production `@Inject` constructor path: a `SupabaseClient` whose current session carries a synthetic 3-segment JWT (`sub`, `session_id`) yields `Identity(uid, session_id)`; a token without `session_id` yields `Identity(uid, null)` and persistence is disabled; a blank user yields no lease. |
-| INT-03 | Android JVM | `EvidenceRegisterOutboxHandlerIntegrationTest` | Real `EvidenceRegisterOutboxHandler` against a real `SupabaseClient` over ktor `MockEngine`: the HTTP request is `POST …/rest/v1/rpc/register_evidence` with the caller's bearer token and exactly the ten `p_*` parameters (uuid strings, numeric size, lowercase sha, `android/<versionName>`, metadata keys `mime_type`/`captured_from`/`client`); outcomes 200 uuid → Success, 403 (42501 body) and 400 (22023 body) → GiveUp + `CrashReporter.report`, 500 → Retry, 200 blank → GiveUp + report, no session → Retry, producer mismatch → GiveUp with no HTTP call. Falls back to a mocked Postgrest plugin capturing the parameter object only if the Auth plugin cannot initialise on the JVM (recorded if so). |
+| INT-03 | Android JVM | `EvidenceRegisterOutboxHandlerIntegrationTest` | Real `EvidenceRegisterOutboxHandler` against a real `SupabaseClient` over ktor `MockEngine`: the HTTP request is `POST …/rest/v1/rpc/register_evidence` with the caller's bearer token and exactly the ten `p_*` parameters (uuid strings, numeric size, lowercase sha, `android/<versionName>`, metadata keys `mime_type`/`captured_from`/`client`); outcomes 200 uuid → Success, 403 (42501 body) and 400 (22023 / 02000 body) → GiveUp + `CrashReporter.report`, 500 (incl. a 40001 `evidence_registration_retry` body), 408 and 429 → Retry, 200 blank or `null` → GiveUp + report, no session → Retry, producer mismatch → GiveUp; the two gate cases assert zero HTTP requests, the HTTP cases assert exactly one, and the engine fails the test on any path other than the RPC. Falls back to a mocked Postgrest plugin capturing the parameter object only if the Auth plugin cannot initialise on the JVM (recorded if so). |
 | INT-04 | Android JVM + backend | `RepairPhotoEvidenceContractTest` (Kotlin) and `evidence_client_contract.test.mjs` (Node/PGlite), sharing `supabase/tests/android_evidence_contract.json` | The REAL `RepairJobDetailViewModel` before/after photo enqueue produces `<uid>/<job>/<before|after>-<millis>-<uuid>-<sanitized40>` and `EvidenceRegisterPayload.forUploadedPhoto` produces `repair-photos/<that path>`; the Kotlin side asserts conformance to the rules in the JSON fixture (4 segments, bucket literal, uid, job id, filename charset, sha regex, kinds, producer, source) and the sanitizer table; the Node side executes the same real-shape receipts against the actual round3821 `register_evidence` on PGlite (accepted, `evidence_for_repair_job` returns the bucket-prefixed url) and the fixture's non-conforming variants (uppercase hex, `.` filename, empty/leading/trailing-slash url, uppercase uuid segment) are denied with the expected SQLSTATE and RAISE literal. Also corrects the off-contract fixture in `EvidenceRegisterPayloadTest` (`repair-photos/u1/before-1.jpg` has 3 segments; round3821 requires 4). |
 | CI-01 | GitHub Actions | `android.yml`, `evidence-regressions.yml`, `secret-scan.yml` | Push to `claudedev-help` triggers the same checks you gave `codex/**` (additive branch-filter entries only; `secret-scan` also gains `codex/**`, which it lacked). |
-| DEV-01 | Device (`eqs` emulator, production backend at round492) | Manual drive of the r3820 photo-evidence path as `play-review-engineer` | The queued handoff item: a before-photo check-in produces a `photo_before` ledger row; `content_size_bytes` compared with the Storage object's `metadata.size` (the only real-Storage evidence obtainable without service-role access). Attempted after INT/CI; recorded as blocked if the emulator state lacks an assignable job. |
+| DEV-01 | Device (`eqs` emulator, production backend at round492) | Manual drive of the r3820 photo-evidence path as `play-review-engineer` | The queued handoff item: a before-photo check-in produces a `photo_before` ledger row. Read path: `supabase db query --linked -f <select-only>.sql` reading `evidence_ledger` (kind, `content_size_bytes`, `storage_url`) and `storage.objects.metadata->>'size'` for that path; the two sizes are compared and recorded with the ledger row id and object path. Guards: SDK log level stays INFO, no token capture from logcat, no token or key in any committed file, no `supabase db push`, no `workflow_dispatch` of any cron workflow, APK = debug build of this tree (app source unchanged from `c927f7f4`). Fixture policy: reuse an existing Assigned job for the test engineer; if none exists, record BLOCKED rather than creating job/bid/accept rows. Honesty: this exercises round492 in production (no path validation there); r3821 device compatibility is proven only by INT-04 on PGlite. The ledger row cannot be rolled back through the app path; its id is recorded. |
 
 ### Scope (out, named)
 
@@ -120,7 +120,13 @@ Migration-built full-chain Supabase test project with real Storage upload and
 GoTrue JWTs (your README item 2), `owner_id` semantics of real Storage,
 `SECURITY DEFINER … FOR SHARE` privileges on `storage.objects`, REL-01
 attach/register reconciliation, SessionViewModel zombie paths, Compose screen
-tests, deployment of round3821/3822, any merge to `main`.
+tests, deployment of round3821/3822, any merge to `main`, and direct REST/RPC
+calls against a live Supabase project (the plan's "direct API calls" rule is
+met here only by DEV-01, against round492). The "populated foreign-user
+fixture" rule is met through the existing `evidence_authorization.fixture.sql`
+identities on PGlite. Client uid = `session.user.id`, server actor =
+`auth.uid()` (JWT `sub`); their equality is a GoTrue invariant assumed by
+INT-04 and observed only by DEV-01.
 
 ### Frozen rubric (this slice)
 
@@ -134,8 +140,13 @@ tests, deployment of round3821/3822, any merge to `main`.
 | Performance and operations | 5 | yes | new JVM tests add < 60 s locally; CI still green; no flaky timing (virtual time only) |
 
 Score = earned / 75 applicable points × 10. Critic and QA each must reach
-9.5. Hard blockers (any → not accepted): a test that passes without exercising
-the real component it names; a secret in Git; a change to plan flow or design.
+9.5 overall, and each applicable critical dimension (Task correctness,
+Security and privacy, Resilience/retained work) must itself reach 9.5. All
+hard blockers listed in `RENEWAL_EXECUTION_PLAN.md` apply in full; slice
+additions: a test that passes without exercising the real component it names;
+a change to plan flow or design. This is a scoped-slice score for
+INT-01..04 / CI-01 / DEV-01 only. It is not an M1 score and not a full-app
+score.
 
 ### Working method
 
@@ -143,7 +154,31 @@ Implementer agents write files without running Gradle concurrently; one
 verification run executes the Codex-required chain
 (`testDebugUnitTest`, `lintDebug`, `assembleDebug`, `assembleRelease` with
 `PRECHECK_LOOSE=1`). Node suites run only in CI here (no Node locally). Each
-milestone is one commit on `claudedev-help`.
+milestone is one commit on `claudedev-help`. `git fetch origin` before every
+commit; never run two Gradle builds at once.
+
+Synthetic JWTs are assembled at runtime from a JSON claims string (as
+`RequestServiceDraftStoreTest` already does); no base64 token literal, no
+`eyJ` prefix, no real project ref or key appears in any committed file. The
+MockEngine base URL is a fake host. Before each push: grep the new files for
+`eyJ`.
+
+Existing files touched are limited to: `EvidenceRegisterPayloadTest` (two
+fixture path values and the expected string, no assertion added or removed),
+`supabase/tests/package.json` (a `test:contract` script appended last to the
+`test` chain), `supabase/tests/README.md` (one added paragraph). The PGlite
+harness header is copied into the new Node file rather than refactoring the
+Codex-authored suite.
+
+Every milestone commit body ends with a `Validation:` paragraph carrying: the
+Gradle command verbatim; unit tests / suites / failures before → after from the
+XML reports (baseline 2835 / 336 / 0); lint, assembleDebug and
+assembleRelease (`PRECHECK_LOOSE=1`) results with wall time; Node suites "not
+run locally (no Node)" with the CI run ids and conclusions filled into the
+handoff table after the push; existing files touched; and the negatives
+"no application source changed / no migration / no deployment / no main
+merge". The milestone table below records Commit, Files, Tests before → after,
+CI run ids + conclusions, and Not run.
 
 ## Open items handed back to you
 
