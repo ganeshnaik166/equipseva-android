@@ -166,7 +166,12 @@ class RequestServiceAccountSwitchIntegrationTest {
         } finally {
             viewModels.forEach { it.viewModelScope.cancel() }
             diskScope.cancel()
-            diskScope.coroutineContext[Job]?.join()
+            // Real-time bound: a DataStore child that ignores cancellation must
+            // not convert a finished test into a 60 s UncompletedCoroutinesError.
+            // Closing the file is best-effort; the assertions above are the test.
+            withContext(Dispatchers.Default) {
+                withTimeoutOrNull(REAL_WAIT_MS) { diskScope.coroutineContext[Job]?.join() }
+            }
         }
     }
 
@@ -552,7 +557,9 @@ class RequestServiceAccountSwitchIntegrationTest {
         coVerify(exactly = 1) { jobs.create(any()) }
         gate.complete(Result.success(repairJob("job-42", "RPR-00042")))
         // The effect is emitted after the real clearDraft IO completes; wait for it, not for a timer.
-        val submitted = effects.submitted.await()
+        val submitted = awaitReal("the Submitted effect", { "effects so far: ${effects.all}; state: ${model.state.value}" }) {
+            effects.submitted.await()
+        }
         assertEquals("job-42", submitted.jobId)
         assertEquals("RPR-00042", submitted.jobNumber)
         assertSame(lease, submitted.formSession)
