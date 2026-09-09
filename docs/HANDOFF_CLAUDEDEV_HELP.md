@@ -46,7 +46,8 @@ Milestone log (newest last; each entry is one commit):
 | 1 | `53be5025` | CI push filters gain `claudedev-help` (and `secret-scan` gains `codex/**`); frozen slice below | workflow + docs edits only |
 | — | `410332b9` | **Session stopped by the owner** before implementation began (2026-09-07). | docs only; CI secret-scan 34124137324 success |
 | 2 | `52105cf5` | Rubric corrections from the design critique; `testing/TestSupabaseClient.kt` (real supabase-kt client over MockEngine); `supabase/tests/android_evidence_contract.json` | compileDebugUnitTestKotlin only; tests 2835/336/0 unchanged; CI android 34346219562 success, backend regressions 34346219561 success, secret-scan 34346219560 success |
-| 3 | (this commit) | INT-03 `EvidenceRegisterOutboxHandlerIntegrationTest` (10 tests, real client, no fallback taken); DEV-01 recorded BLOCKED (section below) | targeted `--tests` run: 10/10 pass in 22 s; full chain deferred to the final milestone per Working method; Node suites not run locally |
+| 3 | `37a0a4c2` | INT-03 `EvidenceRegisterOutboxHandlerIntegrationTest` (10 tests, real client, no fallback taken); DEV-01 recorded BLOCKED (section below) | targeted `--tests` run: 10/10 pass in 22 s; CI android 34352358903 success, secret-scan 34352358917 success (backend regressions not triggered: no Supabase path changed) |
+| 4 | (this commit) | INT-04 both halves: `features/repair/RepairPhotoEvidenceContractTest` (4 tests, drives the REAL `RepairJobDetailViewModel` before/after enqueue) + `supabase/tests/evidence_client_contract.test.mjs` (32 checks against the actual r492 and r3821 SQL) sharing `android_evidence_contract.json`; `EvidenceRegisterPayloadTest` fixture corrected to 4 segments (+4/−3 lines, no assertion changed); `package.json` gains `test:contract` last in the chain; one README paragraph | targeted Gradle run: 4/4 + 6/6 pass in 14 s; Node suite run LOCALLY via VS Code's Electron as Node 24 with `EQS_PGLITE_PACKAGE` (32/32; and 60/60 for the existing evidence suite as control; withholding the r3821 migration makes exactly the 8 discriminating variants fail); full Gradle chain deferred to the final milestone |
 
 ### Where the helper stopped (2026-09-07, after milestone 1)
 
@@ -155,9 +156,13 @@ score.
 Implementer agents write files without running Gradle concurrently; one
 verification run executes the Codex-required chain
 (`testDebugUnitTest`, `lintDebug`, `assembleDebug`, `assembleRelease` with
-`PRECHECK_LOOSE=1`). Node suites run only in CI here (no Node locally). Each
-milestone is one commit on `claudedev-help`. `git fetch origin` before every
-commit; never run two Gradle builds at once.
+`PRECHECK_LOOSE=1`). Node suites: no `node`/`npm` is installed here, but VS
+Code's `Code.exe` with `ELECTRON_RUN_AS_NODE=1` is Node 24 and the harness's
+`EQS_PGLITE_PACKAGE` variable can point at an extracted `@electric-sql/pglite`
+0.5.8 tarball kept outside the repo; that is used as a pre-push check, and CI
+(`npm ci` + `npm test`) stays authoritative. Each milestone is one commit on
+`claudedev-help`. `git fetch origin` before every commit; never run two Gradle
+builds at once.
 
 Synthetic JWTs are assembled at runtime from a JSON claims string (as
 `RequestServiceDraftStoreTest` already does); no base64 token literal (no

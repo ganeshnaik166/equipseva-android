@@ -16,9 +16,10 @@ class EvidenceRegisterPayloadTest {
 
     private val json = Json { ignoreUnknownKeys = true }
 
+    // round3821 requires repair-photos/<uid>/<job>/<file>; see supabase/tests/android_evidence_contract.json
     private fun upload(contextType: String, contextId: String = "job-1") = PhotoUploadPayload(
         bucket = "repair-photos",
-        objectPath = "u1/before-1.jpg",
+        objectPath = "u1/job-1/before-1.jpg",
         localFilePath = "/tmp/x.jpg",
         mimeType = "image/jpeg",
         contextType = contextType,
@@ -28,7 +29,7 @@ class EvidenceRegisterPayloadTest {
 
     private val receipt = StorageRepository.UploadReceipt(
         bucket = "repair-photos",
-        objectPath = "u1/before-1.jpg",
+        objectPath = "u1/job-1/before-1.jpg",
         sha256Hex = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
         sizeBytes = 3,
     )
@@ -64,7 +65,7 @@ class EvidenceRegisterPayloadTest {
         assertEquals("job-1", p.sourceId)
         assertEquals(receipt.sha256Hex, p.contentSha256)
         assertEquals(3L, p.contentSizeBytes)
-        assertEquals("repair-photos/u1/before-1.jpg", p.storageUrl)
+        assertEquals("repair-photos/u1/job-1/before-1.jpg", p.storageUrl)
         assertEquals("engineer", p.producerKind)
         assertEquals("u1", p.producerUserId)
         assertEquals("2026-09-07T05:00:00Z", p.capturedAt)
