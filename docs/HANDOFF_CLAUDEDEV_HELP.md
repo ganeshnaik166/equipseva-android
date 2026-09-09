@@ -263,11 +263,7 @@ helper:
    60 s `UncompletedCoroutinesError` on the Linux runner; the same tree passes
    the full chain and three isolated re-runs locally). Milestones 8 and 9 bound
    every real-IO wait by real time and upload the JUnit XML on failure so the
-   next red run names the stalled wait; the milestone 9 run
-   (android 34387276634) was still in progress when this session ended. Read
-   its result first. If it is red, download the `unit-test-reports` artifact;
-   the failure message now states which wait timed out and the observed
-   preferences / UiState.
+   next red run names the stalled wait; the milestone 9 run (android 34387276634) was cancelled by the milestone 10 push; the authoritative run on identical test code is android 34387748384 for `d382faa8`. That run was RED too, but its `unit-test-reports` artifact finally named the stall: all four timeouts were in `awaitDisk`, and in every case the preferences observed at the moment of the timeout ALREADY satisfied the predicate. The write had landed; the long-lived `dataStore.data.first { predicate }` collector never received the update on the Linux runner. Milestone 11 replaces that collector with fresh `data.first()` polls every 25 ms of wall-clock time (bounded 10 s); read the milestone 11 android run to confirm.
 2. **The milestone record had not disclosed those failures** (rows 6 and 7 were
    filled with local results only). Corrected above: every row now carries its
    CI run ids and conclusions, including the failures.
@@ -295,8 +291,7 @@ timestamps to the DEV-01 record; decide whether the handler should validate the
 returned ledger id against the uuid regex; write "lint 0 errors (79 warnings)"
 rather than "clean".
 
-Next action for whoever resumes: (1) read android run 34387276634 for
-`f0ce5f83`; if red, fix the named wait deterministically (the QA suggestion:
+Next action for whoever resumes: (1) read android run 34387748384 for `d382faa8` (same INT-01 code as `f0ce5f83`); if red, fix the named wait deterministically (the QA suggestion:
 await disk IO off the test dispatcher and hop back with `runCurrent()` before
 every state read, mirroring `RequestServiceDraftPersistenceTest`), push, and
 record the green run id; (2) record the critic score; (3) obtain the owner's

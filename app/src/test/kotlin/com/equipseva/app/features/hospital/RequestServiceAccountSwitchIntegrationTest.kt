@@ -42,6 +42,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -109,9 +110,11 @@ import org.robolectric.annotation.Config
  * see INT-02), Compose rendering, Hilt wiring, real Storage / PostgREST calls, and the
  * DeviceTokenRegistrar / Outbox / UserPrefs cleanups themselves (relaxed mocks).
  *
- * Time is virtual only (runCurrent / advanceTimeBy / advanceUntilIdle). Real disk IO is awaited by
- * suspending on the DataStore flow itself (dataStore.data.first { ... }), never by sleeping; runTest
- * resumes those waits when the IO thread dispatches back onto the test scheduler.
+ * Test-scheduler time is virtual (runCurrent / advanceTimeBy / advanceUntilIdle). Real disk IO is
+ * awaited off the test scheduler with a real-time bound (see [awaitReal] / [awaitDisk]): the disk
+ * wait polls the DataStore with fresh reads every 25 ms of wall-clock time on Dispatchers.Default,
+ * because a single long-lived `data.first { }` collector missed the write notification on the Linux
+ * CI runner; a wait that does not resolve in 10 s fails with the observed state instead of hanging.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(application = android.app.Application::class, manifest = Config.NONE, sdk = [34])
@@ -290,10 +293,27 @@ class RequestServiceAccountSwitchIntegrationTest {
     private suspend fun rawPrefs(): Preferences =
         awaitReal("a raw read of the preferences file", { "<unreadable>" }) { dataStore.data.first() }
 
-    /** Suspends on the real DataStore flow until [predicate] holds, bounded by real time; reports the actual prefs on timeout. */
+    /**
+     * Polls the real DataStore with FRESH reads until [predicate] holds, bounded
+     * by real time; reports the actual prefs on timeout.
+     *
+     * Why polling and not `data.first { predicate }`: on the Linux CI runner
+     * (run 34387748384) four tests timed out inside a single long-lived
+     * `first { }` collector while the preferences observed at the moment of the
+     * timeout ALREADY satisfied the predicate — the write had landed but the
+     * subscribed collector never received the update. A fresh `first()` per
+     * poll reads the current state and cannot miss it. Each poll is a real
+     * 25 ms pause on Dispatchers.Default (never virtual time), so a local run
+     * still resolves in one or two polls.
+     */
     private suspend fun awaitDisk(predicate: (Preferences) -> Boolean): Preferences =
         awaitReal("the preferences file to satisfy the predicate", { dataStore.data.first().asMap().toString() }) {
-            dataStore.data.first { predicate(it) }
+            var prefs = dataStore.data.first()
+            while (!predicate(prefs)) {
+                delay(DISK_POLL_MS)
+                prefs = dataStore.data.first()
+            }
+            prefs
         }
 
     private fun parcelRoundTrip(bundle: Bundle): Bundle {
@@ -722,6 +742,8 @@ class RequestServiceAccountSwitchIntegrationTest {
 
         /** Real-time bound for waits on real disk IO; generous for a 2-core CI runner, tiny against runTest's 60 s. */
         const val REAL_WAIT_MS = 10_000L
+        /** Real pause between fresh DataStore reads inside [awaitDisk] (runs on Dispatchers.Default, so this is wall-clock time). */
+        const val DISK_POLL_MS = 25L
         const val A_TEXT = "A private issue text"
         const val A_ADDRESS = "A ward 3, Alpha Hospital, Hyderabad"
         const val A_LATE_PHOTO = "A/issue-late.jpg"
