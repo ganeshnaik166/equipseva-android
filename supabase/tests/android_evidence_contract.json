@@ -17,6 +17,7 @@
     "filename_forbidden": [".", ".."],
     "storage_url_regex": "^repair-photos/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/(?!\\.\\.?$)[A-Za-z0-9._-]+$",
     "client_stored_name_regex": "^(before|after)-[0-9]+-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-[A-Za-z0-9._-]{0,40}$",
+    "prefixes": ["before", "after"],
     "content_sha256_regex": "^[0-9a-f]{64}$",
     "content_size_min": 1,
     "evidence_kinds": ["photo_before", "photo_after"],
@@ -96,7 +97,7 @@
   },
   "platform_version_examples_accepted": ["android/0.3.6", "android/0.3.6-debug"],
   "non_conforming_variants": {
-    "$comment": "Each variant mutates exactly one property of conforming_example. 'r492' is the production baseline verdict (positive control on the old database); 'r3821' is the candidate verdict. A variant is discriminating when r492 accepts and r3821 denies.",
+    "$comment": "Each variant mutates exactly one property of conforming_example. 'r492' is the production baseline verdict (positive control on the old database); 'r3821' is the candidate verdict. A variant is discriminating when r492 accepts and r3821 denies. NOT EXPRESSIBLE HERE: an uppercase-hex uid or job segment variant (e.g. 1000000A-.../3000000B-...) cannot be written against this fixture, because the SQL fixture identities (evidence_authorization.fixture.sql) are digit-only uuids, so no case-variant of them exists for the server to compare with auth.uid()::text / p_source_id::text, and any other segment value is already covered by the evidence_object_not_authorized variants. The Kotlin side still rejects uppercase hex in either uuid segment through rules.storage_url_regex and rules.uuid_regex.",
     "variants": [
       {
         "id": "three_segments_legacy_fixture",
@@ -163,11 +164,19 @@
         "discriminating": true
       },
       {
+        "id": "kind_array_mismatch",
+        "description": "A client kind whose attachment array does not hold the object: the conforming object is attached only in before_photos, but the receipt claims photo_after. r492 has no attachment check and inserts a new row (kind is part of evidence_ledger_uniq); r3821's CASE checks after_photos and raises evidence_photo_not_attached",
+        "mutation": { "evidence_kind": "photo_after" },
+        "r492": { "outcome": "accepted" },
+        "r3821": { "outcome": "denied", "sqlstate": "42501", "literal": "evidence_photo_not_attached" },
+        "discriminating": true
+      },
+      {
         "id": "uppercase_hex_sha",
-        "description": "Contract pin, not a discriminator: both migrations reject uppercase hex (r492's lower() at line 175 sits after its own CHECK); the Android handler also rejects it client-side before any HTTP call",
+        "description": "Contract pin, not a discriminator: both migrations reject uppercase hex with the identical RAISE text 'content_sha256 must be 64-char lowercase hex' (r492's lower() at line 175 sits after its own check, so r492 carries the sqlstate only); the Android handler also rejects it client-side before any HTTP call",
         "mutation": { "content_sha256": "039058C6F2C0CB492C533B0A4D14EF77CC0F78ABCCCED5287D84A1A2011CFB81" },
         "r492": { "outcome": "denied", "sqlstate": "22023" },
-        "r3821": { "outcome": "denied", "sqlstate": "22023", "literal": "content_sha256" },
+        "r3821": { "outcome": "denied", "sqlstate": "22023", "sqlstate_key": "content_sha256_invalid", "literal": "must be 64-char lowercase hex" },
         "discriminating": false
       }
     ]

@@ -226,7 +226,9 @@ await test('fixture examples conform to the fixture rules (segments, stored-name
     assert.match(filename, storedNameRe);
     assert.match(filename, filenameRe);
     assert(!rules.filename_forbidden.includes(filename));
-    assert(filename.startsWith(example.evidence_kind === 'photo_before' ? 'before-' : 'after-'));
+    assert.deepEqual(rules.prefixes, ['before', 'after']);
+    assert(filename.startsWith(`${rules.prefixes[example.evidence_kind === 'photo_before' ? 0 : 1]}-`));
+    for (const prefix of rules.prefixes) assert(rules.client_stored_name_regex.includes(prefix), `stored-name regex must name prefix ${prefix}`);
     assert.match(example.content_sha256, shaRe);
     assert(example.content_size_bytes >= rules.content_size_min);
     assert(rules.evidence_kinds.includes(example.evidence_kind));
@@ -259,15 +261,35 @@ await test('fixture variants each mutate exactly one known field off-contract, w
     assert.notEqual(variant.mutation[key], before[key], `${variant.id}: mutation must change the field`);
     if (key === 'storage_url') assert.doesNotMatch(variant.mutation[key], storageUrlRe, variant.id);
     else if (key === 'content_sha256') assert.doesNotMatch(variant.mutation[key], shaRe, variant.id);
-    else if (key === 'evidence_kind') assert(!rules.evidence_kinds.includes(variant.mutation[key]), variant.id);
+    else if (key === 'evidence_kind') {
+      // Either a kind the client never sends (r3821: evidence_kind_not_authorized), or the other
+      // client kind, whose attachment array does not hold the conforming object because the
+      // fixture attaches it only in before.attach_to_column (r3821: evidence_photo_not_attached).
+      if (rules.evidence_kinds.includes(variant.mutation[key])) {
+        assert.equal(before.attach_to_column, 'before_photos', variant.id);
+        assert.equal(variant.mutation[key], after.evidence_kind, variant.id);
+        assert.equal(variant.r3821.literal, 'evidence_photo_not_attached', variant.id);
+      } else {
+        assert.equal(variant.r3821.literal, 'evidence_kind_not_authorized', variant.id);
+      }
+    }
     else if (key === 'producer_kind') assert.notEqual(variant.mutation[key], rules.producer_kind, variant.id);
     else assert.fail(`${variant.id}: unhandled mutation field ${key}`);
     assert(['accepted', 'denied'].includes(variant.r492.outcome), variant.id);
     if (variant.r492.outcome === 'denied') assert.match(variant.r492.sqlstate, /^[0-9A-Z]{5}$/);
     assert.equal(variant.r3821.outcome, 'denied', variant.id);
     assert(typeof variant.r3821.literal === 'string' && variant.r3821.literal.length > 0, variant.id);
-    assert(Object.entries(rules.server_sqlstates).some(([name, code]) => name.startsWith(variant.r3821.literal) && code === variant.r3821.sqlstate),
-      `${variant.id}: r3821 literal/sqlstate pair must come from rules.server_sqlstates`);
+    // The literal is the RAISE text substring deniedWith() pins. Its SQLSTATE comes from
+    // rules.server_sqlstates either through an explicit sqlstate_key (when the RAISE text is a
+    // sentence, e.g. the sha check) or because the literal IS the marker name's prefix.
+    if (variant.r3821.sqlstate_key !== undefined) {
+      assert(variant.r3821.sqlstate_key in rules.server_sqlstates, `${variant.id}: unknown sqlstate_key ${variant.r3821.sqlstate_key}`);
+      assert.equal(rules.server_sqlstates[variant.r3821.sqlstate_key], variant.r3821.sqlstate,
+        `${variant.id}: r3821 sqlstate_key/sqlstate pair must come from rules.server_sqlstates`);
+    } else {
+      assert(Object.entries(rules.server_sqlstates).some(([name, code]) => name.startsWith(variant.r3821.literal) && code === variant.r3821.sqlstate),
+        `${variant.id}: r3821 literal/sqlstate pair must come from rules.server_sqlstates`);
+    }
     assert(migrationSql.includes(variant.r3821.literal), `${variant.id}: RAISE literal must exist in the r3821 migration text`);
     assert.equal(variant.discriminating, variant.r492.outcome === 'accepted', `${variant.id}: discriminating means r492 accepts and r3821 denies`);
   }
@@ -307,23 +329,47 @@ try {
     assert.match(id, uuidRe);
     assert.notEqual(id, oldBeforeId);
   });
-  // r492 has no url/object checks. A variant that changes only the url or the producer keeps
-  // the (kind, source, job, sha) key of the conforming row inserted above, so r492's idempotent
-  // path returns that existing id: still 'accepted' (a uuid comes back). A kind change
-  // (photo_during) inserts a new row. A denied variant rejects inside as()'s db.transaction,
-  // which rolls back, so no aborted transaction stays open on the single PGlite connection.
+  // r492 has no url/object checks. Why every accepted variant gets a UNIQUE hash: r492 looks up
+  // (kind, source, job, sha) BEFORE inserting and returns the existing id on a hit. With the
+  // conforming sha, a url or producer variant would collide with the conforming row registered
+  // above and "accepted" would merely mean "the idempotent path returned an old uuid": that
+  // proves nothing about r492 storing the mutated value. digest('r492-' + id) forces the INSERT,
+  // and the row is then read back by id so the mutated field is proven to have been persisted.
+  // A denied variant rejects inside as()'s db.transaction, which rolls back, so no aborted
+  // transaction stays open on the single PGlite connection.
+  const acceptedVariants = variants.filter((v) => v.r492.outcome === 'accepted');
+  const r492Hash = (variant) => digest(`r492-${variant.id}`);
+  assert.equal(new Set(acceptedVariants.map(r492Hash)).size, acceptedVariants.length, 'r492 hashes must be unique per variant');
   for (const variant of variants) {
     const half = `r492 ${variant.r492.outcome}${variant.r492.outcome === 'denied' ? ` ${variant.r492.sqlstate}` : ''}`;
     await test(variantName(variant, half), async () => {
-      if (variant.r492.outcome === 'accepted') assert.match(await register(old, ENGINEER, variantReceipt(variant)), uuidRe);
-      else await deniedWith(() => register(old, ENGINEER, variantReceipt(variant)), variant.r492.sqlstate, undefined);
+      if (variant.r492.outcome === 'accepted') {
+        const r = { ...variantReceipt(variant), hash: r492Hash(variant) };
+        assert.match(r.hash, shaRe);
+        assert.notEqual(r.hash, before.content_sha256);
+        const id = await register(old, ENGINEER, r);
+        assert.match(id, uuidRe);
+        assert.notEqual(id, oldBeforeId, 'unique hash must force an INSERT, not the idempotent return of the conforming row');
+        const row = (await old.query('SELECT * FROM public.evidence_ledger WHERE id=$1::uuid', [id])).rows[0];
+        assert(row, 'r492 must have inserted a row for the accepted variant');
+        // The mutated value itself must be what r492 stored (positive-control discrimination).
+        assert.equal(row.storage_url, r.url);
+        assert.equal(row.producer_kind, r.producer);
+        assert.equal(row.evidence_kind, r.kind);
+        assert.equal(row.content_sha256, r.hash);
+        assert.equal(row.producer_user_id, ENGINEER);
+        const [key] = Object.keys(variant.mutation);
+        const stored = { storage_url: row.storage_url, evidence_kind: row.evidence_kind, producer_kind: row.producer_kind }[key];
+        assert.equal(stored, variant.mutation[key], `${variant.id}: r492 stored the mutated ${key} verbatim`);
+      } else {
+        await deniedWith(() => register(old, ENGINEER, variantReceipt(variant)), variant.r492.sqlstate, undefined);
+      }
     });
   }
-  await test('r492 ledger after variants: only mutations of a uniqueness-key column inserted; url/producer variants took the idempotent path', async () => {
-    // evidence_ledger_uniq = (evidence_kind, source_kind, source_id, content_sha256); source_id is constant here.
-    const inserted = variants.filter((v) => v.r492.outcome === 'accepted'
-      && ['evidence_kind', 'source_kind', 'content_sha256'].includes(Object.keys(v.mutation)[0])).length;
-    assert.equal(await ledgerCount(old), 2 + inserted);
+  await test('r492 ledger after variants: every accepted variant INSERTed under its unique hash; denied variants wrote nothing', async () => {
+    // 2 conforming rows (before, after) + one row per accepted variant; the unique hashes rule out the idempotent path.
+    assert(acceptedVariants.length > 0);
+    assert.equal(await ledgerCount(old), 2 + acceptedVariants.length);
   });
 } finally { await old.close(); }
 
@@ -388,10 +434,10 @@ try {
   });
 } finally { await db.close(); }
 
-// 5 fixture self-checks + r492 (2 positive + 9 variants + 1 ledger) + r3821 (3 positive
-// + 2 platform + 9 variants + 1 ledger). Update when the fixture's variants or
+// 5 fixture self-checks + r492 (2 positive + 10 variants + 1 ledger) + r3821 (3 positive
+// + 2 platform + 10 variants + 1 ledger) = 5 + 13 + 16. Update when the fixture's variants or
 // platform_version_examples_accepted arrays change; a silent zero-iteration loop must fail here.
-const EXPECTED = 32;
+const EXPECTED = 34;
 console.log(`Evidence client contract: ${passed} passed, ${failures.length} failed (expected ${EXPECTED}).`);
 console.log('Scope: real-shape Android receipts from android_evidence_contract.json executed against the actual r492 and r3821 SQL on PGlite; NOT real Storage owner/metadata semantics, deployed state, or device behaviour.');
 if (failures.length) process.exitCode = 1;

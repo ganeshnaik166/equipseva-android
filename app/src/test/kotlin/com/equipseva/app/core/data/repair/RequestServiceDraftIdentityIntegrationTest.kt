@@ -55,9 +55,35 @@ import java.io.File
  * phases therefore share one Context and one delegate instance; each phase
  * is labelled in its assertion messages.
  *
+ * JVM-wide singleton hazard (read before adding a test anywhere that
+ * constructs the production [RequestServiceDraftStore], or `SignOutCleanup`
+ * through Hilt): `preferencesDataStore("request_service_draft")` is a
+ * top-level delegate, so the FIRST Context that touches it pins the ONE
+ * DataStore instance for the whole test JVM to that Context's `filesDir`.
+ * Gradle forks one JVM per test worker and runs many classes in it; if another
+ * class pins the delegate first, this test would keep asserting against a
+ * `draftFile` under ITS OWN `filesDir` while the singleton writes somewhere
+ * else, and DataStore would additionally throw "multiple DataStores active
+ * for the same file" if the other class ever constructed a second instance
+ * for the same path. The precondition at the top of the test method fails
+ * loudly instead of passing (or failing) for that unrelated reason: the file
+ * must NOT exist before the store here has written anything. Any future test
+ * that needs the production store must therefore either run in this class
+ * (as another phase) or supply its own `DataStore` through the `internal`
+ * constructor with a per-test file.
+ *
  * Presence before absence: phase 1 proves the REAL preferences file receives
  * the owner id and the draft text before any phase asserts that a draft is
  * missing.
+ *
+ * Sign-out shape: production `SignOutCleanup` empties the SDK session and the
+ * repository then emits `SignedOut`, so before every `SignedOut` emission the
+ * SDK session is cleared locally (`auth.clearSession()` — SessionManager
+ * delete + `NotAuthenticated`, no HTTP) and the departing lease is asserted
+ * to be no longer current. The blank-user phase is followed by a positive
+ * re-emission that issues a lease again, proving the collector is alive and
+ * processed every emission in order (otherwise "no lease" could be a dead
+ * collector).
  *
  * NOT proven here: that GoTrue really issues a `session_id` claim (production
  * tokens are assumed to; the store degrades to "form usable, no persistence"
@@ -93,6 +119,13 @@ class RequestServiceDraftIdentityIntegrationTest {
         if (draftFile.exists()) draftFile.readBytes().toString(Charsets.UTF_8) else ""
 
     @Test fun `production identity path keys the lease on the JWT session claim and disables persistence without it`() = runTest {
+        // Precondition (see the class KDoc): the process-wide delegate must not
+        // already have been pinned to another Context by a different test class.
+        assertFalse(
+            "request_service_draft delegate already pinned/used by another test class in this JVM",
+            draftFile.exists(),
+        )
+
         val store = RequestServiceDraftStore(context, auth, harness.client)
 
         // ---- Phase 1 (FLOOR): valid token with sub == user id and a session_id.
@@ -119,10 +152,13 @@ class RequestServiceDraftIdentityIntegrationTest {
 
         // ---- Phase 2: token whose sub disagrees with the user record → parser
         // returns null → the constructor's fallback Identity(uid, null).
+        // Production interleaving: fence, SDK session emptied, then SignedOut.
         store.fenceAndClearForSignOut()
+        harness.client.auth.clearSession()
         auth.setSession(AuthSession.SignedOut)
         runCurrent()
         assertNull("phase 2: sign-out must revoke the lease", store.activeSession.value)
+        assertFalse("phase 2: the departing lease must no longer be current", store.isCurrent(leaseA))
         assertFalse("phase 2: the fence must have cleared A's draft from disk", fileText().contains(PHASE_ONE_ISSUE))
 
         harness.client.importSyntheticSession(UID_A, sessionId = "sess-B", tokenSub = UID_OTHER)
@@ -137,12 +173,18 @@ class RequestServiceDraftIdentityIntegrationTest {
         )
         store.saveDraft(leaseNoSession, sampleRequestDraft(PHASE_TWO_ISSUE))
         assertFalse("phase 2: persistence must be disabled — file must not contain the text", fileText().contains(PHASE_TWO_ISSUE))
-        assertNull("phase 2: nothing to load", store.loadDraft(leaseNoSession))
+        assertNull(
+            "phase 2: consistency check only — loadDraft is trivially null for a session-less lease; the real proof is the file text above",
+            store.loadDraft(leaseNoSession),
+        )
 
         // ---- Phase 3: token WITHOUT a session_id claim → same fallback via a
         // different parser reason; persistence stays disabled.
+        harness.client.auth.clearSession()
         auth.setSession(AuthSession.SignedOut)
         runCurrent()
+        assertNull("phase 3: sign-out must revoke the phase 2 lease", store.activeSession.value)
+        assertFalse("phase 3: the departing lease must no longer be current", store.isCurrent(leaseNoSession))
         harness.client.importSyntheticSession(UID_A, sessionId = null)
         auth.setSession(AuthSession.SignedIn(UID_A, "a3@test.invalid"))
         runCurrent()
@@ -158,26 +200,33 @@ class RequestServiceDraftIdentityIntegrationTest {
 
         // ---- Phase 4: a fresh valid session for the same owner persists again
         // (the fallback was the token's fault, not the store's).
+        harness.client.auth.clearSession()
         auth.setSession(AuthSession.SignedOut)
         runCurrent()
+        assertNull("phase 4: sign-out must revoke the phase 3 lease", store.activeSession.value)
+        assertFalse("phase 4: the departing lease must no longer be current", store.isCurrent(leaseNoClaim))
         harness.client.importSyntheticSession(UID_A, sessionId = "sess-D")
         auth.setSession(AuthSession.SignedIn(UID_A, "a4@test.invalid"))
         runCurrent()
         val leaseD = store.activeSession.value
+        assertNotNull("phase 4: a lease must be issued for the fresh valid token", leaseD)
         assertEquals(
             "phase 4: a valid token re-enables a session-keyed identity",
             RequestServiceDraftStore.Identity(UID_A, "sess-D"),
-            leaseD?.identity,
+            leaseD!!.identity,
         )
-        store.saveDraft(leaseD!!, sampleRequestDraft(PHASE_FOUR_ISSUE))
+        store.saveDraft(leaseD, sampleRequestDraft(PHASE_FOUR_ISSUE))
         assertTrue("phase 4: persistence resumes — file must contain the new text", fileText().contains(PHASE_FOUR_ISSUE))
         assertFalse("phase 4: earlier no-persistence texts never reached disk", fileText().contains(PHASE_TWO_ISSUE) || fileText().contains(PHASE_THREE_ISSUE))
 
         // ---- Phase 5: blank user id on the SDK session → no identity → no lease,
         // while the SignedIn emission provably reached the store.
         store.fenceAndClearForSignOut()
+        harness.client.auth.clearSession()
         auth.setSession(AuthSession.SignedOut)
         runCurrent()
+        assertNull("phase 5: sign-out must revoke the phase 4 lease", store.activeSession.value)
+        assertFalse("phase 5: the departing lease must no longer be current", store.isCurrent(leaseD))
         harness.client.auth.importSession(
             UserSession(
                 accessToken = TestSupabaseClient.jwt(TestSupabaseClient.claims(UID_A, "sess-E")),
@@ -199,7 +248,29 @@ class RequestServiceDraftIdentityIntegrationTest {
         assertNull("phase 5: a blank SDK user id must never yield a lease", store.activeSession.value)
         assertFalse("phase 5: the fence removed phase 4's draft", fileText().contains(PHASE_FOUR_ISSUE))
 
+        // ---- Phase 6 (positive control for phase 5): the SAME collector must
+        // still be alive and must have processed the emissions in order — a
+        // valid session right after the blank one yields a lease again, so the
+        // phase 5 "no lease" was the identity rule, not a dead collector.
+        harness.client.importSyntheticSession(UID_A, sessionId = "sess-F")
+        auth.setSession(AuthSession.SignedIn(UID_A, "a6@test.invalid"))
+        runCurrent()
+        val leaseF = store.activeSession.value
+        assertNotNull("phase 6: the collector must still issue a lease after the blank-user emission", leaseF)
+        assertEquals(
+            "phase 6: the re-emitted valid session must key the lease on its own session_id",
+            RequestServiceDraftStore.Identity(UID_A, "sess-F"),
+            leaseF!!.identity,
+        )
+        assertTrue("phase 6: the new lease must be current", store.isCurrent(leaseF))
+
+        // Leave the store fenced and the SDK empty, mirroring a real sign-out.
         store.fenceAndClearForSignOut()
+        harness.client.auth.clearSession()
+        auth.setSession(AuthSession.SignedOut)
+        runCurrent()
+        assertNull("phase 6: the final sign-out must revoke the lease", store.activeSession.value)
+        assertFalse("phase 6: the departing lease must no longer be current", store.isCurrent(leaseF))
     }
 
     private companion object {
