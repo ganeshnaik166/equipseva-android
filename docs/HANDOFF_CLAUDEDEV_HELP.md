@@ -55,7 +55,11 @@ Milestone log (newest last; each entry is one commit):
 | 6 | `bb133fce` | INT-01 `features/hospital/RequestServiceAccountSwitchIntegrationTest` (8 Robolectric tests, one flow through a REAL on-disk DataStore + REAL store + REAL ViewModel + REAL hand-built `SignOutCleanup` + `android.os.Parcel` round trip): another account after a real sign-out never sees or alters A's draft (presence on raw prefs first, replayed A lease changes nothing); late profile/upload/submit callbacks resolving after sign-out land nowhere, each with a positive control that lands without sign-out and a resumed-counter proving the continuation ran; same account again with a new session id starts clean; same-session re-emission keeps the lease instance and the disk draft; typed `req.*` keys survive Parcel and a foreign-owner bundle renders nothing. Also: handoff table reordered, plan-file edit disclosed, INT-04 row amended (uppercase uuid segment not expressible against digit-only fixture ids; kind/array-mismatch variant added instead) | targeted run BUILD SUCCESSFUL in 16 s, 8/8 pass. First attempt hung 18 min in `@After` (`runBlocking { join }` on Robolectric's main thread with nothing pumping the Main test dispatcher); fixed by joining the disk scope inside `runTest` and bounding the teardown join. Killing that worker left stale `test-results/…/binary` files that made the next two runs fail with `java.io.EOFException` before any test ran; cleared by deleting the directory. **CI android 34384783377 FAILURE at testDebugUnitTest** (INT-01: two tests hit runTest 60 s `UncompletedCoroutinesError` on the Linux runner; lint/assemble skipped), secret-scan 34384779027 success |
 | 7 | `05460863` | Review fixes from the adversarial critic, all four Kotlin suites + Node: new `testing/ContractFixture.kt` (single loader for `android_evidence_contract.json`, used by INT-03 and INT-04 so no fixture value is retyped in Kotlin); INT-03 now asserts `PostgrestRestException.code` (42501/22023/02000/40001) and the RAISE literal in the CrashReporter message, adds engine `IOException` → Retry, non-JSON 500 → Retry, size 0 and malformed JSON → GiveUp with zero requests, a quoted-empty-string 200 pinned as a handler observation, 408/429 and blank/null split into separate tests, `Log.d`/`Log.v` stubbed (17 tests); INT-04 Kotlin asserts `filename_regex` and `rules.prefixes`, a non-null `completedAt`, the no-fix message text, and reads the legacy shape from the fixture variant instead of a local literal; INT-02 clears the SDK session before every `SignedOut` (production shape), asserts `isCurrent(previousLease) == false` per phase, adds a positive re-emission after the blank-uid phase and a precondition that the JVM-wide delegate is not already pinned; fixture gains `rules.prefixes`, the `kind_array_mismatch` variant (r492 accepted, r3821 `evidence_photo_not_attached`), the exact RAISE text for the uppercase-hex pin and a note that an uppercase uuid segment is not expressible; Node suite registers every r492-accepted variant under a distinct hash and asserts the inserted row (34 checks) | **Single full chain** `PRECHECK_LOOSE=1 ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease` BUILD SUCCESSFUL in 5m19s: **2,865 tests / 340 suites / 0 failures / 0 errors** (baseline 2,835 / 336: +30 tests = INT-01 8 + INT-02 1 + INT-03 17 + INT-04 4, +4 suites), lintDebug clean, `app-debug.apk` 46.7 MB, `app-release-unsigned.apk` 18.0 MB. Node locally via Electron: contract 34/34, control 60/60; mutant without r3821 fails exactly the 9 discriminating variants and the r3821 positive controls. **CI android 34386168805 FAILURE at testDebugUnitTest** (INT-01: three tests, same 60 s error; lint/assemble skipped), backend regressions 34386168908 success, secret-scan 34386168765 success |
 | 8 | `da1e4e61` | INT-01: every wait on real disk IO or a ViewModel state flow goes through `awaitReal` (Dispatchers.Default + 10 s REAL-time bound; on timeout fails with the observed preferences map / UiState instead of hanging to runTest 60 s). `android.yml`: failure-only upload of the unit-test XML/HTML report (frozen CI-01 row amended below with the reason). No assertion changed | targeted run BUILD SUCCESSFUL in 17 s, 8/8; CI android 34386972986 cancelled (superseded by the milestone 9 push), secret-scan 34386972966 success |
-| 9 | `f0ce5f83` | INT-01: the Submitted-effect wait and the in-body disk-scope join are also real-time bounded (join is best-effort) | targeted run BUILD SUCCESSFUL in 15 s, 8/8; CI: see the stop-state section below |
+| 9 | `f0ce5f83` | INT-01: the Submitted-effect wait and the in-body disk-scope join are also real-time bounded (join is best-effort) | targeted run BUILD SUCCESSFUL in 15 s, 8/8; CI android 34387276634 cancelled (superseded by the milestone 10 push), secret-scan 34387276627 success |
+| 10 | `d382faa8` | Record corrections from the QA reviewer; stop-state; stale DEV-01 wording fixed everywhere | docs + comment-only; **CI android 34387748384 FAILURE at testDebugUnitTest** (INT-01 x4, first run with the `unit-test-reports` artifact 10118540395: every timeout inside `awaitDisk` with the awaited value already on disk), backend regressions 34387748399 success, secret-scan 34387748486 success |
+| 11 | `02713f7d` | INT-01 `awaitDisk` polls with a fresh `data.first()` every 25 ms wall-clock (bounded 10 s) instead of one long-lived `first { predicate }` collector that missed the DataStore update on Linux; KDoc + stop-state record the diagnosis | targeted run 8/8 in 17 s; **CI android 34388663588 SUCCESS — testDebugUnitTest, lintDebug, assembleDebug, assembleRelease all green (first fully green android run since INT-01 landed)**, secret-scan 34388663581 success |
+| 12 | `8a63134f` | Critic score recorded (8.37/10, not accepted); INT-02 precondition wording and fixture comment corrected per the critic | compileDebugUnitTestKotlin only (string literal + comments); fixture JSON re-parsed |
+| 13 | `f6239503` | INT-02 asserts the production identity path made no HTTP call (`harness.recorded.isEmpty()`) | targeted run 1/1 in 9 s; CI for `f6239503`: see the latest runs on the branch |
 
 ### Historical: where the helper stopped on 2026-09-07 (after milestone 1)
 
@@ -197,6 +201,35 @@ tests (Scope column) and the checks run, CI run ids with conclusions, and what
 was deferred or not run (Checks column). Milestones 3 to 6 deferred lint and
 assembly to the single full chain of milestone 7 by design.
 
+## Your branch moved while the helper worked (read before merging anything)
+
+On 2026-09-09 07:42 UTC your session pushed `efd1d90b` to
+`codex/security-foundation-20260907`: "feat: finalize repair photo evidence
+atomically" (round3823 `finalize_repair_photo` RPC that appends to
+`before_photos`/`after_photos` and calls `register_evidence` in one
+transaction; `repair_photo_finalize.test.mjs`,
+`repair_photo_finalize_concurrency.py`, a new `repair-photo-finalizer-concurrency`
+CI job, README and `package.json` updates). This branch (`claudedev-help`) still
+starts at `c927f7f4`; nothing here conflicts with round3823 semantically:
+
+- round3823 leaves `register_evidence` byte-identical (it pins the r3821 body
+  hash as an install precondition), and the Android r3820 client still calls
+  `register_evidence` directly, so INT-03 and INT-04 pin exactly the contract
+  your finalizer delegates to. When the client is moved to
+  `finalize_repair_photo`, INT-03's wire test and the fixture will need a
+  sibling for the new RPC (8 parameters, typed row result).
+- Textual merge points if either branch is merged into the other:
+  `supabase/tests/package.json` (your chain inserts `test:finalizer` after
+  `test:evidence`; this branch appends `test:contract` last; keep both, with
+  `test:contract` last), `supabase/tests/README.md` (your finalizer paragraphs
+  and this branch's contract paragraph, different sections),
+  `.github/workflows/evidence-regressions.yml` (your new job; this branch's
+  `claudedev-help` branch-filter entry). Everything else is disjoint.
+- **Notification gap:** you did not see this handoff, because it lives on
+  `claudedev-help` and you resumed on your own branch. The owner should tell the
+  resuming session to `git fetch origin claudedev-help` and read this file; the
+  helper cannot write to your branch by rule.
+
 ## Observations for your issue register (recorded, not changed)
 
 Found while writing the tests; each is pinned or documented in a test rather
@@ -258,7 +291,7 @@ dimensions not all at 9.5, NOT accepted.** Dimension scores: Task correctness
 2/5 (Usability and Visual N/A as frozen). Three hard blockers, all upheld by the
 helper:
 
-1. **The android CI job was RED on the pushed slice revisions** `bb133fce` and
+1. **CLEARED by milestone 11 (android run 34388663588: all four steps green).** The android CI job had been RED on the pushed slice revisions `bb133fce` and
    `05460863` (INT-01 only: two, then three, of its eight tests hit runTest's
    60 s `UncompletedCoroutinesError` on the Linux runner; the same tree passes
    the full chain and three isolated re-runs locally). Milestones 8 and 9 bound
