@@ -80,7 +80,7 @@ import java.io.IOException
  * test says), real Supabase Storage (no upload happens), the deployed
  * database (production runs round492; the round3821 rules are exercised only
  * by INT-04 on PGlite), and that `auth.uid()` equals `session.user.id` (a
- * GoTrue invariant observed only by the DEV-01 device drive).
+ * GoTrue invariant not observed in this slice: DEV-01 is BLOCKED, see docs/HANDOFF_CLAUDEDEV_HELP.md).
  *
  * `android.util.Log` is a throwing stub on the plain JVM and the handler
  * calls `Log.i` on its success path inside a `catch (Throwable)`; without the

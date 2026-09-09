@@ -8,7 +8,7 @@
     "server_rules": "supabase/migrations/20263898000000_round3821_evidence_authorization.sql lines 50-133 (non-service path)",
     "server_baseline": "supabase/migrations/20260811000000_round492_evidence_65b_chain.sql (what production runs today; no storage_url validation)"
   },
-  "uid_source": "Client uses session.user.id (SupabaseAuthRepository) for the first path segment; the server compares string_to_array(p_storage_url,'/')[2] with auth.uid()::text (the JWT sub). Their equality is a GoTrue invariant assumed by both test sides and observed only by the DEV-01 device drive.",
+  "uid_source": "Client uses session.user.id (SupabaseAuthRepository) for the first path segment; the server compares string_to_array(p_storage_url,'/')[2] with auth.uid()::text (the JWT sub). Their equality is a GoTrue invariant assumed by both test sides and not observed in this slice (DEV-01 BLOCKED 2026-09-09; see docs/HANDOFF_CLAUDEDEV_HELP.md).",
   "rules": {
     "bucket": "repair-photos",
     "segment_count": 4,

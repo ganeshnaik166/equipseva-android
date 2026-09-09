@@ -11,9 +11,10 @@ branch `claudedev-help`, which was cut from your tip
 
 - **Your plan governs.** `RENEWAL_EXECUTION_PLAN.md`, its milestones, quality
   gates, working rules and the design/flow decisions you recorded were not
-  changed. The one edit to that file is the read-first pointer blockquote at
-  its top (milestone 0, `a482f73c`, 5 added lines, nothing removed). The helper
-  only executed the next queued item you left.
+  changed. The only edits to Codex-authored documents are the read-first
+  pointer blockquotes added in milestone 0 (`a482f73c`): six lines at the top
+  of `RENEWAL_EXECUTION_PLAN.md` and four in `HANDOFF_2026-09-07_0645UTC.md`,
+  nothing removed. The helper only executed the next queued item you left.
 - **Your branch is untouched.** `codex/security-foundation-20260907` still
   points at `c927f7f4`. Diff the helper's work with
   `git diff c927f7f4...origin/claudedev-help`.
@@ -51,8 +52,10 @@ Milestone log (newest last; each entry is one commit):
 | 3 | `37a0a4c2` | INT-03 `EvidenceRegisterOutboxHandlerIntegrationTest` (10 tests, real client, no fallback taken); DEV-01 recorded BLOCKED (section below) | targeted `--tests` run: 10/10 pass in 22 s; CI android 34352358903 success, secret-scan 34352358917 success (backend regressions not triggered: no Supabase path changed) |
 | 4 | `eece93f7` | INT-04 both halves: `features/repair/RepairPhotoEvidenceContractTest` (4 tests, drives the REAL `RepairJobDetailViewModel` before/after enqueue) + `supabase/tests/evidence_client_contract.test.mjs` (32 checks against the actual r492 and r3821 SQL) sharing `android_evidence_contract.json`; `EvidenceRegisterPayloadTest` fixture corrected to 4 segments (+4/−3 lines, no assertion changed); `package.json` gains `test:contract` last in the chain; one README paragraph | targeted Gradle run: 4/4 + 6/6 pass in 14 s; Node suite run LOCALLY via VS Code's Electron as Node 24 with `EQS_PGLITE_PACKAGE` (32/32; and 60/60 for the existing evidence suite as control; withholding the r3821 migration makes exactly the 8 discriminating variants fail); full Gradle chain deferred to the final milestone; CI android 34354195061 success, backend regressions 34354195063 success (the contract suite ran under npm ci + npm test), secret-scan 34354195073 success |
 | 5 | `17728c2b` | INT-02 `core/data/repair/RequestServiceDraftIdentityIntegrationTest` (one Robolectric test, five labelled phases, PRODUCTION `@Inject` constructor + real supabase-kt client): valid token → `Identity(uid, session_id)` and the REAL `request_service_draft.preferences_pb` receives owner id + draft text; sub-mismatch token and no-`session_id` token → `Identity(uid, null)` with persistence disabled (file never receives the text); a fresh valid token re-enables persistence; blank SDK user id → no lease while the SignedIn emission is proven delivered. One method by design: the production delegate is one DataStore per JVM pinned to the first Context. | targeted run BUILD SUCCESSFUL in 24 s, 1/1 pass; full chain deferred to the final milestone; CI android 34380751839 success, secret-scan 34380751780 success |
-| 7 | (this commit) | Review fixes from the adversarial critic, all four Kotlin suites + Node: new `testing/ContractFixture.kt` (single loader for `android_evidence_contract.json`, used by INT-03 and INT-04 so no fixture value is retyped in Kotlin); INT-03 now asserts `PostgrestRestException.code` (42501/22023/02000/40001) and the RAISE literal in the CrashReporter message, adds engine `IOException` → Retry, non-JSON 500 → Retry, size 0 and malformed JSON → GiveUp with zero requests, a quoted-empty-string 200 pinned as a handler observation, 408/429 and blank/null split into separate tests, `Log.d`/`Log.v` stubbed (17 tests); INT-04 Kotlin asserts `filename_regex` and `rules.prefixes`, a non-null `completedAt`, the no-fix message text, and reads the legacy shape from the fixture variant instead of a local literal; INT-02 clears the SDK session before every `SignedOut` (production shape), asserts `isCurrent(previousLease) == false` per phase, adds a positive re-emission after the blank-uid phase and a precondition that the JVM-wide delegate is not already pinned; fixture gains `rules.prefixes`, the `kind_array_mismatch` variant (r492 accepted, r3821 `evidence_photo_not_attached`), the exact RAISE text for the uppercase-hex pin and a note that an uppercase uuid segment is not expressible; Node suite registers every r492-accepted variant under a distinct hash and asserts the inserted row (34 checks) | **Single full chain** `PRECHECK_LOOSE=1 ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease` BUILD SUCCESSFUL in 5m19s: **2,865 tests / 340 suites / 0 failures / 0 errors** (baseline 2,835 / 336: +30 tests = INT-01 8 + INT-02 1 + INT-03 17 + INT-04 4, +4 suites), lintDebug clean, `app-debug.apk` 46.7 MB, `app-release-unsigned.apk` 18.0 MB. Node locally via Electron: contract 34/34, control 60/60; mutant without r3821 fails exactly the 9 discriminating variants and the r3821 positive controls |
-| 6 | `bb133fce` | INT-01 `features/hospital/RequestServiceAccountSwitchIntegrationTest` (8 Robolectric tests, one flow through a REAL on-disk DataStore + REAL store + REAL ViewModel + REAL hand-built `SignOutCleanup` + `android.os.Parcel` round trip): another account after a real sign-out never sees or alters A's draft (presence on raw prefs first, replayed A lease changes nothing); late profile/upload/submit callbacks resolving after sign-out land nowhere, each with a positive control that lands without sign-out and a resumed-counter proving the continuation ran; same account again with a new session id starts clean; same-session re-emission keeps the lease instance and the disk draft; typed `req.*` keys survive Parcel and a foreign-owner bundle renders nothing. Also: handoff table reordered, plan-file edit disclosed, INT-04 row amended (uppercase uuid segment not expressible against digit-only fixture ids; kind/array-mismatch variant added instead) | targeted run BUILD SUCCESSFUL in 16 s, 8/8 pass. First attempt hung 18 min in `@After` (`runBlocking { join }` on Robolectric's main thread with nothing pumping the Main test dispatcher); fixed by joining the disk scope inside `runTest` and bounding the teardown join. Killing that worker left stale `test-results/…/binary` files that made the next two runs fail with `java.io.EOFException` before any test ran; cleared by deleting the directory. Full chain deferred to the final milestone |
+| 6 | `bb133fce` | INT-01 `features/hospital/RequestServiceAccountSwitchIntegrationTest` (8 Robolectric tests, one flow through a REAL on-disk DataStore + REAL store + REAL ViewModel + REAL hand-built `SignOutCleanup` + `android.os.Parcel` round trip): another account after a real sign-out never sees or alters A's draft (presence on raw prefs first, replayed A lease changes nothing); late profile/upload/submit callbacks resolving after sign-out land nowhere, each with a positive control that lands without sign-out and a resumed-counter proving the continuation ran; same account again with a new session id starts clean; same-session re-emission keeps the lease instance and the disk draft; typed `req.*` keys survive Parcel and a foreign-owner bundle renders nothing. Also: handoff table reordered, plan-file edit disclosed, INT-04 row amended (uppercase uuid segment not expressible against digit-only fixture ids; kind/array-mismatch variant added instead) | targeted run BUILD SUCCESSFUL in 16 s, 8/8 pass. First attempt hung 18 min in `@After` (`runBlocking { join }` on Robolectric's main thread with nothing pumping the Main test dispatcher); fixed by joining the disk scope inside `runTest` and bounding the teardown join. Killing that worker left stale `test-results/…/binary` files that made the next two runs fail with `java.io.EOFException` before any test ran; cleared by deleting the directory. **CI android 34384783377 FAILURE at testDebugUnitTest** (INT-01: two tests hit runTest 60 s `UncompletedCoroutinesError` on the Linux runner; lint/assemble skipped), secret-scan 34384779027 success |
+| 7 | `05460863` | Review fixes from the adversarial critic, all four Kotlin suites + Node: new `testing/ContractFixture.kt` (single loader for `android_evidence_contract.json`, used by INT-03 and INT-04 so no fixture value is retyped in Kotlin); INT-03 now asserts `PostgrestRestException.code` (42501/22023/02000/40001) and the RAISE literal in the CrashReporter message, adds engine `IOException` → Retry, non-JSON 500 → Retry, size 0 and malformed JSON → GiveUp with zero requests, a quoted-empty-string 200 pinned as a handler observation, 408/429 and blank/null split into separate tests, `Log.d`/`Log.v` stubbed (17 tests); INT-04 Kotlin asserts `filename_regex` and `rules.prefixes`, a non-null `completedAt`, the no-fix message text, and reads the legacy shape from the fixture variant instead of a local literal; INT-02 clears the SDK session before every `SignedOut` (production shape), asserts `isCurrent(previousLease) == false` per phase, adds a positive re-emission after the blank-uid phase and a precondition that the JVM-wide delegate is not already pinned; fixture gains `rules.prefixes`, the `kind_array_mismatch` variant (r492 accepted, r3821 `evidence_photo_not_attached`), the exact RAISE text for the uppercase-hex pin and a note that an uppercase uuid segment is not expressible; Node suite registers every r492-accepted variant under a distinct hash and asserts the inserted row (34 checks) | **Single full chain** `PRECHECK_LOOSE=1 ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease` BUILD SUCCESSFUL in 5m19s: **2,865 tests / 340 suites / 0 failures / 0 errors** (baseline 2,835 / 336: +30 tests = INT-01 8 + INT-02 1 + INT-03 17 + INT-04 4, +4 suites), lintDebug clean, `app-debug.apk` 46.7 MB, `app-release-unsigned.apk` 18.0 MB. Node locally via Electron: contract 34/34, control 60/60; mutant without r3821 fails exactly the 9 discriminating variants and the r3821 positive controls. **CI android 34386168805 FAILURE at testDebugUnitTest** (INT-01: three tests, same 60 s error; lint/assemble skipped), backend regressions 34386168908 success, secret-scan 34386168765 success |
+| 8 | `da1e4e61` | INT-01: every wait on real disk IO or a ViewModel state flow goes through `awaitReal` (Dispatchers.Default + 10 s REAL-time bound; on timeout fails with the observed preferences map / UiState instead of hanging to runTest 60 s). `android.yml`: failure-only upload of the unit-test XML/HTML report (frozen CI-01 row amended below with the reason). No assertion changed | targeted run BUILD SUCCESSFUL in 17 s, 8/8; CI android 34386972986 cancelled (superseded by the milestone 9 push), secret-scan 34386972966 success |
+| 9 | `f0ce5f83` | INT-01: the Submitted-effect wait and the in-body disk-scope join are also real-time bounded (join is best-effort) | targeted run BUILD SUCCESSFUL in 15 s, 8/8; CI: see the stop-state section below |
 
 ### Historical: where the helper stopped on 2026-09-07 (after milestone 1)
 
@@ -119,7 +122,7 @@ queued item from your last status. It does not close M1.
 | INT-02 | Android JVM (Robolectric) | `RequestServiceDraftIdentityIntegrationTest` | The production `@Inject` constructor path: a `SupabaseClient` whose current session carries a synthetic 3-segment JWT (`sub`, `session_id`) yields `Identity(uid, session_id)`; a token without `session_id` yields `Identity(uid, null)` and persistence is disabled; a blank user yields no lease. |
 | INT-03 | Android JVM | `EvidenceRegisterOutboxHandlerIntegrationTest` | Real `EvidenceRegisterOutboxHandler` against a real `SupabaseClient` over ktor `MockEngine`: the HTTP request is `POST …/rest/v1/rpc/register_evidence` with the caller's bearer token and exactly the ten `p_*` parameters (uuid strings, numeric size, lowercase sha, `android/<versionName>`, metadata keys `mime_type`/`captured_from`/`client`); outcomes 200 uuid → Success, 403 (42501 body) and 400 (22023 / 02000 body) → GiveUp + `CrashReporter.report`, 500 (incl. a 40001 `evidence_registration_retry` body), 408 and 429 → Retry, 200 blank or `null` → GiveUp + report, no session → Retry, producer mismatch → GiveUp; the two gate cases assert zero HTTP requests, the HTTP cases assert exactly one, and the engine fails the test on any path other than the RPC. Falls back to a mocked Postgrest plugin capturing the parameter object only if the Auth plugin cannot initialise on the JVM (recorded if so). |
 | INT-04 | Android JVM + backend | `RepairPhotoEvidenceContractTest` (Kotlin) and `evidence_client_contract.test.mjs` (Node/PGlite), sharing `supabase/tests/android_evidence_contract.json` | The REAL `RepairJobDetailViewModel` before/after photo enqueue produces `<uid>/<job>/<before|after>-<millis>-<uuid>-<sanitized40>` and `EvidenceRegisterPayload.forUploadedPhoto` produces `repair-photos/<that path>`; the Kotlin side asserts conformance to the rules in the JSON fixture (4 segments, bucket literal, uid, job id, filename charset, sha regex, kinds, producer, source) and the sanitizer table; the Node side executes the same real-shape receipts against the actual round3821 `register_evidence` on PGlite (accepted, `evidence_for_repair_job` returns the bucket-prefixed url) and the fixture's non-conforming variants (`.` filename, empty/leading/trailing-slash url, bucket prefix missing, the three-segment legacy shape, a kind the client never sends, a non-engineer producer, a kind whose object sits in the other attachment array; plus uppercase hex as a contract pin both migrations reject) are denied with the expected SQLSTATE and RAISE literal, and each is also proven accepted or inserted by round492 with a distinct hash so the discrimination is executed on both databases. An uppercase uuid segment is not expressible against the digit-only fixture identities; the Kotlin side rejects it through the fixture regex. Also corrects the off-contract fixture in `EvidenceRegisterPayloadTest` (`repair-photos/u1/before-1.jpg` has 3 segments; round3821 requires 4). |
-| CI-01 | GitHub Actions | `android.yml`, `evidence-regressions.yml`, `secret-scan.yml` | Push to `claudedev-help` triggers the same checks you gave `codex/**` (additive branch-filter entries only; `secret-scan` also gains `codex/**`, which it lacked). |
+| CI-01 | GitHub Actions | `android.yml`, `evidence-regressions.yml`, `secret-scan.yml` | Push to `claudedev-help` triggers the same checks you gave `codex/**` (additive branch-filter entries only; `secret-scan` also gains `codex/**`, which it lacked). **Amended 2026-09-09 (milestone 8), reason: the android failures on `bb133fce` and `05460863` were undiagnosable from the console log.** `android.yml` also gains a failure-only upload of the unit-test XML/HTML report (`unit-test-reports`, 14 days), the same mechanism as the existing lint-report upload; nothing else in the workflow changed. |
 | DEV-01 | Device (`eqs` emulator, production backend at round492) | Manual drive of the r3820 photo-evidence path as `play-review-engineer` | The queued handoff item: a before-photo check-in produces a `photo_before` ledger row. Read path: `supabase db query --linked -f <select-only>.sql` reading `evidence_ledger` (kind, `content_size_bytes`, `storage_url`) and `storage.objects.metadata->>'size'` for that path; the two sizes are compared and recorded with the ledger row id and object path. Guards: SDK log level stays INFO, no token capture from logcat, no token or key in any committed file, no `supabase db push`, no `workflow_dispatch` of any cron workflow, APK = debug build of this tree (app source unchanged from `c927f7f4`). Fixture policy: reuse an existing Assigned job for the test engineer; if none exists, record BLOCKED rather than creating job/bid/accept rows. Honesty: this exercises round492 in production (no path validation there); r3821 device compatibility is proven only by INT-04 on PGlite. The ledger row cannot be rolled back through the app path; its id is recorded. |
 
 ### Scope (out, named)
@@ -134,7 +137,7 @@ met here only by DEV-01, against round492). The "populated foreign-user
 fixture" rule is met through the existing `evidence_authorization.fixture.sql`
 identities on PGlite. Client uid = `session.user.id`, server actor =
 `auth.uid()` (JWT `sub`); their equality is a GoTrue invariant assumed by
-INT-04 and observed only by DEV-01.
+INT-04 and NOT observed in this slice (DEV-01 is BLOCKED, see below).
 
 ### Frozen rubric (this slice)
 
@@ -189,8 +192,10 @@ assembleRelease (`PRECHECK_LOOSE=1`) results with wall time; Node suites "not
 run locally (no Node)" with the CI run ids and conclusions filled into the
 handoff table after the push; existing files touched; and the negatives
 "no application source changed / no migration / no deployment / no main
-merge". The milestone table below records Commit, Files, Tests before → after,
-CI run ids + conclusions, and Not run.
+merge". The milestone table below records, per row, the commit, the files and
+tests (Scope column) and the checks run, CI run ids with conclusions, and what
+was deferred or not run (Checks column). Milestones 3 to 6 deferred lint and
+assembly to the single full chain of milestone 7 by design.
 
 ## Observations for your issue register (recorded, not changed)
 
@@ -242,6 +247,61 @@ test account to post a new job and accept a bid from the test engineer, then
 drive the check-in; or (b) accept a `photo_after` drive by marking RPR-00041
 done (money-path side effects). Either way the read path and guards above are
 ready.
+
+## Stop-state after the 2026-09-09 session (independent scoring: NOT accepted yet)
+
+The owner authorised a two-hour unattended run; this is where it ended.
+
+**Independent QA reviewer (frozen rubric): 8.67 / 10 (65 / 75), critical
+dimensions not all at 9.5, NOT accepted.** Dimension scores: Task correctness
+20/25, Security and privacy 24/25, Resilience 19/20, Performance and operations
+2/5 (Usability and Visual N/A as frozen). Three hard blockers, all upheld by the
+helper:
+
+1. **The android CI job was RED on the pushed slice revisions** `bb133fce` and
+   `05460863` (INT-01 only: two, then three, of its eight tests hit runTest's
+   60 s `UncompletedCoroutinesError` on the Linux runner; the same tree passes
+   the full chain and three isolated re-runs locally). Milestones 8 and 9 bound
+   every real-IO wait by real time and upload the JUnit XML on failure so the
+   next red run names the stalled wait; the milestone 9 run
+   (android 34387276634) was still in progress when this session ended. Read
+   its result first. If it is red, download the `unit-test-reports` artifact;
+   the failure message now states which wait timed out and the observed
+   preferences / UiState.
+2. **The milestone record had not disclosed those failures** (rows 6 and 7 were
+   filled with local results only). Corrected above: every row now carries its
+   CI run ids and conclusions, including the failures.
+3. **DEV-01 has no evidence** (BLOCKED, section below). Only the owner can
+   unblock it or re-freeze it out of this slice into a named later slice.
+
+QA must-fix items applied in this commit: rows 6 to 9 completed and ordered;
+the two "observed only by DEV-01" statements (out-of-scope paragraph, fixture
+`uid_source`, INT-03 and INT-04 KDocs) rewritten as "not observed in this
+slice"; the second pointer edit (`HANDOFF_2026-09-07_0645UTC.md`, four lines)
+disclosed; the CI-01 row amended for the report-upload step with its reason;
+the Working-method sentence about table columns corrected. Still open from QA:
+the INT-01 root cause on Linux (a diagnostic is in place, not a proof of
+determinism); DEV-01. The **critic reviewer's score had not arrived** when the
+session ended (its workflow was still running); record it in the next commit.
+
+QA "should fix later" list, for your issue register: server-side foreign-actor
+cases on the client-shaped receipt in the Node suite; an
+`evidence_registration_conflict` case (Node + INT-03 mapping); a
+`PhotoUploadOutboxHandler`-level test that the enqueued `EVIDENCE_REGISTER`
+payload matches the fixture (INT-04 hand-builds the payload today); make
+`rules.prefixes` required in `ContractFixture`; consider a dedicated test task
+for INT-02's JVM-wide delegate; add the select-only probe SQL text and UTC
+timestamps to the DEV-01 record; decide whether the handler should validate the
+returned ledger id against the uuid regex; write "lint 0 errors (79 warnings)"
+rather than "clean".
+
+Next action for whoever resumes: (1) read android run 34387276634 for
+`f0ce5f83`; if red, fix the named wait deterministically (the QA suggestion:
+await disk IO off the test dispatcher and hop back with `runCurrent()` before
+every state read, mirroring `RequestServiceDraftPersistenceTest`), push, and
+record the green run id; (2) record the critic score; (3) obtain the owner's
+DEV-01 decision; (4) re-run both reviewers; (5) only then propose the merge
+question to the owner.
 
 ## Open items handed back to you
 

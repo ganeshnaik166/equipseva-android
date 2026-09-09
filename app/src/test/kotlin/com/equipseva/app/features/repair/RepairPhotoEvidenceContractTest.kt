@@ -92,7 +92,7 @@ import java.time.Instant
  * `identities.engineer_uid`, delivered through [FakeAuthRepository]) as the
  * first path segment, while the server compares that segment with
  * `auth.uid()` (the JWT `sub`). Their equality is a GoTrue invariant assumed
- * by both test sides and observed only by the DEV-01 device drive (fixture key
+ * by both test sides and not observed in this slice, DEV-01 being BLOCKED (fixture key
  * `uid_source`).
  *
  * NOT proven here (fixture `not_proven_here`, verbatim):
