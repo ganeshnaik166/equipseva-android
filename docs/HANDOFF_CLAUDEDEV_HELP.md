@@ -276,9 +276,30 @@ the two "observed only by DEV-01" statements (out-of-scope paragraph, fixture
 slice"; the second pointer edit (`HANDOFF_2026-09-07_0645UTC.md`, four lines)
 disclosed; the CI-01 row amended for the report-upload step with its reason;
 the Working-method sentence about table columns corrected. Still open from QA:
-the INT-01 root cause on Linux (a diagnostic is in place, not a proof of
-determinism); DEV-01. The **critic reviewer's score had not arrived** when the
-session ended (its workflow was still running); record it in the next commit.
+the INT-01 root cause on Linux (diagnosed and fixed in milestone 11, pending
+its CI run); DEV-01.
+
+**Independent critic reviewer (frozen rubric): 8.37 / 10 (62.75 / 75), critical
+dimensions not all at 9.5, NOT accepted.** Dimension scores: Task correctness
+19/25, Security and privacy 24/25, Resilience 17.25/20, Performance and
+operations 2.5/5. Same two hard blockers as QA (INT-01 red in CI; DEV-01
+unevidenced). Critic must-fix items beyond QA's: the INT-02 precondition
+`assertFalse(draftFile.exists())` cannot detect a delegate pinned by another
+class (Robolectric gives each method a fresh `filesDir`); the real guard is
+phase 1's file-exists assertion after the first save, and the KDoc now says so;
+the fixture comment claimed the Kotlin side rejects an uppercase uuid segment
+but no assertion exercises one (comment corrected to say so; adding the
+assertion is a follow-up); the r492 verdict for `uppercase_hex_sha` could pin
+the identical RAISE text. Critic "should fix later": assert
+`harness.recorded.isEmpty()` at the end of INT-02; INT-03 cases for 401, 404
+and `evidence_registration_conflict`; foreign-actor denials in the Node suite;
+complete `rules.server_sqlstates` (auth_required, metadata-must-be-object,
+size RAISE); a `PhotoUploadOutboxHandler`-level payload test; make
+`rules.prefixes` required and use `contentOrNull` in `ContractFixture.optStr`;
+say "0 errors, 79 warnings, 2 hints" instead of "clean"; state that every INT-01
+property is proven on Windows only until CI is green; never overlap two Gradle
+runs in this checkout (a targeted run overwrote the XML the reviewers were
+reading at 18:01 UTC).
 
 QA "should fix later" list, for your issue register: server-side foreign-actor
 cases on the client-shaped receipt in the Node suite; an

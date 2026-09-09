@@ -65,9 +65,11 @@ import java.io.File
  * `draftFile` under ITS OWN `filesDir` while the singleton writes somewhere
  * else, and DataStore would additionally throw "multiple DataStores active
  * for the same file" if the other class ever constructed a second instance
- * for the same path. The precondition at the top of the test method fails
- * loudly instead of passing (or failing) for that unrelated reason: the file
- * must NOT exist before the store here has written anything. Any future test
+ * for the same path. The precondition at the top of the test method only checks that THIS
+ * method starts from a clean file; it cannot see a delegate pinned by another
+ * class (Robolectric gives every method a fresh filesDir). The real, loud
+ * guard is phase 1: after the first saveDraft the file under THIS filesDir
+ * must exist — if the singleton were pinned elsewhere, that assertion fails. Any future test
  * that needs the production store must therefore either run in this class
  * (as another phase) or supply its own `DataStore` through the `internal`
  * constructor with a per-test file.
@@ -122,7 +124,7 @@ class RequestServiceDraftIdentityIntegrationTest {
         // Precondition (see the class KDoc): the process-wide delegate must not
         // already have been pinned to another Context by a different test class.
         assertFalse(
-            "request_service_draft delegate already pinned/used by another test class in this JVM",
+            "the production preferences file already exists before this test wrote anything (unexpected prior use of the request_service_draft delegate in this method)",
             draftFile.exists(),
         )
 
