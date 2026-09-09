@@ -273,6 +273,14 @@ class RequestServiceDraftIdentityIntegrationTest {
         runCurrent()
         assertNull("phase 6: the final sign-out must revoke the lease", store.activeSession.value)
         assertFalse("phase 6: the departing lease must no longer be current", store.isCurrent(leaseF))
+
+        // The production identity path is a pure read of the SDK session: no
+        // HTTP request may have carried the synthetic bearer anywhere (a hidden
+        // user fetch or token refresh would show up here).
+        assertTrue(
+            "the identity path must make no HTTP call; saw ${harness.recorded.map { it.request.url.encodedPath }}",
+            harness.recorded.isEmpty(),
+        )
     }
 
     private companion object {
