@@ -109,6 +109,20 @@ jobs:
       - name: testDebugUnitTest
         run: ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace
 
+      # claudedev-help — the JUnit XML carries the failure message and stack
+      # trace that the console output abbreviates to an exception class name.
+      # Uploaded only when something failed, so green runs stay artifact-free.
+      - name: Upload unit test reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: unit-test-reports
+          path: |
+            app/build/test-results/testDebugUnitTest/*.xml
+            app/build/reports/tests/testDebugUnitTest/
+          if-no-files-found: warn
+          retention-days: 14
+
       # Android lint — gates on UnrememberedMutableState (Compose state
       # alloc bugs), AcceptsUserCertificates (release-build cert trust),
       # and the rest of the warning matrix. A previous PR shipped 3

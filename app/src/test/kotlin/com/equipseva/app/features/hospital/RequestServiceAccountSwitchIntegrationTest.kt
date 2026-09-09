@@ -45,6 +45,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -221,10 +222,30 @@ class RequestServiceAccountSwitchIntegrationTest {
         crashReporter = mockk(relaxed = true),
     ).also { viewModels += it }
 
+    /**
+     * Waits for a REAL-IO-backed condition with a REAL-time bound. Inside
+     * runTest, `withTimeout` on the test dispatcher would use virtual time and
+     * fire instantly, so the wait hops to Dispatchers.Default where the clock is
+     * real. A wait that does not resolve fails with the observed state instead
+     * of hanging until runTest's 60 s UncompletedCoroutinesError (which is what
+     * the first CI run of this class produced, with no diagnostic).
+     */
+    private suspend fun <T> awaitReal(what: String, observed: suspend () -> String, block: suspend () -> T): T =
+        withContext(Dispatchers.Default) { withTimeoutOrNull(REAL_WAIT_MS) { block() } }
+            ?: throw AssertionError("timed out after $REAL_WAIT_MS ms (real time) waiting for $what; observed: ${observed()}")
+
+    /** Waits until [model]'s state satisfies [predicate] (real-time bounded). */
+    private suspend fun awaitState(
+        model: RequestServiceViewModel,
+        what: String,
+        predicate: (RequestServiceViewModel.UiState) -> Boolean,
+    ): RequestServiceViewModel.UiState =
+        awaitReal(what, { model.state.value.toString() }) { model.state.first { predicate(it) } }
+
     /** Runs the lease/bind collectors, then waits for the REAL disk recovery read to finish. */
     private suspend fun TestScope.bind(model: RequestServiceViewModel): RequestServiceViewModel {
         runCurrent()
-        model.state.first { !it.checkingDraftRecovery }
+        awaitState(model, "the initial disk recovery check to finish") { !it.checkingDraftRecovery }
         return model
     }
 
@@ -261,11 +282,14 @@ class RequestServiceAccountSwitchIntegrationTest {
 
     // ---------------------------------------------------------------- raw disk
 
-    private suspend fun rawPrefs(): Preferences = dataStore.data.first()
+    private suspend fun rawPrefs(): Preferences =
+        awaitReal("a raw read of the preferences file", { "<unreadable>" }) { dataStore.data.first() }
 
-    /** Suspends on the real DataStore flow until [predicate] holds; runTest fails on its own timeout otherwise. */
+    /** Suspends on the real DataStore flow until [predicate] holds, bounded by real time; reports the actual prefs on timeout. */
     private suspend fun awaitDisk(predicate: (Preferences) -> Boolean): Preferences =
-        dataStore.data.first { predicate(it) }
+        awaitReal("the preferences file to satisfy the predicate", { dataStore.data.first().asMap().toString() }) {
+            dataStore.data.first { predicate(it) }
+        }
 
     private fun parcelRoundTrip(bundle: Bundle): Bundle {
         val parcel = Parcel.obtain()
@@ -320,7 +344,7 @@ class RequestServiceAccountSwitchIntegrationTest {
         val handleB = SavedStateHandle()
         val vmB = bind(vm(store, handleB))
         // The reused A ViewModel also re-binds to B's lease (production reuse path); let its disk read settle.
-        vmA.state.first { !it.checkingDraftRecovery }
+        awaitState(vmA, "the reused A form to finish its disk recovery check") { !it.checkingDraftRecovery }
         assertSame(leaseB, vmB.state.value.formSession)
         assertFalse(vmB.state.value.showDraftRecoveryBar)
         assertFalse(vmB.state.value.checkingDraftRecovery)
@@ -418,8 +442,8 @@ class RequestServiceAccountSwitchIntegrationTest {
         val handleB = SavedStateHandle()
         val vmB = bind(vm(store, handleB, profileRepo = gatedProfiles))
         val bEffects = collectEffects(vmB)
-        vmA1.state.first { !it.checkingDraftRecovery }
-        vmA2.state.first { !it.checkingDraftRecovery }
+        awaitState(vmA1, "the reused A form to finish its disk recovery check") { !it.checkingDraftRecovery }
+        awaitState(vmA2, "the reused A form to finish its disk recovery check") { !it.checkingDraftRecovery }
         assertSame(leaseB, vmB.state.value.formSession)
         vmB.onIssueChange(B_TEXT)
         advanceTimeBy(10_001)
@@ -689,6 +713,8 @@ class RequestServiceAccountSwitchIntegrationTest {
         val OWNER = stringPreferencesKey("draft_owner_id")
         val SESSION = stringPreferencesKey("draft_session_id")
 
+        /** Real-time bound for waits on real disk IO; generous for a 2-core CI runner, tiny against runTest's 60 s. */
+        const val REAL_WAIT_MS = 10_000L
         const val A_TEXT = "A private issue text"
         const val A_ADDRESS = "A ward 3, Alpha Hospital, Hyderabad"
         const val A_LATE_PHOTO = "A/issue-late.jpg"
