@@ -240,7 +240,14 @@ class RequestServiceAccountSwitchIntegrationTest {
      */
     private suspend fun <T> awaitReal(what: String, observed: suspend () -> String, block: suspend () -> T): T =
         withContext(Dispatchers.Default) { withTimeoutOrNull(REAL_WAIT_MS) { block() } }
-            ?: throw AssertionError("timed out after $REAL_WAIT_MS ms (real time) waiting for $what; observed: ${observed()}")
+            ?: throw AssertionError(
+                "timed out after $REAL_WAIT_MS ms (real time) waiting for $what; observed: ${observedOrTimeout(observed)}",
+            )
+
+    /** The diagnostic read itself is bounded so a stuck DataStore cannot hang the failure report. */
+    private suspend fun observedOrTimeout(observed: suspend () -> String): String =
+        withContext(Dispatchers.Default) { withTimeoutOrNull(REAL_WAIT_MS) { observed() } }
+            ?: "<observation itself timed out after $REAL_WAIT_MS ms>"
 
     /** Waits until [model]'s state satisfies [predicate] (real-time bounded). */
     private suspend fun awaitState(

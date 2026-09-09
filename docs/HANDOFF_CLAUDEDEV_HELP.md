@@ -15,8 +15,10 @@ branch `claudedev-help`, which was cut from your tip
   pointer blockquotes added in milestone 0 (`a482f73c`): six lines at the top
   of `RENEWAL_EXECUTION_PLAN.md` and four in `HANDOFF_2026-09-07_0645UTC.md`,
   nothing removed. The helper only executed the next queued item you left.
-- **Your branch is untouched.** `codex/security-foundation-20260907` still
-  points at `c927f7f4`. Diff the helper's work with
+- **The helper never wrote to your branch.** `claudedev-help` was cut from
+  `c927f7f4`; your own session later advanced
+  `codex/security-foundation-20260907` to `efd1d90b` (2026-09-09 07:42 UTC,
+  round3823; see "Your branch moved" below). Diff the helper's work with
   `git diff c927f7f4...origin/claudedev-help`.
 - **Additive only.** New files and new tests; existing behaviour was not
   redesigned. Where a defect in existing code was found, it is recorded below
@@ -46,7 +48,7 @@ Milestone log (newest last; each entry is one commit):
 | # | Commit | Scope | Checks run |
 | --- | --- | --- | --- |
 | 0 | `a482f73c` | Handoff note for the resuming session; memory of the working agreement | docs only |
-| 1 | `53be5025` | CI push filters gain `claudedev-help` (and `secret-scan` gains `codex/**`); frozen slice below | workflow + docs edits only |
+| 1 | `53be5025` | CI push filters gain `claudedev-help` (and `secret-scan` gains `codex/**`); frozen slice below | workflow + docs edits only; CI android 34123883166 success, backend regressions 34123883110 success, secret-scan 34123883114 success |
 | — | `410332b9` | **Session stopped by the owner** before implementation began (2026-09-07). | docs only; CI secret-scan 34124137324 success |
 | 2 | `52105cf5` | Rubric corrections from the design critique; `testing/TestSupabaseClient.kt` (real supabase-kt client over MockEngine); `supabase/tests/android_evidence_contract.json` | compileDebugUnitTestKotlin only; tests 2835/336/0 unchanged; CI android 34346219562 success, backend regressions 34346219561 success, secret-scan 34346219560 success |
 | 3 | `37a0a4c2` | INT-03 `EvidenceRegisterOutboxHandlerIntegrationTest` (10 tests, real client, no fallback taken); DEV-01 recorded BLOCKED (section below) | targeted `--tests` run: 10/10 pass in 22 s; CI android 34352358903 success, secret-scan 34352358917 success (backend regressions not triggered: no Supabase path changed) |
@@ -58,8 +60,8 @@ Milestone log (newest last; each entry is one commit):
 | 9 | `f0ce5f83` | INT-01: the Submitted-effect wait and the in-body disk-scope join are also real-time bounded (join is best-effort) | targeted run BUILD SUCCESSFUL in 15 s, 8/8; CI android 34387276634 cancelled (superseded by the milestone 10 push), secret-scan 34387276627 success |
 | 10 | `d382faa8` | Record corrections from the QA reviewer; stop-state; stale DEV-01 wording fixed everywhere | docs + comment-only; **CI android 34387748384 FAILURE at testDebugUnitTest** (INT-01 x4, first run with the `unit-test-reports` artifact 10118540395: every timeout inside `awaitDisk` with the awaited value already on disk), backend regressions 34387748399 success, secret-scan 34387748486 success |
 | 11 | `02713f7d` | INT-01 `awaitDisk` polls with a fresh `data.first()` every 25 ms wall-clock (bounded 10 s) instead of one long-lived `first { predicate }` collector that missed the DataStore update on Linux; KDoc + stop-state record the diagnosis | targeted run 8/8 in 17 s; **CI android 34388663588 SUCCESS — testDebugUnitTest, lintDebug, assembleDebug, assembleRelease all green (first fully green android run since INT-01 landed)**, secret-scan 34388663581 success |
-| 12 | `8a63134f` | Critic score recorded (8.37/10, not accepted); INT-02 precondition wording and fixture comment corrected per the critic | compileDebugUnitTestKotlin only (string literal + comments); fixture JSON re-parsed |
-| 13 | `f6239503` | INT-02 asserts the production identity path made no HTTP call (`harness.recorded.isEmpty()`) | targeted run 1/1 in 9 s; CI for `f6239503`: see the latest runs on the branch |
+| 12 | `8a63134f` | Critic score recorded (8.37/10, not accepted); INT-02 precondition wording and fixture comment corrected per the critic | compileDebugUnitTestKotlin only (string literal + comments); fixture JSON re-parsed; pushed in the same push as milestone 13, so CI ran on `f6239503` only |
+| 13 | `f6239503` | INT-02 asserts the production identity path made no HTTP call (`harness.recorded.isEmpty()`) | targeted run 1/1 in 9 s; CI for `f6239503`: backend regressions 34413296355 success, secret-scan 34413296377 success, android 34413296401 **SUCCESS on all four steps** (second fully green android run on the unchanged INT-01 fix) |
 
 ### Historical: where the helper stopped on 2026-09-07 (after milestone 1)
 
@@ -125,7 +127,7 @@ queued item from your last status. It does not close M1.
 | INT-01 | Android JVM (Robolectric) | `RequestServiceAccountSwitchIntegrationTest` | Real on-disk Preferences DataStore + real `RequestServiceDraftStore` + real `RequestServiceViewModel` + real `SavedStateHandle` (Bundle round-trip) + real `SignOutCleanup.wipeLocalUserState()` + `FakeAuthRepository` SignedOut/SignedIn emissions. Scenarios: (a) A drafts, signs out, B signs in: B never sees A's draft, B's autosave lands, A's replayed lease/callbacks change nothing; (b) late callbacks after logout (profile fetch, upload, submit) land nowhere; (c) same account again with a new `session_id`: A's draft is gone by design and the handle is rewritten; same-session re-emission (token refresh) keeps the lease and the disk draft; (d) process death via Bundle round-trip: `req.*` keys survive Parcel for the same session and never render for a foreign owner. Every absence assertion is preceded by a presence proof on the raw preferences (owner, session, draft text bytes) and every late callback has a positive control that lands without logout. Real behind `SignOutCleanup`: `RequestServiceDraftStore`, `DefaultPhotoUploadStash`, `UserBlockRepository`; no-op fakes: `DeviceTokenRegistrar`, `OutboxDao`, `OutboxScheduler`, `UserPrefs`, the three pending-payment stores, a `SupabaseClient` without Realtime. |
 | INT-02 | Android JVM (Robolectric) | `RequestServiceDraftIdentityIntegrationTest` | The production `@Inject` constructor path: a `SupabaseClient` whose current session carries a synthetic 3-segment JWT (`sub`, `session_id`) yields `Identity(uid, session_id)`; a token without `session_id` yields `Identity(uid, null)` and persistence is disabled; a blank user yields no lease. |
 | INT-03 | Android JVM | `EvidenceRegisterOutboxHandlerIntegrationTest` | Real `EvidenceRegisterOutboxHandler` against a real `SupabaseClient` over ktor `MockEngine`: the HTTP request is `POST …/rest/v1/rpc/register_evidence` with the caller's bearer token and exactly the ten `p_*` parameters (uuid strings, numeric size, lowercase sha, `android/<versionName>`, metadata keys `mime_type`/`captured_from`/`client`); outcomes 200 uuid → Success, 403 (42501 body) and 400 (22023 / 02000 body) → GiveUp + `CrashReporter.report`, 500 (incl. a 40001 `evidence_registration_retry` body), 408 and 429 → Retry, 200 blank or `null` → GiveUp + report, no session → Retry, producer mismatch → GiveUp; the two gate cases assert zero HTTP requests, the HTTP cases assert exactly one, and the engine fails the test on any path other than the RPC. Falls back to a mocked Postgrest plugin capturing the parameter object only if the Auth plugin cannot initialise on the JVM (recorded if so). |
-| INT-04 | Android JVM + backend | `RepairPhotoEvidenceContractTest` (Kotlin) and `evidence_client_contract.test.mjs` (Node/PGlite), sharing `supabase/tests/android_evidence_contract.json` | The REAL `RepairJobDetailViewModel` before/after photo enqueue produces `<uid>/<job>/<before|after>-<millis>-<uuid>-<sanitized40>` and `EvidenceRegisterPayload.forUploadedPhoto` produces `repair-photos/<that path>`; the Kotlin side asserts conformance to the rules in the JSON fixture (4 segments, bucket literal, uid, job id, filename charset, sha regex, kinds, producer, source) and the sanitizer table; the Node side executes the same real-shape receipts against the actual round3821 `register_evidence` on PGlite (accepted, `evidence_for_repair_job` returns the bucket-prefixed url) and the fixture's non-conforming variants (`.` filename, empty/leading/trailing-slash url, bucket prefix missing, the three-segment legacy shape, a kind the client never sends, a non-engineer producer, a kind whose object sits in the other attachment array; plus uppercase hex as a contract pin both migrations reject) are denied with the expected SQLSTATE and RAISE literal, and each is also proven accepted or inserted by round492 with a distinct hash so the discrimination is executed on both databases. An uppercase uuid segment is not expressible against the digit-only fixture identities; the Kotlin side rejects it through the fixture regex. Also corrects the off-contract fixture in `EvidenceRegisterPayloadTest` (`repair-photos/u1/before-1.jpg` has 3 segments; round3821 requires 4). |
+| INT-04 | Android JVM + backend | `RepairPhotoEvidenceContractTest` (Kotlin) and `evidence_client_contract.test.mjs` (Node/PGlite), sharing `supabase/tests/android_evidence_contract.json` | The REAL `RepairJobDetailViewModel` before/after photo enqueue produces `<uid>/<job>/<before|after>-<millis>-<uuid>-<sanitized40>` and `EvidenceRegisterPayload.forUploadedPhoto` produces `repair-photos/<that path>`; the Kotlin side asserts conformance to the rules in the JSON fixture (4 segments, bucket literal, uid, job id, filename charset, sha regex, kinds, producer, source) and the sanitizer table; the Node side executes the same real-shape receipts against the actual round3821 `register_evidence` on PGlite (accepted, `evidence_for_repair_job` returns the bucket-prefixed url) and the fixture's non-conforming variants (`.` filename, empty/leading/trailing-slash url, bucket prefix missing, the three-segment legacy shape, a kind the client never sends, a non-engineer producer, a kind whose object sits in the other attachment array; plus uppercase hex as a contract pin both migrations reject) are denied with the expected SQLSTATE and RAISE literal, and each is also proven accepted or inserted by round492 with a distinct hash so the discrimination is executed on both databases. An uppercase uuid segment is not expressible against the digit-only fixture identities; the fixture regexes admit only lowercase hex, but no Kotlin or Node assertion exercises an uppercase segment yet (follow-up). Also corrects the off-contract fixture in `EvidenceRegisterPayloadTest` (`repair-photos/u1/before-1.jpg` has 3 segments; round3821 requires 4). |
 | CI-01 | GitHub Actions | `android.yml`, `evidence-regressions.yml`, `secret-scan.yml` | Push to `claudedev-help` triggers the same checks you gave `codex/**` (additive branch-filter entries only; `secret-scan` also gains `codex/**`, which it lacked). **Amended 2026-09-09 (milestone 8), reason: the android failures on `bb133fce` and `05460863` were undiagnosable from the console log.** `android.yml` also gains a failure-only upload of the unit-test XML/HTML report (`unit-test-reports`, 14 days), the same mechanism as the existing lint-report upload; nothing else in the workflow changed. |
 | DEV-01 | Device (`eqs` emulator, production backend at round492) | Manual drive of the r3820 photo-evidence path as `play-review-engineer` | The queued handoff item: a before-photo check-in produces a `photo_before` ledger row. Read path: `supabase db query --linked -f <select-only>.sql` reading `evidence_ledger` (kind, `content_size_bytes`, `storage_url`) and `storage.objects.metadata->>'size'` for that path; the two sizes are compared and recorded with the ledger row id and object path. Guards: SDK log level stays INFO, no token capture from logcat, no token or key in any committed file, no `supabase db push`, no `workflow_dispatch` of any cron workflow, APK = debug build of this tree (app source unchanged from `c927f7f4`). Fixture policy: reuse an existing Assigned job for the test engineer; if none exists, record BLOCKED rather than creating job/bid/accept rows. Honesty: this exercises round492 in production (no path validation there); r3821 device compatibility is proven only by INT-04 on PGlite. The ledger row cannot be rolled back through the app path; its id is recorded. |
 
@@ -152,7 +154,7 @@ INT-04 and NOT observed in this slice (DEV-01 is BLOCKED, see below).
 | Resilience, retained work and money correctness | 20 | yes | draft survives same-session recreation and refresh; late callbacks cannot corrupt the replacement account; evidence outcome mapping never drops a retryable failure or retries a permanent one |
 | Usability, accessibility and localization | 15 | N/A | no UI or copy changed |
 | Visual consistency | 10 | N/A | no UI changed |
-| Performance and operations | 5 | yes | new JVM tests add < 60 s locally; CI still green; no flaky timing (virtual time only) |
+| Performance and operations | 5 | yes | new JVM tests add < 60 s locally; CI still green; no flaky timing (virtual time only). **Amended 2026-09-09 (milestones 8-11), reason: a long-lived DataStore collector missed an update on the Linux runner:** the test scheduler stays on virtual time; waits on REAL disk IO in INT-01 are condition-based, poll with fresh reads every 25 ms of wall-clock time on Dispatchers.Default, are capped at 10 s and fail with the observed state. |
 
 Score = earned / 75 applicable points × 10. Critic and QA each must reach
 9.5 overall, and each applicable critical dimension (Task correctness,
@@ -345,12 +347,29 @@ timestamps to the DEV-01 record; decide whether the handler should validate the
 returned ledger id against the uuid regex; write "lint 0 errors (79 warnings)"
 rather than "clean".
 
-Next action for whoever resumes: (1) read android run 34387748384 for `d382faa8` (same INT-01 code as `f0ce5f83`); if red, fix the named wait deterministically (the QA suggestion:
-await disk IO off the test dispatcher and hop back with `runCurrent()` before
-every state read, mirroring `RequestServiceDraftPersistenceTest`), push, and
-record the green run id; (2) record the critic score; (3) obtain the owner's
-DEV-01 decision; (4) re-run both reviewers; (5) only then propose the merge
-question to the owner.
+**Re-score after the fix cycle (2026-09-10, both reviewers independent, frozen
+rubric):** critic 9.27 / 10 (69.5 / 75; Task correctness 22/25 with −2 for the
+missing DEV-01 evidence, Security 24/25, Resilience 19/20, Performance 4.5/5);
+QA 9.6 / 10 (72 / 75; 24 / 24.5 / 19.5 / 4, every critical dimension at or
+above 9.5). Both mark blockers 1 and 2 CLEARED (android 34388663588 and
+34413296401 green on all steps; every red run disclosed with ids). **Both keep
+the slice NOT accepted for one reason: DEV-01 is a frozen row with no evidence.
+The critic states explicitly that the slice is accepted if DEV-01 is formally
+re-frozen out of it; QA's remaining condition besides DEV-01 was the then-pending
+android run for `f6239503`, which has since completed green.** Owner decision
+needed: (a) unblock DEV-01 (authorise a hospital-test-account job with an
+accepted bid for the test engineer, or accept a `photo_after` drive on
+RPR-00041 with its money-path side effects) and the helper runs the frozen read
+path; or (b) re-freeze DEV-01 into a named later slice, in which case the
+reviewers' scores stand as acceptance of INT-01..04 + CI-01. Reviewer
+"should fix later" items from this round are carried in the list above plus:
+bound the diagnostic read in `awaitReal` (done in milestone 15); record the
+missed-DataStore-update observation in the issue register with a minimal Linux
+repro (production `UserPrefs` collects `dataStore.data` continuously);
+correct "DataStore 1.1.1" to the resolved 1.2.1 wherever it appears (the
+milestone 11 commit body is immutable; the cached aar inspected was 1.1.1).
+
+Next action for whoever resumes: (1) obtain the owner's DEV-01 decision (unblock, or re-freeze it out); (2) if unblocked, run the drive with the frozen read path and guards and record the ledger row id, object path and both sizes, then re-run both reviewers; if re-frozen out, record the decision in the frozen table and the reviewers' 2026-09-10 scores stand as acceptance of INT-01..04 + CI-01; (3) tell the Codex session to fetch this branch (see "Your branch moved"); (4) only then raise the merge question with the owner, noting the three textual merge points with round3823.
 
 ## Open items handed back to you
 
