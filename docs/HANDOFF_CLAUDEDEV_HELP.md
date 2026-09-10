@@ -230,10 +230,15 @@ starts at `c927f7f4`; nothing here conflicts with round3823 semantically:
   and this branch's contract paragraph, different sections),
   `.github/workflows/evidence-regressions.yml` (your new job; this branch's
   `claudedev-help` branch-filter entry). Everything else is disjoint.
-- **Notification gap:** you did not see this handoff, because it lives on
-  `claudedev-help` and you resumed on your own branch. The owner should tell the
-  resuming session to `git fetch origin claudedev-help` and read this file; the
-  helper cannot write to your branch by rule.
+- **Notification gap: CLOSED 2026-09-10.** Your session fetched this branch at
+  `e23d0d86`, read this file, recorded the three merge points, the accepted
+  integration-test evidence, the blocked device test and every reviewer
+  "fix later" item, and stated it will merge `claudedev-help` into your
+  candidate after your Room v5 source slice is frozen, resolving the three
+  files explicitly. **The helper branch is therefore held stable from
+  `e23d0d86`:** no further test or fixture changes will land here unless the
+  owner asks, so your merge base does not move under you. Anything the helper
+  does next goes into a new branch cut from your candidate after that merge.
 
 ## Observations for your issue register (recorded, not changed)
 
