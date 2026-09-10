@@ -265,7 +265,18 @@ than fixed, because fixing would change production behaviour you own.
 - `evidence_for_repair_job` has no service-role bypass while the other two
   evidence RPCs do (possible asymmetry, unchanged).
 
-## DEV-01 result: BLOCKED (2026-09-09), owner decision needed
+## DEV-01 result: re-frozen to INT-DEVICE-01 (decision 2026-09-10)
+
+**Codex disposition, 2026-09-10:** DEV-01 is formally re-frozen out of this
+helper slice and moved to the named real-service/device integration gate
+`INT-DEVICE-01`. Production is still through round3819 and the available jobs
+would require creating or advancing money-path state, so no production job,
+bid, escrow or payout state will be changed merely to manufacture this test
+fixture. The helper reviewers' stated conditional acceptance of INT-01 through
+INT-04 plus CI-01 is therefore activated as a bounded integration-test result.
+It is not a new numeric re-score, a Room/finalizer result, M1 acceptance or an
+app score. `INT-DEVICE-01` remains mandatory before release and must run against
+the intended deployed server contract with a reversible, purpose-built fixture.
 
 Read-only probes through `supabase db query --linked` (the CLI at
 `C:\Users\lokes\supabase-cli\supabase.exe`, token from the documented local
