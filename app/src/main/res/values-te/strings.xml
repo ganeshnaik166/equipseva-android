@@ -336,8 +336,6 @@
     <string name="home_spot_audit_feedback_placeholder">Optional comments (e.g. parts replaced as expected, slow response, etc.)</string>
     <string name="home_cash_survey_title">Quick check-in</string>
     <string name="home_cash_survey_privacy_note">Your answer is private and only visible to our team.</string>
-    <string name="home_first_job_cta_title">Book your first repair</string>
-    <string name="home_first_job_cta_subtitle">Find verified engineers near you</string>
     <string name="home_phone_missing_banner_title">Add your phone number</string>
     <string name="home_phone_missing_banner_subtitle">Engineers call this number during a job. Without it they can\'t reach you.</string>
     <string name="home_pending_amc_payment_banner_subtitle">If your bank shows the charge but your AMC pool hasn\'t credited yet, contact support and we\'ll reconcile.</string>

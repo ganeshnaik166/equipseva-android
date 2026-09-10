@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_actions_hospital_workspace">अस्पताल कार्यक्षेत्र</string>
+    <string name="home_actions_title">उपकरण की मरम्मत करवाएँ</string>
+    <string name="home_actions_body">बताएँ कि किस उपकरण की मरम्मत चाहिए। इंजीनियर चुनने से पहले उनके प्रस्ताव देखें।</string>
+    <string name="home_actions_request_service">सेवा का अनुरोध करें</string>
+    <string name="home_actions_my_bookings">मेरी बुकिंग</string>
+    <string name="home_actions_browse_engineers">इंजीनियर देखें</string>
+</resources>

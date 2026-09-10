@@ -100,6 +100,7 @@ import java.time.Instant
 @Composable
 fun HomeHubScreen(
     onOpenBookRepair: () -> Unit,
+    onRequestService: () -> Unit,
     onOpenEngineerJobs: () -> Unit,
     onOpenFounder: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
@@ -152,16 +153,19 @@ fun HomeHubScreen(
                 onOpenHelp = { helpSheetOpen = true },
             )
 
-            // Greeting card
-            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                GreetingCard(
-                    role = role,
-                    openCount = state.openCount,
-                    activeCount = state.activeCount,
-                    pendingBidsCount = state.pendingBidsCount,
-                    nearbyEngineersCount = state.nearbyEngineersCount,
-                    hospitalHasPostedFirstJob = state.hospitalHasPostedFirstJob,
-                )
+            // Hospital's task panel below replaces the count-based greeting:
+            // failed best-effort Home fetches must not describe a zero-job state.
+            if (role != UserRole.HOSPITAL) {
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    GreetingCard(
+                        role = role,
+                        openCount = state.openCount,
+                        activeCount = state.activeCount,
+                        pendingBidsCount = state.pendingBidsCount,
+                        nearbyEngineersCount = state.nearbyEngineersCount,
+                        hospitalHasPostedFirstJob = state.hospitalHasPostedFirstJob,
+                    )
+                }
             }
 
             // r592 — role-specific tier/AMC chip under the greeting.
@@ -239,6 +243,18 @@ fun HomeHubScreen(
 
             Spacer(Modifier.height(8.dp))
 
+            // Payment recovery stays above the new-request action. This is a
+            // marketplace request; browsing an engineer remains a separate path.
+            if (role == UserRole.HOSPITAL) {
+                HospitalHomeActions(
+                    onRequestService = onRequestService,
+                    onOpenBookings = onOpenMyBookings,
+                    onBrowseEngineers = onOpenBookRepair,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+                Spacer(Modifier.height(12.dp))
+            }
+
             // PR-D34: aggregated AMC SLA breach credits this hospital
             // received in the trailing 30 days. Only rendered when
             // total > 0 (handled in the VM). Tap routes to the AMC
@@ -250,26 +266,14 @@ fun HomeHubScreen(
             }
 
             // PR-B: hospital home carousel of top-N recommended engineers.
-            // Hidden gracefully when no GPS / no rows so we never render
-            // an empty band. The static "Book a repair engineer" tile
-            // below remains the always-on fallback path.
+            // Hidden when GPS / recommendations are unavailable. The task
+            // panel's Browse engineers action remains reachable above.
             if (role == UserRole.HOSPITAL && state.recommended.isNotEmpty()) {
                 RecommendedEngineersCarousel(
                     rows = state.recommended,
                     onPick = onOpenEngineerProfile,
                     onSeeAll = onOpenBookRepair,
                 )
-                Spacer(Modifier.height(4.dp))
-            }
-
-            // Hospital onboarding CTA: first-time hospitals see a bold
-            // "Book your first repair" card before the standard tiles. After
-            // they post their first job, the stats row appears and this card
-            // is hidden.
-            if (role == UserRole.HOSPITAL && !state.hospitalHasPostedFirstJob) {
-                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    FirstJobCtaCard(onClick = onOpenBookRepair)
-                }
                 Spacer(Modifier.height(4.dp))
             }
 
@@ -280,21 +284,7 @@ fun HomeHubScreen(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                if (role == UserRole.HOSPITAL) {
-                    HomeTile(
-                        icon = Icons.Filled.Bolt,
-                        title = "Book a repair engineer",
-                        desc = "Browse verified biomedical engineers near you",
-                        onClick = onOpenBookRepair,
-                    )
-                    HomeTile(
-                        icon = Icons.Outlined.WorkOutline,
-                        title = "My bookings",
-                        desc = "Track open and active repair jobs",
-                        onClick = onOpenMyBookings,
-                    )
-                    // Messages tile removed (v0.3.4) — now a bottom-nav tab.
-                } else {
+                if (role != UserRole.HOSPITAL) {
                     val engVerified = kyc == VerificationStatus.Verified
                     HomeTile(
                         icon = Icons.Filled.Build,
@@ -742,42 +732,6 @@ private fun HomeTopBar(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun FirstJobCtaCard(onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color.White)
-            .border(1.dp, BorderDefault, RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(SevaGreen50),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(Icons.Filled.Build, contentDescription = null, tint = SevaGreen700, modifier = Modifier.size(24.dp))
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(stringResource(R.string.home_first_job_cta_title), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = SevaInk900)
-            Spacer(Modifier.height(4.dp))
-            Text(stringResource(R.string.home_first_job_cta_subtitle), fontSize = 12.sp, color = SevaInk500, lineHeight = 16.sp)
-        }
-        Icon(
-            Icons.Outlined.ChevronRight,
-            contentDescription = null,
-            tint = SevaInk400,
-            modifier = Modifier.size(18.dp),
-        )
     }
 }
 

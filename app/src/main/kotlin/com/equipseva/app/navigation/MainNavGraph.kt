@@ -319,6 +319,9 @@ fun MainNavGraph(
                 //   Founder gets the admin tile in addition.
                 com.equipseva.app.features.home.HomeHubScreen(
                     onOpenBookRepair = { navController.navigate(Routes.ENGINEER_DIRECTORY) },
+                    onRequestService = {
+                        navController.navigate(Routes.REQUEST_SERVICE) { launchSingleTop = true }
+                    },
                     onOpenEngineerJobs = { navController.navigate(Routes.ENGINEER_JOBS_HUB) },
                     onOpenFounder = { navController.navigate(Routes.FOUNDER_DASHBOARD) },
                     onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
