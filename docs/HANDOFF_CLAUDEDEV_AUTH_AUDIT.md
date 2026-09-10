@@ -4,7 +4,8 @@
 "What is and is not done" section before trusting anything else here.
 
 That status describes the helper branch at `fc5ece04`. Codex integration corrections
-and their bounded fixture validation are recorded in §8; they do not implement F1–F20.
+and their bounded fixture validation are recorded in §8. Codex A1/F3 implementation
+and verification are recorded in §9; the remaining findings stay open.
 
 | Item | Value |
 | --- | --- |
@@ -308,7 +309,8 @@ records typed writes across all supported setters, and matches production blank-
 normalisation. `confirmedProfile` describes a normalised confirmed test state, not the
 guaranteed result of every role RPC. A4, A9 and A12 now state generation-aware fencing,
 the actual intermediate-publication test point, and preservation of immediate local
-identity fencing before network work. All production mechanisms in §4 remain provisional.
+identity fencing before network work. A1 is implemented as recorded in §9; the other
+production mechanisms in §4 remain provisional.
 
 Focused validation (fixture utilities only):
 
@@ -334,3 +336,50 @@ Source Git blob hashes for the focused run:
 | `AuthAuditFixtures.kt` | `4b16cc5ca3fce182bad626d90b8d92e1f062cd4a` |
 | `RecordingUserPrefs.kt` | `1404848719a8df9f7ac6bb2ac19f8cb0ba9a62c0` |
 | `RecordingUserPrefsTest.kt` | `d40f74c99d5f03f28566c37fa3674b56640ed9cd` |
+
+## 9. Codex A1/F3 checkpoint — 2026-09-10
+
+A1 is complete on `codex/security-foundation-20260907`, based on `8a52417a`. The
+session gate now creates a new local login generation for every observed sign-out or
+account replacement, owns each profile request by login and revision, and prevents
+late profile, preference, message, cleanup, sign-out, and token-admission work from
+publishing into a replacement login. Role and onboarding are published as one
+profile-owned gate only after both required preference mirrors succeed. Non-cancellation
+preference failures retain Loading, or the previously validated same-login gate, for a
+later `refreshNow()` retry.
+
+The implementation is in `SessionViewModel.kt`. The new
+`SessionViewModelIdentityTest.kt` contains 43 deterministic identity, ordering,
+cancellation, and recovery tests. Preserved red evidence includes the original
+32-test baseline with 26 failures, a 3/3 failing observer-lag race, and four expected
+preference-I/O failures across five cases before the fixes.
+
+Final validation:
+
+```text
+Focused forced rerun: 47 tests, 0 failures/errors/skips; BUILD SUCCESSFUL in 1m 39s
+Full :app:testDebugUnitTest: 2,951 tests, 0 failures/errors/skips; BUILD SUCCESSFUL in 1m
+:app:lintDebug + :app:assembleDebug: BUILD SUCCESSFUL
+:app:assembleRelease with PRECHECK_LOOSE=1: BUILD SUCCESSFUL in 4m 1s
+```
+
+`PRECHECK_LOOSE=1` was required because this checkout has no release keystore; that
+release APK is debug-signed verification output and must not be published. Logs are
+under `../../verification/auth-a1-final/` from this document.
+
+Final hashes:
+
+| File | SHA-256 | `git hash-object` |
+| --- | --- | --- |
+| `SessionViewModel.kt` | `202e145a53728af7badefb46df913bc0e1669b5b31e49285e0443a986afcb557` | `ae1655ff00821237a230d19cb2d1b367e2025b92` |
+| `SessionViewModelIdentityTest.kt` | `cfb107574b96311b1f3cbde1036b7ed7b2bef144b401fb10090efe1492fa4d72` | `ebe64a8dafa58ba8e37300607393338783568b2a` |
+
+QA scored all six bounded A1 dimensions 9.5/10. Red-team scores range from
+9.6 to 9.8/10. No in-scope must-fix remains.
+
+Boundaries still open: an entirely unobserved same-user ABA needs repository-issued
+session identity; already-admitted global cleanup/sign-out and registrar internals need
+their own generation ownership; root navigation still retains old UI while a replacement
+login is Loading; role writers still need explicit authoritative refresh wiring; and
+cold offline/storage failure has no visible retry UI. These are A2/A4/A12 and integration
+work. This checkpoint is not full auth, navigation, device, or app acceptance.
