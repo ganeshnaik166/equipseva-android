@@ -1,5 +1,8 @@
 # Handoff — `claudedev-auth-audit` (UI-A01 auth / navigation audit)
 
+For the current stop state and tomorrow's resume order, read
+[the 10 September end-of-day handoff](HANDOFF_2026-09-10_END_OF_DAY.md).
+
 **Status: PARTIAL, STOPPED BY OWNER (usage limit) on 2026-09-10.** Read the
 "What is and is not done" section before trusting anything else here.
 

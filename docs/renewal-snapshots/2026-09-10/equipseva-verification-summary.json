@@ -1,0 +1,61 @@
+{
+  "recorded_at": "2026-09-10",
+  "candidate_commit": "d140c19b20bb0a6e458df0f0a8b4f7b233b78876",
+  "branch": "codex/security-foundation-20260907",
+  "remote_main_commit": "fe4637568059e49f27fb46f8627fe56bccc45e27",
+  "candidate_git_status": "Tracked tree clean; untracked work/ evidence retained",
+  "scope": "A1 SessionViewModel ownership checkpoint only",
+  "historical_summary": "history/equipseva-verification-summary-20260909-efd1d90b.json",
+  "local_checks": {
+    "focused_forced_rerun": {
+      "tests": 47,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed_tasks": 45
+    },
+    "full_debug_unit": {
+      "tests": 2951,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "lintDebug": "passed",
+    "assembleDebug": "passed",
+    "assembleRelease": "passed with PRECHECK_LOOSE=1; production signing/configuration unverified",
+    "evidence": "../work/verification/auth-a1-final/",
+    "device": "not run for A1"
+  },
+  "github_ci": [
+    {
+      "id": 34498001037,
+      "name": "android",
+      "conclusion": "success"
+    },
+    {
+      "id": 34498001057,
+      "name": "secret-scan",
+      "conclusion": "success"
+    }
+  ],
+  "source_hashes_sha256": {
+    "SessionViewModel.kt": "202e145a53728af7badefb46df913bc0e1669b5b31e49285e0443a986afcb557",
+    "SessionViewModelIdentityTest.kt": "cfb107574b96311b1f3cbde1036b7ed7b2bef144b401fb10090efe1492fa4d72"
+  },
+  "review": {
+    "scope": "bounded A1 VM slice",
+    "qa_minimum": 9.5,
+    "critic_minimum": 9.6
+  },
+  "program_complete": false,
+  "next_step": "A2 root role gate and navigation integration",
+  "continuation": "stopped for today at owner request; A2 awaiting explicit Extra High confirmation on return",
+  "remaining_boundaries": [
+    "Repository session identity for unobserved same-user boundaries",
+    "Already-admitted cleanup/sign-out and registrar internals",
+    "Root account-owned rendering and authoritative role-writer refresh",
+    "Visible cold-offline/storage failure recovery",
+    "Device, accessibility, human workflow, integration and release gates"
+  ],
+  "end_of_day_handoff": "docs/HANDOFF_2026-09-10_END_OF_DAY.md"
+}

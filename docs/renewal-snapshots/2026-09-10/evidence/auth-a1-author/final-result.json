@@ -1,0 +1,23 @@
+{
+  "branch": "codex/security-foundation-20260907",
+  "baseHead": "8a52417a73e99704706d64e976c9bd9286eca75b",
+  "command": ".\\gradlew.bat :app:testDebugUnitTest --tests com.equipseva.app.features.auth.SessionViewModelIdentityTest --tests com.equipseva.app.testing.RecordingUserPrefsTest --max-workers=2 --no-configuration-cache",
+  "javaHome": "C:\\Program Files\\Microsoft\\jdk-17.0.19.10-hotspot",
+  "exitCode": 0,
+  "buildSeconds": 12,
+  "identityTests": 43,
+  "prefsTests": 4,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "redBaseline": "32 tests, 26 failures, 0 errors/skips; red-results.xml",
+  "observerLagRed": "3 tests, 3 failures, 0 errors/skips; observer-lag-red-results.xml",
+  "preferencesIoRed": "5 tests, 4 failures, 0 errors/skips; prefs-io-red-results.xml",
+  "remainingBoundaries": [
+    "AuthSession has no stable server login ID. Local generations cover observed boundaries; conflated or not-yet-observed same-ID relogin boundaries cannot be proved by UID rereads.",
+    "Already-started SignOutCleanup globally wiping stores and registrar internal token/DAO/network work are not made login-aware by A1.",
+    "Unowned preferences do not advance SessionState. RoleSelectViewModel:63, SignUpViewModel:136, and ProfileViewModel:221/295 need authoritative refresh integration in A2/A4. Existing onboarding/foreground SessionViewModel.refreshNow calls remain.",
+    "Cold offline or failed required preference mirror stays Loading until refresh succeeds. No new retry UI in this scope.",
+    "Root/native navigation and other consumers of unowned preferences require their own account-switch audit; no device walkthrough or full test/lint suite claimed."
+  ]
+}

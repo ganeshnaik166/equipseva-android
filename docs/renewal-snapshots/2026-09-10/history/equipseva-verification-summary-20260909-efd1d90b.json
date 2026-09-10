@@ -1,0 +1,445 @@
+{
+  "recorded_at": "2026-09-09T07:56:55.1552739+00:00",
+  "baseline_commit": "fe4637568059e49f27fb46f8627fe56bccc45e27",
+  "previous_candidate_commit": "c927f7f4fd88d36762e74933f6d7de43cd81f8b8",
+  "candidate_commit": "efd1d90bfefb21917a5cc00e35be67d4594eec2c",
+  "branch": "codex/security-foundation-20260907",
+  "candidate_git_status": "",
+  "source_manifest_digest": "8cc741f229d10310281a39b1a1a6b1e3c0bd8b5e7a1a5a87ca4170b66372d894",
+  "source_manifest_paths": 7389,
+  "change_scope": "Seven-file r3823 atomic repair-photo finalizer migration, semantic/native regressions, CI and documentation; no Android source change",
+  "local_checks": {
+    "unit": {
+      "suites": 336,
+      "tests": 2835,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "unit_task_up_to_date": true,
+    "android_command": ":app:testDebugUnitTest :app:lintDebug :app:assembleRelease",
+    "android_status": "Retained local c927 build passed; exact efd1d90b GitHub Android workflow passed",
+    "android_result_lines": [
+      "Local c927: BUILD SUCCESSFUL in 7m 25s; 117 tasks",
+      "GitHub efd1d90b: unit, lint, debug assembly and release R8 assembly passed"
+    ],
+    "release_scope": "PRECHECK_LOOSE=1, unsigned R8; signed/production configuration remains open",
+    "evidence_sql_passed": 60,
+    "cron_handler_passed": 51,
+    "snapshot_pglite_runner_tests_passed": 25,
+    "parser_tests_passed": 21,
+    "repair_photo_finalizer_semantic_passed": 87,
+    "repair_photo_finalizer_missing_claims_passed": 3,
+    "repair_photo_finalizer_native_author": {
+      "path": "C:\\Users\\lokes\\Documents\\Codex\\2026-09-07\\im\\work\\verification\\repair-photo-finalizer-author\\evidence-concurrency-20260909-130043-811516\\evidence\\report.json",
+      "sha256": "5a7b64147989a5e00ccfbf04525433ababe15645c77283ce4ea13e831b3bd8a5",
+      "cases": 27,
+      "assertions": 322,
+      "observed_waits": 26,
+      "postgres_version": "postgres (PostgreSQL) 17.11",
+      "completed": true,
+      "postgres_stopped": true,
+      "listener_closed": true,
+      "cleanup_errors": []
+    },
+    "repair_photo_finalizer_native_independent_qa": {
+      "path": "C:\\Users\\lokes\\Documents\\Codex\\2026-09-07\\im\\work\\verification\\repair-photo-finalizer-qa\\evidence-concurrency-20260909-130357-c3753b\\evidence\\report.json",
+      "sha256": "7f5f45161ad53aee945eb784bf3ee8238affc48243dfd2c5af4552be225499d2",
+      "cases": 27,
+      "assertions": 322,
+      "observed_waits": 26,
+      "postgres_version": "postgres (PostgreSQL) 17.11",
+      "completed": true,
+      "postgres_stopped": true,
+      "listener_closed": true,
+      "cleanup_errors": []
+    },
+    "evidence_authorization_native_author": {
+      "path": "C:\\Users\\lokes\\Documents\\Codex\\2026-09-07\\im\\work\\verification\\evidence-concurrency-20260907-164519-a39e08\\evidence\\report.json",
+      "sha256": "5a04a74bfeedf70527b3a03e78ba382866a5fe9d3b8abb61f955e1f75b515a68",
+      "cases": 27,
+      "assertions": 252,
+      "observed_waits": 33,
+      "postgres_version": "postgres (PostgreSQL) 17.11",
+      "source_hashes": {
+        "runner": "fabe0758190a2d06ad64c2500af4470f7844015b2f63c5d48734c9051cc29928",
+        "fixture": "d4f36dd73a8aaf2a8510637fe0635a63e4e5e1f0a23f3149eb3d8fb6f77dbf8c",
+        "baseline": "8e61f7163ae89cc73bcb06c61c926a7b1a3c3ce79a5678c1e3da9f089b1f99b5",
+        "candidate": "66cdf3c59884eb5c699d2800656f79f4bff333d5191deee8e75be243ec4cb5ed"
+      },
+      "completed": true,
+      "postgres_stopped": true,
+      "listener_closed": true,
+      "cleanup_errors": []
+    },
+    "evidence_authorization_native_independent_qa": {
+      "path": "C:\\Users\\lokes\\Documents\\Codex\\2026-09-07\\im\\work\\verification\\evidence-concurrency-qa\\evidence-concurrency-20260907-164805-1b503f\\evidence\\report.json",
+      "sha256": "136d4f995f57d7eeb313d76250dd85ce5490fca22dd0ba0662e9aef08dbb8363",
+      "cases": 27,
+      "assertions": 252,
+      "observed_waits": 33,
+      "postgres_version": "postgres (PostgreSQL) 17.11",
+      "source_hashes": {
+        "runner": "fabe0758190a2d06ad64c2500af4470f7844015b2f63c5d48734c9051cc29928",
+        "fixture": "d4f36dd73a8aaf2a8510637fe0635a63e4e5e1f0a23f3149eb3d8fb6f77dbf8c",
+        "baseline": "8e61f7163ae89cc73bcb06c61c926a7b1a3c3ce79a5678c1e3da9f089b1f99b5",
+        "candidate": "66cdf3c59884eb5c699d2800656f79f4bff333d5191deee8e75be243ec4cb5ed"
+      },
+      "completed": true,
+      "postgres_stopped": true,
+      "listener_closed": true,
+      "cleanup_errors": []
+    },
+    "device_scope": "No new device run; Android source unchanged"
+  },
+  "artifacts": [
+    {
+      "path": "C:\\Users\\lokes\\Documents\\Codex\\2026-09-07\\im\\work\\equipseva-android\\app\\build\\outputs\\apk\\androidTest\\debug\\app-debug-androidTest.apk",
+      "bytes": 1018260,
+      "sha256": "73441e05d5087f414abb038a7d7ba2420ddc7f44031e83b3001412268c942d64"
+    },
+    {
+      "path": "C:\\Users\\lokes\\Documents\\Codex\\2026-09-07\\im\\work\\equipseva-android\\app\\build\\outputs\\apk\\debug\\app-debug.apk",
+      "bytes": 45727661,
+      "sha256": "0cabebb3a8d854f7b864def6a34039c873ee89965e850ed7f55cbc30711d1a2c"
+    },
+    {
+      "path": "C:\\Users\\lokes\\Documents\\Codex\\2026-09-07\\im\\work\\equipseva-android\\app\\build\\outputs\\apk\\release\\app-release-unsigned.apk",
+      "bytes": 17982564,
+      "sha256": "933a41fbca28ae876454a39de99df1d18f9deb96fc220971b14f4d7dc5a070d1"
+    }
+  ],
+  "artifact_scope": "Retained local c927 unsigned Android artifacts; exact efd1d90b release R8 validation passed in GitHub CI. No fresh device test.",
+  "github_ci": [
+    {
+      "id": 34325210244,
+      "name": "backend regressions",
+      "head_sha": "efd1d90bfefb21917a5cc00e35be67d4594eec2c",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/ganeshnaik166/equipseva-android/actions/runs/34325210244",
+      "created_at": "2026-09-09T07:42:17Z",
+      "updated_at": "2026-09-09T07:42:56Z"
+    },
+    {
+      "id": 34325210184,
+      "name": "android",
+      "head_sha": "efd1d90bfefb21917a5cc00e35be67d4594eec2c",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/ganeshnaik166/equipseva-android/actions/runs/34325210184",
+      "created_at": "2026-09-09T07:42:17Z",
+      "updated_at": "2026-09-09T07:55:55Z"
+    }
+  ],
+  "independent_review": {
+    "qa": "F01-F10 passed with independent semantic, missing-claim and native execution plus raw reconciliation.",
+    "qa_local_gates": 10,
+    "qa_dimension_scores": {
+      "correctness": 9.5,
+      "security": 9.5,
+      "concurrency": 9.5,
+      "regression": 9.5,
+      "evidence": 9.5
+    },
+    "critic_score": 9.5,
+    "critic": "Independent full-source review, focused executions and raw native reconciliation; see repair-photo-finalizer-independent-critic.md.",
+    "scope": "Bounded local r3823 server finalizer only; full REL-01 and app acceptance remain open.",
+    "full_milestone_score": "NOT SCORED",
+    "full_milestone_acceptance": false
+  },
+  "audit": {
+    "source_commit": "efd1d90bfefb21917a5cc00e35be67d4594eec2c",
+    "tracked_files": 7389,
+    "added": [
+      "supabase/migrations/20263900000000_round3823_finalize_repair_photo.sql",
+      "supabase/tests/repair_photo_finalize.md",
+      "supabase/tests/repair_photo_finalize.test.mjs",
+      "supabase/tests/repair_photo_finalize_concurrency.py"
+    ],
+    "changed": [
+      ".github/workflows/evidence-regressions.yml",
+      "supabase/tests/README.md",
+      "supabase/tests/package.json"
+    ],
+    "removed": [],
+    "dispositions_applied": [
+      ".github/workflows/evidence-regressions.yml",
+      "supabase/migrations/20263900000000_round3823_finalize_repair_photo.sql",
+      "supabase/tests/README.md",
+      "supabase/tests/package.json",
+      "supabase/tests/repair_photo_finalize.md",
+      "supabase/tests/repair_photo_finalize.test.mjs",
+      "supabase/tests/repair_photo_finalize_concurrency.py"
+    ],
+    "full_reviews_completed": 25,
+    "partial_reviews": 12,
+    "pending_reviews": 7352,
+    "limitation": "Inventory includes docs, dependencies, generated and historical material. This is not the owned first-party completion denominator. Complete line review does not close runtime or release gates."
+  },
+  "deployment_metadata": {
+    "read_only": true,
+    "catalog_rows": 45,
+    "privilege_and_history_rows": 9,
+    "latest_recorded_migration": "20263897000000_round3819_dsr_signatures_65b_ledger",
+    "candidate_migration_deployed": false,
+    "limitation": "Metadata compatibility does not establish full schema/Storage/row-lock integration."
+  },
+  "daily_cron": [
+    {
+      "id": 9,
+      "created_at": "2026-09-07 08:02:31.148675+00",
+      "ok": false,
+      "failed_slot": "db-storage-snapshot",
+      "error_code": "57014",
+      "duration_ms": 8409
+    }
+  ],
+  "snapshot_investigation": {
+    "large_fixture": "4876 regular public tables,9748 indexes,487600 synthetic history rows; exact r601 body",
+    "original_natural_cancellation_seconds": [
+      8.031,
+      8.016,
+      8.016
+    ],
+    "old_experimental_result": "8.219s cancellation after insufficient schema-cache readiness; canceled inside INSERT, so not post-prune rollback proof",
+    "small_hoisting_probe": "Correctly cached SET30s succeeded for10s REST calls; unrelated calls retained8s on same connection. Local only.",
+    "production_recovered": false,
+    "new_timeout_migration_included": true,
+    "large_followup": {
+      "completed": true,
+      "passed_assertions": 28,
+      "source_sha256": "9900be2bd90e738ff7da68098dad0092e8f7357eb9b575948f7c33c58bb26b6d",
+      "natural_seconds": [
+        16.766,
+        13.969,
+        14.203
+      ],
+      "post_prune_cancel_seconds": 30.016,
+      "observed_lock_wait_seconds": 7.984,
+      "unrelated_request_cancel_seconds": 8.015,
+      "postgres_stopped": true,
+      "independent_review": "QA and fresh critic corroborated raw phases/PIDs/rollback and stated limitations.",
+      "pool_limit": "30s cancellation replaced the pooled backend; later checks prove healthy replacement, not same-backend recovery for that event.",
+      "remaining": "Historical experiment: actual-file migration/reapply/rollback and final role checks are now completed in actual_migration below. Deployed compatibility and full daily operational budget remain open."
+    },
+    "three_case_followup": {
+      "completed": true,
+      "passed_assertions": 24,
+      "source_sha256": "017df2d7d40c657d7f7eebd7b5af4e08f119c9cb0aef5e48fba66b5abc9d2798",
+      "delayed_original_seconds": 8.015,
+      "delayed_candidate_seconds": 24.578,
+      "post_lock_writer_success_seconds": 24.312,
+      "batch_result": "Two distinct timestamp batches each contain exactly4876 eligible names, no duplicates/missing/extra; first retained and second adds4876.",
+      "postgres_stopped": true,
+      "independent_review": "QA corroborated raw phase/PID, same REST/backend recovery, exact batch accounting and cleanup."
+    },
+    "actual_migration": {
+      "path": "supabase/migrations/20263899000000_round3822_storage_snapshot_timeout.sql",
+      "sha256": "0ad0ac96620c61c3a4a14fc27e60911ef41d4e4b63205d7359f327d14e36e760",
+      "harness_sha256": "a6a48f3b9ccd323ae21d0930d67cc8969d28937b300e8ad81cd4e413f90cdbc6",
+      "completed": true,
+      "assertions_passed": 43,
+      "rest_success_seconds": 14.828,
+      "direct_semantic_seconds": 15.578,
+      "direct_limit": "Test-session outer30s/lock8s, whole call rolled back; not REST timeout proof",
+      "rest_batch": "4876 exact selected distinct table names, with no missing/extra/duplicates",
+      "unrelated_cancel_seconds": 8.015,
+      "same_backend_after_success_and_unrelated": true,
+      "scope": "Actual file apply/reapply/reset rollback/reapply, unexpected60s atomic rejection, preserved routine/role/database metadata, final direct and REST roles. Explicitly reuses earlier unchanged-body late failure/lock experiments.",
+      "postgres_stopped": true,
+      "cleanup_errors": [],
+      "production_deployed": false
+    }
+  },
+  "first_candidate_evidence": {
+    "commit": "c71c2f3506fa5ec0c6e16b67bc22a68a5d9ab9ea",
+    "github_ci": [
+      {
+        "id": 34101917462,
+        "name": "evidence authorization regressions",
+        "head_sha": "c71c2f3506fa5ec0c6e16b67bc22a68a5d9ab9ea",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-09-07T08:41:19Z",
+        "updated_at": "2026-09-07T08:41:39Z",
+        "html_url": "https://github.com/ganeshnaik166/equipseva-android/actions/runs/34101917462"
+      },
+      {
+        "id": 34101917307,
+        "name": "android",
+        "head_sha": "c71c2f3506fa5ec0c6e16b67bc22a68a5d9ab9ea",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-09-07T08:41:19Z",
+        "updated_at": "2026-09-07T08:56:17Z",
+        "html_url": "https://github.com/ganeshnaik166/equipseva-android/actions/runs/34101917307"
+      }
+    ],
+    "source_manifest_digest": "4b6fc142c8a181f74a10b5691dc07c05592869483e64c69580f689007ad9def5",
+    "local_checks": {
+      "unit": {
+        "suites": 336,
+        "tests": 2835,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "focused_draft_tests": 44,
+      "sql": {
+        "passed": 60,
+        "failed": 0,
+        "scope": "isolated populated PGlite fixtures"
+      },
+      "device": {
+        "suites": 2,
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "device_scope": "two Android 15 startup/package/activity smoke tests",
+      "command_status": "BUILD SUCCESSFUL",
+      "elapsed": "8m36s",
+      "executed_tasks": 25,
+      "up_to_date_tasks": 145,
+      "lint_debug": "passed",
+      "assemble_debug": "passed",
+      "assemble_release": "passed",
+      "apk_size": "passed",
+      "release_scope": "Unsigned R8 validation with PRECHECK_LOOSE=1; not a production configuration or signed-release gate"
+    }
+  },
+  "limitations": [
+    "No main merge, production migration/Edge deployment or application release performed.",
+    "Synthetic SQL claims and Storage rows do not establish real JWT/HTTP/Storage or complete-schema RLS/trigger integration.",
+    "The cooperating server append/register portion of REL-01 passed locally; Android durable upload/receipt/recovery and account fencing remain open.",
+    "Later object deletion/overwrite and historical source changes remain possible; no immutable-byte or source-creation-provenance claim.",
+    "Account-switch, process-death and picker device journeys, UI prototypes and full source audit remain open.",
+    "Snapshot operational recovery and deployment checks are preserved from prior candidates, not rerun or newly accepted here."
+  ],
+  "prior_reporting_candidate_evidence": {
+    "candidate_commit": "05b73b522181145b1fabf3e4a2ae4d79096dd2b2",
+    "source_manifest_digest": "19385ffcaa45c58373bf8495606da65ae8cb43644bf83e5ac5008abd1ededd28",
+    "local_checks": {
+      "unit": {
+        "suites": 336,
+        "tests": 2835,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "unit_task_up_to_date": true,
+      "android_command": ":app:testDebugUnitTest :app:lintDebug :app:assembleRelease",
+      "android_status": "BUILD SUCCESSFUL",
+      "android_elapsed": "7m36s",
+      "executed_tasks": 17,
+      "up_to_date_tasks": 100,
+      "release_scope": "Unsigned R8 with PRECHECK_LOOSE=1; production config/signing gate remains open",
+      "evidence_sql_passed": 60,
+      "cron_handler_passed": 51,
+      "python_cli_passed": 21,
+      "offline_workflow_cases_passed": 9,
+      "deno_check": "2.9.6 type/import check passed; not deployed Edge runtime proof",
+      "device_scope": "No device rerun in this backend slice; previous c71 had two startup/package smoke tests"
+    },
+    "github_ci": [
+      {
+        "id": 34107154340,
+        "name": "backend regressions",
+        "head_sha": "05b73b522181145b1fabf3e4a2ae4d79096dd2b2",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ganeshnaik166/equipseva-android/actions/runs/34107154340",
+        "created_at": "2026-09-07T09:38:25Z",
+        "updated_at": "2026-09-07T09:38:46Z"
+      },
+      {
+        "id": 34107154343,
+        "name": "android",
+        "head_sha": "05b73b522181145b1fabf3e4a2ae4d79096dd2b2",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ganeshnaik166/equipseva-android/actions/runs/34107154343",
+        "created_at": "2026-09-07T09:38:25Z",
+        "updated_at": "2026-09-07T09:52:40Z"
+      }
+    ],
+    "independent_review": {
+      "qa": "51 handler +21 CLI +9 offline actual-workflow cases;12/12 local reporting/auth gates evidenced; no remaining must-fix",
+      "critic_score": 9.6,
+      "critic_scope": "Local cron observability only",
+      "full_milestone_score": "NOT SCORED",
+      "full_milestone_acceptance": false
+    }
+  },
+  "main_commit_at_last_fetch": "fe4637568059e49f27fb46f8627fe56bccc45e27",
+  "execution_owner": "Codex; owner explicitly confirmed takeover on7September2026, continuing Claude baseline and existing gates",
+  "prior_snapshot_candidate_evidence": {
+    "candidate_commit": "a74b2dae64d605ccff4407c9bd589810479d3812",
+    "source_manifest_digest": "734d9f3af036aa7ee1208914a663f664bf234f9756bce3f221b7d1bb4b1c2e77",
+    "local_checks": {
+      "unit": {
+        "suites": 336,
+        "tests": 2835,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "unit_task_up_to_date": true,
+      "android_command": ":app:testDebugUnitTest :app:lintDebug :app:assembleRelease",
+      "android_status": "BUILD SUCCESSFUL",
+      "android_result_lines": [
+        "BUILD SUCCESSFUL in 6m 59s",
+        "117 actionable tasks: 19 executed, 98 up-to-date"
+      ],
+      "release_scope": "PRECHECK_LOOSE=1, unsigned R8; signing/production-configuration gate remains open",
+      "evidence_sql_passed": 60,
+      "cron_handler_passed": 51,
+      "snapshot_pglite_runner_tests_passed": 25,
+      "snapshot_test_structure": "Six top-level positive cases and one group with18 negative subtests;25 is runner count.",
+      "independent_snapshot_test_execution": "QA and critic each executed25/25 independently on final migration hash.",
+      "native_snapshot_assertions_passed": 43,
+      "native_report": "C:\\Users\\lokes\\Documents\\Codex\\2026-09-07\\im\\work\\verification\\storage-migration-20260907-155443-319459\\report.json",
+      "device_scope": "No new device run for this backend-only change",
+      "setup_failure": "Saved PowerShell launcher was blocked by script execution policy before Gradle started; standard inline command succeeded without policy changes."
+    },
+    "github_ci": [
+      {
+        "id": 34112467049,
+        "name": "backend regressions",
+        "head_sha": "a74b2dae64d605ccff4407c9bd589810479d3812",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ganeshnaik166/equipseva-android/actions/runs/34112467049",
+        "created_at": "2026-09-07T10:38:04Z",
+        "updated_at": "2026-09-07T10:38:32Z"
+      },
+      {
+        "id": 34112467062,
+        "name": "android",
+        "head_sha": "a74b2dae64d605ccff4407c9bd589810479d3812",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ganeshnaik166/equipseva-android/actions/runs/34112467062",
+        "created_at": "2026-09-07T10:38:04Z",
+        "updated_at": "2026-09-07T10:52:59Z"
+      }
+    ],
+    "independent_review": {
+      "qa": "M01-M10 all passed:10/10 local gate completion, not an app-quality score; independent25/25 execution and raw native review.",
+      "qa_gate_completion": 10,
+      "critic": "See cron-timeout-migration-critic.md for independent execution and final scoped evidence review.",
+      "critic_score": 9.6,
+      "critic_dimensions": {
+        "correctness": 9.6,
+        "security": 9.7,
+        "resilience": 9.6,
+        "operations_and_test_wiring": 9.5
+      },
+      "scope": "Local snapshot migration only; no app score inferred from assertion counts.",
+      "full_milestone_score": "NOT SCORED",
+      "full_milestone_acceptance": false
+    }
+  }
+}
