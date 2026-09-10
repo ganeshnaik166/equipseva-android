@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- An allowlist is deliberate: new transitive SDK components and
+         permissions must not silently add egress or background work. -->
+    <uses-permission tools:node="removeAll" />
+    <uses-permission-sdk-23 tools:node="removeAll" />
+    <permission tools:node="removeAll" />
+    <uses-feature tools:node="removeAll" />
+    <queries tools:node="removeAll" />
+
+    <!-- The runner substitutes HiltTestApplication. An ordinary launch has
+         no production Application and the host refuses to mount content. -->
+    <application
+        android:name="android.app.Application"
+        android:label="EquipSeva isolated UI smoke"
+        android:theme="@style/Theme.EquipSeva"
+        android:allowBackup="false"
+        tools:replace="android:name,android:label,android:theme">
+        <activity tools:node="removeAll" />
+        <activity-alias tools:node="removeAll" />
+        <service tools:node="removeAll" />
+        <receiver tools:node="removeAll" />
+        <provider tools:node="removeAll" />
+        <meta-data tools:node="removeAll" />
+
+        <activity
+            android:name="com.equipseva.app.uismoke.UiSmokeHostActivity"
+            android:exported="false"
+            android:theme="@style/Theme.EquipSeva" />
+        <!-- ActivityScenario.finishActivity uses this exact same-UID support
+             Activity. Bootstrap and floating helpers remain unavailable. -->
+        <activity
+            android:name="androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity"
+            android:exported="false"
+            android:theme="@style/WhiteBackgroundTheme" />
+    </application>
+</manifest>

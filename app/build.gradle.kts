@@ -21,6 +21,10 @@ val localProps = Properties().apply {
 fun localOrEnv(key: String, default: String = ""): String =
     localProps.getProperty(key) ?: System.getenv(key) ?: default
 
+// A distinct package and source set prevent UI instrumentation from opening
+// an installed user's app or inheriting its production startup smoke test.
+val uiSmokeEnabled = providers.gradleProperty("uiSmoke").orNull == "true"
+
 val keystoreProps = Properties().apply {
     val f = project.file("keystore.properties")
     if (f.exists()) f.inputStream().use { load(it) }
@@ -64,7 +68,11 @@ android {
         versionCode = 10
         versionName = "0.3.6"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = if (uiSmokeEnabled) {
+            "com.equipseva.app.uismoke.UiSmokeRunner"
+        } else {
+            "androidx.test.runner.AndroidJUnitRunner"
+        }
         vectorDrawables { useSupportLibrary = true }
 
         buildConfigField("String", "SUPABASE_URL", "\"${localOrEnv("SUPABASE_URL")}\"")
@@ -128,6 +136,21 @@ android {
             versionNameSuffix = "-debug"
             isDebuggable = true
         }
+        if (uiSmokeEnabled) {
+            create("uiSmoke") {
+                initWith(getByName("debug"))
+                applicationIdSuffix = ".uismoke"
+                versionNameSuffix = "-uismoke"
+                matchingFallbacks += "debug"
+                // Never inherit endpoint/key material from local.properties.
+                listOf(
+                    "SUPABASE_URL", "SUPABASE_ANON_KEY", "SENTRY_DSN",
+                    "GOOGLE_WEB_CLIENT_ID", "MAPS_API_KEY", "EXPECTED_CERT_SHA256",
+                ).forEach { buildConfigField("String", it, "\"\"") }
+                buildConfigField("boolean", "TAMPER_ENFORCE", "false")
+                manifestPlaceholders["MAPS_API_KEY"] = ""
+            }
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -156,6 +179,8 @@ android {
         }
     }
 
+    if (uiSmokeEnabled) testBuildType = "uiSmoke"
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -175,8 +200,15 @@ android {
             java.directories += "src/test/kotlin"
         }
         named("androidTest") {
-            java.directories += "src/androidTest/kotlin"
+            if (uiSmokeEnabled) {
+                java.directories.clear()
+                java.directories += "src/androidTest/uiSmoke/kotlin"
+                manifest.srcFile("src/androidTest/uiSmoke/AndroidManifest.xml")
+            } else {
+                java.directories += "src/androidTest/kotlin"
+            }
         }
+        if (uiSmokeEnabled) getByName("uiSmoke").java.directories += "src/uiSmoke/kotlin"
     }
 
     buildFeatures {
@@ -222,6 +254,9 @@ android {
 // DSL (AGP 9.1.1 warning: "Please migrate to the compilerOptions DSL") to
 // the Kotlin Gradle plugin's own top-level extension.
 kotlin {
+    if (uiSmokeEnabled) {
+        sourceSets.getByName("androidTest").kotlin.setSrcDirs(listOf("src/androidTest/uiSmoke/kotlin"))
+    }
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
         freeCompilerArgs.addAll(
@@ -358,6 +393,13 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    if (uiSmokeEnabled) {
+        // ActivityScenario closes through its EmptyActivity; put that one
+        // reviewed support component in the same UID, without exporting it.
+        add("uiSmokeImplementation", libs.androidx.test.core)
+        androidTestImplementation(libs.hilt.android.testing)
+        kspAndroidTest(libs.hilt.compiler)
+    }
 }
 
 // Room schema export. JSONs land in `app/schemas/<db-fqcn>/<version>.json`
@@ -444,6 +486,7 @@ tasks.register("checkApkSize") {
 val hasSentryCreds: Boolean = listOf("SENTRY_AUTH_TOKEN", "SENTRY_ORG", "SENTRY_PROJECT")
     .all { (System.getenv(it) ?: "").isNotBlank() }
 sentry {
+    if (uiSmokeEnabled) ignoredBuildTypes.add("uiSmoke")
     includeProguardMapping.set(hasSentryCreds)
     autoUploadProguardMapping.set(hasSentryCreds)
     // Native is not shipped from this module.
@@ -453,5 +496,18 @@ sentry {
     // plugin re-add it.
     autoInstallation {
         enabled.set(false)
+    }
+}
+
+// No service configuration or telemetry artifact upload belongs to this
+// offline package. Named variant checks leave debug/release tasks intact.
+if (uiSmokeEnabled) {
+    tasks.configureEach {
+        if (name.contains("UiSmoke", ignoreCase = true) &&
+            (name.contains("GoogleServices", ignoreCase = true) ||
+                name.contains("Crashlytics", ignoreCase = true))
+        ) {
+            enabled = false
+        }
     }
 }
