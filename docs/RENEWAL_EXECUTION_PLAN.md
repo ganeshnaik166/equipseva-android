@@ -5,6 +5,12 @@ This continues the existing app and Claude's `UX_UPLIFT_PLAN.md`. It adds the
 owner's requested workflow, security and independent quality program. A plan
 or green build alone is not evidence that the app is ready for release.
 
+> **Resuming session, read first:** a helper agent continued the queued M1
+> integration-test item on branch `claudedev-help` (cut from `c927f7f4`). It did
+> not change this plan, its gates, flows or designs. Its milestone log, checks
+> and open items are in [HANDOFF_CLAUDEDEV_HELP.md](HANDOFF_CLAUDEDEV_HELP.md).
+> Fetch and read that file before continuing, so work is not duplicated.
+
 ## Verified starting point
 
 - GitHub `main`, `ops/r1388-calendar-burndown`, and the original local checkout

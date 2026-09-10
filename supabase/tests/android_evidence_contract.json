@@ -1,0 +1,190 @@
+{
+  "$comment": "Cross-layer contract between the Android r3820 photo-evidence client and the round3821 register_evidence server rules. Read by app/src/test/.../RepairPhotoEvidenceContractTest.kt (Kotlin drives the REAL RepairJobDetailViewModel path builder and EvidenceRegisterPayload) and by supabase/tests/evidence_client_contract.test.mjs (Node executes these receipts against the ACTUAL round492 and round3821 SQL on PGlite). Edit here first; both sides must agree with this file.",
+  "version": 1,
+  "source_of_truth": {
+    "client_path_builder": "app/src/main/kotlin/com/equipseva/app/features/repair/RepairJobDetailViewModel.kt — submitCheckinWithProof (before-) and submitCompletionProof (after-): objectPath = \"$uid/${job.id}/<prefix>-${System.currentTimeMillis()}-${UUID.randomUUID()}-${fileName.take(40).replace(Regex(\"[^A-Za-z0-9._-]\"), \"_\")}\"",
+    "client_storage_url": "app/src/main/kotlin/com/equipseva/app/core/sync/handlers/EvidenceRegisterPayload.kt — forUploadedPhoto: storageUrl = \"${receipt.bucket}/${receipt.objectPath}\"",
+    "client_rpc_call": "app/src/main/kotlin/com/equipseva/app/core/sync/handlers/EvidenceRegisterOutboxHandler.kt — ten p_* parameters, metadata {mime_type, captured_from, client}",
+    "server_rules": "supabase/migrations/20263898000000_round3821_evidence_authorization.sql lines 50-133 (non-service path)",
+    "server_baseline": "supabase/migrations/20260811000000_round492_evidence_65b_chain.sql (what production runs today; no storage_url validation)"
+  },
+  "uid_source": "Client uses session.user.id (SupabaseAuthRepository) for the first path segment; the server compares string_to_array(p_storage_url,'/')[2] with auth.uid()::text (the JWT sub). Their equality is a GoTrue invariant assumed by both test sides and not observed in this slice (DEV-01 BLOCKED 2026-09-09; see docs/HANDOFF_CLAUDEDEV_HELP.md).",
+  "rules": {
+    "bucket": "repair-photos",
+    "segment_count": 4,
+    "uuid_regex": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+    "filename_regex": "^[A-Za-z0-9._-]+$",
+    "filename_forbidden": [".", ".."],
+    "storage_url_regex": "^repair-photos/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/(?!\\.\\.?$)[A-Za-z0-9._-]+$",
+    "client_stored_name_regex": "^(before|after)-[0-9]+-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-[A-Za-z0-9._-]{0,40}$",
+    "prefixes": ["before", "after"],
+    "content_sha256_regex": "^[0-9a-f]{64}$",
+    "content_size_min": 1,
+    "evidence_kinds": ["photo_before", "photo_after"],
+    "source_kind": "repair_job",
+    "producer_kind": "engineer",
+    "metadata_keys": ["mime_type", "captured_from", "client"],
+    "metadata_captured_from": "upload_time",
+    "metadata_client": "android",
+    "platform_version_regex": "^android/[0-9]+\\.[0-9]+\\.[0-9]+(-debug)?$",
+    "sanitizer": {
+      "take": 40,
+      "replace_regex": "[^A-Za-z0-9._-]",
+      "replacement": "_",
+      "order": "take(40) first, then replace"
+    },
+    "server_sqlstates": {
+      "evidence_kind_not_authorized": "42501",
+      "evidence_object_not_authorized": "42501",
+      "evidence_photo_not_attached": "42501",
+      "evidence_object_not_found": "02000",
+      "evidence_object_size_mismatch": "22023",
+      "evidence_registration_conflict": "42501",
+      "evidence_registration_retry": "40001",
+      "not_assigned_engineer": "42501",
+      "repair_job_not_found": "02000",
+      "content_sha256_invalid": "22023"
+    }
+  },
+  "sanitizer_table": [
+    { "input": "IMG 2026-09-09 (1).jpg", "expected": "IMG_2026-09-09__1_.jpg", "why": "spaces and parentheses become underscores" },
+    { "input": "café.jpg", "expected": "caf_.jpg", "why": "one precomposed non-ASCII code unit becomes one underscore" },
+    { "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg", "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "why": "45 a's + .jpg: take(40) runs BEFORE the replace, so the extension is cut" },
+    { "input": "", "expected": "", "why": "blank name leaves a trailing '-' on the stored name, which the server filename regex still accepts" },
+    { "input": "../x.jpg", "expected": ".._x.jpg", "why": "a picker filename cannot inject a fifth path segment or a '..' segment" },
+    { "input": "photo/with/slash.jpg", "expected": "photo_with_slash.jpg", "why": "slashes become underscores" },
+    { "input": "sp ace.PNG", "expected": "sp_ace.PNG", "why": "case is preserved; only disallowed characters change" }
+  ],
+  "kotlin": {
+    "photo_bytes": [1, 2, 3],
+    "content_sha256": "039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81",
+    "content_size_bytes": 3,
+    "before_context": "repair_job_before",
+    "after_context": "repair_job_after",
+    "captured_from": "upload_time"
+  },
+  "identities": {
+    "$comment": "These are the synthetic ids of supabase/tests/evidence_authorization.fixture.sql: ENGINEER = uid(3) is the canonical assigned engineer of job jid(1); HOSPITAL = uid(1) owns the job.",
+    "engineer_uid": "10000000-0000-0000-0000-000000000003",
+    "hospital_uid": "10000000-0000-0000-0000-000000000001",
+    "job_id": "30000000-0000-0000-0000-000000000001"
+  },
+  "conforming_example": {
+    "evidence_kind": "photo_before",
+    "attach_to_column": "before_photos",
+    "object_path": "10000000-0000-0000-0000-000000000003/30000000-0000-0000-0000-000000000001/before-1757394000000-9b0c0d3e-1111-4222-8333-444455556666-IMG_2026-09-09__1_.jpg",
+    "storage_url": "repair-photos/10000000-0000-0000-0000-000000000003/30000000-0000-0000-0000-000000000001/before-1757394000000-9b0c0d3e-1111-4222-8333-444455556666-IMG_2026-09-09__1_.jpg",
+    "source_kind": "repair_job",
+    "producer_kind": "engineer",
+    "content_sha256": "039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81",
+    "content_size_bytes": 3,
+    "captured_at": "2026-09-09T05:00:00Z",
+    "platform_version": "android/0.3.6-debug",
+    "metadata": { "mime_type": "image/jpeg", "captured_from": "upload_time", "client": "android" }
+  },
+  "after_example": {
+    "evidence_kind": "photo_after",
+    "attach_to_column": "after_photos",
+    "object_path": "10000000-0000-0000-0000-000000000003/30000000-0000-0000-0000-000000000001/after-1757394060000-0c1d2e3f-2222-4333-8444-555566667777-sp_ace.PNG",
+    "storage_url": "repair-photos/10000000-0000-0000-0000-000000000003/30000000-0000-0000-0000-000000000001/after-1757394060000-0c1d2e3f-2222-4333-8444-555566667777-sp_ace.PNG",
+    "source_kind": "repair_job",
+    "producer_kind": "engineer",
+    "content_sha256": "0000000000000000000000000000000000000000000000000000000000000abc",
+    "content_size_bytes": 3,
+    "captured_at": "2026-09-09T05:01:00Z",
+    "platform_version": "android/0.3.6",
+    "metadata": { "mime_type": "image/png", "captured_from": "upload_time", "client": "android" }
+  },
+  "platform_version_examples_accepted": ["android/0.3.6", "android/0.3.6-debug"],
+  "non_conforming_variants": {
+    "$comment": "Each variant mutates exactly one property of conforming_example. 'r492' is the production baseline verdict (positive control on the old database); 'r3821' is the candidate verdict. A variant is discriminating when r492 accepts and r3821 denies. NOT EXPRESSIBLE HERE: an uppercase-hex uid or job segment variant (e.g. 1000000A-.../3000000B-...) cannot be written against this fixture, because the SQL fixture identities (evidence_authorization.fixture.sql) are digit-only uuids, so no case-variant of them exists for the server to compare with auth.uid()::text / p_source_id::text, and any other segment value is already covered by the evidence_object_not_authorized variants. The regexes rules.storage_url_regex and rules.uuid_regex admit only lowercase hex, but no Kotlin or Node assertion currently exercises an uppercase uuid segment (follow-up noted in the handoff).",
+    "variants": [
+      {
+        "id": "three_segments_legacy_fixture",
+        "description": "The shape the r3820 client unit-test fixture used before this slice (repair-photos/<uid>/<file>): no job segment",
+        "mutation": { "storage_url": "repair-photos/10000000-0000-0000-0000-000000000003/before-1.jpg" },
+        "r492": { "outcome": "accepted" },
+        "r3821": { "outcome": "denied", "sqlstate": "42501", "literal": "evidence_object_not_authorized" },
+        "discriminating": true
+      },
+      {
+        "id": "bucket_prefix_missing",
+        "description": "The bucket-relative object path (what repair_jobs.before_photos stores) sent as the url",
+        "mutation": { "storage_url": "10000000-0000-0000-0000-000000000003/30000000-0000-0000-0000-000000000001/before-1757394000000-9b0c0d3e-1111-4222-8333-444455556666-IMG_2026-09-09__1_.jpg" },
+        "r492": { "outcome": "accepted" },
+        "r3821": { "outcome": "denied", "sqlstate": "42501", "literal": "evidence_object_not_authorized" },
+        "discriminating": true
+      },
+      {
+        "id": "dot_filename",
+        "description": "Filename '.'",
+        "mutation": { "storage_url": "repair-photos/10000000-0000-0000-0000-000000000003/30000000-0000-0000-0000-000000000001/." },
+        "r492": { "outcome": "accepted" },
+        "r3821": { "outcome": "denied", "sqlstate": "42501", "literal": "evidence_object_not_authorized" },
+        "discriminating": true
+      },
+      {
+        "id": "empty_url",
+        "description": "Empty string url (string_to_array('', '/') has no elements)",
+        "mutation": { "storage_url": "" },
+        "r492": { "outcome": "accepted" },
+        "r3821": { "outcome": "denied", "sqlstate": "42501", "literal": "evidence_object_not_authorized" },
+        "discriminating": true
+      },
+      {
+        "id": "leading_slash",
+        "description": "Leading slash yields five segments",
+        "mutation": { "storage_url": "/repair-photos/10000000-0000-0000-0000-000000000003/30000000-0000-0000-0000-000000000001/before-1757394000000-9b0c0d3e-1111-4222-8333-444455556666-IMG_2026-09-09__1_.jpg" },
+        "r492": { "outcome": "accepted" },
+        "r3821": { "outcome": "denied", "sqlstate": "42501", "literal": "evidence_object_not_authorized" },
+        "discriminating": true
+      },
+      {
+        "id": "trailing_slash",
+        "description": "Trailing slash yields five segments with an empty last one",
+        "mutation": { "storage_url": "repair-photos/10000000-0000-0000-0000-000000000003/30000000-0000-0000-0000-000000000001/before-1757394000000-9b0c0d3e-1111-4222-8333-444455556666-IMG_2026-09-09__1_.jpg/" },
+        "r492": { "outcome": "accepted" },
+        "r3821": { "outcome": "denied", "sqlstate": "42501", "literal": "evidence_object_not_authorized" },
+        "discriminating": true
+      },
+      {
+        "id": "photo_during_kind",
+        "description": "A ledger kind the client never sends but the r492 CHECK list allows",
+        "mutation": { "evidence_kind": "photo_during" },
+        "r492": { "outcome": "accepted" },
+        "r3821": { "outcome": "denied", "sqlstate": "42501", "literal": "evidence_kind_not_authorized" },
+        "discriminating": true
+      },
+      {
+        "id": "producer_hospital",
+        "description": "Assigned engineer claiming producer_kind hospital",
+        "mutation": { "producer_kind": "hospital" },
+        "r492": { "outcome": "accepted" },
+        "r3821": { "outcome": "denied", "sqlstate": "42501", "literal": "evidence_kind_not_authorized" },
+        "discriminating": true
+      },
+      {
+        "id": "kind_array_mismatch",
+        "description": "A client kind whose attachment array does not hold the object: the conforming object is attached only in before_photos, but the receipt claims photo_after. r492 has no attachment check and inserts a new row (kind is part of evidence_ledger_uniq); r3821's CASE checks after_photos and raises evidence_photo_not_attached",
+        "mutation": { "evidence_kind": "photo_after" },
+        "r492": { "outcome": "accepted" },
+        "r3821": { "outcome": "denied", "sqlstate": "42501", "literal": "evidence_photo_not_attached" },
+        "discriminating": true
+      },
+      {
+        "id": "uppercase_hex_sha",
+        "description": "Contract pin, not a discriminator: both migrations reject uppercase hex with the identical RAISE text 'content_sha256 must be 64-char lowercase hex' (r492's lower() at line 175 sits after its own check, so r492 carries the sqlstate only); the Android handler also rejects it client-side before any HTTP call",
+        "mutation": { "content_sha256": "039058C6F2C0CB492C533B0A4D14EF77CC0F78ABCCCED5287D84A1A2011CFB81" },
+        "r492": { "outcome": "denied", "sqlstate": "22023" },
+        "r3821": { "outcome": "denied", "sqlstate": "22023", "sqlstate_key": "content_sha256_invalid", "literal": "must be 64-char lowercase hex" },
+        "discriminating": false
+      }
+    ]
+  },
+  "not_proven_here": [
+    "Real Supabase Storage stamps storage.objects.owner_id and metadata.size for supabase-kt upsert uploads (both harnesses seed those columns by hand).",
+    "SECURITY DEFINER SELECT ... FOR SHARE privilege on storage.objects under production ownership.",
+    "That auth.uid() equals session.user.id at runtime (GoTrue invariant; see uid_source).",
+    "Anything about the deployed database, which runs round492."
+  ]
+}

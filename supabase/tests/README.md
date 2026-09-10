@@ -65,6 +65,25 @@ Registration holds SHARE locks on the job, engineer row and object until commit;
 neither focused fixture proves deployment-specific constraints or all live lock
 interactions.
 
+`evidence_client_contract.test.mjs` (`npm run test:contract`, last in the `npm test`
+chain) is the Node half of the cross-layer INT-04 check. It loads
+`android_evidence_contract.json`, the fixture shared with the Kotlin
+`RepairPhotoEvidenceContractTest`, self-checks that fixture (rule regexes, the
+sanitizer table, the hash of the Kotlin sample bytes), then executes its real-shape
+Android receipts (`repair-photos/<uid>/<job>/<before|after>-<millis>-<uuid>-<sanitized40>`,
+metadata `client: android`, `android/<version>` platform strings) against the exact
+round492 and round3821 `register_evidence` in two disposable PGlite databases: the
+conforming before/after receipts are accepted by both, retried idempotently and read
+back bucket-prefixed by hospital and engineer through `evidence_for_repair_job`; each
+non-conforming variant is checked against its recorded round492 verdict and denied
+by round3821 with the expected SQLSTATE **and** RAISE literal (the uppercase-hex case
+is a contract pin that both migrations reject). The harness header is duplicated from
+`evidence_authorization.test.mjs` on purpose. Like the other suites it seeds
+`storage.objects.owner_id` and `metadata.size` by hand, so real Storage
+`owner_id`/`metadata.size` semantics for supabase-kt uploads, the
+`SECURITY DEFINER … FOR SHARE` privilege on `storage.objects`, deployed state and
+device behaviour remain unproven here (see the fixture's `not_proven_here`).
+
 ## Native evidence concurrency
 
 With Python 3.12+ and PostgreSQL 16+ server binaries installed, run from the
