@@ -52,6 +52,11 @@ android {
     // which only affects which APIs the compiler can see.
     compileSdk = 37
 
+    // MigrationTestHelper reads the committed Room exports through the
+    // Robolectric instrumentation context. Debug carries them; release does not.
+    sourceSets["test"].assets.srcDir("$projectDir/schemas")
+    sourceSets["debug"].assets.srcDir("$projectDir/schemas")
+
     defaultConfig {
         applicationId = "com.equipseva.app"
         minSdk = 26
@@ -337,6 +342,7 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.test.runner)
+    testImplementation(libs.room.testing)
     // Hilt test infra — HiltTestApplication + HiltAndroidRule so JVM
     // tests can boot the real Hilt graph with @TestInstallIn modules
     // replacing the prod ones (e.g. swap SupabaseClient for a fake).
