@@ -84,4 +84,10 @@ unassessed. No score is claimed for the app, for auth as a whole, or for A2.
 
 ## 7. Commit record
 
-Filled in by the final docs commit on this branch.
+| Item | Value |
+| --- | --- |
+| Base | `1e770076358e74f6f40a99a4907f831da59e791c` (`origin/codex/security-foundation-20260907`, unchanged at push time) |
+| Content commit | `6297d05612ab1973322b6ccb829d911b995311a1` — the five files in §1 (1,040 lines added, nothing else) |
+| Record commit | the commit that adds this table (one line above the content commit; see `git log -2`) |
+| Push | `origin/claudedev-next-review-20260911` created from the content commit; upstream set to the review branch, never to the Codex branch |
+| Not done | no force push, no merge to `main` or to the Codex branch, no CI run (workflow filters do not include this branch; open a PR to run CI if wanted) |
