@@ -6,6 +6,7 @@ import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.auth.SignOutCleanup
 import com.equipseva.app.core.data.profile.Profile
 import com.equipseva.app.core.data.profile.ProfileRepository
+import com.equipseva.app.core.data.profile.ProfileInvalidations
 import com.equipseva.app.core.push.DeviceTokenRegistrar
 import com.equipseva.app.testing.FakeAuthRepository
 import com.equipseva.app.testing.RecordingUserPrefs
@@ -59,11 +60,17 @@ class SessionViewModelIdentityTest {
         val prefs: RecordingUserPrefs,
     ) {
         val auth = FakeAuthRepository(initialSession)
+        val invalidations = ProfileInvalidations()
+        var signOutResult: Result<Unit> = Result.success(Unit)
         // Unlike StateFlow, this emits exact duplicate SignedIn values too.
         val sessions = MutableSharedFlow<AuthSession>(replay = 1, extraBufferCapacity = 16)
             .also { it.tryEmit(initialSession) }
         val authRepository = object : AuthRepository by auth {
             override val sessionState = sessions
+            override suspend fun signOut(): Result<Unit> {
+                auth.signOut()
+                return signOutResult
+            }
         }
         val fetches = mutableListOf<Fetch>()
         val profileRepository = mockk<ProfileRepository> {
@@ -84,7 +91,7 @@ class SessionViewModelIdentityTest {
         lateinit var vm: SessionViewModel
 
         fun start() {
-            vm = SessionViewModel(authRepository, profileRepository, prefs.mock, registrar, cleanup)
+            vm = SessionViewModel(authRepository, profileRepository, prefs.mock, registrar, cleanup, invalidations)
         }
 
         fun session(session: AuthSession) { check(sessions.tryEmit(session)) }
@@ -775,6 +782,296 @@ class SessionViewModelIdentityTest {
         runCurrent()
         assertTrue(f.fetches.isEmpty())
         assertEquals(SessionState.SignedOut, f.vm.state.value)
+    }
+
+    @Test fun `presentation retains same login during unknown but resets observed relogin`() = runTest {
+        val f = fixture()
+        runCurrent()
+        f.fetches.single().complete(profile("A", "engineer"))
+        runCurrent()
+        val ready = f.vm.presentation.value
+        assertEquals(f.vm.state.value, ready.state)
+        assertTrue(ready.baseProfileComplete)
+        f.session(AuthSession.Unknown)
+        runCurrent()
+        val unknown = f.vm.presentation.value
+        assertEquals(ready.owner, unknown.owner)
+        assertEquals(ready.state, unknown.retainedState)
+        assertEquals(SessionState.Loading, unknown.state)
+        assertTrue(unknown.resolvingAuth)
+        f.session(AuthSession.SignedOut)
+        runCurrent()
+        assertNull(f.vm.presentation.value.owner)
+        assertNull(f.vm.presentation.value.retainedState)
+        f.session(signedIn("A"))
+        runCurrent()
+        assertNotEquals(ready.owner, f.vm.presentation.value.owner)
+        assertNull(f.vm.presentation.value.retainedState)
+        assertFalse(f.vm.presentation.value.baseProfileComplete)
+    }
+
+    @Test fun `saved role invalidates old ready and failed fetch remains recoverable`() = runTest {
+        val f = fixture()
+        runCurrent()
+        f.fetches.single().complete(profile("A"))
+        runCurrent()
+        val owner = f.vm.presentation.value.owner
+        f.vm.refreshAfterProfileSave()
+        runCurrent()
+        assertEquals(SessionState.Loading, f.vm.state.value)
+        assertTrue(f.vm.presentation.value.profileLoading)
+        assertEquals(owner, f.vm.presentation.value.owner)
+        f.fetches.last().response.complete(Result.failure(IOException("offline")))
+        runCurrent()
+        assertEquals(SessionState.Loading, f.vm.state.value)
+        assertTrue(f.vm.presentation.value.profileFailed)
+        assertFalse(f.vm.presentation.value.profileLoading)
+        f.vm.refreshAfterProfileSave()
+        runCurrent()
+        f.fetches.last().complete(profile("A", "engineer", onboarded = false))
+        runCurrent()
+        assertEquals(SessionState.NeedsOnboarding("A", "A@test.invalid", "engineer"), f.vm.state.value)
+        assertFalse(f.vm.presentation.value.profileFailed)
+    }
+
+    @Test fun `repository role invalidation refreshes root without any child callback`() = runTest {
+        val f = fixture()
+        runCurrent()
+        f.fetches.single().complete(profile("A").copy(roleConfirmed = false))
+        runCurrent()
+        f.invalidations.invalidate()
+        runCurrent()
+        assertEquals(SessionState.NeedsRole("A", "A@test.invalid"), f.vm.state.value)
+        assertEquals(2, f.fetches.size)
+        f.fetches.last().complete(profile("A", "engineer"))
+        runCurrent()
+        assertEquals(SessionState.Ready("A", "A@test.invalid", "engineer"), f.vm.state.value)
+    }
+
+    @Test fun `unowned late invalidation refreshes B without dropping its validated host`() = runTest {
+        val f = fixture()
+        runCurrent()
+        f.session(signedIn("B"))
+        runCurrent()
+        f.fetches.last().complete(profile("B"))
+        runCurrent()
+        val before = f.vm.presentation.value
+        f.invalidations.invalidate()
+        runCurrent()
+        assertEquals(before.state, f.vm.presentation.value.state)
+        assertEquals(before.owner, f.vm.presentation.value.owner)
+        assertEquals("B", f.fetches.last().userId)
+        f.fetches.last().response.complete(Result.failure(IOException("offline")))
+        runCurrent()
+        assertEquals(before.state, f.vm.presentation.value.state)
+        assertEquals(before.owner, f.vm.presentation.value.owner)
+    }
+
+    @Test fun `invalidation during unknown rejects the older request before auth resumes`() = runTest {
+        val f = fixture()
+        runCurrent()
+        val old = f.fetches.single()
+        f.session(AuthSession.Unknown)
+        runCurrent()
+        f.invalidations.invalidate()
+        runCurrent()
+        old.complete(profile("A", "engineer"))
+        runCurrent()
+        assertNull(f.vm.presentation.value.retainedState)
+        assertTrue(f.prefs.writeEvents.isEmpty())
+        f.session(signedIn("A"))
+        runCurrent()
+        assertEquals(2, f.fetches.size)
+        assertTrue(f.prefs.writeEvents.isEmpty())
+        assertEquals(SessionState.Loading, f.vm.state.value)
+        f.fetches.last().complete(profile("A", onboarded = false))
+        runCurrent()
+        assertEquals(SessionState.NeedsOnboarding("A", "A@test.invalid", "hospital_admin"), f.vm.state.value)
+    }
+
+    @Test fun `pending invalidation cannot restore old login on replacement`() = runTest {
+        val f = fixture()
+        runCurrent()
+        f.fetches.single().complete(profile("A"))
+        runCurrent()
+        f.session(AuthSession.Unknown)
+        runCurrent()
+        f.invalidations.invalidate()
+        runCurrent()
+        f.session(signedIn("B"))
+        runCurrent()
+        assertEquals(listOf("A", "B"), f.fetches.map { it.userId })
+        assertNull(f.vm.presentation.value.retainedState)
+        f.fetches.last().complete(profile("B", onboarded = false))
+        runCurrent()
+        assertEquals(SessionState.NeedsOnboarding("B", "B@test.invalid", "hospital_admin"), f.vm.state.value)
+    }
+
+    @Test fun `queued invalidation before subscription cannot be dropped`() = runTest {
+        Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
+        val f = fixture {
+            coEvery { profileRepository.fetchById(any()) } coAnswers {
+                val fetch = Fetch(firstArg())
+                fetches += fetch
+                // Main.immediate starts bootstrap before init registers its
+                // invalidation collector. drop(1) would lose this notification.
+                if (fetches.size == 1) invalidations.invalidate()
+                withContext(NonCancellable) { fetch.response.await() }
+            }
+        }
+        assertEquals(2, f.fetches.size)
+        f.fetches.first().complete(profile("A", "hospital_admin"))
+        runCurrent()
+        assertTrue(f.prefs.writeEvents.isEmpty())
+        assertEquals(SessionState.Loading, f.vm.state.value)
+        f.fetches.last().complete(profile("A", "engineer"))
+        runCurrent()
+        assertEquals(SessionState.Ready("A", "A@test.invalid", "engineer"), f.vm.state.value)
+    }
+
+    @Test fun `signout gates immediately and ignores duplicate taps and late fetch`() = runTest {
+        val release = CompletableDeferred<Unit>()
+        val f = fixture {
+            coEvery { cleanup.wipeLocalUserState() } coAnswers { release.await() }
+        }
+        try {
+            runCurrent()
+            val old = f.fetches.single()
+            f.vm.signOutFromGate()
+            f.vm.signOutFromGate()
+            runCurrent()
+            assertEquals(SessionState.Loading, f.vm.state.value)
+            assertFalse(f.vm.presentation.value.profileLoading)
+            assertTrue(f.vm.presentation.value.signingOut)
+            old.complete(profile("A"))
+            runCurrent()
+            assertTrue(f.prefs.writeEvents.isEmpty())
+            coVerify(exactly = 1) { f.cleanup.wipeLocalUserState() }
+            release.complete(Unit)
+            runCurrent()
+            assertEquals(1, f.auth.signOutCount)
+            // The server call returned but SignedOut has not been observed.
+            // A retained callback cannot start cleanup/signout a second time.
+            f.vm.signOutFromGate()
+            runCurrent()
+            assertEquals(1, f.auth.signOutCount)
+            coVerify(exactly = 1) { f.cleanup.wipeLocalUserState() }
+            f.session(AuthSession.SignedOut)
+            runCurrent()
+            assertEquals(SessionState.SignedOut, f.vm.state.value)
+            assertNull(f.vm.presentation.value.owner)
+        } finally { release.complete(Unit) }
+    }
+
+    @Test fun `failed signout leaves recovery and can be retried`() = runTest {
+        val f = fixture { signOutResult = Result.failure(IOException("offline")) }
+        runCurrent()
+        f.vm.signOutFromGate()
+        runCurrent()
+        assertTrue(f.vm.presentation.value.profileFailed)
+        assertFalse(f.vm.presentation.value.signingOut)
+        assertEquals(SessionState.Loading, f.vm.state.value)
+        f.signOutResult = Result.success(Unit)
+        f.vm.signOutFromGate()
+        runCurrent()
+        assertEquals(2, f.auth.signOutCount)
+        f.session(AuthSession.SignedOut)
+        runCurrent()
+        assertEquals(SessionState.SignedOut, f.vm.state.value)
+    }
+
+    @Test fun `captured root actions cannot mutate replacement or second login of same user`() = runTest {
+        val f = fixture()
+        runCurrent()
+        f.fetches.single().complete(profile("A"))
+        runCurrent()
+        val firstA = f.vm.presentation.value.owner
+        f.session(signedIn("B"))
+        runCurrent()
+        f.fetches.last().complete(profile("B"))
+        runCurrent()
+        f.vm.refreshAfterProfileSave(firstA)
+        f.vm.signOutFromGate(firstA)
+        runCurrent()
+        assertEquals(2, f.fetches.size)
+        assertEquals(SessionState.Ready("B", "B@test.invalid", "hospital_admin"), f.vm.state.value)
+        assertEquals(0, f.auth.signOutCount)
+        coVerify(exactly = 0) { f.cleanup.wipeLocalUserState() }
+        f.session(signedIn("A"))
+        runCurrent()
+        f.fetches.last().complete(profile("A", "engineer"))
+        runCurrent()
+        f.vm.refreshAfterProfileSave(firstA)
+        f.vm.signOutFromGate(firstA)
+        f.vm.refreshAfterProfileSave(null)
+        f.vm.signOutFromGate(null)
+        runCurrent()
+        assertEquals(3, f.fetches.size)
+        assertEquals(SessionState.Ready("A", "A@test.invalid", "engineer"), f.vm.state.value)
+        assertEquals(0, f.auth.signOutCount)
+        coVerify(exactly = 0) { f.cleanup.wipeLocalUserState() }
+    }
+
+    @Test fun `signout dependency cancellation releases owned progress for retry`() = runTest {
+        val f = fixture { signOutResult = Result.failure(CancellationException("Cancelled request")) }
+        runCurrent()
+        f.vm.signOutFromGate()
+        runCurrent()
+        assertFalse(f.vm.presentation.value.signingOut)
+        assertTrue(f.vm.presentation.value.profileFailed)
+        f.signOutResult = Result.success(Unit)
+        f.vm.signOutFromGate()
+        runCurrent()
+        assertEquals(2, f.auth.signOutCount)
+        f.session(AuthSession.SignedOut)
+        runCurrent()
+        assertEquals(SessionState.SignedOut, f.vm.state.value)
+    }
+
+    @Test fun `live unknown before observer runs cannot arm UI mutations for later`() = runTest {
+        val f = fixture()
+        runCurrent()
+        f.fetches.single().complete(profile("A"))
+        runCurrent()
+        val ready = f.vm.presentation.value
+        // Queue UI admission first, then change upstream before either the UI
+        // coroutine or the auth observer has run. Snapshot still says Ready.
+        f.vm.refreshAfterProfileSave(ready.owner)
+        f.vm.signOutFromGate(ready.owner)
+        f.session(AuthSession.Unknown)
+        assertEquals(ready, f.vm.presentation.value)
+        runCurrent()
+        assertEquals(ready.state, f.vm.presentation.value.retainedState)
+        assertFalse(f.vm.presentation.value.signingOut)
+        assertEquals(1, f.fetches.size)
+        coVerify(exactly = 0) { f.cleanup.wipeLocalUserState() }
+        f.session(signedIn("A"))
+        runCurrent()
+        assertEquals(ready.state, f.vm.state.value)
+        assertEquals(1, f.fetches.size)
+        assertEquals(0, f.auth.signOutCount)
+    }
+
+    @Test fun `old explicit signout cleanup completion cannot sign out replacement`() = runTest {
+        val release = CompletableDeferred<Unit>()
+        val f = fixture {
+            coEvery { cleanup.wipeLocalUserState() } coAnswers {
+                withContext(NonCancellable) { release.await() }
+            }
+        }
+        try {
+            runCurrent()
+            f.vm.signOutFromGate()
+            runCurrent()
+            f.session(signedIn("B"))
+            runCurrent()
+            release.complete(Unit)
+            runCurrent()
+            assertEquals(0, f.auth.signOutCount)
+            f.fetches.last().complete(profile("B"))
+            runCurrent()
+            assertEquals(SessionState.Ready("B", "B@test.invalid", "hospital_admin"), f.vm.state.value)
+        } finally { release.complete(Unit) }
     }
 
     companion object {

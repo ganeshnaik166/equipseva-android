@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="role_picker_title">अपनी भूमिका चुनें</string>
+    <string name="role_picker_intro">EquipSeva का इस्तेमाल कैसे करना है, यह चुनें। बाद में प्रोफ़ाइल से अपनी सक्रिय भूमिका बदल सकते हैं।</string>
+    <string name="role_picker_hospital">अस्पताल प्रशासक</string>
+    <string name="role_picker_hospital_description">अपने अस्पताल के लिए बायोमेडिकल इंजीनियर बुक करें और मरम्मत का प्रबंधन करें।</string>
+    <string name="role_picker_engineer">बायोमेडिकल इंजीनियर</string>
+    <string name="role_picker_engineer_description">सर्विस के काम खोजें और अपनी मरम्मत का काम संभालें।</string>
+    <string name="role_picker_save_continue">सहेजें और आगे बढ़ें</string>
+    <string name="role_picker_saving">आपकी भूमिका सहेजी जा रही है…</string>
+    <string name="role_picker_saved">भूमिका सहेज दी गई है। आगे बढ़ने के लिए अपना सेटअप जाँचें।</string>
+    <string name="role_picker_check_again">सेटअप फिर से जाँचें</string>
+    <string name="role_picker_try_again">फिर से कोशिश करें</string>
+    <string name="role_picker_sign_out">साइन आउट करें</string>
+    <string name="role_picker_sign_out_hint">दूसरे खाते का इस्तेमाल करें या सेटअप बाद में पूरा करें।</string>
+    <string name="role_picker_error_session">आपका साइन-इन सत्र उपलब्ध नहीं है। साइन आउट करके फिर से साइन इन करें।</string>
+    <string name="role_picker_error_network">आपकी भूमिका सहेजी नहीं जा सकी। इंटरनेट कनेक्शन जाँचें और फिर से कोशिश करें।</string>
+    <string name="role_picker_error_save">आपकी भूमिका सहेजी नहीं जा सकी। कृपया फिर से कोशिश करें।</string>
+</resources>

@@ -120,9 +120,10 @@ fun HomeHubScreen(
     onOpenAmcContractDetail: (contractId: String) -> Unit = {},
     onShowMessage: (String) -> Unit = {},
     viewModel: HomeHubViewModel = hiltViewModel(),
+    validatedRole: com.equipseva.app.features.auth.UserRole? = null,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val role = state.role
+    val role = validatedRole ?: state.role
     val kyc = state.kycStatus
 
     // FIX #10 — Help & Support sheet state. Lives at the screen level

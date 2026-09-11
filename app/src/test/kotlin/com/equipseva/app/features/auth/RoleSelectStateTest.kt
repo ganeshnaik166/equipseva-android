@@ -32,10 +32,8 @@ class RoleSelectStateTest {
         assertFalse(state.canConfirm)
     }
 
-    @Test fun `default roles list exposes all UserRole entries (no filtering)`() {
-        // Pin so a future filter (e.g. hiding LOGISTICS for soft-launch)
-        // is intentional, not an accidental list mutation.
+    @Test fun `default roles list exposes only active hospital and engineer roles`() {
         val state = RoleSelectViewModel.RoleSelectState()
-        assertEquals(UserRole.entries, state.roles)
+        assertEquals(listOf(UserRole.HOSPITAL, UserRole.ENGINEER), state.roles)
     }
 }

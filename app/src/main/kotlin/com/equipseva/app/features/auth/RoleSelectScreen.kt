@@ -1,259 +1,299 @@
 package com.equipseva.app.features.auth
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apartment
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.LocalShipping
-import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.R
-import com.equipseva.app.designsystem.components.EsBtn
-import com.equipseva.app.designsystem.components.EsBtnKind
-import com.equipseva.app.designsystem.components.EsBtnSize
-import com.equipseva.app.designsystem.components.EsTopBar
-import com.equipseva.app.designsystem.components.ErrorBanner
-import com.equipseva.app.designsystem.components.Pill
-import com.equipseva.app.designsystem.components.PillKind
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.EsType
-import com.equipseva.app.designsystem.theme.Paper2
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk600
 import com.equipseva.app.designsystem.theme.SevaInk900
-import com.equipseva.app.features.auth.state.AuthEffect
+import com.equipseva.app.features.auth.RoleSelectViewModel.RoleSelectEffect
+import com.equipseva.app.features.auth.RoleSelectViewModel.RoleSelectError
+import com.equipseva.app.features.auth.RoleSelectViewModel.RoleSelectState
 
-private data class RoleVisual(
-    val icon: ImageVector,
-    val label: String,
-    val desc: String,
-    val active: Boolean,
-)
-
-private fun UserRole.visual(): RoleVisual = when (this) {
-    UserRole.HOSPITAL -> RoleVisual(
-        Icons.Filled.Apartment,
-        "Hospital admin",
-        "Book engineers for your facility",
-        true,
-    )
-    UserRole.ENGINEER -> RoleVisual(
-        Icons.Filled.Build,
-        // Match UserRole.ENGINEER.displayName so signup-time role pick
-        // matches the AccountTypeSection title + role-editor sheet +
-        // Profile hero pill (Round 12 + Round 14). Was the last place
-        // saying "Engineer" instead of the canonical "Biomedical engineer".
-        "Biomedical engineer",
-        "Independent biomedical technician",
-        true,
-    )
-    UserRole.SUPPLIER -> RoleVisual(
-        Icons.Filled.Inventory2,
-        "Supplier",
-        "Coming soon",
-        false,
-    )
-    UserRole.MANUFACTURER -> RoleVisual(
-        Icons.Filled.Layers,
-        "Manufacturer",
-        "Coming soon",
-        false,
-    )
-    UserRole.LOGISTICS -> RoleVisual(
-        Icons.Filled.LocalShipping,
-        "Logistics",
-        "Coming soon",
-        false,
-    )
-}
-
+/**
+ * The host refreshes its authoritative session gate after [onRoleSaved].
+ * [onShowMessage] and [onBack] are retained for source compatibility. This
+ * required setup step has an explicit sign-out exit, not a back navigation.
+ */
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun RoleSelectScreen(
     onShowMessage: (String) -> Unit,
     onBack: () -> Unit = {},
     viewModel: RoleSelectViewModel = hiltViewModel(),
+    onRoleSaved: () -> Unit = {},
+    onSignOut: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-
+    val currentOnRoleSaved by rememberUpdatedState(onRoleSaved)
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                is AuthEffect.ShowMessage -> onShowMessage(effect.text)
-                AuthEffect.NavigateToHome -> Unit
-                // v0.3.4 — host (AppNavGraph AuthHostInline) observes the
-                // session transition and routes via the auth graph; the
-                // RoleSelect screen itself doesn't navigate here.
-                AuthEffect.NavigateToHospitalPhoneOnboarding -> Unit
+                RoleSelectEffect.RoleSaved -> currentOnRoleSaved()
             }
         }
     }
+    RoleSelectContent(
+        state = state,
+        onRoleSelected = viewModel::onRoleSelected,
+        onConfirm = viewModel::onConfirm,
+        onCheckSavedRole = viewModel::onCheckSavedRole,
+        onSignOut = {
+            viewModel.cancelPendingSave()
+            onSignOut()
+        },
+    )
+}
 
+/** All content and actions remain reachable with a small window or large text. */
+@Composable
+internal fun RoleSelectContent(
+    state: RoleSelectState,
+    onRoleSelected: (UserRole) -> Unit,
+    onConfirm: () -> Unit,
+    onCheckSavedRole: () -> Unit,
+    onSignOut: () -> Unit,
+) {
+    val error = when (state.error) {
+        RoleSelectError.SessionUnavailable -> stringResource(R.string.role_picker_error_session)
+        RoleSelectError.Network -> stringResource(R.string.role_picker_error_network)
+        RoleSelectError.SaveFailed -> stringResource(R.string.role_picker_error_save)
+        null -> null
+    }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.systemBars),
+        Box(
+            modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            EsTopBar(title = "Pick your role", onBack = onBack)
             Column(
                 modifier = Modifier
+                    .widthIn(max = 600.dp)
                     .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Text(
-                    text = stringResource(R.string.role_select_switch_later_note),
+                    text = stringResource(R.string.role_picker_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = SevaInk900,
+                    modifier = Modifier.semantics { heading() },
+                )
+                Text(
+                    text = stringResource(R.string.role_picker_intro),
+                    style = EsType.Body,
+                    color = SevaInk600,
+                )
+                if (error != null) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
+                    ) {
+                        Text(
+                            text = error,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = EsType.Body,
+                            modifier = Modifier.padding(16.dp),
+                        )
+                    }
+                }
+                Column(
+                    modifier = Modifier.fillMaxWidth().selectableGroup(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    state.roles.forEach { role ->
+                        RoleCard(
+                            role = role,
+                            selected = role == state.selected,
+                            enabled = !state.form.submitting && !state.saved,
+                            onClick = { onRoleSelected(role) },
+                        )
+                    }
+                }
+                if (state.saved) {
+                    Text(
+                        text = stringResource(R.string.role_picker_saved),
+                        style = EsType.Body,
+                        color = SevaGreen700,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    )
+                }
+                Button(
+                    onClick = if (state.saved) onCheckSavedRole else onConfirm,
+                    enabled = state.saved || state.canConfirm,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+                        .semantics { liveRegion = LiveRegionMode.Polite },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SevaGreen700),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                ) {
+                    if (state.form.submitting) {
+                        CircularProgressIndicator(
+                            color = SevaInk500,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.padding(end = 8.dp).size(20.dp).clearAndSetSemantics {},
+                        )
+                    }
+                    Text(
+                        text = stringResource(
+                            when {
+                                state.form.submitting -> R.string.role_picker_saving
+                                state.saved -> R.string.role_picker_check_again
+                                state.error != null -> R.string.role_picker_try_again
+                                else -> R.string.role_picker_save_continue
+                            },
+                        ),
+                        style = EsType.Label,
+                    )
+                }
+                TextButton(
+                    onClick = onSignOut,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                    colors = ButtonDefaults.textButtonColors(contentColor = SevaInk600),
+                ) {
+                    Text(stringResource(R.string.role_picker_sign_out), style = EsType.Label)
+                }
+                Text(
+                    text = stringResource(R.string.role_picker_sign_out_hint),
                     style = EsType.BodySm,
                     color = SevaInk600,
-                    modifier = Modifier.padding(bottom = 10.dp),
                 )
-
-                ErrorBanner(message = state.form.errorMessage)
-
-                state.roles.forEach { role ->
-                    RoleCard(
-                        role = role,
-                        selected = role == state.selected,
-                        onClick = { viewModel.onRoleSelected(role) },
-                    )
-                }
-            }
-            // Bottom action bar
-            Surface(color = Color.White, shadowElevation = 0.dp) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(width = 1.dp, color = BorderDefault, shape = RoundedCornerShape(0.dp))
-                        .padding(20.dp),
-                ) {
-                    EsBtn(
-                        text = "Continue",
-                        onClick = viewModel::onConfirm,
-                        kind = EsBtnKind.Primary,
-                        size = EsBtnSize.Lg,
-                        full = true,
-                        disabled = !state.canConfirm,
-                    )
-                }
             }
         }
     }
+}
+
+private data class RoleVisual(
+    val icon: ImageVector,
+    @StringRes val label: Int,
+    @StringRes val description: Int,
+)
+
+private fun UserRole.visual(): RoleVisual? = when (this) {
+    UserRole.HOSPITAL -> RoleVisual(
+        Icons.Filled.Apartment,
+        R.string.role_picker_hospital,
+        R.string.role_picker_hospital_description,
+    )
+    UserRole.ENGINEER -> RoleVisual(
+        Icons.Filled.Build,
+        R.string.role_picker_engineer,
+        R.string.role_picker_engineer_description,
+    )
+    else -> null
 }
 
 @Composable
 private fun RoleCard(
     role: UserRole,
     selected: Boolean,
+    enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    val v = role.visual()
-    val borderColor = if (selected) SevaGreen700 else BorderDefault
-    val bg = if (selected) SevaGreen50 else Color.White
-    val tileBg = if (selected) SevaGreen700 else Paper2
-    val tileFg = if (selected) Color.White else SevaInk600
+    val visual = role.visual() ?: return
+    val shape = RoundedCornerShape(12.dp)
     Row(
-        // Round 445 — selectable + Role.RadioButton so TalkBack announces
-        // "Radio button, selected" / "not selected" + handles the
-        // exclusive-pick semantics correctly. Mirror of r411/r444. The
-        // greyed-out non-active roles stay non-interactive (no semantics
-        // attached, matching the visual disabled state).
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(bg)
-            .border(1.5.dp, borderColor, RoundedCornerShape(12.dp))
-            .alpha(if (v.active) 1f else 0.5f)
-            .let {
-                if (v.active) {
-                    it.selectable(
-                        selected = selected,
-                        onClick = onClick,
-                        role = Role.RadioButton,
-                    )
-                } else it
-            }
-            .padding(14.dp),
+            .heightIn(min = 72.dp)
+            .clip(shape)
+            .background(if (selected) SevaGreen50 else Color.White)
+            .border(1.5.dp, if (selected) SevaGreen700 else BorderDefault, shape)
+            .selectable(
+                selected = selected,
+                enabled = enabled,
+                role = Role.RadioButton,
+                onClick = onClick,
+            )
+            .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(tileBg),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = v.icon,
-                contentDescription = "${v.label} role icon",
-                tint = tileFg,
-                modifier = Modifier.size(20.dp),
-            )
-        }
-        Column(modifier = Modifier.weight(1f)) {
+        Icon(
+            imageVector = visual.icon,
+            contentDescription = null,
+            tint = if (selected) SevaGreen700 else SevaInk600,
+            modifier = Modifier.size(28.dp),
+        )
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                text = v.label,
-                style = EsType.Body.copy(fontWeight = FontWeight.SemiBold),
+                text = stringResource(visual.label),
+                style = EsType.Body,
+                fontWeight = FontWeight.SemiBold,
                 color = SevaInk900,
             )
-            Spacer(Modifier.height(2.dp))
             Text(
-                text = v.desc,
-                style = EsType.Caption,
-                color = SevaInk500,
+                text = stringResource(visual.description),
+                style = EsType.BodySm,
+                color = SevaInk600,
             )
         }
-        if (!v.active) {
-            Pill(text = "Soon", kind = PillKind.Default)
-        } else if (selected) {
-            Icon(
-                imageVector = Icons.Outlined.CheckCircle,
-                contentDescription = "Selected",
-                tint = SevaGreen700,
-                modifier = Modifier.size(20.dp),
-            )
-        } else {
-            Box(modifier = Modifier.size(20.dp))
-        }
+        RadioButton(
+            selected = selected,
+            onClick = null,
+            enabled = enabled,
+            colors = RadioButtonDefaults.colors(selectedColor = SevaGreen700),
+        )
     }
 }

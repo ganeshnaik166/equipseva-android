@@ -1,0 +1,8 @@
+<resources>
+    <string name="root_session_preparing">Preparing your workspace…</string>
+    <string name="root_session_retry_message">Your workspace is not ready yet. Check your connection and try again.</string>
+    <string name="root_session_retry">Try again</string>
+    <string name="root_session_sign_out">Sign out</string>
+    <string name="root_session_checking">Checking your session…</string>
+    <string name="root_session_signing_out">Signing out…</string>
+</resources>
