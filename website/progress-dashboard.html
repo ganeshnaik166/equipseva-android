@@ -4,16 +4,26 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#0d1719"><meta name="robots" content="noindex,nofollow">
 <meta name="description" content="EquipSeva development milestones, verification evidence and account usage snapshots.">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
-<title>EquipSeva · Development</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' blob:; img-src 'self' blob: data:; base-uri 'none'; form-action 'none'">
+<title>EquipSeva · Mission Control</title>
 <link rel="stylesheet" href="/progress-dashboard.css"><script src="/progress-dashboard.js" defer></script>
+<link rel="stylesheet" href="/progress-hq.css"><script type="module" src="/progress-hq.js"></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to dashboard</a>
-<header><a class="brand" href="https://equipseva.com/" aria-label="EquipSeva home"><span aria-hidden="true">E</span> EquipSeva</a><span class="edition">Development journal</span></header>
+<header><a class="brand" href="https://equipseva.com/" aria-label="EquipSeva home"><img src="/progress-assets/equipsevalogo.svg" alt="" width="36" height="36"> EquipSeva</a><span class="edition">MISSION CONTROL</span><a class="journal-link" href="#record">Milestone record ↗</a></header>
 <main id="main">
-<div class="heading"><div><p class="eyebrow">BUILDING EQUIPSEVA</p><h1>The work, in one place.</h1><p class="intro">Milestones, reviews and the next steps toward a better app.</p></div><button id="refresh" type="button">Refresh snapshot <span aria-hidden="true">↻</span></button></div>
-<div class="snapshot"><span id="load-status" role="status" aria-live="polite">Loading the latest published snapshot…</span><span>Checks for updates every minute</span></div>
+<div class="heading"><div><p class="eyebrow">THE EQUIPSEVA WORKSPACE</p><h1>One mission. Every team.</h1><p class="intro">Choose a headquarters to explore its work and next steps.</p></div><button id="refresh" type="button">Check for a major milestone <span aria-hidden="true">↻</span></button></div>
+<div class="snapshot"><span id="load-status" role="status" aria-live="polite">Loading the last major milestone…</span><span>Project data changes only at major milestones</span></div>
+<section class="campus" aria-label="Interactive EquipSeva headquarters">
+  <div class="campus-toolbar"><span class="campus-title"><span aria-hidden="true">◎</span> Headquarters</span><div><button id="hq-pause" type="button" aria-pressed="false">Pause bots</button><button id="hq-reset" type="button">Reset view</button><button id="hq-simple" type="button" aria-pressed="false">Simple view</button></div></div>
+  <div id="hq-stage" class="hq-stage"><img id="hq-poster" src="/progress-assets/hq-poster.webp" alt="Blender-rendered campus: the EquipSeva logo connects seven robot workspaces and a closed release lane." width="1500" height="1200"><div id="hq-canvas" aria-hidden="true"></div><div id="hq-labels" aria-hidden="true"></div><p id="hq-loading" role="status">Opening your 3D workspace…</p></div>
+  <nav class="hq-directory" aria-label="Choose a headquarters"><button data-hq="center" type="button" aria-pressed="false">◎ EquipSeva</button><button data-hq="hospital" type="button" aria-pressed="false">Hospital</button><button data-hq="engineer" type="button" aria-pressed="false">Engineer</button><button data-hq="admin" type="button" aria-pressed="false">Admin</button><button data-hq="login" type="button" aria-pressed="false">Login flow</button><button data-hq="security" type="button" aria-pressed="false">Security</button><button data-hq="qa" type="button" aria-pressed="false">QA lab</button><button data-hq="plan" type="button" aria-pressed="false">Next plan</button></nav>
+  <section id="hq-detail" class="hq-detail" aria-labelledby="hq-detail-title" hidden><div class="row"><p class="eyebrow">HEADQUARTERS</p><button id="hq-close" type="button" aria-label="Close headquarters details">×</button></div><h2 id="hq-detail-title" tabindex="-1"></h2><p id="hq-detail-status" class="tag"></p><p id="hq-detail-description"></p><h3>Saved work</h3><p id="hq-detail-work"></p><h3>Next action</h3><p id="hq-detail-next"></p><h3>Evidence</h3><p id="hq-detail-evidence"></p></section>
+  <div class="campus-caption"><span>Illustrative robot loops · status from the last major milestone</span><span>Drag to orbit · select an office</span></div>
+</section>
+<section class="release-strip" aria-label="Release checks before GitHub main"><div><p class="eyebrow">OUTPUT / RELEASE LANE</p><h2>Every change passes the gates.</h2><p id="release-note">A saved feature is not an approved release.</p></div><div class="release-gates"><button data-hq="security" type="button"><span>01 · SECURITY</span><strong id="security-gate">Awaiting evidence</strong></button><span class="gate-arrow" aria-hidden="true">→</span><button data-hq="qa" type="button"><span>02 · QA + CRITIC</span><strong id="qa-gate">Awaiting evidence</strong></button><span class="gate-arrow" aria-hidden="true">→</span><button data-hq="main" type="button"><span>03 · GITHUB MAIN</span><strong id="main-gate">Locked</strong></button></div></section>
+<details id="record" class="milestone-record"><summary>Open the milestone record <span>Progress, usage, evidence & changes</span></summary>
 <noscript><p class="notice">Enable JavaScript to read this dashboard. No progress figures are shown until a snapshot loads.</p></noscript>
 <div id="dashboard" hidden>
 <section class="metrics" aria-label="Progress overview">
@@ -30,9 +40,9 @@
 <g class="labels"><text x="50" y="121">PLAN</text><text x="176" y="121">BUILD</text><text x="302" y="121">REVIEW</text><text x="430" y="121">SHIP</text></g></svg></section>
 <div class="columns"><section aria-labelledby="milestones-title"><div class="section-title"><h2 id="milestones-title">Milestones</h2><span>Bounded work tracker</span></div><p class="section-note">Implementation counts are separate from independent acceptance. This list is a subset of the renewal plan.</p><div id="milestones"></div></section>
 <aside><section aria-labelledby="usage-title"><div class="section-title"><h2 id="usage-title">Codex limits</h2></div><div class="card"><p class="section-note">Account-wide usage at capture time. This page cannot read your laptop or refresh the account quota itself.</p><p id="usage-observed" class="caption"></p><div id="usage"></div></div></section>
-<section aria-labelledby="agents-title"><div class="section-title"><h2 id="agents-title">Agent activity</h2></div><div class="card"><p class="section-note">Status when captured; not a live connection to agents.</p><div id="agents"></div></div></section></aside></div>
+<section aria-labelledby="agents-title"><div class="section-title"><h2 id="agents-title">Agent activity</h2></div><div class="card"><p class="section-note">Status when captured; not a live connection to agents.</p><p id="agents-observed" class="caption"></p><div id="agents"></div></div></section></aside></div>
 <section aria-labelledby="verification-title"><div class="section-title"><h2 id="verification-title">Verification ledger</h2><span>Results belong to the stated revision</span></div><div id="verification" class="evidence-grid"></div></section>
 <section aria-labelledby="changes-title"><div class="section-title"><h2 id="changes-title">Recent changes</h2><span>Saved to the development branch</span></div><ol id="changes" class="changes card"></ol></section>
 <section class="card source" aria-label="Snapshot source"><h2>About this snapshot</h2><p id="source"></p><p>Public status summary. It contains no credentials, account identifiers, patient data or private agent conversations. Updates become visible when a new snapshot is published.</p></section>
-</div></main><footer><span>EquipSeva · Built with care.</span><a href="https://equipseva.com/">Back to EquipSeva ↗</a></footer>
+</div></details></main><footer><span>EquipSeva · Built with care.</span><a href="https://equipseva.com/">Back to EquipSeva ↗</a></footer>
 </body></html>

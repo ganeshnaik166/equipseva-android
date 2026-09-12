@@ -9,12 +9,32 @@
   const isDate = value => isText(value) && Number.isFinite(Date.parse(value));
   const isPercent = value => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100;
   const isCount = value => Number.isSafeInteger(value) && value >= 0;
+  const nonblank=value=>isText(value)&&Boolean(value.trim());
+  const score=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=10;
+  const criticalKeys=['correctness','security','integrity','accessibility'];
+  const provenance=evidence=>evidence&&nonblank(evidence.reviewer)&&nonblank(evidence.reference)&&isDate(evidence.reviewedAt);
   function validate(data) {
-    if (!data || data.schemaVersion !== 2 || !isDate(data.generatedAt) ||
+    if (!data || data.schemaVersion !== 3 || !isDate(data.generatedAt) ||
         !data.source || !['branch', 'head', 'base'].every(key => isText(data.source[key])) ||
         !isCount(data.source.commits) || !data.focus || !isText(data.focus.title) || !isText(data.focus.detail)) {
       throw new Error('Snapshot header is invalid');
     }
+    const major=data.majorMilestone;
+    if (!major || major.major !== true || !isText(major.id) || !major.id.trim() || !isText(major.title) ||
+        !isCount(major.sequence) || major.sequence < 1 || !isDate(major.recordedAt)) throw new Error('Major milestone is invalid');
+    if (!Array.isArray(data.headquarters) || data.headquarters.length !== 9 || new Set(data.headquarters.map(item=>item?.id)).size !== 9 ||
+        !data.headquarters.every(item=>item && ['center','hospital','engineer','admin','login','security','qa','plan','main'].includes(item.id) &&
+        ['name','status','description','work','next','evidence'].every(key=>isText(item[key])))) throw new Error('Headquarters are invalid');
+    const release=data.release;
+    const sha=value=>isText(value)&&/^[a-f0-9]{40}$/.test(value);
+    if (!release || !isText(release.scope)) throw new Error('Release scope is invalid');
+    if (release.candidate!==null && (!release.candidate || release.candidate.scope!==release.scope || !sha(release.candidate.sha) || !sha(release.candidate.tree))) throw new Error('Candidate is invalid');
+    for (const name of ['security','qa','critic']) {
+      const evidence=release[name];
+      if (evidence!==null && (!provenance(evidence) || !isText(evidence.scope) || !sha(evidence.tree) || typeof evidence.requiredChecksPassed!=='boolean' || !isCount(evidence.openBlockers) ||
+          (name!=='security' && (!score(evidence.score) || !criticalKeys.every(key=>score(evidence.criticalDimensions?.[key])))))) throw new Error('Review evidence is invalid');
+    }
+    if (release.mainObservation!==null && (!release.mainObservation || !sha(release.mainObservation.candidateSha) || !sha(release.mainObservation.remoteMainSha) || !nonblank(release.mainObservation.reference) || typeof release.mainObservation.containsCandidate!=='boolean' || !isDate(release.mainObservation.observedAt))) throw new Error('Main observation is invalid');
     for (const key of ['milestones', 'agents', 'changes', 'verification']) {
       if (!Array.isArray(data[key]) || data[key].length > 100) throw new Error('Snapshot list is invalid');
     }
@@ -23,6 +43,7 @@
           typeof item.implementationComplete !== 'boolean' ||
           !['implemented', 'verification', 'in_progress', 'planned', 'paused'].includes(item.status)) throw new Error('Milestone is invalid');
     }
+    if (!isDate(data.agentsObservedAt)) throw new Error('Agent capture time is invalid');
     for (const item of data.agents) {
       if (!item || !isText(item.name) || !isText(item.focus) || !Object.hasOwn(states, item.status)) throw new Error('Agent is invalid');
     }
@@ -41,6 +62,32 @@
     }
     return data;
   }
+  function nextMilestone(current, incoming) {
+    validate(incoming);
+    if (!current) return incoming;
+    if (incoming.majorMilestone.id === current.majorMilestone.id || incoming.majorMilestone.sequence <= current.majorMilestone.sequence) return current;
+    if (Date.parse(incoming.majorMilestone.recordedAt) < Date.parse(current.majorMilestone.recordedAt)) throw new Error('Milestone timestamp moved backwards');
+    return incoming;
+  }
+  function freezeRecord(value) {
+    if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+      Object.values(value).forEach(freezeRecord); Object.freeze(value);
+    }
+    return value;
+  }
+  function releaseReadiness(release) {
+    const candidate=release?.candidate;
+    const validCandidate=release?.scope==='android-renewal' && candidate && candidate.scope===release.scope && /^[a-f0-9]{40}$/.test(candidate.tree??'') && /^[a-f0-9]{40}$/.test(candidate.sha??'');
+    const matches=evidence=>validCandidate && provenance(evidence) && evidence.scope===candidate.scope && evidence.tree===candidate.tree && evidence.requiredChecksPassed===true && evidence.openBlockers===0;
+    const reviewPassed=evidence=>matches(evidence)&&score(evidence.score)&&evidence.score>=9.5&&criticalKeys.every(key=>score(evidence.criticalDimensions?.[key])&&evidence.criticalDimensions[key]>=9.5);
+    const security=Boolean(matches(release?.security));
+    const qa=Boolean(reviewPassed(release?.qa));
+    const critic=Boolean(reviewPassed(release?.critic));
+    const independentReviews=qa&&critic&&release.qa.reviewer.trim().toLowerCase()!==release.critic.reviewer.trim().toLowerCase();
+    const ready=Boolean(security&&independentReviews);
+    const integrated=Boolean(ready && release?.mainObservation?.candidateSha===candidate.sha && /^[a-f0-9]{40}$/.test(release.mainObservation.remoteMainSha??'') && nonblank(release.mainObservation.reference) && release.mainObservation.containsCandidate===true && isDate(release.mainObservation.observedAt));
+    return {security,qa,critic,ready,integrated};
+  }
   function duration(minutes) {
     if (minutes % 1440 === 0) return (minutes / 1440) + '-day';
     if (minutes % 60 === 0) return (minutes / 60) + '-hour';
@@ -51,7 +98,7 @@
     const available = isPercent(item.usedPercent) && !expired;
     return { expired, available, remaining: available ? 100 - item.usedPercent : null };
   }
-  const api = { validate, duration, usageView };
+  const api = { validate, duration, usageView, nextMilestone, freezeRecord, releaseReadiness };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!root.document) return;
   const doc = root.document;
@@ -94,6 +141,7 @@
       return article;
     }));
     if (!data.usage.windows.length) get('usage').append(node('p', 'No account usage snapshot available.'));
+    get('agents-observed').textContent='Captured '+localTime(data.agentsObservedAt)+'. Robot loops do not refresh agent observations.';
     get('agents').replaceChildren(...data.agents.map(item => {
       const article = node('article', undefined, 'agent');
       article.append(node('h3', item.name), node('p', states[item.status], 'caption'), node('p', item.focus));
@@ -117,6 +165,7 @@
     get('dashboard').hidden = false;
   }
   let lastGood = null;
+  root.EquipSevaDashboard={...api,getSnapshot:()=>lastGood};
   let busy = false;
   async function refresh() {
     if (busy) return;
@@ -127,12 +176,13 @@
     try {
       const response = await root.fetch('/progress-dashboard-data.json', { cache: 'no-store', signal: controller.signal });
       if (!response.ok) throw new Error('Snapshot unavailable');
-      const data = validate(await response.json());
+      const data = freezeRecord(nextMilestone(lastGood, await response.json()));
+      const changed=data!==lastGood;
       render(data);
       lastGood = data;
-      const stale = Date.now() - Date.parse(data.generatedAt) > 15 * 60 * 1000;
-      get('load-status').textContent = (stale ? 'Last published snapshot · ' : 'Snapshot captured · ') + localTime(data.generatedAt);
-      get('load-status').parentElement.classList.toggle('stale', stale);
+      get('load-status').textContent = 'Major milestone '+data.majorMilestone.id+' · '+localTime(data.majorMilestone.recordedAt);
+      get('load-status').parentElement.classList.remove('stale');
+      if (changed && typeof root.dispatchEvent==='function') root.dispatchEvent(new root.CustomEvent('equipseva:milestone',{detail:data}));
     } catch (_) {
       // Recalculate expired quota windows even when the next fetch fails.
       if (lastGood) render(lastGood);

@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const sourcePath = path.join(__dirname, '../../website/progress-dashboard.js');
 const code = fs.readFileSync(sourcePath, 'utf8');
-const { validate, duration, usageView } = require(sourcePath);
+const { validate, duration, usageView, nextMilestone, freezeRecord, releaseReadiness } = require(sourcePath);
 const fixture = () => JSON.parse(fs.readFileSync(path.join(__dirname, '../../website/progress-dashboard-data.json'), 'utf8'));
 
 test('committed snapshot has the supported schema and excludes account identifiers', () => {
@@ -45,7 +45,7 @@ test('used percentage is subtracted to show remaining; expired windows are unava
 // Minimal DOM boundary double: any HTML-parsing write throws. This checks the
 // injection boundary and controller behavior; actual layout is checked in Chrome.
 class Element {
-  constructor(tag='div') { this.tagName=tag; this.children=[]; this.textContent=''; this.hidden=false; this.events={}; this.attrs={}; this.classes=new Set(); this.classList={add:x=>this.classes.add(x),toggle:(x,on)=>{const enabled=on??!this.classes.has(x); enabled?this.classes.add(x):this.classes.delete(x);return enabled;}}; }
+  constructor(tag='div') { this.tagName=tag; this.children=[]; this.textContent=''; this.hidden=false; this.events={}; this.attrs={}; this.classes=new Set(); this.classList={remove:x=>this.classes.delete(x),add:x=>this.classes.add(x),toggle:(x,on)=>{const enabled=on??!this.classes.has(x); enabled?this.classes.add(x):this.classes.delete(x);return enabled;}}; }
   set innerHTML(_) { throw new Error('HTML parsing sink used'); }
   append(...children) { this.children.push(...children); }
   replaceChildren(...children) { this.children=[...children]; }
@@ -138,4 +138,56 @@ test('project feed includes Android changes without exporting raw subjects or pa
   assert.equal(summary.includes('private-security'),false);
   const exporter=fs.readFileSync(path.join(__dirname,'../refresh_progress_snapshot.mjs'),'utf8');
   assert.equal(exporter.includes('%s'),false);
+});
+test('same milestone, reordered sequence and minor records cannot advance data', () => {
+  const current=fixture();
+  const mutated=fixture(); mutated.source.commits=999;
+  assert.equal(nextMilestone(current,mutated),current);
+  mutated.majorMilestone.id='older';
+  assert.equal(nextMilestone(current,mutated),current);
+  mutated.majorMilestone.sequence=2;mutated.majorMilestone.major=false;
+  assert.throws(()=>nextMilestone(current,mutated));
+});
+test('a newer complete major milestone replaces the record atomically', () => {
+  const current=fixture();const next=fixture();next.majorMilestone.id='HQ-02';next.majorMilestone.sequence=2;
+  assert.equal(nextMilestone(current,next),next);
+  next.release.qa={score:10};assert.throws(()=>nextMilestone(current,next));
+  assert.equal(current.release.qa,null);
+});
+test('recorded project state is deeply immutable across decorative animation ticks', () => {
+  const data=freezeRecord(fixture());const before=JSON.stringify(data);
+  for(let tick=0;tick<1000;tick++){Reflect.set(data.source,'commits',tick);Reflect.set(data.usage.windows[0],'usedPercent',tick);}
+  assert.equal(JSON.stringify(data),before);assert.ok(Object.isFrozen(data.headquarters[0]));
+});
+function passedRelease() {
+  const candidate={scope:'android-renewal',sha:'a'.repeat(40),tree:'b'.repeat(40)};
+  const evidence={scope:candidate.scope,tree:candidate.tree,requiredChecksPassed:true,openBlockers:0,score:9.5,
+    reviewer:'Synthetic offline reviewer',reference:'Synthetic evidence fixture',reviewedAt:'2026-09-12T00:00:00Z',
+    criticalDimensions:{correctness:9.5,security:9.5,integrity:9.5,accessibility:9.5}};
+  return {scope:candidate.scope,candidate,security:{...evidence},qa:{...evidence,reviewer:'Synthetic QA'},critic:{...evidence,reviewer:'Synthetic critic'},mainObservation:null};
+}
+test('missing, wrong-scope, stale-tree and blocked reviews keep main locked', () => {
+  assert.equal(releaseReadiness(fixture().release).ready,false);
+  for(const change of [r=>{r.qa.scope='dashboard';},r=>{r.security.tree='c'.repeat(40);},r=>{r.critic.score=9.49;},r=>{r.qa.requiredChecksPassed=false;},r=>{r.security.openBlockers=1;}]) {
+    const release=passedRelease();change(release);assert.equal(releaseReadiness(release).ready,false);
+  }
+});
+test('matching passing reviews show ready, while main inclusion requires a distinct observation', () => {
+  const release=passedRelease();assert.equal(releaseReadiness(release).ready,true);assert.equal(releaseReadiness(release).integrated,false);
+  release.mainObservation={candidateSha:release.candidate.sha,remoteMainSha:'d'.repeat(40),reference:'Synthetic Git ancestry observation',containsCandidate:true,observedAt:'2026-09-12T00:00:00Z'};
+  assert.equal(releaseReadiness(release).integrated,true);
+  release.mainObservation.candidateSha='c'.repeat(40);assert.equal(releaseReadiness(release).integrated,false);
+});
+
+test('mutually matching dashboard reviews cannot unlock the Android lane',()=>{
+  const release=passedRelease();release.scope='dashboard';release.candidate.scope='dashboard';
+  for(const key of ['security','qa','critic'])release[key].scope='dashboard';
+  assert.equal(releaseReadiness(release).ready,false);
+});
+
+test('untraceable reviews and sub-threshold critical dimensions keep the lane locked',()=>{
+  for(const change of [r=>{r.qa.reference='';},r=>{r.security.reviewedAt='invalid';},r=>{r.critic.reviewer='';},
+    r=>{r.qa.criticalDimensions.accessibility=8;},r=>{r.critic.criticalDimensions=null;},r=>{r.qa.score='9.5';},r=>{r.qa.reviewer=r.critic.reviewer;}]){
+    const release=structuredClone(passedRelease());change(release);assert.equal(releaseReadiness(release).ready,false);
+  }
 });

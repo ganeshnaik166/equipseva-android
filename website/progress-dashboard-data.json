@@ -1,6 +1,7 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "generatedAt": "2026-09-12T09:05:11Z",
+  "agentsObservedAt": "2026-09-12T09:05:11Z",
   "source": {
     "branch": "codex/auth-integration-20260911",
     "head": "14cd1f7175e3547a8920a3b0abbf7b1bdafd44ce",
@@ -8,8 +9,8 @@
     "commits": 13
   },
   "focus": {
-    "title": "Development dashboard & publishing",
-    "detail": "Connecting this dashboard to equipseva.com. Android implementation is paused while the dashboard is completed. Security, workflow and UI reviews remain part of the renewal plan."
+    "title": "Blender headquarters campus",
+    "detail": "Building the central logo hub, seven robot workspaces and a guarded release lane. Project records advance only at major milestones; animation is illustrative."
   },
   "milestones": [
     {
@@ -55,10 +56,10 @@
     {
       "id": "Dashboard",
       "name": "Development journal",
-      "status": "verification",
+      "status": "in_progress",
       "owner": "Coordinator + independent QA",
-      "notes": "Implementation and 15 regression tests complete; independent QA 9.7/10. Publishing and visual critique remain pending at this snapshot.",
-      "implementationComplete": true
+      "notes": "New Blender campus in progress. Earlier dashboard ratings do not cover this design.",
+      "implementationComplete": false
     }
   ],
   "agents": [
@@ -112,13 +113,13 @@
       "note": "Recorded by Claude on 12 Sep 2026, before the new routing-policy checkpoint. Not a test of the current development tree or a signed release."
     },
     {
-      "title": "Dashboard · current milestone",
+      "title": "Earlier dashboard design · historical",
       "revision": "f7f433f9a8093b650ceda75fdf3a7ed4df17a3a1",
       "tests": 15,
       "failures": 0,
       "command": "node --test scripts/tests/progress-dashboard.test.cjs",
       "evidence": "scripts/tests/progress-dashboard.test.cjs; independent QA rerun on 12 Sep 2026",
-      "note": "15 offline tests passed. Chrome desktop, 390px mobile and reduced-motion checks passed. Bounded QA score 9.7/10; public-domain verification still pending at capture."
+      "note": "Historical 15-test baseline and scoped review. This does not accept the new 3D campus."
     }
   ],
   "changes": [
@@ -182,5 +183,103 @@
       "time": "2026-09-11T07:47:51+05:30",
       "summary": "Save the navigation, account ownership and UX review handoff"
     }
-  ]
+  ],
+  "majorMilestone": {
+    "id": "HQ-01",
+    "sequence": 1,
+    "major": true,
+    "title": "Blender headquarters implementation checkpoint",
+    "recordedAt": "2026-09-12T09:29:44Z"
+  },
+  "headquarters": [
+    {
+      "id": "center",
+      "name": "EquipSeva headquarters",
+      "status": "Major milestone in progress",
+      "description": "The shared home for product, engineering and verification.",
+      "work": "The Android app continues from the saved Claude and Codex handoffs. This campus is the current dashboard milestone.",
+      "next": "Finish the 3D campus review, then resume the scoped Android renewal work.",
+      "evidence": "Renewal execution plan; saved integration handoffs."
+    },
+    {
+      "id": "hospital",
+      "name": "Hospital headquarters",
+      "status": "UI improvements saved",
+      "description": "Request service, compare bids, track the visit and review the outcome.",
+      "work": "Hospital home prioritizes Request Service, with bookings and engineer discovery. English, Hindi and Telugu labels are saved.",
+      "next": "Review the full request-to-completion journey before further redesign.",
+      "evidence": "Hospital home checkpoint 5d512462; renewal plan M5."
+    },
+    {
+      "id": "engineer",
+      "name": "Engineer headquarters",
+      "status": "State-isolation slice saved",
+      "description": "Find work, prepare a visit, submit evidence and understand payment status.",
+      "work": "A10 verification-state isolation and cancellation regressions are saved.",
+      "next": "Complete integration acceptance, then review the engineer workflow.",
+      "evidence": "GPT-5.3 helper handoff; A10 checkpoint 16b405b8."
+    },
+    {
+      "id": "admin",
+      "name": "Admin headquarters",
+      "status": "Renewal audit pending",
+      "description": "Administration, operations and supporting web workflows.",
+      "work": "Existing administration capabilities remain in the project. No complete renewal audit is claimed.",
+      "next": "Inventory the administrative journeys and their authorization checks.",
+      "evidence": "Renewal execution plan M7."
+    },
+    {
+      "id": "login",
+      "name": "Login-flow headquarters",
+      "status": "A2 verification pending",
+      "description": "Sign in, recover an account and enter the correct role workspace.",
+      "work": "A1 session ownership is saved. A2 role selection, retry and sign-out recovery are implemented.",
+      "next": "Close contrast verification and source-bound independent acceptance.",
+      "evidence": "A1 and A2 handoffs; A2 checkpoint 1e770076."
+    },
+    {
+      "id": "security",
+      "name": "Security headquarters",
+      "status": "Program checks open",
+      "description": "Identity boundaries, access control and safe ownership of data.",
+      "work": "Scoped foundations and review plans are saved. The whole-program security gate remains open.",
+      "next": "Verify the frozen candidate and close its required security checks before main integration.",
+      "evidence": "Auth-integration handoff; renewal security acceptance gates."
+    },
+    {
+      "id": "qa",
+      "name": "Quality-assurance lab",
+      "status": "Candidate checks required",
+      "description": "Regression tests, accessibility checks and independent critique.",
+      "work": "Historical Android runs have separate revision-bound records. Previous dashboard scores cover the earlier design only.",
+      "next": "Test this 3D milestone and obtain fresh QA and critic ratings of at least 9.5/10.",
+      "evidence": "Verification ledger below; current 3D milestone not yet accepted."
+    },
+    {
+      "id": "plan",
+      "name": "Next-plan headquarters",
+      "status": "Proposed work sequence",
+      "description": "The queue of milestones after the current campus delivery.",
+      "work": "Security and workflow reviews are recorded; the app redesign continues in bounded slices.",
+      "next": "3D dashboard → A2/A10 acceptance → A3 routing → A4/A12 ownership → reviewed role journeys.",
+      "evidence": "Renewal execution plan M1–M8; coordinator handoffs."
+    },
+    {
+      "id": "main",
+      "name": "GitHub main release gate",
+      "status": "New candidate not integrated",
+      "description": "The output lane is a status view. It cannot merge or publish code.",
+      "work": "Development checkpoints are saved on the coordinator branch. They do not prove a main integration or shipped release.",
+      "next": "Require matching security, QA and critic evidence, then observe the authorized main integration.",
+      "evidence": "Main inclusion and signed-release evidence are separate from website publication."
+    }
+  ],
+  "release": {
+    "scope": "android-renewal",
+    "candidate": null,
+    "security": null,
+    "qa": null,
+    "critic": null,
+    "mainObservation": null
+  }
 }
