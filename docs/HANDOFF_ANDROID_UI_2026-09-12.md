@@ -96,6 +96,11 @@ See the dashboard handoff for the existing Chrome file-upload permission blocker
 
 ## Next work
 
+The milestone push still reports **one HIGH default-branch dependency alert**:
+[Dependabot 17](https://github.com/ganeshnaik166/equipseva-android/security/dependabot/17).
+This is an observed GitHub notice, not an audited vulnerability assessment. Triage
+it before main/release integration; the component scores do not close that alert.
+
 1. Freeze A3's account-owned notification admission/delivery contract against
    current source. Reconcile signed-out drop versus authenticated cold start,
    queue capacity/order and exact accepted payloads. The existing policy and
