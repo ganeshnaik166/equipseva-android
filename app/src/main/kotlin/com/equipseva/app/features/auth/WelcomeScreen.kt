@@ -7,16 +7,21 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,150 +30,223 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.text.ClickableText
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
-import com.equipseva.app.core.util.openExternalUrl
 import com.equipseva.app.R
-import com.equipseva.app.designsystem.components.EsBtn
-import com.equipseva.app.designsystem.components.EsBtnKind
-import com.equipseva.app.designsystem.components.EsBtnSize
+import com.equipseva.app.core.util.openExternalUrl
 import com.equipseva.app.designsystem.theme.EsFontFamily
+import com.equipseva.app.designsystem.theme.SevaGlow
+import com.equipseva.app.designsystem.theme.SevaGlowSoft
+import com.equipseva.app.designsystem.theme.SevaGreen200
+import com.equipseva.app.designsystem.theme.SevaGreen800
 import com.equipseva.app.designsystem.theme.SevaGreen900
 
-// Round B redesign — full-bleed dark green hero with logo + tagline,
-// two CTAs at the bottom (lime "Sign in" + outlined "Create account"),
-// 11sp legal text. Matches `screens-auth.jsx:Welcome`.
 @Composable
 fun WelcomeScreen(
     onSignIn: () -> Unit,
     onSignUp: () -> Unit,
 ) {
     val context = LocalContext.current
+    WelcomeContent(
+        onSignIn = onSignIn,
+        onSignUp = onSignUp,
+        onTerms = { openExternalUrl(context, "https://equipseva.com/terms") },
+        onPrivacy = { openExternalUrl(context, "https://equipseva.com/privacy") },
+    )
+}
 
-    Surface(modifier = Modifier.fillMaxSize(), color = SevaGreen900) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.systemBars)
-                .padding(horizontal = 24.dp, vertical = 40.dp),
+/** Signed-out introduction only. Roles are confirmed by the existing auth flow. */
+@Composable
+internal fun WelcomeContent(
+    onSignIn: () -> Unit,
+    onSignUp: () -> Unit,
+    onTerms: () -> Unit,
+    onPrivacy: () -> Unit,
+) {
+    val largeText = LocalDensity.current.fontScale >= 1.5f
+    // Every foreground is paired with this deliberate brand surface or the
+    // panel/action surface below, including when the app uses its dark theme.
+    Surface(modifier = Modifier.fillMaxSize(), color = SevaGreen900, contentColor = Color.White) {
+        Box(
+            modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            // Top + middle: logo + brand + tagline.
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                verticalArrangement = Arrangement.Center,
+                    .widthIn(max = 520.dp)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
             ) {
-                Image(
-                    painter = painterResource(R.drawable.ic_logo_mark),
-                    contentDescription = "EquipSeva",
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(RoundedCornerShape(16.dp)),
-                )
-                Spacer(Modifier.height(28.dp))
-                Text(
-                    text = stringResource(R.string.app_name),
-                    fontFamily = EsFontFamily,
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.Bold,
-                    lineHeight = 38.sp,
-                    letterSpacing = (-0.72).sp, // -0.02em × 36sp
-                    color = Color.White,
-                )
-                Spacer(Modifier.height(12.dp))
+                if (largeText) {
+                    // Preserve the requested text scale. The wordmark gets the
+                    // full width instead of being squeezed beside the logo.
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        WelcomeLogo()
+                        WelcomeBrandName()
+                    }
+                } else {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        WelcomeLogo()
+                        WelcomeBrandName()
+                    }
+                }
+                Spacer(Modifier.height(24.dp))
                 Text(
                     text = stringResource(R.string.welcome_tagline),
                     fontFamily = EsFontFamily,
-                    fontSize = 16.sp,
-                    lineHeight = 23.sp,
-                    color = Color.White.copy(alpha = 0.75f),
-                )
-            }
-
-            // Bottom: CTAs + legal.
-            EsBtn(
-                text = "Sign in",
-                onClick = onSignIn,
-                kind = EsBtnKind.Lime,
-                size = EsBtnSize.Lg,
-                full = true,
-            )
-            Spacer(Modifier.height(10.dp))
-            // "Create account" — outlined transparent on dark bg. EsBtn doesn't
-            // ship a transparent-on-dark variant, so render a custom outlined
-            // button here. Matches the design's inline `boxShadow: inset 0 0 0
-            // 1px rgba(255,255,255,0.3)` pattern.
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                    .background(Color.Transparent)
-                    .clickable(onClick = onSignUp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(R.string.welcome_create_account),
-                    fontFamily = EsFontFamily,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontSize = 24.sp,
+                    lineHeight = 32.sp,
+                    fontWeight = FontWeight.SemiBold,
                     color = Color.White,
                 )
-            }
-            Spacer(Modifier.height(12.dp))
-            // Terms + Privacy as tappable spans. Required for Play Store
-            // listing compliance + IT Act 2000 informed-consent — saying
-            // "you agree" without a way to read the agreement is hostile
-            // UX and a Play policy risk.
-            val termsTag = "TERMS"
-            val privacyTag = "PRIVACY"
-            val baseColor = Color.White.copy(alpha = 0.55f)
-            val linkColor = Color.White.copy(alpha = 0.85f)
-            val annotated = buildAnnotatedString {
-                withStyle(SpanStyle(color = baseColor)) {
-                    append("By continuing you agree to our ")
-                }
-                pushStringAnnotation(termsTag, "https://equipseva.com/terms")
-                withStyle(SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)) {
-                    append("Terms")
-                }
-                pop()
-                withStyle(SpanStyle(color = baseColor)) {
-                    append(" and ")
-                }
-                pushStringAnnotation(privacyTag, "https://equipseva.com/privacy")
-                withStyle(SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)) {
-                    append("Privacy")
-                }
-                pop()
-            }
-            ClickableText(
-                text = annotated,
-                style = TextStyle(
+                Spacer(Modifier.height(24.dp))
+                WelcomeAudience(
+                    title = stringResource(R.string.welcome_hospital_title),
+                    description = stringResource(R.string.welcome_hospital_description),
+                )
+                Spacer(Modifier.height(10.dp))
+                WelcomeAudience(
+                    title = stringResource(R.string.welcome_engineer_title),
+                    description = stringResource(R.string.welcome_engineer_description),
+                )
+                Spacer(Modifier.height(24.dp))
+                WelcomeAction(
+                    label = stringResource(R.string.welcome_sign_in),
+                    onClick = onSignIn,
+                    primary = true,
+                )
+                Spacer(Modifier.height(12.dp))
+                WelcomeAction(
+                    label = stringResource(R.string.welcome_create_account),
+                    onClick = onSignUp,
+                    primary = false,
+                )
+                Spacer(Modifier.height(20.dp))
+                Text(
+                    text = stringResource(R.string.welcome_legal_intro),
                     fontFamily = EsFontFamily,
-                    fontSize = 11.sp,
-                    textAlign = TextAlign.Center,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { offset ->
-                    val tag = annotated.getStringAnnotations(termsTag, offset, offset).firstOrNull()
-                        ?: annotated.getStringAnnotations(privacyTag, offset, offset).firstOrNull()
-                    tag?.item?.let { url -> openExternalUrl(context, url) }
-                },
-            )
+                    fontSize = 14.sp,
+                    lineHeight = 21.sp,
+                    color = Color.White.copy(alpha = 0.85f),
+                )
+                Spacer(Modifier.height(8.dp))
+                WelcomeLegalAction(stringResource(R.string.welcome_terms), onTerms)
+                Spacer(Modifier.height(4.dp))
+                WelcomeLegalAction(stringResource(R.string.welcome_privacy), onPrivacy)
+            }
         }
+    }
+}
+
+@Composable
+private fun WelcomeLogo() {
+    Image(
+        painter = painterResource(R.drawable.ic_logo_mark),
+        contentDescription = null,
+        modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)),
+    )
+}
+
+@Composable
+private fun WelcomeBrandName() {
+    Text(
+        text = stringResource(R.string.app_name),
+        modifier = Modifier.semantics { heading() },
+        fontFamily = EsFontFamily,
+        fontSize = 26.sp,
+        lineHeight = 34.sp,
+        fontWeight = FontWeight.Bold,
+        color = Color.White,
+    )
+}
+
+@Composable
+private fun WelcomeAudience(title: String, description: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(SevaGreen800, RoundedCornerShape(16.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = title,
+            fontFamily = EsFontFamily,
+            fontSize = 16.sp,
+            lineHeight = 23.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = SevaGlowSoft,
+        )
+        Text(
+            text = description,
+            fontFamily = EsFontFamily,
+            fontSize = 14.sp,
+            lineHeight = 21.sp,
+            color = Color.White.copy(alpha = 0.9f),
+        )
+    }
+}
+
+@Composable
+private fun WelcomeAction(label: String, onClick: () -> Unit, primary: Boolean) {
+    val shape = RoundedCornerShape(12.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 52.dp)
+            .clip(shape)
+            .background(if (primary) SevaGlow else SevaGreen900)
+            .then(if (primary) Modifier else Modifier.border(1.dp, SevaGreen200, shape))
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.fillMaxWidth(),
+            fontFamily = EsFontFamily,
+            fontSize = 16.sp,
+            lineHeight = 24.sp,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            color = if (primary) SevaGreen900 else Color.White,
+        )
+    }
+}
+
+@Composable
+private fun WelcomeLegalAction(label: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.fillMaxWidth(),
+            fontFamily = EsFontFamily,
+            fontSize = 14.sp,
+            lineHeight = 21.sp,
+            textAlign = TextAlign.Center,
+            textDecoration = TextDecoration.Underline,
+            color = Color.White,
+        )
     }
 }

@@ -868,8 +868,16 @@
     <string name="engineer_location_drag_pin_instructions">Drag the pin or use the location button to set the centre of your service area. The radius circle on Available Jobs always anchors here.</string>
 
     <!-- WelcomeScreen -->
-    <string name="welcome_tagline">Hospitals book verified biomedical engineers. Engineers find local jobs and get paid on time.</string>
-    <string name="welcome_create_account">Create account</string>
+    <string name="welcome_tagline">चिकित्सा उपकरणों की सेवा के लिए जुड़ें।</string>
+    <string name="welcome_sign_in">साइन इन करें</string>
+    <string name="welcome_create_account">खाता बनाएं</string>
+    <string name="welcome_hospital_title">अस्पतालों के लिए</string>
+    <string name="welcome_hospital_description">सेवा का अनुरोध करें और इंजीनियरों के प्रस्तावों की तुलना करें।</string>
+    <string name="welcome_engineer_title">इंजीनियरों के लिए</string>
+    <string name="welcome_engineer_description">आस-पास के काम खोजें और अपना प्रस्ताव भेजें।</string>
+    <string name="welcome_legal_intro">जारी रखने पर, आप हमारी सेवा की शर्तों और गोपनीयता नीति से सहमत होते हैं।</string>
+    <string name="welcome_terms">सेवा की शर्तें</string>
+    <string name="welcome_privacy">गोपनीयता नीति</string>
 
     <!-- SignInScreen (English placeholder — pending native-speaker review) -->
     <string name="sign_in_welcome_back">Welcome back</string>

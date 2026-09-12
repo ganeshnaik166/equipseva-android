@@ -876,8 +876,16 @@
     <string name="or_divider_label">or</string>
 
     <!-- WelcomeScreen -->
-    <string name="welcome_tagline">Hospitals book verified biomedical engineers. Engineers find local jobs and get paid on time.</string>
-    <string name="welcome_create_account">Create account</string>
+    <string name="welcome_tagline">వైద్య పరికరాల సేవ కోసం కలవండి.</string>
+    <string name="welcome_sign_in">సైన్ ఇన్ చేయండి</string>
+    <string name="welcome_create_account">ఖాతా సృష్టించండి</string>
+    <string name="welcome_hospital_title">ఆసుపత్రుల కోసం</string>
+    <string name="welcome_hospital_description">సేవను కోరండి, ఇంజినీర్ల కోట్‌లను పోల్చండి.</string>
+    <string name="welcome_engineer_title">ఇంజినీర్ల కోసం</string>
+    <string name="welcome_engineer_description">దగ్గరలోని పనులను కనుగొని, మీ కోట్ పంపండి.</string>
+    <string name="welcome_legal_intro">కొనసాగించడం ద్వారా, మీరు మా సేవా నిబంధనలు మరియు గోప్యతా విధానాన్ని అంగీకరిస్తారు.</string>
+    <string name="welcome_terms">సేవా నిబంధనలు</string>
+    <string name="welcome_privacy">గోప్యతా విధానం</string>
 
     <!-- FounderEscrowDisputeDetailScreen -->
     <string name="founder_escrow_dispute_detail_occurred">Occurred: %1$s</string>

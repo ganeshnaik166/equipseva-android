@@ -852,8 +852,16 @@
     <string name="engineer_location_drag_pin_instructions">Drag the pin or use the location button to set the centre of your service area. The radius circle on Available Jobs always anchors here.</string>
 
     <!-- WelcomeScreen -->
-    <string name="welcome_tagline">Hospitals book verified biomedical engineers. Engineers find local jobs and get paid on time.</string>
+    <string name="welcome_tagline">Connect for medical equipment service.</string>
+    <string name="welcome_sign_in">Sign in</string>
     <string name="welcome_create_account">Create account</string>
+    <string name="welcome_hospital_title">For hospitals</string>
+    <string name="welcome_hospital_description">Request service and compare engineer bids.</string>
+    <string name="welcome_engineer_title">For engineers</string>
+    <string name="welcome_engineer_description">Find nearby jobs and send your quote.</string>
+    <string name="welcome_legal_intro">By continuing, you agree to our terms and privacy policy.</string>
+    <string name="welcome_terms">Terms of service</string>
+    <string name="welcome_privacy">Privacy policy</string>
 
     <!-- RequestSentScreen -->
     <string name="request_sent_title">Request posted</string>
