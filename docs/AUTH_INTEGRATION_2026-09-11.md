@@ -18,6 +18,20 @@ remain mandatory. A2 is assessed as a bounded local component/routing slice;
 A10 is assessed separately as local status isolation. Neither is a full-auth,
 whole-app or release rating.
 
+### 12 September scope extension, frozen before radio production changes
+
+Independent QA measured the actual unchecked dark-mode radio at 1.615:1
+(#C7CCD3 on white). This adjacent role-control defect is included in the UI
+polish: pair selected/unselected and disabled radio colors with the existing
+card surfaces; retain dot/ring selection and unchanged radio semantics.
+New native-Canvas tests isolate each trailing 24dp radio region, require solid
+visible ink and >=3:1 against the rendered card in both themes, covering no
+selection, selection, saving and saved states. Disabled >=3:1 is an explicit
+component target, not a claim about universal accessibility rules. The existing
+exclusive-selection, disabled action and complete-text tests remain required.
+An additional assertion verifies manual refresh after host clear cannot create
+new engineer requests. No production auth API or route contract is broadened.
+
 Independent critic and QA must each reach at least 9.5/10 on the final candidate
 and every applicable critical dimension, following RENEWAL_EXECUTION_PLAN and
 AUTH_A2_QA_CONTRACT. A failed required case or missing applicable evidence blocks

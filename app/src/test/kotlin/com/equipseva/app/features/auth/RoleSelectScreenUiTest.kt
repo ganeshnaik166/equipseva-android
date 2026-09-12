@@ -238,6 +238,60 @@ class RoleSelectScreenUiTest {
     @Test fun `disabled and saving actions retain readable labels in dark theme`() =
         assertPrimaryActionContrast(darkTheme = true, disabled = true)
 
+    @Test fun `role indicators remain visible in light theme including disabled states`() =
+        assertRadioContrast(darkTheme = false)
+
+    @Test fun `role indicators remain visible in dark theme including disabled states`() =
+        assertRadioContrast(darkTheme = true)
+
+    private fun assertRadioContrast(darkTheme: Boolean) {
+        val cases = listOf(
+            "unselected" to RoleSelectState(),
+            "selected" to RoleSelectState(selected = UserRole.HOSPITAL),
+            "saving" to RoleSelectState(selected = UserRole.HOSPITAL, form = FormUiState(submitting = true)),
+            "saved" to RoleSelectState(selected = UserRole.HOSPITAL, saved = true),
+        )
+        val state = mutableStateOf(cases.first().second)
+        render(darkTheme = darkTheme) { RoleSelectContent(state.value, {}, {}, {}, {}) }
+        for ((name, value) in cases) {
+            compose.runOnIdle { state.value = value }
+            for ((id, role) in listOf(R.string.role_picker_hospital to UserRole.HOSPITAL,
+                R.string.role_picker_engineer to UserRole.ENGINEER)) {
+                val card = node(id).performScrollTo().assertIsDisplayed().assert(radioRole)
+                if (value.selected == role) card.assertIsSelected() else card.assertIsNotSelected()
+                if (value.form.submitting || value.saved) card.assertIsNotEnabled() else card.assertIsEnabled()
+                val bounds = card.fetchSemanticsNode().boundsInRoot
+                val density = context.resources.displayMetrics.density
+                // The 24dp radio is the trailing child after 16dp card padding.
+                // Crop only its circle, excluding all label/icon/card-border ink.
+                val centerX = (bounds.right - 28 * density).roundToInt()
+                val centerY = bounds.center.y.roundToInt()
+                val radius = (12 * density).roundToInt()
+                val bitmap = drawHost()
+                val label = "${if (darkTheme) "dark" else "light"}-$name-${role.name}"
+                try {
+                    saveBitmap(bitmap, "radio-$label")
+                    val pixels = mutableMapOf<Int, Int>()
+                    for (y in centerY-radius..centerY+radius) for (x in centerX-radius..centerX+radius) {
+                        val color = bitmap.getPixel(x, y)
+                        pixels[color] = (pixels[color] ?: 0) + 1
+                    }
+                    val background = checkNotNull(pixels.maxByOrNull { it.value }).key
+                    val ink = pixels.filterKeys { it != background }.maxByOrNull { it.value }
+                    assertTrue("A solid visible ring must exist: $label", ink != null && ink.value >= 10)
+                    val foreground = checkNotNull(ink).key
+                    val ratio = ColorUtils.calculateContrast(foreground, background)
+                    File("build/outputs/auth-a2-ui/radio-contrast-measurements.txt").appendText(
+                        "$label foreground=${foreground.toUInt().toString(16)} background=${background.toUInt().toString(16)} ratio=$ratio inkPixels=${ink.value}\n",
+                    )
+                    // Three to one for disabled controls is our explicit visual
+                    // target; it is not a claim of a universal disabled-state rule.
+                    assertTrue("Rendered radio contrast >= 3:1: $label was $ratio", ratio >= 3)
+                } finally { bitmap.recycle() }
+            }
+        }
+    }
+
     private fun assertPrimaryActionContrast(darkTheme: Boolean, disabled: Boolean) {
         val cases = if (disabled) listOf(
             RoleSelectState() to R.string.role_picker_save_continue,

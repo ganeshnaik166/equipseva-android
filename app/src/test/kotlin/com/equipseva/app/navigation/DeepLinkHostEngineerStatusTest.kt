@@ -485,6 +485,26 @@ class DeepLinkHostEngineerStatusTest {
     }
 
     @Test
+    fun `blank engineer row owners are rejected without poisoning a valid retry`() = runTest {
+        for (rowOwner in listOf("", " ", "\t\n")) {
+            val f = fixture(signedIn("A"))
+            val statuses = recordStatuses(f)
+            runCurrent()
+            f.requests.single().complete(engineer(rowOwner, VerificationStatus.Verified))
+            runCurrent()
+            assertEquals("Blank row owner must never publish: '$rowOwner'",
+                listOf<VerificationStatus?>(null), statuses)
+
+            f.host.refreshEngineerStatus()
+            runCurrent()
+            assertEquals(listOf("A", "A"), f.requests.map { it.userId })
+            f.requests.last().complete(engineer("A", VerificationStatus.Pending))
+            runCurrent()
+            assertEquals(listOf(null, VerificationStatus.Pending), statuses)
+        }
+    }
+
+    @Test
     fun `mapped StateFlow supplies live auth when its full observer is behind`() = runTest {
         val raw = MutableStateFlow<AuthSession>(signedIn("A"))
         // Production exposes SDK StateFlow.map as Flow, not as StateFlow.
@@ -711,6 +731,9 @@ class DeepLinkHostEngineerStatusTest {
         f.requests.single().complete(engineer("A", VerificationStatus.Verified))
         runCurrent()
         assertNull(f.host.engineerStatus.value)
+        f.host.refreshEngineerStatus()
+        runCurrent()
+        assertEquals("Cleared host cannot open fresh network work", 1, f.requests.size)
     }
 
     @Test

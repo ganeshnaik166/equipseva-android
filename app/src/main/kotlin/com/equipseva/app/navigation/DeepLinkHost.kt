@@ -10,6 +10,7 @@ import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.prefs.UserPrefs
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.ensureActive
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -58,9 +60,8 @@ class DeepLinkHost @Inject constructor(
      * on each observed login. Unknown retires the current owner: status stays
      * null until a fresh explicit SignedIn fetch succeeds. Loading, missing
      * engineer rows, failed refreshes, sign-out and blank IDs also yield null.
-     * This is presentation state, not an authorization decision. Used by the
-     * bottom nav to gate the Jobs tab — Pending → snackbar nudge instead of
-     * navigating.
+     * This status affects Jobs-tab and KYC-restoration routing. Server-side
+     * authorization must still validate the account independently.
      */
     init {
         viewModelScope.launch {
@@ -103,10 +104,11 @@ class DeepLinkHost @Inject constructor(
         _engineerStatus.value = null
         requestJob?.cancel()
         requestJob = viewModelScope.launch {
-            if (!ownsRequest(request)) return@launch
+            if (!ownsCurrentRequest(request)) return@launch
             val status = try {
                 engineerRepository.fetchByUserId(owner.userId)
                     .getOrThrow()
+                    ?.takeIf { it.userId == owner.userId }
                     ?.verificationStatus
             } catch (cancelled: CancellationException) {
                 throw cancelled
@@ -117,7 +119,7 @@ class DeepLinkHost @Inject constructor(
             // Some repositories finish despite cancellation. Ownership also
             // protects observed A -> B -> A and same-login refresh revisions.
             coroutineContext.ensureActive()
-            if (ownsRequest(request)) {
+            if (ownsCurrentRequest(request)) {
                 _engineerStatus.value = status
             }
         }
@@ -126,12 +128,41 @@ class DeepLinkHost @Inject constructor(
     private fun ownsRequest(request: EngineerStatusRequest): Boolean =
         activeRequest == request && activeSession == request.owner
 
+    private fun ownsCurrentRequest(request: EngineerStatusRequest): Boolean =
+        ownsRequest(request) &&
+            currentUserId() == request.owner.userId &&
+            ownsRequest(request)
+
+    /**
+     * The full observer can lag behind raw auth. Production exposes a mapped
+     * StateFlow as Flow, so probe its first value without awaiting readiness.
+     * Only synchronous, successful completion is usable; delayed/non-replaying
+     * sources fail closed and their probes are cancelled before returning.
+     */
+    private fun currentUserId(): String? {
+        var session: AuthSession? = null
+        val probe = viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            try {
+                coroutineContext.ensureActive()
+                session = authRepository.sessionState.first()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // Unavailable current auth cannot admit or publish a request.
+            }
+        }
+        val completed = probe.isCompleted && !probe.isCancelled
+        probe.cancel()
+        return if (completed) (session as? AuthSession.SignedIn)?.userId else null
+    }
+
     /**
      * Manual refresh — call after KYC submit so the badge flips to Pending
      * without waiting for a session re-emit. Snapshot the observed owner now;
-     * never subscribe/await an account that may sign in later. All status
-     * ownership is confined to Main, like the auth collector and UI callers.
-     * Boundaries the repository never emits cannot be distinguished here.
+     * current auth must also be immediately readable when the request runs.
+     * A manual call never waits for a future account. All status ownership is
+     * confined to Main, like the auth collector and UI callers. Same-ID login
+     * boundaries wholly unobserved from the repository remain indistinguishable.
      */
     @MainThread
     fun refreshEngineerStatus() {

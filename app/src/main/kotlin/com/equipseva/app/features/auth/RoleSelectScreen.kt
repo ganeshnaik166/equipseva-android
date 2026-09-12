@@ -58,6 +58,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.R
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.EsType
+import com.equipseva.app.designsystem.theme.Paper3
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaGreen700
@@ -184,7 +185,12 @@ internal fun RoleSelectContent(
                     modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
                         .semantics { liveRegion = LiveRegionMode.Polite },
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SevaGreen700),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = SevaGreen700,
+                        contentColor = Color.White,
+                        disabledContainerColor = Paper3,
+                        disabledContentColor = SevaInk500,
+                    ),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
                 ) {
                     if (state.form.submitting) {
@@ -293,7 +299,12 @@ private fun RoleCard(
             selected = selected,
             onClick = null,
             enabled = enabled,
-            colors = RadioButtonDefaults.colors(selectedColor = SevaGreen700),
+            colors = RadioButtonDefaults.colors(
+                selectedColor = SevaGreen700,
+                unselectedColor = SevaInk600,
+                disabledSelectedColor = SevaInk500,
+                disabledUnselectedColor = SevaInk500,
+            ),
         )
     }
 }
