@@ -81,7 +81,8 @@
     { "sha": "a9b35f3c", "scope": "Verification ledger and helper checkpoints", "time": "2026-09-11 08:33" },
     { "sha": "8749ff71", "scope": "Security/workflow review handoff", "time": "2026-09-11 09:11" },
     { "sha": "5f0f48ec", "scope": "A10 stale-work guards + contrast oracle", "time": "2026-09-12 14:04" },
-    { "sha": "567625e6", "scope": "DeepLinkPolicy handoff + quality checkpoint", "time": "2026-09-12 08:14" }
+    { "sha": "567625e6", "scope": "DeepLinkPolicy handoff + quality checkpoint", "time": "2026-09-12 08:14" },
+    { "sha": "0a5f8aeb", "scope": "Progress dashboard + GoDaddy publish wiring", "time": "2026-09-12 14:17" }
   ],
   "codexUsage": {
     "account": "fc5371cf-a07e-446f-b783-156e7f573dca",
