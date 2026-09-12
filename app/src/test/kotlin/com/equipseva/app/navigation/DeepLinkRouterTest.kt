@@ -1,5 +1,12 @@
 package com.equipseva.app.navigation
 
+import android.content.Intent
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeoutOrNull
+import io.mockk.every
+import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -126,5 +133,41 @@ class DeepLinkRouterTest {
         assertNull(
             DeepLinkRouter.routeForParts("https", "equipseva.com", listOf("job", sampleUuid)),
         )
+    }
+
+    @Test fun `dispatch forwards allowed explicit route`() = runTest {
+        val router = DeepLinkRouter()
+        val route = dispatchAndGetRoute(
+            router,
+            explicitIntent(Routes.HOME),
+        )
+        assertEquals(Routes.HOME, route)
+    }
+
+    @Test fun `dispatch rejects disallowed explicit route`() = runTest {
+        val router = DeepLinkRouter()
+        val route = dispatchAndGetRoute(
+            router,
+            explicitIntent(Routes.FOUNDER_DASHBOARD),
+        )
+        assertNull(route)
+    }
+
+    private suspend fun dispatchAndGetRoute(
+        router: DeepLinkRouter,
+        intent: Intent,
+    ): String? {
+        router.dispatch(intent)
+        return withTimeoutOrNull(200) {
+            val next = router.events.filterIsInstance<DeepLinkRouter.Event.OpenRoute>().first()
+            next.route
+        }
+    }
+
+    private fun explicitIntent(route: String): Intent {
+        val intent = mockk<Intent>(relaxed = true)
+        every { intent.getStringExtra(DeepLinkRouter.EXTRA_ROUTE) } returns route
+        every { intent.data } returns null
+        return intent
     }
 }

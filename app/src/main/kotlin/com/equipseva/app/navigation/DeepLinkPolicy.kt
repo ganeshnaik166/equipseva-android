@@ -15,8 +15,8 @@ package com.equipseva.app.navigation
  * into payout / email / password screens from outside the app).
  *
  * Policy: only the fixed notification destinations and the App-Link route
- * classes, each with a strict id shape. Everything else — founder/*, root_*,
- * auth*, onboarding, security/*, profile sub-forms, query strings, encoded or
+ * classes, each with a strict id shape. Everything else — founder/, root_*,
+ * auth*, onboarding, security/, profile sub-forms, query strings, encoded or
  * unknown segments — is denied. Deny is silent for the user (default landing)
  * and logged by the caller.
  *
@@ -70,5 +70,5 @@ object DeepLinkPolicy {
     fun isPrivileged(route: String): Boolean =
         route.startsWith("founder/") || route.startsWith("root_") || route.startsWith("auth")
 
-    private const val FORBIDDEN_CHARS = "?#%\\"
+    private val FORBIDDEN_CHARS = setOf('?', '#', '%', '\\')
 }

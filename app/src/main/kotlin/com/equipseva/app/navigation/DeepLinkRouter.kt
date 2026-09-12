@@ -39,6 +39,7 @@ class DeepLinkRouter @Inject constructor() {
         if (intent == null) return
         val route = intent.getStringExtra(EXTRA_ROUTE)
             ?.takeIf { it.isNotBlank() }
+            ?.takeIf(DeepLinkPolicy::isExternallyAllowed)
             ?: routeFor(intent.data)
         route?.let { channel.trySend(Event.OpenRoute(it)) }
     }
