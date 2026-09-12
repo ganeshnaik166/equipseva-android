@@ -11,6 +11,7 @@ No build step. Deploy by serving this folder.
 - `for-hospitals.html` — hospital admin track
 - `for-engineers.html` — biomedical engineer track
 - `pricing.html` — v1 free + future pricing
+- `progress-dashboard.html` — work-progress and operations dashboard for milestones, agents, changes, codex usage
 - `about.html` — mission, values, team
 - `contact.html` — sales/support form + addresses
 - `faq.html` — segmented FAQs

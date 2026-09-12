@@ -1,0 +1,113 @@
+{
+  "project": "EquipSeva Android + Founder Console",
+  "generatedAt": "2026-09-12T14:17:20+05:30",
+  "timezone": "Asia/Calcutta",
+  "branch": {
+    "name": "codex/auth-integration-20260911",
+    "head": "567625e6",
+    "base": "1e770076a0731dd4c4851f66ced3cf3542b3a496"
+  },
+  "program": {
+    "status": "active",
+    "mode": "milestone continuation",
+    "overallCompletion": 72,
+    "elapsedHours": 24.9,
+    "hoursWorked": "~25h from 11 Sep 07:18 IST to 12 Sep 08:14 IST",
+    "commits": 10,
+    "filesChanged": 69,
+    "lines": { "added": 7266, "removed": 580 },
+    "tests": {
+      "fullSuite": "3030",
+      "fullFailures": 0,
+      "focused": "138",
+      "focusedFailures": 0,
+      "focusSuite": "A10 + deep-link edge matrix + auth focus tests"
+    }
+  },
+  "milestones": [
+    {
+      "id": "A1",
+      "name": "Session bootstrap ownership",
+      "completion": 100,
+      "status": "done",
+      "owner": "auth_a1_impl",
+      "notes": "Bootstrap/session isolation, generation handling, profile bootstrap ordering and fixture-backed identity tests are in place."
+    },
+    {
+      "id": "A2",
+      "name": "Root role gate + nav ownership",
+      "completion": 88,
+      "status": "blocked",
+      "owner": "auth_a1_impl",
+      "notes": "Role picker and recovery are in. Known pending item remains dark-mode button contrast polish in role selection path."
+    },
+    {
+      "id": "A3",
+      "name": "Deep-link policy + security review",
+      "completion": 82,
+      "status": "in_progress",
+      "owner": "gpt-5.3-codex",
+      "notes": "Policy file and tests exist; remaining work is coordinated merge ordering and final implementation acceptance."
+    },
+    {
+      "id": "A4/A12",
+      "name": "Mutation ownership and audit cleanup",
+      "completion": 75,
+      "status": "in_progress",
+      "owner": "audit",
+      "notes": "Contract, matrix and fix plan are complete; implementation still pending by owner approval."
+    },
+    {
+      "id": "Delivery",
+      "name": "Founder GoDaddy page + release ops",
+      "completion": 55,
+      "status": "in_progress",
+      "owner": "owner",
+      "notes": "Tracking page and deployment handoff now added; finalize DNS/apply publish steps in GoDaddy dashboard."
+    }
+  ],
+  "agents": [
+    { "name": "auth_a1_impl", "status": "active", "focus": "A2 implementation cleanup + blocker polish", "eta": "This/next day" },
+    { "name": "auth_a1_redteam", "status": "active", "focus": "Re-test high findings and replayed security scenarios", "eta": "On each save" },
+    { "name": "qa_critic_review", "status": "active", "focus": "Critic score checks + reviewer alignment", "eta": "At milestone handoff" }
+  ],
+  "recentChanges": [
+    { "sha": "1e770076", "scope": "A2 role gate handoff", "time": "2026-09-11 07:18" },
+    { "sha": "6297d056", "scope": "A3/A4 deep-link + UX plan docs", "time": "2026-09-11 07:47" },
+    { "sha": "0d4269ea", "scope": "Review handoff publish", "time": "2026-09-11 07:47" },
+    { "sha": "16b405b8", "scope": "Engineer-status isolation", "time": "2026-09-11 08:28" },
+    { "sha": "8955046f", "scope": "Notification edge-case tests", "time": "2026-09-11 08:31" },
+    { "sha": "311643de", "scope": "Auth/profile accessibility inventory", "time": "2026-09-11 08:32" },
+    { "sha": "a9b35f3c", "scope": "Verification ledger and helper checkpoints", "time": "2026-09-11 08:33" },
+    { "sha": "8749ff71", "scope": "Security/workflow review handoff", "time": "2026-09-11 09:11" },
+    { "sha": "5f0f48ec", "scope": "A10 stale-work guards + contrast oracle", "time": "2026-09-12 14:04" },
+    { "sha": "567625e6", "scope": "DeepLinkPolicy handoff + quality checkpoint", "time": "2026-09-12 08:14" }
+  ],
+  "codexUsage": {
+    "account": "fc5371cf-a07e-446f-b783-156e7f573dca",
+    "windows": {
+      "spark5m": {
+        "model": "GPT-5.3-Codex-Spark",
+        "usedPercent": 36,
+        "windowMinutes": 300,
+        "resetsAt": "2026-09-12T19:03:38+05:30"
+      },
+      "sparkWeek": {
+        "model": "GPT-5.3-Codex-Spark",
+        "usedPercent": 16,
+        "windowMinutes": 10080,
+        "resetsAt": "2026-09-19T14:03:38+05:30"
+      },
+      "codexTotal": {
+        "usedPercent": 0,
+        "windowMinutes": 10080,
+        "resetsAt": "2026-09-19T19:33:29+05:30"
+      }
+    }
+  },
+  "godaddy": {
+    "target": "equipseva.com",
+    "integrationState": "manual DNS + publish step required",
+    "nextStep": "Upload updated /website bundle and point GoDaddy records via scripts/setup_godaddy_dns.sh with valid production API keys."
+  }
+}
