@@ -149,7 +149,7 @@ test('same milestone, reordered sequence and minor records cannot advance data',
   assert.throws(()=>nextMilestone(current,mutated));
 });
 test('a newer complete major milestone replaces the record atomically', () => {
-  const current=fixture();const next=fixture();next.majorMilestone.id='HQ-02';next.majorMilestone.sequence=2;
+  const current=fixture();const next=fixture();next.majorMilestone.id=current.majorMilestone.id+'-NEXT';next.majorMilestone.sequence=current.majorMilestone.sequence+1;
   assert.equal(nextMilestone(current,next),next);
   next.release.qa={score:10};assert.throws(()=>nextMilestone(current,next));
   assert.equal(current.release.qa,null);

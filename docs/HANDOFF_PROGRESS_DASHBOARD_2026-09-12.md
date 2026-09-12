@@ -1,5 +1,9 @@
 # Dashboard deployment handoff — 12 September 2026
 
+> Superseded by `HANDOFF_BLENDER_HQ_2026-09-12.md`. The user requested a Blender
+> campus after this checkpoint. Do not deploy the seven-file package below;
+> the new reviewed campus requires its 19-file package and additional asset routes.
+
 ## Resume
 The user signed into GoDaddy and then Cloudflare in Chrome.
 Dashboard implementation is reviewed and pushed, but NOT deployed.

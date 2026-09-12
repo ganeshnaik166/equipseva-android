@@ -1,16 +1,16 @@
 {
   "schemaVersion": 3,
-  "generatedAt": "2026-09-12T09:05:11Z",
-  "agentsObservedAt": "2026-09-12T09:05:11Z",
+  "generatedAt": "2026-09-12T09:46:30Z",
+  "agentsObservedAt": "2026-09-12T09:46:30Z",
   "source": {
     "branch": "codex/auth-integration-20260911",
-    "head": "14cd1f7175e3547a8920a3b0abbf7b1bdafd44ce",
+    "head": "176b5e1ba404468658a11da7fb644d2fa6e24cac",
     "base": "1e770076358e74f6f40a99a4907f831da59e791c",
-    "commits": 13
+    "commits": 16
   },
   "focus": {
-    "title": "Blender headquarters campus",
-    "detail": "Building the central logo hub, seven robot workspaces and a guarded release lane. Project records advance only at major milestones; animation is illustrative."
+    "title": "Blender headquarters ready for local review",
+    "detail": "Your logo connects seven robot workspaces. Local QA and critic checks passed. Cloudflare upload permission and public deployment verification remain open."
   },
   "milestones": [
     {
@@ -55,54 +55,68 @@
     },
     {
       "id": "Dashboard",
-      "name": "Development journal",
-      "status": "in_progress",
+      "name": "3D headquarters dashboard",
+      "status": "verification",
       "owner": "Coordinator + independent QA",
-      "notes": "New Blender campus in progress. Earlier dashboard ratings do not cover this design.",
-      "implementationComplete": false
+      "notes": "Blender campus and milestone controls implemented. 26 checks passed; local QA 9.6 and critic 9.55. Public deployment and live headers are not verified.",
+      "implementationComplete": true
     }
   ],
   "agents": [
     {
       "name": "Coordinator",
       "status": "active",
-      "focus": "Dashboard corrections, verification and Cloudflare publishing."
+      "focus": "Saving the reviewed 3D headquarters milestone and preparing the public package."
     },
     {
-      "name": "Independent dashboard QA",
+      "name": "Independent campus QA",
       "status": "complete",
-      "focus": "Independent source review and test rerun complete: 15 passed, 0 failed; bounded score 9.7/10."
+      "focus": "26 tests passed; scoped local QA score 9.6/10. Public hosting verification remains open."
+    },
+    {
+      "name": "Independent campus critic",
+      "status": "complete",
+      "focus": "Scoped 3D dashboard UX score 9.55/10 after fixing offscreen details and focus contrast."
     },
     {
       "name": "Android helpers",
       "status": "paused",
-      "focus": "Saved handoffs are available. No live activity is inferred from old agent names."
+      "focus": "Android work is on hold while the dashboard is completed."
     }
   ],
   "usage": {
-    "observedAt": "2026-09-12T09:05:11Z",
+    "observedAt": "2026-09-12T09:44:30Z",
     "windows": [
-      {
-        "name": "Codex",
-        "minutes": 10080,
-        "usedPercent": 2,
-        "resetsAt": "2026-09-19T08:33:29Z"
-      },
       {
         "name": "GPT-5.3-Codex-Spark",
         "minutes": 300,
         "usedPercent": 62,
-        "resetsAt": "2026-09-12T13:33:38Z"
+        "resetsAt": "2026-09-12T13:33:38.000Z"
       },
       {
         "name": "GPT-5.3-Codex-Spark",
         "minutes": 10080,
         "usedPercent": 28,
-        "resetsAt": "2026-09-19T08:33:38Z"
+        "resetsAt": "2026-09-19T08:33:38.000Z"
+      },
+      {
+        "name": "Codex",
+        "minutes": 10080,
+        "usedPercent": 11,
+        "resetsAt": "2026-09-19T08:33:29.000Z"
       }
     ]
   },
   "verification": [
+    {
+      "title": "Blender headquarters · bounded local acceptance",
+      "revision": "176b5e1ba404468658a11da7fb644d2fa6e24cac",
+      "tests": 26,
+      "failures": 0,
+      "command": "node --test scripts/tests/progress-dashboard.test.cjs scripts/tests/progress-dashboard-delivery.test.cjs",
+      "evidence": "Independent QA rerun and Chrome checks; independent critic review on 12 Sep 2026.",
+      "note": "QA 9.6/10; critic 9.55/10. Mobile, keyboard, reduced motion, GLB fallback and public package checked locally. Not public deployment or Android release acceptance."
+    },
     {
       "title": "Android helper baseline · historical",
       "revision": "a9b35f3c",
@@ -123,6 +137,21 @@
     }
   ],
   "changes": [
+    {
+      "sha": "176b5e1ba404468658a11da7fb644d2fa6e24cac",
+      "time": "2026-09-12T15:15:30+05:30",
+      "summary": "Build the Blender headquarters, robot work loops and guarded milestone dashboard"
+    },
+    {
+      "sha": "cc896587fc4b456a624ef2dc0036fafe0de4a65b",
+      "time": "2026-09-12T14:45:27+05:30",
+      "summary": "Project handoff and review updated; outcome review pending"
+    },
+    {
+      "sha": "3b2c29f8b7b9f25ea67646bdf10c6ce58088dbca",
+      "time": "2026-09-12T14:43:53+05:30",
+      "summary": "Website and dashboard · Verification and delivery tooling updated; outcome review pending"
+    },
     {
       "sha": "14cd1f7175e3547a8920a3b0abbf7b1bdafd44ce",
       "time": "2026-09-12T14:41:55+05:30",
@@ -167,39 +196,24 @@
       "sha": "311643de1df7bbbbfbd64b904ea26bc9f3828b79",
       "time": "2026-09-11T08:32:24+05:30",
       "summary": "Document accessibility issues across login and profile screens"
-    },
-    {
-      "sha": "8955046f7bca7c7331564bb9914a6af742a505ef",
-      "time": "2026-09-11T08:31:54+05:30",
-      "summary": "Add notification parsing tests for edge cases"
-    },
-    {
-      "sha": "16b405b882b859c6085450ad6fe4370434df8970",
-      "time": "2026-09-11T08:28:58+05:30",
-      "summary": "Isolate engineer verification status across account changes"
-    },
-    {
-      "sha": "0d4269ea70d2fd2f87addcc9c0c4e6325b19c4aa",
-      "time": "2026-09-11T07:47:51+05:30",
-      "summary": "Save the navigation, account ownership and UX review handoff"
     }
   ],
   "majorMilestone": {
-    "id": "HQ-01",
-    "sequence": 1,
+    "id": "HQ-02",
+    "title": "Blender headquarters local review complete",
+    "sequence": 2,
     "major": true,
-    "title": "Blender headquarters implementation checkpoint",
-    "recordedAt": "2026-09-12T09:29:44Z"
+    "recordedAt": "2026-09-12T09:46:30Z"
   },
   "headquarters": [
     {
       "id": "center",
       "name": "EquipSeva headquarters",
-      "status": "Major milestone in progress",
+      "status": "Local campus reviews passed",
       "description": "The shared home for product, engineering and verification.",
-      "work": "The Android app continues from the saved Claude and Codex handoffs. This campus is the current dashboard milestone.",
-      "next": "Finish the 3D campus review, then resume the scoped Android renewal work.",
-      "evidence": "Renewal execution plan; saved integration handoffs."
+      "work": "Seven Blender robot offices, original logo, accessible office details and separate release evidence gates.",
+      "next": "Complete Cloudflare file upload and verify the public dashboard route.",
+      "evidence": "Campus source 176b5e1b; 26 passing checks; local QA 9.6/10 and critic 9.55/10. Android release approval remains separate."
     },
     {
       "id": "hospital",
