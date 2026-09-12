@@ -3,9 +3,9 @@
   "generatedAt": "2026-09-12T09:05:11Z",
   "source": {
     "branch": "codex/auth-integration-20260911",
-    "head": "3fb2e8a65c98f4c5359cbf35421437b29e57b2ec",
+    "head": "f7f433f9a8093b650ceda75fdf3a7ed4df17a3a1",
     "base": "1e770076358e74f6f40a99a4907f831da59e791c",
-    "commits": 11
+    "commits": 12
   },
   "focus": {
     "title": "Development dashboard & publishing",
@@ -55,10 +55,10 @@
     {
       "id": "Dashboard",
       "name": "Development journal",
-      "status": "in_progress",
+      "status": "verification",
       "owner": "Coordinator + independent QA",
-      "notes": "Publishing a sanitized snapshot with quota timestamps, milestone evidence and honest unavailable states.",
-      "implementationComplete": false
+      "notes": "Implementation and 15 regression tests complete; independent QA 9.7/10. Publishing and visual critique remain pending at this snapshot.",
+      "implementationComplete": true
     }
   ],
   "agents": [
@@ -70,7 +70,7 @@
     {
       "name": "Independent dashboard QA",
       "status": "complete",
-      "focus": "Initial source review completed; repairs are awaiting a second review."
+      "focus": "Independent source review and test rerun complete: 15 passed, 0 failed; bounded score 9.7/10."
     },
     {
       "name": "Android helpers",
@@ -113,15 +113,20 @@
     },
     {
       "title": "Dashboard · current milestone",
-      "revision": "Uncommitted dashboard changes based on 3fb2e8a6",
-      "tests": null,
-      "failures": null,
+      "revision": "f7f433f9a8093b650ceda75fdf3a7ed4df17a3a1",
+      "tests": 15,
+      "failures": 0,
       "command": "node --test scripts/tests/progress-dashboard.test.cjs",
-      "evidence": "Dashboard verification pending",
-      "note": "Regression tests, responsive checks and independent review must finish before acceptance."
+      "evidence": "scripts/tests/progress-dashboard.test.cjs; independent QA rerun on 12 Sep 2026",
+      "note": "15 offline tests passed. Chrome desktop, 390px mobile and reduced-motion checks passed. Bounded QA score 9.7/10; public-domain verification still pending at capture."
     }
   ],
   "changes": [
+    {
+      "sha": "f7f433f9a8093b650ceda75fdf3a7ed4df17a3a1",
+      "time": "2026-09-12T14:40:36+05:30",
+      "summary": "Website and dashboard · Verification and delivery tooling"
+    },
     {
       "sha": "3fb2e8a65c98f4c5359cbf35421437b29e57b2ec",
       "time": "2026-09-12T14:19:06+05:30",
