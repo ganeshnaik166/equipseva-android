@@ -1,0 +1,68 @@
+[
+  {
+    "file": "renders/shared-actions-light.png",
+    "sha256": "a4265c8442a0174df536a3fe08729b92849482c3357fd096796cecf0075ae9cd",
+    "sourceModifiedAt": "2026-09-12T13:50:46.0128351Z",
+    "source": "app/build/outputs/ui-foundation/shared-actions-false-325539421.png"
+  },
+  {
+    "file": "renders/shared-actions-dark.png",
+    "sha256": "60f45a929c42316193279bbd311214a93abedbf8630309696061045a4b1d66e8",
+    "sourceModifiedAt": "2026-09-12T13:50:44.9403417Z",
+    "source": "app/build/outputs/ui-foundation/shared-actions-true-325539421.png"
+  },
+  {
+    "file": "renders/action-kinds-light.png",
+    "sha256": "f87a7b81ee8734d06ffc14d5cbedb7f3c8cc6f68d1851311b54c00dd093bbcda",
+    "sourceModifiedAt": "2026-09-12T13:50:46.0927294Z",
+    "source": "app/build/outputs/ui-foundation/shared-actions-false-2023407137.png"
+  },
+  {
+    "file": "renders/action-kinds-dark.png",
+    "sha256": "940aa0eaf3ab85277f17855ad3d588061a110dca6736ed8db248f7b5861be0da",
+    "sourceModifiedAt": "2026-09-12T13:50:45.0220431Z",
+    "source": "app/build/outputs/ui-foundation/shared-actions-true-2023407137.png"
+  },
+  {
+    "file": "renders/keyboard-focus.png",
+    "sha256": "154b96a1242b28f38338176f467f440a18c410e52001d413ca8096cc3c5b1874",
+    "sourceModifiedAt": "2026-09-12T13:50:46.7358617Z",
+    "source": "app/build/outputs/ui-foundation/primary-focused-ring.png"
+  },
+  {
+    "file": "renders/english-320dp-2x.png",
+    "sha256": "33b70fac284dde85a1a653ff1598e2c4ea169698237fa28a6fb851c47eef57cf",
+    "sourceModifiedAt": "2026-09-12T13:50:47.3564514Z",
+    "source": "app/build/outputs/ui-foundation/api34-en-320-2x-false-top.png"
+  },
+  {
+    "file": "renders/hindi-api26-320dp-2x.png",
+    "sha256": "092f90f9fc6704e078270f399739af90b1dabf4419bf6ad70519479aa025825c",
+    "sourceModifiedAt": "2026-09-12T13:50:53.0409134Z",
+    "source": "app/build/outputs/ui-foundation/api26-hi-320-2x-false-top.png"
+  },
+  {
+    "file": "renders/telugu-dark-320dp-2x.png",
+    "sha256": "f1e7d7bd5b41338efa2ee3759410828d0c8db7ec1d38c032e2cedd95292bfcb6",
+    "sourceModifiedAt": "2026-09-12T13:50:47.1636260Z",
+    "source": "app/build/outputs/ui-foundation/api34-te-320-2x-true-top.png"
+  },
+  {
+    "file": "renders/material-controls-light.png",
+    "sha256": "76c4ca07a94eba8df2bfecbb2fe5735c74152969a139082828897749f05595b3",
+    "sourceModifiedAt": "2026-09-12T13:50:44.7515458Z",
+    "source": "app/build/outputs/ui-foundation/material-false-focused.png"
+  },
+  {
+    "file": "renders/material-controls-dark.png",
+    "sha256": "606f3af266acac0bcf666115d2484c52a01b92748f4ab1dff02c53bbc1d5d03e",
+    "sourceModifiedAt": "2026-09-12T13:50:44.1504449Z",
+    "source": "app/build/outputs/ui-foundation/material-true-focused.png"
+  },
+  {
+    "file": "renders/legacy-light-field-in-dark-theme.png",
+    "sha256": "1190d76acb1964322dae4db5753419cec400aaba209aaf25004be52325f5e706",
+    "sourceModifiedAt": "2026-09-12T13:50:44.2091384Z",
+    "source": "app/build/outputs/ui-foundation/legacy-field-true-focused.png"
+  }
+]

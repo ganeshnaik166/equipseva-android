@@ -1,0 +1,385 @@
+{
+  "scope": "Executed attempts retained, including expected baseline failures, product defects and test-harness/oracle corrections",
+  "rawEvidenceDirectory": "C:\\Users\\lokes\\Documents\\Codex\\2026-09-07\\im\\work\\verification\\ui-foundation-20260912",
+  "history": [
+    {
+      "phase": "foundation-red",
+      "logFile": "red.log",
+      "logSha256": "d099b99800ca09e7d723ec3147a64466756fc415973131cccd09507a20d73a92",
+      "note": "Six executed baseline assertions failed before foundation production changes.",
+      "totals": {
+        "suites": 1,
+        "tests": 6,
+        "failures": 6,
+        "errors": 0,
+        "skipped": 0
+      },
+      "failingCases": [
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeFoundationTest",
+          "case": "shape roles separate inputs cards and sheets",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: expected:<16.0> but was:<5.0>",
+          "xmlSha256": "731ffc8c1582fd62ea2a315a818c9bd23eafbc9d3a037d53cdb84807042a7ff8"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeFoundationTest",
+          "case": "dark theme has ink canvas and readable surface and error roles",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: expected:<Color(0.047058824, 0.05882353, 0.043137256, 1.0, sRGB IEC61966-2.1)> but was:<Color(0.06666667, 0.078431375, 0.09411765, 1.0, sRGB IEC61966-2.1)>",
+          "xmlSha256": "731ffc8c1582fd62ea2a315a818c9bd23eafbc9d3a037d53cdb84807042a7ff8"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeFoundationTest",
+          "case": "light theme has soft canvas and lime action container with safe foreground primary",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: expected:<Color(0.95686275, 0.9607843, 0.9490196, 1.0, sRGB IEC61966-2.1)> but was:<Color(0.96862745, 0.972549, 0.98039216, 1.0, sRGB IEC61966-2.1)>",
+          "xmlSha256": "731ffc8c1582fd62ea2a315a818c9bd23eafbc9d3a037d53cdb84807042a7ff8"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeFoundationTest",
+          "case": "all font weights and licenses are packaged offline",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Missing offline font: space_grotesk_semibold. Actual: 0",
+          "xmlSha256": "731ffc8c1582fd62ea2a315a818c9bd23eafbc9d3a037d53cdb84807042a7ff8"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeFoundationTest",
+          "case": "legacy and Material text use the same readable page and body styles",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: expected:<28.0.sp> but was:<24.0.sp>",
+          "xmlSha256": "731ffc8c1582fd62ea2a315a818c9bd23eafbc9d3a037d53cdb84807042a7ff8"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeFoundationTest",
+          "case": "production typography resolves actual bundled weights",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Headings must load Space Grotesk, not the Inter body. Actual: android.graphics.Typeface@57624cca",
+          "xmlSha256": "731ffc8c1582fd62ea2a315a818c9bd23eafbc9d3a037d53cdb84807042a7ff8"
+        }
+      ]
+    },
+    {
+      "phase": "first-runtime-attempt",
+      "logFile": "targeted-first.log",
+      "logSha256": "696fab0dc183a829e8fe0a58b1751b72a6fbea7d1b6b04c1dcc73bd3e00fe555",
+      "note": "Twelve failures: nine invalid Typeface-handle identity comparisons and three API26 accesses to an API28-only harness field; corrected with resource/advance/weight assertions and a narrow SDK guard.",
+      "totals": {
+        "suites": 6,
+        "tests": 60,
+        "failures": 12,
+        "errors": 0,
+        "skipped": 0
+      },
+      "failingCases": [
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeGalleryTest",
+          "case": "Hindi two times text fits narrow light gallery",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Actual production Typeface from bundled resource expected:<android.graphics.Typeface@ebd3d0d6> but was:<android.graphics.Typeface@3868516>",
+          "xmlSha256": "0f09de19a01ff07c9afda832b5aebacce7a7148e19884370fdccc465e02672a8"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeGalleryTest",
+          "case": "Telugu typography remains reachable on short landscape",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Actual production Typeface from bundled resource expected:<android.graphics.Typeface@ebd31106> but was:<android.graphics.Typeface@7893d716>",
+          "xmlSha256": "0f09de19a01ff07c9afda832b5aebacce7a7148e19884370fdccc465e02672a8"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeGalleryTest",
+          "case": "Hindi two times text fits narrow dark gallery",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Actual production Typeface from bundled resource expected:<android.graphics.Typeface@ebd3d0d6> but was:<android.graphics.Typeface@3868516>",
+          "xmlSha256": "0f09de19a01ff07c9afda832b5aebacce7a7148e19884370fdccc465e02672a8"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeGalleryTest",
+          "case": "English typography remains reachable on short landscape",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Actual production Typeface from bundled resource expected:<android.graphics.Typeface@5d5bf1e6> but was:<android.graphics.Typeface@ebda4f36>",
+          "xmlSha256": "0f09de19a01ff07c9afda832b5aebacce7a7148e19884370fdccc465e02672a8"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeGalleryTest",
+          "case": "Hindi typography remains reachable on short landscape",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Actual production Typeface from bundled resource expected:<android.graphics.Typeface@ebd3d0d6> but was:<android.graphics.Typeface@3868516>",
+          "xmlSha256": "0f09de19a01ff07c9afda832b5aebacce7a7148e19884370fdccc465e02672a8"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeGalleryTest",
+          "case": "Telugu two times text fits narrow light gallery",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Actual production Typeface from bundled resource expected:<android.graphics.Typeface@ebd31106> but was:<android.graphics.Typeface@7893d716>",
+          "xmlSha256": "0f09de19a01ff07c9afda832b5aebacce7a7148e19884370fdccc465e02672a8"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeGalleryTest",
+          "case": "Telugu two times text fits narrow dark gallery",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Actual production Typeface from bundled resource expected:<android.graphics.Typeface@ebd31106> but was:<android.graphics.Typeface@7893d716>",
+          "xmlSha256": "0f09de19a01ff07c9afda832b5aebacce7a7148e19884370fdccc465e02672a8"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeGalleryTest",
+          "case": "English two times text fits narrow light gallery",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Actual production Typeface from bundled resource expected:<android.graphics.Typeface@5d5bf1e6> but was:<android.graphics.Typeface@ebda4f36>",
+          "xmlSha256": "0f09de19a01ff07c9afda832b5aebacce7a7148e19884370fdccc465e02672a8"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeGalleryTest",
+          "case": "English two times text fits narrow dark gallery",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Actual production Typeface from bundled resource expected:<android.graphics.Typeface@5d5bf1e6> but was:<android.graphics.Typeface@ebda4f36>",
+          "xmlSha256": "0f09de19a01ff07c9afda832b5aebacce7a7148e19884370fdccc465e02672a8"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeGalleryTest",
+          "case": "API26 Hindi font resources resolve and mixed script renders",
+          "kind": "failure",
+          "type": "java.lang.NoSuchFieldError",
+          "message": "java.lang.NoSuchFieldError: appComponentFactory",
+          "xmlSha256": "0f09de19a01ff07c9afda832b5aebacce7a7148e19884370fdccc465e02672a8"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeGalleryTest",
+          "case": "API26 English font resources resolve and mixed script renders",
+          "kind": "failure",
+          "type": "java.lang.NoSuchFieldError",
+          "message": "java.lang.NoSuchFieldError: appComponentFactory",
+          "xmlSha256": "0f09de19a01ff07c9afda832b5aebacce7a7148e19884370fdccc465e02672a8"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeGalleryTest",
+          "case": "API26 Telugu font resources resolve and mixed script renders",
+          "kind": "failure",
+          "type": "java.lang.NoSuchFieldError",
+          "message": "java.lang.NoSuchFieldError: appComponentFactory",
+          "xmlSha256": "0f09de19a01ff07c9afda832b5aebacce7a7148e19884370fdccc465e02672a8"
+        }
+      ]
+    },
+    {
+      "phase": "geometry-test-compile",
+      "logFile": "targeted-second-buttons-red.log",
+      "logSha256": "5b14dddaa6fb64e43c5983ca01abc80d9c8501563909fdbf7fc820ed91df94f4",
+      "note": "Compilation stopped at unavailable DpRect.height; corrected to measured edge subtraction. No test result claimed.",
+      "totals": null,
+      "failingCases": []
+    },
+    {
+      "phase": "shared-action-red",
+      "logFile": "targeted-third-buttons-red.log",
+      "logSha256": "24a106e0b0ec6906fefa455b8d9e9ce540666e0c77c41a060d716492db4512f3",
+      "note": "Old physical button sizes and absent loading semantics failed the new contract. XML selection contains the focused shared-action suite.",
+      "totals": {
+        "suites": 3,
+        "tests": 29,
+        "failures": 6,
+        "errors": 0,
+        "skipped": 0
+      },
+      "failingCases": [
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedActionLayoutTest",
+          "case": "Hindi long primary labels grow at twice text size",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Actual height is 48.0.dp, expected at least 52.0.dp (tolerance: 0.5.dp)",
+          "xmlSha256": "067f30c98dbd96afb3127ba1907722d68143bad6ddc6b180638edb73240b1221"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedActionLayoutTest",
+          "case": "every legacy action kind retains button semantics and minimum target",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Actual height is 44.0.dp, expected at least 48.0.dp (tolerance: 0.5.dp)",
+          "xmlSha256": "067f30c98dbd96afb3127ba1907722d68143bad6ddc6b180638edb73240b1221"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedActionLayoutTest",
+          "case": "Telugu long primary labels grow at twice text size",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Actual height is 48.0.dp, expected at least 52.0.dp (tolerance: 0.5.dp)",
+          "xmlSha256": "067f30c98dbd96afb3127ba1907722d68143bad6ddc6b180638edb73240b1221"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedActionLayoutTest",
+          "case": "loading and disabled controls never replay taps when reenabled",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Failed to assert the following: (StateDescription is defined)\nSemantics of the node:\nNode #259 at (l=16.0, t=72.0, r=304.0, b=120.0)px\nContentDescription = '[Save changes, loading]'\nRole = 'Button'\nText = '[Save changes]'\n[Disabled]\nActions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, SetTextSubstitution, ShowTextSubstitution]\nMergeDescendants = 'true'\nHas 1 child, 1 sibling\nSelector used: (Text + InputText + EditableText contains 'Save changes' (ignoreCase: false))\n",
+          "xmlSha256": "067f30c98dbd96afb3127ba1907722d68143bad6ddc6b180638edb73240b1221"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedActionLayoutTest",
+          "case": "English long primary labels grow at twice text size",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Actual height is 48.0.dp, expected at least 52.0.dp (tolerance: 0.5.dp)",
+          "xmlSha256": "067f30c98dbd96afb3127ba1907722d68143bad6ddc6b180638edb73240b1221"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedActionLayoutTest",
+          "case": "primary controls have at least 52dp physical height",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Actual height is 48.0.dp, expected at least 52.0.dp (tolerance: 0.5.dp)",
+          "xmlSha256": "067f30c98dbd96afb3127ba1907722d68143bad6ddc6b180638edb73240b1221"
+        }
+      ]
+    },
+    {
+      "phase": "foundation-candidate",
+      "logFile": "foundation-targeted.log",
+      "logSha256": "fde12d7c2b462ac69d12b8833f68bca7c8f40c96b4e76447d4226f0e719923c6",
+      "note": "Intermediate foundation and affected-consumer selectors passed; this did not accept shared actions.",
+      "totals": {
+        "suites": 6,
+        "tests": 62,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "failingCases": []
+    },
+    {
+      "phase": "shared-action-test-import",
+      "logFile": "shared-action-first.log",
+      "logSha256": "a2dbe669d6a3728cdbb578ae256b8fb651c2600d4a6694aeaac0a75189611b50",
+      "note": "Test compilation stopped at a missing testTag import; corrected without changing assertions.",
+      "totals": null,
+      "failingCases": []
+    },
+    {
+      "phase": "shared-action-layout-focus",
+      "logFile": "shared-action-second.log",
+      "logSha256": "5609c3d75262a2fa2b6ba9f37f744934d07b3581747e2db3a6834a4eb9f1c718",
+      "note": "Three actual centered-label line-bound failures fixed in production; one focus request rejected in initial touch mode fixed by requesting keyboard mode and retaining real focus/pixel assertions.",
+      "totals": {
+        "suites": 4,
+        "tests": 42,
+        "failures": 4,
+        "errors": 0,
+        "skipped": 0
+      },
+      "failingCases": [
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeGalleryTest",
+          "case": "dark shared actions keep labels and icons readable",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Right line edge: Main action",
+          "xmlSha256": "070e540b436226cce21fcd776085ff72062aba1536bfc20fb26cd57a5a803dd5"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeGalleryTest",
+          "case": "light shared actions keep labels and icons readable",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Right line edge: Main action",
+          "xmlSha256": "070e540b436226cce21fcd776085ff72062aba1536bfc20fb26cd57a5a803dd5"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeGalleryTest",
+          "case": "keyboard focus creates a visible inner ring on lime action",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError",
+          "xmlSha256": "070e540b436226cce21fcd776085ff72062aba1536bfc20fb26cd57a5a803dd5"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.theme.LimeThemeGalleryTest",
+          "case": "inverse panel gives controls a local dark theme in a light app",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Right line edge: Inverse main action",
+          "xmlSha256": "070e540b436226cce21fcd776085ff72062aba1536bfc20fb26cd57a5a803dd5"
+        }
+      ]
+    },
+    {
+      "phase": "payout-row-red",
+      "logFile": "shared-action-third-row-red.log",
+      "logSha256": "90e17ef817c9b4a5129d65ce68bcb8c7d7945be152af2477d301a3ee98c81b2f",
+      "note": "A source-like compact Row squeezed out the final payout action; wrapped groups and scrollable bodies fix the layout.",
+      "totals": {
+        "suites": 2,
+        "tests": 34,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0
+      },
+      "failingCases": [
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedActionLayoutTest",
+          "case": "three compact payout actions remain reachable at twice text size",
+          "kind": "failure",
+          "type": "java.lang.AssertionError",
+          "message": "java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'Mark paid' (ignoreCase: false) is not displayed!",
+          "xmlSha256": "bc14046f8b11608915f50eb16069b1408df041227cff1db71064c05e701ffb76"
+        }
+      ]
+    },
+    {
+      "phase": "combined-targeted",
+      "logFile": "targeted-combined.log",
+      "logSha256": "29f9d0b1a2138b4bb617fbe90a806eb88e22c97a1651a2b103d217a29ee6be76",
+      "note": "Combined selectors passed; later strengthened action-kind and full viewport assertions were verified by both full runs.",
+      "totals": {
+        "suites": 9,
+        "tests": 90,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "failingCases": []
+    },
+    {
+      "phase": "first-full-bar",
+      "logFile": "fullbar.log",
+      "logSha256": "d6ea454d35532fa672dfafd14e6f15af01d7c3ee4d34ec543a794da6260ab9b6",
+      "note": "Full command passed. New ComposableNaming test-helper warning found among 83 warnings; helper renamed and final full command rerun.",
+      "totals": {
+        "suites": 359,
+        "tests": 3155,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "failingCases": []
+    },
+    {
+      "phase": "final-full-bar",
+      "logFile": "fullbar-final.log",
+      "logSha256": "8bed8de56daf24650f55701e58527d8c43072f285204fc0ce2e2f600cf80ad9f",
+      "note": "Exact committed source passed, including final action-group assertions; lint returned to82 warnings and2 hints with zero errors.",
+      "totals": {
+        "suites": 359,
+        "tests": 3155,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "failingCases": []
+    }
+  ]
+}

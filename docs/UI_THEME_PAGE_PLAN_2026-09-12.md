@@ -1,9 +1,12 @@
 # EquipSeva: Lime / Ink UI plan
 
-Status: **planning proposal, before application implementation**. The owner chose
+Status: **approved plan; staged implementation underway**. The owner chose
 the reference palette and typography on 12 September 2026. This document freezes
-the proposed implementation sequence and the contract every page must satisfy.
-It does not claim that the new UI has been built, rendered on Android or accepted.
+the implementation sequence and the contract every page must satisfy. UI-01 and
+the UI-02 shared-action slice are locally accepted at `c7da5ee3`; see the
+[implementation evidence](evidence/ui-foundation/README.md). Remaining components,
+pages and device/release acceptance stay open. The source registry below retains
+its recorded planning baseline; those hashes are not a current-code inventory.
 
 Source baseline: `1dc9188e212ab217393e055b4c238b18c72521ae`, branch
 `codex/auth-integration-20260911`. Fetch confirmed the same upstream tip during
@@ -288,8 +291,9 @@ test-first slices and integration points. Known current dependencies include:
 
 ## 6. Implementation sequence
 
-UI-00 is reviewed as the planning baseline. UI-01 through UI-11 remain **planned**,
-not implemented or accepted for this selected theme. Finish and review one bounded
+UI-00 is reviewed as the planning baseline. **UI-01 is locally accepted** together
+with **UI-02's shared-action slice**; UI-02 as a whole remains in progress.
+UI-03 through UI-11 remain planned for this theme. Finish and review one bounded
 batch before expanding. Separate security fixes from visual commits.
 
 | Batch | Work | Completion evidence |
@@ -362,11 +366,12 @@ applicable integration gates. No force push, silent gate bypass or unsupported
 production deployment is part of the redesign.
 
 Update the development dashboard only for a completed major milestone with an
-explicit scope and verified facts. This planning pass does not advance an app
+explicit scope and verified facts. Planning alone does not advance an app
 completion percentage, agent-hours counter or release score.
 
-**First implementation step after planning:** UI-01 (fonts and semantic theme),
-then UI-02 (shared component gallery). Recheck source/branch/build-slot state first.
+**Next implementation step:** remaining UI-02 fields, cards, status, navigation,
+dialogs/sheets and common feedback, in bounded caller-aware batches. Then UI-03's
+auth-entry pages. Recheck source/branch/build-slot state first.
 Keep per-page implementations staged in the sequence above, with before/after
-evidence. This planning pass changes documentation only; it runs no Gradle or
-real-account tests and makes no app release claim.
+evidence. The original UI-00 planning pass changed documentation only. Current
+UI-01/action results are in the linked ledger; they make no app release claim.

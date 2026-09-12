@@ -1,6 +1,66 @@
-# Android continuation: role/status fixes and Welcome UI
+# Android continuation: lime/ink foundation and shared actions
 
-> Latest visual decision, 12 September 2026: the owner selected supplied lime/
+## Latest saved UI milestone
+
+Continue from `codex/auth-integration-20260911` in
+`C:/Users/lokes/Documents/Codex/2026-09-07/im/work/equipseva-auth-integration-20260911`.
+Base for this UI delivery: `667f134a72d747c78a11a10544c2cdf929b649bb`.
+
+| Commit | Scope |
+| --- | --- |
+| `be8f42a1322fc8ca906fe951af45d57feb13f773` | UI-01 candidate: semantic light/dark theme, bundled fonts/locale mapping, type/shape roles, fixed-light compatibility and focused tests. |
+| `c7da5ee333d3913bf98052c9c20f81b3b56f6d38` | UI-02 shared actions: growing 48/52dp controls, paired states, localized loading, real focus and wrapping/scrolling compact payout actions; font-notice byte preservation. This commit contains the final tested app source. |
+
+**UI-01 foundation + UI-02 shared actions accepted locally:** critic **9.595/10**,
+QA **9.58/10**, with every applicable critical dimension at least 9.5. See the
+[evidence index and previews](evidence/ui-foundation/README.md),
+[source/build/packaging ledger](evidence/ui-foundation/verification.json),
+[critic](evidence/ui-foundation/critic-review.md) and
+[QA](evidence/ui-foundation/qa-review.md). The evidence/dashboard receipt commit
+follows this source commit; obtain its SHA from Git to avoid a self-reference.
+
+Final command: `:app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+:app:assembleRelease --max-workers=2 --no-configuration-cache --no-daemon`, with
+the existing documented `PRECHECK_LOOSE=1` compile mode and Git Bash on PATH.
+**3,155 tests / 359 suites, zero failures/errors/skips**. Lint zero errors,
+82 warnings and two hints. Debug and unsigned release assembly passed in 6m 24s.
+All 791 captured source/configuration hashes match before, after and after commit.
+The first full build's additional test-helper naming warning was fixed; its log
+and all prior expected/diagnostic failures remain recorded.
+
+Both APKs contain all ten font hashes, four original notices and provenance.
+The R8 release is 19,098,004 bytes, under the existing 28 MiB limit. **It is
+unsigned:** apksigner rejects it. A strict release dry-run still refuses the
+missing keystore; missing expected-certificate configuration remains open.
+Build scripts, permissions, legacy palette constants and original logos are
+unchanged. No main merge, provider-account journey, migration or signed release
+belongs to this delivery.
+
+Raw evidence: sibling `work/verification/ui-foundation-20260912/`. The build slot
+was returned to FREE after all Gradle work ended; recheck before the next build.
+Preserve other worktrees and fetch before committing. No model-setting question
+is needed.
+
+The milestone dashboard records APP-02, sequence 4, against this source SHA with
+a timestamped quota/agent snapshot. Animations do not count work. Whole-app
+completion and active hours remain unmeasured; UI slice ratings do not fill the
+Android release gates or verify public hosting.
+
+The updated dashboard data passed all 26 existing dashboard/delivery tests.
+Public staging package: `outputs/progress-app02-release-20260912` under the
+workspace root. Earlier APP-01/HQ packages are historical; no DNS, Worker or
+GoDaddy publication was performed by this UI milestone.
+
+Next: finish UI-02's remaining fields/cards/status/navigation/dialogs/sheets and
+common states, then UI-03 auth-entry pages, following the approved page plan.
+This is not acceptance of all 98 pages, every legacy dark surface, physical-device,
+TalkBack/IME, process/Activity restoration or native-language review. A3/A4/A12,
+dependency triage and provider/signing/main gates remain open. Preserve successful
+A1/Room v5/A2/A10 behavior and the separate visual/security commit boundaries.
+
+## Earlier milestone record (historical)
+
+> Planning decision, 12 September 2026: the owner selected supplied lime/
 > ink/soft-white references with Space Grotesk headings and Inter body text, and
 > requested page-by-page planning before implementation. Read
 > [UI_THEME_PAGE_PLAN_2026-09-12.md](UI_THEME_PAGE_PLAN_2026-09-12.md) and its

@@ -1,16 +1,16 @@
 {
   "schemaVersion": 3,
-  "generatedAt": "2026-09-12T10:46:43.849Z",
-  "agentsObservedAt": "2026-09-12T10:46:43.849Z",
+  "generatedAt": "2026-09-12T14:08:38.369614+00:00",
+  "agentsObservedAt": "2026-09-12T14:08:38.369614+00:00",
   "source": {
     "branch": "codex/auth-integration-20260911",
-    "head": "7f3c5eaa8c8ae218433f3217b86ea34e9a08691b",
+    "head": "c7da5ee333d3913bf98052c9c20f81b3b56f6d38",
     "base": "1e770076358e74f6f40a99a4907f831da59e791c",
-    "commits": 20
+    "commits": 25
   },
   "focus": {
-    "title": "Android login UI and account-state milestone verified",
-    "detail": "Welcome redesigned, role controls made readable, and engineer status fenced to the current account. Local checks and independent reviews passed. Broader security and signed-release gates remain open."
+    "title": "Lime and ink foundation plus shared actions verified",
+    "detail": "Selected theme and bundled fonts implemented; shared actions grow with text and preserve loading/focus states. Local QA and critic passed. Remaining pages and security/release gates stay open."
   },
   "milestones": [
     {
@@ -68,61 +68,81 @@
       "owner": "Welcome helper + coordinator",
       "notes": "Clear Sign in action, both-role guidance and separate legal buttons. Eleven local UI checks passed in English, Hindi and Telugu; real-device and native-language review remain open.",
       "implementationComplete": true
+    },
+    {
+      "id": "UI-01",
+      "name": "Lime/ink theme and bundled typography",
+      "status": "implemented",
+      "owner": "Coordinator + font helper + independent reviewers",
+      "notes": "Semantic light/dark theme, Space Grotesk/Inter and Hindi/Telugu resources locally accepted. Canonical roles do not imply that all 98 pages are redesigned.",
+      "implementationComplete": true
+    },
+    {
+      "id": "UI-02",
+      "name": "Shared interface components",
+      "status": "in_progress",
+      "owner": "Coordinator + independent reviewers",
+      "notes": "Shared action slice accepted: readable states, growing labels, keyboard focus and wrapping compact actions. Fields, cards, navigation, dialogs and feedback remain.",
+      "implementationComplete": false
     }
   ],
   "agents": [
     {
       "name": "Coordinator",
       "status": "active",
-      "focus": "Saving the reviewed Android milestone; notification routing and cleanup ownership remain next."
+      "focus": "Saving the reviewed UI foundation/action milestone and its exact-source evidence."
     },
     {
-      "name": "Engineer-status helper",
+      "name": "Font assets helper",
       "status": "complete",
-      "focus": "Current-account request/publication and returned-row ownership corrections integrated."
+      "focus": "Ten bundled resources, pinned notices and Windows Git byte-preservation checks integrated."
     },
     {
-      "name": "Welcome UI helper",
+      "name": "Independent UI critic",
       "status": "complete",
-      "focus": "Accessible Welcome design and test-first fixtures integrated."
+      "focus": "Accepted local UI-01/shared-action scope at 9.595/10 after source, render and final build checks."
     },
     {
-      "name": "Independent Android critic",
+      "name": "Independent UI QA",
       "status": "complete",
-      "focus": "Scoped source and render review complete. Whole-app and signed-release gates remain open."
-    },
-    {
-      "name": "Independent Android QA",
-      "status": "complete",
-      "focus": "Verified 3,110 passing tests, render evidence and unchanged source hashes. No real-device acceptance claimed."
+      "focus": "Accepted local UI-01/shared-action scope at 9.58/10; 3155 tests and APK font packaging independently checked."
     }
   ],
   "usage": {
-    "observedAt": "2026-09-12T10:34:20Z",
+    "observedAt": "2026-09-12T13:53:47Z",
     "windows": [
-      {
-        "name": "Codex",
-        "minutes": 10080,
-        "usedPercent": 29,
-        "resetsAt": "2026-09-19T08:33:29.000Z"
-      },
       {
         "name": "GPT-5.3-Codex-Spark",
         "minutes": 300,
-        "usedPercent": 62,
-        "resetsAt": "2026-09-12T13:33:38.000Z"
+        "usedPercent": 0,
+        "resetsAt": "2026-09-12T18:53:21.000Z"
       },
       {
         "name": "GPT-5.3-Codex-Spark",
         "minutes": 10080,
         "usedPercent": 28,
         "resetsAt": "2026-09-19T08:33:38.000Z"
+      },
+      {
+        "name": "Codex",
+        "minutes": 10080,
+        "usedPercent": 65,
+        "resetsAt": "2026-09-19T08:33:29.000Z"
       }
     ]
   },
   "verification": [
     {
-      "title": "Android role, status and Welcome components · local verification",
+      "title": "Lime/ink foundation and shared actions · local verification",
+      "revision": "c7da5ee333d3913bf98052c9c20f81b3b56f6d38",
+      "tests": 3155,
+      "failures": 0,
+      "command": ".\\gradlew.bat :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease --max-workers=2 --no-configuration-cache --no-daemon (PRECHECK_LOOSE=1; unsigned assembly)",
+      "evidence": "docs/evidence/ui-foundation/verification.json and independent critic/QA receipts, 12 Sep 2026.",
+      "note": "Critic 9.595/10; QA 9.58/10. Lint 0 errors, 82 warnings. 791 source hashes match; fonts/notices verified in both APKs. Remaining components, pages, devices and security/signing gates are separate."
+    },
+    {
+      "title": "Earlier role, status and Welcome components · historical local verification",
       "revision": "7f3c5eaa8c8ae218433f3217b86ea34e9a08691b",
       "tests": 3110,
       "failures": 0,
@@ -159,6 +179,16 @@
     }
   ],
   "changes": [
+    {
+      "sha": "c7da5ee333d3913bf98052c9c20f81b3b56f6d38",
+      "time": "2026-09-12T19:27:11+05:30",
+      "summary": "feat(ui): make shared actions readable and grow with text"
+    },
+    {
+      "sha": "be8f42a1322fc8ca906fe951af45d57feb13f773",
+      "time": "2026-09-12T18:36:18+05:30",
+      "summary": "feat(ui): add lime and ink theme with bundled locale fonts"
+    },
     {
       "sha": "7f3c5eaa8c8ae218433f3217b86ea34e9a08691b",
       "time": "2026-09-12T16:15:45+05:30",
@@ -221,21 +251,21 @@
     }
   ],
   "majorMilestone": {
-    "id": "APP-01",
-    "title": "Android Welcome and auth components locally verified",
-    "sequence": 3,
+    "id": "APP-02",
+    "title": "Selected Android theme and shared actions locally accepted",
+    "sequence": 4,
     "major": true,
-    "recordedAt": "2026-09-12T10:46:43.849Z"
+    "recordedAt": "2026-09-12T14:08:38.369614+00:00"
   },
   "headquarters": [
     {
       "id": "center",
       "name": "EquipSeva headquarters",
-      "status": "Android milestone locally verified",
+      "status": "UI foundation locally verified",
       "description": "The shared home for product, engineering and verification.",
-      "work": "Welcome UI, role-control contrast and engineer account-state protections are tested and reviewed.",
-      "next": "Close notification-routing and account-cleanup ownership gates; dashboard public deployment remains separate.",
-      "evidence": "3,110 tests passed; A2/A10: critic 9.62, QA 9.5; Welcome: critic 9.59, QA 9.5. Component scope only."
+      "work": "Selected lime/ink theme, bundled locale fonts and shared buttons are tested and reviewed.",
+      "next": "Finish shared components, then migrate pages with their state and security gates.",
+      "evidence": "3155 tests passed; critic 9.595 and QA 9.58, local foundation/action scope only."
     },
     {
       "id": "hospital",
@@ -243,8 +273,8 @@
       "status": "UI improvements saved",
       "description": "Request service, compare bids, track the visit and review the outcome.",
       "work": "Hospital home prioritizes Request Service, with bookings and engineer discovery. English, Hindi and Telugu labels are saved.",
-      "next": "Review the full request-to-completion journey before further redesign.",
-      "evidence": "Hospital home checkpoint 5d512462; renewal plan M5."
+      "next": "Apply the approved page plan after shared components; verify request, bid and completion states.",
+      "evidence": "Existing home regressions passed with the new foundation; full hospital redesign remains planned."
     },
     {
       "id": "engineer",
@@ -252,7 +282,7 @@
       "status": "Local status isolation verified",
       "description": "Find work, prepare a visit, submit evidence and understand payment status.",
       "work": "35 tests cover login replacement, stale results, manual refresh and returned-row ownership.",
-      "next": "Secure notification ownership, then validate the complete engineer journey.",
+      "next": "Migrate shared controls and planned engineer pages while preserving account/KYC ownership checks.",
       "evidence": "Final source-bound A10 evidence in the auth-integration verification ledger."
     },
     {
@@ -260,17 +290,17 @@
       "name": "Admin headquarters",
       "status": "Renewal audit pending",
       "description": "Administration, operations and supporting web workflows.",
-      "work": "Existing administration capabilities remain in the project. No complete renewal audit is claimed.",
-      "next": "Inventory the administrative journeys and their authorization checks.",
-      "evidence": "Renewal execution plan M7."
+      "work": "Compact payout actions now wrap at large text sizes. Callback and payment state logic retained.",
+      "next": "Complete shared components, then audit privileged admin pages and payment authorization before their full redesign.",
+      "evidence": "Source-like action-layout regression cases passed; no payment-provider or full admin acceptance."
     },
     {
       "id": "login",
       "name": "Login-flow headquarters",
-      "status": "Local role and Welcome checks passed",
+      "status": "Existing auth UI regressions retained",
       "description": "Sign in, recover an account and enter the correct role workspace.",
-      "work": "Welcome now explains both roles with accessible actions. Role-selection control colors pass in both themes.",
-      "next": "Review remaining sign-in/sign-up/profile accessibility after security ownership fixes.",
+      "work": "Welcome and role tests pass with bundled typography. A full auth-page restyle has not yet landed.",
+      "next": "Finish shared fields/states, then implement the approved Welcome, Sign in, Sign up and recovery designs.",
       "evidence": "Welcome 11 UI cases; RoleSelect 13 UI cases; carried root/session regressions passed."
     },
     {
@@ -278,27 +308,27 @@
       "name": "Security headquarters",
       "status": "Broader security gates open",
       "description": "Identity boundaries, access control and safe ownership of data.",
-      "work": "Current-account status boundaries passed local regressions. Full navigation, mutation and server authorization checks remain open.",
+      "work": "Visual changes preserve callbacks, permission configuration and existing account boundaries. Broader navigation/mutation gates remain open.",
       "next": "Finish account-owned notification admission and cleanup/token ownership before release integration.",
-      "evidence": "Scoped A10 verification; A3 and A4/A12 remain unaccepted."
+      "evidence": "Scoped UI review does not close A3/A4/A12 or the recorded dependency triage gate."
     },
     {
       "id": "qa",
       "name": "Quality-assurance lab",
-      "status": "Scoped Android reviews passed",
+      "status": "UI foundation/action scope accepted",
       "description": "Regression tests, accessibility checks and independent critique.",
-      "work": "3,110 tests passed. A2/A10: critic 9.62, QA 9.5; Welcome: critic 9.59, QA 9.5.",
-      "next": "Verify the next security slice, then expand real-device and both-role journey coverage.",
-      "evidence": "Exact source hashes, preserved failures, full build results and independent reports are saved."
+      "work": "3155 tests passed; critic 9.595/10 and QA 9.58/10 for this local UI slice.",
+      "next": "Review each remaining component/page batch; physical-device, TalkBack, IME and signed-release checks remain open.",
+      "evidence": "791 source hashes match. Lint 0 errors/82 warnings. Fonts and notices verified in debug and unsigned release APKs."
     },
     {
       "id": "plan",
       "name": "Next-plan headquarters",
-      "status": "Next security and workflow slices",
+      "status": "Approved theme; staged page migration",
       "description": "The queue of milestones after the current campus delivery.",
-      "work": "Continue the existing app through bounded, reviewed implementation milestones.",
-      "next": "A3 notification ownership → A4/A12 mutation isolation → Sign in/Sign up/Profile accessibility → complete role journeys.",
-      "evidence": "Renewal execution plan and 12 September Android continuation handoff."
+      "work": "All98 screen declarations have a planning disposition. UI-01 is implemented; only the shared-action part of UI-02 is accepted.",
+      "next": "Remaining UI-02 components → UI-03 auth entry → both-role pages, with A3/A4/A12 gates before dependent integration.",
+      "evidence": "12 September theme/page plan and UI foundation/action evidence. Planning coverage is not implementation completion."
     },
     {
       "id": "main",

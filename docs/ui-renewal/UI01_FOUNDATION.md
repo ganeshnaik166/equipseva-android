@@ -2,8 +2,11 @@
 
 Base: `667f134a72d747c78a11a10544c2cdf929b649bb`, branch
 `codex/auth-integration-20260911`. Implements the approved
-[page plan](../UI_THEME_PAGE_PLAN_2026-09-12.md). Verification is in progress;
-this file does not yet claim milestone or app acceptance.
+[page plan](../UI_THEME_PAGE_PLAN_2026-09-12.md). UI-01 foundation and the UI-02
+shared-action slice are locally accepted at
+`c7da5ee333d3913bf98052c9c20f81b3b56f6d38`. See the
+[final evidence and scope](../evidence/ui-foundation/README.md). Remaining
+components, pages, device workflows and app/release acceptance remain open.
 
 ## Decisions
 
@@ -56,9 +59,9 @@ hardcoded palette consumers. These are page/component migration work, not a
 claim that dark mode is already complete. No new regressions can be deferred as
 old debt without baseline source/render evidence.
 
-New type metrics must also pass real PrimaryButton/EsBtn large-text checks;
-their old fixed48/44dp constraints cannot establish acceptance of the new
-growable52dp action contract. Shared-action migration is the next bounded slice.
+New type metrics now pass real PrimaryButton/EsBtn large-text checks in the
+[shared-action slice](UI02_SHARED_ACTIONS.md). Their old fixed 48/44dp constraints
+were replaced by growing 48/52dp minimums. Remaining shared components are next.
 
 ## Evidence ledger
 
@@ -76,10 +79,15 @@ growable52dp action contract. Shared-action migration is the next bounded slice.
 - Foundation, native gallery, actual UserPrefs compatibility and affected
   Welcome/Role/Home tests: **62 tests /6 suites,0 failures/errors/skips**.
   Exact command selectors and complete output are in foundation-targeted.log.
-  This is a scoped candidate checkpoint; shared-action acceptance is still open.
-- Unit/lint/debug/unsigned release, exact source hashes, APK font packaging:
-  pending final result. An unsigned assembly is not a shipped release.
-- Independent critic and QA: no acceptance score yet.
+  This was the intermediate foundation candidate checkpoint, not the final bar.
+- Final full unit/lint/debug/unsigned release: **3,155 tests / 359 suites, zero
+  failures/errors/skips**, lint zero errors / 82 warnings / two hints, build
+  successful in 6m 24s. All 791 source/configuration hashes match before, after
+  and after commit. Both APKs retain the ten fonts and four original notices.
+- Independent local-slice critic **9.595/10**, QA **9.58/10**. Every applicable
+  critical dimension is at least 9.5. [Receipts](../evidence/ui-foundation/README.md).
+- Strict release refuses the missing keystore; apksigner rejects the actual
+  unsigned release. A 19,098,004-byte R8 assembly is not a shipped release.
 
 Physical-device/TalkBack/IME and all98 page designs remain separate gates.
 Main integration remains blocked by the existing security/release conditions
