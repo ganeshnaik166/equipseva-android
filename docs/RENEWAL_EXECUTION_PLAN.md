@@ -31,8 +31,13 @@ or green build alone is not evidence that the app is ready for release.
 
 ## Product decisions
 
-Keep Kotlin, Compose, the existing Supabase contracts, Seva green branding and
-English/Hindi/Telugu support. Improve the existing product in reviewable slices.
+Keep Kotlin, Compose, the existing Supabase contracts, the original logo and
+English/Hindi/Telugu support. On 12 September 2026 the owner selected a lime/ink/
+soft-white visual direction with Space Grotesk headings and Inter body text.
+The current page-by-page planning proposal is
+[UI_THEME_PAGE_PLAN_2026-09-12.md](UI_THEME_PAGE_PLAN_2026-09-12.md); it supersedes
+older palette/font/shape proposals, not the security or evidence gates below.
+Improve the existing product in reviewable slices.
 Preserve data, payment truth and recoverable work throughout the redesign.
 
 The hospital journey is: request service, compare suitable bids, confirm terms,

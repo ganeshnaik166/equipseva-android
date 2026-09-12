@@ -1,5 +1,15 @@
 # Android continuation: role/status fixes and Welcome UI
 
+> Latest visual decision, 12 September 2026: the owner selected supplied lime/
+> ink/soft-white references with Space Grotesk headings and Inter body text, and
+> requested page-by-page planning before implementation. Read
+> [UI_THEME_PAGE_PLAN_2026-09-12.md](UI_THEME_PAGE_PLAN_2026-09-12.md) and its
+> `ui-renewal/` appendices first. The plan inventories 98 screen declarations plus
+> modal/role/system variants. First implementation is UI-01 fonts/theme, then
+> UI-02 shared components. No application implementation of this selected theme
+> occurred in the planning pass; prior component ratings below are historical.
+> The A3/A4/A12, dependency and release gates still apply.
+
 Continue from `codex/auth-integration-20260911` in
 `C:/Users/lokes/Documents/Codex/2026-09-07/im/work/equipseva-auth-integration-20260911`.
 Original coordinator and helper checkouts remain intact. Fetch before any new
