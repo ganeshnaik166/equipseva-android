@@ -1,5 +1,23 @@
 # A2: root session routing and role confirmation
 
+## Current local disposition, 12 September 2026
+
+The historical dark-button blocker below is closed, together with an adjacent
+radio-contrast correction. The combined A2/A10 local slice passed independent
+critic **9.62** and QA **9.50**; the separate Welcome slice passed critic **9.59**
+and QA **9.50**. Tested application source is committed at
+`7f3c5eaa8c8ae218433f3217b86ea34e9a08691b` on `codex/auth-integration-20260911`.
+All 768 source/configuration hashes match the verified candidate; 3,110 unit tests,
+lint, debug and unsigned R8 assembly passed. These are local component approvals,
+not full-auth, real-device, main-integration or signed-release acceptance.
+
+Resume from [HANDOFF_ANDROID_UI_2026-09-12.md](HANDOFF_ANDROID_UI_2026-09-12.md).
+Exact results and retained failures are in
+[verification.json](evidence/auth-integration/verification.json). The earlier
+checkpoint and its failure history below remain historical evidence.
+
+## Historical 11 September WIP checkpoint
+
 WIP save checkpoint, 11 September 2026, on `codex/security-foundation-20260907`.
 Starting checkpoint `64107db7`. The owner requested immediate save/commit/push
 after reporting limited remaining usage. A2 is not an accepted milestone.

@@ -1,0 +1,10 @@
+light-disabled-role_picker_save_continue foreground=ff525c53 background=ffe2e7e2 ratio=5.56050119408377 glyphPixels=119
+light-disabled-role_picker_saving foreground=ff525c53 background=ffe2e7e2 ratio=5.56050119408377 glyphPixels=121
+light-enabled-role_picker_save_continue foreground=ffffffff background=ff0b6e4f ratio=6.2546458540835905 glyphPixels=119
+light-enabled-role_picker_try_again foreground=ffffffff background=ff0b6e4f ratio=6.2546458540835905 glyphPixels=72
+light-enabled-role_picker_check_again foreground=ffffffff background=ff0b6e4f ratio=6.2546458540835905 glyphPixels=132
+dark-disabled-role_picker_save_continue foreground=ff525c53 background=ffe2e7e2 ratio=5.56050119408377 glyphPixels=119
+dark-disabled-role_picker_saving foreground=ff525c53 background=ffe2e7e2 ratio=5.56050119408377 glyphPixels=121
+dark-enabled-role_picker_save_continue foreground=ffffffff background=ff0b6e4f ratio=6.2546458540835905 glyphPixels=119
+dark-enabled-role_picker_try_again foreground=ffffffff background=ff0b6e4f ratio=6.2546458540835905 glyphPixels=72
+dark-enabled-role_picker_check_again foreground=ffffffff background=ff0b6e4f ratio=6.2546458540835905 glyphPixels=132

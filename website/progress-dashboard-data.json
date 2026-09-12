@@ -1,16 +1,16 @@
 {
   "schemaVersion": 3,
-  "generatedAt": "2026-09-12T09:46:30Z",
-  "agentsObservedAt": "2026-09-12T09:46:30Z",
+  "generatedAt": "2026-09-12T10:46:43.849Z",
+  "agentsObservedAt": "2026-09-12T10:46:43.849Z",
   "source": {
     "branch": "codex/auth-integration-20260911",
-    "head": "176b5e1ba404468658a11da7fb644d2fa6e24cac",
+    "head": "7f3c5eaa8c8ae218433f3217b86ea34e9a08691b",
     "base": "1e770076358e74f6f40a99a4907f831da59e791c",
-    "commits": 16
+    "commits": 20
   },
   "focus": {
-    "title": "Blender headquarters ready for local review",
-    "detail": "Your logo connects seven robot workspaces. Local QA and critic checks passed. Cloudflare upload permission and public deployment verification remain open."
+    "title": "Android login UI and account-state milestone verified",
+    "detail": "Welcome redesigned, role controls made readable, and engineer status fenced to the current account. Local checks and independent reviews passed. Broader security and signed-release gates remain open."
   },
   "milestones": [
     {
@@ -24,17 +24,17 @@
     {
       "id": "A2",
       "name": "Login, role selection & recovery",
-      "status": "verification",
-      "owner": "Coordinator",
-      "notes": "Role selection and recovery are implemented. Final contrast verification and independent acceptance remain open in the handoff.",
+      "status": "implemented",
+      "owner": "Coordinator + independent reviewers",
+      "notes": "Local root/role regressions and light/dark contrast checks passed. Device, provider and signed-release acceptance remain open.",
       "implementationComplete": true
     },
     {
       "id": "A10",
       "name": "Engineer verification state",
       "status": "implemented",
-      "owner": "GPT-5.3 helper",
-      "notes": "Account-owned requests and cancellation guards are saved. Historical verification is listed below; integration review remains separate.",
+      "owner": "Coordinator + independent reviewers",
+      "notes": "Current-account admission, late-response rejection and returned-row ownership passed 35 focused cases. Repository identity and end-to-end authorization remain separate.",
       "implementationComplete": true
     },
     {
@@ -60,33 +60,52 @@
       "owner": "Coordinator + independent QA",
       "notes": "Blender campus and milestone controls implemented. 26 checks passed; local QA 9.6 and critic 9.55. Public deployment and live headers are not verified.",
       "implementationComplete": true
+    },
+    {
+      "id": "UI-WELCOME",
+      "name": "Welcome screen and accessibility",
+      "status": "implemented",
+      "owner": "Welcome helper + coordinator",
+      "notes": "Clear Sign in action, both-role guidance and separate legal buttons. Eleven local UI checks passed in English, Hindi and Telugu; real-device and native-language review remain open.",
+      "implementationComplete": true
     }
   ],
   "agents": [
     {
       "name": "Coordinator",
       "status": "active",
-      "focus": "Saving the reviewed 3D headquarters milestone and preparing the public package."
+      "focus": "Saving the reviewed Android milestone; notification routing and cleanup ownership remain next."
     },
     {
-      "name": "Independent campus QA",
+      "name": "Engineer-status helper",
       "status": "complete",
-      "focus": "26 tests passed; scoped local QA score 9.6/10. Public hosting verification remains open."
+      "focus": "Current-account request/publication and returned-row ownership corrections integrated."
     },
     {
-      "name": "Independent campus critic",
+      "name": "Welcome UI helper",
       "status": "complete",
-      "focus": "Scoped 3D dashboard UX score 9.55/10 after fixing offscreen details and focus contrast."
+      "focus": "Accessible Welcome design and test-first fixtures integrated."
     },
     {
-      "name": "Android helpers",
-      "status": "paused",
-      "focus": "Android work is on hold while the dashboard is completed."
+      "name": "Independent Android critic",
+      "status": "complete",
+      "focus": "Scoped source and render review complete. Whole-app and signed-release gates remain open."
+    },
+    {
+      "name": "Independent Android QA",
+      "status": "complete",
+      "focus": "Verified 3,110 passing tests, render evidence and unchanged source hashes. No real-device acceptance claimed."
     }
   ],
   "usage": {
-    "observedAt": "2026-09-12T09:44:30Z",
+    "observedAt": "2026-09-12T10:34:20Z",
     "windows": [
+      {
+        "name": "Codex",
+        "minutes": 10080,
+        "usedPercent": 29,
+        "resetsAt": "2026-09-19T08:33:29.000Z"
+      },
       {
         "name": "GPT-5.3-Codex-Spark",
         "minutes": 300,
@@ -98,16 +117,19 @@
         "minutes": 10080,
         "usedPercent": 28,
         "resetsAt": "2026-09-19T08:33:38.000Z"
-      },
-      {
-        "name": "Codex",
-        "minutes": 10080,
-        "usedPercent": 11,
-        "resetsAt": "2026-09-19T08:33:29.000Z"
       }
     ]
   },
   "verification": [
+    {
+      "title": "Android role, status and Welcome components · local verification",
+      "revision": "7f3c5eaa8c8ae218433f3217b86ea34e9a08691b",
+      "tests": 3110,
+      "failures": 0,
+      "command": ":app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease (documented unsigned CI mode)",
+      "evidence": "docs/evidence/auth-integration/verification.json and independent reviewer reports, 12 Sep 2026.",
+      "note": "A2/A10: critic 9.62, QA 9.5; Welcome: critic 9.59, QA 9.5. Lint: 0 errors, 82 warnings. Signed release, device and whole-app security acceptance remain open."
+    },
     {
       "title": "Blender headquarters · bounded local acceptance",
       "revision": "176b5e1ba404468658a11da7fb644d2fa6e24cac",
@@ -137,6 +159,26 @@
     }
   ],
   "changes": [
+    {
+      "sha": "7f3c5eaa8c8ae218433f3217b86ea34e9a08691b",
+      "time": "2026-09-12T16:15:45+05:30",
+      "summary": "Android implementation · Android regression tests · Project handoff and review updated; outcome review pending"
+    },
+    {
+      "sha": "e22c7c5b60b0a9e82f53efb733f427758f82d4b0",
+      "time": "2026-09-12T16:15:22+05:30",
+      "summary": "Android implementation · Android regression tests · Project handoff and review updated; outcome review pending"
+    },
+    {
+      "sha": "e58c48c2774a77aa0e725f1945da4e48a0fd5873",
+      "time": "2026-09-12T15:26:15+05:30",
+      "summary": "Android implementation · Android regression tests updated; outcome review pending"
+    },
+    {
+      "sha": "c8b563a9b13e51245b0b0dd495fe1385eca0c6f4",
+      "time": "2026-09-12T15:18:20+05:30",
+      "summary": "Website and dashboard · Project handoff and review · Verification and delivery tooling updated; outcome review pending"
+    },
     {
       "sha": "176b5e1ba404468658a11da7fb644d2fa6e24cac",
       "time": "2026-09-12T15:15:30+05:30",
@@ -176,44 +218,24 @@
       "sha": "567625e6066d9730b56a4733a8dc1b059ec3dc84",
       "time": "2026-09-12T14:05:29+05:30",
       "summary": "Save the draft notification-navigation policy for integration"
-    },
-    {
-      "sha": "5f0f48ecb0086ad40c16234e15628cdd02ee03ed",
-      "time": "2026-09-12T14:04:35+05:30",
-      "summary": "Expand engineer-state and role-screen contrast regression checks"
-    },
-    {
-      "sha": "8749ff71d98bc418ea66f096fd6d1982baf05a17",
-      "time": "2026-09-11T09:11:58+05:30",
-      "summary": "Integrate the helper handoffs and workflow review documents"
-    },
-    {
-      "sha": "a9b35f3c55b1750f9bc2a51ed802e7acd94b6bca",
-      "time": "2026-09-11T08:33:53+05:30",
-      "summary": "Record engineer-state tests and helper milestone evidence"
-    },
-    {
-      "sha": "311643de1df7bbbbfbd64b904ea26bc9f3828b79",
-      "time": "2026-09-11T08:32:24+05:30",
-      "summary": "Document accessibility issues across login and profile screens"
     }
   ],
   "majorMilestone": {
-    "id": "HQ-02",
-    "title": "Blender headquarters local review complete",
-    "sequence": 2,
+    "id": "APP-01",
+    "title": "Android Welcome and auth components locally verified",
+    "sequence": 3,
     "major": true,
-    "recordedAt": "2026-09-12T09:46:30Z"
+    "recordedAt": "2026-09-12T10:46:43.849Z"
   },
   "headquarters": [
     {
       "id": "center",
       "name": "EquipSeva headquarters",
-      "status": "Local campus reviews passed",
+      "status": "Android milestone locally verified",
       "description": "The shared home for product, engineering and verification.",
-      "work": "Seven Blender robot offices, original logo, accessible office details and separate release evidence gates.",
-      "next": "Complete Cloudflare file upload and verify the public dashboard route.",
-      "evidence": "Campus source 176b5e1b; 26 passing checks; local QA 9.6/10 and critic 9.55/10. Android release approval remains separate."
+      "work": "Welcome UI, role-control contrast and engineer account-state protections are tested and reviewed.",
+      "next": "Close notification-routing and account-cleanup ownership gates; dashboard public deployment remains separate.",
+      "evidence": "3,110 tests passed; A2/A10: critic 9.62, QA 9.5; Welcome: critic 9.59, QA 9.5. Component scope only."
     },
     {
       "id": "hospital",
@@ -227,11 +249,11 @@
     {
       "id": "engineer",
       "name": "Engineer headquarters",
-      "status": "State-isolation slice saved",
+      "status": "Local status isolation verified",
       "description": "Find work, prepare a visit, submit evidence and understand payment status.",
-      "work": "A10 verification-state isolation and cancellation regressions are saved.",
-      "next": "Complete integration acceptance, then review the engineer workflow.",
-      "evidence": "GPT-5.3 helper handoff; A10 checkpoint 16b405b8."
+      "work": "35 tests cover login replacement, stale results, manual refresh and returned-row ownership.",
+      "next": "Secure notification ownership, then validate the complete engineer journey.",
+      "evidence": "Final source-bound A10 evidence in the auth-integration verification ledger."
     },
     {
       "id": "admin",
@@ -245,38 +267,38 @@
     {
       "id": "login",
       "name": "Login-flow headquarters",
-      "status": "A2 verification pending",
+      "status": "Local role and Welcome checks passed",
       "description": "Sign in, recover an account and enter the correct role workspace.",
-      "work": "A1 session ownership is saved. A2 role selection, retry and sign-out recovery are implemented.",
-      "next": "Close contrast verification and source-bound independent acceptance.",
-      "evidence": "A1 and A2 handoffs; A2 checkpoint 1e770076."
+      "work": "Welcome now explains both roles with accessible actions. Role-selection control colors pass in both themes.",
+      "next": "Review remaining sign-in/sign-up/profile accessibility after security ownership fixes.",
+      "evidence": "Welcome 11 UI cases; RoleSelect 13 UI cases; carried root/session regressions passed."
     },
     {
       "id": "security",
       "name": "Security headquarters",
-      "status": "Program checks open",
+      "status": "Broader security gates open",
       "description": "Identity boundaries, access control and safe ownership of data.",
-      "work": "Scoped foundations and review plans are saved. The whole-program security gate remains open.",
-      "next": "Verify the frozen candidate and close its required security checks before main integration.",
-      "evidence": "Auth-integration handoff; renewal security acceptance gates."
+      "work": "Current-account status boundaries passed local regressions. Full navigation, mutation and server authorization checks remain open.",
+      "next": "Finish account-owned notification admission and cleanup/token ownership before release integration.",
+      "evidence": "Scoped A10 verification; A3 and A4/A12 remain unaccepted."
     },
     {
       "id": "qa",
       "name": "Quality-assurance lab",
-      "status": "Candidate checks required",
+      "status": "Scoped Android reviews passed",
       "description": "Regression tests, accessibility checks and independent critique.",
-      "work": "Historical Android runs have separate revision-bound records. Previous dashboard scores cover the earlier design only.",
-      "next": "Test this 3D milestone and obtain fresh QA and critic ratings of at least 9.5/10.",
-      "evidence": "Verification ledger below; current 3D milestone not yet accepted."
+      "work": "3,110 tests passed. A2/A10: critic 9.62, QA 9.5; Welcome: critic 9.59, QA 9.5.",
+      "next": "Verify the next security slice, then expand real-device and both-role journey coverage.",
+      "evidence": "Exact source hashes, preserved failures, full build results and independent reports are saved."
     },
     {
       "id": "plan",
       "name": "Next-plan headquarters",
-      "status": "Proposed work sequence",
+      "status": "Next security and workflow slices",
       "description": "The queue of milestones after the current campus delivery.",
-      "work": "Security and workflow reviews are recorded; the app redesign continues in bounded slices.",
-      "next": "3D dashboard → A2/A10 acceptance → A3 routing → A4/A12 ownership → reviewed role journeys.",
-      "evidence": "Renewal execution plan M1–M8; coordinator handoffs."
+      "work": "Continue the existing app through bounded, reviewed implementation milestones.",
+      "next": "A3 notification ownership → A4/A12 mutation isolation → Sign in/Sign up/Profile accessibility → complete role journeys.",
+      "evidence": "Renewal execution plan and 12 September Android continuation handoff."
     },
     {
       "id": "main",

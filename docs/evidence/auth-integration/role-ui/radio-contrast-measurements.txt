@@ -1,0 +1,16 @@
+light-unselected-HOSPITAL foreground=ff3a4239 background=ffffffff ratio=10.40492223185146 inkPixels=60
+light-unselected-ENGINEER foreground=ff3a4239 background=ffffffff ratio=10.40492223185146 inkPixels=60
+light-selected-HOSPITAL foreground=ff0b6e4f background=ffe8f5ef ratio=5.581086953024968 inkPixels=120
+light-selected-ENGINEER foreground=ff3a4239 background=ffffffff ratio=10.40492223185146 inkPixels=60
+light-saving-HOSPITAL foreground=ff525c53 background=ffe8f5ef ratio=6.216062148208646 inkPixels=120
+light-saving-ENGINEER foreground=ff525c53 background=ffffffff ratio=6.966253647588567 inkPixels=60
+light-saved-HOSPITAL foreground=ff525c53 background=ffe8f5ef ratio=6.216062148208646 inkPixels=120
+light-saved-ENGINEER foreground=ff525c53 background=ffffffff ratio=6.966253647588567 inkPixels=60
+dark-unselected-HOSPITAL foreground=ff3a4239 background=ffffffff ratio=10.40492223185146 inkPixels=60
+dark-unselected-ENGINEER foreground=ff3a4239 background=ffffffff ratio=10.40492223185146 inkPixels=60
+dark-selected-HOSPITAL foreground=ff0b6e4f background=ffe8f5ef ratio=5.581086953024968 inkPixels=120
+dark-selected-ENGINEER foreground=ff3a4239 background=ffffffff ratio=10.40492223185146 inkPixels=60
+dark-saving-HOSPITAL foreground=ff525c53 background=ffe8f5ef ratio=6.216062148208646 inkPixels=120
+dark-saving-ENGINEER foreground=ff525c53 background=ffffffff ratio=6.966253647588567 inkPixels=60
+dark-saved-HOSPITAL foreground=ff525c53 background=ffe8f5ef ratio=6.216062148208646 inkPixels=120
+dark-saved-ENGINEER foreground=ff525c53 background=ffffffff ratio=6.966253647588567 inkPixels=60

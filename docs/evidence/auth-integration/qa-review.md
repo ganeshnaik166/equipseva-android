@@ -1,59 +1,106 @@
-# Independent QA — authentication integration
+# Independent QA — final A2/A10 and Welcome review
 
-Review owner: `qa_critic_review`. Review started 2026-09-11 against `8749ff71d98bc418ea66f096fd6d1982baf05a17` on `codex/auth-integration-20260911`. No production/test edits, Gradle execution, merge, commit, real account or device operation by this reviewer. Root owns implementation and the laptop build slot; the separate critic is `auth_a1_redteam`.
+Reviewed 12 September 2026 by `qa_critic_review`, candidate `codex/auth-integration-20260911`, based on `e58c48c2774a77aa0e725f1945da4e48a0fd5873`.
 
-**Current disposition: A2 and A10 final integration acceptance pending.** Prior passing component tests remain useful evidence; they do not waive the A2 dark-theme correction or the A10 publication/admission gaps below. No final numeric score is assigned before the final candidate and executable evidence arrive.
+**QA accepts the bounded local A2/A10 slice and the separate Welcome slice, each at 9.50/10. No remaining in-scope must-fix was found.** This supersedes the preliminary pending findings. Acceptance binds to the tested source hashes below. It is not whole-auth, whole-app, device, production or signed-release approval. The separate critic's decision remains independently required.
 
-## Findings requiring disposition before local acceptance
+QA independently read source/tests, reviewed scheduling and assertions, recounted preserved XML, reconciled source/APK hashes, read build/lint/signature evidence and visually inspected native-Canvas renders. The coordinator executed Gradle; QA did not run Gradle, change implementation/tests, merge or commit during this integration review. QA authored earlier root-host tests whose oracles received separate critic review; QA did not author the production fixes rated here.
 
-1. **A10 queued auth-observer gap.** `DeepLinkHost.kt:103–126` checks cancellation and the locally observed owner/revision after a fetch, but never checks the current auth source at publication. If A's result continuation is queued first and upstream becomes B or Unknown before that continuation runs, A's status can publish before the auth collector clears it. Existing replacement tests run the auth observer before releasing A, then inspect settled `.value`; they cannot exclude that transient emission. This is distinct from an entire same-user ABA boundary lost upstream. A current-auth admission check can address observable lag; repository-level stable login identity is still needed for wholly unobserved ABA. The helper handoff must not combine these as the same unavoidable limitation.
-2. **A10 fetched-row ownership is unchecked.** A successful `fetchByUserId(A)` returning an `Engineer` whose `userId` is B currently supplies its verification status. The production repository filters by `user_id`, but this ViewModel boundary lacks the matching-result defense and executable negative. Require a mismatched-row negative plus a subsequent valid recovery. This is a source-level finding at this revision, not a claim of an executed server exploit.
-3. **A2 dark-theme contrast remains a required closure.** The saved RoleSelect button fixed its green background while inheriting dark `onPrimary`, yielding 2.378:1. Root is implementing an explicit foreground and real dark render/contrast checks. The earlier nine images force light theme and cannot close this gap. Review must bind to the corrected source and newly executed images/tests.
+## Final execution evidence
 
-No new production navigation-policy or mapper defect is established by the helper's mapper tests. The previously documented A3 verbatim intent and cross-account replay paths remain outside these component fixes and block any full-auth/security acceptance.
+The command used Microsoft JDK 17.0.19.10, `PRECHECK_LOOSE=1` and installed Git Bash on the process PATH:
 
-## Frozen additional acceptance checks
+```text
+.\gradlew.bat :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease --max-workers=2 --no-configuration-cache --no-daemon
+```
 
-| Check | Required evidence |
+The recovered command exited **0**, `BUILD SUCCESSFUL in 4m 1s`: 134 tasks, 19 executed and 115 up-to-date. Successful unit/lint outputs were reused from the immediately preceding run of the same source. This was not a second fresh execution of every test.
+
+QA independently recounted both `first-combined-xml/` and `final-combined-xml/`: **3,110 tests / 355 suites / zero failures, errors or skips**. Final lint contains **zero errors, 82 warnings and two hints**. The first combined run freshly executed the full suite; recovery completed the previously blocked release check/assembly.
+
+Required final cases include session identity 56, root host 23, root destination 8, role ViewModel 23, role state 4, role UI 13, A10 status 35, notification edges 22, role tabs 8, recovery UI 2, preference fake 4, profile invalidations 3 and Welcome 11.
+
+All **768** entries in `final-combined-source-before.json` equal `final-verified-source-after.json` and the current files independently hashed by QA. This is a manifest comparison, not 768 completed file audits. Host-only SDK escaping/Bash PATH repairs did not alter tested source.
+
+Actual APK hashes independently recomputed:
+
+- Debug: `f4e1aef78672e19f6232cbbec82d03a654ffbd131ae4f2faa40b3b679657f887`; 46858432 bytes.
+- `app-release-unsigned.apk`: `63a9ea623ede890ff7d53ba41fadbcd81fb9eaa75d31c737f55159061e7b51ee`; 18010372 bytes.
+
+The strict release attempt refused the missing keystore at `app/build.gradle.kts:174`. The CI-mode precheck executed successfully with its signing/configuration warnings preserved. Its historical “debug signing fallback” wording is inaccurate for this artifact: the output is **unsigned**. The coordinator's actual `apksigner verify` returned expected exit 1, `DOES NOT VERIFY`, missing `META-INF/MANIFEST.MF`; QA read that raw result. Successful compile/shrink/assembly does not establish a signed or deployable release.
+
+The [verification manifest](verification.json) records commands, hashes, history and artifacts. Raw archives reside at `C:/Users/lokes/Documents/Codex/2026-09-07/im/work/verification/auth-integration-20260912/`.
+
+## Mandatory gates closed
+
+| Area | Reviewed result |
 |---|---|
-| A10 observed-owner regression | Retain all 23 helper cases: sign-out/reset, same-ID relogin, A→B→A, cooperative/noncooperative cancellation, fresh retry, missing/failed rows, duplicate/email events, invalid IDs, Unknown retirement and newest manual revision. |
-| A10 queued publication | Collect **every** status emission with an immediately scheduled collector. Queue A completion before B, SignedOut and Unknown observation. No stale non-null status may emit; a valid current owner must still recover. Checking only the eventual `.value` is insufficient. |
-| A10 queued admission | Exercise a queued initial/manual fetch around changed current auth, with explicit fixture ordering. No stale request may wait for or be admitted under a future login. Preserve the single long-lived auth-observer contract; any deliberate API change must be documented and tested. |
-| A10 row identity | Mismatched/blank returned `Engineer.userId` yields null and does not inhibit a fresh correct-row retry. |
-| A10 cleared host | Cleared scope cannot publish a late noncooperative result or open fresh work. |
-| A2 final root contract | Re-execute the carried R01–R13 and role/recovery tests against the final merged source; preserve exact hashes/XML/logs. Root-entry lifetime, held-frame callback guards and pending Back remain part of that contract. |
-| A2 contrast closure | Actual enabled role action in light/dark themes uses a sufficient foreground/background pair, renders readable text and retains click behavior. Preserve screenshot/color evidence; include dynamic theme if the claim covers it. |
-| Integration regression | Final combined full unit/lint/debug/appropriately labeled release-assembly result, exact command/exit, source-before/after and archived XML/images. Signed release stays unassessed without a real signing gate. |
+| A2 R01–R05 | Actual root NavHost with inert rendering slots and explicit root VM passes isolation/admission. NeedsRole and unsupported/admin/deferred roles use the supported-role chooser; no unauthorized main/onboarding fallback. Save callbacks request authoritative refresh. |
+| A2 R06–R11 | Observed account replacement/new generation retires old navigation, entry ViewModels and drafts. Same-login Unknown retains the entry while blocking interactions/focus/Back. Captured callbacks recheck live VM ownership when Compose lags. Pending and settled Back cannot resurrect displaced entries. Auth-entry cancellation and inert legacy-phone redirect pass. |
+| A2 R12–R13 | Carried session/root/role, recovery and tab selectors pass in the final suite. Relevant synthetic UI hosts assert absence of production application/providers before rendering. |
+| A10 observer lag | Three queued publication and three manual-admission cases cover raw B, Unknown and SignedOut ahead of the observer. An Unconfined collector records every status emission, so stale Verified cannot be hidden by a later null. Current-owner recovery succeeds. |
+| A10 current auth/returned row | Immediate probes work with production-shaped mapped StateFlow. Non-replaying, suspended and failed probes fail closed without future-account work. Foreign/blank returned owners are rejected; deliberate valid retry works. The prior “never second subscription” implementation oracle was explicitly replaced before the fix by no-retained-probe/no-future-login-work. |
+| A10 cancellation/revisions | Observed ABA/relogin, duplicate/email events, newest manual revision, missing/failed rows and cooperative/noncooperative completion pass. A cleared host blocks both late publication and a fresh refresh attempt. |
+| Role controls | Actual glyph/button contrast passes in both themes: enabled 6.255:1, disabled/Saving 5.561:1. All 16 radio state/role/theme cases pass actual circle-pixel checks: unchecked 10.405:1, selected 5.581:1, disabled-selected 6.216:1 and disabled-unselected 6.966:1. Disabled contrast is an explicit component target. Selection, callbacks and localized reflow remain green. |
+| Welcome actions/content | Four independently named actions invoke only their own callback. Public sign-in/create-account callbacks and exact legal URLs are preserved. Decorative logo, brand heading and informational role panels add no role selection or account effects. |
+| Welcome reflow/localization | All six EN/HI/TE configurations pass at requested 2x font scale: 320dp portrait and 640×320dp landscape. Each complete action is individually brought into view and checked for padding, minimum dimensions, non-overlap and callbacks. All text passes full-character/no-ellipsis/height/line/semantic-bound checks. Ten Welcome entries exist per locale; the on-time-payment claim is removed. |
+| Welcome visual/contrast | Eleven text items per theme pass composited glyph/surface contrast, minimum 8.313:1. QA reviewed all 12 initial/actions viewport samples across six configurations, normal light/dark views, and role/large-text examples. The 14 reviewed Welcome viewport/normal-theme files match final archive hashes exactly. Landscape endpoint snapshots do not claim simultaneous visibility of every action. |
 
-These checks are intentionally bounded. Actual post-KYC refresh wiring is not established: a current source search finds `refreshEngineerStatus()` only at its declaration and in tests. An isolated method test cannot certify a production KYC completion callback.
+A10 manual refresh is tested as a component endpoint; production source still has no post-KYC callsite. Its actual integration is not certified. Notification tests characterize the pure mapper, not FCM delivery, caller fallback or row/role authorization.
 
-## Independently reconciled carried evidence
+## Weighted scoped scores
 
-QA fully read the A10 source and new A10/notification test files, the helper handoff and regression notes, the carried A2 handoff/QA contract/report, and Claude's handoff. The helper's source blobs match the integrated checkout:
+These conservative reviewer judgments use the governing category weights, not test-pass percentages or completion estimates. Every applicable critical dimension and mandatory case passes; no average hides a failed item.
 
-| File | Complete read span | Git blob / SHA-256 |
+| Governing dimension | Weight | A2/A10 local | Welcome local |
+|---|---:|---:|---:|
+| Task correctness and completion | 25 | 9.5 | 9.5 |
+| Security and privacy | 25 | 9.5 | 9.5 |
+| Resilience, retained work and money correctness | 20 | 9.5 | 9.5 |
+| Usability, accessibility and localization | 15 | 9.5 | 9.5 |
+| Visual consistency | 10 | 9.5 | 9.5 |
+| Performance and operations | 5 | 9.5 | 9.5 |
+| **Weighted score** | **100** | **9.50** | **9.50** |
+
+A2's domain gates—routing, owner/generation, callback admission, lifetime/recovery, regression and evidence—also each meet 9.5. A10's ownership/publication/cancellation obligations were independently required, not averaged against UI results.
+
+Applicability is narrow: money movement, evidence delivery, providers and persistent form recovery are outside these slices. Welcome contains no async transaction/retained form; its resilience evidence is reflow and reachable actions. Performance/operations covers bounded probes/nonblocking cancellation where applicable, synthetic host completion/cleanup and reproducible build/guard operation, not device frame-rate/startup/network benchmarks. Accessibility ratings cover executed Compose semantics/layout/contrast; they do not establish TalkBack or universal compliance.
+
+## Preserved failure history and rationale
+
+- Helper history: 23-test review red with two failures; one-test delayed-auth red; then 23 A10 and 22 mapper tests green. Its 3,067-test full run preceded the final eight mapper additions; it was never an executed 3,075-test full run.
+- September 12 `red-xml/`: 63 tests, 15 failures before current A10/button fixes. The earlier first glyph oracle's two translucent-color matching failures are distinguished from the genuine 2.378:1 dark-button defect. The corrected oracle requires actual composited glyph pixels and retains 4.5:1.
+- Radio scope was frozen before its production fix. `ui-expanded-red-xml/`: Role UI 13/2 failures, original Welcome 11/11 failures, A10 35/0. Raw radio values reproduced 1.615:1 dark unchecked and 2.399:1 light disabled-selected. The preceding test compilation failure is separately retained.
+- Welcome's first redesign run: 11/6 failures at an aggregate width flag. Diagnostic: brand line 169.819px, measured box 171px, available constraint 272px. Comparing paragraph allocation with intrinsic measured width did not establish clipping. Replacement checks retain full characters/no ellipsis/height and add actual horizontal bounds.
+- Stricter checks next exposed centered paragraph/measurement disagreement (Sign in: 90px measured box, 232px paragraph, line 71–161px). Two full-width label modifiers preserve centered intent and unify the coordinate frame. All six layouts then pass strict bounds. Diagnostic 1/1 and centered 11/6 archives remain; no font/contrast reduction or ignored test was used.
+- A full run stopped on ignored local SDK-property escaping; another passed all 3,110 tests/lint but could not launch Bash for the precheck. The recovered same-source run passed after host-only repair. Successful test/lint reuse is explicit.
+- Raw measurement text may retain historical appended rows. Acceptance uses final passing sets and XML: last ten button, last sixteen radio and last eleven per-theme Welcome measurements. Old red rows are not relabeled as current success.
+
+## Final source coverage
+
+These complete files were read through the full initial read and reviewed final deltas. Full-file reading does not grant complete DeepLinkHost/A3 or whole-program security acceptance.
+
+| File | Complete span | Final raw SHA-256 |
 |---|---|---|
-| `app/src/main/kotlin/com/equipseva/app/navigation/DeepLinkHost.kt` | 1–182 | `01ddb4fc42affce720b4f1f8462259e18671f1a1` / `81ea25bb9eff86798d7bad9689cca4a4f979257963cd17fb2d2452d96f426569` |
-| `app/src/test/kotlin/com/equipseva/app/navigation/DeepLinkHostEngineerStatusTest.kt` | 1–508 | `47ff91597d110241d2e8874d8cc3e1155570b637` / `033e783f687386c00061a4498f75d0136adcb79c2b52ff484166fe43b2a0cdf1` |
-| `app/src/test/kotlin/com/equipseva/app/navigation/NotificationDeepLinkEdgeCasesTest.kt` | 1–374 | `cb515185155a0afdaab8e9201e7bf5c33ad02264` / `c2c3afcd2b559dfaf0ec6ae6295a0a201e4e4bed567cc9c44677fe9ade46ab5a` |
+| `app/src/main/kotlin/com/equipseva/app/navigation/DeepLinkHost.kt` | 1–213 | `9da63ef7ee20dffe60bf9639eebe7e29ccbf4ee532da325e5655e9fe3012eb20` |
+| `app/src/test/kotlin/com/equipseva/app/navigation/DeepLinkHostEngineerStatusTest.kt` | 1–766 | `72fc63088a376dc17149c4b8147c10767db5567d55202d82452866c885e4529c` |
+| `app/src/main/kotlin/com/equipseva/app/features/auth/RoleSelectScreen.kt` | 1–310 | `a4e0ebcf0b57b643528cd821d72fd4d8baa3f4c52021728c1502cc8180d7d2ed` |
+| `app/src/test/kotlin/com/equipseva/app/features/auth/RoleSelectScreenUiTest.kt` | 1–483 | `cc64c66c4663d3e0cd43bdce1ff6c31dfb20c3f4afc996a9bccb9dc67de30abe` |
+| `app/src/main/kotlin/com/equipseva/app/features/auth/WelcomeScreen.kt` | 1–252 | `8d84f63ce2fea9db21e07db0910c91df3357aa2286bd4b11cdf716741ddcfca0` |
+| `app/src/test/kotlin/com/equipseva/app/features/auth/WelcomeScreenUiTest.kt` | 1–322 | `a40a37d9718958dc81453c348b5497fe234b27f0ac1ab3cbac2fd82cff7cec6c` |
 
-These hashes describe the carried candidate, not any later correction. Full-file reading does not mean full DeepLinkHost/A3 security acceptance. A2's previous full-read manifest is retained under `docs/evidence/auth-a2/`; current changed files require fresh binding.
+The large resource files received **changed-span review only**, not complete-file audit credit:
 
-QA independently parsed the preserved helper XML under sibling `work/verification/gpt53-helper-20260911/`:
+| File | Reviewed span | Final raw SHA-256 |
+|---|---|---|
+| `app/src/main/res/values/strings.xml` | 855–864 only | `92c7bbd6e854a30532016a6aef214baab20828cb41f502c7d076c93fef13737d` |
+| `app/src/main/res/values-hi/strings.xml` | 871–880 only | `781894bb31772a4b116cf8ebcd8a7ea795200667e7c6e93cfa5078a748ca265a` |
+| `app/src/main/res/values-te/strings.xml` | 879–888 only | `681958bbfdeaffb496fc11f0dd5a77cb5c47feda88e2f8f8d9337328e493b974` |
 
-- `a10-review-red.xml`: 23 tests, two failures — extra manual auth subscription and cleared-host late publication.
-- `a10-delayed-auth-red.xml`: one test, one failure — refresh before first auth emission awaited a future login.
-- `a10-targeted.xml`: 23 tests, zero failures/errors/skips after those fixes.
-- `notification-edge-cases.xml`: 22 tests, zero failures/errors/skips.
-- `full-xml/`: **3,067 tests / 353 suites / zero failures/errors/skips**, before the last eight mapper tests. A 3,075 full-suite count was not executed by that helper run.
-- `a10-release-strict.log`: actual failure at the missing-keystore guard with `PRECHECK_LOOSE=0`. This supports the handoff's explicit absence of signed-release/R8 success for that strict attempt.
+Previously reviewed A2 `RootSessionHost`, `AppNavGraph`, `SessionViewModel` and `RootSessionHostTest` have no diff from saved checkpoint `1e770076`. QA verified unchanged Git blobs and LF-normalized SHA values matching the earlier review. Current CRLF raw hashes are bound by the final manifest; old raw hashes are not presented as current.
 
-The carried A2 handoff correctly supersedes the old report's in-progress full-build statement with the completed 3,030-test full bar, while retaining the unresolved dark contrast blocker. Helper and Claude handoffs make no numeric full-app acceptance claim. Their historical checkout/base references must remain labeled as historical after integration.
+## Open program gates
 
-## Scope boundaries and score policy
+A3 external intent/URI admission and buffered replay; A4 opaque repository/preference mutation ownership; A12 global cleanup/live-user token revocation; A7 signup carryover; wholly unobserved same-ID boundaries; real Auth/Storage/FCM/providers; post-KYC refresh wiring; saved-state/process restoration; native devices, TalkBack, keyboard/IME/insets, native locale rendering/native-speaker review; signed release/configuration and production verification remain open.
 
-Final scores will assess only the final executed A2 local routing/role component and A10 status component across correctness, owner/callback isolation, cancellation/concurrency, recovery/regression and evidence quality. Every applicable dimension must reach 9.5; no average can conceal a failed mandatory check. Pending execution is unassessed, not a passing score.
-
-The 22 mapper tests characterize `(kind, strings) → route?`: they do not receive identity/role, authorize founder destinations, prove row ownership, run FCM delivery or verify caller inbox fallback. Claude's findings and accessibility inventory are static reviews/plans, not executed attacks, native layout validation or QA passes.
-
-Open broader gates remain explicit: A3 intent/URI admission and event replay; A4 opaque repository/preference mutation ownership; A12 already-started global cleanup and live-user token revocation; A7 signup carryover; stable identity for wholly unobserved same-user boundaries; real provider/Auth/Storage/API integration; saved-state/process restoration; emulator workflows, TalkBack, native locale/IME/insets; signed release and production verification. Local A2/A10 acceptance will not close those gates or represent an app score.
+The root's fake signup continuation proves entry lifetime/cancellation and recoverable role re-confirmation, not actual signup SDK completion. Native-Canvas artifacts are simulated renders, not device screenshots. This is neither a 100% code audit nor M1/M2a/full-app acceptance.
