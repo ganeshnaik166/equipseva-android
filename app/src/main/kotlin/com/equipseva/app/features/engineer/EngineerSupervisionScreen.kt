@@ -48,6 +48,7 @@ import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.EsType
+import com.equipseva.app.designsystem.theme.LightEsColors
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk600
@@ -536,6 +537,8 @@ private fun AssignmentCard(
                         kind = EsBtnKind.Ghost,
                         size = EsBtnSize.Sm,
                         disabled = actionPending,
+                        // Assignment cards use a fixed white surface in both themes.
+                        contentColor = LightEsColors.text,
                     )
                 }
             } else if (showSignoff) {

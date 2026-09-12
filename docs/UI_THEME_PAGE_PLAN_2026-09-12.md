@@ -58,7 +58,8 @@ Lime is an emphasis color, not proof of KYC, payment settlement or completion.
 Status always has text and, where useful, an icon. For light-mode text links use
 ink or the dark focus color with a clear link affordance, never lime on white.
 Give light-mode lime controls an ink/outline boundary where needed to identify
-the control; use an additional separated ring for focus. Test selected and
+the control; use a visibly distinct focus stroke (see the shared-action refinement
+below). Test selected and
 unselected indicators without relying on fill hue alone.
 
 Calculated solid-color examples: primary ink on lime **15.5864:1**; secondary
@@ -79,7 +80,7 @@ Inverse panels carry their own local content roles even in light mode: primary
 text `#F5F7F1`, secondary text `#B9C2B1`, meaningful outline `#86947B`, and focus/
 links `#C6FF00` on inverse `#11150F`. Do not inherit light-mode secondary ink or
 the dark light-mode focus ring into an inverse panel. Controls on lime retain
-dark ink and a separated ring/gap so focus is distinguishable from the fill.
+dark ink and a focus stroke distinguishable from their actual fill.
 Status chips and popovers keep their complete paired surface/content roles.
 
 ### Typography, in sp
@@ -130,6 +131,16 @@ multiple same-weight `Font` entries automatically provide correct glyph fallback
 | Animation | 120ms control feedback; 180–220ms layout/state transitions; respect system motion settings |
 
 Minimum targets follow [Android Compose accessibility defaults](https://developer.android.com/develop/ui/compose/accessibility/api-defaults).
+Implementation refinement for large text: shared actions use a **26dp radius
+cap**, forming a capsule at 52dp. When a translated or enlarged label makes an
+action taller, its height grows while its corner radius stays 26dp. This avoids
+cutting the first/last text lines with oversized circular corners. This is an
+accessibility refinement of the reference silhouette, not a fixed-height button.
+For shared lime actions, focus uses a **3dp ink stroke inside the lime fill**,
+replacing the normal 1dp outline. This refines the originally proposed external
+ring/gap: the visible change is measured against lime, including on an inverse
+parent where an external ink ring could disappear. A real keyboard focus request
+and before/after rendered pixels must verify the transition.
 No fixed-height text containers, horizontally scrolling primary forms, rotating
 decorative bots or dashboard animations inside transactional app screens.
 Loading indicators run only while actual work is pending. Disable shimmer under

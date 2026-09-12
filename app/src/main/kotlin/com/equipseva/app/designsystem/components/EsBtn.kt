@@ -1,77 +1,49 @@
 package com.equipseva.app.designsystem.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.equipseva.app.designsystem.theme.EsRadius
-import com.equipseva.app.designsystem.theme.EsType
-import com.equipseva.app.designsystem.theme.SevaDanger500
-import com.equipseva.app.designsystem.theme.SevaGlow
-import com.equipseva.app.designsystem.theme.SevaGreen700
-import com.equipseva.app.designsystem.theme.SevaGreen900
-import com.equipseva.app.designsystem.theme.SevaInk100
-import com.equipseva.app.designsystem.theme.SevaInk500
-import com.equipseva.app.designsystem.theme.SevaInk900
-import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.EsColors
+import com.equipseva.app.designsystem.theme.EsTheme
 
-enum class EsBtnKind {
-    Primary,         // green-700 fill, white text
-    Lime,            // glow green, near-black text
-    Secondary,       // white fill, ink-900 text, ink-100 border
-    Ghost,           // transparent, ink-700 text
-    DangerOutline,   // danger border + danger text
-    Danger,          // danger fill, white text
-}
-
+enum class EsBtnKind { Primary, Lime, Secondary, Ghost, DangerOutline, Danger }
 enum class EsBtnSize { Sm, Md, Lg }
 
 private data class BtnVisual(val bg: Color, val fg: Color, val border: Color?)
 
-private fun visual(kind: EsBtnKind, disabled: Boolean): BtnVisual {
-    if (disabled) return BtnVisual(SevaInk100, SevaInk500, null)
-    return when (kind) {
-        EsBtnKind.Primary       -> BtnVisual(SevaGreen700, Color.White, null)
-        EsBtnKind.Lime          -> BtnVisual(SevaGlow, SevaGreen900, null)
-        EsBtnKind.Secondary     -> BtnVisual(Color.White, SevaInk900, BorderDefault)
-        EsBtnKind.Ghost         -> BtnVisual(Color.Transparent, SevaInk900, null)
-        EsBtnKind.DangerOutline -> BtnVisual(Color.White, SevaDanger500, SevaDanger500)
-        EsBtnKind.Danger        -> BtnVisual(SevaDanger500, Color.White, null)
-    }
+private fun visual(kind: EsBtnKind, p: EsColors): BtnVisual = when (kind) {
+    EsBtnKind.Primary, EsBtnKind.Lime -> BtnVisual(p.action.container, p.action.content, p.outline)
+    EsBtnKind.Secondary -> BtnVisual(p.surface, p.text, p.outline)
+    EsBtnKind.Ghost -> BtnVisual(Color.Transparent, p.text, null)
+    EsBtnKind.DangerOutline -> BtnVisual(p.surface, p.error.content, p.error.content)
+    EsBtnKind.Danger -> BtnVisual(p.error.content, p.error.container, null)
 }
 
-/**
- * Pin the per-size button height. The values are exposed so the
- * 44dp Md default (matches Material 3's accessibility-minimum touch
- * target) and the 44dp Sm / 52dp Lg variants stay frozen — a
- * regression to <44dp on Md/Sm would silently degrade tap-target
- * accessibility across every primary CTA.
- *
- * Round 461: bumped Sm from 36dp → 44dp. 36dp was 12dp under WCAG /
- * Material's 48dp recommendation; the only reason Sm was kept smaller
- * was visual density, but the buttons are real interactive CTAs (not
- * visual hints) so the smaller hit area was a real a11y defect.
- */
+/** Physical minimum, never a fixed text height. Primary kinds always have at least 52dp. */
 internal fun heightFor(size: EsBtnSize): Dp = when (size) {
-    EsBtnSize.Sm -> 44.dp
-    EsBtnSize.Md -> 44.dp
-    EsBtnSize.Lg -> 52.dp
+    EsBtnSize.Sm -> 48.dp
+    EsBtnSize.Md, EsBtnSize.Lg -> 52.dp
 }
 
 @Composable
@@ -85,39 +57,39 @@ fun EsBtn(
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     disabled: Boolean = false,
+    contentColor: Color = Color.Unspecified,
 ) {
-    val v = visual(kind, disabled)
-    val shape = RoundedCornerShape(EsRadius.Md)
-    Row(
-        modifier = modifier
-            .let { if (full) it.fillMaxWidth() else it }
-            .height(heightFor(size))
-            .clip(shape)
-            .background(v.bg)
-            .let { if (v.border != null) it.border(1.dp, v.border, shape) else it }
-            // Use clickable's `enabled` flag instead of skipping the
-            // modifier entirely — a disabled button must still announce
-            // itself as a button to TalkBack ("Disabled, Button") so
-            // users know the affordance exists. Role.Button gives the
-            // a11y service the verb hint ("double-tap to activate") for
-            // every EsBtn callsite in the app at once.
-            .clickable(
-                enabled = !disabled,
-                onClick = onClick,
-                role = Role.Button,
-            )
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = if (full) Arrangement.Center else Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+    val p = EsTheme.colors
+    val defaults = visual(kind, p)
+    // Explicit foreground is for legacy fixed-surface callers; disabled controls keep a paired fill.
+    val v = if (contentColor == Color.Unspecified) defaults else defaults.copy(fg = contentColor)
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
+    val primary = kind == EsBtnKind.Primary || kind == EsBtnKind.Lime
+    val floor = if (primary) maxOf(52.dp, heightFor(size)) else heightFor(size)
+    val borderColor = if (focused) {
+        // Focus stays inside the fill. Ink remains distinct from lime even on a dark parent.
+        if (primary) p.action.content else v.fg
+    } else if (disabled) p.outline else v.border
+    Button(
+        onClick = onClick,
+        enabled = !disabled,
+        modifier = modifier.let { if (full) it.fillMaxWidth() else it }.heightIn(min = floor),
+        shape = RoundedCornerShape(26.dp),
+        border = borderColor?.let { BorderStroke(if (focused) 3.dp else 1.dp, it) },
+        interactionSource = interaction,
+        contentPadding = PaddingValues(horizontal = if (size == EsBtnSize.Lg) 24.dp else 16.dp, vertical = 12.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = v.bg, contentColor = v.fg,
+            disabledContainerColor = p.disabled.container, disabledContentColor = p.disabled.content,
+        ),
     ) {
-        if (leading != null) {
-            Box(modifier = Modifier.size(16.dp), contentAlignment = Alignment.Center) { leading() }
-            Box(modifier = Modifier.size(8.dp))
-        }
-        Text(text = text, style = EsType.Label, color = v.fg)
-        if (trailing != null) {
-            Box(modifier = Modifier.size(8.dp))
-            Box(modifier = Modifier.size(16.dp), contentAlignment = Alignment.Center) { trailing() }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (leading != null) Box(Modifier.size(20.dp), contentAlignment = Alignment.Center) { leading() }
+            Text(text, style = if (size == EsBtnSize.Sm) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge,
+                textAlign = if (full) TextAlign.Center else TextAlign.Start,
+                modifier = Modifier.weight(1f, fill = full))
+            if (trailing != null) Box(Modifier.size(20.dp), contentAlignment = Alignment.Center) { trailing() }
         }
     }
 }

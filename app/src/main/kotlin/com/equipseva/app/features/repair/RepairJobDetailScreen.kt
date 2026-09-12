@@ -109,6 +109,7 @@ import com.equipseva.app.designsystem.components.ReportContentSheet
 import com.equipseva.app.designsystem.components.UrgencyPill
 import com.equipseva.app.designsystem.components.VerifiedBadge
 import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.LightEsColors
 import com.equipseva.app.designsystem.theme.Paper2
 import com.equipseva.app.designsystem.theme.Paper3
 import com.equipseva.app.designsystem.theme.PaperDefault
@@ -851,6 +852,8 @@ private fun InvoiceDownloadCard(
             onClick = onDownload,
             kind = EsBtnKind.Ghost,
             disabled = loading,
+            // This section inherits the fixed PaperDefault page surface.
+            contentColor = LightEsColors.text,
         )
     }
 }

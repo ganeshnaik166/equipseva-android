@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import com.equipseva.app.designsystem.components.EsActionGroup
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -689,6 +691,7 @@ private fun MarkPaidSheet(
             // about to submit.
             .imePadding()
             .navigationBarsPadding()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -761,7 +764,7 @@ private fun MarkPaidSheet(
         if (state.sheetError != null) {
             Text(state.sheetError.orEmpty(), color = SevaDanger500, fontSize = 13.sp)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        EsActionGroup {
             EsBtn(
                 text = "Cancel instead",
                 onClick = onSwitchToCancel,
@@ -803,6 +806,7 @@ private fun CancelPayoutSheet(
             // Same imePadding fix (#16) for the cancel sheet.
             .imePadding()
             .navigationBarsPadding()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -833,7 +837,7 @@ private fun CancelPayoutSheet(
         if (state.sheetError != null) {
             Text(state.sheetError.orEmpty(), color = SevaDanger500, fontSize = 13.sp)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        EsActionGroup {
             EsBtn(
                 text = "Back to mark-paid",
                 onClick = onBackToMarkPaid,
@@ -911,7 +915,7 @@ private fun DestinationActionRow(
             color = SevaInk900,
             fontWeight = FontWeight.SemiBold,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        EsActionGroup {
             EsBtn(
                 text = "Copy",
                 onClick = { copyToClipboard(context, destination, "EquipSeva destination") },

@@ -35,6 +35,9 @@ import androidx.core.graphics.ColorUtils
 import androidx.test.core.app.ApplicationProvider
 import com.equipseva.app.testing.IsolatedUiPackageParser
 import com.equipseva.app.testing.IsolatedUiTestRunner
+import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.EsBtnKind
+import com.equipseva.app.designsystem.components.PrimaryButton
 import java.io.File
 import java.util.Locale
 import kotlin.math.abs
@@ -72,6 +75,47 @@ class LimeThemeGalleryTest {
     @Test fun `dark roles render with readable paired content`() = pairedRoles(true)
     @Test fun `light Material foreground consumers remain readable`() = materialControls(false)
     @Test fun `dark Material foreground consumers remain readable`() = materialControls(true)
+    @Test fun `light shared actions keep labels and icons readable`() = sharedActions(false)
+    @Test fun `dark shared actions keep labels and icons readable`() = sharedActions(true)
+
+    @Test fun `inverse panel gives controls a local dark theme in a light app`() {
+        render(false) {
+            Surface(color = EsTheme.colors.inverse.container) {
+                EquipSevaTheme(darkTheme = true) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        PrimaryButton("Inverse main action", {})
+                        EsBtn("Inverse secondary action", {}, kind = EsBtnKind.Ghost)
+                    }
+                }
+            }
+        }
+        listOf("Inverse main action", "Inverse secondary action").forEach { assertText(it, "inverse-actions", true) }
+    }
+
+    @Test fun `keyboard focus creates a visible inner ring on lime action`() {
+        var inputMode: androidx.compose.ui.input.InputModeManager? = null
+        render(false) {
+            inputMode = LocalInputModeManager.current
+            PrimaryButton("Focused action", {}, modifier = Modifier.testTag("focused-action"))
+        }
+        val node = compose.onNodeWithTag("focused-action").performScrollTo()
+        val bounds = node.fetchSemanticsNode().boundsInRoot
+        val x = bounds.left.roundToInt() + 2
+        val y = bounds.center.y.roundToInt()
+        val before = draw().let { bitmap -> try { bitmap.getPixel(x, y) } finally { bitmap.recycle() } }
+        compose.runOnIdle {
+            assertTrue(checkNotNull(inputMode).requestInputMode(androidx.compose.ui.input.InputMode.Keyboard))
+        }
+        node.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.RequestFocus) { assertTrue(it()) }
+        node.assertIsFocused()
+        val bitmap = draw()
+        try {
+            val focused = bitmap.getPixel(x, y)
+            assertTrue("Focus stroke visibly replaces lime", ColorUtils.calculateContrast(focused, before) >= 3.0)
+            assertEquals(LightEsColors.action.content.toArgb(), focused)
+            output("primary-focused-ring.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        } finally { bitmap.recycle() }
+    }
 
     @Test @Config(qualifiers = "en-rUS-w320dp-h800dp-mdpi")
     fun `English two times text fits narrow light gallery`() = scriptSpecimen(false)
@@ -139,13 +183,13 @@ class LimeThemeGalleryTest {
             "Legacy light error")
         render(dark) {
             val p = EsTheme.colors
-            sample(labels[0], p.text, p.surface)
-            sample(labels[1], p.muted, p.surface)
+            Sample(labels[0], p.text, p.surface)
+            Sample(labels[1], p.muted, p.surface)
             listOf(p.action, p.disabled, p.error, p.pending, p.success, p.info, p.inverse).forEachIndexed { i, pair ->
-                sample(labels[i + 2], pair.content, pair.container)
+                Sample(labels[i + 2], pair.content, pair.container)
             }
-            sample(labels[9], p.inverseMuted, p.inverse.container)
-            sample(labels[10], LightEsColors.error.content, Surface50)
+            Sample(labels[9], p.inverseMuted, p.inverse.container)
+            Sample(labels[10], LightEsColors.error.content, Surface50)
             // Focus/boundary math includes the role's actual parent and inverse-local variants.
             listOf(p.outline to p.canvas, p.focus to p.surface,
                 p.inverseOutline to p.inverse.container, p.inverseFocus to p.inverse.container).forEach { (fg, bg) ->
@@ -166,6 +210,11 @@ class LimeThemeGalleryTest {
                 Checkbox(checked = true, onCheckedChange = {}, modifier = Modifier.testTag("check"))
                 Switch(checked = true, onCheckedChange = {}, modifier = Modifier.testTag("switch"))
                 Icon(Icons.Default.Check, "Primary icon", tint = c.primary, modifier = Modifier.size(24.dp).testTag("icon"))
+            }
+            Row {
+                RadioButton(selected = false, onClick = {}, modifier = Modifier.testTag("radio-off"))
+                Checkbox(checked = false, onCheckedChange = {}, modifier = Modifier.testTag("check-off"))
+                Switch(checked = false, onCheckedChange = {}, modifier = Modifier.testTag("switch-off"))
             }
             CircularProgressIndicator(progress = { 0.65f }, modifier = Modifier.testTag("progress"))
             InputChip(selected = true, onClick = {}, label = { Text("Selected chip") })
@@ -206,10 +255,81 @@ class LimeThemeGalleryTest {
                 }.values.sum() >= 8)
             } finally { bitmap.recycle() }
         }
+        val p = if (dark) DarkEsColors else LightEsColors
+        val primary = if (dark) p.action.container else p.text
+        val onPrimary = if (dark) p.action.content else p.surface
+        // Inspect the actual indicator/mark, not any contrasting outside border.
+        assertControlInk("radio", primary, p.surface) { centerPatch(it, 3f) }
+        assertControlInk("check", onPrimary, primary) { centerPatch(it, 7f) }
+        assertControlInk("radio-off", p.muted, p.surface) { centerPatch(it, 12f) }
+        assertControlInk("check-off", p.muted, p.surface) { centerPatch(it, 12f) }
+        assertControlInk("switch", onPrimary, primary) { bounds ->
+            val x = bounds.right - 16f
+            androidx.compose.ui.geometry.Rect(x - 2f, bounds.center.y - 2f, x + 2f, bounds.center.y + 2f)
+        }
+        assertControlInk("switch-off", p.outline, p.raised) { bounds ->
+            val x = bounds.left + 16f
+            androidx.compose.ui.geometry.Rect(x - 2f, bounds.center.y - 2f, x + 2f, bounds.center.y + 2f)
+        }
         compose.onNodeWithTag("field").performScrollTo().performClick()
         save(draw(), "material-$dark-focused")
         compose.onNodeWithTag("legacy-field").performScrollTo().performClick()
         save(draw(), "legacy-field-$dark-focused")
+    }
+
+    private fun centerPatch(bounds: androidx.compose.ui.geometry.Rect, radius: Float) =
+        androidx.compose.ui.geometry.Rect(bounds.center.x - radius, bounds.center.y - radius,
+            bounds.center.x + radius, bounds.center.y + radius)
+
+    private fun assertControlInk(tag: String, fg: Color, bg: Color,
+        patch: (androidx.compose.ui.geometry.Rect) -> androidx.compose.ui.geometry.Rect) {
+        val node = compose.onNodeWithTag(tag).performScrollTo().assertIsDisplayed()
+        val bitmap = draw()
+        try {
+            val expected = fg.toArgb()
+            val matches = pixels(bitmap, patch(node.fetchSemanticsNode().boundsInRoot)).filterKeys { pixel ->
+                listOf(16, 8, 0).all { shift -> abs(((pixel shr shift) and 255) - ((expected shr shift) and 255)) <= 2 }
+            }
+            assertTrue("Actual $tag inner mark or ring", matches.values.sum() >= 3)
+            val actual = matches.maxBy { it.value }.key
+            assertTrue("$tag mark versus adjacent fill", ColorUtils.calculateContrast(actual, bg.toArgb()) >= 3.0)
+        } finally { bitmap.recycle() }
+    }
+
+    private fun sharedActions(dark: Boolean) {
+        val labels = mutableListOf<String>()
+        render(dark) {
+            PrimaryButton("Main action", {})
+            PrimaryButton("Loading action", {}, loading = true)
+            PrimaryButton("Disabled main", {}, enabled = false)
+            EsBtnKind.entries.forEach { kind ->
+                EsBtn("${kind.name} action", {}, kind = kind,
+                    leading = { Icon(Icons.Default.Check, null, Modifier.testTag("${kind.name}-leading")) },
+                    trailing = { Icon(Icons.Default.Check, null, Modifier.testTag("${kind.name}-trailing")) })
+                EsBtn("Disabled ${kind.name}", {}, kind = kind, disabled = true)
+            }
+            Surface(color = Color.White) {
+                EsBtn("Legacy white ghost", {}, kind = EsBtnKind.Ghost, contentColor = LightEsColors.text)
+            }
+        }
+        labels += listOf("Main action", "Loading action", "Disabled main", "Legacy white ghost")
+        EsBtnKind.entries.forEach { kind -> labels += listOf("${kind.name} action", "Disabled ${kind.name}") }
+        labels.forEach { assertText(it, "shared-actions-$dark", true) }
+        EsBtnKind.entries.forEach { kind ->
+            compose.onNodeWithText("${kind.name} action").performScrollTo()
+            val textNode = compose.onNodeWithText("${kind.name} action", useUnmergedTree = true)
+            val bitmap = draw()
+            try {
+                val background = pixels(bitmap, textNode.fetchSemanticsNode().boundsInRoot).maxBy { it.value }.key
+                listOf("leading", "trailing").forEach { side ->
+                    val icon = compose.onNodeWithTag("${kind.name}-$side", useUnmergedTree = true).fetchSemanticsNode()
+                    val ink = pixels(bitmap, icon.boundsInRoot).filterKeys {
+                        ColorUtils.calculateContrast(it, background) >= 3.0
+                    }.values.sum()
+                    assertTrue("Actual $kind $side icon against its button fill", ink >= 8)
+                }
+            } finally { bitmap.recycle() }
+        }
     }
 
     private fun scriptSpecimen(dark: Boolean) {
@@ -244,9 +364,9 @@ class LimeThemeGalleryTest {
                     advances(Typeface.DEFAULT).contentEquals(actual))
                 if (Build.VERSION.SDK_INT >= 28) assertEquals(weight.weight, resolved.weight)
             }
-            sample(labels[0], EsTheme.colors.text, EsTheme.colors.surface, t.headlineLarge)
+            Sample(labels[0], EsTheme.colors.text, EsTheme.colors.surface, t.headlineLarge)
             listOf(FontWeight.Normal, FontWeight.Medium, FontWeight.SemiBold).forEachIndexed { index, weight ->
-                sample(labels[index + 1], EsTheme.colors.text, EsTheme.colors.surface, t.bodyLarge.copy(fontWeight = weight))
+                Sample(labels[index + 1], EsTheme.colors.text, EsTheme.colors.surface, t.bodyLarge.copy(fontWeight = weight))
             }
         }
         val name = "api${Build.VERSION.SDK_INT}-$language-${app.resources.configuration.screenWidthDp}-2x-$dark"
@@ -254,7 +374,7 @@ class LimeThemeGalleryTest {
         labels.forEach { assertText(it, name, contrast = true) }
     }
 
-    @Composable private fun sample(text: String, fg: Color, bg: Color, style: TextStyle = MaterialTheme.typography.bodyLarge) {
+    @Composable private fun Sample(text: String, fg: Color, bg: Color, style: TextStyle = MaterialTheme.typography.bodyLarge) {
         Surface(color = bg, modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
             Text(text, color = fg, style = style, modifier = Modifier.padding(16.dp))
         }

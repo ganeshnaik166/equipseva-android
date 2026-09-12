@@ -1,0 +1,221 @@
+{
+  "schema_version": 1,
+  "baseline_commit": "be8f42a1322fc8ca906fe951af45d57feb13f773",
+  "observed_head": "be8f42a1322fc8ca906fe951af45d57feb13f773",
+  "google_fonts_revision": "809e4d8b8d7e9364a914909bb777679606c178b8",
+  "method": "Raw-byte Python subprocess output; Windows checkout simulated with git -c core.autocrlf=true cat-file --filters :<path>.",
+  "licences": [
+    {
+      "path": "app/src/main/assets/font_licenses/space_grotesk_OFL.txt",
+      "source_url": "https://raw.githubusercontent.com/google/fonts/809e4d8b8d7e9364a914909bb777679606c178b8/ofl/spacegrotesk/OFL.txt",
+      "expected_source_sha256": "564ce565c371c5e5bbf286006565a7c9aa55a9f56e7ca58d56e05d649dd61a72",
+      "baseline_blob": {
+        "bytes": 4402,
+        "sha256": "c6dec685825f73b18c20926fddc65e8315642e12986f15db0699170940a09efc",
+        "crlf": 0,
+        "bare_lf": 93
+      },
+      "raw_source": {
+        "bytes": 4495,
+        "sha256": "564ce565c371c5e5bbf286006565a7c9aa55a9f56e7ca58d56e05d649dd61a72",
+        "crlf": 93,
+        "bare_lf": 0
+      },
+      "index_blob": {
+        "bytes": 4495,
+        "sha256": "564ce565c371c5e5bbf286006565a7c9aa55a9f56e7ca58d56e05d649dd61a72",
+        "crlf": 93,
+        "bare_lf": 0
+      },
+      "working_sha256": "564ce565c371c5e5bbf286006565a7c9aa55a9f56e7ca58d56e05d649dd61a72",
+      "windows_checkout_filter": {
+        "bytes": 4495,
+        "sha256": "564ce565c371c5e5bbf286006565a7c9aa55a9f56e7ca58d56e05d649dd61a72",
+        "crlf": 93,
+        "bare_lf": 0
+      },
+      "source_exact": true
+    },
+    {
+      "path": "app/src/main/assets/font_licenses/inter_OFL.txt",
+      "source_url": "https://raw.githubusercontent.com/google/fonts/809e4d8b8d7e9364a914909bb777679606c178b8/ofl/inter/OFL.txt",
+      "expected_source_sha256": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57",
+      "baseline_blob": {
+        "bytes": 4377,
+        "sha256": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57",
+        "crlf": 0,
+        "bare_lf": 93
+      },
+      "raw_source": {
+        "bytes": 4377,
+        "sha256": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57",
+        "crlf": 0,
+        "bare_lf": 93
+      },
+      "index_blob": {
+        "bytes": 4377,
+        "sha256": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57",
+        "crlf": 0,
+        "bare_lf": 93
+      },
+      "working_sha256": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57",
+      "windows_checkout_filter": {
+        "bytes": 4377,
+        "sha256": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57",
+        "crlf": 0,
+        "bare_lf": 93
+      },
+      "source_exact": true
+    },
+    {
+      "path": "app/src/main/assets/font_licenses/noto_sans_devanagari_OFL.txt",
+      "source_url": "https://raw.githubusercontent.com/google/fonts/809e4d8b8d7e9364a914909bb777679606c178b8/ofl/notosansdevanagari/OFL.txt",
+      "expected_source_sha256": "a216f6f8d85c7228093e0ee5e258d9d377e6671f68acb4db1930b29583d0f331",
+      "baseline_blob": {
+        "bytes": 4386,
+        "sha256": "a216f6f8d85c7228093e0ee5e258d9d377e6671f68acb4db1930b29583d0f331",
+        "crlf": 0,
+        "bare_lf": 93
+      },
+      "raw_source": {
+        "bytes": 4386,
+        "sha256": "a216f6f8d85c7228093e0ee5e258d9d377e6671f68acb4db1930b29583d0f331",
+        "crlf": 0,
+        "bare_lf": 93
+      },
+      "index_blob": {
+        "bytes": 4386,
+        "sha256": "a216f6f8d85c7228093e0ee5e258d9d377e6671f68acb4db1930b29583d0f331",
+        "crlf": 0,
+        "bare_lf": 93
+      },
+      "working_sha256": "a216f6f8d85c7228093e0ee5e258d9d377e6671f68acb4db1930b29583d0f331",
+      "windows_checkout_filter": {
+        "bytes": 4386,
+        "sha256": "a216f6f8d85c7228093e0ee5e258d9d377e6671f68acb4db1930b29583d0f331",
+        "crlf": 0,
+        "bare_lf": 93
+      },
+      "source_exact": true
+    },
+    {
+      "path": "app/src/main/assets/font_licenses/noto_sans_telugu_OFL.txt",
+      "source_url": "https://raw.githubusercontent.com/google/fonts/809e4d8b8d7e9364a914909bb777679606c178b8/ofl/notosanstelugu/OFL.txt",
+      "expected_source_sha256": "481c72a8f1b4f645a7e6b10326be41b2da2c15cb470ff48a07fab773eed00102",
+      "baseline_blob": {
+        "bytes": 4382,
+        "sha256": "481c72a8f1b4f645a7e6b10326be41b2da2c15cb470ff48a07fab773eed00102",
+        "crlf": 0,
+        "bare_lf": 93
+      },
+      "raw_source": {
+        "bytes": 4382,
+        "sha256": "481c72a8f1b4f645a7e6b10326be41b2da2c15cb470ff48a07fab773eed00102",
+        "crlf": 0,
+        "bare_lf": 93
+      },
+      "index_blob": {
+        "bytes": 4382,
+        "sha256": "481c72a8f1b4f645a7e6b10326be41b2da2c15cb470ff48a07fab773eed00102",
+        "crlf": 0,
+        "bare_lf": 93
+      },
+      "working_sha256": "481c72a8f1b4f645a7e6b10326be41b2da2c15cb470ff48a07fab773eed00102",
+      "windows_checkout_filter": {
+        "bytes": 4382,
+        "sha256": "481c72a8f1b4f645a7e6b10326be41b2da2c15cb470ff48a07fab773eed00102",
+        "crlf": 0,
+        "bare_lf": 93
+      },
+      "source_exact": true
+    }
+  ],
+  "font_checks": [
+    {
+      "path": "app/src/main/res/font/space_grotesk_semibold.ttf",
+      "sha256": "628aa7932313932bf2eb26cac27dd7e49dd6147f026d389ba0298c6eed2d115c",
+      "index_and_windows_checkout_match": true
+    },
+    {
+      "path": "app/src/main/res/font/inter_regular.ttf",
+      "sha256": "0b59f6b6fc9e8a9ad8032802d1797c4237d9288a3e7b7661517070627b577060",
+      "index_and_windows_checkout_match": true
+    },
+    {
+      "path": "app/src/main/res/font/inter_medium.ttf",
+      "sha256": "8999f916eb8d3c9c7094ad352846801099d5736287065ef1e87cb49c204df10d",
+      "index_and_windows_checkout_match": true
+    },
+    {
+      "path": "app/src/main/res/font/inter_semibold.ttf",
+      "sha256": "b5996a92e34bb74df9080bf429c33cbed0d3b911926659fcf8b8871ac15ca8a4",
+      "index_and_windows_checkout_match": true
+    },
+    {
+      "path": "app/src/main/res/font/noto_sans_devanagari_regular.ttf",
+      "sha256": "c08b31cb15937175a62a2ad3a2659b78a0330395213f0e9c424b3b0c3635336a",
+      "index_and_windows_checkout_match": true
+    },
+    {
+      "path": "app/src/main/res/font/noto_sans_devanagari_medium.ttf",
+      "sha256": "9534686897d72379dd59016943d52254f5bf4bfda0c1d2793bd34c23035ed0af",
+      "index_and_windows_checkout_match": true
+    },
+    {
+      "path": "app/src/main/res/font/noto_sans_devanagari_semibold.ttf",
+      "sha256": "ae09f52a9d72d2c1dc78debb0875acfa897b3f126688fd1261e2a3ab19f3a7c7",
+      "index_and_windows_checkout_match": true
+    },
+    {
+      "path": "app/src/main/res/font/noto_sans_telugu_regular.ttf",
+      "sha256": "a31abec3733818aa43af99dd3814aa59ad9780bd6cdba2bb2b4805a1f9c25753",
+      "index_and_windows_checkout_match": true
+    },
+    {
+      "path": "app/src/main/res/font/noto_sans_telugu_medium.ttf",
+      "sha256": "dda46ac5bebff2b5d5054431908020c42b7c4a8ab5042ccd38fd057f1274f617",
+      "index_and_windows_checkout_match": true
+    },
+    {
+      "path": "app/src/main/res/font/noto_sans_telugu_semibold.ttf",
+      "sha256": "2e6c8e9f2e7dbe74892b95bd9ebc34ed6dcd1e1c21e639a2359fd07e97bc0847",
+      "index_and_windows_checkout_match": true
+    }
+  ],
+  "working_asset_bytes_unchanged": {
+    "count": 14,
+    "all_match_pre_attribute_snapshot": true
+  },
+  "attributes": [
+    "app/src/main/assets/font_licenses/space_grotesk_OFL.txt: text: unset",
+    "app/src/main/assets/font_licenses/space_grotesk_OFL.txt: whitespace: -blank-at-eol,cr-at-eol",
+    "app/src/main/assets/font_licenses/inter_OFL.txt: text: unset",
+    "app/src/main/assets/font_licenses/inter_OFL.txt: whitespace: cr-at-eol",
+    "app/src/main/assets/font_licenses/noto_sans_devanagari_OFL.txt: text: unset",
+    "app/src/main/assets/font_licenses/noto_sans_devanagari_OFL.txt: whitespace: cr-at-eol",
+    "app/src/main/assets/font_licenses/noto_sans_telugu_OFL.txt: text: unset",
+    "app/src/main/assets/font_licenses/noto_sans_telugu_OFL.txt: whitespace: cr-at-eol",
+    "app/src/main/res/font/space_grotesk_semibold.ttf: text: unset",
+    "app/src/main/res/font/space_grotesk_semibold.ttf: whitespace: unspecified",
+    "app/src/main/kotlin/com/equipseva/app/designsystem/components/EsBtn.kt: text: unspecified",
+    "app/src/main/kotlin/com/equipseva/app/designsystem/components/EsBtn.kt: whitespace: unspecified"
+  ],
+  "whitespace": {
+    "original_check_with_cr_at_eol_only": {
+      "command": "git diff --cached --check",
+      "exit_code": 2,
+      "stdout": "app/src/main/assets/font_licenses/space_grotesk_OFL.txt:21: trailing whitespace.\n+fonts, including any derivative works, can be bundled, embedded, \r\n",
+      "stderr": ""
+    },
+    "source_line_21_escaped": "fonts, including any derivative works, can be bundled, embedded, \\r\\n",
+    "exception": "app/src/main/assets/font_licenses/space_grotesk_OFL.txt -text whitespace=-blank-at-eol,cr-at-eol",
+    "reason": "The pinned upstream notice contains one original trailing space. Preserve its byte-exact source; relax blank-at-eol only for this notice. All project-source whitespace checks retain defaults.",
+    "generic_cached_check": {
+      "command": "git diff --cached --check",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  "limits": "No Gradle, runtime/font shaping tests, commit or push. No font or licence working-file bytes changed."
+}
