@@ -1,5 +1,8 @@
 package com.equipseva.app.features.onboarding
 
+// Fixed light parent compatibility; remove with this page's complete theme migration.
+import com.equipseva.app.designsystem.theme.LightEsColors
+import com.equipseva.app.designsystem.theme.legacyLightFieldColors
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -204,13 +207,14 @@ fun EngineerOnboardingScreen(
                     if (phoneInputError) {
                         Text(
                             stringResource(R.string.engineer_onboarding_phone_error),
-                            color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                            color = LightEsColors.error.content,
                         )
                     } else {
                         Text(stringResource(R.string.engineer_onboarding_phone_helper))
                     }
                 },
                 isError = phoneInputError,
+                colors = legacyLightFieldColors(),
                 singleLine = true,
                 enabled = !s.saving,
                 keyboardOptions = KeyboardOptions(
@@ -236,7 +240,7 @@ fun EngineerOnboardingScreen(
             if (s.error != null) {
                 Text(
                     s.error.orEmpty(),
-                    color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                    color = LightEsColors.error.content,
                     fontSize = 13.sp,
                 )
             }

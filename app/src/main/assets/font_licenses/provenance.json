@@ -1,0 +1,981 @@
+{
+  "google_fonts_revision": "809e4d8b8d7e9364a914909bb777679606c178b8",
+  "fonttools": "4.65.0",
+  "source_files": [
+    {
+      "family": "Space Grotesk",
+      "file": "SpaceGrotesk[wght].ttf",
+      "url": "https://raw.githubusercontent.com/google/fonts/809e4d8b8d7e9364a914909bb777679606c178b8/ofl/spacegrotesk/SpaceGrotesk%5Bwght%5D.ttf",
+      "sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+      "bytes": 136676
+    },
+    {
+      "family": "Space Grotesk",
+      "file": "OFL.txt",
+      "url": "https://raw.githubusercontent.com/google/fonts/809e4d8b8d7e9364a914909bb777679606c178b8/ofl/spacegrotesk/OFL.txt",
+      "sha256": "564ce565c371c5e5bbf286006565a7c9aa55a9f56e7ca58d56e05d649dd61a72",
+      "bytes": 4495
+    },
+    {
+      "family": "Space Grotesk",
+      "file": "METADATA.pb",
+      "url": "https://raw.githubusercontent.com/google/fonts/809e4d8b8d7e9364a914909bb777679606c178b8/ofl/spacegrotesk/METADATA.pb",
+      "sha256": "3713adf5c1a21affdbede103b6bb23f551d4195771fa8bc1b91ce813bd1623ee",
+      "bytes": 1509
+    },
+    {
+      "family": "Inter",
+      "file": "Inter[opsz,wght].ttf",
+      "url": "https://raw.githubusercontent.com/google/fonts/809e4d8b8d7e9364a914909bb777679606c178b8/ofl/inter/Inter%5Bopsz%2Cwght%5D.ttf",
+      "sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+      "bytes": 876576
+    },
+    {
+      "family": "Inter",
+      "file": "OFL.txt",
+      "url": "https://raw.githubusercontent.com/google/fonts/809e4d8b8d7e9364a914909bb777679606c178b8/ofl/inter/OFL.txt",
+      "sha256": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57",
+      "bytes": 4377
+    },
+    {
+      "family": "Inter",
+      "file": "METADATA.pb",
+      "url": "https://raw.githubusercontent.com/google/fonts/809e4d8b8d7e9364a914909bb777679606c178b8/ofl/inter/METADATA.pb",
+      "sha256": "79e4721ef4f72251c6080a40dfd9efb6728b4df1fc690f0c70eb4b1b5303a5b0",
+      "bytes": 1342
+    },
+    {
+      "family": "Noto Sans Devanagari",
+      "file": "NotoSansDevanagari[wdth,wght].ttf",
+      "url": "https://raw.githubusercontent.com/google/fonts/809e4d8b8d7e9364a914909bb777679606c178b8/ofl/notosansdevanagari/NotoSansDevanagari%5Bwdth%2Cwght%5D.ttf",
+      "sha256": "14ec4af41f27482216d1c2229f417ff9b1425e1babb014e57d1d40d03229853e",
+      "bytes": 641944
+    },
+    {
+      "family": "Noto Sans Devanagari",
+      "file": "OFL.txt",
+      "url": "https://raw.githubusercontent.com/google/fonts/809e4d8b8d7e9364a914909bb777679606c178b8/ofl/notosansdevanagari/OFL.txt",
+      "sha256": "a216f6f8d85c7228093e0ee5e258d9d377e6671f68acb4db1930b29583d0f331",
+      "bytes": 4386
+    },
+    {
+      "family": "Noto Sans Devanagari",
+      "file": "METADATA.pb",
+      "url": "https://raw.githubusercontent.com/google/fonts/809e4d8b8d7e9364a914909bb777679606c178b8/ofl/notosansdevanagari/METADATA.pb",
+      "sha256": "270c852f690d505bf6b503304ab97ef7aee4d9b86b87847a25c303f1e821a3d5",
+      "bytes": 4273
+    },
+    {
+      "family": "Noto Sans Telugu",
+      "file": "NotoSansTelugu[wdth,wght].ttf",
+      "url": "https://raw.githubusercontent.com/google/fonts/809e4d8b8d7e9364a914909bb777679606c178b8/ofl/notosanstelugu/NotoSansTelugu%5Bwdth%2Cwght%5D.ttf",
+      "sha256": "e618af7bf999df192ed4f388eba2e563f2b5015034e9cbb317b5bd793bd7334d",
+      "bytes": 888808
+    },
+    {
+      "family": "Noto Sans Telugu",
+      "file": "OFL.txt",
+      "url": "https://raw.githubusercontent.com/google/fonts/809e4d8b8d7e9364a914909bb777679606c178b8/ofl/notosanstelugu/OFL.txt",
+      "sha256": "481c72a8f1b4f645a7e6b10326be41b2da2c15cb470ff48a07fab773eed00102",
+      "bytes": 4382
+    },
+    {
+      "family": "Noto Sans Telugu",
+      "file": "METADATA.pb",
+      "url": "https://raw.githubusercontent.com/google/fonts/809e4d8b8d7e9364a914909bb777679606c178b8/ofl/notosanstelugu/METADATA.pb",
+      "sha256": "f246d1336d7ce4eb47b75ef0ea6c1b73cda632a9021f013b7b3f5415453d2440",
+      "bytes": 1472
+    }
+  ],
+  "families": [
+    {
+      "family": "Space Grotesk",
+      "axes": {
+        "wght": {
+          "min": 300.0,
+          "default": 300.0,
+          "max": 700.0
+        }
+      },
+      "names": {
+        "0": "Copyright 2020 The Space Grotesk Project Authors (https://github.com/floriankarsten/space-grotesk)",
+        "1": "Space Grotesk Light",
+        "2": "Regular",
+        "3": "2.000;FK;SpaceGrotesk-Light",
+        "4": "Space Grotesk Light",
+        "5": "Version 2.000",
+        "6": "SpaceGrotesk-Light",
+        "16": "Space Grotesk",
+        "17": "Light"
+      },
+      "source_samples": {
+        "english": {
+          "sample": "EquipSeva Ravi Kumar Job #123 0123456789 ₹1,234.50 – — ’ •",
+          "distinct_codepoints": 35,
+          "missing": []
+        }
+      },
+      "ofl_header": "Copyright 2020 The Space Grotesk Project Authors (https://github.com/floriankarsten/space-grotesk)"
+    },
+    {
+      "family": "Inter",
+      "axes": {
+        "opsz": {
+          "min": 14.0,
+          "default": 14.0,
+          "max": 32.0
+        },
+        "wght": {
+          "min": 100.0,
+          "default": 400.0,
+          "max": 900.0
+        }
+      },
+      "names": {
+        "0": "Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter)",
+        "1": "Inter",
+        "2": "Regular",
+        "3": "4.001;git-66647c0bb;RSMS;Inter-Regular-Regular",
+        "4": "Inter Regular",
+        "5": "Version 4.001;git-66647c0bb",
+        "6": "Inter-Regular",
+        "16": null,
+        "17": null
+      },
+      "source_samples": {
+        "english": {
+          "sample": "EquipSeva Ravi Kumar Job #123 0123456789 ₹1,234.50 – — ’ •",
+          "distinct_codepoints": 35,
+          "missing": []
+        }
+      },
+      "ofl_header": "Copyright 2020 The Inter Project Authors (https://github.com/rsms/inter)"
+    },
+    {
+      "family": "Noto Sans Devanagari",
+      "axes": {
+        "wght": {
+          "min": 100.0,
+          "default": 400.0,
+          "max": 900.0
+        },
+        "wdth": {
+          "min": 62.5,
+          "default": 100.0,
+          "max": 100.0
+        }
+      },
+      "names": {
+        "0": "Copyright 2022 The Noto Project Authors (https://github.com/notofonts/devanagari)",
+        "1": "Noto Sans Devanagari",
+        "2": "Regular",
+        "3": "2.007;GOOG;NotoSansDevanagari-Regular",
+        "4": "Noto Sans Devanagari Regular",
+        "5": "Version 2.007",
+        "6": "NotoSansDevanagari-Regular",
+        "16": null,
+        "17": null
+      },
+      "source_samples": {
+        "english": {
+          "sample": "EquipSeva Ravi Kumar Job #123 0123456789 ₹1,234.50 – — ’ •",
+          "distinct_codepoints": 35,
+          "missing": []
+        },
+        "hindi": {
+          "sample": "EquipSeva गणेश शर्मा सेवा अस्पताल इंजीनियर ₹१२३.४५ 123",
+          "distinct_codepoints": 41,
+          "missing": []
+        }
+      },
+      "ofl_header": "Copyright 2022 The Noto Project Authors (https://github.com/notofonts/devanagari)"
+    },
+    {
+      "family": "Noto Sans Telugu",
+      "axes": {
+        "wght": {
+          "min": 100.0,
+          "default": 400.0,
+          "max": 900.0
+        },
+        "wdth": {
+          "min": 62.5,
+          "default": 100.0,
+          "max": 100.0
+        }
+      },
+      "names": {
+        "0": "Copyright 2022 The Noto Project Authors (https://github.com/notofonts/telugu)",
+        "1": "Noto Sans Telugu",
+        "2": "Regular",
+        "3": "2.005;GOOG;NotoSansTelugu-Regular",
+        "4": "Noto Sans Telugu Regular",
+        "5": "Version 2.005",
+        "6": "NotoSansTelugu-Regular",
+        "16": null,
+        "17": null
+      },
+      "source_samples": {
+        "english": {
+          "sample": "EquipSeva Ravi Kumar Job #123 0123456789 ₹1,234.50 – — ’ •",
+          "distinct_codepoints": 35,
+          "missing": []
+        },
+        "telugu": {
+          "sample": "EquipSeva గణేశ్ నాయిక్ సేవ ఆసుపత్రి ఇంజినీర్ ₹౧౨౩.౪౫ 123",
+          "distinct_codepoints": 41,
+          "missing": []
+        }
+      },
+      "ofl_header": "Copyright 2022 The Noto Project Authors (https://github.com/notofonts/telugu)"
+    }
+  ],
+  "static_fonts": [
+    {
+      "file": "space_grotesk_semibold.ttf",
+      "family": "Space Grotesk",
+      "weight": 600,
+      "width_class": 5,
+      "sfnt": "TrueType 0x00010000",
+      "whole_font_checksum": "0xB1B0AFBA",
+      "sha256": "628aa7932313932bf2eb26cac27dd7e49dd6147f026d389ba0298c6eed2d115c",
+      "bytes": 88484,
+      "glyphs": 1001,
+      "cmap_codepoints": 735,
+      "names": {
+        "0": "Copyright 2020 The Space Grotesk Project Authors (https://github.com/floriankarsten/space-grotesk)",
+        "1": "Space Grotesk SemiBold",
+        "2": "Regular",
+        "3": "2.000;FK;SpaceGrotesk-SemiBold;EquipSevaStatic-600",
+        "4": "Space Grotesk SemiBold",
+        "5": "Version 2.000",
+        "6": "SpaceGrotesk-SemiBold",
+        "16": "Space Grotesk",
+        "17": "SemiBold"
+      },
+      "sample_coverage": {
+        "english": {
+          "sample": "EquipSeva Ravi Kumar Job #123 0123456789 ₹1,234.50 – — ’ •",
+          "distinct_codepoints": 35,
+          "missing": []
+        }
+      },
+      "layout_scripts": {
+        "GSUB": [
+          "DFLT",
+          "latn"
+        ],
+        "GPOS": [
+          "DFLT",
+          "latn"
+        ]
+      },
+      "tables": [
+        "GlyphOrder",
+        "head",
+        "hhea",
+        "maxp",
+        "OS/2",
+        "hmtx",
+        "cmap",
+        "prep",
+        "loca",
+        "glyf",
+        "name",
+        "post",
+        "gasp",
+        "GDEF",
+        "GPOS",
+        "GSUB",
+        "STAT"
+      ],
+      "source_file": "SpaceGrotesk[wght].ttf",
+      "source_axes": {
+        "wght": 600
+      },
+      "name_derivation": "Explicit static SemiBold names after actual wght=600 interpolation; upstream STAT lacks a 600 name"
+    },
+    {
+      "file": "inter_regular.ttf",
+      "family": "Inter",
+      "weight": 400,
+      "width_class": 5,
+      "sfnt": "TrueType 0x00010000",
+      "whole_font_checksum": "0xB1B0AFBA",
+      "sha256": "0b59f6b6fc9e8a9ad8032802d1797c4237d9288a3e7b7661517070627b577060",
+      "bytes": 341396,
+      "glyphs": 2933,
+      "cmap_codepoints": 2849,
+      "names": {
+        "0": "Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter)",
+        "1": "Inter",
+        "2": "Regular",
+        "3": "4.001;git-66647c0bb;RSMS;Inter-Regular-Regular",
+        "4": "Inter Regular",
+        "5": "Version 4.001;git-66647c0bb",
+        "6": "Inter-Regular",
+        "16": null,
+        "17": null
+      },
+      "sample_coverage": {
+        "english": {
+          "sample": "EquipSeva Ravi Kumar Job #123 0123456789 ₹1,234.50 – — ’ •",
+          "distinct_codepoints": 35,
+          "missing": []
+        }
+      },
+      "layout_scripts": {
+        "GSUB": [
+          "DFLT",
+          "latn"
+        ],
+        "GPOS": [
+          "DFLT",
+          "cyrl",
+          "grek",
+          "latn"
+        ]
+      },
+      "tables": [
+        "GlyphOrder",
+        "head",
+        "hhea",
+        "maxp",
+        "OS/2",
+        "hmtx",
+        "cmap",
+        "prep",
+        "loca",
+        "glyf",
+        "name",
+        "post",
+        "gasp",
+        "GDEF",
+        "GPOS",
+        "GSUB",
+        "STAT"
+      ],
+      "source_file": "Inter[opsz,wght].ttf",
+      "source_axes": {
+        "wght": 400,
+        "opsz": 14
+      },
+      "name_derivation": "fontTools updateFontNames=True from source STAT"
+    },
+    {
+      "file": "inter_medium.ttf",
+      "family": "Inter",
+      "weight": 500,
+      "width_class": 5,
+      "sfnt": "TrueType 0x00010000",
+      "whole_font_checksum": "0xB1B0AFBA",
+      "sha256": "8999f916eb8d3c9c7094ad352846801099d5736287065ef1e87cb49c204df10d",
+      "bytes": 342004,
+      "glyphs": 2933,
+      "cmap_codepoints": 2849,
+      "names": {
+        "0": "Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter)",
+        "1": "Inter Medium",
+        "2": "Regular",
+        "3": "4.001;git-66647c0bb;RSMS;Inter-Medium-Regular",
+        "4": "Inter Medium",
+        "5": "Version 4.001;git-66647c0bb",
+        "6": "Inter-Medium",
+        "16": "Inter",
+        "17": "Medium"
+      },
+      "sample_coverage": {
+        "english": {
+          "sample": "EquipSeva Ravi Kumar Job #123 0123456789 ₹1,234.50 – — ’ •",
+          "distinct_codepoints": 35,
+          "missing": []
+        }
+      },
+      "layout_scripts": {
+        "GSUB": [
+          "DFLT",
+          "latn"
+        ],
+        "GPOS": [
+          "DFLT",
+          "cyrl",
+          "grek",
+          "latn"
+        ]
+      },
+      "tables": [
+        "GlyphOrder",
+        "head",
+        "hhea",
+        "maxp",
+        "OS/2",
+        "hmtx",
+        "cmap",
+        "prep",
+        "loca",
+        "glyf",
+        "name",
+        "post",
+        "gasp",
+        "GDEF",
+        "GPOS",
+        "GSUB",
+        "STAT"
+      ],
+      "source_file": "Inter[opsz,wght].ttf",
+      "source_axes": {
+        "wght": 500,
+        "opsz": 14
+      },
+      "name_derivation": "fontTools updateFontNames=True from source STAT"
+    },
+    {
+      "file": "inter_semibold.ttf",
+      "family": "Inter",
+      "weight": 600,
+      "width_class": 5,
+      "sfnt": "TrueType 0x00010000",
+      "whole_font_checksum": "0xB1B0AFBA",
+      "sha256": "b5996a92e34bb74df9080bf429c33cbed0d3b911926659fcf8b8871ac15ca8a4",
+      "bytes": 342688,
+      "glyphs": 2933,
+      "cmap_codepoints": 2849,
+      "names": {
+        "0": "Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter)",
+        "1": "Inter SemiBold",
+        "2": "Regular",
+        "3": "4.001;git-66647c0bb;RSMS;Inter-SemiBold-Regular",
+        "4": "Inter SemiBold",
+        "5": "Version 4.001;git-66647c0bb",
+        "6": "Inter-SemiBold",
+        "16": "Inter",
+        "17": "SemiBold"
+      },
+      "sample_coverage": {
+        "english": {
+          "sample": "EquipSeva Ravi Kumar Job #123 0123456789 ₹1,234.50 – — ’ •",
+          "distinct_codepoints": 35,
+          "missing": []
+        }
+      },
+      "layout_scripts": {
+        "GSUB": [
+          "DFLT",
+          "latn"
+        ],
+        "GPOS": [
+          "DFLT",
+          "cyrl",
+          "grek",
+          "latn"
+        ]
+      },
+      "tables": [
+        "GlyphOrder",
+        "head",
+        "hhea",
+        "maxp",
+        "OS/2",
+        "hmtx",
+        "cmap",
+        "prep",
+        "loca",
+        "glyf",
+        "name",
+        "post",
+        "gasp",
+        "GDEF",
+        "GPOS",
+        "GSUB",
+        "STAT"
+      ],
+      "source_file": "Inter[opsz,wght].ttf",
+      "source_axes": {
+        "wght": 600,
+        "opsz": 14
+      },
+      "name_derivation": "fontTools updateFontNames=True from source STAT"
+    },
+    {
+      "file": "noto_sans_devanagari_regular.ttf",
+      "family": "Noto Sans Devanagari",
+      "weight": 400,
+      "width_class": 5,
+      "sfnt": "TrueType 0x00010000",
+      "whole_font_checksum": "0xB1B0AFBA",
+      "sha256": "c08b31cb15937175a62a2ad3a2659b78a0330395213f0e9c424b3b0c3635336a",
+      "bytes": 218236,
+      "glyphs": 1117,
+      "cmap_codepoints": 551,
+      "names": {
+        "0": "Copyright 2022 The Noto Project Authors (https://github.com/notofonts/devanagari)",
+        "1": "Noto Sans Devanagari",
+        "2": "Regular",
+        "3": "2.007;GOOG;NotoSansDevanagari-Regular",
+        "4": "Noto Sans Devanagari Regular",
+        "5": "Version 2.007",
+        "6": "NotoSansDevanagari-Regular",
+        "16": null,
+        "17": null
+      },
+      "sample_coverage": {
+        "english": {
+          "sample": "EquipSeva Ravi Kumar Job #123 0123456789 ₹1,234.50 – — ’ •",
+          "distinct_codepoints": 35,
+          "missing": []
+        },
+        "hindi": {
+          "sample": "EquipSeva गणेश शर्मा सेवा अस्पताल इंजीनियर ₹१२३.४५ 123",
+          "distinct_codepoints": 41,
+          "missing": []
+        }
+      },
+      "layout_scripts": {
+        "GSUB": [
+          "DFLT",
+          "cyrl",
+          "dev2",
+          "deva",
+          "grek",
+          "latn"
+        ],
+        "GPOS": [
+          "DFLT",
+          "cyrl",
+          "dev2",
+          "deva",
+          "grek",
+          "latn"
+        ]
+      },
+      "tables": [
+        "GlyphOrder",
+        "head",
+        "hhea",
+        "maxp",
+        "OS/2",
+        "hmtx",
+        "cmap",
+        "prep",
+        "loca",
+        "glyf",
+        "name",
+        "post",
+        "gasp",
+        "GDEF",
+        "GPOS",
+        "GSUB",
+        "STAT"
+      ],
+      "source_file": "NotoSansDevanagari[wdth,wght].ttf",
+      "source_axes": {
+        "wght": 400,
+        "wdth": 100
+      },
+      "name_derivation": "fontTools updateFontNames=True from source STAT"
+    },
+    {
+      "file": "noto_sans_devanagari_medium.ttf",
+      "family": "Noto Sans Devanagari",
+      "weight": 500,
+      "width_class": 5,
+      "sfnt": "TrueType 0x00010000",
+      "whole_font_checksum": "0xB1B0AFBA",
+      "sha256": "9534686897d72379dd59016943d52254f5bf4bfda0c1d2793bd34c23035ed0af",
+      "bytes": 218828,
+      "glyphs": 1117,
+      "cmap_codepoints": 551,
+      "names": {
+        "0": "Copyright 2022 The Noto Project Authors (https://github.com/notofonts/devanagari)",
+        "1": "Noto Sans Devanagari Medium",
+        "2": "Regular",
+        "3": "2.007;GOOG;NotoSansDevanagari-Medium",
+        "4": "Noto Sans Devanagari Medium",
+        "5": "Version 2.007",
+        "6": "NotoSansDevanagari-Medium",
+        "16": "Noto Sans Devanagari",
+        "17": "Medium"
+      },
+      "sample_coverage": {
+        "english": {
+          "sample": "EquipSeva Ravi Kumar Job #123 0123456789 ₹1,234.50 – — ’ •",
+          "distinct_codepoints": 35,
+          "missing": []
+        },
+        "hindi": {
+          "sample": "EquipSeva गणेश शर्मा सेवा अस्पताल इंजीनियर ₹१२३.४५ 123",
+          "distinct_codepoints": 41,
+          "missing": []
+        }
+      },
+      "layout_scripts": {
+        "GSUB": [
+          "DFLT",
+          "cyrl",
+          "dev2",
+          "deva",
+          "grek",
+          "latn"
+        ],
+        "GPOS": [
+          "DFLT",
+          "cyrl",
+          "dev2",
+          "deva",
+          "grek",
+          "latn"
+        ]
+      },
+      "tables": [
+        "GlyphOrder",
+        "head",
+        "hhea",
+        "maxp",
+        "OS/2",
+        "hmtx",
+        "cmap",
+        "prep",
+        "loca",
+        "glyf",
+        "name",
+        "post",
+        "gasp",
+        "GDEF",
+        "GPOS",
+        "GSUB",
+        "STAT"
+      ],
+      "source_file": "NotoSansDevanagari[wdth,wght].ttf",
+      "source_axes": {
+        "wght": 500,
+        "wdth": 100
+      },
+      "name_derivation": "fontTools updateFontNames=True from source STAT"
+    },
+    {
+      "file": "noto_sans_devanagari_semibold.ttf",
+      "family": "Noto Sans Devanagari",
+      "weight": 600,
+      "width_class": 5,
+      "sfnt": "TrueType 0x00010000",
+      "whole_font_checksum": "0xB1B0AFBA",
+      "sha256": "ae09f52a9d72d2c1dc78debb0875acfa897b3f126688fd1261e2a3ab19f3a7c7",
+      "bytes": 218928,
+      "glyphs": 1117,
+      "cmap_codepoints": 551,
+      "names": {
+        "0": "Copyright 2022 The Noto Project Authors (https://github.com/notofonts/devanagari)",
+        "1": "Noto Sans Devanagari SemiBold",
+        "2": "Regular",
+        "3": "2.007;GOOG;NotoSansDevanagari-SemiBold",
+        "4": "Noto Sans Devanagari SemiBold",
+        "5": "Version 2.007",
+        "6": "NotoSansDevanagari-SemiBold",
+        "16": "Noto Sans Devanagari",
+        "17": "SemiBold"
+      },
+      "sample_coverage": {
+        "english": {
+          "sample": "EquipSeva Ravi Kumar Job #123 0123456789 ₹1,234.50 – — ’ •",
+          "distinct_codepoints": 35,
+          "missing": []
+        },
+        "hindi": {
+          "sample": "EquipSeva गणेश शर्मा सेवा अस्पताल इंजीनियर ₹१२३.४५ 123",
+          "distinct_codepoints": 41,
+          "missing": []
+        }
+      },
+      "layout_scripts": {
+        "GSUB": [
+          "DFLT",
+          "cyrl",
+          "dev2",
+          "deva",
+          "grek",
+          "latn"
+        ],
+        "GPOS": [
+          "DFLT",
+          "cyrl",
+          "dev2",
+          "deva",
+          "grek",
+          "latn"
+        ]
+      },
+      "tables": [
+        "GlyphOrder",
+        "head",
+        "hhea",
+        "maxp",
+        "OS/2",
+        "hmtx",
+        "cmap",
+        "prep",
+        "loca",
+        "glyf",
+        "name",
+        "post",
+        "gasp",
+        "GDEF",
+        "GPOS",
+        "GSUB",
+        "STAT"
+      ],
+      "source_file": "NotoSansDevanagari[wdth,wght].ttf",
+      "source_axes": {
+        "wght": 600,
+        "wdth": 100
+      },
+      "name_derivation": "fontTools updateFontNames=True from source STAT"
+    },
+    {
+      "file": "noto_sans_telugu_regular.ttf",
+      "family": "Noto Sans Telugu",
+      "weight": 400,
+      "width_class": 5,
+      "sfnt": "TrueType 0x00010000",
+      "whole_font_checksum": "0xB1B0AFBA",
+      "sha256": "a31abec3733818aa43af99dd3814aa59ad9780bd6cdba2bb2b4805a1f9c25753",
+      "bytes": 208876,
+      "glyphs": 1247,
+      "cmap_codepoints": 444,
+      "names": {
+        "0": "Copyright 2022 The Noto Project Authors (https://github.com/notofonts/telugu)",
+        "1": "Noto Sans Telugu",
+        "2": "Regular",
+        "3": "2.005;GOOG;NotoSansTelugu-Regular",
+        "4": "Noto Sans Telugu Regular",
+        "5": "Version 2.005",
+        "6": "NotoSansTelugu-Regular",
+        "16": null,
+        "17": null
+      },
+      "sample_coverage": {
+        "english": {
+          "sample": "EquipSeva Ravi Kumar Job #123 0123456789 ₹1,234.50 – — ’ •",
+          "distinct_codepoints": 35,
+          "missing": []
+        },
+        "telugu": {
+          "sample": "EquipSeva గణేశ్ నాయిక్ సేవ ఆసుపత్రి ఇంజినీర్ ₹౧౨౩.౪౫ 123",
+          "distinct_codepoints": 41,
+          "missing": []
+        }
+      },
+      "layout_scripts": {
+        "GSUB": [
+          "DFLT",
+          "cyrl",
+          "dev2",
+          "grek",
+          "latn",
+          "tel2"
+        ],
+        "GPOS": [
+          "DFLT",
+          "cyrl",
+          "dev2",
+          "grek",
+          "latn",
+          "tel2",
+          "telu"
+        ]
+      },
+      "tables": [
+        "GlyphOrder",
+        "head",
+        "hhea",
+        "maxp",
+        "OS/2",
+        "hmtx",
+        "cmap",
+        "prep",
+        "loca",
+        "glyf",
+        "name",
+        "post",
+        "gasp",
+        "GDEF",
+        "GPOS",
+        "GSUB",
+        "STAT"
+      ],
+      "source_file": "NotoSansTelugu[wdth,wght].ttf",
+      "source_axes": {
+        "wght": 400,
+        "wdth": 100
+      },
+      "name_derivation": "fontTools updateFontNames=True from source STAT"
+    },
+    {
+      "file": "noto_sans_telugu_medium.ttf",
+      "family": "Noto Sans Telugu",
+      "weight": 500,
+      "width_class": 5,
+      "sfnt": "TrueType 0x00010000",
+      "whole_font_checksum": "0xB1B0AFBA",
+      "sha256": "dda46ac5bebff2b5d5054431908020c42b7c4a8ab5042ccd38fd057f1274f617",
+      "bytes": 209584,
+      "glyphs": 1247,
+      "cmap_codepoints": 444,
+      "names": {
+        "0": "Copyright 2022 The Noto Project Authors (https://github.com/notofonts/telugu)",
+        "1": "Noto Sans Telugu Medium",
+        "2": "Regular",
+        "3": "2.005;GOOG;NotoSansTelugu-Medium",
+        "4": "Noto Sans Telugu Medium",
+        "5": "Version 2.005",
+        "6": "NotoSansTelugu-Medium",
+        "16": "Noto Sans Telugu",
+        "17": "Medium"
+      },
+      "sample_coverage": {
+        "english": {
+          "sample": "EquipSeva Ravi Kumar Job #123 0123456789 ₹1,234.50 – — ’ •",
+          "distinct_codepoints": 35,
+          "missing": []
+        },
+        "telugu": {
+          "sample": "EquipSeva గణేశ్ నాయిక్ సేవ ఆసుపత్రి ఇంజినీర్ ₹౧౨౩.౪౫ 123",
+          "distinct_codepoints": 41,
+          "missing": []
+        }
+      },
+      "layout_scripts": {
+        "GSUB": [
+          "DFLT",
+          "cyrl",
+          "dev2",
+          "grek",
+          "latn",
+          "tel2"
+        ],
+        "GPOS": [
+          "DFLT",
+          "cyrl",
+          "dev2",
+          "grek",
+          "latn",
+          "tel2",
+          "telu"
+        ]
+      },
+      "tables": [
+        "GlyphOrder",
+        "head",
+        "hhea",
+        "maxp",
+        "OS/2",
+        "hmtx",
+        "cmap",
+        "prep",
+        "loca",
+        "glyf",
+        "name",
+        "post",
+        "gasp",
+        "GDEF",
+        "GPOS",
+        "GSUB",
+        "STAT"
+      ],
+      "source_file": "NotoSansTelugu[wdth,wght].ttf",
+      "source_axes": {
+        "wght": 500,
+        "wdth": 100
+      },
+      "name_derivation": "fontTools updateFontNames=True from source STAT"
+    },
+    {
+      "file": "noto_sans_telugu_semibold.ttf",
+      "family": "Noto Sans Telugu",
+      "weight": 600,
+      "width_class": 5,
+      "sfnt": "TrueType 0x00010000",
+      "whole_font_checksum": "0xB1B0AFBA",
+      "sha256": "2e6c8e9f2e7dbe74892b95bd9ebc34ed6dcd1e1c21e639a2359fd07e97bc0847",
+      "bytes": 209644,
+      "glyphs": 1247,
+      "cmap_codepoints": 444,
+      "names": {
+        "0": "Copyright 2022 The Noto Project Authors (https://github.com/notofonts/telugu)",
+        "1": "Noto Sans Telugu SemiBold",
+        "2": "Regular",
+        "3": "2.005;GOOG;NotoSansTelugu-SemiBold",
+        "4": "Noto Sans Telugu SemiBold",
+        "5": "Version 2.005",
+        "6": "NotoSansTelugu-SemiBold",
+        "16": "Noto Sans Telugu",
+        "17": "SemiBold"
+      },
+      "sample_coverage": {
+        "english": {
+          "sample": "EquipSeva Ravi Kumar Job #123 0123456789 ₹1,234.50 – — ’ •",
+          "distinct_codepoints": 35,
+          "missing": []
+        },
+        "telugu": {
+          "sample": "EquipSeva గణేశ్ నాయిక్ సేవ ఆసుపత్రి ఇంజినీర్ ₹౧౨౩.౪౫ 123",
+          "distinct_codepoints": 41,
+          "missing": []
+        }
+      },
+      "layout_scripts": {
+        "GSUB": [
+          "DFLT",
+          "cyrl",
+          "dev2",
+          "grek",
+          "latn",
+          "tel2"
+        ],
+        "GPOS": [
+          "DFLT",
+          "cyrl",
+          "dev2",
+          "grek",
+          "latn",
+          "tel2",
+          "telu"
+        ]
+      },
+      "tables": [
+        "GlyphOrder",
+        "head",
+        "hhea",
+        "maxp",
+        "OS/2",
+        "hmtx",
+        "cmap",
+        "prep",
+        "loca",
+        "glyf",
+        "name",
+        "post",
+        "gasp",
+        "GDEF",
+        "GPOS",
+        "GSUB",
+        "STAT"
+      ],
+      "source_file": "NotoSansTelugu[wdth,wght].ttf",
+      "source_axes": {
+        "wght": 600,
+        "wdth": 100
+      },
+      "name_derivation": "fontTools updateFontNames=True from source STAT"
+    }
+  ],
+  "build_tool_package": {
+    "name": "fonttools",
+    "version": "4.65.0",
+    "filename": "fonttools-4.65.0-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/e6/35/f894ceb867118c0261d0f69a9bd516b045a3754238f76c88a49513ac7a83/fonttools-4.65.0-py3-none-any.whl",
+    "sha256": "3060b8c1fc2329fa20265b7c138614143ea7c1624e26c5c180c76aeb74deae6f",
+    "size": 1196441,
+    "metadata_url": "https://pypi.org/pypi/fonttools/4.65.0/json"
+  },
+  "validation_limit": "Static sfnt/weight/checksum/cmap/table checks only; not Android Typeface loading, script shaping, fallback, visual rendering, accessibility or release acceptance."
+}

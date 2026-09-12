@@ -1,5 +1,8 @@
 package com.equipseva.app.features.profile.forms
 
+// Fixed light parent compatibility; remove with this page's complete theme migration.
+import com.equipseva.app.designsystem.theme.LightEsColors
+import com.equipseva.app.designsystem.theme.legacyLightFieldColors
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -224,6 +227,7 @@ private fun ProfileFormScaffold(
                                     label = { Text(field.label) },
                                     placeholder = field.placeholder?.let { { Text(it) } },
                                     isError = fieldError != null,
+                                    colors = legacyLightFieldColors(),
                                     supportingText = (fieldError ?: field.helper)?.let { { Text(it) } },
                                     singleLine = field.kind != FieldKind.MULTILINE,
                                     minLines = if (field.kind == FieldKind.MULTILINE) 3 else 1,
@@ -247,7 +251,7 @@ private fun ProfileFormScaffold(
                     if (state.errorMessage != null) {
                         Text(
                             state.errorMessage!!,
-                            color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                            color = LightEsColors.error.content,
                             fontSize = 13.sp,
                         )
                     }

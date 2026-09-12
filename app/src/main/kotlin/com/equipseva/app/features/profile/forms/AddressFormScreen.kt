@@ -1,5 +1,7 @@
 package com.equipseva.app.features.profile.forms
 
+// Fixed light parent compatibility; remove with this page's complete theme migration.
+import com.equipseva.app.designsystem.theme.LightEsColors
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -401,7 +403,7 @@ fun AddressFormScreen(
             state.error?.let {
                 Text(
                     it,
-                    color = MaterialTheme.colorScheme.error,
+                    color = LightEsColors.error.content,
                     fontSize = 13.sp,
                 )
             }
@@ -459,6 +461,7 @@ private fun FormField(
 ) {
     OutlinedTextField(
         value = value,
+        colors = com.equipseva.app.designsystem.theme.legacyLightFieldColors(),
         onValueChange = onChange,
         label = { Text(label) },
         modifier = Modifier.fillMaxWidth(),

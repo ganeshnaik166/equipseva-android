@@ -53,7 +53,8 @@ class IsolatedUiPackageParser {
         val info = ReflectionHelpers.getField<ApplicationInfo>(parsed, "applicationInfo")
         info.metaData = null
         info.className = Application::class.java.name
-        info.appComponentFactory = null
+        // This framework field was introduced in P. API26 has no factory to strip.
+        if (android.os.Build.VERSION.SDK_INT >= 28) info.appComponentFactory = null
         info.permission = null
         parsedCount++
         return parsed

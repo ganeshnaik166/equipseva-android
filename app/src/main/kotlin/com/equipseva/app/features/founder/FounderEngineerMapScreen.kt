@@ -1,5 +1,7 @@
 package com.equipseva.app.features.founder
 
+// Fixed light parent compatibility; remove with this page's complete theme migration.
+import com.equipseva.app.designsystem.theme.LightEsColors
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -111,23 +113,24 @@ fun FounderEngineerMapScreen(
     com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.refresh() }
     var selected by remember { mutableStateOf<String?>(null) }
 
-    androidx.compose.material3.Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+    androidx.compose.material3.Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault,
+        contentColor = LightEsColors.text) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(title = "Engineer zones", onBack = onBack)
             Box(modifier = Modifier.fillMaxSize()) {
             when {
                 state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = LightEsColors.text)
                 }
                 state.error != null -> Column(
                     modifier = Modifier.fillMaxSize().padding(16.dp),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text(state.error!!, color = MaterialTheme.colorScheme.error)
+                    Text(state.error!!, color = LightEsColors.error.content)
                     Spacer(modifier = Modifier.size(12.dp))
                     TextButton(onClick = { viewModel.refresh() }) {
-                        Text(stringResource(R.string.common_retry))
+                        Text(stringResource(R.string.common_retry), color = LightEsColors.text)
                     }
                 }
                 state.rows.isEmpty() -> Column(
