@@ -1,114 +1,181 @@
 {
-  "project": "EquipSeva Android + Founder Console",
-  "generatedAt": "2026-09-12T14:17:20+05:30",
-  "timezone": "Asia/Calcutta",
-  "branch": {
-    "name": "codex/auth-integration-20260911",
-    "head": "567625e6",
-    "base": "1e770076a0731dd4c4851f66ced3cf3542b3a496"
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-12T09:05:11Z",
+  "source": {
+    "branch": "codex/auth-integration-20260911",
+    "head": "3fb2e8a65c98f4c5359cbf35421437b29e57b2ec",
+    "base": "1e770076358e74f6f40a99a4907f831da59e791c",
+    "commits": 11
   },
-  "program": {
-    "status": "active",
-    "mode": "milestone continuation",
-    "overallCompletion": 72,
-    "elapsedHours": 24.9,
-    "hoursWorked": "~25h from 11 Sep 07:18 IST to 12 Sep 08:14 IST",
-    "commits": 10,
-    "filesChanged": 69,
-    "lines": { "added": 7266, "removed": 580 },
-    "tests": {
-      "fullSuite": "3030",
-      "fullFailures": 0,
-      "focused": "138",
-      "focusedFailures": 0,
-      "focusSuite": "A10 + deep-link edge matrix + auth focus tests"
-    }
+  "focus": {
+    "title": "Development dashboard & publishing",
+    "detail": "Connecting this dashboard to equipseva.com. Android implementation is paused while the dashboard is completed. Security, workflow and UI reviews remain part of the renewal plan."
   },
   "milestones": [
     {
       "id": "A1",
       "name": "Session bootstrap ownership",
-      "completion": 100,
-      "status": "done",
-      "owner": "auth_a1_impl",
-      "notes": "Bootstrap/session isolation, generation handling, profile bootstrap ordering and fixture-backed identity tests are in place."
+      "status": "implemented",
+      "owner": "Coordinator",
+      "notes": "Implementation and regression tests are saved. This is one security slice; whole-app release acceptance remains open.",
+      "implementationComplete": true
     },
     {
       "id": "A2",
-      "name": "Root role gate + nav ownership",
-      "completion": 88,
-      "status": "blocked",
-      "owner": "auth_a1_impl",
-      "notes": "Role picker and recovery are in. Known pending item remains dark-mode button contrast polish in role selection path."
+      "name": "Login, role selection & recovery",
+      "status": "verification",
+      "owner": "Coordinator",
+      "notes": "Role selection and recovery are implemented. Final contrast verification and independent acceptance remain open in the handoff.",
+      "implementationComplete": true
+    },
+    {
+      "id": "A10",
+      "name": "Engineer verification state",
+      "status": "implemented",
+      "owner": "GPT-5.3 helper",
+      "notes": "Account-owned requests and cancellation guards are saved. Historical verification is listed below; integration review remains separate.",
+      "implementationComplete": true
     },
     {
       "id": "A3",
-      "name": "Deep-link policy + security review",
-      "completion": 82,
+      "name": "Notification navigation",
       "status": "in_progress",
-      "owner": "gpt-5.3-codex",
-      "notes": "Policy file and tests exist; remaining work is coordinated merge ordering and final implementation acceptance."
+      "owner": "Coordinator",
+      "notes": "Routing policy and regression coverage are under integration. Acceptance and end-to-end security checks remain open.",
+      "implementationComplete": false
     },
     {
       "id": "A4/A12",
-      "name": "Mutation ownership and audit cleanup",
-      "completion": 75,
-      "status": "in_progress",
-      "owner": "audit",
-      "notes": "Contract, matrix and fix plan are complete; implementation still pending by owner approval."
+      "name": "Account mutation isolation",
+      "status": "planned",
+      "owner": "Coordinator + Claude review",
+      "notes": "Review and test plan are saved. Implementation and verification remain future work.",
+      "implementationComplete": false
     },
     {
-      "id": "Delivery",
-      "name": "Founder GoDaddy page + release ops",
-      "completion": 55,
+      "id": "Dashboard",
+      "name": "Development journal",
       "status": "in_progress",
-      "owner": "owner",
-      "notes": "Tracking page and deployment handoff now added; finalize DNS/apply publish steps in GoDaddy dashboard."
+      "owner": "Coordinator + independent QA",
+      "notes": "Publishing a sanitized snapshot with quota timestamps, milestone evidence and honest unavailable states.",
+      "implementationComplete": false
     }
   ],
   "agents": [
-    { "name": "auth_a1_impl", "status": "active", "focus": "A2 implementation cleanup + blocker polish", "eta": "This/next day" },
-    { "name": "auth_a1_redteam", "status": "active", "focus": "Re-test high findings and replayed security scenarios", "eta": "On each save" },
-    { "name": "qa_critic_review", "status": "active", "focus": "Critic score checks + reviewer alignment", "eta": "At milestone handoff" }
-  ],
-  "recentChanges": [
-    { "sha": "1e770076", "scope": "A2 role gate handoff", "time": "2026-09-11 07:18" },
-    { "sha": "6297d056", "scope": "A3/A4 deep-link + UX plan docs", "time": "2026-09-11 07:47" },
-    { "sha": "0d4269ea", "scope": "Review handoff publish", "time": "2026-09-11 07:47" },
-    { "sha": "16b405b8", "scope": "Engineer-status isolation", "time": "2026-09-11 08:28" },
-    { "sha": "8955046f", "scope": "Notification edge-case tests", "time": "2026-09-11 08:31" },
-    { "sha": "311643de", "scope": "Auth/profile accessibility inventory", "time": "2026-09-11 08:32" },
-    { "sha": "a9b35f3c", "scope": "Verification ledger and helper checkpoints", "time": "2026-09-11 08:33" },
-    { "sha": "8749ff71", "scope": "Security/workflow review handoff", "time": "2026-09-11 09:11" },
-    { "sha": "5f0f48ec", "scope": "A10 stale-work guards + contrast oracle", "time": "2026-09-12 14:04" },
-    { "sha": "567625e6", "scope": "DeepLinkPolicy handoff + quality checkpoint", "time": "2026-09-12 08:14" },
-    { "sha": "0a5f8aeb", "scope": "Progress dashboard + GoDaddy publish wiring", "time": "2026-09-12 14:17" }
-  ],
-  "codexUsage": {
-    "account": "fc5371cf-a07e-446f-b783-156e7f573dca",
-    "windows": {
-      "spark5m": {
-        "model": "GPT-5.3-Codex-Spark",
-        "usedPercent": 36,
-        "windowMinutes": 300,
-        "resetsAt": "2026-09-12T19:03:38+05:30"
-      },
-      "sparkWeek": {
-        "model": "GPT-5.3-Codex-Spark",
-        "usedPercent": 16,
-        "windowMinutes": 10080,
-        "resetsAt": "2026-09-19T14:03:38+05:30"
-      },
-      "codexTotal": {
-        "usedPercent": 0,
-        "windowMinutes": 10080,
-        "resetsAt": "2026-09-19T19:33:29+05:30"
-      }
+    {
+      "name": "Coordinator",
+      "status": "active",
+      "focus": "Dashboard corrections, verification and Cloudflare publishing."
+    },
+    {
+      "name": "Independent dashboard QA",
+      "status": "complete",
+      "focus": "Initial source review completed; repairs are awaiting a second review."
+    },
+    {
+      "name": "Android helpers",
+      "status": "paused",
+      "focus": "Saved handoffs are available. No live activity is inferred from old agent names."
     }
+  ],
+  "usage": {
+    "observedAt": "2026-09-12T09:05:11Z",
+    "windows": [
+      {
+        "name": "Codex",
+        "minutes": 10080,
+        "usedPercent": 2,
+        "resetsAt": "2026-09-19T08:33:29Z"
+      },
+      {
+        "name": "GPT-5.3-Codex-Spark",
+        "minutes": 300,
+        "usedPercent": 62,
+        "resetsAt": "2026-09-12T13:33:38Z"
+      },
+      {
+        "name": "GPT-5.3-Codex-Spark",
+        "minutes": 10080,
+        "usedPercent": 28,
+        "resetsAt": "2026-09-19T08:33:38Z"
+      }
+    ]
   },
-  "godaddy": {
-    "target": "equipseva.com",
-    "integrationState": "manual DNS + publish step required",
-    "nextStep": "Upload updated /website bundle and point GoDaddy records via scripts/setup_godaddy_dns.sh with valid production API keys."
-  }
+  "verification": [
+    {
+      "title": "Android helper baseline · historical",
+      "revision": "a9b35f3c",
+      "tests": 3075,
+      "failures": 0,
+      "command": ":app:testDebugUnitTest :app:assembleDebug",
+      "evidence": "docs/HANDOFF_CLAUDEDEV_QUALITY_20260912.md, lines 5–7",
+      "note": "Recorded by Claude on 12 Sep 2026, before the new routing-policy checkpoint. Not a test of the current development tree or a signed release."
+    },
+    {
+      "title": "Dashboard · current milestone",
+      "revision": "Uncommitted dashboard changes based on 3fb2e8a6",
+      "tests": null,
+      "failures": null,
+      "command": "node --test scripts/tests/progress-dashboard.test.cjs",
+      "evidence": "Dashboard verification pending",
+      "note": "Regression tests, responsive checks and independent review must finish before acceptance."
+    }
+  ],
+  "changes": [
+    {
+      "sha": "3fb2e8a65c98f4c5359cbf35421437b29e57b2ec",
+      "time": "2026-09-12T14:19:06+05:30",
+      "summary": "Website and dashboard"
+    },
+    {
+      "sha": "0a5f8aeb521bc7a85badaa69bd328c7b2a5e9d93",
+      "time": "2026-09-12T14:18:27+05:30",
+      "summary": "Website and dashboard"
+    },
+    {
+      "sha": "567625e6066d9730b56a4733a8dc1b059ec3dc84",
+      "time": "2026-09-12T14:05:29+05:30",
+      "summary": "Android implementation · Android regression tests · Project handoff and review"
+    },
+    {
+      "sha": "5f0f48ecb0086ad40c16234e15628cdd02ee03ed",
+      "time": "2026-09-12T14:04:35+05:30",
+      "summary": "Android regression tests · Project handoff and review"
+    },
+    {
+      "sha": "8749ff71d98bc418ea66f096fd6d1982baf05a17",
+      "time": "2026-09-11T09:11:58+05:30",
+      "summary": "Project checkpoint"
+    },
+    {
+      "sha": "a9b35f3c55b1750f9bc2a51ed802e7acd94b6bca",
+      "time": "2026-09-11T08:33:53+05:30",
+      "summary": "Project handoff and review"
+    },
+    {
+      "sha": "311643de1df7bbbbfbd64b904ea26bc9f3828b79",
+      "time": "2026-09-11T08:32:24+05:30",
+      "summary": "Project handoff and review"
+    },
+    {
+      "sha": "8955046f7bca7c7331564bb9914a6af742a505ef",
+      "time": "2026-09-11T08:31:54+05:30",
+      "summary": "Android regression tests · Project handoff and review"
+    },
+    {
+      "sha": "16b405b882b859c6085450ad6fe4370434df8970",
+      "time": "2026-09-11T08:28:58+05:30",
+      "summary": "Android implementation · Android regression tests"
+    },
+    {
+      "sha": "0d4269ea70d2fd2f87addcc9c0c4e6325b19c4aa",
+      "time": "2026-09-11T07:47:51+05:30",
+      "summary": "Project handoff and review"
+    },
+    {
+      "sha": "6297d05612ab1973322b6ccb829d911b995311a1",
+      "time": "2026-09-11T07:47:24+05:30",
+      "summary": "Project handoff and review"
+    }
+  ]
 }
