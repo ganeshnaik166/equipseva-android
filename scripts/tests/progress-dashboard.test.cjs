@@ -130,6 +130,7 @@ test('implemented slices awaiting verification are counted independently', async
 });
 test('project feed includes Android changes without exporting raw subjects or paths', () => {
   const summarize=require('../progress-change-summary.cjs');
+  assert.equal(summarize([], '16b405b882b859c6085450ad6fe4370434df8970'), 'Isolate engineer verification status across account changes');
   const files=['app/src/main/kotlin/SensitiveAuthIssue.kt','app/src/test/kotlin/AuthTest.kt','docs/private-security-findings.md'];
   const summary=summarize(files);
   assert.match(summary,/Android implementation/); assert.match(summary,/Android regression tests/);

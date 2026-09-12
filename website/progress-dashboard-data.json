@@ -3,9 +3,9 @@
   "generatedAt": "2026-09-12T09:05:11Z",
   "source": {
     "branch": "codex/auth-integration-20260911",
-    "head": "f7f433f9a8093b650ceda75fdf3a7ed4df17a3a1",
+    "head": "14cd1f7175e3547a8920a3b0abbf7b1bdafd44ce",
     "base": "1e770076358e74f6f40a99a4907f831da59e791c",
-    "commits": 12
+    "commits": 13
   },
   "focus": {
     "title": "Development dashboard & publishing",
@@ -123,64 +123,64 @@
   ],
   "changes": [
     {
+      "sha": "14cd1f7175e3547a8920a3b0abbf7b1bdafd44ce",
+      "time": "2026-09-12T14:41:55+05:30",
+      "summary": "Record dashboard test results and independent QA evidence"
+    },
+    {
       "sha": "f7f433f9a8093b650ceda75fdf3a7ed4df17a3a1",
       "time": "2026-09-12T14:40:36+05:30",
-      "summary": "Website and dashboard · Verification and delivery tooling"
+      "summary": "Add reliable refresh, quota reset times and mobile dashboard layout"
     },
     {
       "sha": "3fb2e8a65c98f4c5359cbf35421437b29e57b2ec",
       "time": "2026-09-12T14:19:06+05:30",
-      "summary": "Website and dashboard"
+      "summary": "Save the first development-progress snapshot"
     },
     {
       "sha": "0a5f8aeb521bc7a85badaa69bd328c7b2a5e9d93",
       "time": "2026-09-12T14:18:27+05:30",
-      "summary": "Website and dashboard"
+      "summary": "Add the progress dashboard and links from the website"
     },
     {
       "sha": "567625e6066d9730b56a4733a8dc1b059ec3dc84",
       "time": "2026-09-12T14:05:29+05:30",
-      "summary": "Android implementation · Android regression tests · Project handoff and review"
+      "summary": "Save the draft notification-navigation policy for integration"
     },
     {
       "sha": "5f0f48ecb0086ad40c16234e15628cdd02ee03ed",
       "time": "2026-09-12T14:04:35+05:30",
-      "summary": "Android regression tests · Project handoff and review"
+      "summary": "Expand engineer-state and role-screen contrast regression checks"
     },
     {
       "sha": "8749ff71d98bc418ea66f096fd6d1982baf05a17",
       "time": "2026-09-11T09:11:58+05:30",
-      "summary": "Project checkpoint"
+      "summary": "Integrate the helper handoffs and workflow review documents"
     },
     {
       "sha": "a9b35f3c55b1750f9bc2a51ed802e7acd94b6bca",
       "time": "2026-09-11T08:33:53+05:30",
-      "summary": "Project handoff and review"
+      "summary": "Record engineer-state tests and helper milestone evidence"
     },
     {
       "sha": "311643de1df7bbbbfbd64b904ea26bc9f3828b79",
       "time": "2026-09-11T08:32:24+05:30",
-      "summary": "Project handoff and review"
+      "summary": "Document accessibility issues across login and profile screens"
     },
     {
       "sha": "8955046f7bca7c7331564bb9914a6af742a505ef",
       "time": "2026-09-11T08:31:54+05:30",
-      "summary": "Android regression tests · Project handoff and review"
+      "summary": "Add notification parsing tests for edge cases"
     },
     {
       "sha": "16b405b882b859c6085450ad6fe4370434df8970",
       "time": "2026-09-11T08:28:58+05:30",
-      "summary": "Android implementation · Android regression tests"
+      "summary": "Isolate engineer verification status across account changes"
     },
     {
       "sha": "0d4269ea70d2fd2f87addcc9c0c4e6325b19c4aa",
       "time": "2026-09-11T07:47:51+05:30",
-      "summary": "Project handoff and review"
-    },
-    {
-      "sha": "6297d05612ab1973322b6ccb829d911b995311a1",
-      "time": "2026-09-11T07:47:24+05:30",
-      "summary": "Project handoff and review"
+      "summary": "Save the navigation, account ownership and UX review handoff"
     }
   ]
 }

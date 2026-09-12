@@ -17,7 +17,7 @@ const commits = git('log', '-12', '--format=%H%x09%cI', base + '..HEAD');
 data.changes = commits ? commits.split('\n').map(line => {
   const [sha, time] = line.split('\t');
   const files = git('diff-tree', '--root', '--no-commit-id', '--name-only', '-r', sha).split('\n');
-  return { sha, time, summary: summarizeFiles(files) };
+  return { sha, time, summary: summarizeFiles(files, sha) };
 }) : [];
 // generatedAt covers the authored status observation; Git-only refresh does not
 // change that timestamp or imply that quota/agent information was re-observed.
