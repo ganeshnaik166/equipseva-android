@@ -20,11 +20,17 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
@@ -320,13 +326,26 @@ class DeepLinkHostEngineerStatusTest {
 
     @Test
     fun `refresh before first session emission is dropped instead of waiting for login`() = runTest {
-        val sessions = MutableSharedFlow<AuthSession>()
-        val f = fixture(sessionFlow = sessions)
+        val ready = CompletableDeferred<Unit>()
+        val sessions = MutableStateFlow<AuthSession>(signedIn("A"))
+        var activeSubscriptions = 0
+        // Initially unavailable; once ready, this supplies a current replayable
+        // value like the SDK source. The early manual call must not wait for it.
+        val f = fixture(sessionFlow = flow {
+            activeSubscriptions++
+            try {
+                ready.await()
+                sessions.collect { emit(it) }
+            } finally {
+                activeSubscriptions--
+            }
+        })
         runCurrent()
         f.host.refreshEngineerStatus()
         runCurrent()
-        assertEquals(1, sessions.subscriptionCount.value)
-        sessions.emit(signedIn("A"))
+        assertEquals(1, activeSubscriptions)
+        assertEquals(0, f.requests.size)
+        ready.complete(Unit)
         runCurrent()
         assertEquals(1, f.requests.size)
         f.requests.single().complete(engineer("A", VerificationStatus.Verified))
@@ -335,19 +354,235 @@ class DeepLinkHostEngineerStatusTest {
     }
 
     @Test
-    fun `manual refresh never opens a second auth subscription`() = runTest {
+    fun `manual refresh leaves only the long lived auth observer subscribed`() = runTest {
         val sessions = MutableSharedFlow<AuthSession>(replay = 1)
         sessions.emit(signedIn("A"))
-        var subscriptions = 0
+        var activeSubscriptions = 0
+        // A synchronous current-auth probe is permitted. The contract is no
+        // retained subscriber or deferred work for an account that signs in
+        // later, not an implementation-specific lifetime subscription count.
         val f = fixture(sessionFlow = flow {
-            subscriptions++
-            sessions.collect { emit(it) }
+            activeSubscriptions++
+            try {
+                sessions.collect { emit(it) }
+            } finally {
+                activeSubscriptions--
+            }
         })
         runCurrent()
         f.host.refreshEngineerStatus()
         runCurrent()
-        assertEquals(1, subscriptions)
+        assertEquals(1, activeSubscriptions)
         assertEquals(2, f.requests.size)
+    }
+
+    private fun TestScope.recordStatuses(f: Fixture): MutableList<VerificationStatus?> {
+        val values = mutableListOf<VerificationStatus?>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            f.host.engineerStatus.collect { values += it }
+        }
+        return values
+    }
+
+    private fun TestScope.assertQueuedPublicationRejected(next: AuthSession) {
+        val f = fixture(signedIn("A"))
+        val statuses = recordStatuses(f)
+        runCurrent()
+        val old = f.requests.single()
+
+        // Release the response FIRST, so its continuation is ahead of the
+        // auth observer. Raw auth changes before either continuation runs.
+        old.complete(engineer("A", VerificationStatus.Verified))
+        f.session(next)
+        runCurrent()
+        assertFalse("Stale A must never appear in the full emission trace: $statuses",
+            VerificationStatus.Verified in statuses)
+        assertNull(f.host.engineerStatus.value)
+
+        val current = (next as? AuthSession.SignedIn)?.userId ?: "A"
+        if (next !is AuthSession.SignedIn) {
+            f.session(signedIn(current))
+            runCurrent()
+        }
+        assertEquals(listOf("A", current), f.requests.map { it.userId })
+        f.requests.last().complete(engineer(current, VerificationStatus.Pending))
+        runCurrent()
+        assertEquals(listOf(null, VerificationStatus.Pending), statuses)
+    }
+
+    @Test
+    fun `queued A response cannot publish after raw auth became B before observer`() = runTest {
+        assertQueuedPublicationRejected(signedIn("B"))
+    }
+
+    @Test
+    fun `queued A response cannot publish after raw auth became Unknown before observer`() = runTest {
+        assertQueuedPublicationRejected(AuthSession.Unknown)
+    }
+
+    @Test
+    fun `queued A response cannot publish after raw auth became signed out before observer`() = runTest {
+        assertQueuedPublicationRejected(AuthSession.SignedOut)
+    }
+
+    private fun TestScope.assertQueuedAdmissionRejected(next: AuthSession) {
+        val f = fixture(signedIn("A"))
+        val statuses = recordStatuses(f)
+        runCurrent()
+        val old = f.requests.single()
+
+        // The refresh launch is queued before the auth observer; it must still
+        // recheck raw auth before calling fetchByUserId under replacement auth.
+        f.host.refreshEngineerStatus()
+        f.session(next)
+        runCurrent()
+        val expected = if (next is AuthSession.SignedIn) listOf("A", next.userId) else listOf("A")
+        assertEquals("No extra A fetch may enter after raw auth changes", expected, f.requests.map { it.userId })
+
+        old.complete(engineer("A", VerificationStatus.Verified))
+        runCurrent()
+        assertFalse(VerificationStatus.Verified in statuses)
+        if (next !is AuthSession.SignedIn) {
+            f.session(signedIn("B"))
+            runCurrent()
+        }
+        assertEquals(listOf("A", "B"), f.requests.map { it.userId })
+        f.requests.last().complete(engineer("B", VerificationStatus.Pending))
+        runCurrent()
+        assertEquals(listOf(null, VerificationStatus.Pending), statuses)
+    }
+
+    @Test
+    fun `queued manual fetch does not enter after raw auth became B before observer`() = runTest {
+        assertQueuedAdmissionRejected(signedIn("B"))
+    }
+
+    @Test
+    fun `queued manual fetch does not enter after raw auth became Unknown before observer`() = runTest {
+        assertQueuedAdmissionRejected(AuthSession.Unknown)
+    }
+
+    @Test
+    fun `queued manual fetch does not enter after raw auth became signed out before observer`() = runTest {
+        assertQueuedAdmissionRejected(AuthSession.SignedOut)
+    }
+
+    @Test
+    fun `foreign engineer row is rejected and a valid same login retry can publish`() = runTest {
+        val f = fixture(signedIn("A"))
+        val statuses = recordStatuses(f)
+        runCurrent()
+        f.requests.single().complete(engineer("B", VerificationStatus.Verified))
+        runCurrent()
+        assertEquals(listOf<VerificationStatus?>(null), statuses)
+
+        f.host.refreshEngineerStatus()
+        runCurrent()
+        assertEquals(listOf("A", "A"), f.requests.map { it.userId })
+        f.requests.last().complete(engineer("A", VerificationStatus.Pending))
+        runCurrent()
+        assertEquals(listOf(null, VerificationStatus.Pending), statuses)
+    }
+
+    @Test
+    fun `mapped StateFlow supplies live auth when its full observer is behind`() = runTest {
+        val raw = MutableStateFlow<AuthSession>(signedIn("A"))
+        // Production exposes SDK StateFlow.map as Flow, not as StateFlow.
+        val f = fixture(sessionFlow = raw.map { it })
+        val statuses = recordStatuses(f)
+        runCurrent()
+        f.requests.single().complete(engineer("A", VerificationStatus.Verified))
+        raw.value = signedIn("B")
+        runCurrent()
+        assertFalse(VerificationStatus.Verified in statuses)
+        assertEquals(listOf("A", "B"), f.requests.map { it.userId })
+        f.requests.last().complete(engineer("B", VerificationStatus.Pending))
+        runCurrent()
+        assertEquals(listOf(null, VerificationStatus.Pending), statuses)
+    }
+
+    @Test
+    fun `non replaying auth fails closed without leaving work for a future login`() = runTest {
+        val sessions = MutableSharedFlow<AuthSession>()
+        val f = fixture(sessionFlow = sessions)
+        val statuses = recordStatuses(f)
+        runCurrent()
+        sessions.emit(signedIn("A"))
+        runCurrent()
+        f.host.refreshEngineerStatus()
+        runCurrent()
+        assertEquals("Only the full auth observer remains", 1, sessions.subscriptionCount.value)
+        assertEquals("No current snapshot is available from a non-replaying source", 0, f.requests.size)
+
+        sessions.emit(signedIn("B"))
+        runCurrent()
+        assertEquals(1, sessions.subscriptionCount.value)
+        assertEquals("Old manual work cannot start for later B", 0, f.requests.size)
+        assertEquals(listOf<VerificationStatus?>(null), statuses)
+    }
+
+    @Test
+    fun `a suspended auth probe is cancelled without admitting work when it later becomes readable`() = runTest {
+        val raw = MutableStateFlow<AuthSession>(signedIn("A"))
+        val probeReady = CompletableDeferred<Unit>()
+        var activeSubscriptions = 0
+        val f = fixture(sessionFlow = flow {
+            val observer = activeSubscriptions++ == 0
+            try {
+                if (!observer) probeReady.await()
+                raw.collect { emit(it) }
+            } finally {
+                activeSubscriptions--
+            }
+        })
+        runCurrent()
+        f.host.refreshEngineerStatus()
+        runCurrent()
+        assertEquals(1, activeSubscriptions)
+        assertEquals(0, f.requests.size)
+
+        // Making auth readable must not resurrect either dropped operation.
+        probeReady.complete(Unit)
+        runCurrent()
+        assertEquals(0, f.requests.size)
+        f.host.refreshEngineerStatus()
+        runCurrent()
+        assertEquals(listOf("A"), f.requests.map { it.userId })
+        f.requests.single().complete(engineer("A", VerificationStatus.Pending))
+        runCurrent()
+        assertEquals(VerificationStatus.Pending, f.host.engineerStatus.value)
+    }
+
+    @Test
+    fun `auth snapshot failure stays null and permits a deliberate retry`() = runTest {
+        val raw = MutableStateFlow<AuthSession>(signedIn("A"))
+        var activeSubscriptions = 0
+        var probesFail = false
+        val f = fixture(sessionFlow = flow {
+            val observer = activeSubscriptions++ == 0
+            try {
+                if (!observer && probesFail) throw IOException("current auth unavailable")
+                raw.collect { emit(it) }
+            } finally {
+                activeSubscriptions--
+            }
+        })
+        runCurrent()
+        f.requests.single().complete(engineer("A", VerificationStatus.Pending))
+        runCurrent()
+        probesFail = true
+        f.host.refreshEngineerStatus()
+        runCurrent()
+        assertEquals(1, activeSubscriptions)
+        assertEquals("Failed auth probe cannot admit a new fetch", 1, f.requests.size)
+        assertNull(f.host.engineerStatus.value)
+
+        probesFail = false
+        f.host.refreshEngineerStatus()
+        runCurrent()
+        f.requests.last().complete(engineer("A", VerificationStatus.Verified))
+        runCurrent()
+        assertEquals(VerificationStatus.Verified, f.host.engineerStatus.value)
     }
 
     @Test

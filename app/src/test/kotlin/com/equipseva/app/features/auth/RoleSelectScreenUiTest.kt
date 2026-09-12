@@ -12,6 +12,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
@@ -38,6 +39,7 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.ColorUtils
 import androidx.test.core.app.ApplicationProvider
 import com.equipseva.app.R
 import com.equipseva.app.designsystem.theme.EquipSevaTheme
@@ -51,6 +53,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import java.io.File
+import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.After
@@ -223,6 +226,79 @@ class RoleSelectScreenUiTest {
         capture("te-320-2x-bottom")
     }
 
+    @Test fun `enabled primary actions retain readable contrast in light theme`() =
+        assertPrimaryActionContrast(darkTheme = false, disabled = false)
+
+    @Test fun `enabled primary actions retain readable contrast in dark theme`() =
+        assertPrimaryActionContrast(darkTheme = true, disabled = false)
+
+    @Test fun `disabled and saving actions retain readable labels in light theme`() =
+        assertPrimaryActionContrast(darkTheme = false, disabled = true)
+
+    @Test fun `disabled and saving actions retain readable labels in dark theme`() =
+        assertPrimaryActionContrast(darkTheme = true, disabled = true)
+
+    private fun assertPrimaryActionContrast(darkTheme: Boolean, disabled: Boolean) {
+        val cases = if (disabled) listOf(
+            RoleSelectState() to R.string.role_picker_save_continue,
+            RoleSelectState(selected = UserRole.HOSPITAL, form = FormUiState(submitting = true)) to R.string.role_picker_saving,
+        ) else listOf(
+            RoleSelectState(selected = UserRole.HOSPITAL) to R.string.role_picker_save_continue,
+            RoleSelectState(selected = UserRole.ENGINEER, error = RoleSelectError.Network) to R.string.role_picker_try_again,
+            RoleSelectState(selected = UserRole.HOSPITAL, saved = true) to R.string.role_picker_check_again,
+        )
+        val state = mutableStateOf(cases.first().first)
+        render(darkTheme = darkTheme) {
+            RoleSelectContent(state.value, {}, {}, {}, {})
+        }
+        for ((value, id) in cases) {
+            compose.runOnIdle { state.value = value }
+            val action = node(id).performScrollTo().assertIsDisplayed()
+            if (disabled) action.assertIsNotEnabled() else action.assertIsEnabled()
+            val buttonBounds = action.fetchSemanticsNode().boundsInRoot
+            val text = compose.onNodeWithText(context.getString(id), useUnmergedTree = true)
+            val textBounds = text.fetchSemanticsNode().boundsInRoot
+            val layouts = mutableListOf<TextLayoutResult>()
+            text.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+            val foreground = layouts.single().layoutInput.style.color
+            assertTrue("text has a resolved foreground", foreground != androidx.compose.ui.graphics.Color.Unspecified)
+            val label = "${if (darkTheme) "dark" else "light"}-${if (disabled) "disabled" else "enabled"}-${context.resources.getResourceEntryName(id)}"
+            val bitmap = drawHost()
+            try {
+                saveBitmap(bitmap, "contrast-$label")
+                // Sample the opaque middle of the real drawn button, away from
+                // its corners and centered text/spinner. Both bounds and pixels
+                // come from production Compose, not a copied token-only policy.
+                val x = (buttonBounds.left + 8f).roundToInt()
+                val y = buttonBounds.center.y.roundToInt()
+                val background = bitmap.getPixel(x, y)
+                assertEquals("opaque rendered button", 255, android.graphics.Color.alpha(background))
+                val expectedGlyph = ColorUtils.compositeColors(foreground.toArgb(), background)
+                val glyphPixels = mutableMapOf<Int, Int>()
+                for (py in textBounds.top.toInt().coerceAtLeast(0) until textBounds.bottom.toInt().coerceAtMost(bitmap.height)) {
+                    for (px in textBounds.left.toInt().coerceAtLeast(0) until textBounds.right.toInt().coerceAtMost(bitmap.width)) {
+                        val pixel = bitmap.getPixel(px, py)
+                        // Native alpha rounding may differ by one channel step.
+                        if (listOf(16, 8, 0).all { shift ->
+                            kotlin.math.abs(((pixel shr shift) and 255) - ((expectedGlyph shr shift) and 255)) <= 2
+                        }) glyphPixels[pixel] = (glyphPixels[pixel] ?: 0) + 1
+                    }
+                }
+                val solidTextPixels = glyphPixels.values.sum()
+                assertTrue("composited foreground appears in actual glyph pixels: $label", solidTextPixels >= 5)
+                val fg = checkNotNull(glyphPixels.maxByOrNull { it.value }).key
+                val ratio = ColorUtils.calculateContrast(fg, background)
+                File("build/outputs/auth-a2-ui/contrast-measurements.txt")
+                    .appendText("$label foreground=${fg.toUInt().toString(16)} background=${background.toUInt().toString(16)} ratio=$ratio glyphPixels=$solidTextPixels\n")
+                // Disabled controls are exempt from some accessibility contrast
+                // criteria; this slice also keeps their status labels readable.
+                assertTrue("rendered primary label contrast >= 4.5:1: $label was $ratio", ratio >= 4.5)
+            } finally {
+                bitmap.recycle()
+            }
+        }
+    }
+
     private fun renderLargeText() = renderState(
         RoleSelectState(selected = UserRole.HOSPITAL, error = RoleSelectError.Network),
         fontScale = 2f,
@@ -244,10 +320,10 @@ class RoleSelectScreenUiTest {
         )
     }
 
-    private fun render(fontScale: Float = 1f, content: @Composable () -> Unit) {
+    private fun render(fontScale: Float = 1f, darkTheme: Boolean = false, content: @Composable () -> Unit) {
         controller.get().setContent {
             renderedView = LocalView.current
-            EquipSevaTheme(darkTheme = false) {
+            EquipSevaTheme(darkTheme = darkTheme) {
                 val density = LocalDensity.current
                 CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
                     content()
@@ -320,23 +396,34 @@ class RoleSelectScreenUiTest {
     }
 
     private fun capture(name: String) {
+        val bitmap = drawHost()
+        try {
+            saveBitmap(bitmap, name)
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    private fun drawHost(): Bitmap {
         compose.waitForIdle()
         // Robolectric has no hardware frame-commit callback for PixelCopy.
         // Native Canvas draws the actual Compose host for simulated UI review;
         // these images are not device or window screenshots.
-        val bitmap = compose.runOnIdle {
+        return compose.runOnIdle {
             val view = checkNotNull(renderedView)
             check(view.width > 0 && view.height > 0)
             Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888).also {
                 view.draw(Canvas(it))
             }
         }
+    }
+
+    private fun saveBitmap(bitmap: Bitmap, name: String) {
         val output = File("build/outputs/auth-a2-ui/$name.png")
         val parent = checkNotNull(output.parentFile)
         check(parent.mkdirs() || parent.isDirectory)
         output.outputStream().use { stream ->
             check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream))
         }
-        bitmap.recycle()
     }
 }
