@@ -1,0 +1,4 @@
+# Preserve captured bytes (including reporter whitespace) for the recorded hashes.
+runs/** -text -diff
+snapshots/** -text -diff
+target-1-renders/** -text -diff

@@ -1,0 +1,27 @@
+API34 native Canvas; synthetic values; no device/provider acceptance
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=320	height=744
+normal-label	fontScale=1.0	lineHeight=21.0	bounds=Rect.fromLTRB(20.0, 16.0, 105.0, 37.0)	glyphs=115	fg=ff575f52	bg=ffffffff	contrast=6.637230685942757
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=320	height=744
+normal-progress	fontScale=1.0	lineHeight=21.0	bounds=Rect.fromLTRB(32.0, 103.0, 166.0, 124.0)	glyphs=66	fg=ff575f52	bg=ffffffff	contrast=6.637230685942757
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=320	height=744
+normal-value	fontScale=1.0	lineHeight=24.0	bounds=Rect.fromLTRB(16.0, 43.0, 304.0, 124.0)	glyphs=44	fg=ff11150f	bg=ffffffff	contrast=18.45345624745603
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=320	height=744
+normal-outline	painted=Rect.fromLTRB(16.0, 43.0, 304.0, 99.0)	contrast=4.787285236485188
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=320	height=744
+focused-outline	painted=Rect.fromLTRB(16.0, 43.0, 304.0, 99.0)	contrast=8.21635179962727
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=320	height=744
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=320	height=744
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=320	height=744
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=320	height=744
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=320	height=744
+caret	pixels=48	bounds=Rect.fromLTRB(92.0, 59.0, 94.0, 83.0)	frames=5
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=320	height=744
+error-copy	fontScale=1.0	lineHeight=21.0	bounds=Rect.fromLTRB(32.0, 103.0, 202.0, 124.0)	glyphs=67	fg=ff972d32	bg=ffffffff	contrast=7.671865768332889
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=320	height=744
+error-label	fontScale=1.0	lineHeight=21.0	bounds=Rect.fromLTRB(20.0, 16.0, 105.0, 37.0)	glyphs=101	fg=ff972d32	bg=ffffffff	contrast=7.671865768332889
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=320	height=744
+error-outline	painted=Rect.fromLTRB(16.0, 43.0, 304.0, 119.0)	contrast=7.671865768332889
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=320	height=744
+disabled-value	fontScale=1.0	lineHeight=24.0	bounds=Rect.fromLTRB(16.0, 43.0, 304.0, 124.0)	glyphs=54	fg=ff555d50	bg=ffe2e7dc	contrast=5.442785543776897
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=320	height=744
+disabled-outline	painted=Rect.fromLTRB(16.0, 43.0, 304.0, 99.0)	contrast=3.806479270770624

@@ -1,0 +1,16 @@
+{
+  "source": "C:\\Users\\lokes\\Documents\\Codex\\2026-09-07\\im\\work\\equipseva-auth-integration-20260911\\app\\src\\test\\kotlin\\com\\equipseva\\app\\features\\kyc\\KycEmailOtpStateTest.kt",
+  "baseline_raw_sha256": "acbcb03f39fa4ebda5216e882b31589282ad9a2fdea0fc93fe0bfdaeae5ff430",
+  "baseline_tests": 15,
+  "baseline_snapshot": "C:\\Users\\lokes\\Documents\\Codex\\2026-09-07\\im\\outputs\\kyc-otp-send-policy-20260913\\KycEmailOtpStateTest.before-send-gate.kt",
+  "draft": "C:\\Users\\lokes\\Documents\\Codex\\2026-09-07\\im\\outputs\\kyc-otp-send-policy-20260913\\KycEmailOtpStateTest.send-gate-red.kt",
+  "draft_sha256": "26817c6d251a7c20e62f5f57fc7dc889a79a94004fd713f7d42a60b95064cf97",
+  "draft_tests": 16,
+  "superseded_test": "complete submit remains allowed while sending as in current sheet contract",
+  "policy_revision": "QA reproduced pending send, six-digit submit, then late send failure dismissing an in-flight verification. Coordinator now blocks submit/Verify/Done while sending; edit and dismiss remain allowed.",
+  "expected_red_tests": [
+    "pending send blocks complete submit then a fresh verify works after send succeeds",
+    "late send failure after attempted submit never leaves a verification running behind closed sheet"
+  ],
+  "execution_status": "Draft only. No Gradle run; no repository or production source edits."
+}

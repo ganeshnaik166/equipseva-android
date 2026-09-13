@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.equipseva.app.designsystem.components.OtpRenewalGalleryTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-09-13T06:24:09.230Z" hostname="LOKESH" time="4.071">
+  <properties/>
+  <testcase name="modal inherits secure host window flag" classname="com.equipseva.app.designsystem.components.OtpRenewalGalleryTest" time="0.197"/>
+  <testcase name="modal does not force secure flag on an ordinary host" classname="com.equipseva.app.designsystem.components.OtpRenewalGalleryTest" time="0.178"/>
+  <testcase name="Telugu dark modal at platform two times keeps copy and all actions reachable" classname="com.equipseva.app.designsystem.components.OtpRenewalGalleryTest" time="0.953"/>
+  <testcase name="light OTP paints real normal focus caret error and disabled states" classname="com.equipseva.app.designsystem.components.OtpRenewalGalleryTest" time="0.544"/>
+  <testcase name="dark OTP paints real normal focus caret error and disabled states" classname="com.equipseva.app.designsystem.components.OtpRenewalGalleryTest" time="0.485"/>
+  <testcase name="English modal at platform two times keeps copy and all actions reachable" classname="com.equipseva.app.designsystem.components.OtpRenewalGalleryTest" time="0.521"/>
+  <testcase name="Hindi modal at platform two times keeps copy and all actions reachable" classname="com.equipseva.app.designsystem.components.OtpRenewalGalleryTest" time="0.621"/>
+  <testcase name="short landscape modal at platform two times scrolls to real actions" classname="com.equipseva.app.designsystem.components.OtpRenewalGalleryTest" time="0.564"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -87,6 +87,10 @@ APK as expected. Security guards were preserved.
 
 ## Resume
 
+Newer interrupted work: read [the OTP WIP stop checkpoint](HANDOFF_ANDROID_UI_2026-09-13_OTP_WIP.md)
+before continuing. The accepted input milestone below remains historical evidence;
+it does not cover the newer OTP changes or their pending failures.
+
 Read [the approved page plan](UI_THEME_PAGE_PLAN_2026-09-12.md) first. UI-02 remains
 in progress: shared actions, fields and dropdowns are the current bounded slices.
 Next inventory and migrate OTP, cards/status/navigation/dialogs/sheets and common

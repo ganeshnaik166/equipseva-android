@@ -1,0 +1,24 @@
+API34 native Canvas; synthetic values; no device/provider acceptance
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=640	height=320
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=640	height=320
+title-viewport	fontScale=2.0	lineHeight=49.0	bounds=Rect.fromLTRB(16.0, 48.0, 295.0, 97.0)	glyphs=1604	fg=fff5f7f1	bg=ff1b2018	contrast=15.364045768310193
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=640	height=320
+target-viewport	fontScale=2.0	lineHeight=42.0	bounds=Rect.fromLTRB(16.0, 113.0, 589.0, 155.0)	glyphs=1835	fg=ffb9c2b1	bg=ff1b2018	contrast=9.013319177364956
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=640	height=320
+label-viewport	fontScale=2.0	lineHeight=38.0	bounds=Rect.fromLTRB(20.0, 171.0, 173.0, 209.0)	glyphs=722	fg=ffb9c2b1	bg=ff1b2018	contrast=9.013319177364956
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=640	height=320
+code-viewport	fontScale=2.0	lineHeight=42.0	bounds=Rect.fromLTRB(16.0, 204.0, 624.0, 320.0)	glyphs=462	fg=fff5f7f1	bg=ff1b2018	contrast=15.364045768310193
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=640	height=320
+resend-ready	fontScale=2.0	lineHeight=42.0	bounds=Rect.fromLTRB(32.0, 266.0, 207.0, 308.0)	glyphs=910	fg=fff5f7f1	bg=ff1b2018	contrast=15.364045768310193
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=640	height=320
+close-ready	fontScale=2.0	lineHeight=42.0	bounds=Rect.fromLTRB(247.0, 266.0, 324.0, 308.0)	glyphs=414	fg=fff5f7f1	bg=ff1b2018	contrast=15.364045768310193
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=640	height=320
+verify-ready	fontScale=2.0	lineHeight=42.0	bounds=Rect.fromLTRB(36.0, 184.0, 604.0, 226.0)	glyphs=435	fg=ff11150b	bg=ffc6ff00	contrast=15.586445991043648
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=640	height=320
+verify-loading	fontScale=2.0	lineHeight=42.0	bounds=Rect.fromLTRB(62.0, 184.0, 604.0, 226.0)	glyphs=730	fg=ffb9c2b1	bg=ff30382a	contrast=6.617914887192533
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=640	height=320
+resend-again	fontScale=2.0	lineHeight=42.0	bounds=Rect.fromLTRB(32.0, 266.0, 207.0, 308.0)	glyphs=910	fg=fff5f7f1	bg=ff1b2018	contrast=15.364045768310193
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=640	height=320
+sending-viewport	fontScale=2.0	lineHeight=41.0	bounds=Rect.fromLTRB(16.0, 48.0, 624.0, 132.0)	glyphs=2073	fg=ffb9c2b1	bg=ff1b2018	contrast=9.013319177364956
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=640	height=320
+close-final	fontScale=2.0	lineHeight=42.0	bounds=Rect.fromLTRB(247.0, 266.0, 324.0, 308.0)	glyphs=414	fg=fff5f7f1	bg=ff1b2018	contrast=15.364045768310193
