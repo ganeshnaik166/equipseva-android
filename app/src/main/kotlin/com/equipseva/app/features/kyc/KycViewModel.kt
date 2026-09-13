@@ -200,6 +200,7 @@ class KycViewModel @Inject constructor(
         val emailOtpCode: String = "",
         val sendingEmailOtp: Boolean = false,
         val verifyingEmailOtp: Boolean = false,
+        val emailOtpError: String? = null,
     ) {
         /**
          * Returns null when the current step's required fields are filled in
@@ -428,6 +429,7 @@ class KycViewModel @Inject constructor(
      */
     fun startEmailVerification() {
         val snap = _state.value
+        if (snap.sendingEmailOtp || snap.verifyingEmailOtp) return
         val email = snap.email
         if (email.isNullOrBlank() || !com.equipseva.app.core.util.Validators.emailIsValid(email)) {
             viewModelScope.launch {
@@ -437,7 +439,7 @@ class KycViewModel @Inject constructor(
         }
         if (snap.emailVerified) return
         _state.update {
-            it.copy(emailVerifySheetOpen = true, emailOtpCode = "", sendingEmailOtp = true)
+            it.copy(emailVerifySheetOpen = true, emailOtpCode = "", sendingEmailOtp = true, emailOtpError = null)
         }
         viewModelScope.launch {
             authRepository.sendEmailOtp(email)
@@ -453,20 +455,22 @@ class KycViewModel @Inject constructor(
     }
 
     fun onEmailOtpChange(code: String) {
+        if (_state.value.verifyingEmailOtp) return
         // ASCII-only digits — Char.isDigit() also accepts Devanagari /
         // Arabic codepoints, which break toIntOrNull on the server-side
         // OTP comparison and leave the user stuck on "Verify failed".
         val cleaned = code.filter { it in '0'..'9' }.take(6)
-        _state.update { it.copy(emailOtpCode = cleaned) }
+        _state.update { it.copy(emailOtpCode = cleaned, emailOtpError = null) }
     }
 
     fun closeEmailVerifySheet() {
         if (_state.value.verifyingEmailOtp) return
-        _state.update { it.copy(emailVerifySheetOpen = false, emailOtpCode = "") }
+        _state.update { it.copy(emailVerifySheetOpen = false, emailOtpCode = "", emailOtpError = null) }
     }
 
     fun submitEmailOtp() {
         val snap = _state.value
+        if (snap.verifyingEmailOtp) return
         val email = snap.email ?: return
         if (snap.emailOtpCode.length != 6) {
             viewModelScope.launch {
@@ -474,7 +478,7 @@ class KycViewModel @Inject constructor(
             }
             return
         }
-        _state.update { it.copy(verifyingEmailOtp = true) }
+        _state.update { it.copy(verifyingEmailOtp = true, emailOtpError = null) }
         viewModelScope.launch {
             authRepository.verifyEmailOtp(email, snap.emailOtpCode)
                 .onSuccess {
@@ -487,14 +491,16 @@ class KycViewModel @Inject constructor(
                             verifyingEmailOtp = false,
                             emailVerifySheetOpen = false,
                             emailOtpCode = "",
+                            emailOtpError = null,
                             emailVerified = refreshed?.emailVerified == true,
                         )
                     }
                     _effects.emit(Effect.ShowMessage("Email verified"))
                 }
                 .onFailure { err ->
-                    _state.update { it.copy(verifyingEmailOtp = false) }
-                    _effects.emit(Effect.ShowMessage(err.toUserMessage()))
+                    val message = err.toUserMessage()
+                    _state.update { it.copy(verifyingEmailOtp = false, emailOtpError = message) }
+                    _effects.emit(Effect.ShowMessage(message))
                 }
         }
     }
