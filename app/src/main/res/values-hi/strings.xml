@@ -69,17 +69,17 @@
     <string name="kyc_submitted_verify_notice">We\'ll verify your documents within 4–24 hours and notify you. Until then you can browse jobs but not bid.</string>
 
     <!-- KYC screen (KycScreen.kt) — English placeholder, pending native-speaker review -->
-    <string name="kyc_verify_your_email">Verify your email</string>
-    <string name="kyc_email_code_sent">Code sent to %1$s</string>
-    <string name="kyc_email_otp_label">6-digit code</string>
-    <string name="kyc_email_sending_code">Sending code…</string>
-    <string name="kyc_email_resending">Resending…</string>
-    <string name="kyc_email_resend_code">Resend code</string>
-    <string name="kyc_email_verifying">Verifying…</string>
-    <string name="kyc_verify_action">Verify</string>
+    <string name="kyc_verify_your_email">अपना ईमेल सत्यापित करें</string>
+    <string name="kyc_email_code_sent">%1$s पर कोड भेजा गया</string>
+    <string name="kyc_email_otp_label">6-अंकों का कोड</string>
+    <string name="kyc_email_sending_code">कोड भेज रहे हैं…</string>
+    <string name="kyc_email_resending">फिर से भेज रहे हैं…</string>
+    <string name="kyc_email_resend_code">कोड फिर भेजें</string>
+    <string name="kyc_email_verifying">सत्यापित कर रहे हैं…</string>
+    <string name="kyc_verify_action">सत्यापित करें</string>
     <string name="kyc_step_personal_caption">How hospitals reach you and where you operate.</string>
     <string name="kyc_step_documents_caption">Upload identity and qualification proof.</string>
-    <string name="kyc_email_otp_sending">Sending…</string>
+    <string name="kyc_email_otp_sending">भेज रहे हैं…</string>
     <string name="kyc_phone_add">Add</string>
     <string name="kyc_phone_saved_pill">Saved</string>
     <string name="kyc_phone_hint">Used to coordinate active jobs. Not for login.</string>
