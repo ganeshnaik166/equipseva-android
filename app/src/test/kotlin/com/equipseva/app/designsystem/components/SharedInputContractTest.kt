@@ -9,7 +9,6 @@ import android.os.SystemClock
 import android.view.inputmethod.EditorInfo
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -371,6 +370,53 @@ class SharedInputContractTest {
         compose.runOnIdle { assertFalse(focus.last()) }
     }
 
+    @Test @Config(qualifiers = "en-rUS-w640dp-h320dp-land-mdpi")
+    fun `short landscape keeps large text fields and searched choices reachable`() {
+        val value = mutableStateOf("Monitor service\nRoom 12\nPower cable checked")
+        val selected = mutableStateOf<String?>(null)
+        val label = "Equipment service request details"
+        val error = "Describe all equipment faults before continuing"
+        render(scale = 2f) {
+            EsField(value.value, { value.value = it }, label = label, error = error, type = EsFieldType.Multiline)
+            EsDropdown(selected.value, { selected.value = it }, (1..12).map { "Option $it" }, label = "Service district")
+        }
+        listOf(label, error).forEach { text ->
+            val node = compose.onNodeWithText(text, useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+            val area = node.getUnclippedBoundsInRoot()
+            val viewport = compose.onRoot().getUnclippedBoundsInRoot()
+            assertTrue("Complete copy is reachable by scrolling", area.top >= viewport.top &&
+                area.bottom <= viewport.bottom && area.left >= viewport.left && area.right <= viewport.right)
+            val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+            node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+            val layout = layouts.single()
+            assertFalse(layout.didOverflowHeight)
+            assertEquals(text.length, layout.getLineEnd(layout.lineCount - 1, visibleEnd = true))
+        }
+        val control = compose.onNode(trigger).performScrollTo().assertIsDisplayed().assertHeightIsAtLeast(56.dp)
+        control.performClick()
+        val search = compose.onNode(hasSetTextAction() and hasAnyAncestor(isPopup())).assertIsDisplayed()
+        search.performClick().performTextInput("12")
+        val option = compose.onNodeWithText("Option 12").assertIsDisplayed()
+        val popup = (option.fetchSemanticsNode().root as ViewRootForTest).view
+        val searchBounds = search.fetchSemanticsNode().boundsInRoot
+        val optionBounds = option.fetchSemanticsNode().boundsInRoot
+        assertTrue("Search and chosen option fit the short popup", searchBounds.top >= 0f &&
+            searchBounds.bottom <= optionBounds.top && optionBounds.bottom <= popup.height)
+        compose.runOnIdle {
+            val bitmap = android.graphics.Bitmap.createBitmap(popup.width, popup.height, android.graphics.Bitmap.Config.ARGB_8888)
+            try {
+                popup.draw(android.graphics.Canvas(bitmap))
+                File("build/reports/ui-inputs-gallery/landscape-640dp-2x-popup.png").apply {
+                    checkNotNull(parentFile).mkdirs()
+                    outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+                }
+            } finally { bitmap.recycle() }
+        }
+        option.performClick()
+        compose.onNode(isPopup()).assertDoesNotExist()
+        compose.runOnIdle { assertEquals("Option 12", selected.value) }
+    }
+
     private fun dismissPopup(node: SemanticsNodeInteraction) {
         // Escape is handled by PopupLayout, above the Compose view targeted by performKeyInput.
         val popup = (node.fetchSemanticsNode().root as ViewRootForTest).view.rootView
@@ -385,13 +431,13 @@ class SharedInputContractTest {
         compose.waitForIdle()
     }
 
-    private fun render(content: @Composable () -> Unit) {
+    private fun render(scale: Float = 1f, content: @Composable () -> Unit) {
         host.get().setContent {
             EquipSevaTheme(darkTheme = false) {
                 inputView = LocalView.current
                 inputMode = LocalInputModeManager.current
                 val density = LocalDensity.current
-                CompositionLocalProvider(LocalDensity provides Density(density.density, 1f)) {
+                CompositionLocalProvider(LocalDensity provides Density(density.density, scale)) {
                     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)) { content() }
                 }

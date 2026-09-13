@@ -247,7 +247,7 @@ class SharedInputGalleryTest {
         var saved: Double? = null
         render(Mode.FixedLightInDark, scale = 2f) {
             // Same screen/card insets, weighted field, unweighted Save and 8dp gap
-            // as FloorEditor. This exercises the real native label in its narrow row.
+            // as FloorEditor. This exercises the persistent input label in its narrow row.
             Column(Modifier.fillMaxWidth().background(Color.White).padding(16.dp)) {
                 Text(stringResource(R.string.job_profitability_floor_editor_title), style = EsType.Body,
                     color = LightEsColors.text)

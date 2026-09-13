@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.ViewRootForTest
 import androidx.compose.ui.semantics.Role
@@ -80,21 +82,31 @@ class SharedInputPopupGalleryTest {
     @Test fun `dark popup paints options search cursor and disabled empty result`() = popupGallery(Mode.Dark)
     @Test fun `explicit light popup stays paired in a dark app`() = popupGallery(Mode.FixedLightInDark)
 
-    private fun popupGallery(mode: Mode) {
-        report = "popup-${mode.name}"
+    @Test @Config(qualifiers = "hi-rIN-w320dp-h800dp-mdpi")
+    fun `Hindi popup search remains visible at two times text size`() = popupGallery(Mode.Light, 2f)
+    @Test @Config(qualifiers = "te-rIN-w320dp-h800dp-mdpi")
+    fun `Telugu dark popup search remains visible at two times text size`() = popupGallery(Mode.Dark, 2f)
+    @Test @Config(qualifiers = "te-rIN-w320dp-h800dp-mdpi")
+    fun `Telugu fixed light popup search remains visible at two times text size`() = popupGallery(Mode.FixedLightInDark, 2f)
+
+    private fun popupGallery(mode: Mode, scale: Float = 1f) {
+        report = "popup-${mode.name}-${app.resources.configuration.locales[0].language}-${scale}x"
         output("$report-measurements.tsv").writeText("API34 native popup view; synthetic data; no device acceptance\n")
         val palette = mode.palette
         val options = (1..12).map { "District %02d".format(it) }
         val selected = mutableListOf<String>()
         host.get().setContent {
             activityComposeView = LocalView.current
-            EquipSevaTheme(darkTheme = mode.dark) {
-                Column(Modifier.fillMaxSize().background(EsTheme.colors.surface).padding(16.dp)) {
-                    Column(Modifier.fillMaxWidth().background(palette.surface)) {
-                        if (mode == Mode.FixedLightInDark) {
-                            EsDropdown(null, { selected += it }, options, label = "Service district", palette = LightEsColors)
-                        } else {
-                            EsDropdown(null, { selected += it }, options, label = "Service district")
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, scale)) {
+                EquipSevaTheme(darkTheme = mode.dark) {
+                    Column(Modifier.fillMaxSize().background(EsTheme.colors.surface).padding(16.dp)) {
+                        Column(Modifier.fillMaxWidth().background(palette.surface)) {
+                            if (mode == Mode.FixedLightInDark) {
+                                EsDropdown(null, { selected += it }, options, label = "Service district", palette = LightEsColors)
+                            } else {
+                                EsDropdown(null, { selected += it }, options, label = "Service district")
+                            }
                         }
                     }
                 }
