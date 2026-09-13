@@ -52,6 +52,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.android.controller.ActivityController
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
@@ -70,15 +71,19 @@ class SharedInputContractTest {
     private lateinit var inputView: View
     private lateinit var inputMode: InputModeManager
     private var initialTouchMode = true
+    private var initialFontScale = 1f
     private val trigger = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.DropdownList)
     @Before fun open() {
         initialTouchMode = ShadowWindowManagerGlobal.getInTouchMode()
+        initialFontScale = RuntimeEnvironment.getFontScale()
         IsolatedUiPackageParser.assertIsolated(ApplicationProvider.getApplicationContext())
-        host = Robolectric.buildActivity(ComponentActivity::class.java).setup().visible()
     }
     @After fun close() {
-        try { host.pause().stop().destroy() }
-        finally { InstrumentationRegistry.getInstrumentation().setInTouchMode(initialTouchMode) }
+        try { if (::host.isInitialized) host.pause().stop().destroy() }
+        finally {
+            RuntimeEnvironment.setFontScale(initialFontScale)
+            InstrumentationRegistry.getInstrumentation().setInTouchMode(initialTouchMode)
+        }
     }
 
     @Test fun `editable node retains its label after typing and exposes exact error`() {
@@ -397,6 +402,20 @@ class SharedInputContractTest {
         val search = compose.onNode(hasSetTextAction() and hasAnyAncestor(isPopup())).assertIsDisplayed()
         search.performClick().performTextInput("12")
         val option = compose.onNodeWithText("Option 12").assertIsDisplayed()
+        val measurements = mutableListOf<String>()
+        listOf(search, option).forEach { node ->
+            val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+            node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+            val layout = layouts.single()
+            measurements += "text=${layout.layoutInput.text.text}\tfontScale=${layout.layoutInput.density.fontScale}\tlineHeight=${layout.getLineBottom(0) - layout.getLineTop(0)}"
+            assertEquals("The landscape popup must use real 2x text", 2f, layout.layoutInput.density.fontScale, 0.001f)
+            assertFalse(layout.didOverflowHeight)
+            assertEquals(layout.layoutInput.text.length, layout.getLineEnd(layout.lineCount - 1, visibleEnd = true))
+        }
+        File("build/reports/ui-inputs-gallery/landscape-640dp-2x-popup-measurements.tsv").apply {
+            checkNotNull(parentFile).mkdirs()
+            writeText(measurements.joinToString("\n", postfix = "\n"))
+        }
         val popup = (option.fetchSemanticsNode().root as ViewRootForTest).view
         val searchBounds = search.fetchSemanticsNode().boundsInRoot
         val optionBounds = option.fetchSemanticsNode().boundsInRoot
@@ -432,6 +451,8 @@ class SharedInputContractTest {
     }
 
     private fun render(scale: Float = 1f, content: @Composable () -> Unit) {
+        RuntimeEnvironment.setFontScale(scale)
+        host = Robolectric.buildActivity(ComponentActivity::class.java).setup().visible()
         host.get().setContent {
             EquipSevaTheme(darkTheme = false) {
                 inputView = LocalView.current

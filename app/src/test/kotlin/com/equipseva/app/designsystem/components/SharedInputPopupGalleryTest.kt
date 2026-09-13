@@ -45,6 +45,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.android.controller.ActivityController
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
@@ -61,6 +62,8 @@ class SharedInputPopupGalleryTest {
     private var activityComposeView: View? = null
     private var activePopup: View? = null
     private lateinit var report: String
+    private var requestedFontScale = 1f
+    private var initialFontScale = 1f
     private val app: Application get() = ApplicationProvider.getApplicationContext()
 
     private enum class Mode(val dark: Boolean) {
@@ -70,12 +73,16 @@ class SharedInputPopupGalleryTest {
 
     @Before fun open() {
         IsolatedUiPackageParser.assertIsolated(app)
-        host = Robolectric.buildActivity(ComponentActivity::class.java).setup().visible()
+        initialFontScale = RuntimeEnvironment.getFontScale()
     }
     @After fun close() {
-        activePopup?.dispatchWindowFocusChanged(false)
-        host.get().window.decorView.dispatchWindowFocusChanged(true)
-        host.pause().stop().destroy()
+        try {
+            activePopup?.dispatchWindowFocusChanged(false)
+            if (::host.isInitialized) {
+                host.get().window.decorView.dispatchWindowFocusChanged(true)
+                host.pause().stop().destroy()
+            }
+        } finally { RuntimeEnvironment.setFontScale(initialFontScale) }
     }
 
     @Test fun `light popup paints options search cursor and disabled empty result`() = popupGallery(Mode.Light)
@@ -90,6 +97,11 @@ class SharedInputPopupGalleryTest {
     fun `Telugu fixed light popup search remains visible at two times text size`() = popupGallery(Mode.FixedLightInDark, 2f)
 
     private fun popupGallery(mode: Mode, scale: Float = 1f) {
+        requestedFontScale = scale
+        // A popup owns a new AndroidComposeView and replaces the outer LocalDensity.
+        // Configure real resources before either window is created; assert layout density below.
+        RuntimeEnvironment.setFontScale(scale)
+        host = Robolectric.buildActivity(ComponentActivity::class.java).setup().visible()
         report = "popup-${mode.name}-${app.resources.configuration.locales[0].language}-${scale}x"
         output("$report-measurements.tsv").writeText("API34 native popup view; synthetic data; no device acceptance\n")
         val palette = mode.palette
@@ -156,6 +168,9 @@ class SharedInputPopupGalleryTest {
         val layouts = mutableListOf<TextLayoutResult>()
         node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
         val layout = layouts.single { it.layoutInput.text.text == text }
+        measure("density\tname=$name\trequested=$requestedFontScale\tactual=${layout.layoutInput.density.fontScale}\ttextSize=${layout.layoutInput.style.fontSize}\tlineHeight=${layout.getLineBottom(0) - layout.getLineTop(0)}")
+        assertEquals("The popup window must render the requested font scale: $name",
+            requestedFontScale, layout.layoutInput.density.fontScale, 0.001f)
         val area = bounds(node)
         val bitmap = drawPopup(node)
         try {
