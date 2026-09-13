@@ -1,5 +1,7 @@
 package com.equipseva.app.features.auth
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -106,6 +108,7 @@ fun SignInScreen(
                 ErrorBanner(message = state.form.errorMessage)
 
                 EsField(
+                    palette = LightEsColors,
                     value = state.email,
                     onChange = viewModel::onEmailChange,
                     label = "Email",
@@ -116,6 +119,7 @@ fun SignInScreen(
                 )
                 Spacer(Modifier.height(14.dp))
                 EsField(
+                    palette = LightEsColors,
                     value = state.password,
                     onChange = viewModel::onPasswordChange,
                     label = "Password",

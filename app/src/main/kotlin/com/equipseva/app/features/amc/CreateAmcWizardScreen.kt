@@ -1,5 +1,7 @@
 package com.equipseva.app.features.amc
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -766,6 +768,7 @@ private fun ScopeStep(state: CreateAmcWizardViewModel.UiState, vm: CreateAmcWiza
     EsSection(title = "Scope notes") {
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
             EsField(
+                palette = LightEsColors,
                 value = state.scopeText,
                 onChange = vm::setScopeText,
                 placeholder = "What's covered? (e.g., quarterly calibration, OT equipment)",
@@ -795,6 +798,7 @@ private fun FrequencyFeeStep(state: CreateAmcWizardViewModel.UiState, vm: Create
             }
             Spacer(Modifier.height(12.dp))
             EsField(
+                palette = LightEsColors,
                 value = state.visitsPerYear.toString(),
                 onChange = vm::setVisitsPerYear,
                 label = "Visits per year",
@@ -806,6 +810,7 @@ private fun FrequencyFeeStep(state: CreateAmcWizardViewModel.UiState, vm: Create
     EsSection(title = "Monthly fee") {
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
             EsField(
+                palette = LightEsColors,
                 value = state.monthlyFeeRupees,
                 onChange = vm::setMonthlyFeeRupees,
                 label = "Monthly fee (₹)",
@@ -824,6 +829,7 @@ private fun SlaStep(state: CreateAmcWizardViewModel.UiState, vm: CreateAmcWizard
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             EsField(
+                palette = LightEsColors,
                 value = state.responseTimeStandardHours,
                 onChange = vm::setStandardHours,
                 label = "Standard (hours)",
@@ -831,6 +837,7 @@ private fun SlaStep(state: CreateAmcWizardViewModel.UiState, vm: CreateAmcWizard
                 hint = "Default 24h. SLA breach auto-issues a goodwill credit if exceeded.",
             )
             EsField(
+                palette = LightEsColors,
                 value = state.responseTimeEmergencyHours,
                 onChange = vm::setEmergencyHours,
                 label = "Emergency (hours)",
@@ -977,6 +984,7 @@ private fun FallbackPickerSheet(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             EsField(
+                palette = LightEsColors,
                 value = query,
                 onChange = onQueryChange,
                 placeholder = "Search by name, brand, or specialization",

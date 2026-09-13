@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="es_dropdown_select">चुनें</string>
+    <string name="es_dropdown_expanded">खुला हुआ</string>
+    <string name="es_dropdown_collapsed">बंद</string>
+    <string name="es_input_state_label">राज्य</string>
+    <string name="es_input_district_label">ज़िला</string>
+    <string name="es_input_minimum_payout_label">राशि (₹)</string>
+    <string name="es_input_start_time_label">शुरू होने का समय</string>
+    <string name="es_input_end_time_label">समाप्ति का समय</string>
+</resources>

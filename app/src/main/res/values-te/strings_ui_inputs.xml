@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="es_dropdown_select">ఎంచుకోండి</string>
+    <string name="es_dropdown_expanded">విస్తరించబడింది</string>
+    <string name="es_dropdown_collapsed">మూసివేయబడింది</string>
+    <string name="es_input_state_label">రాష్ట్రం</string>
+    <string name="es_input_district_label">జిల్లా</string>
+    <string name="es_input_minimum_payout_label">మొత్తం (₹)</string>
+    <string name="es_input_start_time_label">ప్రారంభ సమయం</string>
+    <string name="es_input_end_time_label">ముగింపు సమయం</string>
+</resources>

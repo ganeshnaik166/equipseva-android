@@ -1,5 +1,7 @@
 package com.equipseva.app.features.profile
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -307,6 +309,7 @@ private fun RegisterCodeCard(
             )
             Spacer(Modifier.height(8.dp))
             EsField(
+                palette = LightEsColors,
                 value = codeInput,
                 onChange = onCodeChange,
                 placeholder = stringResource(R.string.referral_enter_code_placeholder),

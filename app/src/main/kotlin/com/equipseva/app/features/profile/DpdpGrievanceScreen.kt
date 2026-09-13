@@ -1,5 +1,7 @@
 package com.equipseva.app.features.profile
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -266,6 +268,7 @@ private fun GrievanceComposer(
             }
             Spacer(Modifier.height(10.dp))
             EsField(
+                palette = LightEsColors,
                 value = description,
                 onChange = onDescriptionChange,
                 label = stringResource(R.string.dpdp_grievance_description_label),

@@ -1,5 +1,7 @@
 package com.equipseva.app.features.chat
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -73,6 +75,7 @@ fun ConversationsScreen(
             if (!state.loading && state.rows.isNotEmpty()) {
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     EsField(
+                        palette = LightEsColors,
                         value = state.query,
                         onChange = viewModel::onQueryChange,
                         placeholder = "Search conversations",

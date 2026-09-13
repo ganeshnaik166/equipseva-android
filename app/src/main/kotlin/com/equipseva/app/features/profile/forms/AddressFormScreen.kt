@@ -340,6 +340,7 @@ fun AddressFormScreen(
             // Treat legacy non-canonical values as unset so the dropdown
             // shows the placeholder instead of an unselectable string.
             EsDropdown(
+                palette = LightEsColors,
                 value = state.form.state.takeIf { it in IndiaLocations.STATES },
                 onValueChange = { picked ->
                     viewModel.update {

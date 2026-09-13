@@ -2,15 +2,21 @@ package com.equipseva.app.designsystem.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.hideFromAccessibility
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -18,17 +24,14 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.equipseva.app.designsystem.theme.EsRadius
 import com.equipseva.app.designsystem.theme.EsType
-import com.equipseva.app.designsystem.theme.SevaDanger500
-import com.equipseva.app.designsystem.theme.SevaGreen700
-import com.equipseva.app.designsystem.theme.SevaInk500
-import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.designsystem.theme.EsColors
+import com.equipseva.app.designsystem.theme.EsTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 
 enum class EsFieldType { Text, Password, Number, Email, Phone, Multiline }
 
-// Form input with label above, optional hint or error below, leading /
-// trailing slot icons, and integrated keyboard / visual transform per
-// EsFieldType. Mirrors the design's `<Field>` primitive in shared.jsx.
+// Persistent labels grow above the outline; the editable node owns the accessible name.
+// The outer modifier remains on the group for existing picker/focus callers.
 @Composable
 fun EsField(
     value: String,
@@ -50,8 +53,17 @@ fun EsField(
     // Enter instead of forcing a button tap. When null the keyboard
     // simply dismisses on Done (original behavior).
     onImeAction: (() -> Unit)? = null,
+    palette: EsColors = EsTheme.colors,
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
+    val currentEnabled by rememberUpdatedState(enabled)
+    val currentAction by rememberUpdatedState(onImeAction)
+    val finishInput: () -> Unit = {
+        if (currentEnabled) {
+            currentAction?.invoke()
+            keyboardController?.hide()
+        }
+    }
     val keyboardType = when (type) {
         EsFieldType.Number -> KeyboardType.Number
         EsFieldType.Email -> KeyboardType.Email
@@ -59,10 +71,8 @@ fun EsField(
         EsFieldType.Password -> KeyboardType.Password
         else -> KeyboardType.Text
     }
-    // Belt-and-braces: even though KeyboardType.Password / Email usually
-    // suppress IME autocorrect on Android, some OEM keyboards still feed
-    // typed characters through the predictive-text dictionary, leaking
-    // password fragments to the system suggestions cache. Force them off.
+    // Request password/email input without autocorrect or capitalization.
+    // The Compose bridge omits AUTO_CORRECT; this is not an OEM keyboard audit.
     val noSuggest = type == EsFieldType.Password || type == EsFieldType.Email
     val capitalization = if (noSuggest) {
         androidx.compose.ui.text.input.KeyboardCapitalization.None
@@ -71,20 +81,22 @@ fun EsField(
     }
     val visualTransformation: VisualTransformation =
         if (type == EsFieldType.Password) PasswordVisualTransformation() else VisualTransformation.None
+    val inputLabel = label ?: placeholder
     Column(modifier = modifier.fillMaxWidth()) {
-        if (label != null) {
-            Text(
-                text = label,
-                style = EsType.Label,
-                color = SevaInk500,
-                modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
-            )
+        inputLabel?.let {
+            Text(it, style = EsType.Label,
+                color = if (error != null) palette.error.content else if (enabled) palette.muted else palette.disabled.content,
+                modifier = Modifier.padding(start = 4.dp, bottom = 6.dp).semantics { hideFromAccessibility() })
         }
         OutlinedTextField(
             value = value,
             onValueChange = onChange,
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = placeholder?.let { { Text(it, style = EsType.Body, color = SevaInk500) } },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).semantics {
+                if (inputLabel != null) contentDescription = inputLabel
+                if (error != null) error(error)
+            },
+            placeholder = placeholder?.takeIf { label != null }?.let { { Text(it, style = EsType.Body) } },
+            supportingText = (error ?: hint)?.let { { Text(it, style = EsType.BodySm) } },
             leadingIcon = leading,
             trailingIcon = trailing,
             isError = error != null,
@@ -93,46 +105,28 @@ fun EsField(
             visualTransformation = visualTransformation,
             keyboardOptions = KeyboardOptions(
                 keyboardType = keyboardType,
-                autoCorrect = !noSuggest,
+                autoCorrectEnabled = !noSuggest,
                 capitalization = capitalization,
                 imeAction = imeAction,
             ),
             keyboardActions = KeyboardActions(
                 onDone = {
-                    onImeAction?.invoke()
-                    keyboardController?.hide()
+                    finishInput()
                 },
                 onSend = {
-                    onImeAction?.invoke()
-                    keyboardController?.hide()
+                    finishInput()
                 },
                 onGo = {
-                    onImeAction?.invoke()
-                    keyboardController?.hide()
+                    finishInput()
                 },
                 onSearch = {
-                    onImeAction?.invoke()
-                    keyboardController?.hide()
+                    finishInput()
                 },
             ),
             enabled = enabled,
             shape = RoundedCornerShape(EsRadius.Md),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = SevaGreen700,
-                errorBorderColor = SevaDanger500,
-                focusedTextColor = SevaInk900,
-                unfocusedTextColor = SevaInk900,
-            ),
+            colors = esInputColors(palette),
             textStyle = EsType.Body,
         )
-        val belowText = error ?: hint
-        if (belowText != null) {
-            Text(
-                text = belowText,
-                style = EsType.Caption,
-                color = if (error != null) SevaDanger500 else SevaInk500,
-                modifier = Modifier.padding(start = 4.dp, top = 4.dp),
-            )
-        }
     }
 }

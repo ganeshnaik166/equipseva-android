@@ -1,5 +1,7 @@
 package com.equipseva.app.features.kyc
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -622,16 +624,18 @@ private fun PersonalStep(
         val districts = remember(state.serviceState) {
             com.equipseva.app.core.data.location.IndiaLocations.districtsFor(state.serviceState)
         }
-        FieldLabel("State")
         com.equipseva.app.designsystem.components.EsDropdown(
+            palette = LightEsColors,
+            label = stringResource(R.string.es_input_state_label),
             value = state.serviceState,
             onValueChange = onServiceStateChange,
             options = com.equipseva.app.core.data.location.IndiaLocations.STATES,
             placeholder = "Select state",
             modifier = Modifier.fillMaxWidth(),
         )
-        FieldLabel("District")
         com.equipseva.app.designsystem.components.EsDropdown(
+            palette = LightEsColors,
+            label = stringResource(R.string.es_input_district_label),
             value = state.serviceDistrict,
             onValueChange = onServiceDistrictChange,
             options = districts,

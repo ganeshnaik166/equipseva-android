@@ -1,5 +1,7 @@
 package com.equipseva.app.features.onboarding
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -481,6 +483,7 @@ fun EngineerPayoutOnboardingScreen(
             ) {
                 if (!s.hasUpi) {
                     EsField(
+                        palette = LightEsColors,
                         value = s.vpa,
                         onChange = viewModel::onVpaChange,
                         label = "UPI ID (VPA)",
@@ -491,6 +494,7 @@ fun EngineerPayoutOnboardingScreen(
                     )
                     Spacer(Modifier.height(10.dp))
                     EsField(
+                        palette = LightEsColors,
                         value = s.vpaHolder,
                         onChange = viewModel::onVpaHolderChange,
                         label = "Name on UPI (optional)",
@@ -509,6 +513,7 @@ fun EngineerPayoutOnboardingScreen(
             ) {
                 if (!s.hasBank) {
                     EsField(
+                        palette = LightEsColors,
                         value = s.bankAccountHolder,
                         onChange = viewModel::onBankAccountHolderChange,
                         label = "Account holder name",
@@ -517,6 +522,7 @@ fun EngineerPayoutOnboardingScreen(
                     )
                     Spacer(Modifier.height(10.dp))
                     EsField(
+                        palette = LightEsColors,
                         value = s.bankIfsc,
                         onChange = viewModel::onBankIfscChange,
                         label = "IFSC code",
@@ -559,6 +565,7 @@ fun EngineerPayoutOnboardingScreen(
                     }
                     Spacer(Modifier.height(10.dp))
                     EsField(
+                        palette = LightEsColors,
                         value = s.bankAccountNumber,
                         onChange = viewModel::onBankAccountNumberChange,
                         label = "Account number",
@@ -568,6 +575,7 @@ fun EngineerPayoutOnboardingScreen(
                     )
                     Spacer(Modifier.height(10.dp))
                     EsField(
+                        palette = LightEsColors,
                         value = s.bankAccountNumberConfirm,
                         onChange = viewModel::onBankAccountNumberConfirmChange,
                         label = "Re-type account number",
@@ -579,6 +587,7 @@ fun EngineerPayoutOnboardingScreen(
                     )
                     Spacer(Modifier.height(10.dp))
                     EsField(
+                        palette = LightEsColors,
                         value = s.bankName,
                         onChange = viewModel::onBankNameChange,
                         label = "Bank name (optional)",

@@ -1,5 +1,7 @@
 package com.equipseva.app.features.amc
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -353,6 +355,7 @@ private fun DisputeComposer(
         }
         Spacer(Modifier.height(10.dp))
         EsField(
+            palette = LightEsColors,
             value = description,
             onChange = { description = it },
             label = stringResource(R.string.hospital_portal_dispute_description_label),
@@ -360,6 +363,7 @@ private fun DisputeComposer(
         )
         Spacer(Modifier.height(10.dp))
         EsField(
+            palette = LightEsColors,
             value = amountText,
             onChange = { amountText = it.filter { c -> c.isDigit() } },
             label = stringResource(R.string.hospital_portal_dispute_amount_label),

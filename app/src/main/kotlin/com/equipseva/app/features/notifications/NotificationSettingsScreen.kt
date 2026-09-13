@@ -1,5 +1,7 @@
 package com.equipseva.app.features.notifications
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import android.app.TimePickerDialog
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
@@ -8,6 +10,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -272,14 +278,11 @@ private fun QuietHoursCard(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                EsField(
+                QuietHourField(
                     value = formatMinutes(prefs.startMinutes, is24Hour = android.text.format.DateFormat.is24HourFormat(context)),
-                    onChange = {},
-                    label = "Start",
-                    enabled = false,
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable {
+                    label = stringResource(R.string.es_input_start_time_label),
+                    modifier = Modifier.weight(1f),
+                    onClick = {
                             TimePickerDialog(
                                 context,
                                 { _, h, m -> onWindowChange(h * 60 + m, prefs.endMinutes) },
@@ -289,14 +292,11 @@ private fun QuietHoursCard(
                             ).show()
                         },
                 )
-                EsField(
+                QuietHourField(
                     value = formatMinutes(prefs.endMinutes, is24Hour = android.text.format.DateFormat.is24HourFormat(context)),
-                    onChange = {},
-                    label = "End",
-                    enabled = false,
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable {
+                    label = stringResource(R.string.es_input_end_time_label),
+                    modifier = Modifier.weight(1f),
+                    onClick = {
                             TimePickerDialog(
                                 context,
                                 { _, h, m -> onWindowChange(prefs.startMinutes, h * 60 + m) },
@@ -366,4 +366,15 @@ private fun PermissionDeniedBanner(onOpenSystemSettings: () -> Unit) {
             modifier = Modifier.clickable(onClick = onOpenSystemSettings),
         )
     }
+}
+
+/** A single named picker action; its disabled text display is not another accessibility stop. */
+@Composable
+internal fun QuietHourField(value: String, label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    EsField(value = value, onChange = {}, label = label, enabled = false, palette = LightEsColors,
+        modifier = modifier.clickable(role = Role.Button, onClick = onClick).clearAndSetSemantics {
+            role = Role.Button
+            contentDescription = "$label, $value"
+            onClick(action = { onClick(); true })
+        })
 }

@@ -1,5 +1,7 @@
 package com.equipseva.app.features.repair.directory
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -309,6 +311,7 @@ fun EngineerDirectoryScreen(
                     .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
             ) {
                 EsField(
+                    palette = LightEsColors,
                     value = state.query,
                     onChange = viewModel::onQueryChange,
                     placeholder = "Search by name, brand, specialization",

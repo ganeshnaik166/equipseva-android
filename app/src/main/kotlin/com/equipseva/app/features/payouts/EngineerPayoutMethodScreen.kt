@@ -1,5 +1,7 @@
 package com.equipseva.app.features.payouts
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -291,6 +293,7 @@ private fun UpiForm(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         EsField(
+            palette = LightEsColors,
             value = vpa,
             onChange = onVpaChange,
             label = "UPI ID (VPA)",
@@ -301,6 +304,7 @@ private fun UpiForm(
             enabled = !saving,
         )
         EsField(
+            palette = LightEsColors,
             value = holderName,
             onChange = onHolderChange,
             label = "Name on UPI (optional)",
@@ -328,6 +332,7 @@ private fun BankForm(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         EsField(
+            palette = LightEsColors,
             value = accountHolder,
             onChange = onHolderChange,
             label = "Account holder name",
@@ -335,6 +340,7 @@ private fun BankForm(
             enabled = !saving,
         )
         EsField(
+            palette = LightEsColors,
             value = ifsc,
             onChange = onIfscChange,
             label = "IFSC code",
@@ -343,6 +349,7 @@ private fun BankForm(
             enabled = !saving,
         )
         EsField(
+            palette = LightEsColors,
             value = accountNumber,
             onChange = onAccountChange,
             label = "Account number",
@@ -351,6 +358,7 @@ private fun BankForm(
             enabled = !saving,
         )
         EsField(
+            palette = LightEsColors,
             value = accountNumberConfirm,
             onChange = onAccountConfirmChange,
             label = "Re-type account number",
@@ -358,6 +366,7 @@ private fun BankForm(
             enabled = !saving,
         )
         EsField(
+            palette = LightEsColors,
             value = bankName,
             onChange = onBankNameChange,
             label = "Bank name (optional)",

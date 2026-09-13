@@ -1,5 +1,7 @@
 package com.equipseva.app.features.repair
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -309,6 +311,7 @@ private fun DsrForm(
         )
 
         EsField(
+            palette = LightEsColors,
             value = workSummary,
             onChange = { workSummary = it },
             label = stringResource(R.string.dsr_summary_label),
@@ -323,6 +326,7 @@ private fun DsrForm(
         )
 
         EsField(
+            palette = LightEsColors,
             value = equipmentSerial,
             onChange = { equipmentSerial = it },
             label = stringResource(R.string.dsr_serial_label),
@@ -388,6 +392,7 @@ private fun DsrForm(
                 }
                 Spacer(Modifier.height(8.dp))
                 EsField(
+                    palette = LightEsColors,
                     value = calibrationLabRef,
                     onChange = { calibrationLabRef = it },
                     label = stringResource(R.string.dsr_calibration_lab_ref),
@@ -397,6 +402,7 @@ private fun DsrForm(
         }
 
         EsField(
+            palette = LightEsColors,
             value = recommendations,
             onChange = { recommendations = it },
             label = stringResource(R.string.dsr_recommendations_label),
@@ -547,12 +553,14 @@ private fun DsrRecord(
                 )
                 Spacer(Modifier.height(10.dp))
                 EsField(
+                    palette = LightEsColors,
                     value = signerName,
                     onChange = { signerName = it },
                     label = stringResource(R.string.dsr_signer_name),
                 )
                 Spacer(Modifier.height(8.dp))
                 EsField(
+                    palette = LightEsColors,
                     value = signerRole,
                     onChange = { signerRole = it },
                     label = stringResource(R.string.dsr_signer_role),

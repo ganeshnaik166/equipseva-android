@@ -1,5 +1,7 @@
 package com.equipseva.app.features.mybids
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -259,6 +261,8 @@ private fun FloorEditor(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 EsField(
+                    palette = LightEsColors,
+                    label = stringResource(R.string.es_input_minimum_payout_label),
                     value = text,
                     onChange = { text = it.filter(Char::isDigit) },
                     type = EsFieldType.Number,
