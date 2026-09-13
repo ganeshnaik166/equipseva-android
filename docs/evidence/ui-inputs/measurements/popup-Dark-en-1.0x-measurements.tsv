@@ -1,0 +1,23 @@
+API34 native popup view; synthetic data; no device acceptance
+capture-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=androidx.compose.ui.window.PopupLayout	width=288	height=360
+density	name=option	requested=1.0	actual=1.0	textSize=16.0.sp	lineHeight=24.0
+capture-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=androidx.compose.ui.window.PopupLayout	width=288	height=360
+option	text=District 01	bounds=Rect.fromLTRB(12.0, 96.0, 88.0, 120.0)	lines=1	glyphs=51	foreground=fff5f7f1	background=ff1b2018	contrast=15.364045768310193
+density	name=search-label	requested=1.0	actual=1.0	textSize=14.0.sp	lineHeight=21.0
+capture-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=androidx.compose.ui.window.PopupLayout	width=288	height=360
+search-label	text=Search…	bounds=Rect.fromLTRB(28.0, 12.0, 89.0, 33.0)	lines=1	glyphs=74	foreground=ffb9c2b1	background=ff1b2018	contrast=9.013319177364956
+capture-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=androidx.compose.ui.window.PopupLayout	width=288	height=360
+focus	input=Rect.fromLTRB(12.0, 14.0, 276.0, 78.0)	painted=Rect.fromLTRB(12.0, 22.0, 276.0, 78.0)	ink=1061	background=ff1b2018	contrast=13.98073302873107
+capture-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=androidx.compose.ui.window.PopupLayout	width=288	height=360
+capture-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=androidx.compose.ui.window.PopupLayout	width=288	height=360
+capture-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=androidx.compose.ui.window.PopupLayout	width=288	height=360
+capture-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=androidx.compose.ui.window.PopupLayout	width=288	height=360
+capture-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=androidx.compose.ui.window.PopupLayout	width=288	height=360
+cursor	changingPixels=24	frames=5	input=Rect.fromLTRB(12.0, 14.0, 276.0, 78.0)
+cursor-shape	bounds=Rect.fromLTRB(82.0, 38.0, 83.0, 62.0)	foreground=fff5f7f1	background=ff1b2018
+density	name=search-value	requested=1.0	actual=1.0	textSize=16.0.sp	lineHeight=24.0
+capture-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=androidx.compose.ui.window.PopupLayout	width=288	height=360
+search-value	text=District	bounds=Rect.fromLTRB(12.0, 14.0, 276.0, 78.0)	lines=1	glyphs=31	foreground=fff5f7f1	background=ff1b2018	contrast=15.364045768310193
+density	name=disabled-no-matches	requested=1.0	actual=1.0	textSize=14.0.sp	lineHeight=21.0
+capture-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=androidx.compose.ui.window.PopupLayout	width=288	height=140
+disabled-no-matches	text=No matches	bounds=Rect.fromLTRB(12.0, 98.0, 91.0, 119.0)	lines=1	glyphs=42	foreground=ffb7c0af	background=ff1b2018	contrast=8.82214893051107

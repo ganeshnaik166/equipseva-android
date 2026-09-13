@@ -1,0 +1,10 @@
+Native Robolectric API34; synthetic input specimens; no popup/device acceptance
+large-field-layout	component=Rect.fromLTRB(16.0, 16.0, 304.0, 416.0)	viewport=Rect.fromLTRB(0.0, 0.0, 320.0, 744.0)
+label	lines=2	bounds=Rect.fromLTRB(20.0, 16.0, 304.0, 92.0)	ink=2049	background=ff1b2018	foreground=ffffc4ca	contrast=11.055639488647172
+multiline	lines=4	bounds=Rect.fromLTRB(16.0, 98.0, 304.0, 416.0)	ink=2163	background=ff1b2018	foreground=fff3f5ef	contrast=15.096612569104877
+error	lines=3	bounds=Rect.fromLTRB(32.0, 302.0, 288.0, 416.0)	ink=1867	background=ff1b2018	foreground=ffffc4ca	contrast=11.055639488647172
+large-picker-layout	component=Rect.fromLTRB(16.0, 348.0, 304.0, 744.0)	viewport=Rect.fromLTRB(0.0, 0.0, 320.0, 744.0)
+large-picker-label	accessibleName=Choose the engineer service district	region=Rect.fromLTRB(16.0, 348.0, 304.0, 430.0)	ink=2104
+selection	lines=4	bounds=Rect.fromLTRB(30.0, 444.0, 258.0, 612.0)	ink=2026	background=ff1b2018	foreground=fff5f7f1	contrast=15.364045768310193
+hint	lines=3	bounds=Rect.fromLTRB(20.0, 630.0, 304.0, 744.0)	ink=1513	background=ff1b2018	foreground=ffb8c1b0	contrast=8.917405970507737
+large-picker-arrow	trigger=Rect.fromLTRB(16.0, 430.0, 304.0, 626.0)	text=Rect.fromLTRB(30.0, 444.0, 258.0, 612.0)	arrow=Rect.fromLTRB(274.0, 526.0, 282.0, 530.0)	ink=20

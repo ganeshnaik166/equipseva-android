@@ -1,8 +1,15 @@
-# UI-02 shared inputs — working contract (2026-09-13)
+# UI-02 shared inputs — contract and acceptance (2026-09-13)
 
 Base: `75e55c14730d6f3499d34bbcc7155e994f0f8816`, branch `codex/auth-integration-20260911`.
 Scope: `EsField`, `EsDropdown`, their synthetic tests and minimal caller compatibility.
 OTP, navigation, auth repositories, account ownership and page redesigns are outside this slice.
+
+**Accepted locally at `694bf690929f869277513d27f72bf24697a3d2a5`: critic 9.595/10,
+QA 9.58/10.** Final bar: 3,198 tests / 362 suites / zero failures, errors or skips;
+lint zero errors, debug and unsigned release passed; all 798 source hashes match.
+See [the source-bound evidence](../evidence/ui-inputs/README.md). The chronological
+holds and test corrections below are retained; they are superseded by this final
+scoped disposition. Remaining UI-02 components and release gates stay open.
 
 ## Contract frozen before implementation
 
@@ -37,4 +44,4 @@ Independent review requested two additional size gates. The first 640×320 and H
 
 Discriminating assertions on `TextLayoutResult.layoutInput.density.fontScale` reproduced **7 tests / 4 failures** (`target-8-actual-scale-red.log`): the landscape and all three claimed 2x popup cases actually measured 1x. This is a test-configuration defect, not evidence of a production size defect. The harness now sets `RuntimeEnvironment.setFontScale` before constructing either Android window and restores the prior scale at teardown. Actual layout scale, line height, complete copy and native glyph/caret pixels remain mandatory; corrected results and final acceptance are pending. [Resolved Compose popup density source](https://dl.google.com/dl/android/maven2/androidx/compose/ui/ui-android/1.9.0/ui-android-1.9.0-sources.jar), [Robolectric font-scale API](https://robolectric.org/javadoc/4.16/org/robolectric/RuntimeEnvironment.html).
 
-The corrected focused command passed **25 tests / zero failures** (`target-9-platform-scale.log`, 59s). All requested popup layouts now report `fontScale=2.0`; the 16sp body resolves to 42px line height on API34's nonlinear font scaling, versus 24px at 1x. Telugu search label, value, options and no-match copy fit; the actual caret is 42px high. Landscape search and selection are both 2x and reachable. No production change was necessary. The final full bar and independent acceptance must bind this corrected test source, not the earlier mislabeled captures.
+The corrected focused command passed **25 tests / zero failures** (`target-9-platform-scale.log`, 59s). All requested popup layouts now report `fontScale=2.0`; the 16sp body resolves to 42px line height for English/Telugu on API34's nonlinear font scaling, versus 24px at 1x. Hindi's bundled font has 53px line/caret height at 2x. Telugu search label, value, options and no-match copy fit; its actual caret is 42px high. Landscape search and selection are both 2x and reachable. No production change was necessary. The final full bar and independent acceptance must bind this corrected test source, not the earlier mislabeled captures.

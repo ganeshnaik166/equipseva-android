@@ -4,7 +4,9 @@ Status: **approved plan; staged implementation underway**. The owner chose
 the reference palette and typography on 12 September 2026. This document freezes
 the implementation sequence and the contract every page must satisfy. UI-01 and
 the UI-02 shared-action slice are locally accepted at `c7da5ee3`; see the
-[implementation evidence](evidence/ui-foundation/README.md). Remaining components,
+[foundation evidence](evidence/ui-foundation/README.md). Shared text fields and
+dropdowns are now locally accepted at `694bf690` (critic 9.595, QA 9.58; 3,198
+tests passed); see [input evidence](evidence/ui-inputs/README.md). Remaining components,
 pages and device/release acceptance stay open. The source registry below retains
 its recorded planning baseline; those hashes are not a current-code inventory.
 
@@ -292,7 +294,8 @@ test-first slices and integration points. Known current dependencies include:
 ## 6. Implementation sequence
 
 UI-00 is reviewed as the planning baseline. **UI-01 is locally accepted** together
-with **UI-02's shared-action slice**; UI-02 as a whole remains in progress.
+with **UI-02's shared-action, text-field and dropdown slices**; UI-02 as a whole
+remains in progress. OTP and the other shared families still require migration.
 UI-03 through UI-11 remain planned for this theme. Finish and review one bounded
 batch before expanding. Separate security fixes from visual commits.
 
@@ -369,9 +372,9 @@ Update the development dashboard only for a completed major milestone with an
 explicit scope and verified facts. Planning alone does not advance an app
 completion percentage, agent-hours counter or release score.
 
-**Next implementation step:** remaining UI-02 fields, cards, status, navigation,
+**Next implementation step:** UI-02 OTP inputs, cards, status, navigation,
 dialogs/sheets and common feedback, in bounded caller-aware batches. Then UI-03's
 auth-entry pages. Recheck source/branch/build-slot state first.
 Keep per-page implementations staged in the sequence above, with before/after
 evidence. The original UI-00 planning pass changed documentation only. Current
-UI-01/action results are in the linked ledger; they make no app release claim.
+UI-01/action/input results are in the linked ledgers; they make no app release claim.

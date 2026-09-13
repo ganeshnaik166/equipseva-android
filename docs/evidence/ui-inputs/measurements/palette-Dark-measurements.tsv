@@ -1,0 +1,34 @@
+Native Robolectric API34; synthetic input specimens; no popup/device acceptance
+normal-layout	component=Rect.fromLTRB(16.0, 16.0, 304.0, 124.0)	viewport=Rect.fromLTRB(0.0, 0.0, 320.0, 744.0)
+normal-value	lines=1	bounds=Rect.fromLTRB(16.0, 43.0, 304.0, 124.0)	ink=98	background=ff1b2018	foreground=fff5f7f1	contrast=15.364045768310193
+normal-label	lines=1	bounds=Rect.fromLTRB(20.0, 16.0, 94.0, 37.0)	ink=118	background=ff1b2018	foreground=ffb9c2b1	contrast=9.013319177364956
+normal-hint	lines=1	bounds=Rect.fromLTRB(32.0, 103.0, 206.0, 124.0)	ink=99	background=ff1b2018	foreground=ffb7c0af	contrast=8.82214893051107
+normal-outline	band=Rect.fromLTRB(16.0, 67.3, 20.0, 91.6)	ink=16	color=ff86947b	contrast=5.160816290944032
+normal-body	outlineTop=43	outlineBottom=99	bodyPixels=56	minimumPixels=56.0
+error-layout	component=Rect.fromLTRB(16.0, 148.0, 304.0, 256.0)	viewport=Rect.fromLTRB(0.0, 0.0, 320.0, 744.0)
+error-value	lines=1	bounds=Rect.fromLTRB(16.0, 175.0, 304.0, 256.0)	ink=66	background=ff1b2018	foreground=fff3f5ef	contrast=15.096612569104877
+error-label	lines=1	bounds=Rect.fromLTRB(20.0, 148.0, 118.0, 169.0)	ink=148	background=ff1b2018	foreground=ffffc4ca	contrast=11.055639488647172
+error-support	lines=1	bounds=Rect.fromLTRB(32.0, 235.0, 205.0, 256.0)	ink=65	background=ff1b2018	foreground=fffdc2c8	contrast=10.839629292311951
+error-outline	band=Rect.fromLTRB(16.0, 199.3, 20.0, 223.6)	ink=16	color=ffffc4ca	contrast=11.055639488647172
+disabled-layout	component=Rect.fromLTRB(16.0, 280.0, 304.0, 388.0)	viewport=Rect.fromLTRB(0.0, 0.0, 320.0, 744.0)
+disabled-value	lines=1	bounds=Rect.fromLTRB(16.0, 307.0, 304.0, 388.0)	ink=75	background=ff30382a	foreground=ffb9c2b1	contrast=6.617914887192533
+disabled-support	lines=1	bounds=Rect.fromLTRB(32.0, 367.0, 107.0, 388.0)	ink=27	background=ff1b2018	foreground=ffb9c2b1	contrast=9.013319177364956
+disabled-outline	band=Rect.fromLTRB(16.0, 331.3, 20.0, 355.6)	ink=16	color=ff86947b	contrast=3.78926367632408
+picker-layout	component=Rect.fromLTRB(16.0, 412.0, 304.0, 520.0)	viewport=Rect.fromLTRB(0.0, 0.0, 320.0, 744.0)
+picker-label	accessibleName=Service district	region=Rect.fromLTRB(16.0, 412.0, 304.0, 439.0)	ink=145
+picker-value	lines=1	bounds=Rect.fromLTRB(30.0, 455.0, 258.0, 479.0)	ink=93	background=ff1b2018	foreground=fff5f7f1	contrast=15.364045768310193
+picker-hint	lines=1	bounds=Rect.fromLTRB(20.0, 499.0, 179.0, 520.0)	ink=72	background=ff1b2018	foreground=ffb9c2b1	contrast=9.013319177364956
+picker-outline	band=Rect.fromLTRB(16.0, 455.8, 20.0, 472.6)	ink=18	color=ff86947b	contrast=5.160816290944032
+picker-arrow	trigger=Rect.fromLTRB(16.0, 439.0, 304.0, 495.0)	text=Rect.fromLTRB(30.0, 455.0, 258.0, 479.0)	arrow=Rect.fromLTRB(274.0, 465.0, 282.0, 469.0)	ink=20
+picker-error-layout	component=Rect.fromLTRB(16.0, 544.0, 304.0, 652.0)	viewport=Rect.fromLTRB(0.0, 0.0, 320.0, 744.0)
+picker-error-label	accessibleName=Required district	region=Rect.fromLTRB(16.0, 544.0, 304.0, 571.0)	ink=171
+picker-placeholder	lines=1	bounds=Rect.fromLTRB(30.0, 587.0, 258.0, 611.0)	ink=76	background=ff1b2018	foreground=ffb7c0af	contrast=8.82214893051107
+picker-error-support	lines=1	bounds=Rect.fromLTRB(20.0, 631.0, 192.0, 652.0)	ink=62	background=ff1b2018	foreground=fffdc2c8	contrast=10.839629292311951
+picker-error-outline	band=Rect.fromLTRB(16.0, 587.8, 20.0, 604.6)	ink=18	color=ffffc4ca	contrast=11.055639488647172
+picker-disabled-layout	component=Rect.fromLTRB(16.0, 636.0, 304.0, 744.0)	viewport=Rect.fromLTRB(0.0, 0.0, 320.0, 744.0)
+picker-disabled-label	accessibleName=Locked district	region=Rect.fromLTRB(16.0, 636.0, 304.0, 663.0)	ink=146
+picker-disabled-value	lines=1	bounds=Rect.fromLTRB(30.0, 679.0, 258.0, 703.0)	ink=71	background=ff30382a	foreground=ffb9c2b1	contrast=6.617914887192533
+picker-disabled-support	lines=1	bounds=Rect.fromLTRB(20.0, 723.0, 159.0, 744.0)	ink=65	background=ff1b2018	foreground=ffb7c0af	contrast=8.82214893051107
+picker-disabled-outline	band=Rect.fromLTRB(16.0, 679.8, 20.0, 696.6)	ink=18	color=ff86947b	contrast=3.78926367632408
+normal-layout	component=Rect.fromLTRB(16.0, 0.0, 304.0, 108.0)	viewport=Rect.fromLTRB(0.0, 0.0, 320.0, 744.0)
+focused-outline	band=Rect.fromLTRB(16.0, 51.3, 20.0, 75.6)	ink=41	color=ffc6ff00	contrast=13.98073302873107

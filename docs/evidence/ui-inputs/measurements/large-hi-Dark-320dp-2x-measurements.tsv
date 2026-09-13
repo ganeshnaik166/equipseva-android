@@ -1,0 +1,10 @@
+Native Robolectric API34; synthetic input specimens; no popup/device acceptance
+large-field-layout	component=Rect.fromLTRB(16.0, 16.0, 304.0, 410.0)	viewport=Rect.fromLTRB(0.0, 0.0, 320.0, 744.0)
+label	lines=2	bounds=Rect.fromLTRB(20.0, 16.0, 304.0, 105.0)	ink=2002	background=ff1b2018	foreground=ffffc4ca	contrast=11.055639488647172
+multiline	lines=3	bounds=Rect.fromLTRB(16.0, 111.0, 304.0, 410.0)	ink=2017	background=ff1b2018	foreground=fff3f5ef	contrast=15.096612569104877
+error	lines=3	bounds=Rect.fromLTRB(32.0, 284.0, 288.0, 410.0)	ink=1553	background=ff1b2018	foreground=ffffc4ca	contrast=11.055639488647172
+large-picker-layout	component=Rect.fromLTRB(16.0, 434.0, 304.0, 706.0)	viewport=Rect.fromLTRB(0.0, 0.0, 320.0, 744.0)
+large-picker-label	accessibleName=इंजीनियर का सेवा जिला चुनें	region=Rect.fromLTRB(16.0, 434.0, 304.0, 491.0)	ink=1580
+selection	lines=2	bounds=Rect.fromLTRB(30.0, 505.0, 258.0, 600.0)	ink=1321	background=ff1b2018	foreground=fff5f7f1	contrast=15.364045768310193
+hint	lines=2	bounds=Rect.fromLTRB(20.0, 618.0, 304.0, 706.0)	ink=1108	background=ff1b2018	foreground=ffb9c2b1	contrast=9.013319177364956
+large-picker-arrow	trigger=Rect.fromLTRB(16.0, 491.0, 304.0, 614.0)	text=Rect.fromLTRB(30.0, 505.0, 258.0, 600.0)	arrow=Rect.fromLTRB(274.0, 551.0, 282.0, 555.0)	ink=20

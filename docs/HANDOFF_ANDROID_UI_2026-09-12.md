@@ -1,5 +1,9 @@
 # Android continuation: lime/ink foundation and shared actions
 
+> Newest continuation: [13 September shared inputs](HANDOFF_ANDROID_UI_2026-09-13.md).
+> Fields/dropdowns are locally accepted at `694bf690`; the foundation/action
+> record below remains historical evidence. Continue from the newer handoff.
+
 ## Latest saved UI milestone
 
 Continue from `codex/auth-integration-20260911` in

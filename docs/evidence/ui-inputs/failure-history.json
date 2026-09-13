@@ -1,0 +1,484 @@
+{
+  "scope": "Preserved failures and corrected test oracles, including the invalid 2x probe",
+  "rawEvidenceDirectory": "work/verification/ui-inputs-20260913",
+  "history": [
+    {
+      "phase": "red",
+      "logFile": "red.log",
+      "logSha256": "dc6e8032c13b8ac4cb1a90e051df3784b377b322de68ae7b56a71393465dfcea",
+      "note": "Baseline: 10 tests, 8 failures; one disabled-node selector was an invalid test oracle.",
+      "buildResult": "BUILD FAILED in 1m 10s",
+      "totals": {
+        "suites": 1,
+        "tests": 10,
+        "failures": 8,
+        "errors": 0,
+        "skipped": 0
+      },
+      "failingCases": [
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputContractTest",
+          "case": "editable node retains its label after typing and exposes exact error",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: Failed to assert the following: ((Text + InputText + EditableText contains 'Email address' (ignoreCase: false)) || (ContentDescription = 'Email address' (ignoreCase: false)))\nSemantics of the node:\nNode #5 at (l=16.0, t=99.0, r=304.0, b=155.0)px\nEditableText = ''\nError = 'Invalid input'\nFocused = 'false'\nImeAction = 'Next'\nIsEditable = 'true'\nTextSelectionRange = 'TextRange(0, 0)'\nActions = [GetTextLayoutResult, InsertTextAtCursor, OnClick, OnLongClick, PasteText, PerformImeAction, RequestFocus, SetSelection, SetText]\nMergeDescendants = 'true'\nHas 2 siblings\nSelector used: (SetText is defined)\n",
+          "xmlSha256": "64c35438cf56a54c2d9dca7b892e6870f19daa5e2bc9fc9d5264a0475b531b08"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputContractTest",
+          "case": "same option from a retired opening cannot select in a fresh opening",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: expected:<[Same state]> but was:<[Same state, Same state]>",
+          "xmlSha256": "64c35438cf56a54c2d9dca7b892e6870f19daa5e2bc9fc9d5264a0475b531b08"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputContractTest",
+          "case": "late menu selection cannot publish after options replacement",
+          "kind": "failure",
+          "message": "java.lang.AssertionError",
+          "xmlSha256": "64c35438cf56a54c2d9dca7b892e6870f19daa5e2bc9fc9d5264a0475b531b08"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputContractTest",
+          "case": "dropdown trigger has name exact error and a 56dp physical target",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: Actual height is 52.0.dp, expected at least 56.0.dp (tolerance: 0.5.dp)",
+          "xmlSha256": "64c35438cf56a54c2d9dca7b892e6870f19daa5e2bc9fc9d5264a0475b531b08"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputContractTest",
+          "case": "disabled then reenabled menu requires a fresh gesture",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: Failed: assertDoesNotExist.\nReason: Did not expect any node but found '1' node that satisfies: (Text + InputText + EditableText contains 'First' (ignoreCase: false))\nNode found:\nNode #107 at (l=0.0, t=8.0, r=288.0, b=56.0)px\nFocused = 'false'\nText = '[First]'\nActions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]\nMergeDescendants = 'true'\n",
+          "xmlSha256": "64c35438cf56a54c2d9dca7b892e6870f19daa5e2bc9fc9d5264a0475b531b08"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputContractTest",
+          "case": "option replacement clears hidden search without changing controlled value",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'Fresh state' (ignoreCase: false) is not displayed!",
+          "xmlSha256": "64c35438cf56a54c2d9dca7b892e6870f19daa5e2bc9fc9d5264a0475b531b08"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputContractTest",
+          "case": "empty then restored options do not reopen an old menu",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: Failed: assertDoesNotExist.\nReason: Did not expect any node but found '1' node that satisfies: (Text + InputText + EditableText contains 'First' (ignoreCase: false))\nNode found:\nNode #190 at (l=0.0, t=8.0, r=288.0, b=56.0)px\nFocused = 'false'\nText = '[First]'\nActions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]\nMergeDescendants = 'true'\n",
+          "xmlSha256": "64c35438cf56a54c2d9dca7b892e6870f19daa5e2bc9fc9d5264a0475b531b08"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputContractTest",
+          "case": "disabled time display preserves its outer picker action",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: Failed to inject touch input.\nReason: Expected exactly '1' node but could not find any node that satisfies: ((OnClick is defined) && (hasAnyDescendantThat(SetText is defined)))\n",
+          "xmlSha256": "64c35438cf56a54c2d9dca7b892e6870f19daa5e2bc9fc9d5264a0475b531b08"
+        }
+      ]
+    },
+    {
+      "phase": "red-corrected",
+      "logFile": "red-corrected.log",
+      "logSha256": "1814e05cd041960768f6e7adb39d6f0dd67bab521b94f3d6396bf0361be9b533",
+      "note": "Corrected selector only, unchanged production: 10 tests, 7 real failures.",
+      "buildResult": "BUILD FAILED in 51s",
+      "totals": {
+        "suites": 1,
+        "tests": 10,
+        "failures": 7,
+        "errors": 0,
+        "skipped": 0
+      },
+      "failingCases": [
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputContractTest",
+          "case": "editable node retains its label after typing and exposes exact error",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: Failed to assert the following: ((Text + InputText + EditableText contains 'Email address' (ignoreCase: false)) || (ContentDescription = 'Email address' (ignoreCase: false)))\nSemantics of the node:\nNode #5 at (l=16.0, t=99.0, r=304.0, b=155.0)px\nEditableText = ''\nError = 'Invalid input'\nFocused = 'false'\nImeAction = 'Next'\nIsEditable = 'true'\nTextSelectionRange = 'TextRange(0, 0)'\nActions = [GetTextLayoutResult, InsertTextAtCursor, OnClick, OnLongClick, PasteText, PerformImeAction, RequestFocus, SetSelection, SetText]\nMergeDescendants = 'true'\nHas 2 siblings\nSelector used: (SetText is defined)\n",
+          "xmlSha256": "ac9f5176b8231cc8e8470ae9e88c19193c990da04eb93fbad0ed4a761b00af77"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputContractTest",
+          "case": "same option from a retired opening cannot select in a fresh opening",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: expected:<[Same state]> but was:<[Same state, Same state]>",
+          "xmlSha256": "ac9f5176b8231cc8e8470ae9e88c19193c990da04eb93fbad0ed4a761b00af77"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputContractTest",
+          "case": "late menu selection cannot publish after options replacement",
+          "kind": "failure",
+          "message": "java.lang.AssertionError",
+          "xmlSha256": "ac9f5176b8231cc8e8470ae9e88c19193c990da04eb93fbad0ed4a761b00af77"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputContractTest",
+          "case": "dropdown trigger has name exact error and a 56dp physical target",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: Actual height is 52.0.dp, expected at least 56.0.dp (tolerance: 0.5.dp)",
+          "xmlSha256": "ac9f5176b8231cc8e8470ae9e88c19193c990da04eb93fbad0ed4a761b00af77"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputContractTest",
+          "case": "disabled then reenabled menu requires a fresh gesture",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: Failed: assertDoesNotExist.\nReason: Did not expect any node but found '1' node that satisfies: (Text + InputText + EditableText contains 'First' (ignoreCase: false))\nNode found:\nNode #107 at (l=0.0, t=8.0, r=288.0, b=56.0)px\nFocused = 'false'\nText = '[First]'\nActions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]\nMergeDescendants = 'true'\n",
+          "xmlSha256": "ac9f5176b8231cc8e8470ae9e88c19193c990da04eb93fbad0ed4a761b00af77"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputContractTest",
+          "case": "option replacement clears hidden search without changing controlled value",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'Fresh state' (ignoreCase: false) is not displayed!",
+          "xmlSha256": "ac9f5176b8231cc8e8470ae9e88c19193c990da04eb93fbad0ed4a761b00af77"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputContractTest",
+          "case": "empty then restored options do not reopen an old menu",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: Failed: assertDoesNotExist.\nReason: Did not expect any node but found '1' node that satisfies: (Text + InputText + EditableText contains 'First' (ignoreCase: false))\nNode found:\nNode #190 at (l=0.0, t=8.0, r=288.0, b=56.0)px\nFocused = 'false'\nText = '[First]'\nActions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]\nMergeDescendants = 'true'\n",
+          "xmlSha256": "ac9f5176b8231cc8e8470ae9e88c19193c990da04eb93fbad0ed4a761b00af77"
+        }
+      ]
+    },
+    {
+      "phase": "target-1",
+      "logFile": "target-1.log",
+      "logSha256": "d580522f6a93e9f310707528cf3dc949ba0e98524153e31f83a49c0f1097e85b",
+      "note": "15 tests, 2 failures: new-popup touch-mode setup and invalid NO_SUGGESTIONS expectation. Native EditorInfo is compared with the unchanged baseline fixture instead.",
+      "buildResult": "BUILD FAILED in 2m 23s",
+      "totals": {
+        "suites": 1,
+        "tests": 15,
+        "failures": 2,
+        "errors": 0,
+        "skipped": 0
+      },
+      "failingCases": [
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputContractTest",
+          "case": "hardware keyboard opens selects dismisses and returns focus",
+          "kind": "failure",
+          "message": "java.lang.AssertionError",
+          "xmlSha256": "a1ff81c712c538246199226203f6898361c30435d41eccf93857df421d98284c"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputContractTest",
+          "case": "password and email request secure native IME options",
+          "kind": "failure",
+          "message": "java.lang.AssertionError",
+          "xmlSha256": "a1ff81c712c538246199226203f6898361c30435d41eccf93857df421d98284c"
+        }
+      ]
+    },
+    {
+      "phase": "target-2",
+      "logFile": "target-2.log",
+      "logSha256": "9a4f5c118e2d87227075f5fa04d72b6ee91bcbf73a56efd27dc58602d979df1b",
+      "note": "33 tests, 16 failures: real 2x floating-label overflow plus unnamed quiet-hour actions. Persistent labels and one named outer time action fixed the defects.",
+      "buildResult": "BUILD FAILED in 1m 33s",
+      "totals": {
+        "suites": 2,
+        "tests": 33,
+        "failures": 16,
+        "errors": 0,
+        "skipped": 0
+      },
+      "failingCases": [
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputContractTest",
+          "case": "disabled time display preserves its outer picker action",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: Failed to assert the following: ((Text + InputText + EditableText contains 'Start time' (ignoreCase: false)) || (ContentDescription = 'Start time' (ignoreCase: false)))\nSemantics of the node:\nNode #598 at (l=16.0, t=72.0, r=304.0, b=136.0)px, Tag: 'time-picker'\nFocused = 'false'\nActions = [OnClick, RequestFocus]\nMergeDescendants = 'true'\nHas 1 child\nSelector used: (TestTag = 'time-picker')\n",
+          "xmlSha256": "58934398c39539322a88a95e6c7622151f6683507639334b4fdaf690c7a4280b"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputGalleryTest",
+          "case": "Telugu long fixed light inputs fit inside dark parent",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: label remains within its component: inner=Rect.fromLTRB(32.0, -7.0, 288.0, 72.0) outer=Rect.fromLTRB(16.0, 16.0, 304.0, 334.0)",
+          "xmlSha256": "33e572e8af5fbe982aeb1f5c25388f757139ed61e30e580c866e292aed23c06f"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputGalleryTest",
+          "case": "Hindi long inputs fit at two times text size in dark",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: label remains within its component: inner=Rect.fromLTRB(32.0, -12.0, 288.0, 77.0) outer=Rect.fromLTRB(16.0, 16.0, 304.0, 360.0)",
+          "xmlSha256": "33e572e8af5fbe982aeb1f5c25388f757139ed61e30e580c866e292aed23c06f"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputGalleryTest",
+          "case": "dark inputs paint paired glyphs boundaries and focus",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: normal-label remains within its component: inner=Rect.fromLTRB(32.0, 14.0, 106.0, 35.0) outer=Rect.fromLTRB(16.0, 16.0, 304.0, 105.0)",
+          "xmlSha256": "33e572e8af5fbe982aeb1f5c25388f757139ed61e30e580c866e292aed23c06f"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputGalleryTest",
+          "case": "English long inputs fit at two times text size in dark",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: label remains within its component: inner=Rect.fromLTRB(32.0, -6.0, 288.0, 70.0) outer=Rect.fromLTRB(16.0, 16.0, 304.0, 372.0)",
+          "xmlSha256": "33e572e8af5fbe982aeb1f5c25388f757139ed61e30e580c866e292aed23c06f"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputGalleryTest",
+          "case": "Telugu long inputs fit at two times text size in light",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: label remains within its component: inner=Rect.fromLTRB(32.0, -7.0, 288.0, 72.0) outer=Rect.fromLTRB(16.0, 16.0, 304.0, 334.0)",
+          "xmlSha256": "33e572e8af5fbe982aeb1f5c25388f757139ed61e30e580c866e292aed23c06f"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputGalleryTest",
+          "case": "English long inputs fit at two times text size in light",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: label remains within its component: inner=Rect.fromLTRB(32.0, -6.0, 288.0, 70.0) outer=Rect.fromLTRB(16.0, 16.0, 304.0, 372.0)",
+          "xmlSha256": "33e572e8af5fbe982aeb1f5c25388f757139ed61e30e580c866e292aed23c06f"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputGalleryTest",
+          "case": "Hindi long fixed light inputs fit inside dark parent",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: label remains within its component: inner=Rect.fromLTRB(32.0, -12.0, 288.0, 77.0) outer=Rect.fromLTRB(16.0, 16.0, 304.0, 360.0)",
+          "xmlSha256": "33e572e8af5fbe982aeb1f5c25388f757139ed61e30e580c866e292aed23c06f"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputGalleryTest",
+          "case": "Hindi long inputs fit at two times text size in light",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: label remains within its component: inner=Rect.fromLTRB(32.0, -12.0, 288.0, 77.0) outer=Rect.fromLTRB(16.0, 16.0, 304.0, 360.0)",
+          "xmlSha256": "33e572e8af5fbe982aeb1f5c25388f757139ed61e30e580c866e292aed23c06f"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputGalleryTest",
+          "case": "English long fixed light inputs fit inside dark parent",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: label remains within its component: inner=Rect.fromLTRB(32.0, -6.0, 288.0, 70.0) outer=Rect.fromLTRB(16.0, 16.0, 304.0, 372.0)",
+          "xmlSha256": "33e572e8af5fbe982aeb1f5c25388f757139ed61e30e580c866e292aed23c06f"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputGalleryTest",
+          "case": "Telugu weighted payout input and save fit at two times text size",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: floor-label remains within its component: inner=Rect.fromLTRB(48.0, 103.0, 170.0, 182.0) outer=Rect.fromLTRB(32.0, 126.0, 186.0, 240.0)",
+          "xmlSha256": "33e572e8af5fbe982aeb1f5c25388f757139ed61e30e580c866e292aed23c06f"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputGalleryTest",
+          "case": "Telugu long inputs fit at two times text size in dark",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: label remains within its component: inner=Rect.fromLTRB(32.0, -7.0, 288.0, 72.0) outer=Rect.fromLTRB(16.0, 16.0, 304.0, 334.0)",
+          "xmlSha256": "33e572e8af5fbe982aeb1f5c25388f757139ed61e30e580c866e292aed23c06f"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputGalleryTest",
+          "case": "light inputs paint paired glyphs boundaries and focus",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: normal-label remains within its component: inner=Rect.fromLTRB(32.0, 14.0, 106.0, 35.0) outer=Rect.fromLTRB(16.0, 16.0, 304.0, 105.0)",
+          "xmlSha256": "33e572e8af5fbe982aeb1f5c25388f757139ed61e30e580c866e292aed23c06f"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputGalleryTest",
+          "case": "explicit light inputs remain paired inside a dark parent",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: normal-label remains within its component: inner=Rect.fromLTRB(32.0, 14.0, 106.0, 35.0) outer=Rect.fromLTRB(16.0, 16.0, 304.0, 105.0)",
+          "xmlSha256": "33e572e8af5fbe982aeb1f5c25388f757139ed61e30e580c866e292aed23c06f"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputGalleryTest",
+          "case": "Hindi weighted payout input and save fit at two times text size",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: floor-label remains within its component: inner=Rect.fromLTRB(48.0, 107.0, 169.0, 196.0) outer=Rect.fromLTRB(32.0, 135.0, 185.0, 265.0)",
+          "xmlSha256": "33e572e8af5fbe982aeb1f5c25388f757139ed61e30e580c866e292aed23c06f"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputGalleryTest",
+          "case": "English weighted payout input and save fit at two times text size",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: floor-label remains within its component: inner=Rect.fromLTRB(48.0, 64.0, 165.0, 216.0) outer=Rect.fromLTRB(32.0, 124.0, 181.0, 274.0)",
+          "xmlSha256": "33e572e8af5fbe982aeb1f5c25388f757139ed61e30e580c866e292aed23c06f"
+        }
+      ]
+    },
+    {
+      "phase": "target-3",
+      "logFile": "target-3.log",
+      "logSha256": "3e00da54e91e9d007d670523bd4ee7db6ef971acdcc19f133013ca7f142f6e43",
+      "note": "33 tests passed after label and quiet-hour fixes.",
+      "buildResult": "BUILD SUCCESSFUL in 1m 40s",
+      "totals": {
+        "suites": 2,
+        "tests": 33,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "failingCases": []
+    },
+    {
+      "phase": "target-4",
+      "logFile": "target-4.log",
+      "logSha256": "f020c15d1fd29183c8d4885613fc8173e8be8a56975b867b21b2e7d896c719be",
+      "note": "Test helper compilation failed because performTextInput returns Unit. Fixed caller chaining before runtime; no runtime test result claimed.",
+      "buildResult": "BUILD FAILED in 34s",
+      "totals": null,
+      "failingCases": []
+    },
+    {
+      "phase": "target-5",
+      "logFile": "target-5.log",
+      "logSha256": "33811977418f8540711ed47ef02e65e323f70bbef07525448410fa8998f3a17a",
+      "note": "39 tests, 3 failures: popup lacked window activation so caret did not blink. Delivered the actual native focus event; kept the finite-frame oracle.",
+      "buildResult": "BUILD FAILED in 1m 5s",
+      "totals": {
+        "suites": 3,
+        "tests": 39,
+        "failures": 3,
+        "errors": 0,
+        "skipped": 0
+      },
+      "failingCases": [
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputPopupGalleryTest",
+          "case": "light popup paints options search cursor and disabled empty result",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: Actual popup caret alternates with its paired background",
+          "xmlSha256": "0a0d74c5c796e3332556f6e2c5ce091df9863a3617758acf2dc5de1e64752a53"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputPopupGalleryTest",
+          "case": "dark popup paints options search cursor and disabled empty result",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: Actual popup caret alternates with its paired background",
+          "xmlSha256": "0a0d74c5c796e3332556f6e2c5ce091df9863a3617758acf2dc5de1e64752a53"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputPopupGalleryTest",
+          "case": "explicit light popup stays paired in a dark app",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: Actual popup caret alternates with its paired background",
+          "xmlSha256": "0a0d74c5c796e3332556f6e2c5ce091df9863a3617758acf2dc5de1e64752a53"
+        }
+      ]
+    },
+    {
+      "phase": "target-6-popup",
+      "logFile": "target-6-popup.log",
+      "logSha256": "a274390a7848243db0da2ca1a24720d748e85b03d83da31aae7d34305d01fd59",
+      "note": "All three popup cases passed after native window-focus harness correction. Exact log preserved; suite hashes are in the later full bar.",
+      "buildResult": "BUILD SUCCESSFUL in 50s",
+      "totals": null,
+      "failingCases": []
+    },
+    {
+      "phase": "fullbar",
+      "logFile": "fullbar.log",
+      "logSha256": "ef77573b3a6a34e643472ab118501b17903b256a587aa92beee5769adabbb752",
+      "note": "9620da6d: 3194 tests, 362 suites, zero failures; lint/debug/unsigned release passed.",
+      "buildResult": "BUILD SUCCESSFUL in 9m 14s",
+      "totals": null,
+      "failingCases": []
+    },
+    {
+      "phase": "target-7-layout",
+      "logFile": "target-7-layout.log",
+      "logSha256": "44485227dcdce14b9b2d1e7c4b7fe94286cace326a70a6b791d73a432abd8080",
+      "note": "25 tests passed, but the popup 2x claims were false: the popup window replaced outer LocalDensity and used 1x. Preserved as inadequate size evidence.",
+      "buildResult": "BUILD SUCCESSFUL in 1m 7s",
+      "totals": {
+        "suites": 2,
+        "tests": 25,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "failingCases": []
+    },
+    {
+      "phase": "fullbar-final",
+      "logFile": "fullbar-final.log",
+      "logSha256": "2c3ba1c676e9fb07db8f7441c6ee63581014a85922c56982c507e7f1d82c8be5",
+      "note": "094000ad: 3198 tests passed; this did not establish actual popup 2x size. Original complete XML and captures retained.",
+      "buildResult": "BUILD SUCCESSFUL in 6m 21s",
+      "totals": {
+        "suites": 362,
+        "tests": 3198,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "failingCases": []
+    },
+    {
+      "phase": "target-8-actual-scale-red",
+      "logFile": "target-8-actual-scale-red.log",
+      "logSha256": "3bd65ec20ad2f7cdba3f7323ae8dd3178aa1af2a301070b0cd6c77da2e293e77",
+      "note": "Discriminating layout density assertion: 7 tests, 4 failures, each actual fontScale1.0 instead of requested2.0. No production size defect asserted.",
+      "buildResult": "BUILD FAILED in 1m 1s",
+      "totals": {
+        "suites": 2,
+        "tests": 7,
+        "failures": 4,
+        "errors": 0,
+        "skipped": 0
+      },
+      "failingCases": [
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputContractTest",
+          "case": "short landscape keeps large text fields and searched choices reachable",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: The landscape popup must use real 2x text expected:<2.0> but was:<1.0>",
+          "xmlSha256": "97346e01e07424f8fcaeb462f0dbd8d1851eacf4af5a0cb3e44d5d2f662c058e"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputPopupGalleryTest",
+          "case": "Telugu dark popup search remains visible at two times text size",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: The popup window must render the requested font scale: option expected:<2.0> but was:<1.0>",
+          "xmlSha256": "19db26b69b5e30821bc96b9ab4dddef7b38e33a2ea2d0a16fa91cddf92085ba4"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputPopupGalleryTest",
+          "case": "Telugu fixed light popup search remains visible at two times text size",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: The popup window must render the requested font scale: option expected:<2.0> but was:<1.0>",
+          "xmlSha256": "19db26b69b5e30821bc96b9ab4dddef7b38e33a2ea2d0a16fa91cddf92085ba4"
+        },
+        {
+          "suite": "com.equipseva.app.designsystem.components.SharedInputPopupGalleryTest",
+          "case": "Hindi popup search remains visible at two times text size",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: The popup window must render the requested font scale: option expected:<2.0> but was:<1.0>",
+          "xmlSha256": "19db26b69b5e30821bc96b9ab4dddef7b38e33a2ea2d0a16fa91cddf92085ba4"
+        }
+      ]
+    },
+    {
+      "phase": "target-9-platform-scale",
+      "logFile": "target-9-platform-scale.log",
+      "logSha256": "c1f6d80e23a0b0276d6119b7872bae2429f3f15573a9c80d0da4a19bc408caf2",
+      "note": "25 tests passed with actual platform scale set before window creation and restored in teardown. Every requested popup layout asserts2.0; pixels, containment, caret and real selection retained.",
+      "buildResult": "BUILD SUCCESSFUL in 59s",
+      "totals": {
+        "suites": 2,
+        "tests": 25,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "failingCases": []
+    },
+    {
+      "phase": "fullbar-accepted",
+      "logFile": "fullbar-accepted.log",
+      "logSha256": "5a2790bde18305c22b4c17a6de1ba3999496a0f5ce2e3bdb9d78a99a57b92abb",
+      "note": "Final complete source-bound bar on694bf690, with actual-density assertions included.",
+      "buildResult": "BUILD SUCCESSFUL in 5m 39s",
+      "totals": {
+        "suites": 362,
+        "tests": 3198,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "failingCases": []
+    }
+  ]
+}

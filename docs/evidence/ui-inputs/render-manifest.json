@@ -1,0 +1,265 @@
+{
+  "revision": "694bf690929f869277513d27f72bf24697a3d2a5",
+  "capture": "Original synthetic Robolectric native-render specimens onAPI34, no real account",
+  "limits": "Popup captures use their own Android window and assert actual fontScale. Activity gallery uses an explicit composition density. Neither is physical-device or native-language acceptance.",
+  "files": [
+    {
+      "file": "renders/palette-Light-normal-visible.png",
+      "sha256": "a670701bc014f3048aa7a4ac33c27f73a70a9e148603b7aa824cd0314db62e09",
+      "bytes": 42330,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "renders/palette-Dark-normal-visible.png",
+      "sha256": "147436588d48dc02e90b286eef915acf1b2edb923202e29dbb7f28b7c7eae532",
+      "bytes": 42558,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "renders/palette-Dark-error-visible.png",
+      "sha256": "c12b0876adaa6465cfb02146841cb62a49823f49e9ba1b54951fc2ec60c6a772",
+      "bytes": 42110,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "renders/palette-Dark-disabled-visible.png",
+      "sha256": "c12b0876adaa6465cfb02146841cb62a49823f49e9ba1b54951fc2ec60c6a772",
+      "bytes": 42110,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "renders/palette-FixedLightInDark-normal-visible.png",
+      "sha256": "c816a2eca0c30220db700edc3fc3059204711c1996768f74e9118356368aeb77",
+      "bytes": 42608,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "renders/large-en-Light-320dp-2x-large-field-visible.png",
+      "sha256": "c5854ad5a818c2476bf99bd0b80c021e7dff4a77c2f53e6dab0b8a30416029d9",
+      "bytes": 55828,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "renders/large-hi-Light-320dp-2x-large-field-visible.png",
+      "sha256": "c9c42f24206709b6ddd28ffea9921a6c9348635fc030f4a646cb1dded56573f8",
+      "bytes": 51263,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "renders/large-te-Dark-320dp-2x-large-field-visible.png",
+      "sha256": "aeaec6ffa988b346031454142168eccacb5bd071bd6935a3c6a31e2991dc938c",
+      "bytes": 85696,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "renders/large-te-Dark-320dp-2x-large-picker-visible.png",
+      "sha256": "aeaec6ffa988b346031454142168eccacb5bd071bd6935a3c6a31e2991dc938c",
+      "bytes": 85696,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "renders/floor-en-320dp-2x-floor-row-visible.png",
+      "sha256": "b317f298145294213ab690be1cb4763d7744ff0322fc656a19d856259925bf8c",
+      "bytes": 19752,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "renders/floor-te-320dp-2x-floor-row-visible.png",
+      "sha256": "e40e29d6cb3e3e559fad42a920dfd772eb1ae7313e531554434348c38ef079ec",
+      "bytes": 20193,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "renders/decorations-Dark-selected-text.png",
+      "sha256": "a99584d0cb19814125dc91b94b646222ba4066aa3fa2b971e4a23d02d7ab577d",
+      "bytes": 8653,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "renders/popup-Light-hi-2.0x-search-value.png",
+      "sha256": "a3da957899ef715abfa07f061ea7424cb55abe9449518a8790148584ea29d897",
+      "bytes": 17560,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "renders/popup-Dark-te-2.0x-search-value.png",
+      "sha256": "7b35597871a046865216caa930498ce89c8a78a3559cf88d7d5953894343c18a",
+      "bytes": 22625,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "renders/popup-Dark-te-2.0x-disabled-no-matches.png",
+      "sha256": "ef381f791d16cf1be94e94d19e8c5ef523e43d8b00a1522d91cd426f24f8e0a8",
+      "bytes": 14075,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "renders/popup-FixedLightInDark-te-2.0x-search-value.png",
+      "sha256": "c6531090d654112fd40f17ce2875ad144f83f539cb97fcd8589c8ec1bcad4b30",
+      "bytes": 21959,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "renders/landscape-640dp-2x-popup.png",
+      "sha256": "489cfe86c096ff4e82d197f227bd05ff71f0e0b00d25b15bcd6fb6191a92dc8d",
+      "bytes": 8347,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/decorations-Dark-measurements.tsv",
+      "sha256": "2167e72d9ffa30a9af92f79fa9b12530c8cf98e65ffe1e1448ff0205415dcb76",
+      "bytes": 771,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/decorations-FixedLightInDark-measurements.tsv",
+      "sha256": "f6877efbbbd3c74c2a1ba4de80de12352ae8530727e7ca165dbb02dece913d2d",
+      "bytes": 770,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/decorations-Light-measurements.tsv",
+      "sha256": "f6877efbbbd3c74c2a1ba4de80de12352ae8530727e7ca165dbb02dece913d2d",
+      "bytes": 770,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/floor-en-320dp-2x-measurements.tsv",
+      "sha256": "ac177a22c96759f893d6c3e15e9a686fbc767af5c7db54f303661446939d78e2",
+      "bytes": 643,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/floor-hi-320dp-2x-measurements.tsv",
+      "sha256": "da61b1eb6ff882de2e5e0d0d45560ee1e5451f5ef89911c7d1e7b289965e533f",
+      "bytes": 643,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/floor-te-320dp-2x-measurements.tsv",
+      "sha256": "01e37cd54d7c3ea49321068d0b66d4e0bed8bf1bdbfbfea3f7bc5bb4bf462ba8",
+      "bytes": 643,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/landscape-640dp-2x-popup-measurements.tsv",
+      "sha256": "dd2308fd966b65e66d79dc4e58bd179d153f585e8b8897382a02b7429171b490",
+      "bytes": 83,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/large-en-Dark-320dp-2x-measurements.tsv",
+      "sha256": "54dd2c7833cc583023230b6718f3e219e46598a78ce46e21a3c4f57e81f2519e",
+      "bytes": 1309,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/large-en-FixedLightInDark-320dp-2x-measurements.tsv",
+      "sha256": "5c8c8c0f4724a434b5805324e27c0a8771426aadc5726c5724c2342ecdaa6bc9",
+      "bytes": 1305,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/large-en-Light-320dp-2x-measurements.tsv",
+      "sha256": "5c8c8c0f4724a434b5805324e27c0a8771426aadc5726c5724c2342ecdaa6bc9",
+      "bytes": 1305,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/large-hi-Dark-320dp-2x-measurements.tsv",
+      "sha256": "7686fd71666fd569c782edd63abd5b047e9f0059e9f435206d55ca5a09e7586c",
+      "bytes": 1348,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/large-hi-FixedLightInDark-320dp-2x-measurements.tsv",
+      "sha256": "f9b4fc63c29e5ddd3dbe49f91a757be040b245d25bba15586f735c497112f148",
+      "bytes": 1344,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/large-hi-Light-320dp-2x-measurements.tsv",
+      "sha256": "f9b4fc63c29e5ddd3dbe49f91a757be040b245d25bba15586f735c497112f148",
+      "bytes": 1344,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/large-te-Dark-320dp-2x-measurements.tsv",
+      "sha256": "d24334921ca36c6a4df3bc6a49e08810cc97c5e42d4761e0fe949ffcc021b4ec",
+      "bytes": 1364,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/large-te-FixedLightInDark-320dp-2x-measurements.tsv",
+      "sha256": "f5ec436d4c44b4d0b256fcf8e0721762cc0bfd92002df75a7fef6d4fc57990fd",
+      "bytes": 1360,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/large-te-Light-320dp-2x-measurements.tsv",
+      "sha256": "f5ec436d4c44b4d0b256fcf8e0721762cc0bfd92002df75a7fef6d4fc57990fd",
+      "bytes": 1360,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/palette-Dark-measurements.tsv",
+      "sha256": "082d3e9d27bf8de0144052c75a97c2b79839da122d853542f0a2d86476034c14",
+      "bytes": 4250,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/palette-FixedLightInDark-measurements.tsv",
+      "sha256": "bc09b8779bdcf6aad9c920b68a7b11a2a2e2804ff1d297baa78e243ff65d6ff8",
+      "bytes": 4246,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/palette-Light-measurements.tsv",
+      "sha256": "bc09b8779bdcf6aad9c920b68a7b11a2a2e2804ff1d297baa78e243ff65d6ff8",
+      "bytes": 4246,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/popup-Dark-en-1.0x-measurements.tsv",
+      "sha256": "0d52c2370b32adde3489a9a3e3cb8c7d9d0f2cd8a07c0265d6e8f48493533438",
+      "bytes": 2865,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/popup-Dark-te-2.0x-measurements.tsv",
+      "sha256": "9d26aa8a002489953a91a536796f4fb21c747bd66a0ee4c7a624af4db3a8522e",
+      "bytes": 2926,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/popup-FixedLightInDark-en-1.0x-measurements.tsv",
+      "sha256": "eb719ac905228f9fe317441d5082c37f3e064f71ab47710061a3898c2f904e14",
+      "bytes": 2862,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/popup-FixedLightInDark-te-2.0x-measurements.tsv",
+      "sha256": "8050252201357bcea21441b7868a0e15da527d0b0500f3ff31ae4fea663d4ebd",
+      "bytes": 2923,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/popup-Light-en-1.0x-measurements.tsv",
+      "sha256": "eb719ac905228f9fe317441d5082c37f3e064f71ab47710061a3898c2f904e14",
+      "bytes": 2862,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/popup-Light-hi-2.0x-measurements.tsv",
+      "sha256": "496440e130523b495d8fe037b331db71aacd4f8c1d27df927d72ca13bb300431",
+      "bytes": 2915,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    },
+    {
+      "file": "measurements/native-ime-options.txt",
+      "sha256": "c536ccea5f6195da0e77eb634f0870b5dbf47dfd0705df7268359b49c9eb0582",
+      "bytes": 68,
+      "generatedBy": "SharedInputContractTest, SharedInputGalleryTest or SharedInputPopupGalleryTest"
+    }
+  ]
+}

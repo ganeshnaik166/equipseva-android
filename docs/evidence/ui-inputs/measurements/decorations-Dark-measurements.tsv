@@ -1,0 +1,10 @@
+Native Robolectric API34; synthetic input specimens; no popup/device acceptance
+decorated-layout	component=Rect.fromLTRB(16.0, 16.0, 304.0, 99.0)	viewport=Rect.fromLTRB(0.0, 0.0, 320.0, 744.0)
+placeholder	lines=1	bounds=Rect.fromLTRB(68.0, 59.0, 173.0, 83.0)	ink=65	background=ff1b2018	foreground=ffb9c2b1	contrast=9.013319177364956
+normal-leading-icon	ink=31	contrast=9.013319177364956
+normal-trailing-icon	ink=24	contrast=9.013319177364956
+selection	bounds=Rect.fromLTRB(16.0, 43.0, 304.0, 99.0)	highlight=734	glyphs=78	contrast=6.060115278728778
+error-leading-icon	ink=31	contrast=11.055639488647172
+error-trailing-icon	ink=24	contrast=11.055639488647172
+disabled-leading-icon	ink=31	contrast=6.617914887192533
+disabled-trailing-icon	ink=24	contrast=6.617914887192533
