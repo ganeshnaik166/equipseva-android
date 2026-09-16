@@ -2,6 +2,14 @@ name: android
 
 on:
   pull_request:
+    # Same skip list as `push` below: a docs- or web-only PR does not need a
+    # 19-minute Android build. supabase/migrations/** deliberately still
+    # triggers it (the unit tests carry CHECK-constraint mirrors).
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+      - "web/**"
+      - "website/**"
   push:
     # Round 3768 — was `[main]` only. `main` is a frozen, stale snapshot
     # (see the ops-branch handoff note); ALL active development happens
