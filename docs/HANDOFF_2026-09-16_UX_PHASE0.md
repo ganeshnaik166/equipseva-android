@@ -84,6 +84,7 @@ re-record needed after this merge.
 | U22a | `RepairJobDetailScreen` → thin wrapper + `RepairJobDetailContent(state, actions, …)` + `RepairJobDetailActions` (37 members) + 9 fixture states. | compile clean, 116/116 screenshot tests render locally. |
 | U22b | 30 composables moved verbatim into `repair/detail/sections/*` (7 files) + `repair/detail/sheets/*` (7 files); helpers stay in place (tests import that package). | all **116** goldens (107 existing + the 9 new detail states) byte-identical before/after on the same machine; screen file 3,584 → 1,263 lines; compile clean; ratchet unchanged. |
 | CI hygiene | `android.yml` `pull_request` now has the same `paths-ignore` as `push` (docs/web/website-only PRs skip the 19-min build). | |
+| U23a (PR #1875) | Job-detail `HospitalBanner`: site name gets `weight(1f, fill = false)` so the "Verified" badge no longer wraps letter-by-letter next to long names. | local before/after: exactly the 6 banner-bearing detail goldens changed, 110 identical; Linux record dispatched on the PR branch (works now that `roborazzi.yml` is on `main`). |
 
 Merge point with Codex: their branch adds 3 lines to `RepairJobDetailScreen.kt` (`import …LightEsColors` + `contentColor = LightEsColors.text` in one section) — after U22b that section lives in `repair/detail/sections/…`; port the two lines there when merging.
 
