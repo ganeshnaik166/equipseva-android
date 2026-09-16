@@ -77,8 +77,19 @@ Golden renders changed by the glyph repair: **none** — re-rendered all 107 wit
 machine, byte-identical (none of the 111 repaired strings is on a pinned screen or design-system preview). No
 re-record needed after this merge.
 
+## Part 3 (overnight, founder asleep — "carry on for 2 hours, no questions")
+| item | what | proof |
+|---|---|---|
+| web console (PR #1873, merged) | `web/` typecheck 9,734 → 0. Root cause: 125 generated founder pages use `{ header, accessor }` / `{ header, cell }` columns that `DataTable`'s `Column<T>` never declared — type errors AND every cell on those pages rendered "—" (`row[undefined]`). `Column<T>` is now keyed \| accessor \| cell; residual 106 fixed (dead `?? i`, missing `await`, `label:`→`header:`, explicit `<DataTable<RowType>>`). `npm test` render smoke test wired into `web.yml`. | web CI green: typecheck ✓, smoke ✓, `next build` of 3,005 routes ✓ (4m57s). A red `web` run is a real regression from now on. |
+| U22a | `RepairJobDetailScreen` → thin wrapper + `RepairJobDetailContent(state, actions, …)` + `RepairJobDetailActions` (37 members) + 9 fixture states. | compile clean, 116/116 screenshot tests render locally. |
+| U22b | 30 composables moved verbatim into `repair/detail/sections/*` (7 files) + `repair/detail/sheets/*` (7 files); helpers stay in place (tests import that package). | all **116** goldens (107 existing + the 9 new detail states) byte-identical before/after on the same machine; screen file 3,584 → 1,263 lines; compile clean; ratchet unchanged. |
+| CI hygiene | `android.yml` `pull_request` now has the same `paths-ignore` as `push` (docs/web/website-only PRs skip the 19-min build). | |
+
+Merge point with Codex: their branch adds 3 lines to `RepairJobDetailScreen.kt` (`import …LightEsColors` + `contentColor = LightEsColors.text` in one section) — after U22b that section lives in `repair/detail/sections/…`; port the two lines there when merging.
+
 ## Next (resume here)
-1. Merge the Part-2 PR (no golden re-record needed); close issue #1871 once the other branches have rebased.
+1. After the U22 PR merges: Actions → `roborazzi` → `record = true` on `main` (9 new `RepairJobDetailScreen_*` goldens);
+   close issue #1871 once the other branches have rebased.
 2. Confirm tomorrow's 03:00 UTC `cron-tick-daily` is green (`select id, slot, ok, failed_slots from
    public.cron_tick_runs order by id desc limit 3` via `supabase db query --linked`).
 3. Phase 1 starts at **U05** (`Theme.kt` → Seva roles). The Codex branch also touches `Theme.kt`; agree the
