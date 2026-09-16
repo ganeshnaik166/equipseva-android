@@ -81,7 +81,34 @@ fun EarningsScreen(
     // frozen at whatever it was on first entry.
     com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.onRefresh() }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+    EarningsContent(
+        state = state,
+        onRefresh = viewModel::onRefresh,
+        onBack = onBack,
+        onJobClick = onJobClick,
+        onBankDetails = onBankDetails,
+        onBrowseJobs = onBrowseJobs,
+        onOpenActiveEscrows = onOpenActiveEscrows,
+        onOpenEarningsProjection = onOpenEarningsProjection,
+    )
+}
+
+// Stateless body so the screen renders from a plain UiState (previews,
+// screenshot fixtures) without a Hilt graph or lifecycle behind it.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun EarningsContent(
+    state: EarningsViewModel.UiState,
+    onRefresh: () -> Unit,
+    onBack: (() -> Unit)?,
+    onJobClick: (String) -> Unit,
+    onBankDetails: () -> Unit,
+    onBrowseJobs: () -> Unit,
+    onOpenActiveEscrows: () -> Unit,
+    onOpenEarningsProjection: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(modifier = modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(title = "Earnings", onBack = onBack)
             ErrorBanner(message = state.errorMessage)
@@ -99,7 +126,7 @@ fun EarningsScreen(
             }
             PullToRefreshBox(
                 isRefreshing = state.refreshing,
-                onRefresh = viewModel::onRefresh,
+                onRefresh = onRefresh,
                 modifier = Modifier.fillMaxSize(),
             ) {
                 when {
