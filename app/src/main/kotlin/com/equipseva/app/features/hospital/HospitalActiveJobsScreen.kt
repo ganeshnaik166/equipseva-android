@@ -54,6 +54,7 @@ import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.StatusPill
 import com.equipseva.app.designsystem.components.UrgencyPill
 import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.EsRadius
 import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.Paper2
 import com.equipseva.app.designsystem.theme.PaperDefault
@@ -62,6 +63,7 @@ import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk600
 import com.equipseva.app.designsystem.theme.SevaInk700
 import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.designsystem.theme.Spacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -151,7 +153,7 @@ internal fun HospitalActiveJobsContent(
 
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                        contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.md),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         items(items = state.visibleJobs, key = { it.id }) { job ->
@@ -166,7 +168,7 @@ internal fun HospitalActiveJobsContent(
 
             // Bottom CTA — full-width, sticky-feeling because it sits below
             // the scrollable list and above the bottom nav.
-            Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Box(modifier = Modifier.fillMaxWidth().padding(Spacing.lg)) {
                 EsBtn(
                     text = "Post new job",
                     onClick = onRequestRepair,
@@ -200,8 +202,8 @@ private fun FilterChipsRow(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         FilterChip(
             label = "All ($allCount)",
@@ -232,14 +234,14 @@ private fun FilterChip(
     active: Boolean,
     onClick: () -> Unit,
 ) {
-    val shape = RoundedCornerShape(999.dp)
+    val shape = RoundedCornerShape(EsRadius.Pill)
     Box(
         modifier = Modifier
             .clip(shape)
             .background(if (active) SevaGreen700 else Color.White)
             .border(1.dp, if (active) SevaGreen700 else BorderDefault, shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
     ) {
         Text(
             text = label,
@@ -254,7 +256,7 @@ private fun HospitalBookingCard(
     job: RepairJob,
     onClick: () -> Unit,
 ) {
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(EsRadius.Lg)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -263,11 +265,11 @@ private fun HospitalBookingCard(
             .border(1.dp, BorderDefault, shape)
             .clickable(onClick = onClick)
             .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalAlignment = Alignment.Top,
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -282,7 +284,7 @@ private fun HospitalBookingCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (!job.siteLocation.isNullOrBlank()) {
-                    Spacer(Modifier.height(2.dp))
+                    Spacer(Modifier.height(Spacing.xxs))
                     Text(
                         text = job.siteLocation!!,
                         style = EsType.Caption,
@@ -294,7 +296,7 @@ private fun HospitalBookingCard(
             }
             Column(
                 horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
                 StatusPill(status = job.status)
                 if (job.urgency == RepairJobUrgency.Emergency ||

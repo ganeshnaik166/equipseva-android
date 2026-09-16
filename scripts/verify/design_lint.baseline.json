@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-09-16T13:29:36Z",
-  "git_commit": "fe463756",
+  "generated_at": "2026-09-16T16:09:04Z",
+  "git_commit": "ee885deb",
   "negative": {
-    "raw_dp": 2350,
+    "raw_dp": 2265,
     "raw_sp": 666,
     "font_size_assign": 634,
     "raw_color_hex": 7,
@@ -22,8 +22,8 @@
     "motion_tokens": 0,
     "es_btn": 142,
     "es_field": 57,
-    "spacing_tokens": 83,
-    "es_radius": 0,
+    "spacing_tokens": 156,
+    "es_radius": 12,
     "es_type": 226,
     "animated_visibility": 0,
     "animate_content_size": 0,
@@ -32,7 +32,7 @@
     "content_description_meaningful": 32,
     "content_description_null": 131,
     "test_tags": 0,
-    "previews": 2
+    "previews": 80
   },
   "per_feature": {
     "about": {
@@ -53,7 +53,7 @@
       "hardcoded_text": 0
     },
     "activework": {
-      "raw_dp": 10,
+      "raw_dp": 2,
       "raw_sp": 0,
       "font_size_assign": 0,
       "raw_color_hex": 0,
@@ -121,7 +121,7 @@
       "hardcoded_text": 0
     },
     "earnings": {
-      "raw_dp": 70,
+      "raw_dp": 23,
       "raw_sp": 36,
       "font_size_assign": 36,
       "raw_color_hex": 1,
@@ -206,7 +206,7 @@
       "hardcoded_text": 0
     },
     "hospital": {
-      "raw_dp": 82,
+      "raw_dp": 68,
       "raw_sp": 28,
       "font_size_assign": 24,
       "raw_color_hex": 0,
@@ -240,7 +240,7 @@
       "hardcoded_text": 0
     },
     "mybids": {
-      "raw_dp": 48,
+      "raw_dp": 32,
       "raw_sp": 0,
       "font_size_assign": 0,
       "raw_color_hex": 0,
