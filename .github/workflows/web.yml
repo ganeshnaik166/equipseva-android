@@ -49,6 +49,12 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
+      # Renders DataTable with every column shape the generated founder pages
+      # use (keyed, accessor, cell) and asserts real cell values — the bug this
+      # guards against was ~125 pages rendering "—" in every cell.
+      - name: DataTable render smoke test
+        run: npm test
+
       - name: Build (with placeholder env vars)
         env:
           # Build needs NEXT_PUBLIC_* to compile but they're not used

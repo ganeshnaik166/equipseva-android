@@ -8,3 +8,6 @@ out
 .turbo
 next-env.d.ts
 *.tsbuildinfo
+
+# bundled output of `npm run test:datatable`
+.smoke/
