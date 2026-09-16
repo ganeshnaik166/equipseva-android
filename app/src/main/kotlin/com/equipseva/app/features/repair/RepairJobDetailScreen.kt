@@ -162,14 +162,6 @@ fun RepairJobDetailScreen(
     viewModel: RepairJobDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var withdrawConfirmOpen by rememberSaveable { mutableStateOf(false) }
-    var checkinSheetOpen by rememberSaveable { mutableStateOf(false) }
-    var cancelSheetOpen by rememberSaveable { mutableStateOf(false) }
-    var rateSheetOpen by rememberSaveable { mutableStateOf(false) }
-    // FIX #10 — Help & Support escalation sheet, opened from the '?'
-    // icon in the top bar. Passes jobNumber so the report-form mailto
-    // subject is pre-tagged with the public job ref.
-    var helpSheetOpen by rememberSaveable { mutableStateOf(false) }
 
     // Round 426 — re-fetch on return so new bids / status flips / cost-
     // revision outcomes that landed while the user was in chat or picker
@@ -207,7 +199,48 @@ fun RepairJobDetailScreen(
         }
     }
 
+    val actions = remember(viewModel) { viewModel.asActions() }
+    RepairJobDetailContent(
+        state = state,
+        actions = actions,
+        onBack = onBack,
+        onShowMessage = onShowMessage,
+        onOpenPayoutMethod = onOpenPayoutMethod,
+        onBookAgain = onBookAgain,
+        onOpenDsr = onOpenDsr,
+    )
+}
+
+/**
+ * Stateless body of the repair-job detail screen. Kept ViewModel-free so
+ * screenshot fixtures and previews can pin each visual state without Hilt
+ * or a lifecycle owner. The wrapper above owns the one-shot effects
+ * (snackbars, chat navigation, browser hand-offs) because those need the
+ * ViewModel's flows; everything drawn on screen lives here.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun RepairJobDetailContent(
+    state: RepairJobDetailViewModel.RepairJobDetailUiState,
+    actions: RepairJobDetailActions,
+    onBack: () -> Unit,
+    onShowMessage: (String) -> Unit,
+    onOpenPayoutMethod: () -> Unit,
+    onBookAgain: (engineerId: String) -> Unit,
+    onOpenDsr: (jobId: String, isHospital: Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var withdrawConfirmOpen by rememberSaveable { mutableStateOf(false) }
+    var checkinSheetOpen by rememberSaveable { mutableStateOf(false) }
+    var cancelSheetOpen by rememberSaveable { mutableStateOf(false) }
+    var rateSheetOpen by rememberSaveable { mutableStateOf(false) }
+    // FIX #10 — Help & Support escalation sheet, opened from the '?'
+    // icon in the top bar. Passes jobNumber so the report-form mailto
+    // subject is pre-tagged with the public job ref.
+    var helpSheetOpen by rememberSaveable { mutableStateOf(false) }
+
     Scaffold(
+        modifier = modifier,
         containerColor = PaperDefault,
         topBar = {
             EsTopBar(
@@ -268,7 +301,7 @@ fun RepairJobDetailScreen(
                                         text = { Text(stringResource(R.string.repair_detail_report_job)) },
                                         onClick = {
                                             menuOpen = false
-                                            viewModel.onOpenReport()
+                                            actions.onOpenReport()
                                         },
                                     )
                                 }
@@ -289,12 +322,12 @@ fun RepairJobDetailScreen(
                     updatingStatus = state.updatingStatus,
                     queuedStatusCount = state.queuedStatusCount,
                     pendingCostRevision = state.pendingCostRevision,
-                    onPlaceBid = viewModel::openBidComposer,
+                    onPlaceBid = actions::openBidComposer,
                     onCheckIn = { checkinSheetOpen = true },
-                    onMarkDone = viewModel::openProofSheet,
+                    onMarkDone = actions::openProofSheet,
                     onRate = { rateSheetOpen = true },
                     onCancel = { cancelSheetOpen = true },
-                    onReviseQuote = viewModel::openReviseQuoteSheet,
+                    onReviseQuote = actions::openReviseQuoteSheet,
                     onBookAgain = onBookAgain,
                 )
             }
@@ -313,7 +346,7 @@ fun RepairJobDetailScreen(
                     RepairJobDetailViewModel.ViewerRole.Hospital ->
                         com.equipseva.app.features.repair.components.CostRevisionBanner(
                             revision = pendingRev,
-                            onTap = viewModel::openRevisionDecisionSheet,
+                            onTap = actions::openRevisionDecisionSheet,
                         )
                     RepairJobDetailViewModel.ViewerRole.Engineer ->
                         com.equipseva.app.features.repair.components.CostRevisionBanner(
@@ -357,7 +390,7 @@ fun RepairJobDetailScreen(
                 state.notFound -> NotFoundState(onBack)
                 state.job == null && state.errorMessage != null -> ErrorState(
                     message = state.errorMessage!!,
-                    onRetry = viewModel::retry,
+                    onRetry = actions::retry,
                 )
                 state.job != null -> JobBody(
                     job = state.job!!,
@@ -376,16 +409,16 @@ fun RepairJobDetailScreen(
                     escrow = state.escrow,
                     payoutStatus = state.payoutStatus,
                     confirmingEscrowRelease = state.confirmingEscrowRelease,
-                    onMessageEngineer = viewModel::openChatWithEngineer,
-                    onMessageHospital = viewModel::openChatWithHospital,
-                    onAcceptBid = viewModel::acceptBid,
+                    onMessageEngineer = actions::openChatWithEngineer,
+                    onMessageHospital = actions::openChatWithHospital,
+                    onAcceptBid = actions::acceptBid,
                     onWithdraw = { withdrawConfirmOpen = true },
-                    onDownloadReport = viewModel::generateServiceReport,
-                    onDownloadInvoice = viewModel::generateInvoice,
-                    onPayEscrow = viewModel::openEscrowPaymentSheet,
-                    onConfirmEscrowRelease = viewModel::confirmEscrowRelease,
-                    onOpenEscrowDispute = viewModel::openEscrowDisputeSheet,
-                    onOpenEngineerResponseSheet = viewModel::openEngineerResponseSheet,
+                    onDownloadReport = actions::generateServiceReport,
+                    onDownloadInvoice = actions::generateInvoice,
+                    onPayEscrow = actions::openEscrowPaymentSheet,
+                    onConfirmEscrowRelease = actions::confirmEscrowRelease,
+                    onOpenEscrowDispute = actions::openEscrowDisputeSheet,
+                    onOpenEngineerResponseSheet = actions::openEngineerResponseSheet,
                     onOpenPayoutMethod = onOpenPayoutMethod,
                     onOpenDsr = onOpenDsr,
                 )
@@ -397,16 +430,16 @@ fun RepairJobDetailScreen(
         BidComposerSheet(
             existingBid = state.ownBid?.takeIf { it.status == RepairBidStatus.Pending },
             placingBid = state.placingBid,
-            onDismiss = viewModel::closeBidComposer,
-            onSubmit = viewModel::submitBid,
+            onDismiss = actions::closeBidComposer,
+            onSubmit = actions::submitBid,
         )
     }
 
     if (state.proofSheetOpen && state.job != null) {
         CompletionProofSheet(
             submitting = state.submittingProof,
-            onDismiss = viewModel::closeProofSheet,
-            onSubmit = viewModel::submitCompletionProof,
+            onDismiss = actions::closeProofSheet,
+            onSubmit = actions::submitCompletionProof,
         )
     }
 
@@ -416,7 +449,7 @@ fun RepairJobDetailScreen(
             onDismiss = { if (!state.updatingStatus) checkinSheetOpen = false },
             onConfirm = { photos ->
                 checkinSheetOpen = false
-                viewModel.submitCheckinWithProof(photos)
+                actions.submitCheckinWithProof(photos)
             },
         )
     }
@@ -434,7 +467,7 @@ fun RepairJobDetailScreen(
             onDismiss = { if (!state.updatingStatus) cancelSheetOpen = false },
             onConfirm = { reason ->
                 cancelSheetOpen = false
-                viewModel.cancelJob(reason = reason)
+                actions.cancelJob(reason = reason)
             },
         )
     }
@@ -448,7 +481,7 @@ fun RepairJobDetailScreen(
                 submitting = state.submittingRating,
                 onDismiss = { if (!state.submittingRating) rateSheetOpen = false },
                 onSubmit = { stars, note ->
-                    viewModel.submitRating(stars, note)
+                    actions.submitRating(stars, note)
                     rateSheetOpen = false
                 },
             )
@@ -461,8 +494,8 @@ fun RepairJobDetailScreen(
             com.equipseva.app.features.repair.components.ReviseQuoteSheet(
                 currentContractedRupees = current,
                 submitting = state.proposingRevision,
-                onDismiss = viewModel::closeReviseQuoteSheet,
-                onSubmit = { amount, reason -> viewModel.proposeCostRevision(amount, reason) },
+                onDismiss = actions::closeReviseQuoteSheet,
+                onSubmit = { amount, reason -> actions.proposeCostRevision(amount, reason) },
             )
         }
     }
@@ -473,8 +506,8 @@ fun RepairJobDetailScreen(
             com.equipseva.app.features.repair.components.CostRevisionDecisionSheet(
                 revision = rev,
                 deciding = state.decidingRevision,
-                onDismiss = viewModel::closeRevisionDecisionSheet,
-                onDecide = { approve -> viewModel.decideCostRevision(approve) },
+                onDismiss = actions::closeRevisionDecisionSheet,
+                onDecide = { approve -> actions.decideCostRevision(approve) },
             )
         }
     }
@@ -483,8 +516,8 @@ fun RepairJobDetailScreen(
         ReportContentSheet(
             titleLabel = "Report this repair job",
             submitting = state.submittingReport,
-            onDismiss = viewModel::onDismissReport,
-            onSubmit = viewModel::onSubmitReport,
+            onDismiss = actions::onDismissReport,
+            onSubmit = actions::onSubmitReport,
         )
     }
 
@@ -511,8 +544,8 @@ fun RepairJobDetailScreen(
             job = state.job!!,
             bid = bid,
             engineerName = engineerName,
-            onClose = viewModel::closeOrderSummarySheet,
-            onProceedToPayment = viewModel::proceedToPaymentFromSummary,
+            onClose = actions::closeOrderSummarySheet,
+            onProceedToPayment = actions::proceedToPaymentFromSummary,
         )
     }
 
@@ -530,9 +563,9 @@ fun RepairJobDetailScreen(
             repairJobId = state.job!!.id,
             amountRupees = escrow.amountRupees,
             engineerName = engineerName,
-            onClose = viewModel::closeEscrowPaymentSheet,
+            onClose = actions::closeEscrowPaymentSheet,
             onShowMessage = onShowMessage,
-            onCompleted = viewModel::refreshEscrow,
+            onCompleted = actions::refreshEscrow,
         )
     }
 
@@ -540,8 +573,8 @@ fun RepairJobDetailScreen(
     if (state.escrowDisputeSheetOpen) {
         EscrowDisputeSheet(
             submitting = state.openingEscrowDispute,
-            onDismiss = viewModel::closeEscrowDisputeSheet,
-            onSubmit = viewModel::openEscrowDispute,
+            onDismiss = actions::closeEscrowDisputeSheet,
+            onSubmit = actions::openEscrowDispute,
         )
     }
 
@@ -549,8 +582,8 @@ fun RepairJobDetailScreen(
     if (state.engineerResponseSheetOpen) {
         EngineerResponseSheet(
             submitting = state.submittingEngineerResponse,
-            onDismiss = viewModel::closeEngineerResponseSheet,
-            onSubmit = viewModel::submitEngineerResponse,
+            onDismiss = actions::closeEngineerResponseSheet,
+            onSubmit = actions::submitEngineerResponse,
         )
     }
 
@@ -566,7 +599,7 @@ fun RepairJobDetailScreen(
                     enabled = !state.withdrawingBid,
                     onClick = {
                         withdrawConfirmOpen = false
-                        viewModel.withdrawBid()
+                        actions.withdrawBid()
                     },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error,
