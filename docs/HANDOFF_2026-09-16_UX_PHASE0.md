@@ -63,11 +63,26 @@ The Codex branch `codex/auth-integration-20260911` edits `EsBtn.kt`, `EsField.kt
 and `android.yml`. U02 only *appended* previews to the component files and U03 inserted one step into
 `android.yml`, so the conflicts will be trivial (take both sides), but they will exist.
 
+## Part 2 (same day, after the founder's "carry on") — branch `ux/u13-u15-radius-spacing-navlabels`
+| round | what | proof |
+|---|---|---|
+| U13a | `EsRadius`/`Spacing` tokens on `MyBids`, `HospitalActiveJobs`, `Earnings`, `ActiveWork`, `EngineerActiveEscrows` (the money-path files the Codex branch does not touch). Same-value swaps only. | 107/107 goldens byte-identical before/after on the same machine (sha256). Ratchet: raw `.dp` 2350 → 2265, `Spacing.*` 83 → 156, `EsRadius.*` 0 → 12; baseline refreshed in the commit. |
+| U15 | Bottom-nav labels → `R.string.nav_*` (en/hi/te), `tabsForRole` now `@Composable`. | parity 759/759/759; `EsBottomNav` golden identical. |
+| i18n fix | 111 double-encoded string entries repaired (45 hi, 45 te, 21 en: arrows, `·`, `—`). Detector + repair: `text.encode('latin-1').decode('utf-8')` per `<string>`/`<item>` body, formatting untouched. | 0 mojibake markers left; XML parses; all 107 goldens still byte-identical (none renders a repaired string). |
+
+Also: `docs/AGENTS_READ_FIRST.md` + README pointer + issue **#1871** tell every other agent to rebase onto `main` and read
+this file before resuming.
+
+Golden renders changed by the glyph repair: **none** — re-rendered all 107 with the repaired resources on the same
+machine, byte-identical (none of the 111 repaired strings is on a pinned screen or design-system preview). No
+re-record needed after this merge.
+
 ## Next (resume here)
-1. Confirm tomorrow's 03:00 UTC `cron-tick-daily` is green (`select id, slot, ok, failed_slots from
+1. Merge the Part-2 PR (no golden re-record needed); close issue #1871 once the other branches have rebased.
+2. Confirm tomorrow's 03:00 UTC `cron-tick-daily` is green (`select id, slot, ok, failed_slots from
    public.cron_tick_runs order by id desc limit 3` via `supabase db query --linked`).
-2. Phase 1 starts at **U05** (`Theme.kt` → Seva roles). The Codex branch also touches `Theme.kt`; agree the
+3. Phase 1 starts at **U05** (`Theme.kt` → Seva roles). The Codex branch also touches `Theme.kt`; agree the
    merge order first (their theme work is a "reviewed theme milestone" per their handoff).
-3. Deferred U04 screens (`HomeHub`, `RequestService`, `RepairJobs` (needs a GoogleMap fake),
+4. Deferred U04 screens (`HomeHub`, `RequestService`, `RepairJobs` (needs a GoogleMap fake),
    `EngineerDirectory`, `RepairJobDetail`) get their split + fixture inside U17/U18/U27/U21/U22.
-4. Phase 1 U16 should give the four modal sheets a stateless `*SheetContent` so they can join the gallery.
+5. Phase 1 U16 should give the four modal sheets a stateless `*SheetContent` so they can join the gallery.

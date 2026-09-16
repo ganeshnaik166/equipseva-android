@@ -149,12 +149,22 @@ green ✓. After any intentional visual change: Actions → `roborazzi` → Run 
 - [ ] **U10–U12** Adopt `EsBtn` for the 126 raw buttons and `EsField` for the 93 raw text fields. First
       extend `EsField` with every needed variant (multiline, password toggle, trailing icon, helper +
       error text, `₹` prefix, read-only). Delete `PrimaryButton`/`TonalButton` or make them thin aliases.
-- [ ] **U13** Radius + spacing + type sweep on the money-path screens: `RoundedCornerShape(` → `EsRadius`,
+- [~] **U13** Radius + spacing + type sweep on the money-path screens: `RoundedCornerShape(` → `EsRadius`,
       raw `.sp`/`fontSize` → `EsType`, common paddings → `Spacing`. Targets for the ratchet table:
       raw `.sp` −80 %, `RoundedCornerShape(` in features −100 %, raw `.dp` −60 %.
+      *U13a shipped 2026-09-16 (pixel-identical slice):* `MyBids`, `HospitalActiveJobs`, `Earnings`, `ActiveWork`,
+      `EngineerActiveEscrows` — same-value swaps only (radius 4/8/12/16/999 → `EsRadius`, spacing 2/4/8/12/16/24 →
+      `Spacing` in padding/spacedBy/Spacer). raw `.dp` 2350 → 2265, `Spacing.*` 83 → 156, `EsRadius.*` 0 → 12; all 107
+      goldens byte-identical before/after. *Still open:* the `.sp`/`EsType` pass (changes rendering → needs the
+      Phase-1 direction lock), the 6/10/14/18 dp values with no token, and the Codex-touched screens.
 - [ ] **U14** Skeletons: replace list/detail `CircularProgressIndicator` with `ListSkeleton`/`ShimmerBox`
       shaped like the content; keep spinners only for in-flight buttons.
-- [ ] **U15** Bottom-nav labels → string resources (en/hi/te); grep-prove no other hardcoded UI English.
+- [x] **U15** (shipped 2026-09-16) Bottom-nav labels → string resources (en/hi/te): `nav_bookings/messages/jobs/
+      earnings/profile` next to the existing `nav_home`; `tabsForRole` is `@Composable`. Remaining hardcoded English in
+      `navigation/`: the three KYC-gate snackbar messages, the mailto subject and two error snackbars in `MainNavGraph`
+      — leave for the copy pass. **Found on the way:** the 30 hi/te native-script strings and 21 `values` entries
+      (arrows, middle dots, em-dashes) were double-encoded mojibake since the 2026-08-14 extraction batch; repaired in
+      the same PR (111 entries) — Hindi/Telugu users had been seeing garbage for those strings.
 - [ ] **U16** Consistency components that Phase 2 needs: `EsConfirmSheet` (destructive confirmations),
       `EsNextStepCard` (single prioritised action), `EsSectionHeader`, `EsInlineError` (error + retry that
       keeps partial content), `EsStatusTimeline`.
