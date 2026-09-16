@@ -7,17 +7,21 @@ founder's standing instruction of 2026-09-16: work on a different branch).
 ## State
 - `main` verify bar re-run locally before any change: **BUILD SUCCESSFUL — 2,791 tests / 0 failures,
   lintDebug 0 errors, assembleDebug** (23 min cold on an 8 GB Mac).
-- Branch `ux/phase0-safety-net` = main + 4 round commits (U01, U03, U02, U04) + this doc. PR opened
-  against `main`; CI (`android`, `roborazzi verify`, `secret-scan`) runs on the PR.
-- **Goldens are NOT committed yet — by design.** Recording must happen on the Linux runner:
-  GitHub → Actions → `roborazzi` → Run workflow → branch `ux/phase0-safety-net` → `record = true`.
-  The bot commits `app/src/test/snapshots/roborazzi/` to the branch; every later PR is then diffed
-  against them. Until that dispatch, the `verify` job skips with a warning.
-- Separate fix PR **#1869** (`fix/cron-daily-storage-snapshot-timeout`): `cron-tick-daily` has been red
-  every day since 2026-09-07 on the single slot `db-storage-snapshot` (SQLSTATE 57014, 8 s REST statement
-  timeout). The PR carries Codex's round3822 migration byte-for-byte (30 s function-local
-  `statement_timeout`). Needs the founder: `supabase link --project-ref eyswaywvtartpvtoxtdr`,
-  `supabase db push --dry-run` (expect that one file), `supabase db push`, then watch the next 03:00 UTC run.
+- **PR #1870 merged to `main`** (rebase; CI green: android 2,898 tests, roborazzi verify, gitleaks) =
+  4 round commits (U01, U03, U02, U04) + this doc + a one-line `roborazzi.yml` quoting fix (`7a165a3a`).
+- **Goldens recorded on Linux and committed by the bot** (`6ec8a095`, 107 PNGs = 80 previews + 27 screen
+  states) via Actions → `roborazzi` → Run workflow → `record = true`. From here on the `verify` job diffs
+  every PR/push touching `app/**` against them. Re-record the same way after any intentional visual change.
+- **PR #1869 merged and applied to prod.** `cron-tick-daily` had been red daily since 2026-09-07 on the
+  single slot `db-storage-snapshot` (SQLSTATE 57014: the `authenticator` role runs with
+  `statement_timeout=8s` and the sweep walks `pg_total_relation_size()` over 4,876 public tables).
+  round3822 (`ALTER FUNCTION public.db_storage_snapshot_sweep() SET statement_timeout = '30s'`) was
+  applied through the Management API — `supabase link --project-ref eyswaywvtartpvtoxtdr` (no DB password
+  needed) + `supabase db query --linked -f <migration>` — and recorded in
+  `supabase_migrations.schema_migrations` so a later `db push` skips it. Proof through the real path:
+  `cron-tick-daily.yml` now takes a `slot` dispatch input; `slot=db-storage-snapshot` → `ok: true`,
+  4,876 rows in 13.9 s (> the old 8 s), `cron_tick_runs` id 135 green, first snapshot batch written.
+  The next scheduled daily run (03:00 UTC) should be green end to end.
 
 ## Shipped this session (all on `ux/phase0-safety-net`)
 | round | what | proof |
@@ -42,6 +46,14 @@ Local record run on the whole branch (macOS, goldens discarded — Linux records
   ⇒ dispatch the record job in the same PR.
 - Preview `name` becomes part of the golden filename; keep it ASCII (the first draft used an em-dash,
   renamed to `"<Stem> large text"`).
+- `--tests` filters must be inline and single-quoted in the workflow `run:` line. Kept in an env var as
+  `--tests "x"`, the quote characters reach Gradle inside the pattern and it reports "No tests found"
+  (the first record dispatch died that way).
+- `workflow_dispatch` only works once the workflow file exists on the default branch — the record job
+  could not be dispatched from the PR branch; it ran on `main` after the merge.
+- Right after a migration's `NOTIFY pgrst, 'reload schema'` PostgREST reloads for minutes and every
+  request fails with PGRST002 (an 8-char code the edge function's SQLSTATE filter drops, so the run shows
+  `slot_failed` with no code and no `cron_tick_runs` row). Wait ~3 min before probing.
 - Two Gradle builds at once on this Mac is not viable; a detached build worktree (`equipseva-ux-build`)
   was used to verify commits while agents edited the main worktree.
 
@@ -52,10 +64,10 @@ and `android.yml`. U02 only *appended* previews to the component files and U03 i
 `android.yml`, so the conflicts will be trivial (take both sides), but they will exist.
 
 ## Next (resume here)
-1. Founder: dispatch `roborazzi` with `record=true` on the branch → goldens land → PR CI fully green → merge.
-2. Founder: apply PR #1869 (`supabase db push`) — stops the daily cron noise.
-3. Phase 1 starts at **U05** (`Theme.kt` → Seva roles). The Codex branch also touches `Theme.kt`; agree the
+1. Confirm tomorrow's 03:00 UTC `cron-tick-daily` is green (`select id, slot, ok, failed_slots from
+   public.cron_tick_runs order by id desc limit 3` via `supabase db query --linked`).
+2. Phase 1 starts at **U05** (`Theme.kt` → Seva roles). The Codex branch also touches `Theme.kt`; agree the
    merge order first (their theme work is a "reviewed theme milestone" per their handoff).
-4. Deferred U04 screens (`HomeHub`, `RequestService`, `RepairJobs` (needs a GoogleMap fake),
+3. Deferred U04 screens (`HomeHub`, `RequestService`, `RepairJobs` (needs a GoogleMap fake),
    `EngineerDirectory`, `RepairJobDetail`) get their split + fixture inside U17/U18/U27/U21/U22.
-5. Phase 1 U16 should give the four modal sheets a stateless `*SheetContent` so they can join the gallery.
+4. Phase 1 U16 should give the four modal sheets a stateless `*SheetContent` so they can join the gallery.

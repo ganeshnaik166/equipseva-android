@@ -129,9 +129,9 @@ the commit body or `docs/ux/`.
       `RepairJobDetail` (3,551 lines) — their splits are the first step of U17, U18, U27, U21 and U22
       respectively; do the split + fixture in those rounds.
 
-**Gate:** ratchet baseline committed ✓, numbers in §1 refreshed ✓, CI green on the PR (pending), goldens
-committed — **open until the founder dispatches `roborazzi.yml` → Run workflow → `record = true` on the
-branch** (the bot commits `app/src/test/snapshots/roborazzi/`; the `verify` job then guards every PR).
+**Gate — CLOSED 2026-09-16:** ratchet baseline committed ✓, §1 refreshed ✓, PR #1870 CI green and merged ✓,
+107 goldens recorded on the Linux runner and committed by the bot (`6ec8a095`) ✓, verify run against them
+green ✓. After any intentional visual change: Actions → `roborazzi` → Run workflow → `record = true`.
 
 ### Phase 1 — One design language · ~2 sessions
 
