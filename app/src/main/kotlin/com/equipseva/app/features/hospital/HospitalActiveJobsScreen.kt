@@ -78,12 +78,36 @@ fun HospitalActiveJobsScreen(
     // the VM's init {} already loaded.
     com.equipseva.app.designsystem.util.RefreshOnReturn { viewModel.onRefresh() }
 
+    HospitalActiveJobsContent(
+        state = state,
+        onFilterChange = viewModel::onFilterChange,
+        onRefresh = viewModel::onRefresh,
+        onBack = onBack,
+        onJobClick = onJobClick,
+        onRequestRepair = onRequestRepair,
+    )
+}
+
+// Stateless body so the screen renders from a plain UiState value —
+// screenshot fixtures and previews can pin every visual state without
+// standing up Hilt or a ViewModel.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun HospitalActiveJobsContent(
+    state: HospitalActiveJobsViewModel.UiState,
+    onFilterChange: (HospitalActiveJobsViewModel.Filter) -> Unit,
+    onRefresh: () -> Unit,
+    onBack: () -> Unit,
+    onJobClick: (String) -> Unit,
+    onRequestRepair: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val totalCount = state.openJobs.size + state.inProgressJobs.size + state.closedJobs.size
     val openCount = state.openJobs.size
     val activeCount = state.inProgressJobs.size
     val closedCount = state.closedJobs.size
 
-    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+    Surface(modifier = modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(title = "My repair jobs", onBack = onBack)
 
@@ -93,14 +117,14 @@ fun HospitalActiveJobsScreen(
                 openCount = openCount,
                 activeCount = activeCount,
                 closedCount = closedCount,
-                onSelect = viewModel::onFilterChange,
+                onSelect = onFilterChange,
             )
 
             ErrorBanner(message = state.errorMessage)
 
             PullToRefreshBox(
                 isRefreshing = state.refreshing,
-                onRefresh = viewModel::onRefresh,
+                onRefresh = onRefresh,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
             ) {
                 when {

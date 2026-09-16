@@ -60,7 +60,26 @@ fun ActiveWorkScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+    ActiveWorkContent(
+        state = state,
+        onRefresh = viewModel::onRefresh,
+        onBack = onBack,
+        onJobClick = onJobClick,
+        onBrowseOpenJobs = onBrowseOpenJobs,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun ActiveWorkContent(
+    state: ActiveWorkViewModel.UiState,
+    onRefresh: () -> Unit,
+    onBack: () -> Unit,
+    onJobClick: (String) -> Unit,
+    onBrowseOpenJobs: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(modifier = modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             val combined = state.activeJobs + state.completedJobs
             // Subtitle reads "X in progress · Y done" so the screen doesn't
@@ -79,7 +98,7 @@ fun ActiveWorkScreen(
             QueuedStatusPill(count = state.queuedStatusCount)
             PullToRefreshBox(
                 isRefreshing = state.refreshing,
-                onRefresh = viewModel::onRefresh,
+                onRefresh = onRefresh,
                 modifier = Modifier.fillMaxSize(),
             ) {
                 when {

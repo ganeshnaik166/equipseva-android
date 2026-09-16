@@ -74,7 +74,6 @@ fun MyBidsScreen(
     viewModel: MyBidsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val activeFilter = state.statusFilter ?: RepairBidStatus.Pending
 
     // Re-fetch on every ON_RESUME so a status change in the detail screen
     // (e.g., an accepted bid that flips status server-side) reflects when
@@ -87,7 +86,38 @@ fun MyBidsScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+    MyBidsContent(
+        state = state,
+        onRefresh = viewModel::onRefresh,
+        onStatusFilterChange = viewModel::onStatusFilterChange,
+        onBack = onBack,
+        onJobClick = onJobClick,
+        onBrowseJobs = onBrowseJobs,
+        onCheckProfitability = onCheckProfitability,
+        onPreviewPayout = onPreviewPayout,
+    )
+}
+
+/**
+ * Stateless body of the My-Bids screen. Kept ViewModel-free so screenshot
+ * fixtures and previews can pin each visual state without Hilt or a
+ * lifecycle owner.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun MyBidsContent(
+    state: MyBidsViewModel.UiState,
+    onRefresh: () -> Unit,
+    onStatusFilterChange: (RepairBidStatus) -> Unit,
+    onBack: () -> Unit,
+    onJobClick: (String) -> Unit,
+    onBrowseJobs: () -> Unit = {},
+    onCheckProfitability: (bidId: String) -> Unit = {},
+    onPreviewPayout: (repairJobId: String) -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    val activeFilter = state.statusFilter ?: RepairBidStatus.Pending
+    Surface(modifier = modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(title = "My bids", onBack = onBack)
             ErrorBanner(message = state.errorMessage)
@@ -111,14 +141,14 @@ fun MyBidsScreen(
                     EsChip(
                         text = "${status.displayName} ($count)",
                         active = activeFilter == status,
-                        onClick = { viewModel.onStatusFilterChange(status) },
+                        onClick = { onStatusFilterChange(status) },
                     )
                 }
             }
 
             PullToRefreshBox(
                 isRefreshing = state.refreshing,
-                onRefresh = viewModel::onRefresh,
+                onRefresh = onRefresh,
                 modifier = Modifier.fillMaxSize(),
             ) {
                 // Round 442 — memoize the filtered list so the walk doesn't
