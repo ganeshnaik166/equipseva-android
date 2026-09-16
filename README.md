@@ -1,5 +1,10 @@
 # EquipSeva Android
 
+> **Agents / contributors — read [`docs/AGENTS_READ_FIRST.md`](docs/AGENTS_READ_FIRST.md) before continuing any
+> workstream.** It records what landed on `main` most recently (screenshot-test gate, design-lint ratchet,
+> screen splits, prod fixes) and the merge points with in-flight branches. Latest session handoff:
+> [`docs/HANDOFF_2026-09-16_UX_PHASE0.md`](docs/HANDOFF_2026-09-16_UX_PHASE0.md).
+
 Native Kotlin + Jetpack Compose app for the EquipSeva ecosystem — a healthcare-equipment service platform for Indian hospitals: repair-job marketplace, engineer rotation, and annual maintenance contracts (AMC) with escrow.
 
 The marketplace / parts-cart leg that lived in early Phase 1 has been retired — v1 ships as a service-only product (repair + AMC + payouts). Hospitals book repair jobs and AMC contracts; engineers bid on jobs and complete scheduled visits; founder ops resolves disputes, KYC, and integrity events.
