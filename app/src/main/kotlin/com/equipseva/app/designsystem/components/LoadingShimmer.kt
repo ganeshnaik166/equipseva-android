@@ -7,6 +7,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,8 +17,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -26,9 +29,13 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.equipseva.app.designsystem.theme.EquipSevaTheme
+import com.equipseva.app.designsystem.theme.EsType
 
 @Composable
 fun ShimmerBox(
@@ -111,4 +118,60 @@ fun ListSkeleton(
     Column(modifier = modifier.fillMaxWidth()) {
         repeat(rows) { ShimmerListItem() }
     }
+}
+
+// ---- Previews — design-system gallery. Every @Preview under designsystem/
+// is also a Roborazzi screenshot test (see app/build.gradle.kts), so a
+// variant that is missing here has no visual regression guard.
+
+@Composable
+private fun LoadingShimmerGallery() {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(text = "ShimmerBox", style = EsType.Caption)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ShimmerBox(modifier = Modifier.size(56.dp))
+            ShimmerBox(modifier = Modifier.size(56.dp), shape = CircleShape)
+            ShimmerBox(modifier = Modifier.size(56.dp), shape = RectangleShape)
+            ShimmerBox(
+                modifier = Modifier.size(width = 96.dp, height = 56.dp),
+                shape = RoundedCornerShape(10.dp),
+            )
+        }
+        ShimmerBox(
+            modifier = Modifier.fillMaxWidth().height(120.dp),
+            shape = RoundedCornerShape(16.dp),
+        )
+
+        Text(text = "ShimmerLine", style = EsType.Caption)
+        ShimmerLine()
+        ShimmerLine(width = 180.dp)
+        ShimmerLine(width = 120.dp, height = 12.dp)
+        ShimmerLine(width = 240.dp, height = 20.dp)
+        ShimmerLine(height = 8.dp)
+
+        Text(text = "ShimmerListItem", style = EsType.Caption)
+        ShimmerListItem()
+
+        Text(text = "ListSkeleton — rows = 0", style = EsType.Caption)
+        ListSkeleton(rows = 0)
+        Text(text = "ListSkeleton — rows = 1", style = EsType.Caption)
+        ListSkeleton(rows = 1)
+        Text(text = "ListSkeleton — rows = 3", style = EsType.Caption)
+        ListSkeleton(rows = 3)
+    }
+}
+
+@Preview(name = "LoadingShimmer", showBackground = true)
+@Composable
+private fun LoadingShimmerPreview() {
+    EquipSevaTheme(darkTheme = false) { LoadingShimmerGallery() }
+}
+
+@Preview(name = "LoadingShimmer large text", showBackground = true, fontScale = 1.3f)
+@Composable
+private fun LoadingShimmerPreviewLargeText() {
+    EquipSevaTheme(darkTheme = false) { LoadingShimmerGallery() }
 }

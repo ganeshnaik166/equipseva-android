@@ -1,10 +1,18 @@
 package com.equipseva.app.designsystem.components
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -15,7 +23,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.equipseva.app.designsystem.theme.EquipSevaTheme
 import com.equipseva.app.designsystem.theme.EsRadius
 import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.SevaDanger500
@@ -135,4 +145,116 @@ fun EsField(
             )
         }
     }
+}
+
+// ---- Previews — design-system gallery. Every @Preview under designsystem/
+// is also a Roborazzi screenshot test (see app/build.gradle.kts), so a
+// variant that is missing here has no visual regression guard.
+
+@Composable
+private fun EsFieldGallery() {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        EsField(
+            value = "Apollo Hospitals, Jubilee Hills",
+            onChange = {},
+            label = "Hospital name",
+            type = EsFieldType.Text,
+        )
+        EsField(
+            value = "",
+            onChange = {},
+            placeholder = "Search equipment, e.g. Philips MX450",
+            leading = { Icon(Icons.Outlined.Search, contentDescription = null) },
+        )
+        EsField(
+            value = "ventilator-2024",
+            onChange = {},
+            label = "Password",
+            type = EsFieldType.Password,
+            trailing = { Icon(Icons.Filled.Visibility, contentDescription = null) },
+        )
+        EsField(
+            value = "4500",
+            onChange = {},
+            label = "Quoted amount (₹)",
+            hint = "Excludes 18% GST; parts billed separately",
+            type = EsFieldType.Number,
+        )
+        EsField(
+            value = "rohit.verma@apollohospitals.com",
+            onChange = {},
+            label = "Work email",
+            type = EsFieldType.Email,
+            leading = { Icon(Icons.Outlined.Email, contentDescription = null) },
+        )
+        EsField(
+            value = "9876543210",
+            onChange = {},
+            label = "Mobile number",
+            hint = "OTP will be sent to this number",
+            type = EsFieldType.Phone,
+            leading = { Icon(Icons.Outlined.Phone, contentDescription = null) },
+            trailing = { Icon(Icons.Outlined.Check, contentDescription = null) },
+        )
+        EsField(
+            value = "Ventilator raises a 'Low O2 supply' alarm every 10 minutes even though " +
+                "pipeline pressure reads 4.2 bar. Last serviced by Sunil Kumar on 12 Aug; " +
+                "humidifier chamber was replaced then.",
+            onChange = {},
+            label = "Fault description",
+            type = EsFieldType.Multiline,
+        )
+        EsField(
+            value = "",
+            onChange = {},
+            label = "Notes for engineer",
+            placeholder = "Anything the engineer should know before the visit",
+            type = EsFieldType.Multiline,
+        )
+        EsField(
+            value = "",
+            onChange = {},
+            label = "Equipment serial number",
+            placeholder = "e.g. SN-MX450-118842",
+            error = "Serial number is required to raise a repair job",
+        )
+        EsField(
+            value = "98765",
+            onChange = {},
+            label = "Mobile number",
+            error = "Enter the full 10-digit mobile number registered with Fortis Hospital, " +
+                "Bannerghatta Road",
+            type = EsFieldType.Phone,
+        )
+        EsField(
+            value = "Sunil Kumar",
+            onChange = {},
+            label = "Assigned engineer",
+            hint = "Assigned by EquipSeva; contact support to change",
+            enabled = false,
+        )
+        EsField(
+            value = "",
+            onChange = {},
+            label = "Bid amount (₹)",
+            placeholder = "₹4,500",
+            type = EsFieldType.Number,
+            enabled = false,
+        )
+    }
+}
+
+@Preview(name = "EsField", showBackground = true)
+@Composable
+private fun EsFieldPreview() {
+    EquipSevaTheme(darkTheme = false) { EsFieldGallery() }
+}
+
+@Preview(name = "EsField large text", showBackground = true, fontScale = 1.3f)
+@Composable
+private fun EsFieldPreviewLargeText() {
+    EquipSevaTheme(darkTheme = false) { EsFieldGallery() }
 }

@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,8 +25,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equipseva.app.designsystem.theme.EquipSevaTheme
 import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk700
@@ -136,4 +139,51 @@ private fun VerificationCriterion(text: String) {
             modifier = Modifier.weight(1f),
         )
     }
+}
+
+// ---- Previews — design-system gallery. Every @Preview under designsystem/
+// is also a Roborazzi screenshot test (see app/build.gradle.kts), so a
+// variant that is missing here has no visual regression guard.
+
+@Composable
+private fun VerifiedBadgeWithInfoGallery() {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text("Default size (profile hero)", color = SevaInk500, fontSize = 11.sp)
+        VerifiedBadgeWithInfo(verifiedAt = "12 Mar 2026")
+        VerifiedBadgeWithInfo(verifiedAt = null)
+
+        Text("Small (directory card)", color = SevaInk500, fontSize = 11.sp)
+        VerifiedBadgeWithInfo(verifiedAt = "12 Mar 2026", small = true)
+        VerifiedBadgeWithInfo(verifiedAt = null, small = true)
+
+        // The info sheet is a ModalBottomSheet and never renders inline, so
+        // only its criterion rows can get a screenshot guard here.
+        Text("Info sheet criterion rows", color = SevaInk500, fontSize = 11.sp)
+        Surface {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                VerificationCriterion(text = "Government photo ID match")
+                VerificationCriterion(
+                    text = "KYC reviewed by EquipSeva team within 24h, including a callback to the last hospital served (Apollo Hospitals, Hyderabad) to confirm on-site ventilator and dialysis work history",
+                )
+            }
+        }
+    }
+}
+
+@Preview(name = "VerifiedBadgeWithInfo", showBackground = true)
+@Composable
+private fun VerifiedBadgeWithInfoPreview() {
+    EquipSevaTheme(darkTheme = false) { VerifiedBadgeWithInfoGallery() }
+}
+
+@Preview(name = "VerifiedBadgeWithInfo large text", showBackground = true, fontScale = 1.3f)
+@Composable
+private fun VerifiedBadgeWithInfoPreviewLargeText() {
+    EquipSevaTheme(darkTheme = false) { VerifiedBadgeWithInfoGallery() }
 }

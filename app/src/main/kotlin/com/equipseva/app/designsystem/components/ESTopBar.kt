@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -29,9 +31,11 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.EquipSevaTheme
 import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.PaperDefault
@@ -142,4 +146,77 @@ fun EsTopBar(
         }
         if (right != null) right()
     }
+}
+
+// ---- Previews — design-system gallery. Every @Preview under designsystem/
+// is also a Roborazzi screenshot test (see app/build.gradle.kts), so a
+// variant that is missing here has no visual regression guard.
+
+@Composable
+private fun ESTopBarGallery() {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(text = "ESBackTopBar", style = EsType.Caption, color = SevaInk500)
+        ESBackTopBar(title = "Job details", onBack = {})
+        ESBackTopBar(title = "Job details", onBack = {}, backEnabled = false)
+        ESBackTopBar(
+            title = "Ventilator service",
+            onBack = {},
+            actions = {
+                IconButton(onClick = {}) {
+                    Icon(Icons.Filled.Search, contentDescription = "Search", tint = Ink900)
+                }
+                IconButton(onClick = {}) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = "More", tint = Ink900)
+                }
+            },
+        )
+        ESBackTopBar(title = "", onBack = {})
+        ESBackTopBar(
+            title = "Repair request for GE Voluson E10 ultrasound at Apollo Hospitals, Jubilee Hills",
+            onBack = {},
+        )
+
+        Text(text = "EsTopBar", style = EsType.Caption, color = SevaInk500)
+        EsTopBar()
+        EsTopBar(title = "My jobs")
+        EsTopBar(title = "My jobs", subtitle = "3 open · 12 completed")
+        EsTopBar(title = "Bid details", onBack = {})
+        EsTopBar(title = "Bid details", subtitle = "₹4,500 · Ramesh Kumar", onBack = {})
+        EsTopBar(
+            title = "Notifications",
+            right = {
+                IconButton(onClick = {}) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = "More", tint = SevaInk900)
+                }
+            },
+        )
+        EsTopBar(
+            title = "Fortis Hospital, Mulund",
+            subtitle = "Philips IntelliVue MX450",
+            onBack = {},
+            right = { Text(text = "Skip", style = EsType.Caption, color = SevaInk500) },
+        )
+        EsTopBar(subtitle = "Last synced 2 min ago")
+        EsTopBar(title = "", onBack = {})
+        EsTopBar(
+            title = "Preventive maintenance for Siemens Somatom CT scanner at Manipal Hospital, Whitefield",
+            subtitle = "Scheduled for Thursday · Engineer Priya Nair · ₹12,000 quoted",
+            onBack = {},
+        )
+    }
+}
+
+@Preview(name = "ESTopBar", showBackground = true)
+@Composable
+private fun ESTopBarPreview() {
+    EquipSevaTheme(darkTheme = false) { ESTopBarGallery() }
+}
+
+@Preview(name = "ESTopBar large text", showBackground = true, fontScale = 1.3f)
+@Composable
+private fun ESTopBarPreviewLargeText() {
+    EquipSevaTheme(darkTheme = false) { ESTopBarGallery() }
 }
