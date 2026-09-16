@@ -51,6 +51,7 @@ import com.equipseva.app.designsystem.components.EsSection
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.SecureScreen
 import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.EsRadius
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaDanger500
 import com.equipseva.app.designsystem.theme.SevaGlowRaw
@@ -61,6 +62,7 @@ import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk900
 import com.equipseva.app.designsystem.theme.SevaWarning50
 import com.equipseva.app.designsystem.theme.SevaWarning500
+import com.equipseva.app.designsystem.theme.Spacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -135,15 +137,15 @@ internal fun EarningsContent(
                     }
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 24.dp),
+                        contentPadding = PaddingValues(bottom = Spacing.xl),
                     ) {
                         item("hero") {
                             Box(
                                 modifier = Modifier.padding(
-                                    start = 16.dp,
-                                    end = 16.dp,
-                                    top = 8.dp,
-                                    bottom = 16.dp,
+                                    start = Spacing.lg,
+                                    end = Spacing.lg,
+                                    top = Spacing.sm,
+                                    bottom = Spacing.lg,
                                 ),
                             ) {
                                 EarningsHero(
@@ -158,8 +160,8 @@ internal fun EarningsContent(
                         item("earnings_projection_link") {
                             Box(
                                 modifier = Modifier.padding(
-                                    horizontal = 16.dp,
-                                    vertical = 4.dp,
+                                    horizontal = Spacing.lg,
+                                    vertical = Spacing.xs,
                                 ),
                             ) {
                                 com.equipseva.app.designsystem.components.EsListRow(
@@ -178,9 +180,9 @@ internal fun EarningsContent(
                             item("self_rank") {
                                 Box(
                                     modifier = Modifier.padding(
-                                        start = 16.dp,
-                                        end = 16.dp,
-                                        bottom = 12.dp,
+                                        start = Spacing.lg,
+                                        end = Spacing.lg,
+                                        bottom = Spacing.md,
                                     ),
                                 ) {
                                     SelfRankCard(rank = rk)
@@ -208,9 +210,9 @@ internal fun EarningsContent(
                             item("escrow_summary") {
                                 Box(
                                     modifier = Modifier.padding(
-                                        start = 16.dp,
-                                        end = 16.dp,
-                                        bottom = 12.dp,
+                                        start = Spacing.lg,
+                                        end = Spacing.lg,
+                                        bottom = Spacing.md,
                                     ),
                                 ) {
                                     EscrowSummaryCard(
@@ -327,7 +329,7 @@ private fun EarningsHero(paidTotal: Double, pendingTotal: Double) {
             fontSize = 12.sp,
             color = Color.White.copy(alpha = 0.7f),
         )
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(Spacing.xs))
         Text(
             text = formatRupees(total),
             fontSize = 32.sp,
@@ -343,7 +345,7 @@ private fun EarningsHero(paidTotal: Double, pendingTotal: Double) {
                 .background(Color.White.copy(alpha = 0.15f)),
         )
         Spacer(Modifier.height(14.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
             HeroStat(label = "Paid", value = formatRupees(paidTotal), tint = Color.White)
             HeroStat(label = "Pending", value = formatRupees(pendingTotal), tint = SevaGlowRaw)
         }
@@ -362,10 +364,10 @@ private fun EscrowSummaryCard(
             .background(Color.White)
             .border(1.dp, BorderDefault, RoundedCornerShape(14.dp))
             .let { if (onClick != null) it.clickable(onClick = onClick) else it }
-            .padding(16.dp),
+            .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Icon(
                 imageVector = Icons.Filled.CurrencyRupee,
                 contentDescription = null,
@@ -409,7 +411,7 @@ private fun EscrowSummaryCard(
                 )
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
             if (summary.countPendingPayment > 0) {
                 EscrowStat(label = "Awaiting payment", value = "${summary.countPendingPayment}", tint = SevaWarning500)
             }
@@ -427,7 +429,7 @@ private fun EscrowSummaryCard(
 private fun EscrowStat(label: String, value: String, tint: Color) {
     Column {
         Text(label, fontSize = 11.sp, color = SevaInk500)
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(Spacing.xxs))
         Text(value, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = tint)
     }
 }
@@ -436,7 +438,7 @@ private fun EscrowStat(label: String, value: String, tint: Color) {
 private fun HeroStat(label: String, value: String, tint: Color) {
     Column {
         Text(label, fontSize = 11.sp, color = Color.White.copy(alpha = 0.65f))
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(Spacing.xxs))
         Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = tint)
     }
 }
@@ -448,11 +450,11 @@ private fun TransactionsList(
 ) {
     Column(
         modifier = Modifier
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = Spacing.lg)
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(EsRadius.Lg))
             .background(Color.White)
-            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp)),
+            .border(1.dp, BorderDefault, RoundedCornerShape(EsRadius.Lg)),
     ) {
         rows.forEachIndexed { index, row ->
             TransactionRow(
@@ -483,14 +485,14 @@ private fun TransactionRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 14.dp, vertical = Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Box(
             modifier = Modifier
                 .size(32.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(EsRadius.Md))
                 .background(tileBg),
             contentAlignment = Alignment.Center,
         ) {
@@ -566,8 +568,8 @@ internal fun AmcEarningsList(
     onVisitClick: (String) -> Unit,
 ) {
     Column(
-        modifier = Modifier.padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.padding(horizontal = Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         rows.forEach { row ->
             // Round 403 — bump vertical padding to clear the 48dp Material
@@ -579,7 +581,7 @@ internal fun AmcEarningsList(
                     .clickable { onVisitClick(row.visitId) }
                     .padding(vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -632,7 +634,7 @@ private fun SelfRankCard(rank: com.equipseva.app.core.data.escrow.RepairJobEscro
                     listOf(SevaGreen900, Color(0xFF042619)),
                 )
             )
-            .padding(16.dp),
+            .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
@@ -657,7 +659,7 @@ private fun SelfRankCard(rank: com.equipseva.app.core.data.escrow.RepairJobEscro
                 color = Color.White.copy(alpha = 0.75f),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(bottom = 4.dp),
+                modifier = Modifier.padding(bottom = Spacing.xs),
             )
         }
         Text(
@@ -752,7 +754,7 @@ private fun PayoutTransferRow(
         modifier = Modifier
             .fillMaxWidth()
             .let { m -> if (onFixMethod != null) m.clickable(onClick = onFixMethod) else m }
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = Spacing.lg, vertical = 10.dp),
         verticalAlignment = Alignment.Top,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -762,7 +764,7 @@ private fun PayoutTransferRow(
                 color = SevaInk500,
                 fontWeight = FontWeight.Medium,
             )
-            Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(Spacing.xxs))
             Text(
                 stringResource(
                     R.string.founder_payouts_amount_arrow_engineer,
@@ -775,7 +777,7 @@ private fun PayoutTransferRow(
             )
             val sub = payoutSubtitle(p)
             if (sub != null) {
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(Spacing.xxs))
                 Text(
                     sub,
                     fontSize = 12.sp,
@@ -786,7 +788,7 @@ private fun PayoutTransferRow(
             // failure copy so the recovery path isn't hidden in a
             // whole-row tap that doesn't look clickable.
             if (onFixMethod != null) {
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(Spacing.xs))
                 Text(
                     stringResource(R.string.earnings_update_payout_method_cta),
                     fontSize = 12.sp,
@@ -818,9 +820,9 @@ private fun PayoutStatusPill(status: PayoutStatus) {
     }
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
+            .clip(RoundedCornerShape(EsRadius.Pill))
             .background(bg)
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .padding(horizontal = 10.dp, vertical = Spacing.xs),
     ) {
         Text(label, fontSize = 11.sp, color = fg, fontWeight = FontWeight.SemiBold)
     }
@@ -862,11 +864,11 @@ private fun PayoutMethodNudge(methodExists: Boolean, onSetUp: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
             .clip(RoundedCornerShape(10.dp))
             .background(SevaWarning50)
             .clickable { onSetUp() }
-            .padding(12.dp),
+            .padding(Spacing.md),
     ) {
         Column {
             Text(
