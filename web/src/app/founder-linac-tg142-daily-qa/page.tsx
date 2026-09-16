@@ -272,7 +272,7 @@ export default async function FounderLinacTg142DailyQaPage() {
           rows={ootRows}
           columns={ootCols}
           emptyMessage="All LINACs are within TG-142 tolerance."
-          rowKey={(r, i) => String(r.linac_serial + '|' + r.energy_mode ?? i)}
+          rowKey={(r, i) => String(r.linac_serial + '|' + r.energy_mode)}
         />
       </section>
 

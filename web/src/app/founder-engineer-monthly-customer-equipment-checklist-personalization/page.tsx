@@ -241,7 +241,7 @@ export default async function Page() {
             { key: 'reviewer', header: 'Reviewer', render: (r: AuditRow) => <span>{r.reviewer}</span> },
           ]}
           emptyMessage="No data"
-          rowKey={(r: AuditRow, i: number) => String(`${r.engineer_name}-${r.audit_month}` ?? i)}
+          rowKey={(r: AuditRow, i: number) => String(`${r.engineer_name}-${r.audit_month}`)}
         />
       </section>
 
@@ -277,7 +277,7 @@ export default async function Page() {
             { key: 'notes', header: 'Notes', render: (r: HotspotRow) => <span>{r.notes}</span> },
           ]}
           emptyMessage="No data"
-          rowKey={(r: HotspotRow, i: number) => String(`${r.engineer_name}-${r.equipment_label}` ?? i)}
+          rowKey={(r: HotspotRow, i: number) => String(`${r.engineer_name}-${r.equipment_label}`)}
         />
       </section>
     </div>

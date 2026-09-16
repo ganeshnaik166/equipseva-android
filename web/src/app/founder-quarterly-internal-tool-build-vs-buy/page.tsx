@@ -218,7 +218,7 @@ export default async function Page() {
             { key: 'retro_lesson', header: 'Lesson', render: (r: Decision) => r.retro_lesson },
           ]}
           emptyMessage="No data"
-          rowKey={(r: Decision, i: number) => String(`${r.tool_name}-${r.quarter_label}` ?? i)}
+          rowKey={(r: Decision, i: number) => String(`${r.tool_name}-${r.quarter_label}`)}
         />
       </section>
 
@@ -236,7 +236,7 @@ export default async function Page() {
             { key: 'actual_outcome', header: 'Outcome', render: (r: Variance) => r.actual_outcome },
           ]}
           emptyMessage="No data"
-          rowKey={(r: Variance, i: number) => String(`${r.tool_name}-${r.quarter_label}` ?? i)}
+          rowKey={(r: Variance, i: number) => String(`${r.tool_name}-${r.quarter_label}`)}
         />
       </section>
 
