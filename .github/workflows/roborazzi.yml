@@ -48,10 +48,6 @@ concurrency:
   group: roborazzi-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  # Generated design-system gallery + hand-written screen fixtures.
-  SCREENSHOT_TESTS: --tests "com.github.takahirom.roborazzi.*" --tests "*ScreenshotTest"
-
 jobs:
   verify:
     name: verify goldens
@@ -92,7 +88,12 @@ jobs:
 
       - name: Verify screenshots against goldens
         if: steps.goldens.outputs.present == 'true'
-        run: ./gradlew :app:testDebugUnitTest -Proborazzi.test.verify=true $SCREENSHOT_TESTS --no-daemon --stacktrace
+        # Filters inline on purpose: a `--tests "x"` kept in an env var reaches
+        # Gradle with the quote characters inside the pattern and matches nothing.
+        run: >-
+          ./gradlew :app:testDebugUnitTest -Proborazzi.test.verify=true
+          --tests 'com.github.takahirom.roborazzi.*' --tests '*ScreenshotTest'
+          --no-daemon --stacktrace
 
       - name: Upload diff report
         if: failure()
@@ -136,7 +137,10 @@ jobs:
         run: bash scripts/ci/seed-local-config.sh
 
       - name: Record screenshots
-        run: ./gradlew :app:testDebugUnitTest -Proborazzi.test.record=true $SCREENSHOT_TESTS --no-daemon --stacktrace
+        run: >-
+          ./gradlew :app:testDebugUnitTest -Proborazzi.test.record=true
+          --tests 'com.github.takahirom.roborazzi.*' --tests '*ScreenshotTest'
+          --no-daemon --stacktrace
 
       - name: Commit goldens
         run: |
