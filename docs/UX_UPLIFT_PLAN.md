@@ -192,10 +192,19 @@ Hospital
       photo step thumbnails + remove, a review step, and a success screen with a what-happens-next timeline.
 - [ ] **U21** Bids inbox (in job detail): compare view — sort by price / ETA / rating, verified + tier
       badges, one "recommended" with its reason, accept → confirmation that explains escrow.
-- [ ] **U22–U25** `RepairJobDetailScreen` decomposition into `repair/detail/sections/*.kt` and
+- [~] **U22–U25** `RepairJobDetailScreen` decomposition into `repair/detail/sections/*.kt` and
       `repair/detail/sheets/*.kt` (behaviour-preserving, all tests green, screenshots identical), then
       hierarchy: status stepper as hero, exactly one primary CTA per state in `StickyBottomBar`, secondary
       actions in an overflow, terminal banners consistent.
+      *U22a shipped 2026-09-16:* thin `RepairJobDetailScreen` wrapper + `internal RepairJobDetailContent(state,
+      actions, …)`; the 41 ViewModel call sites are a 37-member `RepairJobDetailActions` interface
+      (`viewModel.asActions()` / `NoOpRepairJobDetailActions`); `RepairJobDetailScreenScreenshotTest` pins 9 states
+      (both roles, open → completed → cancelled), null coordinates so the map card renders its placeholder.
+      *U22b shipped 2026-09-16:* 30 composables moved verbatim into `repair/detail/sections/*.kt` (7 files) and
+      `repair/detail/sheets/*.kt` (7 files); the pure `internal fun` helpers stay in `RepairJobDetailScreen.kt`
+      because their tests import that package. Proof: all 116 goldens byte-identical before/after (same machine).
+      *Open for U23–U25:* hierarchy work per section; **found while pinning:** the `HospitalBanner` "Verified" pill
+      wraps letter-by-letter next to a long hospital name (the Row gives it no min width) — fix in U23.
 - [ ] **U26** DSR countersign + rating: a "what you are signing" summary, then rate, then next step.
 
 Engineer
