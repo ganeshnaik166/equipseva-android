@@ -34,6 +34,11 @@
     <string name="common_yes">Yes</string>
     <string name="common_no">No</string>
     <string name="nav_home">Home</string>
+    <string name="nav_bookings">Bookings</string>
+    <string name="nav_messages">Messages</string>
+    <string name="nav_jobs">Jobs</string>
+    <string name="nav_earnings">Earnings</string>
+    <string name="nav_profile">Profile</string>
 
     <!-- Account -->
     <string name="account_delete_title">Delete your account?</string>
