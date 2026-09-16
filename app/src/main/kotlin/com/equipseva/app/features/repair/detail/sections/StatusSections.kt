@@ -152,11 +152,16 @@ internal fun HospitalBanner(siteName: String, siteCity: String?, urgency: com.eq
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
+                // The name yields width to the badge, not the other way round: an
+                // unweighted Text takes its intrinsic width first and a long hospital
+                // name left the badge a few pixels, so "Verified" wrapped one letter
+                // per line. fill = false keeps short names hugging the badge.
                 Text(
                     text = siteName,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = SevaInk900,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
                 VerifiedBadge(small = true)
             }
