@@ -21,6 +21,15 @@ on:
   schedule:
     - cron: "0 3 * * *"
   workflow_dispatch:
+    inputs:
+      slot:
+        # A single slot name (e.g. db-storage-snapshot) re-runs just that
+        # job through the real edge-function + PostgREST path. Replaying the
+        # whole `daily` group by hand is not safe — it includes money
+        # reconciliation, notifications and append-only work.
+        description: "cron-tick slot to run (default: the whole daily group)"
+        type: string
+        default: "daily"
 
 concurrency:
   group: cron-tick-daily
@@ -31,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: POST cron-tick ?slot=daily
+      - name: POST cron-tick ?slot=${{ inputs.slot || 'daily' }}
         env:
           CRON_TICK_SECRET: ${{ secrets.CRON_TICK_SECRET }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
@@ -45,7 +54,8 @@ jobs:
             echo "::error::SUPABASE_ANON_KEY not configured. Add it under Settings → Secrets and variables → Actions."
             exit 1
           fi
-          URL="https://eyswaywvtartpvtoxtdr.supabase.co/functions/v1/cron-tick?slot=daily"
+          SLOT="${{ inputs.slot || 'daily' }}"
+          URL="https://eyswaywvtartpvtoxtdr.supabase.co/functions/v1/cron-tick?slot=${SLOT}"
           curl --fail-with-body \
                --silent --show-error \
                --max-time 120 \
