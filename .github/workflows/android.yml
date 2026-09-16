@@ -131,6 +131,15 @@ jobs:
           path: app/build/reports/lint-results-debug.html
           if-no-files-found: warn
 
+      # UX uplift decision D5: every feature file that is touched ends the
+      # round on Es* design tokens and components. This ratchet compares the
+      # raw-usage counts (raw .dp/.sp, raw M3 Button/TextField, legacy colour
+      # tokens, hardcoded Text("...")) against scripts/verify/design_lint.baseline.json
+      # and fails if any of them rose. The baseline is refreshed deliberately
+      # with --write-baseline, in the same commit that lowers the counts.
+      - name: design-lint ratchet
+        run: python3 scripts/verify/design_lint.py
+
       - name: assembleDebug
         run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
 
