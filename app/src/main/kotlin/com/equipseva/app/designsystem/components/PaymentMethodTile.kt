@@ -11,6 +11,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material.icons.outlined.CurrencyRupee
+import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,9 +25,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
+import com.equipseva.app.designsystem.theme.EquipSevaTheme
 import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
@@ -109,4 +116,69 @@ fun PaymentMethodTile(
             }
         }
     }
+}
+
+// ---- Previews — design-system gallery. Every @Preview under designsystem/
+// is also a Roborazzi screenshot test (see app/build.gradle.kts), so a
+// variant that is missing here has no visual regression guard.
+
+@Composable
+private fun PaymentMethodTileGallery() {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        PaymentMethodTile(
+            icon = Icons.Outlined.QrCode2,
+            title = "UPI",
+            selected = true,
+            onSelect = {},
+        )
+        PaymentMethodTile(
+            icon = Icons.Outlined.CreditCard,
+            title = "Debit / credit card",
+            selected = false,
+            onSelect = {},
+        )
+        PaymentMethodTile(
+            icon = Icons.Outlined.QrCode2,
+            title = "UPI",
+            selected = true,
+            onSelect = {},
+            subtitle = "GPay, PhonePe, Paytm — pay ₹4,500 instantly",
+        )
+        PaymentMethodTile(
+            icon = Icons.Outlined.AccountBalance,
+            title = "Bank transfer",
+            selected = false,
+            onSelect = {},
+            subtitle = "NEFT / IMPS to EquipSeva escrow, settles in 2 hours",
+        )
+        PaymentMethodTile(
+            icon = Icons.Outlined.CurrencyRupee,
+            title = "Cash on completion — hand ₹4,500 to engineer Rajesh Kumar once the ventilator at Apollo Hospitals Jubilee Hills is signed off",
+            selected = true,
+            onSelect = {},
+            subtitle = "Only for jobs under ₹10,000; the engineer issues an in-app receipt after the hospital biomedical head approves the service report",
+        )
+        PaymentMethodTile(
+            icon = Icons.Outlined.CreditCard,
+            title = "",
+            selected = false,
+            onSelect = {},
+            subtitle = "Saved card ending 4821",
+        )
+    }
+}
+
+@Preview(name = "PaymentMethodTile", showBackground = true)
+@Composable
+private fun PaymentMethodTilePreview() {
+    EquipSevaTheme(darkTheme = false) { PaymentMethodTileGallery() }
+}
+
+@Preview(name = "PaymentMethodTile large text", showBackground = true, fontScale = 1.3f)
+@Composable
+private fun PaymentMethodTilePreviewLargeText() {
+    EquipSevaTheme(darkTheme = false) { PaymentMethodTileGallery() }
 }

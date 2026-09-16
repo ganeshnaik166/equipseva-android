@@ -100,7 +100,7 @@ private fun PillPreview() {
     EquipSevaTheme(darkTheme = false) { PillGallery() }
 }
 
-@Preview(name = "Pill — font scale 1.3", showBackground = true, fontScale = 1.3f)
+@Preview(name = "Pill large text", showBackground = true, fontScale = 1.3f)
 @Composable
 private fun PillPreviewLargeText() {
     EquipSevaTheme(darkTheme = false) { PillGallery() }

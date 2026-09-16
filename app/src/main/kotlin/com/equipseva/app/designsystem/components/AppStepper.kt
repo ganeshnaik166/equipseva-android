@@ -2,6 +2,7 @@ package com.equipseva.app.designsystem.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,10 +20,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
+import com.equipseva.app.designsystem.theme.EquipSevaTheme
 import com.equipseva.app.designsystem.theme.Ink400
 import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Ink900
@@ -111,4 +114,51 @@ fun HorizontalStepper(
             }
         }
     }
+}
+
+// ---- Previews — design-system gallery. Every @Preview under designsystem/
+// is also a Roborazzi screenshot test (see app/build.gradle.kts), so a
+// variant that is missing here has no visual regression guard.
+
+@Composable
+private fun AppStepperGallery() {
+    val repairFlow = listOf("Request", "Quote", "Repair", "Done")
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(text = "First step current", fontSize = 11.sp, color = Ink500)
+        HorizontalStepper(steps = repairFlow, current = 0)
+        Text(text = "Middle step current", fontSize = 11.sp, color = Ink500)
+        HorizontalStepper(steps = repairFlow, current = 1)
+        Text(text = "Last step current", fontSize = 11.sp, color = Ink500)
+        HorizontalStepper(steps = repairFlow, current = 3)
+        Text(text = "All steps done", fontSize = 11.sp, color = Ink500)
+        HorizontalStepper(steps = repairFlow, current = repairFlow.size)
+        Text(text = "Two steps", fontSize = 11.sp, color = Ink500)
+        HorizontalStepper(steps = listOf("Verify OTP", "Set PIN"), current = 1)
+        Text(text = "Five steps, long labels", fontSize = 11.sp, color = Ink500)
+        HorizontalStepper(
+            steps = listOf(
+                "Post repair job",
+                "Compare engineer bids",
+                "Assign Ramesh Kumar",
+                "Ventilator serviced",
+                "Pay ₹4,500",
+            ),
+            current = 2,
+        )
+    }
+}
+
+@Preview(name = "AppStepper", showBackground = true)
+@Composable
+private fun AppStepperPreview() {
+    EquipSevaTheme(darkTheme = false) { AppStepperGallery() }
+}
+
+@Preview(name = "AppStepper large text", showBackground = true, fontScale = 1.3f)
+@Composable
+private fun AppStepperPreviewLargeText() {
+    EquipSevaTheme(darkTheme = false) { AppStepperGallery() }
 }

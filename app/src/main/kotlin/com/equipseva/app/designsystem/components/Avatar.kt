@@ -1,7 +1,11 @@
 package com.equipseva.app.designsystem.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
@@ -13,10 +17,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equipseva.app.designsystem.theme.EquipSevaTheme
 import com.equipseva.app.designsystem.theme.EsFontFamily
+import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.SevaGreen500
 import com.equipseva.app.designsystem.theme.SevaGreen700
 import java.util.Locale
@@ -60,3 +67,50 @@ fun Avatar(
  */
 internal fun avatarDisplayInitials(initials: String): String =
     initials.take(2).uppercase(Locale.ENGLISH)
+
+// ---- Previews — design-system gallery. Every @Preview under designsystem/
+// is also a Roborazzi screenshot test (see app/build.gradle.kts), so a
+// variant that is missing here has no visual regression guard.
+
+@Composable
+private fun AvatarGallery() {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(text = "Sizes 24 / 32 / 40 (default) / 56 / 72 dp", style = EsType.Caption)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Avatar(initials = "RK", size = 24.dp)
+            Avatar(initials = "RK", size = 32.dp)
+            Avatar(initials = "RK")
+            Avatar(initials = "RK", size = 56.dp)
+            Avatar(initials = "RK", size = 72.dp)
+        }
+        Text(
+            text = "Initials: single letter, lowercase, full name (truncated), empty, \"li\"",
+            style = EsType.Caption,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Avatar(initials = "A")
+            Avatar(initials = "pm")
+            Avatar(initials = "Suresh Iyer")
+            Avatar(initials = "")
+            Avatar(initials = "li")
+        }
+    }
+}
+
+@Preview(name = "Avatar", showBackground = true)
+@Composable
+private fun AvatarPreview() {
+    EquipSevaTheme(darkTheme = false) { AvatarGallery() }
+}
+
+@Preview(name = "Avatar large text", showBackground = true, fontScale = 1.3f)
+@Composable
+private fun AvatarPreviewLargeText() {
+    EquipSevaTheme(darkTheme = false) { AvatarGallery() }
+}

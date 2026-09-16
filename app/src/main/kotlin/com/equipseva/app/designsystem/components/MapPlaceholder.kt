@@ -1,6 +1,7 @@
 package com.equipseva.app.designsystem.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
@@ -21,10 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
 import com.equipseva.app.designsystem.theme.BrandGreen100
+import com.equipseva.app.designsystem.theme.EquipSevaTheme
 import com.equipseva.app.designsystem.theme.Ink700
 import com.equipseva.app.designsystem.theme.Spacing
 
@@ -85,4 +89,43 @@ fun MapPlaceholder(
             )
         }
     }
+}
+
+// ---- Previews — design-system gallery. Every @Preview under designsystem/
+// is also a Roborazzi screenshot test (see app/build.gradle.kts), so a
+// variant that is missing here has no visual regression guard.
+
+@Composable
+private fun MapPlaceholderGallery() {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(text = "No address line", style = MaterialTheme.typography.labelSmall)
+        MapPlaceholder()
+        MapPlaceholder(addressLine = "Apollo Hospitals, Jubilee Hills, Hyderabad")
+        MapPlaceholder(
+            addressLine = "Biomedical Engineering Dept, Block C, 3rd Floor, Sir Ganga Ram Hospital, " +
+                "Rajinder Nagar, New Delhi 110060 — ask for Engineer Ramesh Kulkarni at the ICU gate",
+        )
+        Text(text = "Empty address line", style = MaterialTheme.typography.labelSmall)
+        MapPlaceholder(addressLine = "")
+        Text(text = "Compact width", style = MaterialTheme.typography.labelSmall)
+        MapPlaceholder(
+            modifier = Modifier.width(200.dp),
+            addressLine = "KEM Hospital, Parel, Mumbai",
+        )
+    }
+}
+
+@Preview(name = "MapPlaceholder", showBackground = true)
+@Composable
+private fun MapPlaceholderPreview() {
+    EquipSevaTheme(darkTheme = false) { MapPlaceholderGallery() }
+}
+
+@Preview(name = "MapPlaceholder large text", showBackground = true, fontScale = 1.3f)
+@Composable
+private fun MapPlaceholderPreviewLargeText() {
+    EquipSevaTheme(darkTheme = false) { MapPlaceholderGallery() }
 }
