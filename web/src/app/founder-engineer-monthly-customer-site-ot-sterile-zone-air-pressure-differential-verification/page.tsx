@@ -12,7 +12,7 @@ type ScoreRow = { hospital_name: string; rooms: number; pass_n: number; fail_n: 
 type TrendRow = { visited_on: string; n: number; pass_n: number; fail_n: number };
 
 export default async function Page() {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   const [summary, failures, byZone, hepa, queue, score, trend] = await Promise.all([
     supabase.rpc('founder_r2958_summary'),

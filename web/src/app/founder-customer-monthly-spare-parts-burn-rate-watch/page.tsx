@@ -46,6 +46,13 @@ type Trend = {
   total_variance_rupees: number;
 };
 
+type QuarterTrend = {
+  quarter_start: string;
+  equipment_count: number;
+  total_burn_rupees: number;
+  total_variance_rupees: number;
+};
+
 type Summary = {
   total_equipment: number;
   total_burn_rupees: number;
@@ -112,7 +119,7 @@ export default async function Page() {
   const focus = (focusRes.data ?? []) as Focus[];
   const funnel = (funnelRes.data ?? []) as Funnel[];
   const monthly = (monthRes.data ?? []) as Trend[];
-  const quarterly = (quarterRes.data ?? []) as { quarter_start: string; equipment_count: number; total_burn_rupees: number; total_variance_rupees: number }[];
+  const quarterly = (quarterRes.data ?? []) as QuarterTrend[];
   const summary = ((summaryRes.data ?? [])[0] ?? null) as Summary | null;
   const owners = (ownerRes.data ?? []) as OwnerLoad[];
   const causes = (causeRes.data ?? []) as RootCause[];
@@ -184,15 +191,15 @@ export default async function Page() {
       </Section>
 
       <Section title="Quarterly burn trend">
-        <DataTable
+        <DataTable<QuarterTrend>
           rows={quarterly}
           rowKey={(r, i) => String(r.quarter_start + '_' + i)}
           emptyMessage="No data"
           columns={[
-            { key: 'quarter_start', header: 'Quarter', render: (r: { quarter_start: string }) => r.quarter_start },
-            { key: 'equipment_count', header: 'Equipment', render: (r: { equipment_count: number }) => String(r.equipment_count) },
-            { key: 'total_burn_rupees', header: 'Burn', render: (r: { total_burn_rupees: number }) => rupees(r.total_burn_rupees) },
-            { key: 'total_variance_rupees', header: 'Variance', render: (r: { total_variance_rupees: number }) => rupees(r.total_variance_rupees) },
+            { key: 'quarter_start', header: 'Quarter', render: (r) => r.quarter_start },
+            { key: 'equipment_count', header: 'Equipment', render: (r) => String(r.equipment_count) },
+            { key: 'total_burn_rupees', header: 'Burn', render: (r) => rupees(r.total_burn_rupees) },
+            { key: 'total_variance_rupees', header: 'Variance', render: (r) => rupees(r.total_variance_rupees) },
           ]}
         />
       </Section>

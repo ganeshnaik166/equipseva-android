@@ -215,7 +215,7 @@ export default async function Page() {
         <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 12 }}>Worst-offender engineers</h2>
         <DataTable
           rows={worst}
-          rowKey={(r, i) => String(`${(r as WorstRow).engineer_name}-${(r as WorstRow).city}` ?? i)}
+          rowKey={(r, i) => String(`${(r as WorstRow).engineer_name}-${(r as WorstRow).city}`)}
           emptyMessage="No data"
           columns={[
             { key: 'engineer_name', header: 'Engineer', render: (r: WorstRow) => r.engineer_name },

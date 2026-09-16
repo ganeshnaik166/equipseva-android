@@ -116,7 +116,7 @@ export default async function Page() {
 
       <section>
         <h2 className="text-lg font-semibold mb-2">Quarterly Brand Health</h2>
-        <DataTable rows={quarterRows} columns={quarterCols} emptyMessage="No quarterly data" rowKey={(r, i) => String((r as QuarterRow).quarter + (r as QuarterRow).fiscal_year ?? i)} />
+        <DataTable rows={quarterRows} columns={quarterCols} emptyMessage="No quarterly data" rowKey={(r, i) => String((r as QuarterRow).quarter + (r as QuarterRow).fiscal_year)} />
       </section>
 
       <section>

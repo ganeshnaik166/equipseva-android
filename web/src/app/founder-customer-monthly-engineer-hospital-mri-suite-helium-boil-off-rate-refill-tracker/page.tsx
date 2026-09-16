@@ -250,7 +250,7 @@ export default async function Page() {
           rows={critRows}
           columns={critCols}
           emptyMessage="No critical suites"
-          rowKey={(r, i) => String(`${r.suite_code}-${r.reading_month}` ?? i)}
+          rowKey={(r, i) => String(`${r.suite_code}-${r.reading_month}`)}
         />
       </section>
 
@@ -260,7 +260,7 @@ export default async function Page() {
           rows={upcomingRows}
           columns={upcomingCols}
           emptyMessage="No upcoming refills"
-          rowKey={(r, i) => String(`${r.suite_code}-${r.scheduled_at}` ?? i)}
+          rowKey={(r, i) => String(`${r.suite_code}-${r.scheduled_at}`)}
         />
       </section>
     </div>

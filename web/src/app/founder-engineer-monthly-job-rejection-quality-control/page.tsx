@@ -126,7 +126,7 @@ export default async function Page() {
             { key: 'effective_at', header: 'Effective', render: (r: Policy) => new Date(r.effective_at).toLocaleDateString() },
           ]}
           emptyMessage="No data"
-          rowKey={(r: Policy, i: number) => String(r.policy_area + r.effective_at ?? i)}
+          rowKey={(r: Policy, i: number) => String(r.policy_area + r.effective_at)}
         />
       </section>
 

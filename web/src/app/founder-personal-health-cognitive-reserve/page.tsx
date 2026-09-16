@@ -138,7 +138,7 @@ export default async function FounderPersonalHealthCognitiveReservePage() {
 
       <section style={{ marginBottom: '32px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>Follow-ups Due</h2>
-        <DataTable rows={followUps} columns={followUpCols} emptyMessage="No follow-ups scheduled" rowKey={(r, i) => String((r as FollowUp).panel_date + (r as FollowUp).headline_metric ?? i)} />
+        <DataTable rows={followUps} columns={followUpCols} emptyMessage="No follow-ups scheduled" rowKey={(r, i) => String((r as FollowUp).panel_date + (r as FollowUp).headline_metric)} />
       </section>
 
       <section style={{ marginBottom: '32px' }}>
@@ -153,7 +153,7 @@ export default async function FounderPersonalHealthCognitiveReservePage() {
 
       <section style={{ marginBottom: '32px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>Top At-Risk Metrics</h2>
-        <DataTable rows={atRisk} columns={atRiskCols} emptyMessage="No at-risk metrics — green across the board" rowKey={(r, i) => String((r as AtRisk).panel_date + (r as AtRisk).headline_metric ?? i)} />
+        <DataTable rows={atRisk} columns={atRiskCols} emptyMessage="No at-risk metrics — green across the board" rowKey={(r, i) => String((r as AtRisk).panel_date + (r as AtRisk).headline_metric)} />
       </section>
 
       <section style={{ marginBottom: '32px' }}>
@@ -163,7 +163,7 @@ export default async function FounderPersonalHealthCognitiveReservePage() {
 
       <section style={{ marginBottom: '32px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>Cognitive Reserve Timeline</h2>
-        <DataTable rows={cogTimeline} columns={cogCols} emptyMessage="No cognitive timeline data" rowKey={(r, i) => String((r as CogTimeline).panel_date + (r as CogTimeline).panel_type ?? i)} />
+        <DataTable rows={cogTimeline} columns={cogCols} emptyMessage="No cognitive timeline data" rowKey={(r, i) => String((r as CogTimeline).panel_date + (r as CogTimeline).panel_type)} />
       </section>
     </main>
   );
