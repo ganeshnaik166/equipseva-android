@@ -29,6 +29,11 @@
     <string name="common_yes">à¤¹à¤¾à¤</string>
     <string name="common_no">à¤¨à¤¹à¥à¤</string>
     <string name="nav_home">à¤¹à¥à¤®</string>
+    <string name="nav_bookings">बुकिंग</string>
+    <string name="nav_messages">संदेश</string>
+    <string name="nav_jobs">कार्य</string>
+    <string name="nav_earnings">कमाई</string>
+    <string name="nav_profile">प्रोफ़ाइल</string>
 
     <!-- Account -->
     <string name="account_delete_title">à¤à¥à¤¯à¤¾ à¤à¤ª à¤à¤ªà¤¨à¤¾ à¤à¤¾à¤¤à¤¾ à¤¹à¤à¤¾à¤¨à¤¾ à¤à¤¾à¤¹à¤¤à¥ à¤¹à¥à¤?</string>

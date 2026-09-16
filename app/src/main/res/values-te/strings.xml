@@ -29,6 +29,11 @@
     <string name="common_yes">à°à°µà±à°¨à±</string>
     <string name="common_no">à°à°¾à°¦à±</string>
     <string name="nav_home">à°¹à±à°®à±</string>
+    <string name="nav_bookings">బుకింగ్‌లు</string>
+    <string name="nav_messages">సందేశాలు</string>
+    <string name="nav_jobs">పనులు</string>
+    <string name="nav_earnings">ఆదాయం</string>
+    <string name="nav_profile">ప్రొఫైల్</string>
 
     <!-- Account -->
     <string name="account_delete_title">à°®à± à°à°¾à°¤à°¾à°¨à± à°¤à±à°²à°à°¿à°à°à°¾à°²à°¾?</string>
