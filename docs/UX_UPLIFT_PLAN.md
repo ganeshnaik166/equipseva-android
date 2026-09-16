@@ -203,8 +203,10 @@ Hospital
       *U22b shipped 2026-09-16:* 30 composables moved verbatim into `repair/detail/sections/*.kt` (7 files) and
       `repair/detail/sheets/*.kt` (7 files); the pure `internal fun` helpers stay in `RepairJobDetailScreen.kt`
       because their tests import that package. Proof: all 116 goldens byte-identical before/after (same machine).
-      *Open for U23–U25:* hierarchy work per section; **found while pinning:** the `HospitalBanner` "Verified" pill
-      wraps letter-by-letter next to a long hospital name (the Row gives it no min width) — fix in U23.
+      *U23a shipped 2026-09-16:* the `HospitalBanner` "Verified" pill no longer wraps letter-by-letter next to a long
+      hospital name (the name now yields width via `weight(1f, fill = false)`); 6 detail goldens re-recorded.
+      *Open for U23–U25:* hierarchy work per section (stepper as hero, one primary CTA per state, overflow for
+      secondary actions, consistent terminal banners).
 - [ ] **U26** DSR countersign + rating: a "what you are signing" summary, then rate, then next step.
 
 Engineer
