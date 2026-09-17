@@ -220,7 +220,7 @@ admitted).
 | root/auth/onboarding (`root_*`, `auth*`, `hospital/phone_onboarding`, `*/onboarding`) | any | **deny** | deny | deny | deny | never |
 | anything else (encoded ids, query strings not in the table, unknown prefixes) | — | **deny + log** | deny | deny | deny | never |
 | A → B, A → SignedOut → A | — | events created under a previous owner/generation are discarded when the owner changes; router buffer cleared on `SignedOut` | same | n/a (UI is per login since A2) | pin must carry the owner | — |
-| cold start | — | at most one pending event, delivered only after MAIN admits an owner and `user_id` matches; otherwise dropped | same | — | — | dispatch only when `savedInstanceState == null` |
+| cold start | — | EVERY event dispatched while auth is still `Unknown` is queued in dispatch order and stamped with the FIRST `SignedIn` owner, then delivered only to that owner's MAIN (matches T-A3-02c: two events → both, in order). Frozen boundary: `Unknown` = queue; `SignedOut` = drop and clear the queue; a later `SignedIn` never resurrects a dropped link | same | — | — | dispatch only when `savedInstanceState == null` |
 
 Rules that make the table safe:
 
@@ -239,6 +239,15 @@ Rules that make the table safe:
 
 Open question **O1** (owner decision): remember a link that arrived while signed out and
 open it after the same process signs in, or drop it? Proposed default: drop.
+**Status 2026-09-16 (branch `claudedev-quality-20260912`):** implemented with the proposed default —
+`DeepLinkRouter` drops links dispatched while `SignedOut`, queues (in order) links dispatched while
+`Unknown` and stamps them with the first `SignedIn` owner, stamps every event with its owner,
+clears queue + buffer on `SignedOut`, and honours an optional recipient `user_id` extra from the
+FCM payload (mismatch → drop). `DeepLinkHost` forwards only events stamped for the live owner;
+`SignOutCleanup` clears the router and cancels the tray; `MainActivity` dispatches only when
+`savedInstanceState == null`. Tests: `DeepLinkRouterOwnerGateTest`, `DeepLinkHostOwnerGateTest`,
+`DeepLinkPolicyTest`, `SignOutCleanupOwnershipTest`. The owner can still flip O1 to "remember" by
+keeping the pending queue across `SignedOut` (one branch in `DeepLinkRouter.dispatchRoute`).
 
 ## 4. Test-first plan
 

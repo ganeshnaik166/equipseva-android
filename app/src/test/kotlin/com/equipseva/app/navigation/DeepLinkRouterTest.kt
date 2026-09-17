@@ -135,8 +135,19 @@ class DeepLinkRouterTest {
         )
     }
 
+    // A3-02: the router now stamps events with the signed-in owner, so these
+    // dispatch tests run against a FakeAuthRepository that is already SignedIn.
+    private fun signedInRouter(scope: kotlinx.coroutines.CoroutineScope): DeepLinkRouter =
+        DeepLinkRouter(
+            com.equipseva.app.testing.FakeAuthRepository(
+                com.equipseva.app.core.auth.AuthSession.SignedIn(userId = "user-A", email = null),
+            ),
+            scope,
+            onLog = {},
+        )
+
     @Test fun `dispatch forwards allowed explicit route`() = runTest {
-        val router = DeepLinkRouter()
+        val router = signedInRouter(backgroundScope)
         val route = dispatchAndGetRoute(
             router,
             explicitIntent(Routes.HOME),
@@ -145,7 +156,7 @@ class DeepLinkRouterTest {
     }
 
     @Test fun `dispatch rejects disallowed explicit route`() = runTest {
-        val router = DeepLinkRouter()
+        val router = signedInRouter(backgroundScope)
         val route = dispatchAndGetRoute(
             router,
             explicitIntent(Routes.FOUNDER_DASHBOARD),

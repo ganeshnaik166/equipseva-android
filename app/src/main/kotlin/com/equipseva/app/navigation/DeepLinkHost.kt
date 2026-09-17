@@ -205,7 +205,17 @@ class DeepLinkHost @Inject constructor(
         viewModelScope.launch {
             router.events.collect { raw ->
                 when (raw) {
-                    is DeepLinkRouter.Event.OpenRoute -> _events.trySend(VerifiedEvent.OpenRoute(raw.route))
+                    is DeepLinkRouter.Event.OpenRoute -> {
+                        // A3-02: the router stamped the event with the login that
+                        // dispatched it. This host lives inside one owner's MAIN;
+                        // an event stamped for anyone else (A's buffered tap
+                        // surfacing after B signed in, or A's previous login) is
+                        // dropped rather than navigated in the wrong session.
+                        val liveUserId = currentUserId()
+                        if (liveUserId != null && liveUserId == raw.ownerUserId) {
+                            _events.trySend(VerifiedEvent.OpenRoute(raw.route))
+                        }
+                    }
                 }
             }
         }

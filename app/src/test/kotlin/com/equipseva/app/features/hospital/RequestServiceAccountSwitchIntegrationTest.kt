@@ -276,6 +276,8 @@ class RequestServiceAccountSwitchIntegrationTest {
         pendingAmcPaymentsStore = mockk(relaxed = true),
         pendingAmcContractsStore = mockk(relaxed = true),
         requestServiceDraftStore = store,
+        deepLinkRouter = mockk(relaxed = true),
+        context = context,
     )
 
     private class EffectSink {

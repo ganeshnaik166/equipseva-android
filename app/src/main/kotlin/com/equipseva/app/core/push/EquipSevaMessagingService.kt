@@ -87,6 +87,11 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             .apply {
                 if (route != null) putExtra(DeepLinkRouter.EXTRA_ROUTE, route)
+                // A3-02: when the server names the recipient, carry it so the
+                // router can drop a tap on A's stale tray entry inside B's
+                // session. Identity de-dup only — not authorization.
+                data["user_id"]?.takeIf { it.isNotBlank() }
+                    ?.let { putExtra(DeepLinkRouter.EXTRA_RECIPIENT_USER_ID, it) }
             }
         val pendingIntent = PendingIntent.getActivity(
             this,
