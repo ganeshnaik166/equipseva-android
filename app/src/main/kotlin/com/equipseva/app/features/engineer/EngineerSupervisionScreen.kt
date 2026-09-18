@@ -95,16 +95,16 @@ class EngineerSupervisionViewModel @Inject constructor(
         _state.update { it.copy(status = if (it.rows.isEmpty()) Status.Loading else it.status, error = null) }
         viewModelScope.launch {
             repo.fetchSupervisionProgress()
+                // Copy, never replace: accept / decline / sign-off set their
+                // confirmation toast and then call reload(), so a fresh
+                // UiState() here swallowed the toast microseconds after it
+                // appeared and closed an open picker with it.
                 .onSuccess { list ->
-                    _state.update { UiState(status = Status.Loaded, rows = list) }
+                    _state.update { it.copy(status = Status.Loaded, rows = list, error = null) }
                 }
                 .onFailure { e ->
-                    _state.update {
-                        UiState(
-                            status = Status.Error,
-                            error = e.toUserMessage("Could not load supervision history."),
-                        )
-                    }
+                    val msg = e.toUserMessage("Could not load supervision history.")
+                    _state.update { it.copy(status = Status.Error, error = msg) }
                 }
         }
     }

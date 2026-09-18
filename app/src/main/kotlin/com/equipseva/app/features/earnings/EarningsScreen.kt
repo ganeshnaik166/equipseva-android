@@ -43,6 +43,8 @@ import com.equipseva.app.core.data.payouts.EngineerPayoutRow
 import com.equipseva.app.core.data.payouts.PayoutStatus
 import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.core.util.formatRupeesPaise
+import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.core.util.prettyDateTime
 import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.EmptyStateView
@@ -556,7 +558,10 @@ internal fun AmcEarningsList(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = stringResource(R.string.engineer_amc_visits_job_number_fallback),
+                        text = amcEarningRowTitle(
+                            visitCompletedAt = row.visitCompletedAt,
+                            fallback = stringResource(R.string.engineer_amc_visits_job_number_fallback),
+                        ),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = SevaInk900,
@@ -589,6 +594,18 @@ internal fun AmcEarningsList(
         }
     }
 }
+
+/**
+ * Title line for one AMC visit payout row.
+ *
+ * Every row used to carry the same "AMC visit" label with the completion date
+ * nowhere on screen, so an engineer with a dozen AMC payouts had a ledger of
+ * identical lines that could not be reconciled against the visits they
+ * actually did. The date is the only distinguishing fact the row carries; the
+ * label survives as the fallback for rows the server returns without one.
+ */
+internal fun amcEarningRowTitle(visitCompletedAt: String?, fallback: String): String =
+    visitCompletedAt?.takeIf { it.isNotBlank() }?.let { prettyDate(it) } ?: fallback
 
 @Composable
 private fun SelfRankCard(rank: com.equipseva.app.core.data.escrow.RepairJobEscrowRepository.EngineerSelfRank) {
@@ -720,7 +737,6 @@ private fun PayoutTransferRow(
     // the payout-method editor where they can fix the VPA.
     onFixMethod: (() -> Unit)? = null,
 ) {
-    val amountRupees = p.amountPaise / 100.0
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -739,7 +755,7 @@ private fun PayoutTransferRow(
             Text(
                 stringResource(
                     R.string.founder_payouts_amount_arrow_engineer,
-                    formatRupees(amountRupees),
+                    payoutRowAmountText(p.amountPaise),
                     p.destinationLabel ?: stringResource(R.string.earnings_no_payout_method),
                 ),
                 fontSize = 15.sp,
@@ -798,6 +814,17 @@ private fun PayoutStatusPill(status: PayoutStatus) {
         Text(label, fontSize = 11.sp, color = fg, fontWeight = FontWeight.SemiBold)
     }
 }
+
+/**
+ * Transfer amount for one payout row.
+ *
+ * Paise-exact: `amountPaise` is the figure the bank actually moved, and this
+ * list is the engineer's own record of it. Rounding to whole rupees made a
+ * ₹1,234.56 UTR read as ₹1,235 — a number that appears on no statement and
+ * cannot be reconciled with the bank's.
+ */
+internal fun payoutRowAmountText(amountPaise: Long): String =
+    formatRupeesPaise(amountPaise / 100.0)
 
 /**
  * One-line context under each payout row. Goal: tell the engineer

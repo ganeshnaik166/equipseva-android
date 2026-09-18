@@ -271,4 +271,58 @@ class KycViewModelTest {
         // The exact wording goes through toUserMessage() so we assert
         // shape, not literal string.
     }
+
+    @Test fun `documents are claimed before the submit goes out, not after it returns`() = runTest {
+        // onCleared() deletes every uploaded path the server is not known to
+        // reference. The claim used to be refreshed only AFTER upsert
+        // returned, so leaving the screen mid-submit deleted the very
+        // documents the already-sent upsert was storing paths to — the review
+        // queue then showed a submission with missing files.
+        val submitInFlight = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val engineerRepo = mockk<EngineerRepository>(relaxed = true) {
+            coEvery { fetchByUserId(any()) } returns Result.success(engineer())
+            coEvery { fetchMySuspension() } returns Result.success(null)
+            coEvery { uploadKycDoc(any(), any(), any(), any()) } answers {
+                Result.success("user-1/${secondArg<String>()}")
+            }
+            coEvery {
+                upsert(
+                    userId = any(),
+                    aadhaarNumber = any(),
+                    panNumber = any(),
+                    qualifications = any(),
+                    specializations = any(),
+                    experienceYears = any(),
+                    serviceRadiusKm = any(),
+                    city = any(),
+                    state = any(),
+                    latitude = any(),
+                    longitude = any(),
+                    certificates = any(),
+                    aadhaarUploaded = any(),
+                    resetVerificationToPending = any(),
+                )
+            } coAnswers {
+                submitInFlight.await()
+                Result.success(engineer(verificationStatus = VerificationStatus.Pending))
+            }
+        }
+        val (vm, _) = newViewModel(engineerRepo = engineerRepo)
+        vm.state.first { !it.loading }
+        vm.toggleSpecialization(RepairEquipmentCategory.ImagingRadiology)
+        vm.uploadAadhaarDoc("scan.jpg", ByteArray(8), "image/jpeg")
+        vm.uploadCertificate("c1.pdf", ByteArray(8), "application/pdf")
+        vm.state.first { it.aadhaarDocPath != null && it.certDocPaths.isNotEmpty() }
+
+        // Uploaded but not submitted: these ARE orphans, and abandoning the
+        // screen here should still clean them up.
+        assertTrue(vm.orphanDocPathsForCleanup().isNotEmpty())
+
+        vm.save()
+        vm.state.first { it.saving }
+
+        assertEquals(emptySet<String>(), vm.orphanDocPathsForCleanup())
+        submitInFlight.complete(Unit)
+        vm.state.first { !it.saving }
+    }
 }

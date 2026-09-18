@@ -215,10 +215,22 @@ class AddressFormViewModel @Inject constructor(
             )
             repo.upsert(payload)
                 .onSuccess { saved ->
-                    if (f.isDefault && saved.id != null) {
-                        repo.setDefault(saved.id)
+                    // A failed default-flip used to be discarded, so the
+                    // screen popped reporting success while deliveries kept
+                    // going to the old default address.
+                    val defaultError = if (f.isDefault && saved.id != null) {
+                        repo.setDefault(saved.id).exceptionOrNull()
+                    } else {
+                        null
                     }
-                    _state.update { it.copy(saving = false, saved = true) }
+                    val defaultMessage = defaultError
+                        ?.takeIf { it !is kotlinx.coroutines.CancellationException }
+                        ?.let { "Address saved, but it couldn't be made your default. ${it.toUserMessage()}" }
+                    if (defaultMessage != null) {
+                        _state.update { it.copy(saving = false, error = defaultMessage) }
+                    } else {
+                        _state.update { it.copy(saving = false, saved = true) }
+                    }
                 }
                 .onFailure { e -> _state.update { it.copy(saving = false, error = e.toUserMessage()) } }
         }
@@ -530,5 +542,9 @@ internal fun validateAddressForm(f: AddressFormViewModel.Form): String? {
     if (f.pincode.length != 6 || !f.pincode.all { it in '0'..'9' }) {
         return "Pincode must be 6 digits."
     }
+    // Same shape check every other phone field in the app applies. Without
+    // it a single digit saved fine here, and the engineer on the way to that
+    // address had no working number to call.
+    com.equipseva.app.core.util.Validators.indiaMobileError(f.phone)?.let { return it }
     return null
 }

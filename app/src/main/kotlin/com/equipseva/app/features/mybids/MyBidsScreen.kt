@@ -3,6 +3,7 @@ package com.equipseva.app.features.mybids
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,10 +13,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudSync
@@ -93,17 +96,17 @@ fun MyBidsScreen(
             ErrorBanner(message = state.errorMessage)
             QueuedBidPill(count = state.queuedBidCount)
 
-            // 3-tab chip strip — design uses 3 explicit tabs (Pending / Accepted / Rejected).
             val groups = remember(state.rows) {
-                listOf(
-                    RepairBidStatus.Pending,
-                    RepairBidStatus.Accepted,
-                    RepairBidStatus.Rejected,
-                ).map { status -> status to state.rows.count { it.bid.status == status } }
+                MY_BIDS_TAB_STATUSES.map { status ->
+                    status to state.rows.count { it.bid.status == status }
+                }
             }
             Row(
+                // Scrollable: four labelled-and-counted chips no longer fit a
+                // narrow screen, and a clipped tab is an unreachable tab.
                 modifier = Modifier
                     .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
@@ -246,15 +249,27 @@ private fun BidRowCard(
 
 @Composable
 private fun BidLinkAction(text: String, onClick: () -> Unit) {
-    Text(
-        text = text,
-        style = EsType.Caption.copy(fontWeight = FontWeight.SemiBold),
-        color = SevaGreen700,
+    // A caption-sized Text with a bare clickable gave a ~20dp-tall target
+    // with no button role — the 48dp floor and Role.Button come from the
+    // wrapper, while the label keeps its inline link look.
+    Box(
         modifier = Modifier
+            .heightIn(min = 48.dp)
             .clip(RoundedCornerShape(6.dp))
-            .clickable(onClick = onClick)
-            .padding(vertical = 2.dp),
-    )
+            .clickable(
+                onClickLabel = text,
+                role = androidx.compose.ui.semantics.Role.Button,
+                onClick = onClick,
+            )
+            .padding(horizontal = 4.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style = EsType.Caption.copy(fontWeight = FontWeight.SemiBold),
+            color = SevaGreen700,
+        )
+    }
 }
 
 @Composable
@@ -338,6 +353,26 @@ internal fun queuedBidPillText(count: Int): String =
     } else {
         "$count bids queued — will submit when back online"
     }
+
+/**
+ * The tab strip on My bids, in display order.
+ *
+ * Withdrawn is a real status the engineer creates themselves (the
+ * "Withdraw bid" action) and the row card already has a pill kind for
+ * it, but it had no tab, no count and no other surface — a bid the
+ * engineer pulled simply disappeared from the app, which reads as data
+ * loss rather than as a completed action.
+ *
+ * Unknown is deliberately absent: it is the client's parse fallback for
+ * a status literal this build does not know, not a state a server row
+ * can be in, and a tab for it would advertise a decoding failure.
+ */
+internal val MY_BIDS_TAB_STATUSES: List<RepairBidStatus> = listOf(
+    RepairBidStatus.Pending,
+    RepairBidStatus.Accepted,
+    RepairBidStatus.Rejected,
+    RepairBidStatus.Withdrawn,
+)
 
 /**
  * Empty-state title on the My-Bids screen.

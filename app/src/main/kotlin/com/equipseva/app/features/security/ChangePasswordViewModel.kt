@@ -122,6 +122,16 @@ class ChangePasswordViewModel @Inject constructor(
                                 currentPasswordError = "Current password is incorrect",
                             )
                         }
+                    } else if (ex is com.equipseva.app.core.auth.ProviderReauthRequiredException) {
+                        // No password identity on this account, so asking for
+                        // the current one is unanswerable; say so instead of
+                        // blaming the password the user does not have.
+                        _state.update {
+                            it.copy(
+                                submitting = false,
+                                errorMessage = providerReauthRequiredMessage(ex.provider),
+                            )
+                        }
                     } else {
                         _state.update {
                             it.copy(

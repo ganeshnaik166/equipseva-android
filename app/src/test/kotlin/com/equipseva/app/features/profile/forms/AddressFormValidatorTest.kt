@@ -33,6 +33,29 @@ class AddressFormValidatorTest {
         assertNull(validateAddressForm(form()))
     }
 
+    // ---- phone shape ----
+    //
+    // The address phone used to be checked for non-blankness only, so a
+    // single digit saved — and the engineer on the way to that address had no
+    // working number to call. Every other phone field in the app applies the
+    // India-mobile shape; this one now does too.
+
+    @Test fun `a one-digit phone is rejected`() {
+        assertEquals("Enter 10 digits", validateAddressForm(form(phone = "1")))
+    }
+
+    @Test fun `a landline-style prefix is rejected`() {
+        assertEquals(
+            "Indian mobile must start with 6, 7, 8, or 9",
+            validateAddressForm(form(phone = "0401234567")),
+        )
+    }
+
+    @Test fun `ten-digit and plus-91 forms both pass`() {
+        assertNull(validateAddressForm(form(phone = "9812345678")))
+        assertNull(validateAddressForm(form(phone = "+919812345678")))
+    }
+
     // ---- required fields ----
 
     @Test fun `blank fullName yields required-fields error`() {

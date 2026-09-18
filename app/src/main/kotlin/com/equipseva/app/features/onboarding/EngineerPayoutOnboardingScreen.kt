@@ -98,6 +98,7 @@ class EngineerPayoutOnboardingViewModel @Inject constructor(
     private val payoutRepository: EngineerPayoutRepository,
     // Round 435 fix #1 — escape hatch needs sign-out path.
     private val authRepository: AuthRepository,
+    private val signOutCleanup: com.equipseva.app.core.auth.SignOutCleanup,
 ) : ViewModel() {
 
     data class UiState(
@@ -371,6 +372,19 @@ class EngineerPayoutOnboardingViewModel @Inject constructor(
         if (_state.value.signingOut) return
         _state.update { it.copy(signingOut = true, signOutConfirmOpen = false) }
         viewModelScope.launch {
+            // Wipe device-resident state BEFORE the network sign-out, exactly
+            // as the profile screen's sign-out does. This gate is reachable by
+            // accounts that had full sessions, so skipping it left the outbox
+            // (drained later under the NEXT account's JWT), the FCM token,
+            // pending-payment markers, draft leases and live realtime channels
+            // behind for whoever signs in next on this device.
+            try {
+                signOutCleanup.wipeLocalUserState()
+            } catch (ce: kotlinx.coroutines.CancellationException) {
+                throw ce
+            } catch (_: Throwable) {
+                // Best-effort: sign-out must never be blocked by cleanup.
+            }
             authRepository.signOut()
                 .onFailure { e ->
                     _state.update { it.copy(signingOut = false, errorMessage = e.toUserMessage()) }

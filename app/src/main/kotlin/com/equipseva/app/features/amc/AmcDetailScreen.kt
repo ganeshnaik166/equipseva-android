@@ -136,9 +136,16 @@ class AmcDetailViewModel @Inject constructor(
 
     fun selectTab(t: Tab) = _state.update { it.copy(tab = t) }
 
+    // Each refresh runs six sequential fetches, so two overlapping ones let
+    // the slower (older) reader win: the resume that follows the Razorpay
+    // activity and the post-payment reload both fire, and a pre-credit pool
+    // balance could land after the post-credit one.
+    private var refreshJob: kotlinx.coroutines.Job? = null
+
     fun refresh() {
+        refreshJob?.cancel()
         _state.update { it.copy(loading = true, error = null) }
-        viewModelScope.launch {
+        refreshJob = viewModelScope.launch {
             // Fail fast on malformed deep-links (`/amc/contract/<garbage>`
             // landed here with contractId = "" before) — otherwise the
             // screen renders a blank "no contract" view with no signal
@@ -298,11 +305,28 @@ class AmcDetailViewModel @Inject constructor(
     fun setTopUpMonths(m: Int) = _state.update { it.copy(topUpMonths = m.coerceIn(1, 36)) }
     fun markTopUpBusy(busy: Boolean) = _state.update { it.copy(topUpBusy = busy) }
 
+    // Not in UiState: the rotation row has no spinner of its own, this only
+    // stops a double tap from firing the RPC twice (the second call fails on
+    // an already-removed engineer).
+    private var removingFallback = false
+
     fun removeFallback(engineerId: String) {
+        if (removingFallback) return
+        removingFallback = true
         viewModelScope.launch {
             repo.removeFallbackEngineer(contractId, engineerId)
-                .onSuccess { refresh() }
-                .onFailure { e -> _state.update { it.copy(error = e.toUserMessage()) } }
+                .onSuccess {
+                    removingFallback = false
+                    refresh()
+                }
+                // Toast the failure: on a loaded contract the `error` field is
+                // a dead end (it only renders when hospital/engineerView are
+                // both null), so the row simply didn't change and the hospital
+                // was never told why.
+                .onFailure { e ->
+                    removingFallback = false
+                    _autoPayMessage.tryEmit(e.toUserMessage())
+                }
         }
     }
 
@@ -352,6 +376,35 @@ fun AmcDetailScreen(
     androidx.compose.runtime.LaunchedEffect(viewModel) {
         viewModel.autoPayMessage.collect { msg -> onShowMessage(msg) }
     }
+    // The top-up outcome is collected HERE rather than inside the payment
+    // sheet: the charge outlives the sheet, and a hospital that swiped the
+    // sheet away mid-payment still has to be told what happened to its money.
+    val paymentViewModel: AmcPaymentViewModel = hiltViewModel()
+    androidx.compose.runtime.LaunchedEffect(paymentViewModel) {
+        paymentViewModel.effects.collect { effect ->
+            when (effect) {
+                AmcPaymentViewModel.Effect.Paid ->
+                    onShowMessage("Payment received — pool updated.")
+                // Never "payment failed" here: Razorpay captured the money.
+                // The pending marker + reconciler will credit the pool once
+                // the server confirms, so paying again would double-charge.
+                AmcPaymentViewModel.Effect.ChargedAwaitingConfirmation ->
+                    onShowMessage(
+                        "Payment received. We're still confirming it with your bank — " +
+                            "the pool updates on its own, so don't pay again.",
+                    )
+                // No dismiss and no refresh on a failure: nothing changed
+                // server-side, and closing the sheet would take away the
+                // button the hospital needs to try again.
+                is AmcPaymentViewModel.Effect.Failed -> {
+                    onShowMessage(effect.message)
+                    return@collect
+                }
+            }
+            viewModel.dismissTopUp()
+            viewModel.refresh()
+        }
+    }
     // Round 428 — re-fetch on return so visits / pool balance / SLA
     // breaches / subscription state landed while user was in chat
     // or picker surface refresh. The viewmodel only runs refresh()
@@ -399,6 +452,7 @@ fun AmcDetailScreen(
                         // already knows the contract hasn't started.
                         val pendingPayment = state.hospital?.status == "pending_payment" ||
                             state.engineerView?.status == "pending_payment"
+                        val contractStatus = state.hospital?.status ?: state.engineerView?.status
                         val monthlyFee = state.hospital?.monthlyFeeRupees
                             ?: state.engineerView?.monthlyFeeRupees ?: 0.0
                         val balance = state.poolBalance ?: 0.0
@@ -429,7 +483,11 @@ fun AmcDetailScreen(
                                 isHospital = state.viewerIsHospital,
                                 onPayNow = { viewModel.openTopUp() },
                             )
-                            pausedByServer || balance <= 0.0 -> PausedBanner()
+                            showAmcPausedBanner(
+                                status = contractStatus,
+                                pausedByServer = pausedByServer,
+                                poolBalance = state.poolBalance,
+                            ) -> PausedBanner()
                             isLowButPositive && state.viewerIsHospital -> LowPoolBanner(
                                 bufferMonths = balance / monthlyFee,
                                 onTopUp = { viewModel.openTopUp() },
@@ -567,10 +625,7 @@ fun AmcDetailScreen(
             onMonthsChange = viewModel::setTopUpMonths,
             onClose = { viewModel.dismissTopUp() },
             onShowMessage = onShowMessage,
-            onCompleted = {
-                viewModel.dismissTopUp()
-                viewModel.refresh()
-            },
+            viewModel = paymentViewModel,
             engineerName = sanitizeServerName(state.hospital!!.primaryEngineerName)
                 ?: "your engineer",
         )
@@ -584,6 +639,45 @@ fun AmcDetailScreen(
 // pending contract is live.
 private val PENDING_PAYMENT_STATES = setOf("pending_payment")
 private val CANCELLED_STATES = setOf("cancelled", "expired", "renewal_failed")
+
+/**
+ * Whether the red "contract paused" banner is honest.
+ *
+ * Two ways it used to lie:
+ *   * A null pool balance means the best-effort balance fetch FAILED, not
+ *     that the pool is empty. Defaulting it to 0 put a red "paused" banner
+ *     above a status pill still reading Active on every network blip.
+ *   * A cancelled / expired contract has an empty pool by definition; its own
+ *     status pill already says what happened, and "paused" implies it can be
+ *     resumed by topping up.
+ *
+ * [pausedByServer] still wins outright: the backend pauses for reasons the
+ * client can't see (admin suspension), and that is the authoritative signal.
+ */
+internal fun showAmcPausedBanner(
+    status: String?,
+    pausedByServer: Boolean,
+    poolBalance: Double?,
+): Boolean {
+    if (pausedByServer) return true
+    if (status != "active") return false
+    return poolBalance != null && poolBalance <= 0.0
+}
+
+/**
+ * Visits completed inside the current contract year.
+ *
+ * The server's `visits_completed` is monotonic across every year the contract
+ * has lived, so "18 / 12 this year" on a long-running contract reads as
+ * broken. A plain modulo has its own lie: the 12th of 12 visits reported
+ * "0 / 12 this year" — the one moment the engineer has actually finished the
+ * year's quota.
+ */
+internal fun amcVisitsDoneThisYear(visitsDone: Int, visitsPerYear: Int): Int {
+    if (visitsPerYear <= 0) return visitsDone
+    val intoYear = visitsDone % visitsPerYear
+    return if (visitsDone > 0 && intoYear == 0) visitsPerYear else intoYear
+}
 
 @Composable
 private fun PendingPaymentBanner(isHospital: Boolean, onPayNow: () -> Unit) {
@@ -804,11 +898,7 @@ private fun OverviewTab(
     val fee = state.hospital?.monthlyFeeRupees ?: state.engineerView?.monthlyFeeRupees ?: 0.0
     val visitsDone = state.hospital?.visitsCompleted ?: state.engineerView?.visitsCompleted ?: 0
     val visitsPerYr = state.hospital?.visitsPerYear ?: state.engineerView?.visitsPerYear ?: 12
-    // Round 447: visits_completed on the server is monotonic across all
-    // years the contract has lived. Showing "18 / 12 per year" on a
-    // long-running contract looks broken. Compute the current-year
-    // figure client-side: visits_completed mod visits_per_year.
-    val visitsDoneThisYear = if (visitsPerYr > 0) visitsDone % visitsPerYr else visitsDone
+    val visitsDoneThisYear = amcVisitsDoneThisYear(visitsDone, visitsPerYr)
     val start = state.hospital?.startDate ?: state.engineerView?.startDate ?: ""
     val end = state.hospital?.endDate ?: state.engineerView?.endDate ?: ""
     val nextVisit = state.hospital?.nextVisitAt ?: state.engineerView?.nextVisitAt
@@ -1131,9 +1221,7 @@ private fun PoolLedgerRow(row: AmcRepository.PoolLedgerRow) {
 private fun VisitsTab(state: AmcDetailViewModel.UiState) {
     val visitsDone = state.hospital?.visitsCompleted ?: state.engineerView?.visitsCompleted ?: 0
     val visitsPerYr = state.hospital?.visitsPerYear ?: state.engineerView?.visitsPerYear ?: 12
-    // Round 447: same modular-year fix as the Overview tab — server's
-    // visits_completed is monotonic, show current-year figure.
-    val visitsDoneThisYear = if (visitsPerYr > 0) visitsDone % visitsPerYr else visitsDone
+    val visitsDoneThisYear = amcVisitsDoneThisYear(visitsDone, visitsPerYr)
     val freq = state.hospital?.visitFrequency ?: state.engineerView?.visitFrequency ?: ""
     val nextVisit = state.hospital?.nextVisitAt ?: state.engineerView?.nextVisitAt
     EsSection(title = "Cadence") {

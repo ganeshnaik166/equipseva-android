@@ -51,6 +51,37 @@ class EngineerJobsHubStatusTest {
         )
     }
 
+    @Test fun `a fetch failure never downgrades a status we already know`() {
+        // Mapping every failure to NotEngineer told a VERIFIED engineer to
+        // "become a verified engineer" and hid every tile — and the hub
+        // re-fetches on each resume, so a flaky connection repeated it and
+        // invited a pointless second KYC submission.
+        listOf(
+            EngineerJobsHubViewModel.Status.Verified,
+            EngineerJobsHubViewModel.Status.Pending,
+            EngineerJobsHubViewModel.Status.Rejected,
+            EngineerJobsHubViewModel.Status.NotEngineer,
+        ).forEach { known ->
+            assertEquals(known, EngineerJobsHubViewModel.hubStatusOnFetchFailure(known))
+        }
+    }
+
+    @Test fun `a fetch failure with nothing loaded yet is a retryable error`() {
+        // NotSignedIn belongs here, not above: it says nothing about
+        // verification. It is the state the collector holds while signed out,
+        // and keeping it through the first post-sign-in fetch failure left a
+        // signed-in engineer looking at the "Sign in" hero with no way back.
+        listOf(
+            EngineerJobsHubViewModel.Status.Loading,
+            EngineerJobsHubViewModel.Status.NotSignedIn,
+        ).forEach { nothingLoaded ->
+            assertEquals(
+                EngineerJobsHubViewModel.Status.Error,
+                EngineerJobsHubViewModel.hubStatusOnFetchFailure(nothingLoaded),
+            )
+        }
+    }
+
     @Test fun `every VerificationStatus entry has a hub status mapping`() {
         // Defensive — if a new VerificationStatus entry lands (e.g.
         // "Suspended"), the when{} above MUST grow a branch or the

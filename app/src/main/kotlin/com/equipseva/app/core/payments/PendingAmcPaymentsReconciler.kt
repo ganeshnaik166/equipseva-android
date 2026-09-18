@@ -17,8 +17,10 @@ import javax.inject.Singleton
  *     verify-amc-payment server-side; the hospital's ledger is in
  *     order, no client action needed.
  *   - status='failed'              → terminal; remove the marker.
- *   - status='pending'             → keep so the home banner / support
- *     prompt can surface it to the user.
+ *   - status='pending'             → if we still hold the Razorpay
+ *     success payload, replay the (idempotent) verify so a captured
+ *     payment is credited; otherwise keep the marker so the home
+ *     banner / support prompt can surface it to the user.
  *   - row missing (RLS denied, deleted, etc.) → remove; we can't act
  *     on what we can't see.
  *
@@ -50,8 +52,15 @@ class PendingAmcPaymentsReconciler @Inject constructor(
             // on a transient network blip during the cold-start sweep.
             // Network failure → leave the marker for next cold-start.
             val result = amcRepository.fetchAmcPaymentOrderStatus(id)
+            // The repository wraps its calls in runCatching, so a cancelled
+            // sweep arrives here as a failed Result instead of unwinding the
+            // loop; re-throw or the sweep keeps hitting the network after the
+            // scope is gone.
+            val statusError = result.exceptionOrNull()
+            if (isScopeCancellation(statusError)) throw statusError!!
             if (result.isFailure) continue
-            if (shouldClearAmcPaymentMarker(result.getOrNull())) {
+            val status = result.getOrNull()
+            if (shouldClearAmcPaymentMarker(status)) {
                 try {
                     store.remove(id)
                 } catch (ce: kotlinx.coroutines.CancellationException) {
@@ -59,10 +68,56 @@ class PendingAmcPaymentsReconciler @Inject constructor(
                 } catch (_: Throwable) {
                     // Best-effort; lingering marker is recovered on next cold-start.
                 }
+            } else if (shouldReverifyAmcPayment(status)) {
+                reverify(id)
             }
         }
     }
+
+    /**
+     * A payment the SDK reported as captured but whose verify never landed
+     * (app killed, network gone, verify timed out) sits in `pending` forever
+     * unless someone re-asserts the signature. The edge fn is idempotent, so
+     * replaying it is safe; on success the pool is credited and the marker —
+     * and with it the stored signature — goes away.
+     */
+    private suspend fun reverify(paymentOrderId: String) {
+        val payload = try {
+            store.verifiable(paymentOrderId)
+        } catch (ce: kotlinx.coroutines.CancellationException) {
+            throw ce
+        } catch (_: Throwable) {
+            null
+        } ?: return
+        val verified = amcRepository.verifyPayment(
+            paymentOrderId = payload.paymentOrderId,
+            razorpayOrderId = payload.razorpayOrderId,
+            razorpayPaymentId = payload.razorpayPaymentId,
+            razorpaySignature = payload.razorpaySignature,
+        )
+        val verifyError = verified.exceptionOrNull()
+        if (isScopeCancellation(verifyError)) throw verifyError!!
+        if (verified.isFailure) return
+        try {
+            store.remove(paymentOrderId)
+        } catch (ce: kotlinx.coroutines.CancellationException) {
+            throw ce
+        } catch (_: Throwable) {
+            // Best-effort; the next sweep sees `paid` and clears the marker.
+        }
+    }
 }
+
+/**
+ * True when a still-unresolved payment order should have its stored Razorpay
+ * signature replayed against `verify-amc-payment`.
+ *
+ * Only "pending" qualifies: every other value is either terminal (handled by
+ * [shouldClearAmcPaymentMarker]) or a status this build does not understand,
+ * and replaying a signature against an unknown future state would be guessing
+ * about money.
+ */
+internal fun shouldReverifyAmcPayment(status: String?): Boolean = status == "pending"
 
 /**
  * True when the reconciler should clear the in-flight AMC-payment

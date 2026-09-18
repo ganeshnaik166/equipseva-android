@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.auth.InvalidCurrentPasswordException
+import com.equipseva.app.core.auth.ProviderReauthRequiredException
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.Validators
@@ -111,13 +113,26 @@ class ChangeEmailViewModel @Inject constructor(
                 }
                 return@launch
             }
-            val reauth = authRepository.verifyCurrentPassword(password)
-            if (reauth.isFailure) {
-                _state.update {
-                    it.copy(
-                        submitting = false,
-                        passwordError = "Current password is incorrect.",
-                    )
+            val reauthError = authRepository.verifyCurrentPassword(password).exceptionOrNull()
+            if (reauthError != null) {
+                // Only a typed wrong-password failure belongs on the password
+                // field. Reporting every cause there ("not signed in", a 5xx,
+                // a dropped connection) told users on a flaky link that their
+                // password was wrong and sent them retyping a correct one.
+                when (reauthError) {
+                    is InvalidCurrentPasswordException -> _state.update {
+                        it.copy(submitting = false, passwordError = "Current password is incorrect.")
+                    }
+                    is ProviderReauthRequiredException -> _state.update {
+                        it.copy(
+                            submitting = false,
+                            errorMessage = providerReauthRequiredMessage(reauthError.provider),
+                        )
+                    }
+                    else -> {
+                        val msg = reauthError.toUserMessage()
+                        _state.update { it.copy(submitting = false, errorMessage = msg) }
+                    }
                 }
                 return@launch
             }
@@ -134,6 +149,25 @@ class ChangeEmailViewModel @Inject constructor(
             )
         }
     }
+}
+
+/**
+ * Copy for an account that has no password to confirm with.
+ *
+ * A Google-only sign-up has no password identity, so the password re-auth can
+ * only ever fail — and reporting that as "incorrect password" left those
+ * users unable to change their email or delete their account at all, with
+ * nothing on screen explaining why.
+ *
+ * Locale.US on the provider label: the device locale must not decide how
+ * "google" is capitalised (Turkish lower-cases I to a dotless ı).
+ */
+internal fun providerReauthRequiredMessage(provider: String): String {
+    val label = provider.trim().takeIf { it.isNotBlank() }
+        ?.let { it.substring(0, 1).uppercase(java.util.Locale.US) + it.substring(1) }
+        ?: "Google"
+    return "This account signs in with $label, so there is no password to confirm. " +
+        "Use Continue with $label to confirm it is you."
 }
 
 /**

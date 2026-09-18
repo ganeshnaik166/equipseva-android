@@ -56,14 +56,31 @@ class JobsHubOnboardingCopyTest {
         assertNull(jobsHubOnboardingCopy(EngineerJobsHubViewModel.Status.Loading))
     }
 
-    @Test fun `all four onboarding states produce distinct titles`() {
+    @Test fun `all onboarding states produce distinct titles`() {
         val titles = listOf(
             EngineerJobsHubViewModel.Status.NotSignedIn,
             EngineerJobsHubViewModel.Status.NotEngineer,
             EngineerJobsHubViewModel.Status.Pending,
             EngineerJobsHubViewModel.Status.Rejected,
+            EngineerJobsHubViewModel.Status.Error,
         ).map { jobsHubOnboardingCopy(it)!!.title }
         assertEquals(titles.size, titles.toSet().size)
+    }
+
+    @Test fun `the load-failure state claims nothing about verification`() {
+        // This state means the engineer row could not be READ, so any claim
+        // about KYC is a guess — and the guess it used to make ("Submit KYC")
+        // sent verified engineers to redo work they had already done.
+        val copy = jobsHubOnboardingCopy(EngineerJobsHubViewModel.Status.Error)!!
+        assertEquals("Retry", copy.ctaLabel)
+        listOf("KYC", "verify", "verified", "Submit").forEach { word ->
+            assert(!copy.title.contains(word, ignoreCase = true)) {
+                "title must not mention $word: ${copy.title}"
+            }
+        }
+        assert(copy.body.contains("Retry", ignoreCase = true) || copy.body.contains("retry")) {
+            "body should point at the retry affordance: ${copy.body}"
+        }
     }
 
     @Test fun `Pending body mentions the SLA hint (24h)`() {

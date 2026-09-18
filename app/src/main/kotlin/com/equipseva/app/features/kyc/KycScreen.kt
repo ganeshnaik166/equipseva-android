@@ -190,7 +190,11 @@ fun KycScreen(
             com.equipseva.app.designsystem.components.EsTopBar(
                 title = "Verification (KYC)",
                 subtitle = subtitle,
-                onBack = onBack,
+                // Leaving mid-submit tears down the ViewModel while the upsert
+                // is still in flight, and the scope teardown runs the
+                // orphan-document cleanup against a row the server is at that
+                // moment storing those very paths into.
+                onBack = { if (!state.saving) onBack() },
             )
         },
         bottomBar = {
@@ -1139,6 +1143,30 @@ private inline fun readAndUpload(
     val resolver = context.contentResolver
     val mime = resolver.getType(uri)
     val name = queryDisplayName(context, uri) ?: uri.lastPathSegment ?: "upload"
+    // Check the provider's reported size BEFORE reading the stream: the
+    // bucket's own limit was only applied to the finished ByteArray, so a
+    // 200 MB PDF was fully materialised in memory just to be rejected.
+    //
+    // Only when the provider reports a real size, though. The validator
+    // answers TooLarge for a non-positive size as well as an oversize one,
+    // and a DocumentsProvider that fills OpenableColumns.SIZE with 0 rather
+    // than NULL for streamed content is common — taking that as oversize
+    // would refuse a perfectly good KYC document, before reading a byte,
+    // with copy about a 15 MB limit. An unknown size falls through to the
+    // read-then-validate path, which still catches a genuinely empty or
+    // oversize file.
+    val reportedSize = queryReportedSize(context, uri)?.takeIf { it > 0 }
+    if (reportedSize != null) {
+        val tooLarge = com.equipseva.app.core.storage.UploadValidator.validate(
+            bucket = com.equipseva.app.core.storage.StorageRepository.Buckets.KYC_DOCS,
+            contentType = mime,
+            size = reportedSize,
+        ).exceptionOrNull() as? com.equipseva.app.core.storage.UploadError.TooLarge
+        if (tooLarge != null) {
+            onError("That file is over ${tooLarge.max / (1024 * 1024)} MB. Pick a smaller photo or PDF.")
+            return
+        }
+    }
     val bytes = try {
         resolver.openInputStream(uri)?.use { it.readBytes() }
     } catch (t: Throwable) {
@@ -1154,6 +1182,17 @@ private inline fun readAndUpload(
         return
     }
     send(name, bytes, mime)
+}
+
+/** Null when the provider does not report a size (some cloud documents). */
+private fun queryReportedSize(context: android.content.Context, uri: Uri): Long? {
+    return context.contentResolver.query(
+        uri,
+        arrayOf(android.provider.OpenableColumns.SIZE),
+        null, null, null,
+    )?.use { cursor ->
+        if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getLong(0) else null
+    }
 }
 
 private fun queryDisplayName(context: android.content.Context, uri: Uri): String? {
