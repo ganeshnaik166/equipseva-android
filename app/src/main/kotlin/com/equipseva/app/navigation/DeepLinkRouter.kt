@@ -95,14 +95,37 @@ class DeepLinkRouter(
     fun dispatch(intent: Intent?) {
         if (intent == null) return
         val explicit = intent.getStringExtra(EXTRA_ROUTE)?.takeIf { it.isNotBlank() }
-        val route = explicit?.takeIf(DeepLinkPolicy::isExternallyAllowed) ?: routeFor(intent.data)
+        val route = explicit?.takeIf(DeepLinkPolicy::isExternallyAllowed)
+            ?: routeFor(intent.data)
+            ?: routeFromPushExtras(intent)
         if (route == null) {
             // Denied external routes are logged without their content: an attacker-
             // supplied route string is exactly what we do not want in the logs.
             if (explicit != null) onLog("Denied external route (${explicit.length} chars)")
             return
         }
-        dispatchRoute(route, intent.getStringExtra(EXTRA_RECIPIENT_USER_ID)?.takeIf { it.isNotBlank() })
+        val recipient = intent.getStringExtra(EXTRA_RECIPIENT_USER_ID)?.takeIf { it.isNotBlank() }
+            ?: intent.getStringExtra("user_id")?.takeIf { it.isNotBlank() }
+        dispatchRoute(route, recipient)
+    }
+
+    /**
+     * Background-tap fallback. When the server sends a `notification` block, FCM
+     * posts the tray entry itself for a backgrounded/killed app and delivers the
+     * raw `data` map as launcher extras — our service never runs, so there is no
+     * [EXTRA_ROUTE]. Re-run the same pure mapper the service uses over those
+     * extras, then apply the same external allow-list. Without this every
+     * notification tap from the background landed on Home.
+     */
+    private fun routeFromPushExtras(intent: Intent): String? {
+        val extras = intent.extras ?: return null
+        val kind = extras.getString("kind")?.takeIf { it.isNotBlank() } ?: return null
+        val data = buildMap<String, String> {
+            for (key in extras.keySet()) {
+                extras.getString(key)?.let { put(key, it) }
+            }
+        }
+        return NotificationDeepLink.routeFor(kind, data)?.takeIf(DeepLinkPolicy::isExternallyAllowed)
     }
 
     /**

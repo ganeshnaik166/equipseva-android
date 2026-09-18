@@ -47,6 +47,15 @@ class CostRevisionRepository @Inject constructor(
         revisedAmountRupees: Double,
         reason: String,
     ): Result<CostRevision> = runCatching {
+        // Mirror the table CHECKs so a too-short reason or a non-positive
+        // amount fails here with a readable message instead of an unmapped
+        // 23514 after a round trip.
+        require(reason.trim().length in COST_REVISION_REASON_LENGTH) {
+            "Reason must be ${COST_REVISION_REASON_LENGTH.first}–${COST_REVISION_REASON_LENGTH.last} characters."
+        }
+        require(revisedAmountRupees.isFinite() && revisedAmountRupees > 0.0) {
+            "Revised amount must be a positive number."
+        }
         val raw = client.postgrest.rpc(
             function = "propose_cost_revision",
             parameters = buildJsonObject {
@@ -122,7 +131,10 @@ class CostRevisionRepository @Inject constructor(
         }
     }.flowOn(Dispatchers.IO)
 
-    private companion object {
-        const val TABLE = "repair_job_cost_revisions"
+    companion object {
+        private const val TABLE = "repair_job_cost_revisions"
+
+        /** Same bounds as the server's `CHECK (char_length(reason) BETWEEN 50 AND 500)`. */
+        val COST_REVISION_REASON_LENGTH: IntRange = 50..500
     }
 }

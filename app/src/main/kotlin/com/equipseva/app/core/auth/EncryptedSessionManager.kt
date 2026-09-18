@@ -104,7 +104,9 @@ class EncryptedSessionManager(context: Context) : SessionManager {
         return try {
             json.decodeFromString(UserSession.serializer(), raw)
         } catch (e: Exception) {
-            Log.w(TAG, "Stored session failed to decode; clearing.", e)
+            // Log the class only: a kotlinx.serialization decode error quotes the
+            // offending JSON, which for this blob is the access + refresh token.
+            Log.w(TAG, "Stored session failed to decode (${e.javaClass.simpleName}); clearing.")
             p.edit { remove(KEY) }
             throw IllegalStateException("Stored session failed to decode; cleared", e)
         }

@@ -37,7 +37,12 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onNewToken(token: String) {
-        scope.launch { registrar.register(token) }
+        // FCM stops this service as soon as the callback returns and onDestroy
+        // cancels `scope`, so a launched registration raced teardown and the
+        // server kept a stale token until the next sign-in. The callback runs on
+        // FCM's worker thread (onMessageReceived already blocks on it), so the
+        // Room + PostgREST upserts can simply complete inline.
+        runBlocking { registrar.register(token) }
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
@@ -231,7 +236,11 @@ internal fun resolveNotifyId(
     messageId: String?,
 ): Int {
     val convoId = data["conversationId"] ?: data["conversation_id"]
-    return if (kind == "chat_message" && convoId != null) {
+    // The server emits `chat_message_new`; the bare `chat_message` literal is the
+    // pre-rename wire value. Matching only the old one meant chat pushes never
+    // collapsed per thread — every message stacked a separate tray entry.
+    val isChat = kind == NotificationDeepLink.KIND_CHAT_MESSAGE_NEW || kind == "chat_message"
+    return if (isChat && convoId != null) {
         ("chat:$convoId").hashCode()
     } else {
         messageId.hashCode()

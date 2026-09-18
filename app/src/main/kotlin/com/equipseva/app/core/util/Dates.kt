@@ -19,11 +19,24 @@ private val IST_ZONE: ZoneId = ZoneId.of("Asia/Kolkata")
  * first 10 chars of the input on parse failure so we never crash on a
  * malformed payload.
  */
+/**
+ * Parse a server timestamp. PostgREST renders `timestamptz` with an explicit
+ * numeric offset (`2026-05-11T07:42:00.123456+00:00`), never `Z`. On the
+ * OpenJDK 8/11 libcore that Android 8–13 ship, `Instant.parse` accepts ONLY
+ * `Z` (JDK-8166138, fixed in JDK 12), so every server instant came back null
+ * there — notifications never left the unread state, job/bid/chat times were
+ * blank — while JVM tests and API 34+ emulators (JDK 17) never showed it.
+ * `OffsetDateTime` parses both forms on every supported API level.
+ */
+internal fun parseIsoInstant(iso: String): Instant? =
+    runCatching { java.time.OffsetDateTime.parse(iso).toInstant() }.getOrNull()
+        ?: runCatching { Instant.parse(iso) }.getOrNull()
+
 fun prettyDate(iso: String): String =
     runCatching {
-        // Instant.parse handles full ISO datetimes; LocalDate.parse covers
-        // bare-date payloads (the founder KYC RPCs emit "yyyy-MM-dd").
-        val instant = runCatching { Instant.parse(iso) }.getOrNull()
+        // Full ISO datetimes first; LocalDate.parse covers bare-date payloads
+        // (the founder KYC RPCs emit "yyyy-MM-dd").
+        val instant = parseIsoInstant(iso)
             ?: LocalDate.parse(iso).atStartOfDay(IST_ZONE).toInstant()
         // Pin Locale.ENGLISH so month abbreviations stay "May / Jun"
         // regardless of the device locale. Without it, a Hindi-default
@@ -44,7 +57,7 @@ fun prettyDate(iso: String): String =
  */
 fun prettyDateTime(iso: String): String =
     runCatching {
-        val instant = Instant.parse(iso)
+        val instant = parseIsoInstant(iso) ?: throw IllegalArgumentException("not an ISO instant")
         DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm", Locale.ENGLISH)
             .withZone(IST_ZONE)
             .format(instant)
@@ -57,7 +70,7 @@ fun prettyDateTime(iso: String): String =
  * should degrade gracefully rather than crash decoding.
  */
 fun String?.parseInstantOrNull(): Instant? =
-    this?.let { runCatching { Instant.parse(it) }.getOrNull() }
+    this?.let { parseIsoInstant(it) }
 
 /**
  * True when [iso] (`yyyy-MM-dd` or full ISO instant) falls within
@@ -69,8 +82,7 @@ fun String?.parseInstantOrNull(): Instant? =
  */
 fun isWithinDays(iso: String, days: Long): Boolean =
     runCatching {
-        val target = runCatching { Instant.parse(iso).atZone(IST_ZONE).toLocalDate() }
-            .getOrNull()
+        val target = parseIsoInstant(iso)?.atZone(IST_ZONE)?.toLocalDate()
             ?: LocalDate.parse(iso)
         val today = LocalDate.now(IST_ZONE)
         !target.isBefore(today) && !target.isAfter(today.plusDays(days))
@@ -84,8 +96,7 @@ fun isWithinDays(iso: String, days: Long): Boolean =
  */
 fun daysUntil(iso: String): Long? =
     runCatching {
-        val target = runCatching { Instant.parse(iso).atZone(IST_ZONE).toLocalDate() }
-            .getOrNull()
+        val target = parseIsoInstant(iso)?.atZone(IST_ZONE)?.toLocalDate()
             ?: LocalDate.parse(iso)
         java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(IST_ZONE), target)
     }.getOrNull()

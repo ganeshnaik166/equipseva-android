@@ -211,7 +211,9 @@ internal data class JobPayoutStatusDto(
 internal data class EngineerPayoutRowDto(
     val id: String,
     val repair_job_id: String,
-    val job_number: String,
+    // repair_jobs.job_number is nullable for legacy rows and the RPC selects it
+    // raw; a single null used to fail the whole list decode.
+    val job_number: String? = null,
     val amount_paise: Long,
     val status: String,
     val mode: String? = null,
@@ -223,7 +225,7 @@ internal data class EngineerPayoutRowDto(
 ) {
     fun toDomain() = EngineerPayoutRow(
         id = id,
-        jobNumber = job_number,
+        jobNumber = job_number ?: repair_job_id.take(8),
         amountPaise = amount_paise,
         status = when (status) {
             "queued" -> PayoutStatus.Queued
