@@ -76,6 +76,60 @@ UTC) — the slot that had been red for four days before round 3822. The next ho
 is the first one to run entirely under the new grants; it is worth a glance, though grants to
 `authenticated` cannot affect a service-role caller.
 
+## Round 3825 — the founder audit trigger (also applied)
+
+A second sweep, this time `plpgsql_check` over **all 19,314 plpgsql functions** in `public`, then a second
+pass over every trigger function against each relation it fires on. That second pass is the one that
+matters: `plpgsql_check` refuses a trigger function with 22023 unless it is handed the relation, and there
+were 77 of them, so they had never been checked.
+
+It returned one finding, repeated on all seven audited tables: **`cannot cast type repair_jobs to jsonb`**.
+`founder_audit_table_mutation()` resolved the audited row id with `(NEW::jsonb)->>'id'`, and Postgres has
+no composite-to-jsonb cast — while the same function already used the correct `to_jsonb()` two blocks
+later. Only the id lookup was wrong.
+
+Why it survived: the guards above that line return early unless `auth.uid()` is present **and**
+`is_founder()`. So it ran for exactly one person, and with no exception handler it did not merely lose the
+audit row — **it aborted the founder's statement**. All seven tables are on the runbook's emergency path
+(`engineer_payouts`, `engineers`, `repair_job_escrow`, `repair_jobs`, `profiles`, `amc_contracts`,
+`amc_subscriptions`). Corroboration: all seven triggers enabled, `founder_action_log` holding five rows of
+which **zero** came from this trigger.
+
+Proven, not assumed. Inside one transaction, against a throwaway temp table carrying the same trigger: a
+RED probe simulating the founder confirmed the old body fails with 42846 (and would have aborted the
+migration had it not), then the fix, then a GREEN probe asserting exactly one audit row with the right
+target id, `op_name` and actor, rolled back through a sentinel; post-conditions assert the cast is gone
+and the probe row did not leak. Two negative controls ran first and both failed correctly, reporting the
+real values (`op_name` = `probe:update`, log 5 → 6). The four NOTICEs on apply:
+
+```
+round 3825: body pinned, 7/7 triggers enabled, 0 trigger-sourced audit rows exist today
+round 3825 red probe: a founder write against the current body fails with 42846, as reported
+round 3825 green probe: the founder write succeeded and recorded 5 -> 6 with the right target and actor
+round 3825 verified: founder writes to the audited tables no longer abort, the audit row is written, and the probe left nothing behind
+```
+
+Afterwards the scaffolding and the `plpgsql_check` extension were dropped and the result verified net
+zero: extension gone, scratch tables gone, audit function cast-free, 7 triggers still enabled,
+`founder_action_log` back to 5 rows.
+
+### The other 13 error-level rows
+
+Classified in `supabase/regression/allow/plpgsql_errors.txt`, and the classification is the useful part:
+
+- **7 false positives** — the reference sits inside an `EXCEPTION` handler the static checker cannot see:
+  the six `cron.job` / `cron.job_run_details` ones (pg_cron is Pro-only and not installed) and
+  `delete_my_account`'s `storage.delete_object` call, which already falls back to
+  `DELETE FROM storage.objects`. **The account-deletion path is not broken** — worth stating plainly, given
+  the DPDP exposure attached to it. Each confirmed by reading the body.
+- **6 genuinely dead functions** whose repair means inventing product schema (HR columns on `profiles`, a
+  warranties table), so they are recorded unfixed with reasons. **Three of them are called by live console
+  pages**, which can therefore only show an error:
+  `founder_team_comp_summary` / `_benchmarks_list` / `_employee_deltas` from
+  `web/src/app/founder-team-comp-benchmarks/page.tsx:65-67`, and `founder_calendar_burndown_summary` from
+  `web/src/app/founder-calendar-burndown/page.tsx:42`. Joining plpgsql findings against the call-site list
+  is what made that visible; the earlier sweep had reasonably filed them as "dead code, refuse to fix".
+
 ## CI
 
 `.github/workflows/backend.yml`, three jobs:
