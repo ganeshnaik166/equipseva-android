@@ -27,6 +27,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +45,7 @@ import com.equipseva.app.core.util.openExternalUrl
 import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.sheetDismissAllowed
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
@@ -233,7 +235,16 @@ fun FounderBuyerKycQueueScreen(
     }
 
     if (state.sheetRequestId != null) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        // rememberModalBottomSheetState captures confirmValueChange once, so
+        // the predicate reads the flag through a state holder to see later
+        // values. Blocking the gesture is what keeps the sheet open: refusing
+        // the dismiss callback alone leaves a hidden modal window swallowing
+        // every tap, with the approve/reject error rendered behind it.
+        val busy by rememberUpdatedState(state.acting)
+        val sheetState = rememberModalBottomSheetState(
+            skipPartiallyExpanded = true,
+            confirmValueChange = { sheetDismissAllowed(it, busy) },
+        )
         ModalBottomSheet(sheetState = sheetState, onDismissRequest = { viewModel.closeSheet() }) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),

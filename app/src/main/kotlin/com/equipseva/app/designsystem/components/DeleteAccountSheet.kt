@@ -16,7 +16,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.Modifier
@@ -40,11 +42,17 @@ fun DeleteAccountSheet(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // rememberModalBottomSheetState captures confirmValueChange once, so the
+    // predicate has to read the flag through a state holder to see later values.
+    val busy by rememberUpdatedState(deleting)
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { sheetDismissAllowed(it, busy) },
+    )
     val scope = rememberCoroutineScope()
 
     ModalBottomSheet(
-        onDismissRequest = { if (!deleting) onDismiss() },
+        onDismissRequest = onDismiss,
         sheetState = sheetState,
     ) {
         Column(

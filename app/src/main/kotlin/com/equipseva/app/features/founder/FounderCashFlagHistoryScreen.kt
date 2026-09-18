@@ -37,6 +37,7 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.R
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.prettyDate
+import com.equipseva.app.core.util.prettyDateTime
 import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsTopBar
@@ -242,22 +243,19 @@ internal fun cashFlagRowHospitalLabel(hospitalName: String?): String =
 /**
  * Responded-at timestamp label on the cash-flag-history row.
  *
- * Truncates to the first 16 chars of the ISO-8601 timestamp (drops
- * seconds + timezone, leaving "YYYY-MM-DDTHH:MM") and swaps the
- * ISO 'T' separator for a space → "YYYY-MM-DD HH:MM".
+ * Renders the server timestamp in Asia/Kolkata via the shared formatter.
  *
- * Pin take(16) — load-bearing because longer ISO strings ("…:30Z",
- * "…:30+05:30") get visually noisy in the row's tight 11sp subline.
- * A drift to take(19) would leak the seconds; take(10) would lose
- * the time-of-day. Both would change how the founder cross-references
- * timestamps with audit logs.
+ * It used to truncate to the first 16 characters and swap the 'T' for a
+ * space, which silently dropped the zone suffix of a UTC value: a response
+ * logged at 09:30 IST displayed as "04:00" with no marker, 5.5 hours off, and
+ * disagreed with the prettyDateTime-formatted fields on the same card.
  *
- * Pin the T→space swap — pin so a refactor that kept the raw ISO
- * shape doesn't slip in (the 'T' is a programmer convention, not
- * something the founder should see in the UI).
+ * Unparseable payloads still degrade to the old sliced shape — that fallback
+ * lives inside prettyDateTime, so a bare date or a malformed string renders
+ * rather than throwing.
  */
 internal fun cashFlagRespondedAtLabel(rawIso: String): String =
-    rawIso.take(16).replace('T', ' ')
+    prettyDateTime(rawIso)
 
 /**
  * Subtitle on the founder Cash-Flag History top bar.

@@ -53,8 +53,13 @@ fun Modifier.maxContentWidth(): Modifier {
     return if (width == AdaptiveWidth.Compact) {
         this.fillMaxWidth()
     } else {
+        // Order is load-bearing: fillMaxWidth first fixes the incoming
+        // constraints to the parent width, and widthIn(max) — which enforces
+        // the incoming constraints — is then coerced straight back to it, so
+        // the cap silently did nothing on tablets. Capping first leaves
+        // fillMaxWidth to fill the capped constraint.
         this
-            .fillMaxWidth()
             .widthIn(max = ContentMaxWidth)
+            .fillMaxWidth()
     }
 }

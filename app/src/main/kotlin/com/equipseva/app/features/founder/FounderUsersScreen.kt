@@ -35,6 +35,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,6 +53,7 @@ import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.sheetDismissAllowed
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsChip
 import com.equipseva.app.designsystem.components.EsTopBar
@@ -281,7 +283,16 @@ fun FounderUsersScreen(
     }
 
     if (state.sheetUserId != null) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        // rememberModalBottomSheetState captures confirmValueChange once, so
+        // the predicate reads the flag through a state holder to see later
+        // values. Blocking the gesture is what keeps the sheet open: refusing
+        // the dismiss callback alone leaves a hidden modal window swallowing
+        // every tap, with the role-change error rendered behind it.
+        val busy by rememberUpdatedState(state.acting)
+        val sheetState = rememberModalBottomSheetState(
+            skipPartiallyExpanded = true,
+            confirmValueChange = { sheetDismissAllowed(it, busy) },
+        )
         ModalBottomSheet(
             sheetState = sheetState,
             onDismissRequest = { viewModel.closeSheet() },
@@ -330,6 +341,10 @@ private fun UserRow(
     row: FounderRepository.UserRow,
     onChangeRole: () -> Unit,
 ) {
+    val activeAccountCd = stringResource(
+        if (row.isActive) R.string.founder_users_account_active_cd
+        else R.string.founder_users_account_inactive_cd,
+    )
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -369,7 +384,7 @@ private fun UserRow(
                             .clip(CircleShape)
                             .background(if (row.isActive) SevaGreen700 else SevaDanger500)
                             .semantics {
-                                contentDescription = if (row.isActive) "Active account" else "Inactive account"
+                                contentDescription = activeAccountCd
                             },
                     )
                 }
@@ -380,7 +395,11 @@ private fun UserRow(
                 )
             }
             IconButton(onClick = onChangeRole) {
-                Icon(Icons.Filled.Edit, contentDescription = "Change role", tint = SevaGreen700)
+                Icon(
+                    Icons.Filled.Edit,
+                    contentDescription = stringResource(R.string.founder_users_change_role_cd),
+                    tint = SevaGreen700,
+                )
             }
         }
         Row(

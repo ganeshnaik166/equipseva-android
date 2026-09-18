@@ -2,12 +2,14 @@ package com.equipseva.app.designsystem.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -17,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.equipseva.app.designsystem.theme.SevaGreen700
+import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.designsystem.theme.SevaInk900
 
 // Section title + optional right action link, then content slot.
@@ -35,7 +38,10 @@ fun EsSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 16.dp, end = 16.dp, top = 20.dp),
-            verticalAlignment = Alignment.Bottom,
+            // Centre, not bottom: the trailing action now reserves the 48 dp
+            // interactive minimum, and bottom alignment would drop the title
+            // to the foot of that taller row.
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
@@ -46,20 +52,35 @@ fun EsSection(
                 color = SevaInk900,
             )
             if (action != null && onAction != null) {
-                Text(
-                    text = action,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = SevaGreen700,
+                // A bare 13 sp label gave the link a hit area under 20 dp
+                // tall. The minimum has to be reserved by the node that
+                // receives the tap, so the touch target is the clickable
+                // wrapper and the label sits centred inside it — Material's
+                // `minimumInteractiveComponentSize` is a LayoutModifierNode,
+                // so placing it above a nested clickable reserves the space
+                // and leaves the hit area the size of the text.
+                Box(
                     modifier = Modifier
+                        .sizeIn(
+                            minWidth = Spacing.MinTouchTarget,
+                            minHeight = Spacing.MinTouchTarget,
+                        )
                         // Role.Button so TalkBack announces e.g.
                         // "View all, button" instead of treating the
                         // action label as static text. Common pattern
                         // across the home + repair feeds where each
                         // section has a "See more" trailing action.
-                        .clickable(onClick = onAction, role = Role.Button)
-                        .padding(start = 8.dp),
-                )
+                        .clickable(onClick = onAction, role = Role.Button),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = action,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = SevaGreen700,
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
             }
         }
         Spacer(Modifier.height(12.dp))

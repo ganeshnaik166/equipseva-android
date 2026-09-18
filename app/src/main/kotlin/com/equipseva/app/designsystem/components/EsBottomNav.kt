@@ -8,10 +8,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeightIn
+import androidx.compose.foundation.layout.requiredWidthIn
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -22,13 +23,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equipseva.app.R
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.SevaDanger500
 import com.equipseva.app.designsystem.theme.SevaGreen50
@@ -66,7 +70,10 @@ fun EsBottomNav(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(72.dp)
+            // Minimum, not fixed: icon pill + label already fill 72 dp at the
+            // default font scale, so a hard height clipped the labels of every
+            // tab as soon as the user raised the system font size.
+            .heightIn(min = 72.dp)
             .background(Color.White)
             .border(width = 1.dp, color = BorderDefault, shape = RectangleShape)
             .padding(horizontal = 4.dp, vertical = 6.dp),
@@ -75,6 +82,14 @@ fun EsBottomNav(
     ) {
         tabs.forEach { tab ->
             val active = currentRoute == tab.route
+            val unread = tab.badge ?: 0
+            // Only the badge carries information the merged label does not,
+            // so it is the only case that needs an explicit name.
+            val unreadName = if (unread > 0) {
+                stringResource(R.string.bottom_nav_unread_cd, tab.label, unread)
+            } else {
+                null
+            }
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -92,10 +107,10 @@ fun EsBottomNav(
                         // Surface the unread count to TalkBack so a user
                         // hearing "Notifications, tab, 3 unread, selected"
                         // gets the same signal as a sighted user reading
-                        // the red badge over the icon.
-                        contentDescription = if ((tab.badge ?: 0) > 0)
-                            "${tab.label}, ${tab.badge} unread"
-                        else tab.label
+                        // the red badge over the icon. With no badge the
+                        // merged label Text is the name — setting one here
+                        // as well made TalkBack repeat it.
+                        if (unreadName != null) contentDescription = unreadName
                     }
                     .clickable(role = Role.Tab) { onSelect(tab.route) }
                     .padding(vertical = 4.dp),
@@ -111,11 +126,14 @@ fun EsBottomNav(
                     Box(modifier = Modifier.size(22.dp)) {
                         Icon(
                             imageVector = tab.icon,
-                            contentDescription = tab.label,
+                            // The tab already has an accessible name (the
+                            // label Text, or the unread description above);
+                            // naming the icon too read the tab out twice.
+                            contentDescription = null,
                             tint = if (active) SevaGreen700 else SevaInk500,
                             modifier = Modifier.size(22.dp),
                         )
-                        if (tab.badge != null && tab.badge > 0) {
+                        if (unread > 0) {
                             // Bumped from 16dp / 9sp to 18dp / 11sp so the
                             // unread count is readable for older users +
                             // matches Material's recommended badge minimum
@@ -125,16 +143,26 @@ fun EsBottomNav(
                             Box(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    .size(18.dp)
-                                    .clip(CircleShape)
-                                    .background(SevaDanger500),
+                                    // Grows sideways for a two- or three-glyph
+                                    // count instead of clipping it inside a
+                                    // fixed 18 dp square. The `required` forms
+                                    // are load-bearing: the enclosing icon box
+                                    // is exactly 22 dp, so the plain heightIn /
+                                    // widthIn would be coerced straight back to
+                                    // it and the wider pill would clip again.
+                                    .requiredHeightIn(min = 18.dp)
+                                    .requiredWidthIn(min = 18.dp)
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(SevaDanger500)
+                                    .padding(horizontal = 3.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
-                                    text = tab.badge.toString(),
+                                    text = bottomNavBadgeLabel(unread),
                                     color = Color.White,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
                                 )
                             }
                         }
@@ -145,9 +173,24 @@ fun EsBottomNav(
                     fontSize = 11.sp,
                     fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
                     color = if (active) SevaGreen700 else SevaInk500,
+                    // A wrapped label pushed the second line under the bar's
+                    // bottom edge; ellipsis keeps the tab readable instead.
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
         }
     }
 }
+
+/**
+ * Unread-count text inside the bottom-nav badge.
+ *
+ * Caps at "99+" because the badge is an 18 dp pill over a 22 dp icon: a
+ * literal three- or four-digit count overflowed the circle and collided
+ * with the neighbouring tab. Counts are informational at that point —
+ * the exact number lives in the inbox.
+ */
+internal fun bottomNavBadgeLabel(count: Int): String =
+    if (count > 99) "99+" else count.toString()

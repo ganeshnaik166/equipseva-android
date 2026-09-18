@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.graphics.RectangleShape
@@ -25,12 +25,15 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equipseva.app.R
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.Ink900
@@ -60,7 +63,7 @@ fun ESBackTopBar(
             IconButton(onClick = onBack, enabled = backEnabled) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = stringResource(R.string.common_back),
                     tint = Ink900,
                 )
             }
@@ -86,7 +89,10 @@ fun EsTopBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(52.dp)
+            // Minimum, not fixed: a title + subtitle at the 200% font scale
+            // Android 14 allows measures taller than 52 dp, and a hard height
+            // clipped the subtitle mid-glyph on every screen that has one.
+            .heightIn(min = 52.dp)
             .background(PaperDefault)
             .border(width = 1.dp, color = BorderDefault, shape = RectangleShape)
             .padding(horizontal = 12.dp),
@@ -110,7 +116,7 @@ fun EsTopBar(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = stringResource(R.string.common_back),
                     tint = SevaInk900,
                     modifier = Modifier.size(20.dp),
                 )
@@ -136,9 +142,21 @@ fun EsTopBar(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.16).sp,
                     color = SevaInk900,
+                    // Translated titles (Hindi / Telugu run ~40% longer) wrapped
+                    // to a second line and pushed the subtitle out of the bar.
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
-            if (subtitle != null) Text(text = subtitle, style = EsType.Caption, color = SevaInk500)
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = EsType.Caption,
+                    color = SevaInk500,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         if (right != null) right()
     }

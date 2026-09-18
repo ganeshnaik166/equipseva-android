@@ -105,6 +105,40 @@ val Outline = Color(0xFFE6E8EC)
 // Dark surface elevation
 val InkSurface = Color(0xFF1B1F26)
 
+// ============================================================
+// Contrast
+// ============================================================
+
+/**
+ * WCAG 2.1 relative-luminance contrast ratio between [foreground] composited
+ * over [background] and that background, in the 1..21 range.
+ *
+ * Exists so the token pairings the app actually ships can be asserted instead
+ * of eyeballed: the small-caption ink and the translucent white used on the
+ * brand-green hero both sat under the 4.5:1 AA floor for body text while
+ * looking fine on a designer's monitor. Composites the foreground first —
+ * the hero labels are white at partial alpha, and measuring the pure colour
+ * would report a ratio the user never sees.
+ */
+internal fun contrastRatio(foreground: Color, background: Color): Double {
+    val composited = Color(
+        red = foreground.red * foreground.alpha + background.red * (1f - foreground.alpha),
+        green = foreground.green * foreground.alpha + background.green * (1f - foreground.alpha),
+        blue = foreground.blue * foreground.alpha + background.blue * (1f - foreground.alpha),
+    )
+    val lighter = maxOf(relativeLuminance(composited), relativeLuminance(background))
+    val darker = minOf(relativeLuminance(composited), relativeLuminance(background))
+    return (lighter + 0.05) / (darker + 0.05)
+}
+
+private fun relativeLuminance(color: Color): Double {
+    fun channel(value: Float): Double {
+        val c = value.toDouble()
+        return if (c <= 0.03928) c / 12.92 else Math.pow((c + 0.055) / 1.055, 2.4)
+    }
+    return 0.2126 * channel(color.red) + 0.7152 * channel(color.green) + 0.0722 * channel(color.blue)
+}
+
 // Status — matches tokens.css --s-*
 val Success = Color(0xFF1E8A5F)           // --s-success
 val SuccessBg = Color(0xFFE3F4EB)         // --s-success-bg

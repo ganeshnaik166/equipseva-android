@@ -1,5 +1,7 @@
 package com.equipseva.app.features.founder
 
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -8,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,6 +27,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material3.ripple
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
@@ -41,7 +45,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -56,6 +62,7 @@ import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsTopBar
+import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaDanger500
@@ -430,7 +437,11 @@ fun FounderEngineerPayoutsScreen(
                 s.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
-                s.rows.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                // Only claim "no payouts" when the load actually succeeded.
+                // On a failure the rows are empty for an unrelated reason, and
+                // the filter advice under the error banner sent the founder
+                // hunting through the status filters for a network fault.
+                s.rows.isEmpty() && s.errorMessage == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     // (#17) Mention the active filter so the founder
                     // doesn't think every payout dropped — they're just
                     // filtered out.
@@ -518,25 +529,67 @@ private fun FilterChipsRow(
 }
 
 @Composable
-private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) =
+    PayoutPillChip(
+        label = label,
+        selected = selected,
+        horizontalPadding = 14.dp,
+        verticalPadding = 8.dp,
+        onClick = onClick,
+    )
+
+/**
+ * Pill chip with a tap target that meets the interactive minimum.
+ *
+ * The paint stays ~32 dp so the console keeps its density. The tap has to be
+ * taken by a node that is itself 48 dp, so an outer box owns the click and the
+ * ripple is handed back to the pill through a shared interaction source, which
+ * keeps the indication pill-shaped instead of filling the invisible square.
+ * Material's `minimumInteractiveComponentSize` cannot do this: it is a
+ * LayoutModifierNode, so placed above a nested clickable it reserves the space
+ * in the parent and leaves the hit area the size of the paint.
+ */
+@Composable
+private fun PayoutPillChip(
+    label: String,
+    selected: Boolean,
+    horizontalPadding: Dp,
+    verticalPadding: Dp,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+) {
+    val interaction = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(if (selected) SevaGreen50 else PaperDefault)
-            .border(
-                width = 1.dp,
-                color = if (selected) SevaGreen700 else BorderDefault,
-                shape = RoundedCornerShape(999.dp),
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .sizeIn(minWidth = Spacing.MinTouchTarget, minHeight = Spacing.MinTouchTarget)
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                enabled = enabled,
+                role = Role.Button,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
     ) {
-        Text(
-            label,
-            color = if (selected) SevaGreen700 else SevaInk500,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-            fontSize = 13.sp,
-        )
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(999.dp))
+                .background(if (selected) SevaGreen50 else PaperDefault)
+                .border(
+                    width = 1.dp,
+                    color = if (selected) SevaGreen700 else BorderDefault,
+                    shape = RoundedCornerShape(999.dp),
+                )
+                .indication(interaction, ripple())
+                .padding(horizontal = horizontalPadding, vertical = verticalPadding),
+        ) {
+            Text(
+                label,
+                color = if (selected) SevaGreen700 else SevaInk500,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                fontSize = 13.sp,
+            )
+        }
     }
 }
 
@@ -645,27 +698,15 @@ private fun AdminStatusPill(status: String) {
 }
 
 @Composable
-private fun ModeChip(label: String, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(if (selected) SevaGreen50 else PaperDefault)
-            .border(
-                width = 1.dp,
-                color = if (selected) SevaGreen700 else BorderDefault,
-                shape = RoundedCornerShape(999.dp),
-            )
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-    ) {
-        Text(
-            label,
-            color = if (selected) SevaGreen700 else SevaInk500,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-            fontSize = 13.sp,
-        )
-    }
-}
+private fun ModeChip(label: String, selected: Boolean, enabled: Boolean, onClick: () -> Unit) =
+    PayoutPillChip(
+        label = label,
+        selected = selected,
+        horizontalPadding = 12.dp,
+        verticalPadding = 6.dp,
+        onClick = onClick,
+        enabled = enabled,
+    )
 
 @Composable
 private fun MarkPaidSheet(

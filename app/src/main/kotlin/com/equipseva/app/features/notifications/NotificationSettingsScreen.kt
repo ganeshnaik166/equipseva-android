@@ -1,10 +1,13 @@
 package com.equipseva.app.features.notifications
 
+import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.designsystem.theme.LightEsColors
 
 import android.app.TimePickerDialog
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,6 +22,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,11 +32,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ripple
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +52,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.R
 import com.equipseva.app.core.data.prefs.QuietHoursPrefs
@@ -79,10 +89,20 @@ fun NotificationSettingsScreen(
     val categories by viewModel.categories.collectAsStateWithLifecycle()
     val quietHours by viewModel.quietHours.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    // Check on every recomposition so the banner clears the moment the
-    // user returns from Settings having granted POST_NOTIFICATIONS.
-    val systemNotificationsEnabled = androidx.core.app.NotificationManagerCompat
-        .from(context).areNotificationsEnabled()
+    // areNotificationsEnabled() is a plain read with nothing to observe, and
+    // coming back from the system settings deep link changes no state this
+    // screen collects — the category and quiet-hours flows re-emit identical
+    // values, so nothing recomposed and the "turned off" banner survived the
+    // user granting the permission. Re-read it on each resume instead.
+    var systemNotificationsEnabled by remember {
+        mutableStateOf(
+            androidx.core.app.NotificationManagerCompat.from(context).areNotificationsEnabled(),
+        )
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        systemNotificationsEnabled = androidx.core.app.NotificationManagerCompat
+            .from(context).areNotificationsEnabled()
+    }
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(title = "Notification settings", onBack = onBack)
@@ -209,28 +229,49 @@ private fun EsToggle(on: Boolean, onClick: () -> Unit) {
         animationSpec = tween(durationMillis = 200),
         label = "es-toggle-thumb",
     )
+    // The track paints 44x26 dp, well under the 48 dp floor, and it is the
+    // only affordance for every category mute and for quiet hours. The switch
+    // that receives the tap is therefore the outer box, measured to the
+    // minimum, with the track drawn at its own size inside it — a reservation
+    // wrapped around a smaller toggleable would grow the layout and leave the
+    // hit area 44x26.
+    val interaction = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
-            .size(width = 44.dp, height = 26.dp)
-            .clip(RoundedCornerShape(999.dp))
-            .background(if (on) SevaGreen700 else BorderStrong)
+            .sizeIn(
+                minWidth = Spacing.MinTouchTarget,
+                minHeight = Spacing.MinTouchTarget,
+            )
             .toggleable(
                 value = on,
+                interactionSource = interaction,
+                indication = null,
                 onValueChange = { onClick() },
                 role = Role.Switch,
             ),
+        contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
-                // Lambda offset overload — thumbX is animateDpAsState, so the
-                // non-lambda overload would recompose the entire Box subtree
-                // every 16ms while the switch animates. The lambda variant
-                // only re-runs the layout phase.
-                .offset { IntOffset(thumbX.roundToPx(), 3.dp.roundToPx()) }
-                .size(20.dp)
-                .clip(CircleShape)
-                .background(Color.White),
-        )
+                .size(width = 44.dp, height = 26.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(if (on) SevaGreen700 else BorderStrong)
+                // Inside the clip, so the press indication stays inside the
+                // track instead of painting over the reserved target.
+                .indication(interaction, ripple()),
+        ) {
+            Box(
+                modifier = Modifier
+                    // Lambda offset overload — thumbX is animateDpAsState, so the
+                    // non-lambda overload would recompose the entire Box subtree
+                    // every 16ms while the switch animates. The lambda variant
+                    // only re-runs the layout phase.
+                    .offset { IntOffset(thumbX.roundToPx(), 3.dp.roundToPx()) }
+                    .size(20.dp)
+                    .clip(CircleShape)
+                    .background(Color.White),
+            )
+        }
     }
 }
 
@@ -363,7 +404,11 @@ private fun PermissionDeniedBanner(onOpenSystemSettings: () -> Unit) {
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
             color = SevaGreen700,
-            modifier = Modifier.clickable(onClick = onOpenSystemSettings),
+            modifier = Modifier
+                // Bare 13 sp text was a ~17 dp tall target with no announced
+                // role, and it is the banner's only way out of the dead end.
+                .sizeIn(minWidth = Spacing.MinTouchTarget, minHeight = Spacing.MinTouchTarget)
+                .clickable(role = Role.Button, onClick = onOpenSystemSettings),
         )
     }
 }
