@@ -611,7 +611,11 @@ class EvidenceRegisterOutboxHandlerIntegrationTest {
             assertTrue("reason should name the queued producer: $reason", reason.contains(engineerUid))
             assertTrue("reason should name the current account: $reason", reason.contains(hospitalUid))
             assertNoHttp(case.harness)
-            verify(exactly = 0) { case.crash.report(any(), any()) }
+            // The handler's contract is that NO permanent registration failure
+            // is silent: a photo that reached the job while its ledger row was
+            // dropped is the compliant-on-paper gap the ledger exists to end,
+            // and the deleted outbox row leaves no other trace of it.
+            verify(exactly = 1) { case.crash.report(any(), any()) }
         }
     }
 
@@ -642,16 +646,20 @@ class EvidenceRegisterOutboxHandlerIntegrationTest {
             val reason = giveUpReason(outcome)
             assertTrue("got: $reason", reason.startsWith("Evidence payload rejected client-side"))
             assertNoHttp(case.harness)
-            verify(exactly = 0) { case.crash.report(any(), any()) }
+            // Client-side rejection is still a registration that will never
+            // happen, so it reaches observability like every other permanent
+            // drop — a receipt this malformed is itself a defect worth seeing.
+            verify(exactly = 1) { case.crash.report(any(), any()) }
         }
     }
 
     /**
      * The fixture's `content_size_min` is 1: a zero-byte receipt cannot be a
      * photo and round3821 would deny it against `storage.objects.metadata`.
-     * The handler gates it client-side with zero HTTP calls and no report
-     * (it is a malformed receipt, not a compliance gap). Catches the size
-     * gate being dropped or weakened to `< 0`.
+     * The handler gates it client-side with zero HTTP calls, and reports it
+     * like every other permanent drop — the registration will never happen,
+     * which is the thing the ledger's observability contract is about.
+     * Catches the size gate being dropped or weakened to `< 0`.
      */
     @Test fun `zero contentSizeBytes is rejected client-side with zero HTTP requests`() = runTest {
         assertTrue("presence proof: the fixture floor excludes zero", rules.sizeMin > 0)
@@ -664,16 +672,18 @@ class EvidenceRegisterOutboxHandlerIntegrationTest {
             assertTrue("got: $reason", reason.startsWith("Evidence payload rejected client-side"))
             assertTrue("reason should name the size: $reason", reason.contains("size=0"))
             assertNoHttp(case.harness)
-            verify(exactly = 0) { case.crash.report(any(), any()) }
+            verify(exactly = 1) { case.crash.report(any(), any()) }
         }
     }
 
     /**
      * An outbox row whose payload is not JSON (a stale schema, a corrupted
      * row). Re-decoding will never succeed, so it is GiveUp with the
-     * handler's own "Malformed evidence payload" prefix, zero HTTP calls and
-     * no report (nothing about the job is knowable from the row). A session
-     * IS imported so the gate proven is the payload decode, not the session.
+     * handler's own "Malformed evidence payload" prefix and zero HTTP calls.
+     * It is reported too, carrying the decode failure itself: the row names
+     * no job, so the report is the only evidence that a registration was
+     * owed at all. A session IS imported so the gate proven is the payload
+     * decode, not the session.
      */
     @Test fun `malformed payload JSON is GiveUp Malformed evidence payload with zero HTTP requests`() = runTest {
         withCase(HttpStatusCode.OK, LEDGER_ID_BODY) { case ->
@@ -684,7 +694,7 @@ class EvidenceRegisterOutboxHandlerIntegrationTest {
             val reason = giveUpReason(outcome)
             assertTrue("got: $reason", reason.startsWith("Malformed evidence payload"))
             assertNoHttp(case.harness)
-            verify(exactly = 0) { case.crash.report(any(), any()) }
+            verify(exactly = 1) { case.crash.report(any(), any()) }
         }
     }
 

@@ -37,7 +37,9 @@ import javax.inject.Inject
  * Outcomes:
  *  - [OutboxKindHandler.Outcome.Retry]  — no session yet, network-shaped errors, 5xx.
  *  - [OutboxKindHandler.Outcome.GiveUp] — malformed payload, owner mismatch,
- *    4xx from the RPC (reported to [CrashReporter] first).
+ *    a receipt this client already knows the server will refuse, 4xx from the
+ *    RPC. Every one of them reaches [CrashReporter] first; there is no
+ *    permanent-drop branch here that leaves no trace.
  */
 class EvidenceRegisterOutboxHandler @Inject constructor(
     private val supabase: SupabaseClient,
@@ -47,19 +49,20 @@ class EvidenceRegisterOutboxHandler @Inject constructor(
 
     override suspend fun handle(entry: OutboxEntryEntity): OutboxKindHandler.Outcome {
         val payload = runCatching { json.decodeFromString(EvidenceRegisterPayload.serializer(), entry.payload) }
-            .getOrElse { return OutboxKindHandler.Outcome.GiveUp("Malformed evidence payload: ${it.message}") }
+            .getOrElse { return reportAndGiveUp("Malformed evidence payload: ${it.message}", it) }
 
         val currentUid = supabase.auth.currentUserOrNull()?.id
             ?: return OutboxKindHandler.Outcome.Retry(
                 IllegalStateException("No auth session — deferring evidence registration"),
+                countsAgainstBudget = false,
             )
         if (currentUid != payload.producerUserId) {
-            return OutboxKindHandler.Outcome.GiveUp(
+            return reportAndGiveUp(
                 "Producer mismatch: queued as ${payload.producerUserId}, current auth is $currentUid",
             )
         }
         if (!SHA256_HEX.matches(payload.contentSha256) || payload.contentSizeBytes <= 0L) {
-            return OutboxKindHandler.Outcome.GiveUp(
+            return reportAndGiveUp(
                 "Evidence payload rejected client-side: sha=${payload.contentSha256.take(12)}… size=${payload.contentSizeBytes}",
             )
         }
@@ -110,6 +113,23 @@ class EvidenceRegisterOutboxHandler @Inject constructor(
             }
             outcome
         }
+    }
+
+    /**
+     * Every permanent registration failure has to leave a trace somewhere a
+     * human looks. A photo sitting on a job with no ledger row behind it is
+     * the compliant-on-paper failure the ledger was built to end, and a
+     * dropped outbox row is invisible by itself — the entry is deleted and
+     * nothing else in the system knows the evidence was expected.
+     *
+     * [reason] carries uuids and sizes only; no captured content, no PII.
+     */
+    private fun reportAndGiveUp(reason: String, cause: Throwable? = null): OutboxKindHandler.Outcome {
+        crashReporter.report(
+            cause ?: IllegalStateException("evidence_register dropped"),
+            "evidence_register dropped: $reason",
+        )
+        return OutboxKindHandler.Outcome.GiveUp(reason)
     }
 
     private companion object {

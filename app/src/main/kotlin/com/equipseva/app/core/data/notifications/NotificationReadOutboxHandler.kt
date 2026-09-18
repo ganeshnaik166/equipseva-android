@@ -5,7 +5,10 @@ import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.entities.OutboxEntryEntity
 import com.equipseva.app.core.sync.OutboxKindHandler
 import com.equipseva.app.core.sync.classifyOutboxError
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -23,6 +26,11 @@ import javax.inject.Inject
  * attempt round-tripping a row that RLS will reject anyway. Rows
  * enqueued before this field existed have `userId = null` and fall
  * through to RLS-only protection — same behavior as before.
+ *
+ * "No signed-in user at all" is a different situation from an account
+ * switch and is deferred, never dropped: the session is still restoring
+ * at WorkManager cold start, and a refresh failure that clears itself on
+ * the next tick looks identical from here.
  */
 class NotificationReadOutboxHandler @Inject constructor(
     private val notificationRepository: NotificationRepository,
@@ -36,31 +44,48 @@ class NotificationReadOutboxHandler @Inject constructor(
         }.getOrElse {
             return OutboxKindHandler.Outcome.GiveUp("Malformed payload: ${it.message}")
         }
-        val owner = payload.userId
-        if (owner != null) {
-            val current = authRepository.sessionState.first()
-            val uid = (current as? AuthSession.SignedIn)?.userId
-            val dropReason = notificationReadOwnerGateReason(owner, uid)
-            if (dropReason != null) {
-                return OutboxKindHandler.Outcome.GiveUp(dropReason)
-            }
+        // "Which user is this" has to be answered before the owner gate can
+        // mean anything. At WorkManager cold start the session is still
+        // restoring (`Unknown`) and a transient refresh failure reads as
+        // `SignedOut`, and in both states this handler used to hand a null
+        // current user to the gate, which reported a cross-user drop and
+        // deleted the row — although no account switch had happened and every
+        // sibling handler defers in exactly the same state. Mark-reads then
+        // vanished and the notification bounced back to unread on the next
+        // sync, repeatedly.
+        val current = authRepository.sessionState.first()
+        val uid = (current as? AuthSession.SignedIn)?.userId
+            ?: return OutboxKindHandler.Outcome.Retry(
+                IllegalStateException("No auth session — deferring mark-read"),
+                countsAgainstBudget = false,
+            )
+        val dropReason = notificationReadOwnerGateReason(payload.userId, uid)
+        if (dropReason != null) {
+            return OutboxKindHandler.Outcome.GiveUp(dropReason)
         }
-        // Round 437 — bound the RPC like the chat / bid / job-status
-        // handlers do. Without it, a hung TLS connection burns the full
-        // MAX_ATTEMPTS retry budget on the same broken socket and the
-        // mark-read poison-drops without surfacing why. 15s matches
-        // ChatMessageOutboxHandler's SEND_TIMEOUT_MS.
-        return runCatching {
-            kotlinx.coroutines.withTimeout(MARK_READ_TIMEOUT_MS) {
+        // Bound the RPC like the chat / bid / job-status handlers
+        // do. Without it, a hung TLS connection burns the whole attempts
+        // budget on the same broken socket and the mark-read poison-drops
+        // without surfacing why. 15s matches ChatMessageOutboxHandler's
+        // SEND_TIMEOUT_MS.
+        //
+        // That timeout is the only cancellation this handler owns. One from
+        // outside (WorkManager stopping the drain, sign-out cancelling the
+        // work) has to propagate instead: absorbing it reported a Retry,
+        // which charged the row an attempt for the app's own shutdown.
+        val result = try {
+            withTimeout(MARK_READ_TIMEOUT_MS) {
                 notificationRepository.markRead(payload.notificationId)
             }
-        }.fold(
-            onSuccess = { result ->
-                result.fold(
-                    onSuccess = { OutboxKindHandler.Outcome.Success },
-                    onFailure = ::classifyOutboxError,
-                )
-            },
+        } catch (timeout: TimeoutCancellationException) {
+            return OutboxKindHandler.Outcome.Retry(timeout)
+        } catch (ce: CancellationException) {
+            throw ce
+        } catch (t: Throwable) {
+            return classifyOutboxError(t)
+        }
+        return result.fold(
+            onSuccess = { OutboxKindHandler.Outcome.Success },
             onFailure = ::classifyOutboxError,
         )
     }
@@ -87,6 +112,9 @@ data class NotificationReadPayload(
  *   * null queued owner → null (legacy row, RLS-only fallback).
  *   * null currentUserId AND non-null owner → cross-user drop (signed
  *     out / different state — never silently downgrade to "no gate").
+ *     Kept as a total shape only; the caller resolves the session first
+ *     and defers while there is no user, because treating "not signed in
+ *     yet" as a cross-user switch deleted mark-reads at cold start.
  *   * mismatch → cross-user drop with both ids in the reason for the
  *     ops log.
  */
