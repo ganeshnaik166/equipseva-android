@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobUrgency
-import com.equipseva.app.core.util.relativeLabel
+import com.equipseva.app.core.util.relativeAgoLabel
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
 import com.equipseva.app.designsystem.components.StatusPill
@@ -174,7 +174,7 @@ fun EngineerJobCard(
                         color = SevaInk500,
                     )
                 }
-                val postedText = job.createdAtInstant?.let { "${relativeLabel(it)} ago" } ?: "Just now"
+                val postedText = job.createdAtInstant?.let { relativeAgoLabel(it) } ?: "Just now"
                 Text(
                     text = postedText,
                     style = EsType.Caption.copy(fontSize = 11.sp),

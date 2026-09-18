@@ -99,6 +99,13 @@ fun LocationPickerMap(
     // `remember { { ... } }` block captured the *first* callback ref forever
     // and silently dropped fixes when the parent re-composed.
     val onLocationPickedRef by rememberUpdatedState(onLocationPicked)
+    // Same reason, for the value: `tryFetch` is an unremembered lambda, so
+    // the instance LaunchedEffect(Unit) invoked captured `selected` from the
+    // FIRST composition. A fix that fails or times out (up to 8s) then
+    // checked a stale `selected == null` and replaced a pin the parent had
+    // restored in the meantime — RequestService "Keep draft" — with
+    // Hyderabad city centre.
+    val selectedRef by rememberUpdatedState(selected)
     // userInitiated = true → user tapped the My location button (or granted
     // permission via the system dialog they kicked off): show feedback + open
     // Settings if location toggle is off. userInitiated = false → silent
@@ -133,7 +140,7 @@ fun LocationPickerMap(
                 // Hyderabad fallback only seeds the initial pin so the form
                 // isn't stuck pin-less. Re-fetches that fail leave the
                 // existing pin alone — never clobber a user-set location.
-                if (fix == null && selected == null) {
+                if (fix == null && selectedRef == null) {
                     onLocationPickedRef(HYDERABAD_FALLBACK)
                 }
             }
@@ -151,8 +158,10 @@ fun LocationPickerMap(
         } else {
             permissionDenied = true
             // Defensive fallback so the form isn't stuck pin-less when the
-            // user denies location entirely.
-            onLocationPickedRef(HYDERABAD_FALLBACK)
+            // user denies location entirely — but never over a pin that
+            // already exists, which is a coordinate the user or the restored
+            // draft chose deliberately.
+            if (selectedRef == null) onLocationPickedRef(HYDERABAD_FALLBACK)
         }
     }
 

@@ -23,6 +23,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -175,7 +176,11 @@ fun DsrScreen(
     onBack: () -> Unit,
     viewModel: DsrViewModel = hiltViewModel(),
 ) {
-    viewModel.load(jobId)
+    // Not in the composable body: load() mutates the viewmodel and starts a
+    // fetch, and composition can be discarded or re-run at will. The
+    // once-per-id guard inside masked that, but the effect belongs in an
+    // effect.
+    LaunchedEffect(jobId) { viewModel.load(jobId) }
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     Box(Modifier.fillMaxSize().background(PaperDefault)) {
@@ -228,6 +233,13 @@ fun DsrScreen(
                                 null -> 0
                             },
                             initialSerial = dsr.equipmentSerial.orEmpty(),
+                            // Resubmission REPLACES the previous row, so
+                            // anything the form does not prefill is DELETED
+                            // from the NABH record. Without this an engineer
+                            // fixing a typo in the summary silently downgraded
+                            // "calibrated, within OEM tolerance" to "no
+                            // calibration performed".
+                            initialCalibrationWithinOem = dsr.calibrationWithinOem,
                             onSubmit = viewModel::submit,
                         )
                     } else {
@@ -261,6 +273,10 @@ private fun DsrForm(
     initialRecommendations: String = "",
     initialIecChoice: Int = 0,
     initialSerial: String = "",
+    // Non-null means the previous report attested a calibration with this
+    // verdict — `submit_dsr` only stores a verdict when a calibration was
+    // performed, so presence IS the performed flag.
+    initialCalibrationWithinOem: Boolean? = null,
     onSubmit: (
         workSummary: String,
         iec62353Passed: Boolean?,
@@ -274,12 +290,22 @@ private fun DsrForm(
     var workSummary by rememberSaveable { mutableStateOf(initialSummary) }
     // 0 = not applicable, 1 = passed, 2 = failed
     var iecChoice by rememberSaveable { mutableStateOf(initialIecChoice) }
-    var calibrationPerformed by rememberSaveable { mutableStateOf(false) }
+    var calibrationPerformed by rememberSaveable {
+        mutableStateOf(initialCalibrationWithinOem != null)
+    }
     // Tri-state on purpose (review finding: a `true` default meant merely
     // toggling "calibration performed" silently recorded the positive
     // attestation "within OEM tolerance" the engineer never chose).
     // -1 = not chosen yet, 1 = within tolerance, 0 = out of tolerance.
-    var calibChoice by rememberSaveable { mutableStateOf(-1) }
+    var calibChoice by rememberSaveable {
+        mutableStateOf(
+            when (initialCalibrationWithinOem) {
+                true -> 1
+                false -> 0
+                null -> -1
+            },
+        )
+    }
     var calibrationLabRef by rememberSaveable { mutableStateOf("") }
     var recommendations by rememberSaveable { mutableStateOf(initialRecommendations) }
     // round3814 — on-site serial reading; the NABH bundle is keyed on it

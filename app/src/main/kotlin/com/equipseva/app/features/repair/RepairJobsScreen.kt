@@ -145,10 +145,15 @@ fun RepairJobsScreen(
                 subtitle = repairJobsFeedSubtitle(openJobs.size, state.radiusKm),
                 right = {
                     Box(
+                        // 48dp touch floor; the bell glyph stays 20dp.
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(48.dp)
                             .clip(RoundedCornerShape(999.dp))
-                            .clickable(onClick = onOpenNotifications),
+                            .clickable(
+                                onClickLabel = "Open notifications",
+                                role = androidx.compose.ui.semantics.Role.Button,
+                                onClick = onOpenNotifications,
+                            ),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(

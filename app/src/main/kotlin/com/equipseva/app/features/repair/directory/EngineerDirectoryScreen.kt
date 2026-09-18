@@ -151,6 +151,9 @@ class EngineerDirectoryViewModel @Inject constructor(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
+    /** In-flight directory search; superseded by every newer one. */
+    private var searchJob: kotlinx.coroutines.Job? = null
+
     init {
         // Fetch GPS in parallel with the first directory load. Either
         // races to completion: if location lands first, the next refresh
@@ -220,7 +223,13 @@ class EngineerDirectoryViewModel @Inject constructor(
 
     private fun refresh() {
         _state.update { it.copy(loading = true, error = null) }
-        viewModelScope.launch {
+        // Every trigger — a debounced keystroke, a sort flip, the 4★ toggle,
+        // the GPS fix landing — fires its own RPC, so without cancelling the
+        // previous one the LAST RESPONSE TO ARRIVE won: a slow "ab" could
+        // replace the rows for "abc" with `loading` already false, and the
+        // list then showed results for a query the user could no longer see.
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
             val s = _state.value
             // Effective sort: if caller picked Nearest but we have no
             // coords, fall back to Rating server-side (the SQL handles
@@ -325,9 +334,15 @@ fun EngineerDirectoryScreen(
                     },
                     trailing = {
                         Box(
+                            // 48dp touch floor; the glyph stays 18dp.
                             modifier = Modifier
-                                .size(28.dp)
-                                .clickable { showFilters = true },
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .clickable(
+                                    onClickLabel = "Open directory filters",
+                                    role = androidx.compose.ui.semantics.Role.Button,
+                                    onClick = { showFilters = true },
+                                ),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
@@ -456,7 +471,7 @@ private fun EmptyEngineersError(message: String, onRetry: () -> Unit) {
         )
         Spacer(Modifier.height(12.dp))
         EsBtn(
-            text = "Try again",
+            text = stringResource(R.string.common_retry),
             onClick = onRetry,
             kind = EsBtnKind.Secondary,
             size = EsBtnSize.Md,

@@ -16,6 +16,8 @@ import com.equipseva.app.core.data.moderation.UserBlockRepository
 import com.equipseva.app.core.data.profile.Profile
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.data.repair.RepairJobRepository
+import com.equipseva.app.core.network.isNetworkFailure
+import io.github.jan.supabase.exceptions.RestException
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.sync.OutboxEnqueuer
 import com.equipseva.app.core.sync.OutboxKinds
@@ -208,10 +210,21 @@ class ChatViewModel @Inject constructor(
                     // server 5xx, body-too-long, etc. all read as a
                     // transient network blip. Surface the real reason
                     // (toUserMessage already maps network-only errors to
-                    // an "offline" hint) and still enqueue for the
-                    // outbox to retry on connectivity.
-                    queueForRetry(self, text)
-                    _state.update { it.copy(sending = false) }
+                    // an "offline" hint).
+                    when (chatSendRecovery(error)) {
+                        ChatSendRecovery.QueueForRetry -> {
+                            queueForRetry(self, text)
+                            _state.update { it.copy(sending = false) }
+                        }
+                        ChatSendRecovery.RestoreDraft -> _state.update {
+                            // Never clobber something typed while the send
+                            // was in flight — only refill an empty composer.
+                            it.copy(
+                                sending = false,
+                                draft = if (it.draft.isBlank()) text else it.draft,
+                            )
+                        }
+                    }
                     _effects.emit(Effect.ShowMessage(error.toUserMessage()))
                 }
                 .onSuccess {
@@ -496,6 +509,43 @@ class ChatViewModel @Inject constructor(
  */
 internal fun chatTopBarTitle(counterpartDisplayName: String?): String =
     counterpartDisplayName ?: "Chat"
+
+/**
+ * What to do with a chat message the server did not accept.
+ *
+ * `onSend` clears the composer optimistically, so after a failure the
+ * typed text exists in exactly one place: the local variable in that
+ * coroutine. Where it goes decides whether the user loses it.
+ */
+internal enum class ChatSendRecovery {
+    /**
+     * Network-class failure. Hand it to the outbox and leave the
+     * composer empty — the message is genuinely pending and the queued
+     * pill tells the user so.
+     */
+    QueueForRetry,
+
+    /**
+     * Permanent refusal (RLS, `chat_conversation_closed`, body too
+     * long). The outbox gives up on 4xx rows, so enqueueing showed the
+     * real error AND a "1 message queued" pill, after which the message
+     * silently vanished and the text was gone. Put it back in the
+     * composer instead and enqueue nothing.
+     */
+    RestoreDraft,
+}
+
+internal fun chatSendRecovery(error: Throwable): ChatSendRecovery = when {
+    // Chat parts company with the shared predicate on exactly one status.
+    // A rate limit is queueable in general — the drain retries it and the
+    // write does land — but `chat_rate_limited_*` ships copy telling the
+    // user to wait a moment and try again, and that is only actionable
+    // while their text is still in the composer. Queueing it would answer
+    // "slow down" with a pill saying the message is already on its way.
+    (error as? RestException)?.statusCode == 429 -> ChatSendRecovery.RestoreDraft
+    isNetworkFailure(error) -> ChatSendRecovery.QueueForRetry
+    else -> ChatSendRecovery.RestoreDraft
+}
 
 /**
  * Gate for the chat send button.

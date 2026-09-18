@@ -221,6 +221,8 @@ class RequestServiceViewModel @Inject constructor(
     // returns 422 missing_phone). Cache the value at sign-in so the
     // submit gate doesn't have to fetch on every tap.
     private var hospitalPhone: String? = null
+    /** Guards the submit-time phone re-read against a second Post tap. */
+    private var recheckingPhone: Boolean = false
 
     init {
         // r516 (v0.4 P5 #10) — funnel ping when hospital opens the
@@ -239,6 +241,7 @@ class RequestServiceViewModel @Inject constructor(
                     userId = null
                     orgId = null
                     hospitalPhone = null
+                    recheckingPhone = false
                     pendingPhotoOperation?.let {
                         pendingPhotoOperation = it.copy(invalidated = true)
                         savedStateHandle[PhotoKeys.INVALIDATED] = true
@@ -778,9 +781,32 @@ class RequestServiceViewModel @Inject constructor(
         // (engineer can't unblock themselves). Mirror the existing
         // "Pick a time slot" / "Issue too short" gate UX.
         if (hospitalPhone.isNullOrBlank()) {
-            val msg = "Add your phone number on Profile → Phone number before posting a job — engineers need it to coordinate the visit."
-            _state.update { it.copy(errorMessage = msg) }
-            effectChannel.tryEmit(Effect.ShowMessage(msg, lease))
+            // The cached value is read once, when the form binds. A hospital
+            // that FOLLOWS the instruction — Profile, add phone, back — comes
+            // back to a viewmodel that survived in the back stack and stays
+            // blocked; so does a hospital that already has a phone but whose
+            // profile fetch failed at bind. Re-read before refusing, and say
+            // which of the two happened.
+            if (recheckingPhone) return
+            recheckingPhone = true
+            _state.update { it.copy(submitting = true, errorMessage = null) }
+            viewModelScope.launch {
+                val refreshed = profileRepository.fetchById(uid)
+                recheckingPhone = false
+                if (!isCurrent(lease)) return@launch
+                _state.update { it.copy(submitting = false) }
+                val phone = refreshed.getOrNull()?.phone?.takeIf { it.isNotBlank() }
+                if (phone != null) {
+                    hospitalPhone = phone
+                    onSubmit(selectedSlot)
+                    return@launch
+                }
+                val msg = refreshed.exceptionOrNull()
+                    ?.toUserMessage("Couldn't check your profile. Retry in a moment.")
+                    ?: PHONE_REQUIRED_MESSAGE
+                _state.update { it.copy(errorMessage = msg) }
+                effectChannel.tryEmit(Effect.ShowMessage(msg, lease))
+            }
             return
         }
         // Block submit when no slot is picked. Earlier code happily wrote
@@ -957,6 +983,18 @@ class RequestServiceViewModel @Inject constructor(
         const val AUTO_SAVE_DEBOUNCE_MS = 10_000L
     }
 }
+
+/**
+ * Submit-gate copy for a hospital with no phone number on file.
+ *
+ * `request-call-session` returns 422 missing_phone, so the engineer who
+ * takes the job cannot reach them and cannot unblock themselves. Naming
+ * the exact destination (Profile → Phone number) is the whole value of
+ * the message; pin it separately from a fetch failure, which is NOT the
+ * hospital's to fix and must never read as "you have no phone".
+ */
+internal const val PHONE_REQUIRED_MESSAGE =
+    "Add your phone number on Profile → Phone number before posting a job — engineers need it to coordinate the visit."
 
 /**
  * Compose the repair-job `site_location` text from the request-form's

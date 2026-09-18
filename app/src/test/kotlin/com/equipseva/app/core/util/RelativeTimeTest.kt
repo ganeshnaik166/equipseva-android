@@ -60,4 +60,36 @@ class RelativeTimeTest {
         // 12:30 +05:30 == 07:00 UTC = 3h before our `now`.
         assertEquals("3h", relativeLabel("2026-04-24T12:30:00+05:30", now))
     }
+
+    // ---- relativeAgoLabel / relativeAgoPhrase ------------------------
+    // The reason these exist: relativeLabel's sub-minute answer is the
+    // standalone word "now", so every caller that appended " ago" itself
+    // printed "now ago" (engineer job feed, engineer Active work,
+    // hospital job cards) until it went through one of these.
+
+    @Test fun `relativeAgoLabel under a minute reads Just now, never now ago`() {
+        val out = relativeAgoLabel(now.minusSeconds(30), now)
+        assertEquals("Just now", out)
+        assertEquals(false, out.contains("now ago"))
+    }
+
+    @Test fun `relativeAgoLabel suffixes real quantities`() {
+        assertEquals("5m ago", relativeAgoLabel(now.minus(5, ChronoUnit.MINUTES), now))
+        assertEquals("3h ago", relativeAgoLabel(now.minus(3, ChronoUnit.HOURS), now))
+        assertEquals("2d ago", relativeAgoLabel(now.minus(2, ChronoUnit.DAYS), now))
+        assertEquals("4w ago", relativeAgoLabel(now.minus(28, ChronoUnit.DAYS), now))
+    }
+
+    @Test fun `relativeAgoLabel at exactly one minute is a quantity not Just now`() {
+        // Boundary pin: relativeLabel flips to "1m" at 60s, so the "Just
+        // now" branch must not swallow the first real minute.
+        assertEquals("1m ago", relativeAgoLabel(now.minusSeconds(60), now))
+    }
+
+    @Test fun `relativeAgoPhrase stays lower-case for mid-sentence use`() {
+        // "Posted just now" — a capitalised "Just now" mid-sentence
+        // reads as a pasted-in label.
+        assertEquals("just now", relativeAgoPhrase("now"))
+        assertEquals("3h ago", relativeAgoPhrase("3h"))
+    }
 }

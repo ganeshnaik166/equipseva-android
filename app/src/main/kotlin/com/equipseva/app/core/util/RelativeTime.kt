@@ -17,6 +17,34 @@ fun relativeLabel(instant: Instant, now: Instant = Instant.now()): String {
 }
 
 /**
+ * The standalone sub-minute label [relativeLabel] returns. It is a whole
+ * phrase, not a quantity like "5m" — which is why every "how long ago"
+ * caller needs [relativeAgoLabel] / [relativeAgoPhrase] instead of
+ * appending " ago" to [relativeLabel] itself.
+ */
+private const val RELATIVE_NOW = "now"
+
+/**
+ * Standalone elapsed-time label: "3h ago", "2d ago" — and "Just now"
+ * under a minute, because appending the suffix to the sub-minute label
+ * by hand produces "now ago".
+ */
+fun relativeAgoLabel(instant: Instant, now: Instant = Instant.now()): String =
+    when (val relative = relativeLabel(instant, now)) {
+        RELATIVE_NOW -> "Just now"
+        else -> "$relative ago"
+    }
+
+/**
+ * Same rule for a label already embedded in a sentence ("Posted just
+ * now" / "Posted 3h ago"), so the sub-minute case stays lower-case
+ * mid-sentence. Takes the [relativeLabel] output rather than the instant
+ * because the callers that need this have already formatted it.
+ */
+internal fun relativeAgoPhrase(relative: String): String =
+    if (relative == RELATIVE_NOW) "just now" else "$relative ago"
+
+/**
  * Tolerant ISO-8601 overload for raw timestamp strings — `OffsetDateTime.parse`
  * accepts both `Z` (UTC) and offset (`+05:30`) forms that Postgres timestamptz
  * can emit. Returns null on null input or unparseable text so callers can fall

@@ -62,21 +62,8 @@ class ActiveWorkViewModel @Inject constructor(
         viewModelScope.launch {
             jobRepository.fetchAssignedToMe()
                 .onSuccess { jobs ->
-                    val active = jobs.filter {
-                        // Include Assigned so engineers see jobs the moment a
-                        // hospital accepts their bid — without this they had
-                        // no entry point to the job until they Check-in
-                        // flipped status to InProgress, which is impossible
-                        // to do from a screen the assignment doesn't appear on.
-                        it.status in listOf(
-                            RepairJobStatus.Assigned,
-                            RepairJobStatus.EnRoute,
-                            RepairJobStatus.InProgress,
-                        )
-                    }
-                    val completed = jobs.filter {
-                        it.status in listOf(RepairJobStatus.Completed, RepairJobStatus.Cancelled)
-                    }
+                    val active = jobs.filter { isActiveWorkJob(it.status) }
+                    val completed = jobs.filter { isClosedWorkJob(it.status) }
                     _state.update {
                         it.copy(
                             loading = false,
@@ -98,3 +85,42 @@ class ActiveWorkViewModel @Inject constructor(
     }
 }
 
+/**
+ * Is this status one the engineer is still working?
+ *
+ * Assigned is included so an engineer sees the job the moment a hospital
+ * accepts their bid — without it they had no entry point at all until
+ * check-in flipped the status, which cannot be done from a screen the
+ * assignment never appears on.
+ *
+ * Requested is included for the same reason, and it is not a contradiction:
+ * the list is fed by the assigned-to-me query, which filters on engineer_id
+ * alone with no status filter. A visit pre-assigned to an engineer rather
+ * than bid on keeps `requested` until they move it, so it arrives here with
+ * their engineer id on it — and matching neither bucket dropped it off their
+ * only list. An unassigned `requested` job never reaches this screen; those
+ * live on the open-for-bidding feed.
+ */
+internal fun isActiveWorkJob(status: RepairJobStatus): Boolean = status in setOf(
+    RepairJobStatus.Requested,
+    RepairJobStatus.Assigned,
+    RepairJobStatus.EnRoute,
+    RepairJobStatus.InProgress,
+)
+
+/**
+ * Is this status closed — no longer progressing, still needed in the list?
+ *
+ * Disputed belongs here, not nowhere. The server allows
+ * `completed -> disputed`, the detail screen renders a dispute banner
+ * plus the engineer's "Respond to dispute" action, and the hospital's own
+ * list already files Disputed under closed. Matching neither bucket
+ * dropped the job off the engineer's list at the exact moment they had an
+ * admin review window to answer in — and the list is their only route to
+ * the screen that lets them answer.
+ */
+internal fun isClosedWorkJob(status: RepairJobStatus): Boolean = status in setOf(
+    RepairJobStatus.Completed,
+    RepairJobStatus.Cancelled,
+    RepairJobStatus.Disputed,
+)

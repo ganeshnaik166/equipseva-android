@@ -44,6 +44,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobUrgency
+import com.equipseva.app.core.util.relativeAgoLabel
+import com.equipseva.app.core.util.relativeAgoPhrase
 import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
@@ -352,7 +354,7 @@ private fun HospitalBookingCard(
             if (hospitalBookingShouldShowPostedOnRight(schedule)) {
                 job.createdAtInstant?.let { posted ->
                     Text(
-                        text = "${relativeLabel(posted)} ago",
+                        text = relativeAgoLabel(posted),
                         style = EsType.Caption,
                         color = SevaInk500,
                     )
@@ -392,12 +394,16 @@ internal fun hospitalBookingScheduleLine(
  * relative label which is a bare quantity ("1d", "3h"). A refactor
  * that returned just the relative label would read as a timestamp
  * column rather than the post-time it actually is.
+ *
+ * The sub-minute case is the exception and goes through
+ * [relativeAgoPhrase]: there the relative label is the whole word "now",
+ * so the same concatenation produced "Posted now ago".
  */
 internal fun hospitalBookingLeftLabel(
     schedule: String,
     postedRelative: String?,
 ): String? = schedule.takeIf { it.isNotBlank() }
-    ?: postedRelative?.let { "Posted $it ago" }
+    ?: postedRelative?.let { "Posted ${relativeAgoPhrase(it)}" }
 
 /**
  * Right-column gate on the hospital's active-job card. Returns true

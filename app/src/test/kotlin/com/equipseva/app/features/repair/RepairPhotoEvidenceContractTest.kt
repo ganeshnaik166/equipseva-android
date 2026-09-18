@@ -616,6 +616,9 @@ class RepairPhotoEvidenceContractTest {
             engineerRepository = mockk<EngineerRepository> {
                 coEvery { fetchByUserId(uid) } returns Result.success(engineerRow())
             },
+            // Only the hospital viewer's counterparty/name lookups reach it,
+            // and this slice drives the engineer side.
+            engineerDirectoryRepository = mockk(relaxed = true),
             profileRepository = mockk<ProfileRepository> {
                 coEvery { fetchById(any()) } returns Result.success(null)
             },

@@ -62,11 +62,7 @@ object Validators {
     fun indiaMobileError(value: String): String? {
         val trimmed = value.trim()
         if (trimmed.isEmpty()) return null
-        val digits = trimmed
-            .removePrefix("+91")
-            .removePrefix("+")
-            .removePrefix("91")
-            .filter { it.isDigit() }
+        val digits = indiaMobileNationalDigits(trimmed)
         if (digits.length != 10) return "Enter 10 digits"
         if (!INDIA_MOBILE_DIGITS.matches(digits)) return "Indian mobile must start with 6, 7, 8, or 9"
         return null
@@ -84,4 +80,25 @@ object Validators {
         if (!PINCODE_REGEX.matches(v)) return "Invalid PIN code"
         return null
     }
+}
+
+/**
+ * Reduces a freely typed Indian phone number to its 10-digit national part.
+ *
+ * The country code is only stripped when the input actually carries one:
+ * "91" is ALSO a live mobile prefix, so an unconditional strip turns the
+ * valid number 9123456789 into 8 digits and the form rejects it. A `+`
+ * makes the 91 unambiguous; without one, only a 12-digit number can be
+ * country code plus subscriber.
+ */
+internal fun indiaMobileNationalDigits(raw: String): String {
+    val trimmed = raw.trim()
+    val hasPlus = trimmed.startsWith("+")
+    val digits = trimmed.filter { it.isDigit() }
+    val carriesCountryCode = when {
+        !digits.startsWith("91") -> false
+        hasPlus -> digits.length > 10
+        else -> digits.length == 12
+    }
+    return if (carriesCountryCode) digits.drop(2) else digits
 }

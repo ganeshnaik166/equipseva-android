@@ -1,6 +1,5 @@
 package com.equipseva.app.features.repair
 
-import android.content.Intent
 import android.net.Uri
 import androidx.core.net.toUri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -94,6 +93,7 @@ import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.util.MIME_JPEG
 import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.core.util.openExternalUrl
 import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.Avatar
 import com.equipseva.app.designsystem.components.ErrorBanner
@@ -164,7 +164,6 @@ fun RepairJobDetailScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var withdrawConfirmOpen by rememberSaveable { mutableStateOf(false) }
-    var checkinSheetOpen by rememberSaveable { mutableStateOf(false) }
     var cancelSheetOpen by rememberSaveable { mutableStateOf(false) }
     var rateSheetOpen by rememberSaveable { mutableStateOf(false) }
     // FIX #10 — Help & Support escalation sheet, opened from the '?'
@@ -190,20 +189,18 @@ fun RepairJobDetailScreen(
                 // PR-D3: hand the signed report URL to the system browser.
                 // Chrome / WebView render the HTML with photos and the
                 // user can use the print menu to save as PDF if needed.
-                is RepairJobDetailViewModel.Effect.OpenServiceReport -> {
-                    val intent = Intent(Intent.ACTION_VIEW, effect.url.toUri()).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    context.startActivity(intent)
-                }
+                // The shared helper carries the ActivityNotFoundException
+                // guard these two call sites lacked: a device or work
+                // profile with no browser threw straight out of
+                // startActivity and took the whole detail screen down,
+                // while the "Navigate to site" button a few hundred lines
+                // below had always guarded the identical pattern.
+                is RepairJobDetailViewModel.Effect.OpenServiceReport ->
+                    openExternalUrl(context, effect.url)
                 // Round 449: same browser-handoff for the GST tax
                 // invoice. Hospital uses the print menu to save as PDF.
-                is RepairJobDetailViewModel.Effect.OpenInvoice -> {
-                    val intent = Intent(Intent.ACTION_VIEW, effect.url.toUri()).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    context.startActivity(intent)
-                }
+                is RepairJobDetailViewModel.Effect.OpenInvoice ->
+                    openExternalUrl(context, effect.url)
             }
         }
     }
@@ -225,8 +222,10 @@ fun RepairJobDetailScreen(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Box(
+                            // 48dp is the Material / WCAG touch-target floor;
+                            // the glyph inside stays 18dp.
                             modifier = Modifier
-                                .size(36.dp)
+                                .size(48.dp)
                                 .clip(CircleShape)
                                 .background(Color.Transparent)
                                 .clickable(
@@ -248,10 +247,14 @@ fun RepairJobDetailScreen(
                             Box {
                                 Box(
                                     modifier = Modifier
-                                        .size(36.dp)
+                                        .size(48.dp)
                                         .clip(CircleShape)
                                         .background(Color.Transparent)
-                                        .clickable { menuOpen = true },
+                                        .clickable(
+                                            onClickLabel = "Open job options",
+                                            role = androidx.compose.ui.semantics.Role.Button,
+                                            onClick = { menuOpen = true },
+                                        ),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Icon(
@@ -291,7 +294,7 @@ fun RepairJobDetailScreen(
                     queuedStatusCount = state.queuedStatusCount,
                     pendingCostRevision = state.pendingCostRevision,
                     onPlaceBid = viewModel::openBidComposer,
-                    onCheckIn = { checkinSheetOpen = true },
+                    onCheckIn = viewModel::openCheckinSheet,
                     onMarkDone = viewModel::openProofSheet,
                     onRate = { rateSheetOpen = true },
                     onCancel = { cancelSheetOpen = true },
@@ -365,6 +368,7 @@ fun RepairJobDetailScreen(
                     ownBid = state.ownBid,
                     bids = state.bids,
                     engineerNames = state.engineerNames,
+                    assignedEngineerName = state.assignedEngineerName,
                     hospitalName = state.hospitalName,
                     hospitalLocation = state.hospitalLocation,
                     viewerRole = state.viewerRole,
@@ -411,14 +415,11 @@ fun RepairJobDetailScreen(
         )
     }
 
-    if (checkinSheetOpen) {
+    if (state.checkinSheetOpen) {
         CheckinSheet(
             updating = state.updatingStatus,
-            onDismiss = { if (!state.updatingStatus) checkinSheetOpen = false },
-            onConfirm = { photos ->
-                checkinSheetOpen = false
-                viewModel.submitCheckinWithProof(photos)
-            },
+            onDismiss = viewModel::closeCheckinSheet,
+            onConfirm = viewModel::submitCheckinWithProof,
         )
     }
 
@@ -431,7 +432,10 @@ fun RepairJobDetailScreen(
         CancelSheet(
             updating = state.updatingStatus,
             jobStatus = state.job?.status,
-            escrowHeldRupees = state.escrow?.takeIf { it.isHeld }?.amountRupees?.toInt(),
+            // Paise-exact: the sheet is a promise about money, and an Int
+            // truncated ₹2,499.75 down to "₹2,499" — understating a refund
+            // the hospital then has to chase.
+            escrowHeldRupees = state.escrow?.takeIf { it.isHeld }?.amountRupees,
             onDismiss = { if (!state.updatingStatus) cancelSheetOpen = false },
             onConfirm = { reason ->
                 cancelSheetOpen = false
@@ -590,6 +594,7 @@ private fun JobBody(
     ownBid: RepairBid?,
     bids: List<RepairBid>,
     engineerNames: Map<String, String>,
+    assignedEngineerName: String?,
     hospitalName: String?,
     hospitalLocation: String?,
     viewerRole: RepairJobDetailViewModel.ViewerRole,
@@ -667,7 +672,11 @@ private fun JobBody(
             val acceptedEngineerUserId = bids.firstOrNull {
                 it.status == com.equipseva.app.core.data.repair.RepairBidStatus.Accepted
             }?.engineerUserId
-            val engineerName = acceptedEngineerUserId?.let { engineerNames[it] } ?: "Engineer"
+            // AMC visit jobs have no bid at all, so the map is empty for them
+            // and the name comes from the engineers row the job points at.
+            val engineerName = acceptedEngineerUserId?.let { engineerNames[it] }
+                ?: assignedEngineerName
+                ?: "Engineer"
             EsSection(title = "Assigned engineer") {
                 AssignedEngineerCard(
                     name = engineerName,
@@ -2075,10 +2084,6 @@ private fun StickyBottomBar(
         RepairJobDetailViewModel.ViewerRole.Engineer -> job.engineerRating != null
         RepairJobDetailViewModel.ViewerRole.Other -> true
     }
-    // Hospital can cancel their own job (Requested or Assigned).
-    // Engineer can cancel only if they're the assigned engineer (Assigned status).
-    // Random engineer browsing a Requested job: no Cancel — they haven't
-    // committed to anything yet; the negative action would be a no-op.
     // round3817 — "assigned" is decided by isViewerAssignedEngineer(): the
     // viewer's own engineers.id matches job.engineerId (covers AMC visit
     // jobs pre-assigned without any bid) OR their bid on this job was
@@ -2087,29 +2092,18 @@ private fun StickyBottomBar(
     // "Check in on-site" and got a 42501 for their trouble.
     val isAssignedEngineer = isEngineer &&
         isViewerAssignedEngineer(job = job, selfEngineerRowId = selfEngineerRowId, ownBid = ownBid)
-    val canCancel = when {
-        isHospital -> job.status in setOf(RepairJobStatus.Requested, RepairJobStatus.Assigned)
-        isAssignedEngineer -> job.status == RepairJobStatus.Assigned
-        else -> false
-    }
+    val canCancel = canCancelJob(viewerRole = viewerRole, status = job.status)
 
     // Resolve which primary CTA to show. Null = no primary (e.g. Other role,
     // or terminal states without a CTA + without cancel).
-    val primaryKind: PrimaryCta? = when {
-        isEngineer && job.status == RepairJobStatus.Requested ->
-            PrimaryCta.PlaceBid(editing = ownBid?.status == RepairBidStatus.Pending)
-        isAssignedEngineer && job.status == RepairJobStatus.Assigned -> PrimaryCta.CheckIn
-        isAssignedEngineer && (job.status == RepairJobStatus.EnRoute || job.status == RepairJobStatus.InProgress) ->
-            PrimaryCta.MarkDone
-        isHospital && job.status == RepairJobStatus.Completed && !rated -> PrimaryCta.Rate
-        isHospital && job.status == RepairJobStatus.Completed && rated -> PrimaryCta.RatedDone
-        // Engineer side mirrors hospital: once the job lands in Completed,
-        // give the engineer the same Rate / RatedDone CTA against
-        // engineer_rating (server enforces side-identity).
-        isEngineer && job.status == RepairJobStatus.Completed && !rated -> PrimaryCta.Rate
-        isEngineer && job.status == RepairJobStatus.Completed && rated -> PrimaryCta.RatedDone
-        else -> null
-    }
+    val primaryKind: PrimaryCta? = primaryCtaFor(
+        viewerRole = viewerRole,
+        isAssignedEngineer = isAssignedEngineer,
+        status = job.status,
+        hasEngineerAssigned = job.engineerId != null,
+        ownBidPending = ownBid?.status == RepairBidStatus.Pending,
+        rated = rated,
+    )
 
     // v0.3.5 fix #9 — hospital-side "Book this engineer again" CTA.
     // Surfaces only on Completed jobs where:
@@ -2248,12 +2242,73 @@ private fun StickyBottomBar(
     }
 }
 
-private sealed interface PrimaryCta {
+internal sealed interface PrimaryCta {
     data class PlaceBid(val editing: Boolean) : PrimaryCta
     data object CheckIn : PrimaryCta
     data object MarkDone : PrimaryCta
     data object Rate : PrimaryCta
     data object RatedDone : PrimaryCta
+}
+
+/**
+ * Cancel-affordance gate on the repair-job detail bottom bar.
+ *
+ * Hospital-only, and only while the job is Requested or Assigned.
+ *
+ * Pin the absence of an engineer branch. The engineer side previously
+ * got a Cancel button on an Assigned job, opened the sheet, typed the
+ * mandatory 10-character reason and tapped "Cancel job" — and nothing
+ * happened: cancelJob() routes through a hospital-only transition, and
+ * `repair_jobs_status_transition_guard` raises "only the hospital can
+ * cancel a job" (42501) besides. A control that cannot succeed by
+ * construction is worse than no control; if engineer-initiated
+ * cancellation ever becomes a product need it needs a server path first.
+ */
+internal fun canCancelJob(
+    viewerRole: RepairJobDetailViewModel.ViewerRole,
+    status: RepairJobStatus,
+): Boolean = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital &&
+    status in setOf(RepairJobStatus.Requested, RepairJobStatus.Assigned)
+
+/**
+ * Which single primary CTA the bottom bar offers, or null for none.
+ *
+ * Pinned rules:
+ *   * Place bid requires an OPEN job: Requested AND no engineer already
+ *     assigned. An AMC maintenance visit is Requested but pre-assigned,
+ *     and the hospital viewing it sees no bids section at all (the
+ *     sibling gates `shouldShowUnmatchedJobBanner` /
+ *     `shouldShowBidsSection` already exclude it) — so a bid composer
+ *     on that job invites an engineer to quote into a void.
+ *   * The on-site actions (Check in / Mark done) require the ASSIGNED
+ *     engineer, not merely an engineer, or every engineer who opens an
+ *     Assigned job gets a CTA the server answers with 42501.
+ *   * Rate / RatedDone are symmetric across both sides on a Completed
+ *     job; the server enforces which rating column each side writes.
+ */
+internal fun primaryCtaFor(
+    viewerRole: RepairJobDetailViewModel.ViewerRole,
+    isAssignedEngineer: Boolean,
+    status: RepairJobStatus,
+    hasEngineerAssigned: Boolean,
+    ownBidPending: Boolean,
+    rated: Boolean,
+): PrimaryCta? {
+    val isEngineer = viewerRole == RepairJobDetailViewModel.ViewerRole.Engineer
+    val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
+    return when {
+        isEngineer && status == RepairJobStatus.Requested && !hasEngineerAssigned ->
+            PrimaryCta.PlaceBid(editing = ownBidPending)
+        isAssignedEngineer && status == RepairJobStatus.Assigned -> PrimaryCta.CheckIn
+        isAssignedEngineer &&
+            (status == RepairJobStatus.EnRoute || status == RepairJobStatus.InProgress) ->
+            PrimaryCta.MarkDone
+        (isHospital || isEngineer) && status == RepairJobStatus.Completed && !rated ->
+            PrimaryCta.Rate
+        (isHospital || isEngineer) && status == RepairJobStatus.Completed && rated ->
+            PrimaryCta.RatedDone
+        else -> null
+    }
 }
 
 // --- Sheets -----------------------------------------------------------------
@@ -2431,7 +2486,7 @@ private fun BidComposerSheet(
                 disabled = !(amountValid && etaValid) || placingBid,
             )
             EsBtn(
-                text = "Cancel",
+                text = stringResource(R.string.common_cancel),
                 onClick = onDismiss,
                 kind = EsBtnKind.Ghost,
                 full = true,
@@ -2456,6 +2511,11 @@ private fun CheckinSheet(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var picked by rememberSaveable(stateSaver = UriListSaver) { mutableStateOf(emptyList<Uri>()) }
+    // Reading up to four multi-megabyte photos off the content resolver
+    // takes long enough for a second tap to land, and the viewmodel's
+    // in-flight flag cannot help yet — it hasn't been called. Without this
+    // the before-photo set was stashed and uploaded twice.
+    var reading by remember { mutableStateOf(false) }
     val maxPhotos = 4
 
     val launcher = rememberLauncherForActivityResult(
@@ -2581,30 +2641,35 @@ private fun CheckinSheet(
                     // Round 340 — read uris on IO. Compose onClick runs on
                     // Main; up to 4 multi-MB picked photos blocking Main
                     // would trip ANR.
+                    reading = true
                     scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                        val resolver = context.contentResolver
-                        val photos = picked.mapNotNull { uri ->
-                            val mime = resolver.getType(uri) ?: MIME_JPEG
-                            val name = uri.lastPathSegment ?: "before-${System.currentTimeMillis()}.jpg"
-                            val bytes = runCatching {
-                                resolver.openInputStream(uri)?.use { it.readBytes() }
-                            }.getOrNull() ?: return@mapNotNull null
-                            RepairJobDetailViewModel.CompletionProofPhoto(
-                                fileName = name,
-                                mimeType = mime,
-                                bytes = bytes,
-                            )
+                        try {
+                            val resolver = context.contentResolver
+                            val photos = picked.mapNotNull { uri ->
+                                val mime = resolver.getType(uri) ?: MIME_JPEG
+                                val name = uri.lastPathSegment ?: "before-${System.currentTimeMillis()}.jpg"
+                                val bytes = runCatching {
+                                    resolver.openInputStream(uri)?.use { it.readBytes() }
+                                }.getOrNull() ?: return@mapNotNull null
+                                RepairJobDetailViewModel.CompletionProofPhoto(
+                                    fileName = name,
+                                    mimeType = mime,
+                                    bytes = bytes,
+                                )
+                            }
+                            onConfirm(photos)
+                        } finally {
+                            reading = false
                         }
-                        onConfirm(photos)
                     }
                 },
                 kind = EsBtnKind.Primary,
                 full = true,
                 size = EsBtnSize.Lg,
-                disabled = picked.isEmpty() || updating,
+                disabled = picked.isEmpty() || updating || reading,
             )
             EsBtn(
-                text = "Cancel",
+                text = stringResource(R.string.common_cancel),
                 onClick = onDismiss,
                 kind = EsBtnKind.Ghost,
                 full = true,
@@ -2625,6 +2690,9 @@ private fun CompletionProofSheet(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var picked by rememberSaveable(stateSaver = UriListSaver) { mutableStateOf(emptyList<Uri>()) }
+    // Same window as the check-in sheet: the submit flag is set inside the
+    // viewmodel, which the photo read has to finish before it can reach.
+    var reading by remember { mutableStateOf(false) }
     val maxPhotos = 4
 
     val launcher = rememberLauncherForActivityResult(
@@ -2759,30 +2827,35 @@ private fun CompletionProofSheet(
                     // Round 340 — read uris on IO. Compose onClick runs on
                     // Main; up to 4 multi-MB picked photos blocking Main
                     // would trip ANR.
+                    reading = true
                     scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                        val resolver = context.contentResolver
-                        val photos = picked.mapNotNull { uri ->
-                            val mime = resolver.getType(uri) ?: MIME_JPEG
-                            val name = uri.lastPathSegment ?: "after-${System.currentTimeMillis()}.jpg"
-                            val bytes = runCatching {
-                                resolver.openInputStream(uri)?.use { it.readBytes() }
-                            }.getOrNull() ?: return@mapNotNull null
-                            RepairJobDetailViewModel.CompletionProofPhoto(
-                                fileName = name,
-                                mimeType = mime,
-                                bytes = bytes,
-                            )
+                        try {
+                            val resolver = context.contentResolver
+                            val photos = picked.mapNotNull { uri ->
+                                val mime = resolver.getType(uri) ?: MIME_JPEG
+                                val name = uri.lastPathSegment ?: "after-${System.currentTimeMillis()}.jpg"
+                                val bytes = runCatching {
+                                    resolver.openInputStream(uri)?.use { it.readBytes() }
+                                }.getOrNull() ?: return@mapNotNull null
+                                RepairJobDetailViewModel.CompletionProofPhoto(
+                                    fileName = name,
+                                    mimeType = mime,
+                                    bytes = bytes,
+                                )
+                            }
+                            onSubmit(photos)
+                        } finally {
+                            reading = false
                         }
-                        onSubmit(photos)
                     }
                 },
                 kind = EsBtnKind.Primary,
                 full = true,
                 size = EsBtnSize.Lg,
-                disabled = picked.isEmpty() || submitting,
+                disabled = picked.isEmpty() || submitting || reading,
             )
             EsBtn(
-                text = "Cancel",
+                text = stringResource(R.string.common_cancel),
                 onClick = onDismiss,
                 kind = EsBtnKind.Ghost,
                 full = true,
@@ -2830,7 +2903,7 @@ private fun RateSheet(
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 (1..5).forEach { n ->
@@ -2843,7 +2916,7 @@ private fun RateSheet(
                         // the filled / outline visual; the click semantics
                         // describe the action.
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
                             .clickable(
                                 enabled = existing == null && !submitting,
@@ -2897,7 +2970,7 @@ private fun RateSheet(
 private fun CancelSheet(
     updating: Boolean,
     jobStatus: RepairJobStatus?,
-    escrowHeldRupees: Int?,
+    escrowHeldRupees: Double?,
     onDismiss: () -> Unit,
     onConfirm: (String?) -> Unit,
 ) {
@@ -2944,7 +3017,10 @@ private fun CancelSheet(
             )
             if (escrowHeldRupees != null) {
                 Text(
-                    text = stringResource(R.string.repair_cancel_escrow_refund, escrowHeldRupees),
+                    text = stringResource(
+                        R.string.repair_cancel_escrow_refund,
+                        com.equipseva.app.core.util.formatRupeesPaise(escrowHeldRupees),
+                    ),
                     fontSize = 12.sp,
                     color = SevaInk700,
                 )
@@ -3045,7 +3121,7 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         ErrorBanner(message = message)
-        EsBtn(text = "Retry", onClick = onRetry, kind = EsBtnKind.Primary)
+        EsBtn(text = stringResource(R.string.common_retry), onClick = onRetry, kind = EsBtnKind.Primary)
     }
 }
 
@@ -3152,6 +3228,14 @@ internal fun terminalStatusBannerCopy(
  */
 internal data class EscrowStatusCopy(val label: String, val subtitle: String)
 
+/**
+ * Wire literal from the `repair_job_escrows.status` CHECK. The row model
+ * exposes named predicates for the other five states but not this one,
+ * so the comparison lives here rather than being re-typed at the call
+ * site.
+ */
+internal const val ESCROW_STATUS_CANCELLED = "cancelled"
+
 internal fun escrowStatusCardCopy(
     escrow: com.equipseva.app.core.data.escrow.RepairJobEscrowRepository.EscrowRow,
     isHospital: Boolean,
@@ -3211,6 +3295,21 @@ internal fun escrowStatusCardCopy(
     escrow.isRefunded -> EscrowStatusCopy(
         label = "Refunded",
         subtitle = "${com.equipseva.app.core.util.formatRupees(escrow.amountRupees)} refunded.",
+    )
+    // Not a hypothetical future status: the escrow-on-job-cancel trigger
+    // stamps 'cancelled' on every still-pending escrow the moment a
+    // hospital cancels an Assigned job, so this is a routine path that
+    // used to land in the fallback below and render a card with a
+    // lower-cased server literal and an EMPTY subtitle. Role-split like
+    // Released / Awaiting payment: the hospital needs to know no money
+    // moved, the engineer needs to know why none is coming.
+    escrow.status == ESCROW_STATUS_CANCELLED -> EscrowStatusCopy(
+        label = "Escrow cancelled",
+        subtitle = if (isHospital) {
+            "The job was cancelled before payment — nothing was charged."
+        } else {
+            "The hospital cancelled this job before paying into escrow."
+        },
     )
     else -> EscrowStatusCopy(label = "Escrow ${escrow.status}", subtitle = "")
 }
