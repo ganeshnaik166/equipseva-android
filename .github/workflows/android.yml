@@ -5,7 +5,7 @@ on:
   push:
     # Main and ops now share the shipped history. Verify isolated renewal
     # branches too, before their changes are proposed for integration.
-    branches: [main, "ops/**", "codex/**", "claudedev-help"]
+    branches: [main, "ops/**", "codex/**", "claudedev-**"]
     # Round 3810 — skip docs-only pushes. A single ops session produced
     # three stacked ~7-minute Android builds for commits touching only
     # docs/ and workflow files. DELIBERATELY NOT excluded:
@@ -163,10 +163,10 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: warn
 
-      - name: Upload R8 mapping
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: release-mapping
-          path: app/build/outputs/mapping/release/mapping.txt
-          if-no-files-found: warn
+      # mapping.txt is deliberately NOT published here. This repository is
+      # public, so an artifact on every push would hand anyone a
+      # de-obfuscation map for a build that shares its symbol layout with
+      # the shipped app — undoing the R8 obfuscation the anti-tamper layers
+      # are priced against. Symbolication for real crashes comes from the
+      # Sentry / Crashlytics Gradle plugins uploading the mapping during
+      # the signed release build, never from a downloadable artifact.

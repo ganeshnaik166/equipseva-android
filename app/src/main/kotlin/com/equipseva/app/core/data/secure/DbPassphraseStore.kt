@@ -19,19 +19,32 @@ import javax.crypto.spec.GCMParameterSpec
  * StrongBox on devices that support it.
  *
  * On Keystore failure (OEM quirks, user wipe, restored backup) the caller
- * should wipe the encrypted Room DB and call [freshPassphrase] — the DB is a
- * cache + outbox, not canonical state.
+ * must wipe the encrypted Room DB — the DB is a cache + outbox, not
+ * canonical state. [Passphrase.mintedFresh] is how the caller learns that
+ * it has to.
  */
 class DbPassphraseStore(private val context: Context) {
 
-    fun getOrCreate(): ByteArray {
+    /**
+     * [bytes] plus whether they were minted now rather than unwrapped from
+     * the sealed copy. The flag travels with the passphrase so a caller
+     * cannot take the bytes and silently miss the obligation to discard a
+     * database the old key encrypted.
+     */
+    class Passphrase(val bytes: ByteArray, val mintedFresh: Boolean)
+
+    fun getOrCreate(): Passphrase {
         val sealedFile = File(context.filesDir, SEALED_FILE)
         if (sealedFile.exists()) {
             runCatching { unseal(sealedFile.readBytes()) }
-                .onSuccess { return it }
+                .onSuccess { return Passphrase(it, mintedFresh = false) }
                 .onFailure { sealedFile.delete() }
         }
-        return freshPassphrase()
+        // Either there was never a sealed copy, or the Keystore key that
+        // wrapped it is gone (key invalidation, restored backup, OEM quirk).
+        // Both leave a passphrase that cannot open an already-encrypted
+        // database file, which is why the flag is set even on first run.
+        return Passphrase(freshPassphrase(), mintedFresh = true)
     }
 
     fun freshPassphrase(): ByteArray {

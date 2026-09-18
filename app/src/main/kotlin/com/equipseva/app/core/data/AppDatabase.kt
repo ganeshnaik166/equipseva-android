@@ -72,18 +72,27 @@ object DatabaseModule {
         val plain = context.getDatabasePath(DB_NAME)
         if (plain.exists() && !isEncrypted(plain)) {
             Log.w(TAG, "Found plain-text ${plain.name}; wiping for encrypted re-open.")
-            plain.delete()
-            File(plain.parentFile, "${plain.name}-shm").delete()
-            File(plain.parentFile, "${plain.name}-wal").delete()
+            databaseFilesToDelete(plain).forEach { it.delete() }
         }
 
         val passphrase = DbPassphraseStore(context).getOrCreate()
+        if (passphrase.mintedFresh && plain.exists()) {
+            // The sealed passphrase could not be unwrapped, so this key is
+            // not the one the existing file was encrypted with: SQLCipher
+            // would throw "file is not a database" on the first DAO access
+            // of every launch — outbox, device tokens and photo delivery all
+            // dead — until the user cleared app data by hand. The DB holds
+            // cache + queued writes, never canonical state, so discarding it
+            // is the recovery.
+            Log.w(TAG, "Sealed passphrase lost; wiping ${plain.name} so the new key can open it.")
+            databaseFilesToDelete(plain).forEach { it.delete() }
+        }
         // sqlcipher-android 4.6 swapped SupportFactory →
         // SupportOpenHelperFactory; passphrase + hook are the same
         // (the third arg `clearPassphrase` was removed — the library
         // now clears the byte array automatically once the database is
         // opened).
-        val factory = SupportOpenHelperFactory(passphrase)
+        val factory = SupportOpenHelperFactory(passphrase.bytes)
         return Room.databaseBuilder(context, AppDatabase::class.java, DB_NAME)
             .openHelperFactory(factory)
             .addMigrations(*APP_MIGRATIONS)
@@ -214,3 +223,17 @@ object DatabaseModule {
     @Provides fun deviceToken(db: AppDatabase): DeviceTokenDao = db.deviceTokenDao()
     @Provides fun repairPhotoDelivery(db: AppDatabase): RepairPhotoDeliveryDao = db.repairPhotoDeliveryDao()
 }
+
+/**
+ * Every file that has to go when a database is discarded.
+ *
+ * The `-wal` and `-shm` sidecars are encrypted with the same key as the
+ * main file, so leaving either behind re-creates the very failure the wipe
+ * is meant to clear: SQLCipher reads the stale journal and still refuses
+ * the database.
+ */
+internal fun databaseFilesToDelete(database: File): List<File> = listOf(
+    database,
+    File(database.parentFile, "${database.name}-wal"),
+    File(database.parentFile, "${database.name}-shm"),
+)

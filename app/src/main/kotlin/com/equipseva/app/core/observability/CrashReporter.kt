@@ -36,35 +36,65 @@ class CrashReporter @Inject constructor() {
     private fun wrapScrubbed(t: Throwable): Throwable = wrapScrubbedThrowable(t)
 }
 
-/** Carrier exception whose message has been scrubbed. The original is kept as `cause`. */
+/** Carrier exception whose message has been scrubbed. */
 class ScrubbedException(
     private val originalType: String,
     override val message: String?,
-    cause: Throwable,
+    cause: Throwable? = null,
 ) : RuntimeException(message, cause) {
     override fun toString(): String = "$originalType: ${message.orEmpty()}"
 }
 
 /**
- * Decides whether [t] needs scrubbing before it can ride into the
- * Crashlytics / Sentry dashboard.
+ * Renders [t] in a form that is safe to hand to the Crashlytics / Sentry
+ * dashboards.
  *
- *  * If [CrashDataScrubber.scrub] left the message unchanged → return [t]
- *    as-is. Preserving the original Throwable identity (class +
- *    stack trace) makes the dashboard cluster the exception with
+ *  * A lone throwable whose message [CrashDataScrubber.scrub] left
+ *    unchanged rides as itself. Preserving the original Throwable identity
+ *    (class + stack trace) makes the dashboard cluster the exception with
  *    sibling reports of the same kind.
- *  * If the scrubber redacted anything → wrap in a [ScrubbedException]
- *    whose [ScrubbedException.toString] surfaces the ORIGINAL class
- *    name + the SCRUBBED message. Without the wrapper, Crashlytics'
- *    default toString would print the original (PII-bearing) message.
+ *  * Anything else is rebuilt as a chain of [ScrubbedException] copies —
+ *    original class name, scrubbed message, original stack trace — with no
+ *    reference to the originals anywhere in it. Both reporters serialise
+ *    the whole cause chain, so a wrapper that kept the original as its
+ *    `cause` shipped the raw message it had just redacted, and a
+ *    PII-bearing cause under a clean top-level message was never looked at
+ *    at all. Repository code wrapping a supabase-kt `RestException` (whose
+ *    message embeds the request URL, tokens included) is the common shape.
  *
- * Pure / pinable so the redaction-aware identity decision survives
- * any future refactor of [CrashReporter].
+ * Pure / pinable so the redaction guarantee survives any future refactor
+ * of [CrashReporter].
  */
 internal fun wrapScrubbedThrowable(t: Throwable): Throwable {
-    val scrubbedMessage = CrashDataScrubber.scrub(t.message)
-    if (scrubbedMessage == t.message) return t
-    // Preserve the original class + stack trace while swapping in a scrubbed message.
-    // Crashlytics uses the message via toString(); Sentry reads the class + message.
-    return ScrubbedException(t::class.java.name, scrubbedMessage, t)
+    if (t.cause == null && CrashDataScrubber.scrub(t.message) == t.message) return t
+    return scrubbedCauseChain(t)
 }
+
+/**
+ * Rebuilds [t] and every cause beneath it as scrubbed copies, linked
+ * bottom-up so no original instance is reachable from the result.
+ *
+ * The walk is identity-guarded and depth-capped: a throwable whose cause
+ * cycles back to itself is legal on the JVM (`initCause` is only checked
+ * for self-reference at depth 1) and would otherwise loop forever.
+ */
+internal fun scrubbedCauseChain(t: Throwable): Throwable {
+    val chain = mutableListOf<Throwable>()
+    var link: Throwable? = t
+    while (link != null && chain.size < MAX_SCRUBBED_CHAIN_DEPTH && chain.none { it === link }) {
+        chain.add(link)
+        link = link.cause
+    }
+    var rebuilt: Throwable? = null
+    for (original in chain.asReversed()) {
+        rebuilt = ScrubbedException(
+            originalType = original::class.java.name,
+            message = CrashDataScrubber.scrub(original.message),
+            cause = rebuilt,
+        ).apply { setStackTrace(original.stackTrace) }
+    }
+    return rebuilt ?: t
+}
+
+/** Deeper chains are already unreadable in a dashboard; the cap also bounds a cause cycle. */
+private const val MAX_SCRUBBED_CHAIN_DEPTH = 16
