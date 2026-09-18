@@ -21,7 +21,7 @@ survive checking and were not applied as written — see "Where the reviews were
 
 | | |
 |---|---|
-| Unit tests | 3,496 run |
+| Unit tests | 3,498 run |
 | Failures | 7, all in `features.kyc.KycEmailOtpStateTest` |
 | `lintDebug` | passing |
 | `assembleDebug` | passing |
@@ -215,3 +215,17 @@ workflows gained an explicit read-only token scope. The founder category sort-or
 stopped truncating the seventh digit and stopped refusing to save a legacy row whose ordering
 predates the six-digit rule the client had invented; the bound is now the column's. The escrow
 refund promise in the cancel sheet is paise-exact rather than truncated down.
+
+Two more rows read "now ago" — the engineer's earnings ledger ("Paid now ago") and the
+founder's inactive-engineer row. Both helpers took the bare relative label in a parameter
+named as though it already carried the suffix, and appended " ago" by hand; the sub-minute
+label is the whole word "now". They go through the shared phrase helper now.
+
+## Production, unchanged by this branch
+
+`cron_tick_runs` ids 154 to 159 are all green with no failed slots, including today's daily
+slot. The newest is 09:59 UTC and the founder-console grants migration landed about 12:45, so
+no scheduled tick has yet run under those grants. A grant to `authenticated` cannot affect a
+service-role caller, so the risk is low, but it is unobserved: check the last three rows of
+that table after the next fire. Pushing this branch also surfaced one high Dependabot alert
+on the default branch, which lives in the repository's own Security tab.
