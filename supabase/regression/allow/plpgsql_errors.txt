@@ -1,0 +1,50 @@
+# plpgsql_check error-level findings that are understood and accepted.
+#
+# Swept 2026-09-18 against production: all 19,314 plpgsql functions in public,
+# plus a second pass over every trigger function against each relation it fires
+# on (plpgsql_check refuses a trigger function with 22023 without the relation —
+# 77 functions, and the pass is where round 3825's defect surfaced).
+#
+# Result: 41 warnings, 35 "warning extra", 20 error-level rows. The 7 rows for
+# founder_audit_table_mutation were a REAL defect and are fixed in round 3825,
+# so they must never come back. The remaining 13 are classified below.
+#
+# Any signature + sqlstate NOT listed here is a new finding: fix it, or add it
+# with a reason. "It looked like the others" is not a reason.
+
+# ---- FALSE POSITIVES: the reference is inside an EXCEPTION handler ----
+# pg_cron is Pro-only and not installed on this project, so cron.job and
+# cron.job_run_details do not exist. Every one of these six functions already
+# wraps the reference in an EXCEPTION handler and degrades to an empty result;
+# the static checker cannot see that the raise is caught. Confirmed by reading
+# each body on 2026-09-18.
+founder_cron_jobs_recent(integer)                  # 42P01 relation "cron.job" does not exist
+founder_cron_status_summary()                      # 42P01 relation "cron.job" does not exist
+founder_cron_status()                              # 42P01 relation "cron.job_run_details" does not exist
+founder_live_ops_cockpit_v2_heartbeat()            # 42P01 relation "cron.job_run_details" does not exist
+founder_morning_digest_v2()                        # 42P01 relation "cron.job_run_details" does not exist
+founder_tier_1_home_metadata()                     # 42P01 relation "cron.job_run_details" does not exist
+
+# storage.delete_object() does not exist on this Supabase version, and the call
+# sits inside `EXCEPTION WHEN undefined_function OR undefined_object THEN DELETE
+# FROM storage.objects ...` — the author anticipated exactly this and wrote the
+# fallback. The account-deletion path is NOT broken; verified by reading the body.
+delete_my_account(text)                            # 42883 function storage.delete_object(text, text) does not exist
+
+# ---- REAL, UNFIXED: dead functions whose fix is a schema decision ----
+# These reference columns and tables that do not exist, so they can only ever
+# error. They are left unfixed because fixing them means inventing product
+# schema (adding HR columns to profiles, creating a warranties table), which is
+# a founder/product call, not a mechanical repair. THREE OF THEM ARE CALLED BY
+# LIVE CONSOLE PAGES and those pages can therefore only show an error:
+#   founder_team_comp_summary / _benchmarks_list / _employee_deltas
+#     <- web/src/app/founder-team-comp-benchmarks/page.tsx:65-67
+#   founder_calendar_burndown_summary
+#     <- web/src/app/founder-calendar-burndown/page.tsx:42
+# The other two have no caller at all (dead code).
+founder_team_comp_summary()                        # 42703 column p.role_title does not exist (profiles has no role_title/level/annual_comp_rupees)
+founder_team_comp_benchmarks_list()                # 42703 same missing profiles columns
+founder_team_comp_employee_deltas()                # 42703 same missing profiles columns
+founder_team_comp_submit_raise(uuid,bigint,text)   # 42703 same missing profiles columns; no caller
+founder_calendar_burndown_summary()                # 42P01 relation "public.founder_equipment_warranties" does not exist
+founder_eng360_submit(uuid,text,numeric,text)      # 42703 INSERTs subject_engineer_user_id/score/comment/submitted_by; the table has engineer_id/technical_score/.../free_text. Dead write, no caller.
