@@ -157,6 +157,21 @@ class AmcRepository @Inject constructor(
         @SerialName("message") val message: String? = null,
     )
 
+    /**
+     * An edge-function refusal, carrying the status alongside the copy.
+     *
+     * Callers decide whether to replay a failed verify on the status, and it
+     * has to reach them as data. The functions answer every refusal with a
+     * parseable `{ ok, code, message }` body, so the parsed message won and
+     * the status never appeared in the text — which left a retry policy
+     * keyed on "HTTP 4xx" appearing in a message unable to ever fire, and
+     * every deterministic refusal replayed until the backoff ran out.
+     */
+    class EdgeFnHttpException(
+        val status: Int,
+        override val message: String?,
+    ) : Exception(message)
+
     // -------------------------------------------------------------------
     //  RPC wrappers
     // -------------------------------------------------------------------
@@ -479,13 +494,19 @@ class AmcRepository @Inject constructor(
                 )
             } catch (rest: RestException) {
                 val parsed = parseRestExceptionBody(rest)
-                error(parsed?.message ?: rest.description ?: "Payment verification failed")
+                throw EdgeFnHttpException(
+                    status = rest.statusCode,
+                    message = parsed?.message ?: rest.description ?: "Payment verification failed",
+                )
             }
             val text = res.bodyAsText()
             if (!res.status.isSuccess()) {
                 val parsed = runCatching { JSON.decodeFromString(EdgeFnError.serializer(), text) }
                     .getOrNull()
-                error(parsed?.message ?: "Payment verification failed (HTTP ${res.status.value})")
+                throw EdgeFnHttpException(
+                    status = res.status.value,
+                    message = parsed?.message ?: "Payment verification failed",
+                )
             }
             JSON.decodeFromString(VerifyAmcPaymentResponse.serializer(), text)
         }
