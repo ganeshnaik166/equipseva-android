@@ -46,6 +46,7 @@ import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.formatRupeesPaise
 import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.core.util.prettyDateTime
+import com.equipseva.app.core.util.relativeAgoPhrase
 import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
@@ -487,7 +488,7 @@ private fun TransactionRow(
             val timestamp = if (paid) row.job?.completedAtInstant else row.bid.createdAtInstant
             val timeLine = transactionRowTimeLine(
                 paid = paid,
-                relativeAgoLabel = timestamp?.let { relativeLabel(it) },
+                relativeLabel = timestamp?.let { relativeLabel(it) },
                 statusDisplayName = row.job?.status?.displayName,
             )
             Text(
@@ -663,7 +664,7 @@ private fun SelfRankCard(rank: com.equipseva.app.core.data.escrow.RepairJobEscro
  * transaction row.
  *
  * Decision tree:
- *   1. relativeAgoLabel non-null → "{Paid|Quoted} ${rel} ago".
+ *   1. [relativeLabel] non-null → "{Paid|Quoted} ${rel} ago".
  *   2. fall back to status display name (e.g. "Awaiting hospital").
  *   3. both absent → empty string (row still renders but the time
  *      line is invisible — the empty Text takes up zero vertical
@@ -673,12 +674,18 @@ private fun SelfRankCard(rank: com.equipseva.app.core.data.escrow.RepairJobEscro
  * Quoted is bid-submitted-not-yet-resolved. A refactor that always
  * said "Paid" on the past-tense branch (for pending bids that
  * haven't actually been paid) would mislead the engineer.
+ *
+ * The suffix comes from [relativeAgoPhrase], never from appending " ago"
+ * here. The sub-minute label is the whole word "now", so doing it by hand
+ * put "Paid now ago" on the row. The parameter is named for what it
+ * actually receives for the same reason.
  */
 internal fun transactionRowTimeLine(
     paid: Boolean,
-    relativeAgoLabel: String?,
+    relativeLabel: String?,
     statusDisplayName: String?,
-): String = relativeAgoLabel?.let { "${if (paid) "Paid" else "Quoted"} $it ago" }
+): String = relativeLabel
+    ?.let { "${if (paid) "Paid" else "Quoted"} ${relativeAgoPhrase(it)}" }
     ?: statusDisplayName
     ?: ""
 

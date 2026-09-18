@@ -36,6 +36,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.prettyDate
+import com.equipseva.app.core.util.relativeAgoPhrase
 import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.designsystem.components.EmptyStateView
@@ -194,7 +195,7 @@ private fun InactiveEngineerRow(
             Text(
                 inactiveEngineerVerifiedLine(
                     prettyVerifiedDate = prettyDate(row.verifiedAt!!),
-                    relativeAgoLabel = rel,
+                    relativeLabel = rel,
                 ),
                 color = SevaInk500,
                 fontSize = 11.sp,
@@ -269,19 +270,20 @@ internal fun inactiveEngineerContactLine(email: String?, phone: String?): String
 /**
  * Verified-when line on the inactive-engineer row: "Verified $date · $rel ago".
  *
- * Composes the formatted verification date with the bare relative
- * label suffixed by " ago". Pin the dual date-and-relative format —
- * the founder uses the absolute date to spot KYC backlog cohorts
- * and the relative cue ("3 months ago") to grok cadence at a glance.
- * A refactor that surfaced only one would lose information density
- * on the row.
+ * Composes the formatted verification date with the relative label. Pin
+ * the dual date-and-relative format — the founder uses the absolute date
+ * to spot KYC backlog cohorts and the relative cue ("3 months ago") to
+ * grok cadence at a glance. A refactor that surfaced only one would lose
+ * information density on the row.
  *
- * Pin the literal "Verified " prefix and " ago" suffix.
+ * The suffix comes from [relativeAgoPhrase], never from appending " ago"
+ * here: the sub-minute label is the whole word "now", so doing it by hand
+ * read "Verified 18 Sep · now ago".
  */
 internal fun inactiveEngineerVerifiedLine(
     prettyVerifiedDate: String,
-    relativeAgoLabel: String,
-): String = "Verified $prettyVerifiedDate · $relativeAgoLabel ago"
+    relativeLabel: String,
+): String = "Verified $prettyVerifiedDate · ${relativeAgoPhrase(relativeLabel)}"
 
 /**
  * Subtitle on the founder Inactive-Engineers top bar.
