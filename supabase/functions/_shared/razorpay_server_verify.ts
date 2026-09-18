@@ -146,8 +146,14 @@ export async function razorpayServerVerify(opts: {
     };
   }
   // 'captured' is the strong success; 'authorized' means money's held by
-  // Razorpay and will auto-capture. Both are acceptable — webhook will
-  // upgrade authorized→captured later.
+  // Razorpay and will auto-capture — the three order creators request
+  // payment_capture, so capture follows rather than depending on a
+  // dashboard setting. Both are acceptable — webhook will upgrade
+  // authorized→captured later.
+  //
+  // Still unguarded: nothing sweeps rows accepted on 'authorized' that
+  // never receive payment.captured. Razorpay auto-reverses an uncaptured
+  // authorization after ~5 days, and the row would stay paid.
   if (payment.status !== "captured" && payment.status !== "authorized") {
     return {
       ok: false,

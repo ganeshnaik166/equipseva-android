@@ -120,6 +120,13 @@ serve(async (req) => {
     body: JSON.stringify({
       amount: amountPaise,
       currency: "INR",
+      // Ask for auto-capture explicitly instead of inheriting whatever
+      // the Razorpay dashboard is set to. Our verify + webhook paths
+      // treat an `authorized` payment as paid on the assumption that
+      // capture follows; under manual capture the authorization
+      // auto-reverses after ~5 days while the spare-part order stays
+      // paid and gets fulfilled against money that came back.
+      payment_capture: 1,
       receipt: order.order_number ?? order.id,
       notes: { supabase_order_id: order.id, buyer_user_id: userId },
     }),
