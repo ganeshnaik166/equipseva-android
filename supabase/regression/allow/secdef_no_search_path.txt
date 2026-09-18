@@ -1,0 +1,3 @@
+# SECURITY DEFINER functions without a pinned search_path. Prod had ZERO on 2026-09-18
+# and it must stay that way: an unpinned search_path on a definer function lets a caller
+# shadow a table or operator with one in a schema they control.

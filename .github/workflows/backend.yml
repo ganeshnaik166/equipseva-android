@@ -1,0 +1,192 @@
+name: backend regression
+
+# Gates the SQL/RLS/grant surface the way roborazzi.yml gates the UI.
+#
+# Three jobs, deliberately split by what they need:
+#
+#   ratchet  — needs NO database. Re-scans every `.rpc("…")` call site in the app, the
+#              console and the edge functions and checks them against the COMMITTED
+#              baseline snapshot. This is the check that catches the defect class which
+#              has shipped repeatedly: a client calling an RPC that does not exist, or
+#              that its role holds no EXECUTE on. Runs on every PR in about a minute.
+#
+#   prod-drift — needs the SUPABASE_ACCESS_TOKEN secret. Re-snapshots production
+#              read-only and diffs it against the baseline. Any difference is either a
+#              migration someone applied out of band or a baseline nobody refreshed.
+#
+#   local-replay — needs Docker. Replays every migration into a fresh stack and checks
+#              the result. This is the slowest and the only one that proves the
+#              migrations in the repo actually produce the schema we think they do; it
+#              runs nightly and on demand rather than per PR because the replay is
+#              thousands of files.
+#
+# Required repo secrets:
+#   SUPABASE_ACCESS_TOKEN — a personal access token scoped to this project, from
+#                           supabase.com/dashboard/account/tokens. Only the prod-drift
+#                           job uses it; the job skips itself when it is absent.
+#
+# The baseline under supabase/regression/baseline/ changes ONLY in a commit that
+# intentionally changes the schema, and that commit must say which objects moved and
+# why. A baseline refreshed to make a red run green defeats the whole gate.
+
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+      - "app/src/main/**"
+      - "web/src/**"
+      - ".github/workflows/backend.yml"
+  push:
+    branches: [main, "ops/**", "codex/**", "claudedev-**", "backend/**"]
+    paths:
+      - "supabase/**"
+      - "app/src/main/**"
+      - "web/src/**"
+      - ".github/workflows/backend.yml"
+  schedule:
+    # 02:40 UTC, before the 03:00 cron-tick daily run so a schema problem is visible first.
+    - cron: "40 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ratchet:
+    name: ratchet (no database)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+
+      # The call-site list is regenerated rather than trusted: a PR that adds an
+      # .rpc("…") call must be measured against the schema, not against its own copy
+      # of the list.
+      - name: Rescan RPC call sites
+        run: node supabase/regression/snapshot/scan_rpc_callsites.mjs --repo . --out supabase/regression/baseline
+
+      - name: Ratchet
+        run: node supabase/regression/check.mjs --json findings.json
+
+      - name: Upload findings
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: backend-findings
+          path: findings.json
+          if-no-files-found: ignore
+
+  prod-drift:
+    name: prod drift (read-only)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Guard on the token
+        id: guard
+        env:
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -z "${TOKEN}" ]; then
+            echo "SUPABASE_ACCESS_TOKEN is not set — skipping the prod snapshot." >> "$GITHUB_STEP_SUMMARY"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Snapshot production
+        if: steps.guard.outputs.ok == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          supabase link --project-ref eyswaywvtartpvtoxtdr
+          node supabase/regression/snapshot/run.mjs --target prod --out "$RUNNER_TEMP/prod"
+          cp supabase/regression/baseline/rpc_callsites.tsv "$RUNNER_TEMP/prod/"
+
+      - name: Ratchet against production
+        if: steps.guard.outputs.ok == 'true'
+        run: node supabase/regression/check.mjs --snapshot "$RUNNER_TEMP/prod" --json prod-findings.json
+
+      # A difference here is not necessarily a defect — it is an unreviewed change.
+      - name: Diff production against the committed baseline
+        if: steps.guard.outputs.ok == 'true'
+        run: |
+          set -uo pipefail
+          status=0
+          for f in functions tables policies; do
+            if ! diff -u "supabase/regression/baseline/$f.tsv" "$RUNNER_TEMP/prod/$f.tsv" > "$RUNNER_TEMP/$f.diff"; then
+              lines=$(grep -c '^[+-]' "$RUNNER_TEMP/$f.diff" || true)
+              echo "::warning::$f drifted from the baseline ($lines changed lines)"
+              { echo "### $f drift"; echo '```diff'; head -c 60000 "$RUNNER_TEMP/$f.diff"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+              status=1
+            fi
+          done
+          exit $status
+
+      - name: Upload the production snapshot
+        if: always() && steps.guard.outputs.ok == 'true'
+        uses: actions/upload-artifact@v5
+        with:
+          name: prod-snapshot
+          path: |
+            ${{ runner.temp }}/prod/*.tsv
+            prod-findings.json
+          if-no-files-found: ignore
+
+  local-replay:
+    name: local replay (docker)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Timed on purpose: the replay cost decides whether this can ever move to the PR
+      # path, and nobody has measured it (the dev laptop has no Docker).
+      - name: Start the stack and replay every migration
+        run: |
+          set -euo pipefail
+          supabase start
+          start=$SECONDS
+          supabase db reset --no-seed
+          echo "replay_seconds=$((SECONDS - start))" >> "$GITHUB_ENV"
+          echo "Migration replay took $((SECONDS - start))s" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Snapshot the local stack
+        run: |
+          set -euo pipefail
+          node supabase/regression/snapshot/run.mjs --target local --out "$RUNNER_TEMP/local"
+          cp supabase/regression/baseline/rpc_callsites.tsv "$RUNNER_TEMP/local/"
+
+      - name: Ratchet against the replayed schema
+        run: node supabase/regression/check.mjs --snapshot "$RUNNER_TEMP/local" --json local-findings.json
+
+      - name: Upload the local snapshot
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: local-snapshot
+          path: |
+            ${{ runner.temp }}/local/*.tsv
+            local-findings.json
+          if-no-files-found: ignore

@@ -1,0 +1,4 @@
+# RPC names a client calls but whose role holds no EXECUTE. Prod had 27 on 2026-09-18,
+# all of them founder-console pages failing with 42501; round 3824 granted the 26 that
+# re-check is_founder() internally and added the missing gate to the 27th. The correct
+# size of this list is zero: an entry means a client is shipping a call it cannot make.

@@ -1,0 +1,3 @@
+# public tables with row-level security disabled. Prod had ZERO on 2026-09-18. A table
+# added without ENABLE ROW LEVEL SECURITY is readable by every authenticated user
+# through PostgREST, so an entry here needs a written reason, not just a name.

@@ -1,0 +1,12 @@
+# Console pages that call an RPC which does not exist in the database.
+# Each of these is a DEAD page: PostgREST answers PGRST202 and the panel never renders.
+# They are allowlisted so the ratchet fails on a NEW one rather than on these known ones.
+# Fixing them means either writing the RPC or deleting the page, and web/ is owned elsewhere.
+# Measured 2026-09-18 against prod: 7 names.
+delete_standup_entry
+founder_hospital_sq_recompute_quarter
+log_founder_hospital_sq_review_action
+log_standup_blocker
+log_standup_entry
+refine_action_backlog_customer_monthly_engineer_on_site_time_r2852
+resolve_standup_blocker
