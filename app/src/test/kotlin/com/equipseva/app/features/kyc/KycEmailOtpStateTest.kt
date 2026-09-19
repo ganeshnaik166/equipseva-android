@@ -19,7 +19,9 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
@@ -49,11 +51,13 @@ import org.junit.Test
 class KycEmailOtpStateTest {
     private val dispatcher = StandardTestDispatcher()
     private val viewModels = mutableListOf<KycViewModel>()
+    private val noncooperativeGates = mutableListOf<CompletableDeferred<*>>()
 
     @Before fun setUp() { Dispatchers.setMain(dispatcher) }
 
     @After fun tearDown() {
-        // Pending repository gates are cancellable even if an assertion fails.
+        // Release noncooperative fakes too if an assertion fails before completion.
+        noncooperativeGates.forEach { it.cancel() }
         // Avoid onCleared's unrelated document-cleanup GlobalScope work.
         viewModels.forEach { it.viewModelScope.cancel() }
         dispatcher.scheduler.runCurrent()
@@ -466,42 +470,61 @@ class KycEmailOtpStateTest {
         assertTrue(messages.isEmpty())
     }
 
-    @Test fun `explicit send cancellation result propagates without changing state in an active view model`() = runTest(dispatcher) {
+    @Test fun `interrupted send closes pending sheet without delivery claim and allows fresh sending`() = runTest(dispatcher) {
         val f = fixture()
         val messages = collectMessages(f.vm)
         coEvery { f.auth.sendEmailOtp(EMAIL) } returns Result.failure(CancellationException("synthetic cancellation"))
         f.vm.startEmailVerification()
-        val beforeResult = f.vm.state.value
+        f.vm.onEmailOtpChange("001234")
 
         runCurrent()
 
         assertTrue(f.vm.viewModelScope.isActive)
-        assertEquals(beforeResult, f.vm.state.value)
+        assertFalse(f.vm.state.value.sendingEmailOtp)
+        assertFalse(f.vm.state.value.emailVerifySheetOpen)
+        assertEquals("", f.vm.state.value.emailOtpCode)
+        assertNull(f.vm.state.value.emailOtpError)
         assertTrue(messages.isEmpty())
+        coEvery { f.auth.sendEmailOtp(EMAIL) } returns Result.success(Unit)
+        openSheet(f.vm)
+        coVerify(exactly = 2) { f.auth.sendEmailOtp(EMAIL) }
+        assertEquals(listOf("Code sent to $EMAIL"), messages)
     }
 
-    @Test fun `explicit verify cancellation result propagates without changing state in an active view model`() = runTest(dispatcher) {
+    @Test fun `interrupted verify retains code and unlocks close resend and fresh verification`() = runTest(dispatcher) {
         val f = fixture()
         openSheet(f.vm)
         val messages = collectMessages(f.vm)
         coEvery { f.auth.verifyEmailOtp(EMAIL, "001234") } returns Result.failure(CancellationException("synthetic cancellation"))
         f.vm.onEmailOtpChange("001234")
         f.vm.submitEmailOtp()
-        val beforeResult = f.vm.state.value
-
         runCurrent()
 
         assertTrue(f.vm.viewModelScope.isActive)
-        assertEquals(beforeResult, f.vm.state.value)
+        assertFalse(f.vm.state.value.verifyingEmailOtp)
+        assertTrue(f.vm.state.value.emailVerifySheetOpen)
+        assertEquals("001234", f.vm.state.value.emailOtpCode)
+        assertNull(f.vm.state.value.emailOtpError)
         assertTrue(messages.isEmpty())
+        f.vm.closeEmailVerifySheet()
+        assertFalse(f.vm.state.value.emailVerifySheetOpen)
+        openSheet(f.vm)
+        f.vm.onEmailOtpChange("009876")
+        coEvery { f.profiles.fetchById(USER_ID) } returns Result.success(profile(verified = true))
+        f.vm.submitEmailOtp()
+        runCurrent()
+        coVerify(exactly = 1) { f.auth.verifyEmailOtp(EMAIL, "009876") }
+        assertTrue(f.vm.state.value.emailVerified)
     }
 
     @Test fun `cancelled send cannot publish a late noncooperative successful result`() = runTest(dispatcher) {
         val f = fixture()
         val messages = collectMessages(f.vm)
-        val response = CompletableDeferred<Unit>()
+        val response = CompletableDeferred<Unit>().also { noncooperativeGates += it }
+        var returned = false
         coEvery { f.auth.sendEmailOtp(EMAIL) } coAnswers {
             withContext(NonCancellable) { response.await() }
+            returned = !currentCoroutineContext().isActive
             Result.success(Unit)
         }
         f.vm.startEmailVerification()
@@ -513,6 +536,7 @@ class KycEmailOtpStateTest {
         response.complete(Unit)
         runCurrent()
 
+        assertTrue("Fake returned a success into the cancelled caller", returned)
         assertEquals(beforeCancellation, f.vm.state.value)
         assertTrue(messages.isEmpty())
     }
@@ -521,9 +545,11 @@ class KycEmailOtpStateTest {
         val f = fixture()
         openSheet(f.vm)
         val messages = collectMessages(f.vm)
-        val response = CompletableDeferred<Unit>()
+        val response = CompletableDeferred<Unit>().also { noncooperativeGates += it }
+        var returned = false
         coEvery { f.auth.verifyEmailOtp(EMAIL, "001234") } coAnswers {
             withContext(NonCancellable) { response.await() }
+            returned = !currentCoroutineContext().isActive
             Result.success(Unit)
         }
         f.vm.onEmailOtpChange("001234")
@@ -536,6 +562,7 @@ class KycEmailOtpStateTest {
         response.complete(Unit)
         runCurrent()
 
+        assertTrue("Fake returned a success into the cancelled caller", returned)
         assertEquals(beforeCancellation, f.vm.state.value)
         coVerify(exactly = 1) { f.profiles.fetchById(USER_ID) } // Initial load only.
         assertTrue(messages.isEmpty())
@@ -545,9 +572,12 @@ class KycEmailOtpStateTest {
         val f = fixture()
         openSheet(f.vm)
         val messages = collectMessages(f.vm)
-        val response = CompletableDeferred<Profile>()
+        val response = CompletableDeferred<Profile>().also { noncooperativeGates += it }
+        var returned = false
         coEvery { f.profiles.fetchById(USER_ID) } coAnswers {
-            Result.success(withContext(NonCancellable) { response.await() })
+            val profile = withContext(NonCancellable) { response.await() }
+            returned = !currentCoroutineContext().isActive
+            Result.success(profile)
         }
         f.vm.onEmailOtpChange("001234")
         f.vm.submitEmailOtp()
@@ -560,6 +590,62 @@ class KycEmailOtpStateTest {
         response.complete(profile(verified = true))
         runCurrent()
 
+        assertTrue("Fake returned a profile into the cancelled caller", returned)
+        assertEquals(beforeCancellation, f.vm.state.value)
+        assertTrue(messages.isEmpty())
+    }
+
+    @Test fun `interrupted profile refresh unlocks resend without publishing verification success`() = runTest(dispatcher) {
+        val f = fixture()
+        openSheet(f.vm)
+        val messages = collectMessages(f.vm)
+        coEvery { f.profiles.fetchById(USER_ID) } returns Result.failure(CancellationException("synthetic cancellation"))
+        f.vm.onEmailOtpChange("001234")
+        f.vm.submitEmailOtp()
+        runCurrent()
+
+        coVerify(exactly = 2) { f.profiles.fetchById(USER_ID) }
+        assertTrue(f.vm.viewModelScope.isActive)
+        assertFalse(f.vm.state.value.verifyingEmailOtp)
+        assertTrue(f.vm.state.value.emailVerifySheetOpen)
+        assertEquals("001234", f.vm.state.value.emailOtpCode)
+        assertFalse(f.vm.state.value.emailVerified)
+        assertNull(f.vm.state.value.emailOtpError)
+        assertTrue(messages.isEmpty())
+        // A server may have consumed the first OTP; prove a fresh-code path,
+        // not that the old code can be reused against a real provider.
+        openSheet(f.vm)
+        f.vm.onEmailOtpChange("009876")
+        coEvery { f.profiles.fetchById(USER_ID) } returns Result.success(profile(verified = true))
+        f.vm.submitEmailOtp()
+        runCurrent()
+        coVerify(exactly = 1) { f.auth.verifyEmailOtp(EMAIL, "009876") }
+        assertTrue(f.vm.state.value.emailVerified)
+    }
+
+    @Test fun `cancelled OTP child publishes nothing even while the view model parent remains active`() = runTest(dispatcher) {
+        val f = fixture()
+        openSheet(f.vm)
+        val messages = collectMessages(f.vm)
+        val gate = CompletableDeferred<Unit>()
+        var child: Job? = null
+        var returnedCancellation = false
+        coEvery { f.auth.verifyEmailOtp(EMAIL, "001234") } coAnswers {
+            child = currentCoroutineContext()[Job]
+            val result = runCatching { gate.await() }
+            returnedCancellation = result.exceptionOrNull() is CancellationException
+            result
+        }
+        f.vm.onEmailOtpChange("001234")
+        f.vm.submitEmailOtp()
+        runCurrent()
+        val beforeCancellation = f.vm.state.value
+
+        checkNotNull(child).cancel()
+        runCurrent()
+
+        assertTrue(returnedCancellation)
+        assertTrue(f.vm.viewModelScope.isActive)
         assertEquals(beforeCancellation, f.vm.state.value)
         assertTrue(messages.isEmpty())
     }

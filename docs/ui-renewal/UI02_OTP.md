@@ -1,9 +1,8 @@
 # UI-02 OTP and KYC email sheet: frozen contract
 
-**WIP save on 13 September at the owner's stop request. Not accepted.** The
-latest executed review run was 33 tests / 5 failures. Subsequent UI fixes and
-test additions are unrun; VM send/cancellation corrections are not implemented.
-See [the saved evidence](../evidence/ui-otp-wip/README.md) before resuming.
+**Resumed from the 13 September WIP save; verification is in progress.**
+The historical [stop evidence](../evidence/ui-otp-wip/README.md) remains unchanged.
+Read the resume decisions below; no acceptance score is claimed yet.
 
 Base: `2498794a40152d3261e78cca955479d5d3271f83`, branch
 `codex/auth-integration-20260911`. Android only; no website updates.
@@ -77,6 +76,39 @@ Repository calls can return cancellation as a failed `Result`. Test that contrac
 as well as directly thrown cancellation, and check the coroutine is active before
 publishing send/verify/profile results. This is coroutine-lifetime protection;
 it does not establish account, email or request-generation ownership.
+
+### Resume: active request cancellation and retired callers
+
+Resume base: `9a0ecf89c8636d926fb4744fca79b1978789c77f`. The original active-scope
+cancellation tests required busy flags to remain set after the operation ended.
+Critic review rejected that recovery target: it would leave retry/Close blocked.
+The exact old source is preserved locally in
+`work/verification/ui-otp-resume-20260913/KycEmailOtpStateTest.before-active-cancel-policy.kt`.
+
+- If the current OTP coroutine has been cancelled, publish no state or effects,
+  even if its ViewModel parent is still active. Check the current coroutine
+  immediately after each send/verify/profile suspension and before publication.
+- If the provider returns or throws cancellation while that caller is still
+  active, abort sending by clearing its pending state/code and closing the sheet;
+  never show "Code sent" for that cancelled send. Abort verification/profile
+  refresh by clearing verifying while retaining the sheet/code and recovery
+  controls. Emit neither an error nor a success and rethrow cancellation.
+- These are distinct contracts. Tests include an individually cancelled child
+  with an active parent, explicit failed cancellation results, actual returns
+  from noncooperative fakes, and fresh successful requests after interruption.
+  Release noncooperative deferred gates in teardown even on assertion failure.
+- A verification may consume the OTP before profile refresh is interrupted.
+  Preserved input is not a claim that the server permits code reuse. Test the
+  fresh resend/new-code path; provider/recovery behavior remains a separate gate.
+
+The first resumed run executed 52 tests with 8 failures, all in VM targets.
+The 28 UI/gallery/existing-smoke cases passed, including the previously failing
+native Back and strengthened native geometry assertions. That is focused evidence,
+not the complete milestone bar. A second failing VM run precedes the revised fix.
+
+Reference semantics: [Kotlin coroutine activity checks](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/ensure-active.html)
+and [withContext cancellation behavior](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/with-context.html).
+The tests execute the locally resolved library, not a copied documentation example.
 
 ## Explicit unresolved scope
 
