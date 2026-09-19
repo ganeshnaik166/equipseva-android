@@ -1,5 +1,9 @@
 # EquipSeva Android
 
+> **Resuming work? Read [CURRENT_STATE](docs/CURRENT_STATE.md) first**, then the
+> [milestone log](docs/MILESTONE_LOG.md) and [agent contract](AGENTS.md).
+> These identify the active app branch, exact checkpoints, known failures and next step.
+
 > **START HERE — [Current product plan](PRODUCT_PLAN.md)** (19 September 2026):
 > biomedical engineers, hospital administrators, subscribed engineering teams and
 > privately provisioned platform operations. Includes the page tree, state/district
