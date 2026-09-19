@@ -117,7 +117,9 @@ class DeviceTokenRevocationBoundaryRegressionTest {
         }
     }
 
-    @Test fun `ordinary same-owner revoke still removes the captured registration`() = runTest {
+    // Explicit cache policy change: this row describes the installation, not
+    // an authenticated account. Firebase retains the underlying token too.
+    @Test fun `ordinary revoke targets the captured remote owner and retains the installation cache`() = runTest {
         val h = Harness()
         try {
             h.client.importSyntheticSession(A)
@@ -125,11 +127,26 @@ class DeviceTokenRevocationBoundaryRegressionTest {
             val capture = h.registrar.captureRevocation()
             h.releaseDelete.complete(Unit)
             h.registrar.revoke(capture)
-            assertNull(h.dao.current())
+            assertEquals(DeviceTokenEntity(token = "fcm-A", registeredAt = 1L), h.dao.current())
             val deletion = h.requests.single()
             assertEquals(HttpMethod.Delete, deletion.method)
             assertEquals("eq.$A", deletion.url.parameters["user_id"])
             assertEquals("eq.fcm-A", deletion.url.parameters["token"])
+        } finally {
+            h.releaseDelete.complete(Unit)
+            h.client.close()
+        }
+    }
+
+    @Test fun `signed out capture cannot use a retained installation token to revoke an account`() = runTest {
+        val h = Harness()
+        try {
+            val cached = DeviceTokenEntity(token = "fcm-installation", registeredAt = 2L)
+            h.dao.upsert(cached)
+            assertNull(h.registrar.captureRevocation())
+            h.registrar.revoke(null)
+            assertTrue(h.requests.isEmpty())
+            assertEquals(cached, h.dao.current())
         } finally {
             h.releaseDelete.complete(Unit)
             h.client.close()
