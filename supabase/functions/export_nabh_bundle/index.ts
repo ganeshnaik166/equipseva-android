@@ -215,13 +215,18 @@ serve(async (req) => {
   // Reserve a slot BEFORE doing any work so a 429 caller can't spam render.
   const { error: rateErr } = await caller.rpc("check_and_reserve_nabh_export");
   if (rateErr) {
+    // Database and storage errors stay in the server log. Echoing them
+    // hands the caller constraint names, RLS verdicts and storage paths
+    // — the response carries a stable code the client can branch on and
+    // nothing else.
+    console.error("export_nabh_bundle: rate reservation failed", rateErr.code, rateErr.message);
     if (rateErr.code === "53400") {
-      return bad("rate_limited", rateErr.message, 429);
+      return bad("rate_limited", "export limit reached, try again later", 429);
     }
     if (rateErr.code === "42501") {
-      return bad("unauthorized", rateErr.message, 401);
+      return bad("unauthorized", "not permitted to export this bundle", 401);
     }
-    return bad("rate_check_failed", rateErr.message, 500);
+    return bad("rate_check_failed", "could not reserve an export slot", 500);
   }
 
   const { data: rows, error: rpcErr } = await caller.rpc(
@@ -234,8 +239,9 @@ serve(async (req) => {
   );
 
   if (rpcErr) {
-    if (rpcErr.code === "42501") return bad("forbidden", rpcErr.message, 403);
-    return bad("rpc_failed", rpcErr.message, 500);
+    console.error("export_nabh_bundle: bundle rpc failed", rpcErr.code, rpcErr.message);
+    if (rpcErr.code === "42501") return bad("forbidden", "not permitted to export this bundle", 403);
+    return bad("rpc_failed", "could not assemble the bundle", 500);
   }
 
   const dsrRows = (rows ?? []) as NabhRow[];
@@ -292,13 +298,17 @@ serve(async (req) => {
       contentType: "application/zip",
       upsert: false,
     });
-  if (upErr) return bad("upload_failed", upErr.message, 500);
+  if (upErr) {
+    console.error("export_nabh_bundle: upload failed", objectPath, upErr.message);
+    return bad("upload_failed", "could not store the bundle", 500);
+  }
 
   const { data: signed, error: sErr } = await admin.storage
     .from("nabh-bundles")
     .createSignedUrl(objectPath, 60 * 60);
   if (sErr || !signed?.signedUrl) {
-    return bad("sign_failed", sErr?.message ?? "no url", 500);
+    console.error("export_nabh_bundle: signing failed", objectPath, sErr?.message ?? "no url");
+    return bad("sign_failed", "could not issue a download link", 500);
   }
 
   return json(200, {

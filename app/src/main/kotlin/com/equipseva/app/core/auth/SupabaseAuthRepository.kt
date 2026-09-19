@@ -31,7 +31,14 @@ class SupabaseAuthRepository @Inject constructor(
                 }
                 is SessionStatus.NotAuthenticated -> AuthSession.SignedOut
                 is SessionStatus.Initializing -> AuthSession.Unknown
-                is SessionStatus.RefreshFailure -> AuthSession.SignedOut
+                // The SDK reports RefreshFailure for network / 5xx refresh
+                // problems while KEEPING the stored session and retrying; only
+                // a 4xx clears it (NotAuthenticated). Mapping this to SignedOut
+                // turned every offline token expiry into a visible sign-out —
+                // Welcome screen, MAIN destroyed mid-form, prefs wiped — followed
+                // by a "new login" when the retry succeeded. Unknown keeps the
+                // validated UI retained until the SDK settles either way.
+                is SessionStatus.RefreshFailure -> AuthSession.Unknown
             }
         }
 
@@ -119,30 +126,54 @@ class SupabaseAuthRepository @Inject constructor(
         // rotates the session token but the active user id stays the
         // same. On wrong password we surface the typed InvalidCurrent
         // exception so callers can pin the error on the password field.
-        val email = client.auth.currentUserOrNull()?.email
-            ?: throw IllegalStateException("Not signed in")
+        val user = client.auth.currentUserOrNull() ?: throw IllegalStateException("Not signed in")
+        val email = user.email ?: throw IllegalStateException("Not signed in")
+        // A Google-only account has no password identity: the password grant
+        // below can only ever fail, and reporting that as "incorrect password"
+        // left such users unable to delete their account or change their email.
+        passwordlessProviderOf(user.identities?.map { it.provider })?.let { throw ProviderReauthRequiredException(it) }
         try {
             client.auth.signInWith(Email) {
                 this.email = email
                 this.password = password
             }
+        } catch (ex: kotlinx.coroutines.CancellationException) {
+            throw ex
         } catch (ex: Throwable) {
             throw InvalidCurrentPasswordException().also { it.initCause(ex) }
         }
     }
 
     override suspend fun sendEmailOtp(email: String): Result<Unit> = runCatching {
+        // This is a sign-in OTP, so it must target the account that is already
+        // signed in. `profiles.email` can drift from the auth email; sending the
+        // code elsewhere would (with createUser) mint a brand-new auth user and
+        // the verify step would silently switch the whole app to it.
+        val current = client.auth.currentUserOrNull()?.email
+        if (current == null || !current.equals(email.trim(), ignoreCase = true)) {
+            throw EmailMismatchException()
+        }
         client.auth.signInWith(OTP) {
             this.email = email
+            this.createUser = false
         }
     }
 
     override suspend fun verifyEmailOtp(email: String, token: String): Result<Unit> = runCatching {
+        val before = client.auth.currentUserOrNull()?.id
         client.auth.verifyEmailOtp(
             type = io.github.jan.supabase.auth.OtpType.Email.EMAIL,
             email = email,
             token = token,
         )
+        // verifyEmailOtp imports the session it returns. If that session belongs
+        // to a different user than the one who asked to verify, fail closed and
+        // drop it rather than continuing as somebody else.
+        val after = client.auth.currentUserOrNull()?.id
+        if (before != null && after != null && after != before) {
+            runCatching { client.auth.signOut(SignOutScope.LOCAL) }
+            throw IllegalStateException("Verification switched accounts; signed out for safety")
+        }
     }
 
     override suspend fun requestPhoneAdd(phone: String): Result<Unit> = runCatching {
@@ -234,6 +265,22 @@ class SupabaseAuthRepository @Inject constructor(
     override suspend fun refreshSession(): Result<Unit> = runCatching {
         client.auth.refreshCurrentSession()
     }
+}
+
+/** Raised when an email OTP is requested for an address that is not the signed-in account's. */
+class EmailMismatchException : Exception("Verification code must be sent to the signed-in account's email")
+
+/**
+ * Given the auth identities' provider names, returns the OAuth provider the account
+ * relies on when it has NO password identity, or null when a password re-auth is
+ * possible (an `email` identity exists, or identities are unknown/empty — the SDK
+ * omits them on some sessions, and a false positive would lock a real password
+ * user out of re-auth).
+ */
+internal fun passwordlessProviderOf(providers: List<String>?): String? {
+    if (providers.isNullOrEmpty()) return null
+    if (providers.any { it.equals("email", ignoreCase = true) }) return null
+    return providers.firstOrNull { it.isNotBlank() }
 }
 
 /**

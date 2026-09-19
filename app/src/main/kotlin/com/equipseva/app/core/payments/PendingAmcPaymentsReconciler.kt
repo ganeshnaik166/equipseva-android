@@ -1,6 +1,8 @@
 package com.equipseva.app.core.payments
 
 import com.equipseva.app.core.data.amc.AmcRepository
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -8,19 +10,17 @@ import javax.inject.Singleton
  * Round 234 — sweep stale entries from [PendingAmcPaymentsStore] after
  * a process-death + cold-start cycle.
  *
- * Each entry represents an AMC payment order whose Razorpay checkout
- * activity didn't return cleanly (process killed mid-payment). We
- * query the canonical server-side status:
+ * Each entry represents an AMC payment whose checkout or credit confirmation
+ * did not finish. The server marks an order `paid` before crediting its pool,
+ * so a status read alone cannot prove that the money reached the ledger:
  *
- *   - status='paid' or 'refunded'  → terminal; remove the marker.
- *     Razorpay's webhook (when configured) will have already triggered
- *     verify-amc-payment server-side; the hospital's ledger is in
- *     order, no client action needed.
- *   - status='failed'              → terminal; remove the marker.
- *   - status='pending'             → keep so the home banner / support
- *     prompt can surface it to the user.
- *   - row missing (RLS denied, deleted, etc.) → remove; we can't act
- *     on what we can't see.
+ *   - `refunded` or `failed` → terminal; remove without replaying proof.
+ *   - `pending` or `paid` → replay stored SDK proof through the idempotent
+ *     verify endpoint, which can repair a paid order missing its pool credit.
+ *     Remove only when that order's successful response names a credit ledger.
+ *   - Missing proof, null/unrecognised status, or failed confirmation → keep
+ *     recovery material. In particular, an RLS-hidden row is not proof of
+ *     completion. The existing support prompt can surface unresolved markers.
  *
  * Failures are silently ignored — the marker just lingers until the
  * next cold-start retries.
@@ -43,15 +43,18 @@ class PendingAmcPaymentsReconciler @Inject constructor(
         }
         if (pending.isEmpty()) return
         for (id in pending) {
-            // Round 294 — distinguish "row is gone" (Result.success(null))
-            // from "fetch failed" (Result.failure). The original
-            // `.getOrNull()` collapsed both to null and removed the
-            // marker, which silently dropped an in-flight payment record
-            // on a transient network blip during the cold-start sweep.
-            // Network failure → leave the marker for next cold-start.
+            currentCoroutineContext().ensureActive()
             val result = amcRepository.fetchAmcPaymentOrderStatus(id)
+            // The repository wraps its calls in runCatching, so a cancelled
+            // sweep arrives here as a failed Result instead of unwinding the
+            // loop; re-throw or the sweep keeps hitting the network after the
+            // scope is gone.
+            val statusError = result.exceptionOrNull()
+            if (isScopeCancellation(statusError)) throw statusError!!
+            currentCoroutineContext().ensureActive()
             if (result.isFailure) continue
-            if (shouldClearAmcPaymentMarker(result.getOrNull())) {
+            val status = result.getOrNull()
+            if (shouldClearAmcPaymentMarker(status)) {
                 try {
                     store.remove(id)
                 } catch (ce: kotlinx.coroutines.CancellationException) {
@@ -59,31 +62,75 @@ class PendingAmcPaymentsReconciler @Inject constructor(
                 } catch (_: Throwable) {
                     // Best-effort; lingering marker is recovered on next cold-start.
                 }
+            } else if (shouldReverifyAmcPayment(status)) {
+                reverify(id)
             }
         }
     }
+
+    /**
+     * SDK success can outlive the client or the server's pool-credit write.
+     * The idempotent endpoint handles both pending and paid-without-ledger
+     * recovery. Preserve the original proof until it confirms this order's
+     * ledger, including when the response is incomplete or the sweep is cancelled.
+     */
+    private suspend fun reverify(paymentOrderId: String) {
+        val payload = try {
+            store.verifiable(paymentOrderId)
+        } catch (ce: kotlinx.coroutines.CancellationException) {
+            throw ce
+        } catch (_: Throwable) {
+            null
+        } ?: return
+        currentCoroutineContext().ensureActive()
+        val verified = amcRepository.verifyPayment(
+            paymentOrderId = payload.paymentOrderId,
+            razorpayOrderId = payload.razorpayOrderId,
+            razorpayPaymentId = payload.razorpayPaymentId,
+            razorpaySignature = payload.razorpaySignature,
+        )
+        val verifyError = verified.exceptionOrNull()
+        if (isScopeCancellation(verifyError)) throw verifyError!!
+        currentCoroutineContext().ensureActive()
+        val confirmation = verified.getOrNull() ?: return
+        if (!confirmation.ok || confirmation.paymentOrderId != paymentOrderId ||
+            confirmation.ledgerId.isNullOrBlank()
+        ) return
+        try {
+            store.remove(paymentOrderId)
+        } catch (ce: kotlinx.coroutines.CancellationException) {
+            throw ce
+        } catch (_: Throwable) {
+            // Best-effort; a later sweep must confirm the credit again.
+        }
+    }
 }
+
+/**
+ * True when a still-unresolved payment order should have its stored Razorpay
+ * signature replayed against `verify-amc-payment`.
+ *
+ * `paid` alone does not prove pool credit: the server writes that status before
+ * applying the ledger entry. Both it and `pending` can recover through verify.
+ * Refunded/failed orders and unknown states must never replay their signatures.
+ */
+internal fun shouldReverifyAmcPayment(status: String?): Boolean =
+    status == "pending" || status == "paid"
 
 /**
  * True when the reconciler should clear the in-flight AMC-payment
  * marker for a payment order, based on the server-side `status`
  * returned by `fetchAmcPaymentOrderStatus`.
  *
- *   * "paid", "refunded" — terminal; verify-amc-payment fired and
- *     the hospital's ledger is in order. Clear.
- *   * "failed" — terminal (Razorpay reported failure). Clear; the
- *     hospital will retry from the AMC detail screen.
- *   * null (row missing — RLS denied / deleted / never created) —
- *     clear; we can't act on what we can't see.
- *   * "pending" — keep the marker so the home banner / support
- *     prompt can surface it to the user.
- *   * Unknown future status — keep (forward-compat).
+ * Only `refunded` and `failed` prove that credit recovery must stop. `paid`
+ * needs a separate successful ledger confirmation. Null (including an RLS-
+ * hidden row), pending and unknown status all retain the marker and proof.
  *
  * Sibling to [shouldClearEscrowMarker] — same shape but different
  * status vocabulary (AMC payment orders have `failed`; escrow rows
  * don't).
  */
 internal fun shouldClearAmcPaymentMarker(status: String?): Boolean = when (status) {
-    "paid", "refunded", "failed", null -> true
-    else -> false  // "pending" + unknown future status — keep
+    "refunded", "failed" -> true
+    else -> false
 }

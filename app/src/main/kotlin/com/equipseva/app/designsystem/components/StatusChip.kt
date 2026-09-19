@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -61,11 +60,12 @@ fun StatusChip(
     CompositionLocalProvider(LocalContentColor provides fg) {
         Row(
             modifier = modifier
+                // Minimum only: the 11 sp label has a 14 sp line height, so a
+                // fixed 22 dp clipped the glyphs from ~1.6x font scale upward.
                 .defaultMinSize(minHeight = 22.dp)
-                .height(22.dp)
                 .clip(RoundedCornerShape(50))
                 .background(bg)
-                .padding(horizontal = 8.dp),
+                .padding(horizontal = 8.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {

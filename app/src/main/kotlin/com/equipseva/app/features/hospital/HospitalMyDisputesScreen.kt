@@ -142,7 +142,7 @@ fun HospitalMyDisputesScreen(
                         icon = Icons.Outlined.Gavel,
                         title = "Couldn't load",
                         subtitle = state.error,
-                        ctaLabel = "Try again",
+                        ctaLabel = stringResource(R.string.common_retry),
                         onCta = { viewModel.reload() },
                     )
                     state.rows.isEmpty() -> EmptyStateView(

@@ -1,5 +1,7 @@
 package com.equipseva.app.features.profile
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -83,6 +85,10 @@ class EngineerReferralViewModel @Inject constructor(
         val registerError: String? = null,
         val registerSuccess: Boolean = false,
         val confirmingId: String? = null,
+        // Separate from `error`, which the screen only renders in its
+        // not-loaded empty state: a confirm failure on a loaded screen had
+        // nowhere to appear, so the row just didn't change.
+        val actionError: String? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -120,6 +126,10 @@ class EngineerReferralViewModel @Inject constructor(
     }
 
     fun registerReferral(referrerUserId: String) {
+        // The bounty RPC rejects a second registration for the same account,
+        // so a double tap would answer the user's first (successful) attempt
+        // with an error about it.
+        if (_state.value.registering) return
         _state.update { it.copy(registering = true, registerError = null, registerSuccess = false) }
         viewModelScope.launch {
             repo.registerReferral(referrerUserId)
@@ -136,7 +146,8 @@ class EngineerReferralViewModel @Inject constructor(
     }
 
     fun confirm(referralId: String) {
-        _state.update { it.copy(confirmingId = referralId) }
+        if (_state.value.confirmingId != null) return
+        _state.update { it.copy(confirmingId = referralId, actionError = null) }
         viewModelScope.launch {
             repo.confirmReferral(referralId)
                 .onSuccess {
@@ -144,12 +155,8 @@ class EngineerReferralViewModel @Inject constructor(
                     refresh()
                 }
                 .onFailure { e ->
-                    _state.update {
-                        it.copy(
-                            confirmingId = null,
-                            error = e.toUserMessage("Could not confirm that referral."),
-                        )
-                    }
+                    val msg = e.toUserMessage("Could not confirm that referral.")
+                    _state.update { it.copy(confirmingId = null, actionError = msg) }
                 }
         }
     }
@@ -167,6 +174,7 @@ fun EngineerReferralScreen(
     Box(Modifier.fillMaxSize().background(PaperDefault)) {
         Column(Modifier.fillMaxSize()) {
             EsTopBar(title = stringResource(R.string.referral_title), onBack = onBack)
+            com.equipseva.app.designsystem.components.ErrorBanner(message = state.actionError)
 
             when {
                 state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -307,6 +315,7 @@ private fun RegisterCodeCard(
             )
             Spacer(Modifier.height(8.dp))
             EsField(
+                palette = LightEsColors,
                 value = codeInput,
                 onChange = onCodeChange,
                 placeholder = stringResource(R.string.referral_enter_code_placeholder),

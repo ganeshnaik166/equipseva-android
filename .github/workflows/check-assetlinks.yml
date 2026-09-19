@@ -21,6 +21,9 @@ on:
       - 'well-known/.well-known/assetlinks.json'
       - 'website/.well-known/assetlinks.json'
 
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest

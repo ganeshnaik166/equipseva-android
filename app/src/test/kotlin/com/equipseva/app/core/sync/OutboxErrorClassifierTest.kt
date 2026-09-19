@@ -61,6 +61,23 @@ class OutboxErrorClassifierTest {
         assertTrue("got $out", out is OutboxKindHandler.Outcome.Retry)
     }
 
+    @Test fun `401 expired JWT retries because a refresh clears it`() {
+        // PostgREST answers PGRST301 "JWT expired" with 401, which is the
+        // ordinary state of a background drain after the app sat idle past
+        // the access token's lifetime. Dropping the row here deleted a
+        // queued message the user had been told was on its way.
+        val out = classifyOutboxError(rest(401, "PGRST301 JWT expired"))
+        assertTrue("got $out", out is OutboxKindHandler.Outcome.Retry)
+    }
+
+    @Test fun `403 still gives up so a real RLS denial does not loop`() {
+        // The pair matters more than either half: 401 is "not yet", 403 is
+        // "never". A refactor that unified them would either drop expired
+        // sessions or retry forbidden writes until the poison drop.
+        val out = classifyOutboxError(rest(403, "new row violates row-level security policy"))
+        assertTrue("got $out", out is OutboxKindHandler.Outcome.GiveUp)
+    }
+
     @Test fun `SerializationException routes to GiveUp`() {
         val err = SerializationException("missing required field")
         val out = classifyOutboxError(err)

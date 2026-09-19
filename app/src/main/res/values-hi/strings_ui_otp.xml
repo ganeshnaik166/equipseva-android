@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="otp_code_label">%1$d-अंकों का कोड</string>
+    <string name="otp_code_progress">%2$d में से %1$d अंक दर्ज किए</string>
+    <string name="otp_sending_to">%1$s पर कोड भेज रहे हैं</string>
+    <string name="otp_close">बंद करें</string>
+</resources>

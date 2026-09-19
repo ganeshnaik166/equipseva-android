@@ -1,5 +1,7 @@
 package com.equipseva.app.features.auth
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -84,6 +86,7 @@ fun ForgotPasswordScreen(
                     ErrorBanner(message = state.errorMessage)
 
                     EsField(
+                        palette = LightEsColors,
                         value = state.email,
                         onChange = viewModel::onEmailChange,
                         label = "Email",

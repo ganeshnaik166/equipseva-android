@@ -13,7 +13,8 @@ import javax.inject.Inject
  * Drains queued chat messages via the repository's normal send path so the
  * conversation's last_message/last_message_at get patched identically to the
  * online flow. Any failure becomes [OutboxKindHandler.Outcome.Retry]; the
- * worker's [OutboxWorker.MAX_ATTEMPTS] cap drops a poison payload.
+ * worker drops a payload that keeps failing once it is both out of attempts
+ * and old enough that no outage explains it.
  *
  * Owner gate: the payload carries the original `senderUserId`. Outbox rows
  * outlive sign-out / sign-in, so on a shared device user B could otherwise
@@ -42,6 +43,7 @@ class ChatMessageOutboxHandler @Inject constructor(
         val currentUid = supabase.auth.currentUserOrNull()?.id
             ?: return OutboxKindHandler.Outcome.Retry(
                 IllegalStateException("No auth session — deferring chat drain"),
+                countsAgainstBudget = false,
             )
         val mismatch = chatMessageSenderMismatchReason(payload.senderUserId, currentUid)
         if (mismatch != null) {

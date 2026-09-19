@@ -17,6 +17,7 @@ import javax.inject.Singleton
 @Singleton
 class SupabaseProfileRepository @Inject constructor(
     private val client: SupabaseClient,
+    private val invalidations: ProfileInvalidations = ProfileInvalidations(),
 ) : ProfileRepository {
 
     override suspend fun fetchById(userId: String): Result<Profile?> = runCatching {
@@ -118,7 +119,7 @@ class SupabaseProfileRepository @Inject constructor(
         ) {
             filter { eq("id", userId) }
         }
-        Unit
+        invalidations.invalidate()
     }
 
     override suspend fun updateBasicInfo(
@@ -190,7 +191,7 @@ class SupabaseProfileRepository @Inject constructor(
                 put("p_role", JsonPrimitive(roleKey))
             },
         )
-        Unit
+        invalidations.invalidate()
     }
 
     override suspend fun setActiveRole(roleKey: String): Result<Unit> = runCatching {
@@ -200,7 +201,7 @@ class SupabaseProfileRepository @Inject constructor(
                 put("p_role", JsonPrimitive(roleKey))
             },
         )
-        Unit
+        invalidations.invalidate()
     }
 
     private companion object {

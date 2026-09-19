@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="role_picker_title">Choose your role</string>
+    <string name="role_picker_intro">Choose how you will use EquipSeva. You can change your active role later from your profile.</string>
+    <string name="role_picker_hospital">Hospital admin</string>
+    <string name="role_picker_hospital_description">Book biomedical engineers and manage repairs for your facility.</string>
+    <string name="role_picker_engineer">Biomedical engineer</string>
+    <string name="role_picker_engineer_description">Find service jobs and manage your repair work.</string>
+    <string name="role_picker_save_continue">Save and continue</string>
+    <string name="role_picker_saving">Saving your role…</string>
+    <string name="role_picker_saved">Role saved. Check your setup to continue.</string>
+    <string name="role_picker_check_again">Check setup again</string>
+    <string name="role_picker_try_again">Try again</string>
+    <string name="role_picker_sign_out">Sign out</string>
+    <string name="role_picker_sign_out_hint">Use a different account or finish setup later.</string>
+    <string name="role_picker_error_session">Your sign-in session is unavailable. Sign out and sign in again.</string>
+    <string name="role_picker_error_network">We could not save your role. Check your connection and try again.</string>
+    <string name="role_picker_error_save">We could not save your role. Please try again.</string>
+</resources>

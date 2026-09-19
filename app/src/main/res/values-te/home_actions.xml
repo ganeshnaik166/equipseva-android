@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_actions_hospital_workspace">ఆసుపత్రి కార్యక్షేత్రం</string>
+    <string name="home_actions_title">పరికరాన్ని మరమ్మతు చేయించండి</string>
+    <string name="home_actions_body">ఏ పరికరానికి మరమ్మతు అవసరమో చెప్పండి. ఇంజినీర్‌ను ఎంచుకునే ముందు వారి ప్రతిపాదనలను చూడండి.</string>
+    <string name="home_actions_request_service">సేవను అభ్యర్థించండి</string>
+    <string name="home_actions_my_bookings">నా బుకింగ్‌లు</string>
+    <string name="home_actions_browse_engineers">ఇంజినీర్లను చూడండి</string>
+</resources>

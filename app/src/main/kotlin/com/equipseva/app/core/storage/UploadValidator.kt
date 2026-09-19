@@ -24,8 +24,11 @@ object UploadValidator {
         StorageRepository.Buckets.CATALOG_IMAGES to Policy(imageMimeTypes, 10L * 1024 * 1024),
         StorageRepository.Buckets.CATEGORY_IMAGES to Policy(imageMimeTypes, 5L * 1024 * 1024),
         StorageRepository.Buckets.KYC_DOCS to Policy(imageMimeTypes + pdfMimeTypes, 15L * 1024 * 1024),
-        StorageRepository.Buckets.INVOICES to Policy(pdfMimeTypes, 10L * 1024 * 1024),
-        StorageRepository.Buckets.AVATARS to Policy(imageMimeTypes, 5L * 1024 * 1024),
+        // Mirror the bucket file_size_limit exactly: a client ceiling above the
+        // server's let 2–10 MiB files pass validation, get scrubbed and
+        // uploaded, then fail with a generic storage error instead of TooLarge.
+        StorageRepository.Buckets.INVOICES to Policy(pdfMimeTypes, 5L * 1024 * 1024),
+        StorageRepository.Buckets.AVATARS to Policy(imageMimeTypes, 2L * 1024 * 1024),
     )
 
     fun validate(bucket: String, contentType: String?, size: Long): Result<Policy> {

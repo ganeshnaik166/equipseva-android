@@ -38,6 +38,9 @@ concurrency:
   group: cron-tick-hourly
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   tick:
     runs-on: ubuntu-latest
@@ -58,12 +61,23 @@ jobs:
             exit 1
           fi
           URL="https://eyswaywvtartpvtoxtdr.supabase.co/functions/v1/cron-tick?slot=hourly"
-          # `--fail-with-body` lets us print the body on non-2xx.
-          curl --fail-with-body \
-               --silent --show-error \
+          umask 077
+          RESPONSE_BODY="$(mktemp "${RUNNER_TEMP}/cron-hourly-response.XXXXXX")"
+          trap 'rm -f -- "${RESPONSE_BODY}"' EXIT
+          CURL_EXIT=0
+          # Run logs on this repository are world-readable and the per-slot
+          # result JSON names the rows the tick touched, so the only captured
+          # stdout is the numeric HTTP status. Raw response content and curl
+          # errors must never reach Actions logs or summaries.
+          HTTP_STATUS="$(curl --fail-with-body \
+               --silent \
                --max-time 60 \
+               --output "${RESPONSE_BODY}" \
+               --write-out '%{http_code}' \
                -X POST "$URL" \
                -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
                -H "X-Cron-Secret: ${CRON_TICK_SECRET}" \
                -H "Content-Type: application/json" \
-               -d '{}'
+               -d '{}' 2>/dev/null)" || CURL_EXIT=$?
+          echo "cron-tick hourly HTTP ${HTTP_STATUS}"
+          exit "${CURL_EXIT}"

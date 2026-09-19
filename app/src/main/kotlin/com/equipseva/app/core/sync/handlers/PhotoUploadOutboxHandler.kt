@@ -39,11 +39,15 @@ import javax.inject.Inject
  *  - No auth session yet (user is signed out right now).
  *  - IO/network error talking to Supabase Storage or Postgrest.
  *
- * Success path cleans up the stashed local file so we don't leak capture
- * bytes in app storage. The DB patch is best-effort: if appending the URL
- * fails (e.g. RLS, missing column on a stale schema), the storage upload
- * still counts as success — we log and move on rather than burn retries
- * hammering the same 403.
+ * Every terminal path — success, give-up and the worker's poison drop via
+ * [onDropped] — deletes the stashed file. The stash holds KYC documents as
+ * well as repair photos, so a path that frees nothing leaves an Aadhaar or PAN
+ * scan in `filesDir` until the user next signs out, which is exactly what this
+ * class exists to avoid.
+ *
+ * The DB patch is best-effort: if appending the URL fails (e.g. RLS, missing
+ * column on a stale schema), the storage upload still counts as success — we
+ * log and move on rather than burn retries hammering the same 403.
  */
 class PhotoUploadOutboxHandler @Inject constructor(
     private val storage: StorageRepository,
@@ -60,9 +64,11 @@ class PhotoUploadOutboxHandler @Inject constructor(
         val currentUid = supabase.auth.currentUserOrNull()?.id
             ?: return OutboxKindHandler.Outcome.Retry(
                 IllegalStateException("No auth session — deferring photo upload"),
+                countsAgainstBudget = false,
             )
         if (currentUid != payload.uploaderUserId) {
-            return OutboxKindHandler.Outcome.GiveUp(
+            return dropWithCleanup(
+                payload,
                 "Uploader mismatch: queued as ${payload.uploaderUserId}, current auth is $currentUid",
             )
         }
@@ -73,10 +79,11 @@ class PhotoUploadOutboxHandler @Inject constructor(
         }
         val size = file.length()
         if (size <= 0L) {
-            return OutboxKindHandler.Outcome.GiveUp("Local file empty: ${payload.localFilePath}")
+            return dropWithCleanup(payload, "Local file empty: ${payload.localFilePath}")
         }
         if (size > PhotoUploadPayload.MAX_FILE_SIZE_BYTES) {
-            return OutboxKindHandler.Outcome.GiveUp(
+            return dropWithCleanup(
+                payload,
                 "Local file too large: $size > ${PhotoUploadPayload.MAX_FILE_SIZE_BYTES}",
             )
         }
@@ -86,18 +93,19 @@ class PhotoUploadOutboxHandler @Inject constructor(
                 return if (it is IOException) {
                     OutboxKindHandler.Outcome.Retry(it)
                 } else {
-                    OutboxKindHandler.Outcome.GiveUp("Read failed: ${it.message}")
+                    dropWithCleanup(payload, "Read failed: ${it.message}")
                 }
             }
 
-        // Bound the upload to 60s. The supabase-kt client has no explicit
-        // timeout on storage.upload; a hung TLS connection on a flaky
-        // network would otherwise block this worker indefinitely (until
-        // poison-drop after the 5th attempt). 60s covers a 3 MB upload
-        // on a 2G-grade link with margin; faster networks finish in
-        // a second.
+        // Bound the upload. The supabase-kt client has no explicit timeout on
+        // storage.upload; a hung TLS connection on a flaky network would
+        // otherwise block this worker until the entry is poison-dropped. The
+        // budget scales with the file because the stash cap is 15 MB (the KYC
+        // bucket) — a fixed one-minute cap timed out every single attempt for
+        // a large PDF on a slow link, so re-attaching reproduced the failure
+        // forever. See [uploadTimeoutFor].
         val uploadResult = try {
-            withTimeout(UPLOAD_TIMEOUT_MS) {
+            withTimeout(uploadTimeoutFor(size)) {
                 storage.upload(
                     bucket = payload.bucket,
                     path = payload.objectPath,
@@ -113,7 +121,12 @@ class PhotoUploadOutboxHandler @Inject constructor(
             // Funnels UploadError → GiveUp, 4xx Supabase errors → GiveUp,
             // everything network-shaped → Retry. Keeps the validator
             // skip behaviour identical to the prior local isTransient().
-            return classifyOutboxError(uploadError)
+            val outcome = classifyOutboxError(uploadError)
+            return if (outcome is OutboxKindHandler.Outcome.GiveUp) {
+                dropWithCleanup(payload, outcome.reason)
+            } else {
+                outcome
+            }
         }
         val receipt = uploadResult.getOrThrow()
 
@@ -133,25 +146,63 @@ class PhotoUploadOutboxHandler @Inject constructor(
         // object, the only hash a later download can match) to a SEPARATE
         // outbox kind so registration retries never re-upload the photo and
         // a registration failure never masquerades as an upload failure.
-        // Enqueueing is a local DB write; if even that fails the upload still
-        // stands, so it is logged rather than allowed to fail this entry.
-        EvidenceRegisterPayload.forUploadedPhoto(payload, receipt, currentUid)?.let { evidence ->
-            runCatching {
+        //
+        // Queued before the stashed file is deleted, and nothing here is
+        // swallowed: a cancellation (sign-out, WorkManager stop) used to be
+        // absorbed, the file deleted and Success reported, which put the photo
+        // on the job with no ledger row at all and no record that it was
+        // missing. Re-uploading is cheap by comparison — the storage write
+        // upserts the same object path.
+        val evidence = EvidenceRegisterPayload.forUploadedPhoto(payload, receipt, currentUid)
+        if (evidence != null) {
+            try {
                 outbox.enqueue(
                     kind = com.equipseva.app.core.sync.OutboxKinds.EVIDENCE_REGISTER,
                     payloadJson = json.encodeToString(EvidenceRegisterPayload.serializer(), evidence),
                 )
-            }.onFailure { Log.w(TAG, "Could not queue evidence registration for ${payload.objectPath}", it) }
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (t: Throwable) {
+                Log.w(TAG, "Could not queue evidence registration for ${payload.objectPath}", t)
+                return OutboxKindHandler.Outcome.Retry(t)
+            }
         }
 
         // Clean up the stashed file — on failure just log; the outer worker
         // has no rollback for the remote upload and we don't want to keep
         // retrying a successful upload forever.
-        runCatching { file.delete() }.onFailure {
-            Log.w(TAG, "Failed to delete stashed file ${payload.localFilePath}", it)
-        }
+        deleteStash(payload.localFilePath)
 
         return OutboxKindHandler.Outcome.Success
+    }
+
+    /**
+     * The worker's poison drop deletes the row that is the only reference to
+     * the stashed file, so the bytes have to go with it.
+     */
+    override suspend fun onDropped(entry: OutboxEntryEntity) {
+        val payload = runCatching { json.decodeFromString<PhotoUploadPayload>(entry.payload) }
+            .getOrNull() ?: return
+        deleteStash(payload.localFilePath)
+    }
+
+    /**
+     * A permanent refusal for an entry whose stashed bytes nothing will ever
+     * read again. Dropping the row without this leaks the file: capture bytes
+     * for a repair photo, an identity document for a KYC upload.
+     */
+    private fun dropWithCleanup(
+        payload: PhotoUploadPayload,
+        reason: String,
+    ): OutboxKindHandler.Outcome {
+        deleteStash(payload.localFilePath)
+        return OutboxKindHandler.Outcome.GiveUp(reason)
+    }
+
+    private fun deleteStash(localFilePath: String) {
+        runCatching { File(localFilePath).delete() }.onFailure {
+            Log.w(TAG, "Failed to delete stashed file $localFilePath", it)
+        }
     }
 
     /**
@@ -234,6 +285,42 @@ class PhotoUploadOutboxHandler @Inject constructor(
 
     private companion object {
         const val TAG = "PhotoUploadOutbox"
-        const val UPLOAD_TIMEOUT_MS = 60_000L
     }
+}
+
+/** Floor for any upload, sized for a handshake plus a small file on a weak link. */
+private const val UPLOAD_TIMEOUT_BASE_MS = 30_000L
+
+/** Added per megabyte — roughly a 2G-grade transfer rate with margin. */
+private const val UPLOAD_TIMEOUT_PER_MB_MS = 20_000L
+
+/**
+ * Ceiling, kept well inside WorkManager's 10-minute execution budget so the
+ * rest of the batch still gets a turn before the runtime stops the worker.
+ */
+private const val UPLOAD_TIMEOUT_CEILING_MS = 420_000L
+
+private const val BYTES_PER_MB = 1024L * 1024L
+
+/** Guards the arithmetic against a nonsense size; the stash caps at 15 MB. */
+private const val UPLOAD_TIMEOUT_MAX_SCALED_MB = 64L
+
+/**
+ * Upload timeout for a file of [sizeBytes], rounded up to whole megabytes.
+ *
+ * A single 60-second cap could not carry the stash's own 15 MB limit (the KYC
+ * bucket's): a legitimately large identity document on a slow link timed out
+ * on every attempt, restarted from byte zero — Supabase Storage uploads here
+ * are not resumable — and was eventually dropped with "Couldn't upload a
+ * photo". Re-attaching the same document reproduced it exactly, so the user
+ * had no way through.
+ */
+internal fun uploadTimeoutFor(sizeBytes: Long): Long {
+    // Clamped before the arithmetic, not after: rounding a size near
+    // Long.MAX_VALUE up to whole megabytes overflows into a negative budget,
+    // and a negative timeout fails the upload instantly on every attempt.
+    val clamped = sizeBytes.coerceIn(0L, UPLOAD_TIMEOUT_MAX_SCALED_MB * BYTES_PER_MB)
+    val megabytes = (clamped + BYTES_PER_MB - 1) / BYTES_PER_MB
+    val budget = UPLOAD_TIMEOUT_BASE_MS + megabytes * UPLOAD_TIMEOUT_PER_MB_MS
+    return budget.coerceAtMost(UPLOAD_TIMEOUT_CEILING_MS)
 }

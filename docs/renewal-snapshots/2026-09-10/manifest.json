@@ -1,0 +1,97 @@
+{
+  "date": "2026-09-10",
+  "application_commit": "d140c19b20bb0a6e458df0f0a8b4f7b233b78876",
+  "scope": "Planning and audit snapshots plus compact author evidence; raw logs/generated artifacts retained locally",
+  "files": [
+    {
+      "path": "equipseva-agent-prompts.md",
+      "original_workspace_path": "outputs/equipseva-agent-prompts.md",
+      "bytes": 12616,
+      "sha256": "4ac3d55adadf2d941ad1028a495ef67fc3d094c957cf4329e0daa55e707b1ba7"
+    },
+    {
+      "path": "equipseva-audit-ledger.csv",
+      "original_workspace_path": "outputs/equipseva-audit-ledger.csv",
+      "bytes": 2878675,
+      "sha256": "727eca048d09164f1393b24d9113392bcda592a67426663750701b7a4498da72"
+    },
+    {
+      "path": "equipseva-auth-a1-review-ledger.md",
+      "original_workspace_path": "outputs/equipseva-auth-a1-review-ledger.md",
+      "bytes": 1840,
+      "sha256": "30062fd6834799078990685b34f42918adfa5eababdeb626785430e85c5a49af"
+    },
+    {
+      "path": "equipseva-execution-checkpoint.md",
+      "original_workspace_path": "outputs/equipseva-execution-checkpoint.md",
+      "bytes": 4632,
+      "sha256": "6fa9dd533a09d5eaddb9115774b3fe8c5599bdcb752375c76ebfcaf277114087"
+    },
+    {
+      "path": "equipseva-master-plan.md",
+      "original_workspace_path": "outputs/equipseva-master-plan.md",
+      "bytes": 44401,
+      "sha256": "e60a3a201d8ec352368b2c615abcebc335bb875d1c966e9c262b84068e9d78ef"
+    },
+    {
+      "path": "equipseva-route-inventory.md",
+      "original_workspace_path": "outputs/equipseva-route-inventory.md",
+      "bytes": 21662,
+      "sha256": "e12a3ea778722295ee427b8fee3b459687c7e366584cdbbf8a14eecfff80f6b8"
+    },
+    {
+      "path": "equipseva-status.md",
+      "original_workspace_path": "outputs/equipseva-status.md",
+      "bytes": 1088,
+      "sha256": "d96c86d2e69842ba51554afd058cd717517161753c958741faca1514a1f06443"
+    },
+    {
+      "path": "equipseva-verification-summary.json",
+      "original_workspace_path": "outputs/equipseva-verification-summary.json",
+      "bytes": 2224,
+      "sha256": "ada5b2351d5b5f96b7dc6d2d1049a78d1685fa06a1c69cd91b7fa600710f4c29"
+    },
+    {
+      "path": "equipseva-workflow-design-brief.md",
+      "original_workspace_path": "outputs/equipseva-workflow-design-brief.md",
+      "bytes": 13065,
+      "sha256": "1fa7d0c9ec57c54fe12cf92fb69cdc36c2aab3fb63820fe9fdd0405fbf7c5ad7"
+    },
+    {
+      "path": "history/equipseva-audit-ledger-20260909-efd1d90b.csv",
+      "original_workspace_path": "outputs/history/equipseva-audit-ledger-20260909-efd1d90b.csv",
+      "bytes": 2877366,
+      "sha256": "07bfbf59b2c70020e6c3a98d052f7c233de9d4ba4a30c29a20c854f071e7c6eb"
+    },
+    {
+      "path": "history/equipseva-execution-checkpoint-20260909-efd1d90b.md",
+      "original_workspace_path": "outputs/history/equipseva-execution-checkpoint-20260909-efd1d90b.md",
+      "bytes": 7678,
+      "sha256": "2f1bf8fab374c22985d37a01dbd0972f4727c211223af98d5a9fa0bc7bc27f05"
+    },
+    {
+      "path": "history/equipseva-status-20260909-efd1d90b.md",
+      "original_workspace_path": "outputs/history/equipseva-status-20260909-efd1d90b.md",
+      "bytes": 3718,
+      "sha256": "20d5b7a4420799f061504be6dca971cd2c79c2a1d25b81fc99cef69213d02256"
+    },
+    {
+      "path": "history/equipseva-verification-summary-20260909-efd1d90b.json",
+      "original_workspace_path": "outputs/history/equipseva-verification-summary-20260909-efd1d90b.json",
+      "bytes": 20708,
+      "sha256": "a82019234ea56984e13062a16ba81555adec31070293738ca81be68b42dd72a6"
+    },
+    {
+      "path": "evidence/auth-a1-author/final-result.json",
+      "original_workspace_path": "work/equipseva-android/work/verification/auth-a1-impl/final-result.json",
+      "bytes": 1706,
+      "sha256": "bea725dab61e42c6e75fe4ddba674a67c44d9aa91dc741e3e2cfebfe72625c55"
+    },
+    {
+      "path": "evidence/auth-a1-author/source-hashes.json",
+      "original_workspace_path": "work/equipseva-android/work/verification/auth-a1-impl/source-hashes.json",
+      "bytes": 547,
+      "sha256": "b8fe7bff2a6b9e8b7a17a89a43e6103f4ab01d037a6676df67e66bdca1491038"
+    }
+  ]
+}

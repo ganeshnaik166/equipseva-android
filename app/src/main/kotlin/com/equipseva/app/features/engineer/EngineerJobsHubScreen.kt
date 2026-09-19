@@ -77,7 +77,7 @@ class EngineerJobsHubViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val engineerRepository: EngineerRepository,
 ) : ViewModel() {
-    enum class Status { Loading, NotSignedIn, NotEngineer, Pending, Rejected, Verified }
+    enum class Status { Loading, NotSignedIn, NotEngineer, Pending, Rejected, Verified, Error }
 
     data class UiState(
         val status: Status = Status.Loading,
@@ -103,7 +103,9 @@ class EngineerJobsHubViewModel @Inject constructor(
             .onSuccess { eng ->
                 _state.update { it.copy(status = hubStatusFor(eng?.verificationStatus)) }
             }
-            .onFailure { _state.update { it.copy(status = Status.NotEngineer) } }
+            .onFailure {
+                _state.update { current -> current.copy(status = hubStatusOnFetchFailure(current.status)) }
+            }
     }
 
     internal companion object {
@@ -123,6 +125,30 @@ class EngineerJobsHubViewModel @Inject constructor(
             com.equipseva.app.core.data.engineers.VerificationStatus.Rejected -> Status.Rejected
             com.equipseva.app.core.data.engineers.VerificationStatus.Pending -> Status.Pending
         }
+
+        /**
+         * Status to render when the engineer-row fetch FAILS.
+         *
+         * Mapping every failure to [Status.NotEngineer] told a verified
+         * engineer to "become a verified engineer" and hid every hub tile.
+         * RefreshOnReturn re-runs the fetch on each resume, so a flaky
+         * connection repeated that downgrade and invited a pointless second
+         * KYC submission. A status we already loaded is better evidence than
+         * a request that failed — keep it, and only show the retry state when
+         * we never had one.
+         *
+         * NotSignedIn counts as never having had one: it is a session state,
+         * not a verification result. The collector sets it while signed out
+         * and fetches on the next sign-in, so keeping it through a failed
+         * first fetch showed a signed-in engineer the "Sign in" hero, with no
+         * retry anywhere on the screen and every resume landing back on it.
+         */
+        internal fun hubStatusOnFetchFailure(current: Status): Status =
+            if (current == Status.Loading || current == Status.NotSignedIn) {
+                Status.Error
+            } else {
+                current
+            }
     }
 
     /**
@@ -187,7 +213,8 @@ fun EngineerJobsHubScreen(
                 EngineerJobsHubViewModel.Status.NotSignedIn,
                 EngineerJobsHubViewModel.Status.NotEngineer,
                 EngineerJobsHubViewModel.Status.Pending,
-                EngineerJobsHubViewModel.Status.Rejected -> {
+                EngineerJobsHubViewModel.Status.Rejected,
+                EngineerJobsHubViewModel.Status.Error -> {
                     val copy = jobsHubOnboardingCopy(state.status)
                     if (copy != null) {
                         OnboardingHero(
@@ -198,6 +225,7 @@ fun EngineerJobsHubScreen(
                                 EngineerJobsHubViewModel.Status.NotSignedIn -> onSignIn
                                 EngineerJobsHubViewModel.Status.NotEngineer,
                                 EngineerJobsHubViewModel.Status.Rejected -> onSubmitKyc
+                                EngineerJobsHubViewModel.Status.Error -> viewModel::reload
                                 else -> { -> Unit }
                             },
                         )
@@ -441,6 +469,15 @@ internal fun jobsHubOnboardingCopy(
         title = "KYC rejected — try again",
         body = "Open KYC to see the rejection reason and resubmit. Most rejections are fixed by uploading a clearer photo.",
         ctaLabel = "Open KYC",
+    )
+    // Deliberately says nothing about verification: this state means we
+    // could not READ the engineer row, so any claim about KYC would be a
+    // guess — and the guess we used to make ("submit KYC") sent verified
+    // engineers to re-do work they had already done.
+    EngineerJobsHubViewModel.Status.Error -> JobsHubOnboardingCopy(
+        title = "Couldn't load your engineer profile",
+        body = "Check your connection and retry. Nothing about your account or verification has changed.",
+        ctaLabel = "Retry",
     )
     EngineerJobsHubViewModel.Status.Verified,
     EngineerJobsHubViewModel.Status.Loading -> null

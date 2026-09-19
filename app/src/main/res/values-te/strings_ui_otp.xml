@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="otp_code_label">%1$d అంకెల కోడ్</string>
+    <string name="otp_code_progress">%2$d అంకెలలో %1$d నమోదు చేశారు</string>
+    <string name="otp_sending_to">%1$s కు కోడ్ పంపుతున్నాము</string>
+    <string name="otp_close">మూసివేయండి</string>
+</resources>

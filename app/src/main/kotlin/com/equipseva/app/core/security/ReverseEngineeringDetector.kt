@@ -11,11 +11,13 @@ import android.util.Log
  * [DeviceIntegrityCheck] and [SignatureVerifier]; on its own this just
  * raises a yellow flag.
  *
- * Android 11+ requires <queries> in the manifest OR the QUERY_ALL_PACKAGES
- * permission to enumerate other apps. We rely on getPackageInfo for each
- * known package id and catch NameNotFoundException — this works without
- * the manifest tags because we're checking *specific* known packages, not
- * enumerating.
+ * Package-visibility filtering (targetSdk 30+) applies even to a lookup of
+ * one specific id: `getPackageInfo` throws NameNotFoundException for any
+ * package the manifest does not declare under <queries>, installed or not.
+ * Every id below therefore needs a matching `<package>` entry in
+ * AndroidManifest.xml, and that correspondence is pinned by
+ * ReverseEngineeringQueriesManifestTest — without it the scan reports a
+ * clean device no matter what is installed.
  */
 object ReverseEngineeringDetector {
 
@@ -24,8 +26,11 @@ object ReverseEngineeringDetector {
      * tamper with other apps. Avoid blanket emulator/root packages — those
      * are already covered by [DeviceIntegrityCheck]. Keep this list short
      * to minimise false positives.
+     *
+     * Adding an id here without the manifest `<queries>` entry makes it
+     * undetectable; the manifest test fails in that case.
      */
-    private val SUSPICIOUS_PACKAGES = listOf(
+    internal val SUSPICIOUS_PACKAGES = listOf(
         // Xposed / LSPosed framework family
         "de.robv.android.xposed.installer",
         "org.meowcat.edxposed.manager",

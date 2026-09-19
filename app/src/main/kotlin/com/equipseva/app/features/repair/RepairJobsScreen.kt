@@ -1,5 +1,7 @@
 package com.equipseva.app.features.repair
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -143,10 +145,15 @@ fun RepairJobsScreen(
                 subtitle = repairJobsFeedSubtitle(openJobs.size, state.radiusKm),
                 right = {
                     Box(
+                        // 48dp touch floor; the bell glyph stays 20dp.
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(48.dp)
                             .clip(RoundedCornerShape(999.dp))
-                            .clickable(onClick = onOpenNotifications),
+                            .clickable(
+                                onClickLabel = "Open notifications",
+                                role = androidx.compose.ui.semantics.Role.Button,
+                                onClick = onOpenNotifications,
+                            ),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
@@ -172,6 +179,7 @@ fun RepairJobsScreen(
             // ── Search + radius chips (single padded block per spec) ────
             Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp)) {
                 EsField(
+                    palette = LightEsColors,
                     value = state.query,
                     onChange = viewModel::onQueryChange,
                     placeholder = "Search by issue, brand, model",

@@ -61,7 +61,7 @@ import kotlinx.coroutines.launch
 //     and Messages elevating from Home card + Profile row to a tab.
 //   • Engineer → 4 tabs (Home / Jobs / Earnings / Profile) — Earnings
 //     graduates from a Profile row to a top-level destination.
-//   • Anonymous / unknown role → engineer 4-tab default.
+//   • Unknown / deferred roles expose no tabs; root requires role confirmation.
 @Composable
 private fun tabsForRole(
     role: com.equipseva.app.features.auth.UserRole?,
@@ -99,8 +99,8 @@ private fun tabsForRole(
  * ImageVector dependencies on the full EsBottomNavItem.
  *
  *   * Hospital → Home / Bookings / Messages / Profile (4 tabs)
- *   * Engineer (and other / null roles) → Home / Jobs / Earnings /
- *     Profile (4 tabs)
+ *   * Engineer → Home / Jobs / Earnings / Profile (4 tabs)
+ *   * Other / null roles → no tabs
  *
  * The Jobs tab routes to ENGINEER_JOBS_HUB (the chooser landing), not
  * the raw REPAIR feed — pinned because the hub itself routes into the
@@ -111,8 +111,9 @@ internal fun tabRoutesForRole(
 ): List<String> = when (role) {
     com.equipseva.app.features.auth.UserRole.HOSPITAL ->
         listOf(Routes.HOME, Routes.HOSPITAL_ACTIVE_JOBS, Routes.CONVERSATIONS, Routes.PROFILE)
-    else ->
+    com.equipseva.app.features.auth.UserRole.ENGINEER ->
         listOf(Routes.HOME, Routes.ENGINEER_JOBS_HUB, Routes.EARNINGS, Routes.PROFILE)
+    else -> emptyList()
 }
 
 /** Routes that take over the screen and should hide the bottom navigation bar. */
@@ -164,6 +165,8 @@ internal val fullScreenRoutePrefixes = listOf(
 
 @Composable
 fun MainNavGraph(
+    validatedRole: com.equipseva.app.features.auth.UserRole,
+    onProfileSaved: () -> Unit,
     showTour: Boolean = false,
     onSignIn: () -> Unit = {},
     deepLinkHost: DeepLinkHost = hiltViewModel<DeepLinkHost>(),
@@ -233,8 +236,7 @@ fun MainNavGraph(
 
     val isFullScreenRoute = isFullScreenRoute(currentRoute)
 
-    val activeRoleKey by deepLinkHost.activeRole.collectAsStateWithLifecycle(initialValue = null)
-    val activeRole = activeRoleKey?.let { com.equipseva.app.features.auth.UserRole.fromKey(it) }
+    val activeRole = validatedRole
     val visibleTabs = tabsForRole(activeRole)
     val engineerStatus by deepLinkHost.engineerStatus.collectAsStateWithLifecycle()
 
@@ -248,8 +250,7 @@ fun MainNavGraph(
                         ?.route,
                     onSelect = { route ->
                         // Jobs tab on the engineer-side bottom nav is gated
-                        // by KYC. activeRole may not be set on signup yet,
-                        // so we trigger off the route + engineerStatus alone.
+                        // by KYC after root validates the engineer role.
                         val isEngineerJobsTab = route == Routes.ENGINEER_JOBS_HUB
                         val gateMsg: String? = if (isEngineerJobsTab) {
                             when (engineerStatus) {
@@ -321,7 +322,11 @@ fun MainNavGraph(
                 //   Engineer: Today's jobs / Active work / Earnings
                 //   Founder gets the admin tile in addition.
                 com.equipseva.app.features.home.HomeHubScreen(
+                    validatedRole = validatedRole,
                     onOpenBookRepair = { navController.navigate(Routes.ENGINEER_DIRECTORY) },
+                    onRequestService = {
+                        navController.navigate(Routes.REQUEST_SERVICE) { launchSingleTop = true }
+                    },
                     onOpenEngineerJobs = { navController.navigate(Routes.ENGINEER_JOBS_HUB) },
                     onOpenFounder = { navController.navigate(Routes.FOUNDER_DASHBOARD) },
                     onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
@@ -345,10 +350,8 @@ fun MainNavGraph(
             composable(Routes.REPAIR) {
                 // Role-dispatched Repair tab. Engineers see the available-jobs
                 // feed; hospital users land on the active-requests list with a
-                // CTA to raise a new request; everyone else gets the engineer
-                // feed by default (signed-out users land here too).
-                val activeRoleKey by deepLinkHost.activeRole.collectAsStateWithLifecycle(initialValue = null)
-                val role = activeRoleKey?.let { com.equipseva.app.features.auth.UserRole.fromKey(it) }
+                // CTA to raise a new request. Unsupported roles render no feed.
+                val role = validatedRole
                 when (role) {
                     com.equipseva.app.features.auth.UserRole.HOSPITAL ->
                         HospitalActiveJobsScreen(
@@ -358,7 +361,7 @@ fun MainNavGraph(
                             },
                             onRequestRepair = { navController.navigate(Routes.REQUEST_SERVICE) },
                         )
-                    else ->
+                    com.equipseva.app.features.auth.UserRole.ENGINEER ->
                         RepairJobsScreen(
                             onJobClick = { jobId ->
                                 navController.navigate(Routes.repairJobDetailRoute(jobId))
@@ -366,6 +369,7 @@ fun MainNavGraph(
                             onTuneProfile = { navController.navigate(Routes.ENGINEER_PROFILE) },
                             onViewEarnings = { navController.navigate(Routes.EARNINGS) },
                         )
+                    else -> Unit
                 }
             }
             composable(
@@ -666,12 +670,7 @@ fun MainNavGraph(
                         }
                     },
                     onSignIn = onSignIn,
-                    onSwitchService = {
-                        navController.navigate(Routes.HOME) {
-                            popUpTo(Routes.HOME) { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    },
+                    onSwitchService = onProfileSaved,
                 )
             }
             composable(Routes.NOTIFICATIONS) {

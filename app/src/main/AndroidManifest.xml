@@ -21,6 +21,42 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />
         </intent>
+
+        <!-- Package-visibility filtering (targetSdk 30+) makes
+             getPackageInfo throw NameNotFoundException for ANY package not
+             named here, installed or not — so without these declarations
+             ReverseEngineeringDetector reported "clean" on every device and
+             the tamper block could never fire. One entry per
+             ReverseEngineeringDetector.SUSPICIOUS_PACKAGES, pinned by
+             ReverseEngineeringQueriesManifestTest; QUERY_ALL_PACKAGES is
+             deliberately avoided (Play policy review, and we only need
+             these specific ids). -->
+        <package android:name="de.robv.android.xposed.installer" />
+        <package android:name="org.meowcat.edxposed.manager" />
+        <package android:name="org.lsposed.manager" />
+        <package android:name="io.github.lsposed.manager" />
+        <package android:name="org.lsposed.lspatch" />
+        <package android:name="com.topjohnwu.magisk" />
+        <package android:name="com.kingoapp.apk" />
+        <package android:name="com.kingroot.kinguser" />
+        <package android:name="re.frida.server" />
+        <package android:name="com.saurik.substrate" />
+        <package android:name="brut.apktool" />
+        <package android:name="com.dryrum.apktoolm" />
+        <package android:name="com.guoshi.httpcanary" />
+        <package android:name="app.greyshirts.sslcapture" />
+        <package android:name="com.guoshi.httpcanary.premium" />
+        <package android:name="jp.co.taosoftware.android.packetcapture" />
+        <package android:name="com.chelpus.lackypatch" />
+        <package android:name="com.dimonvideo.luckypatcher" />
+        <package android:name="com.forpda.lp" />
+        <package android:name="com.android.vendin" />
+        <package android:name="com.cih.gamecih" />
+        <package android:name="com.cih.gamecih2" />
+        <package android:name="com.cih.game_cih" />
+        <package android:name="cn.maocai.gamekiller" />
+        <package android:name="cn.maocai.gamemaster" />
+        <package android:name="com.android.kelizi.lcsdk" />
     </queries>
 
     <application

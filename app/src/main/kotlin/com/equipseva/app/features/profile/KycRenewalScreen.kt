@@ -64,6 +64,10 @@ class KycRenewalViewModel @Inject constructor(
         val renewal: KycRenewalRepository.KycRenewal? = null,
         val busyItem: String? = null,
         val starting: Boolean = false,
+        // Separate from `error`, which the screen only renders when there is
+        // no renewal loaded: an action failure written there was invisible,
+        // so a refused "Start renewal" looked like a dead button.
+        val actionError: String? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -85,20 +89,28 @@ class KycRenewalViewModel @Inject constructor(
     }
 
     fun startRenewal(renewalId: String) {
-        _state.update { it.copy(starting = true) }
+        if (_state.value.starting) return
+        _state.update { it.copy(starting = true, actionError = null) }
         viewModelScope.launch {
             repo.startRenewal(renewalId)
                 .onSuccess { _state.update { it.copy(starting = false) }; refresh() }
-                .onFailure { e -> _state.update { it.copy(starting = false, error = e.toUserMessage()) } }
+                .onFailure { e ->
+                    val msg = e.toUserMessage()
+                    _state.update { it.copy(starting = false, actionError = msg) }
+                }
         }
     }
 
     fun markItemRefreshed(renewalId: String, item: String) {
-        _state.update { it.copy(busyItem = item) }
+        if (_state.value.busyItem != null) return
+        _state.update { it.copy(busyItem = item, actionError = null) }
         viewModelScope.launch {
             repo.markItemRefreshed(renewalId, item)
                 .onSuccess { _state.update { it.copy(busyItem = null) }; refresh() }
-                .onFailure { e -> _state.update { it.copy(busyItem = null, error = e.toUserMessage()) } }
+                .onFailure { e ->
+                    val msg = e.toUserMessage()
+                    _state.update { it.copy(busyItem = null, actionError = msg) }
+                }
         }
     }
 }
@@ -113,6 +125,7 @@ fun KycRenewalScreen(
     Box(Modifier.fillMaxSize().background(PaperDefault)) {
         Column(Modifier.fillMaxSize()) {
             EsTopBar(title = stringResource(R.string.kyc_renewal_title), onBack = onBack)
+            com.equipseva.app.designsystem.components.ErrorBanner(message = state.actionError)
 
             when {
                 state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

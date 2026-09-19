@@ -15,7 +15,7 @@ class EarningsRowHelpersTest {
     @Test fun `paid with relative label reads Paid Nd ago`() {
         assertEquals(
             "Paid 2d ago",
-            transactionRowTimeLine(paid = true, relativeAgoLabel = "2d", statusDisplayName = "Completed"),
+            transactionRowTimeLine(paid = true, relativeLabel = "2d", statusDisplayName = "Completed"),
         )
     }
 
@@ -24,21 +24,21 @@ class EarningsRowHelpersTest {
         // said "Paid" would mislead on pending bids.
         assertEquals(
             "Quoted 3h ago",
-            transactionRowTimeLine(paid = false, relativeAgoLabel = "3h", statusDisplayName = "Awaiting"),
+            transactionRowTimeLine(paid = false, relativeLabel = "3h", statusDisplayName = "Awaiting"),
         )
     }
 
     @Test fun `null relative falls back to status display name`() {
         assertEquals(
             "Awaiting hospital",
-            transactionRowTimeLine(paid = false, relativeAgoLabel = null, statusDisplayName = "Awaiting hospital"),
+            transactionRowTimeLine(paid = false, relativeLabel = null, statusDisplayName = "Awaiting hospital"),
         )
     }
 
     @Test fun `null relative + null status returns empty (row stays mounted but invisible)`() {
         assertEquals(
             "",
-            transactionRowTimeLine(paid = false, relativeAgoLabel = null, statusDisplayName = null),
+            transactionRowTimeLine(paid = false, relativeLabel = null, statusDisplayName = null),
         )
     }
 
@@ -46,7 +46,7 @@ class EarningsRowHelpersTest {
         // Pin gate ordering — relative > status when both present.
         assertEquals(
             "Paid 1d ago",
-            transactionRowTimeLine(paid = true, relativeAgoLabel = "1d", statusDisplayName = "Completed"),
+            transactionRowTimeLine(paid = true, relativeLabel = "1d", statusDisplayName = "Completed"),
         )
     }
 
@@ -157,5 +157,18 @@ class EarningsRowHelpersTest {
     @Test fun `middle dot is U+00B7 not ASCII period`() {
         val out = selfRankSubtitle(1L, 1.0)
         assertTrue(out.contains('·'))
+    }
+
+    @Test fun `a sub-minute row reads just now, not now ago`() {
+        // The sub-minute relative label is the whole word "now", so a
+        // hand-appended suffix put "Paid now ago" on the engineer's ledger.
+        assertEquals(
+            "Paid just now",
+            transactionRowTimeLine(paid = true, relativeLabel = "now", statusDisplayName = "Completed"),
+        )
+        assertEquals(
+            "Quoted just now",
+            transactionRowTimeLine(paid = false, relativeLabel = "now", statusDisplayName = "Awaiting"),
+        )
     }
 }

@@ -147,6 +147,30 @@ class EscrowStatusCardCopyTest {
         assertTrue("got: ${copy.subtitle}", copy.subtitle.startsWith("Pay "))
     }
 
+    @Test fun `cancelled escrow tells the hospital nothing was charged`() {
+        // Not a hypothetical future status: the escrow-on-job-cancel
+        // trigger stamps 'cancelled' on every pending escrow the moment
+        // a hospital cancels an Assigned job. Before this branch the
+        // card read "Escrow cancelled" with an EMPTY subtitle on a
+        // routine money path — the one place a blank line reads as
+        // "something went wrong with my payment".
+        val copy = escrowStatusCardCopy(row("cancelled"), isHospital = true)
+        assertEquals("Escrow cancelled", copy.label)
+        assertTrue("got: ${copy.subtitle}", copy.subtitle.isNotBlank())
+        assertTrue(copy.subtitle.contains("nothing was charged"))
+    }
+
+    @Test fun `cancelled escrow tells the engineer who cancelled`() {
+        // Role split, same as Released / Awaiting payment: "nothing was
+        // charged" is meaningless to the engineer, who needs to know
+        // the job died before funding rather than that their payout
+        // failed.
+        val copy = escrowStatusCardCopy(row("cancelled"), isHospital = false)
+        assertEquals("Escrow cancelled", copy.label)
+        assertTrue("got: ${copy.subtitle}", copy.subtitle.contains("hospital cancelled"))
+        assertTrue("no second-person charge copy on the engineer view", !copy.subtitle.contains("charged"))
+    }
+
     @Test fun `held as engineer reads auto-released to you, keeping the 48h promise`() {
         val copy = escrowStatusCardCopy(row("held"), isHospital = false)
         assertEquals("Funds in escrow", copy.label)

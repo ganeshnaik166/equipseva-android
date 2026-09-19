@@ -2,14 +2,13 @@ package com.equipseva.app.designsystem.theme
 
 import androidx.compose.ui.unit.dp
 
-// EquipSeva v1 radius + shadow tokens, ported from tokens.css.
-// Spacing already lives in Spacing.kt — no new keys needed.
+// Compatibility names for the approved badge / input / card / sheet geometry.
 
 object EsRadius {
-    val Sm   = 4.dp    // inputs, chips
-    val Md   = 8.dp    // buttons, cards
-    val Lg   = 12.dp   // hero cards
-    val Xl   = 16.dp   // modals
+    val Sm   = 8.dp    // badges
+    val Md   = 16.dp   // inputs
+    val Lg   = 24.dp   // cards
+    val Xl   = 28.dp   // hero cards, modals
     val Pill = 999.dp  // badges + pill-shaped chips
 }
 
@@ -20,7 +19,7 @@ object EsRadius {
 // SevaGlow border (Modifier.border) rather than a real shadow.
 object EsShadow {
     val Card    = 2.dp
-    val CardLg  = 8.dp
+    val CardLg  = 2.dp
     val Pressed = 0.dp
     // ShadowFocus is intentionally omitted — use Modifier.border(2.dp,
     // BorderFocus, shape) at the focused element instead.

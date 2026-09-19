@@ -1,0 +1,232 @@
+[
+  {
+    "path": "app/src/main/kotlin/com/equipseva/app/features/auth/SessionViewModel.kt",
+    "sha256": "7a55b0849525c10caf514dd751e6a69031520469d61a4047d5aaadd4734c4a74",
+    "review": "full source read",
+    "range": [
+      1,
+      462
+    ],
+    "authoredOrModifiedByQa": false
+  },
+  {
+    "path": "app/src/main/kotlin/com/equipseva/app/features/auth/SessionPresentation.kt",
+    "sha256": "9e6961681d0a2abda0ffe2c745b9238de25425fb4caf242b7c0ec65725a808d7",
+    "review": "full source read",
+    "range": [
+      1,
+      16
+    ],
+    "authoredOrModifiedByQa": false
+  },
+  {
+    "path": "app/src/main/kotlin/com/equipseva/app/navigation/RootSessionHost.kt",
+    "sha256": "47788fa587becdd8886028037c2f143da6479ab5ad903fd31f771990877f68c6",
+    "review": "full source read",
+    "range": [
+      1,
+      194
+    ],
+    "authoredOrModifiedByQa": false
+  },
+  {
+    "path": "app/src/main/kotlin/com/equipseva/app/navigation/AppNavGraph.kt",
+    "sha256": "7e673d91374ee98b0909023a07b8cb3162585cc80f4164af95df5316b58e9a1c",
+    "review": "full source read",
+    "range": [
+      1,
+      168
+    ],
+    "authoredOrModifiedByQa": false
+  },
+  {
+    "path": "app/src/main/kotlin/com/equipseva/app/navigation/AuthNavGraph.kt",
+    "sha256": "422c1e51a0f473f200bbd64a0a9eb626d232fbb80e82775368a0492a75728459",
+    "review": "full source read",
+    "range": [
+      1,
+      74
+    ],
+    "authoredOrModifiedByQa": false
+  },
+  {
+    "path": "app/src/main/kotlin/com/equipseva/app/core/data/profile/ProfileInvalidations.kt",
+    "sha256": "8cae4a18d14c497c4a3c56302fd0e2f7ce8cf9bb1e8f89972189f3c5f8fd5907",
+    "review": "full source read",
+    "range": [
+      1,
+      20
+    ],
+    "authoredOrModifiedByQa": false
+  },
+  {
+    "path": "app/src/main/kotlin/com/equipseva/app/features/auth/RoleSelectViewModel.kt",
+    "sha256": "31257757cb21708d1941b8faa29c6eb096b64cffe85203a3c3220693f234737b",
+    "review": "full source read",
+    "range": [
+      1,
+      221
+    ],
+    "authoredOrModifiedByQa": false
+  },
+  {
+    "path": "app/src/main/kotlin/com/equipseva/app/features/auth/RoleSelectScreen.kt",
+    "sha256": "ba7102f4d2e769394be92b83a93070c1473004b2a169e23c94bf23106d9e6fe8",
+    "review": "full source read",
+    "range": [
+      1,
+      299
+    ],
+    "authoredOrModifiedByQa": false
+  },
+  {
+    "path": "app/src/test/kotlin/com/equipseva/app/features/auth/RoleSelectViewModelTest.kt",
+    "sha256": "415c531f5e8d7e318aa01731056f6f8d32f4ef3a6d0216ebd9d0585e126a59a2",
+    "review": "full source read",
+    "range": [
+      1,
+      433
+    ],
+    "authoredOrModifiedByQa": false
+  },
+  {
+    "path": "app/src/test/kotlin/com/equipseva/app/features/auth/RoleSelectScreenUiTest.kt",
+    "sha256": "72c3555b197b2cde5738aa235932c3a99311f6e20b207ca82c4f686d42589435",
+    "review": "full source read",
+    "range": [
+      1,
+      342
+    ],
+    "authoredOrModifiedByQa": false
+  },
+  {
+    "path": "app/src/test/kotlin/com/equipseva/app/navigation/SessionRecoveryScreenUiTest.kt",
+    "sha256": "7d725178a04bb48a6eb354c0f82d153e9e5486bd1f4810e1b4bd0598206b4624",
+    "review": "full source read",
+    "range": [
+      1,
+      102
+    ],
+    "authoredOrModifiedByQa": false
+  },
+  {
+    "path": "app/src/test/kotlin/com/equipseva/app/navigation/RootSessionHostTest.kt",
+    "sha256": "be2de81df7d9e4625af0ab30106a8cf4af9b5687a4a1bc1388aa77748cff186c",
+    "review": "full source read",
+    "range": [
+      1,
+      757
+    ],
+    "authoredOrModifiedByQa": true
+  },
+  {
+    "path": "app/src/test/kotlin/com/equipseva/app/navigation/RootDestinationTest.kt",
+    "sha256": "1ecf0bf2f14c5cb8d0784670cccfc6a04344db7f82d55c89dfc0b140f326853a",
+    "review": "full source read",
+    "range": [
+      1,
+      78
+    ],
+    "authoredOrModifiedByQa": true
+  },
+  {
+    "path": "app/src/test/kotlin/com/equipseva/app/navigation/TabRoutesForRoleTest.kt",
+    "sha256": "2df5f09e030a84846cb443c1c48d7f194fb9b0e0c51c96d4e9f26af4127cfccf",
+    "review": "full source read",
+    "range": [
+      1,
+      98
+    ],
+    "authoredOrModifiedByQa": true
+  },
+  {
+    "path": "app/src/test/kotlin/com/equipseva/app/testing/IsolatedUiPackageParser.kt",
+    "sha256": "550177810c9ccbe25eceb48ace7cff5f4e10be025c3c59d66df40b18958659f9",
+    "review": "full source read",
+    "range": [
+      1,
+      106
+    ],
+    "authoredOrModifiedByQa": true
+  },
+  {
+    "path": "app/src/test/resources/isolated_ui_manifest.xml",
+    "sha256": "2fb6cee063197b55426e2f04ea784a8dcc49b8e4fe6463970368661732409e41",
+    "review": "full source read",
+    "range": [
+      1,
+      5
+    ],
+    "authoredOrModifiedByQa": true
+  },
+  {
+    "path": "app/src/test/kotlin/com/equipseva/app/core/data/profile/ProfileInvalidationsTest.kt",
+    "sha256": "0c678d28b36a11b8b868bb154f9765d5c7ffb1a75d9c13489f1b68b2ca80402e",
+    "review": "full source read",
+    "range": [
+      1,
+      61
+    ],
+    "authoredOrModifiedByQa": false
+  },
+  {
+    "path": "app/src/main/res/values/role_select.xml",
+    "sha256": "ca2b85e754d5a126f529f9afe9e1244b44b2ab4962a2e332beaf6c077988e6f0",
+    "review": "full source read",
+    "range": [
+      1,
+      19
+    ],
+    "authoredOrModifiedByQa": false
+  },
+  {
+    "path": "app/src/main/res/values-hi/role_select.xml",
+    "sha256": "fd3c42f3dc24dae02f11868b3d46244578bbc10bee1e883fb82f69d33f8dfece",
+    "review": "full source read",
+    "range": [
+      1,
+      19
+    ],
+    "authoredOrModifiedByQa": false
+  },
+  {
+    "path": "app/src/main/res/values-te/role_select.xml",
+    "sha256": "8e9a8b47dea63234146a54e6847fc3e31385f8a2dcf6e5ca73dab6af75bd6a9c",
+    "review": "full source read",
+    "range": [
+      1,
+      19
+    ],
+    "authoredOrModifiedByQa": false
+  },
+  {
+    "path": "app/src/main/res/values/root_session.xml",
+    "sha256": "386165ceeb60be04a521d0061ff06173be5af9304d15e008837ae4b6f348a25f",
+    "review": "full source read",
+    "range": [
+      1,
+      8
+    ],
+    "authoredOrModifiedByQa": false
+  },
+  {
+    "path": "app/src/main/res/values-hi/root_session.xml",
+    "sha256": "ef083e41e7fe295185cb4eba9211ee98cbc8df7af5ae9838f8ac43760ba80123",
+    "review": "full source read",
+    "range": [
+      1,
+      8
+    ],
+    "authoredOrModifiedByQa": false
+  },
+  {
+    "path": "app/src/main/res/values-te/root_session.xml",
+    "sha256": "0a6c83696033ebb8917a2818358f5135d470fafd0bc726ad80ee91e7cc437d94",
+    "review": "full source read",
+    "range": [
+      1,
+      8
+    ],
+    "authoredOrModifiedByQa": false
+  }
+]

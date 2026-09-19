@@ -10,17 +10,18 @@ import java.io.IOException
  * Sorts an exception into `Retry` vs `GiveUp`. Every outbox handler
  * funnels its `Result.onFailure` through here so a permanent error
  * (RLS 403, 4xx validation, malformed payload) is dropped immediately
- * instead of consuming the worker's MAX_ATTEMPTS budget — that budget
+ * instead of consuming the worker's attempts budget — that budget
  * exists to ride out transient outages, not to repeatedly attempt
  * writes the server will never accept.
  *
  * Heuristics, conservative-by-default:
  *  - IOException / HttpRequestException → Retry (network outage).
  *  - RestException 4xx → GiveUp (auth, RLS, missing record, validator
- *    failure — none of these clear themselves over time). Two
+ *    failure — none of these clear themselves over time). Three
  *    exceptions: 408 Request Timeout and 429 Too Many Requests are
  *    transient by definition; treat as Retry so a rate-limited /
- *    timed-out write isn't poison-dropped on the first attempt.
+ *    timed-out write isn't poison-dropped on the first attempt. 401 is
+ *    an expired access token, which the client clears by refreshing.
  *  - RestException 5xx → Retry (server temporarily off).
  *  - SerializationException → GiveUp (malformed payload — re-encoding
  *    would change the row, which the worker isn't allowed to do).
@@ -29,7 +30,7 @@ import java.io.IOException
  *    (e.g. PhotoUploadOutboxHandler hitting a vanished local file, a
  *    null required field, a payload whose `engineerUserId` no longer
  *    matches the signed-in user). Retrying that won't recover.
- *  - Default → Retry. The MAX_ATTEMPTS cap will eventually drop a
+ *  - Default → Retry. The attempts cap will eventually drop a
  *    truly stuck row to the poison-drop notification path.
  */
 fun classifyOutboxError(error: Throwable): OutboxKindHandler.Outcome = when (error) {
@@ -41,6 +42,14 @@ fun classifyOutboxError(error: Throwable): OutboxKindHandler.Outcome = when (err
         // Treat as Retry so they don't burn the attempts budget.
         error.statusCode == 408 || error.statusCode == 429 ->
             OutboxKindHandler.Outcome.Retry(error)
+        // 401 is PostgREST's PGRST301 "JWT expired" — precisely the state a
+        // background drain is in after the app sat idle past the access
+        // token's lifetime. The next attempt runs behind a refreshed token
+        // and succeeds, so dropping the row here deleted a queued message the
+        // user had been told was on its way. The permanent case (a revoked or
+        // rejected refresh token) surfaces as 403 once the refresh itself
+        // fails, which still gives up.
+        error.statusCode == 401 -> OutboxKindHandler.Outcome.Retry(error)
         error.statusCode in 400..499 -> OutboxKindHandler.Outcome.GiveUp(
             "Permanent ${error.statusCode}: ${error.message ?: error::class.simpleName}",
         )

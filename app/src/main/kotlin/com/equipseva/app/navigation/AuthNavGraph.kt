@@ -4,6 +4,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
+import androidx.compose.runtime.LaunchedEffect
 import com.equipseva.app.features.auth.ForgotPasswordScreen
 import com.equipseva.app.features.auth.SignInScreen
 import com.equipseva.app.features.auth.SignUpScreen
@@ -12,13 +13,13 @@ import com.equipseva.app.features.auth.WelcomeScreen
 /**
  * Auth sub-graph wired into the root NavHost when the session is signed-out.
  * Email + password is the primary path: Welcome → SignIn → (Forgot password
- * recovery) or SignUp → land on the main graph (the SessionViewModel observes
- * the new auth state and the host swaps graphs). Google sign-in is triggered
+ * recovery) or SignUp → server-profile validation and required setup. Google sign-in is triggered
  * inline from SignInScreen and reaches the same SignedIn state.
  */
 fun NavGraphBuilder.authNavGraph(
     navController: NavHostController,
     showSnackbar: (String) -> Unit,
+    onProfileSaved: () -> Unit = {},
 ) {
     navigation(
         route = Routes.AUTH_GRAPH,
@@ -43,34 +44,31 @@ fun NavGraphBuilder.authNavGraph(
                 onShowMessage = showSnackbar,
                 onBack = { navController.popBackStack() },
                 onSignIn = {
-                    navController.popBackStack(Routes.AUTH_SIGN_IN, inclusive = false)
-                },
-                // v0.3.4 — hospitals route into the phone-onboarding gate
-                // immediately after a successful signup so AppNavGraph's
-                // session observer doesn't swap to Home before phone capture.
-                onNavigateToPhoneOnboarding = {
-                    navController.navigate(Routes.HOSPITAL_PHONE_ONBOARDING) {
-                        launchSingleTop = true
+                    if (!navController.popBackStack(Routes.AUTH_SIGN_IN, inclusive = false)) {
+                        navController.navigate(Routes.AUTH_SIGN_IN) { launchSingleTop = true }
                     }
                 },
+                // Child effects only request an owned server refresh. Root
+                // selects role confirmation, complete onboarding, or Main.
+                onNavigateToPhoneOnboarding = onProfileSaved,
+                onProfileSaved = onProfileSaved,
             )
         }
         composable(Routes.AUTH_FORGOT_PASSWORD) {
             ForgotPasswordScreen(onBack = { navController.popBackStack() })
         }
-        // v0.3.4 — post-signup phone collection for hospitals. Entered
-        // after RoleSelectScreen when hospital role is selected; routes
-        // to main on successful save (AppNavGraph AuthHostInline observes
-        // the session transition and calls onAuthSuccess to swap graphs).
-        composable(Routes.HOSPITAL_PHONE_ONBOARDING) {
-            com.equipseva.app.features.onboarding.HospitalPhoneOnboardingScreen(
-                onDone = {
-                    // Pop the entire auth graph; AppNavGraph's session
-                    // transition observer will route us to the main graph.
-                    navController.popBackStack(Routes.AUTH_GRAPH, inclusive = true)
-                },
-                onShowMessage = showSnackbar,
-            )
+        legacyPhoneAuthRedirect(navController)
+    }
+}
+
+/** Restoring an old signed-out graph must never instantiate authenticated setup. */
+internal fun NavGraphBuilder.legacyPhoneAuthRedirect(navController: NavHostController) {
+    composable(Routes.HOSPITAL_PHONE_ONBOARDING) {
+        LaunchedEffect(Unit) {
+            navController.navigate(Routes.AUTH_SIGN_IN) {
+                popUpTo(Routes.AUTH_GRAPH) { inclusive = false }
+                launchSingleTop = true
+            }
         }
     }
 }

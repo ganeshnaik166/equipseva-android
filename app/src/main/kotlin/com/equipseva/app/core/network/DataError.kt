@@ -99,8 +99,21 @@ private fun friendlyRestMessage(ex: RestException): String? {
             "That address is no longer saved. Refresh your address list and try again."
         // 42501 = insufficient_privilege; also matches the literal phrase
         // Postgres returns when column-level grants block a SELECT.
+        // Most 42501 raises reachable from the client are NOT about KYC ("only
+        // the hospital can cancel a job", "not a party to this contract", an RLS
+        // USING failure…); telling every one of those users to finish KYC sent
+        // verified engineers chasing a verification they already had. Keep the
+        // KYC nudge only when the server actually mentions verification, pass a
+        // human server sentence through, else a neutral permission line.
         raw.contains("42501") || raw.contains("permission denied", ignoreCase = true) ->
-            "You don't have access to this yet. Try again after KYC is verified."
+            if (raw.contains("kyc", ignoreCase = true) || raw.contains("verif", ignoreCase = true)) {
+                "You don't have access to this yet. Try again after KYC is verified."
+            } else {
+                // Never echo the raw denial: it is either "permission denied for
+                // table X" (schema leak) or a sentence the earlier matchers would
+                // already have claimed if it had friendly copy.
+                "You don't have permission to do that."
+            }
         raw.contains("PGRST116", ignoreCase = true) || raw.contains("not found", ignoreCase = true) ->
             "We couldn't find that record."
         // Phone-uniqueness has its own constraint name; surface specific

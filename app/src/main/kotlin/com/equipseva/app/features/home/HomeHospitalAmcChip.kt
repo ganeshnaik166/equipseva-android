@@ -24,6 +24,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.SevaDanger500
 import com.equipseva.app.designsystem.theme.SevaGreen700
@@ -90,12 +91,7 @@ fun HomeHospitalAmcChip(
         else -> SevaInk900
     }
 
-    val expiryLine = when {
-        daysLeft == null -> top.endDate
-        daysLeft <= 0 -> "expires today"
-        daysLeft <= 30 -> "expires in $daysLeft days"
-        else -> top.endDate
-    }
+    val expiryLine = amcChipExpiryLine(daysLeft, top.endDate)
 
     Row(
         modifier = Modifier
@@ -120,6 +116,27 @@ fun HomeHospitalAmcChip(
             color = SevaInk900,
         )
     }
+}
+
+/**
+ * Expiry phrase on the hospital home AMC chip.
+ *
+ * Critical pins:
+ *  - A negative [daysLeft] is an already-expired contract. It used to fall
+ *    into the `<= 0` branch and read "expires today", which told the hospital
+ *    its cover was still live on the day it had already lapsed.
+ *  - The far branch and the unparseable branch render a formatted date;
+ *    the raw server value ("2027-03-05") leaked the wire format into the UI.
+ *  - Singular "1 day" — "expires in 1 days" is the classic plural slip on the
+ *    last day before the danger tone takes over.
+ */
+internal fun amcChipExpiryLine(daysLeft: Long?, endDate: String): String = when {
+    daysLeft == null -> prettyDate(endDate)
+    daysLeft < 0L -> "expired on ${prettyDate(endDate)}"
+    daysLeft == 0L -> "expires today"
+    daysLeft == 1L -> "expires in 1 day"
+    daysLeft <= 30L -> "expires in $daysLeft days"
+    else -> "expires ${prettyDate(endDate)}"
 }
 
 private fun daysUntil(isoDate: String): Long? = try {

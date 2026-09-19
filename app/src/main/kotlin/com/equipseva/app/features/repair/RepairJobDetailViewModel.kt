@@ -9,6 +9,7 @@ import com.equipseva.app.core.data.analytics.AnalyticsEvent
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.chat.ChatRepository
 import com.equipseva.app.core.data.dao.OutboxDao
+import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.moderation.ContentReportReason
 import com.equipseva.app.core.data.moderation.ContentReportRepository
@@ -26,6 +27,7 @@ import com.equipseva.app.core.data.escrow.RepairJobEscrowRepository
 import com.equipseva.app.core.data.repair.RepairJobStatus
 import com.equipseva.app.core.data.invoice.RepairInvoiceRepository
 import com.equipseva.app.core.data.servicereport.ServiceReportRepository
+import com.equipseva.app.core.network.isNetworkFailure
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.storage.StorageRepository
 import com.equipseva.app.core.sync.OutboxEnqueuer
@@ -57,6 +59,7 @@ class RepairJobDetailViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
     private val authRepository: AuthRepository,
     private val engineerRepository: EngineerRepository,
+    private val engineerDirectoryRepository: EngineerDirectoryRepository,
     private val profileRepository: ProfileRepository,
     private val userPrefs: com.equipseva.app.core.data.prefs.UserPrefs,
     private val outboxEnqueuer: OutboxEnqueuer,
@@ -129,6 +132,12 @@ class RepairJobDetailViewModel @Inject constructor(
          */
         val engineerNames: Map<String, String> = emptyMap(),
         /**
+         * Display name of the engineer the job is assigned to when no bid
+         * carries it — the AMC pre-assigned case, where [engineerNames] is
+         * empty because there is no bid list to key it off.
+         */
+        val assignedEngineerName: String? = null,
+        /**
          * Display name of the hospital/requester, shown on the banner so the
          * engineer knows who posted the job before bidding.
          */
@@ -174,6 +183,16 @@ class RepairJobDetailViewModel @Inject constructor(
         // engineer or RPC errors. Card hidden gracefully.
         /** Open the completion-proof picker sheet (engineer-side, on Mark Done). */
         val proofSheetOpen: Boolean = false,
+        /**
+         * Open the check-in proof picker sheet (engineer-side, on Check in).
+         *
+         * Lives here rather than in the screen so a refusal can keep the sheet
+         * up. While the screen owned it, confirm closed the sheet before the
+         * refusal could be emitted, and the picked photos — remembered inside
+         * the sheet — left composition with it. The engineer then read "try a
+         * smaller photo, then tap again" next to no button and no selection.
+         */
+        val checkinSheetOpen: Boolean = false,
         /** True while we're enqueuing photos + flipping the status row. */
         val submittingProof: Boolean = false,
         /** v2 — pending revised quote (engineer proposed; hospital hasn't decided). */
@@ -499,9 +518,20 @@ class RepairJobDetailViewModel @Inject constructor(
                     _messages.emit(if (hadPending) "Bid updated" else "Bid submitted")
                 },
                 onFailure = { ex ->
-                    queueBidForRetry(amountRupees, etaHours, note)
-                    _state.update { it.copy(placingBid = false, bidComposerOpen = false) }
-                    _messages.emit("Offline — bid will submit when back online")
+                    if (isNetworkFailure(ex)) {
+                        queueBidForRetry(amountRupees, etaHours, note)
+                        _state.update { it.copy(placingBid = false, bidComposerOpen = false) }
+                        _messages.emit("Offline — bid will submit when back online")
+                    } else {
+                        // The outbox drops 4xx rows, so a bid the server
+                        // refused (job already left `requested`, RLS on an
+                        // unverified engineer, a CHECK violation) would be
+                        // promised and then vanish. Keep the composer open on
+                        // its typed values so the engineer can act on the
+                        // actual reason.
+                        _state.update { it.copy(placingBid = false) }
+                        _messages.emit(ex.toUserMessage())
+                    }
                 },
             )
         }
@@ -575,17 +605,27 @@ class RepairJobDetailViewModel @Inject constructor(
         val snap = _state.value
         val job = snap.job ?: return
         if (snap.openingChat) return
-        // Hospital side of the pair: counterparty is the engineer whose bid was accepted.
-        // Before acceptance there's no single engineer to chat with, so the UI hides the CTA.
-        val engineerUserId = snap.bids
-            .firstOrNull { it.status == RepairBidStatus.Accepted }
-            ?.engineerUserId
-        if (engineerUserId.isNullOrBlank()) {
-            _messages.tryEmit("No engineer assigned yet")
-            return
-        }
         _state.update { it.copy(openingChat = true) }
         viewModelScope.launch {
+            // Hospital side of the pair. An accepted bid is the marketplace
+            // route to the counterparty, but an AMC maintenance visit is
+            // pre-assigned without any bid ever existing — resolving from
+            // bids alone made "Message" answer "No engineer assigned yet"
+            // directly under a section titled "Assigned engineer". Fall back
+            // to the engineers row the job itself points at.
+            val engineerUserId = snap.bids
+                .firstOrNull { it.status == RepairBidStatus.Accepted }
+                ?.engineerUserId
+                ?.takeIf { it.isNotBlank() }
+                ?: job.engineerId
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { engineerDirectoryRepository.fetchPublicProfile(it).getOrNull()?.userId }
+                    ?.takeIf { it.isNotBlank() }
+            if (engineerUserId == null) {
+                _state.update { it.copy(openingChat = false) }
+                _messages.emit("No engineer assigned yet")
+                return@launch
+            }
             val session = authRepository.sessionState
                 .filterIsInstance<AuthSession.SignedIn>()
                 .firstOrNull()
@@ -647,10 +687,9 @@ class RepairJobDetailViewModel @Inject constructor(
      * PR-D10 (T2.9): engineer must capture before-photos before
      * checking in. Photos enqueue async via PhotoUploadStash with
      * CONTEXT_REPAIR_JOB_BEFORE → drains into repair_jobs.before_photos.
-     * Then the existing geofenced check-in runs. UI gates on
-     * photos.isNotEmpty() so server-side enforcement isn't required
-     * for v1 — the audit-trail report (PR-D3) flags any check-in
-     * with empty before_photos for ops review.
+     * Then the existing geofenced check-in runs. Require decoded evidence here:
+     * selected URIs can become unreadable before submission. This local guard
+     * does not replace server evidence validation or confirm upload completion.
      */
     fun submitCheckinWithProof(photos: List<CompletionProofPhoto>) {
         val snap = _state.value
@@ -658,13 +697,27 @@ class RepairJobDetailViewModel @Inject constructor(
         if (snap.viewerRole != ViewerRole.Engineer) return
         if (snap.updatingStatus) return
         if (job.status !in setOf(RepairJobStatus.Assigned, RepairJobStatus.EnRoute)) return
+        if (photos.isEmpty()) {
+            viewModelScope.launch {
+                _messages.emit("Couldn't read the selected photos. Add at least one readable before photo to check in.")
+            }
+            return
+        }
+        // Claim the in-flight flag synchronously, BEFORE the suspending
+        // photo-stash loop. Reading four multi-megabyte photos takes long
+        // enough for a second confirm tap to re-enter the whole path and
+        // stash the same before-photo set twice; only the RPC itself was
+        // de-duplicated, by checkIn()'s own guard.
+        _state.update { it.copy(updatingStatus = true) }
         viewModelScope.launch {
             val session = authRepository.sessionState.firstOrNull() as? AuthSession.SignedIn
             val uid = session?.userId
             if (uid.isNullOrBlank()) {
+                _state.update { it.copy(updatingStatus = false) }
                 _messages.emit("Sign in to check in.")
                 return@launch
             }
+            var stashed = 0
             photos.forEach { photo ->
                 runCatching {
                     // UUID instead of array index — two photos picked in
@@ -684,7 +737,21 @@ class RepairJobDetailViewModel @Inject constructor(
                         uploaderUserId = uid,
                     )
                 }
+                    .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
+                    .onSuccess { stashed++ }
             }
+            val refusal = photoEvidenceRefusal(requested = photos.size, stashed = stashed)
+            if (refusal != null) {
+                _state.update { it.copy(updatingStatus = false) }
+                _messages.emit(refusal)
+                return@launch
+            }
+            // checkIn() owns the flag for the RPC phase and re-raises it
+            // synchronously on the same continuation, so there is no window
+            // for a second tap between the two updates. The sheet closes only
+            // here, past every refusal above, so a rejected photo leaves the
+            // engineer's selection where they can retry it.
+            _state.update { it.copy(updatingStatus = false, checkinSheetOpen = false) }
             checkIn()
         }
     }
@@ -760,6 +827,18 @@ class RepairJobDetailViewModel @Inject constructor(
     fun closeProofSheet() {
         if (_state.value.submittingProof) return
         _state.update { it.copy(proofSheetOpen = false) }
+    }
+
+    fun openCheckinSheet() {
+        val job = _state.value.job ?: return
+        if (_state.value.viewerRole != ViewerRole.Engineer) return
+        if (job.status !in setOf(RepairJobStatus.Assigned, RepairJobStatus.EnRoute)) return
+        _state.update { it.copy(checkinSheetOpen = true) }
+    }
+
+    fun closeCheckinSheet() {
+        if (_state.value.updatingStatus) return
+        _state.update { it.copy(checkinSheetOpen = false) }
     }
 
     // -----------------------------------------------------------------
@@ -876,8 +955,7 @@ class RepairJobDetailViewModel @Inject constructor(
                 _messages.emit("Sign in to mark this job done")
                 return@launch
             }
-            // Enqueue each photo. Failures here are non-fatal — we still flip
-            // the status; user can re-add photos on the Completed view later.
+            var stashed = 0
             photos.forEach { photo ->
                 runCatching {
                     // UUID rather than array index for path uniqueness on
@@ -894,6 +972,20 @@ class RepairJobDetailViewModel @Inject constructor(
                         uploaderUserId = uid,
                     )
                 }
+                    .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
+                    .onSuccess { stashed++ }
+            }
+            // The stash refuses empty bytes and anything over its size cap (a
+            // 50 MP camera JPEG clears it), and throws on a disk-write
+            // failure. Swallowing that and flipping the row to Completed
+            // anyway is the one outcome this path must never produce: escrow
+            // auto-releases 48h after completion, so a completed job with no
+            // after-photos leaves the hospital nothing to dispute against.
+            val refusal = photoEvidenceRefusal(requested = photos.size, stashed = stashed)
+            if (refusal != null) {
+                _state.update { it.copy(submittingProof = false) }
+                _messages.emit(refusal)
+                return@launch
             }
             _state.update { it.copy(proofSheetOpen = false, submittingProof = false) }
             markDone()
@@ -981,20 +1073,33 @@ class RepairJobDetailViewModel @Inject constructor(
                     _messages.emit(successMessage)
                 },
                 onFailure = { ex ->
-                    queueStatusForRetry(
-                        jobId = job.id,
-                        target = target,
-                        startedAtEpochMs = if (setStartedAt) now.toEpochMilli() else null,
-                        completedAtEpochMs = if (setCompletedAt) now.toEpochMilli() else null,
-                        cancellationReason = cancellationReason,
-                    )
-                    _state.update {
-                        it.copy(
-                            updatingStatus = false,
-                            job = it.job?.copy(status = target),
+                    // A server REFUSAL must not be queued or mirrored locally:
+                    // the drain side gives up permanently on a 4xx, so the row
+                    // is dropped while the screen goes on showing a status the
+                    // server rejected ("invalid status transition
+                    // in_progress -> cancelled", "only the assigned engineer
+                    // can mark this job complete", an RLS denial) and promises
+                    // it will apply when back online. Queue only what a
+                    // reconnect can actually make succeed.
+                    if (isNetworkFailure(ex)) {
+                        queueStatusForRetry(
+                            jobId = job.id,
+                            target = target,
+                            startedAtEpochMs = if (setStartedAt) now.toEpochMilli() else null,
+                            completedAtEpochMs = if (setCompletedAt) now.toEpochMilli() else null,
+                            cancellationReason = cancellationReason,
                         )
+                        _state.update {
+                            it.copy(
+                                updatingStatus = false,
+                                job = it.job?.copy(status = target),
+                            )
+                        }
+                        _messages.emit("Offline — status change will apply when back online")
+                    } else {
+                        _state.update { it.copy(updatingStatus = false) }
+                        _messages.emit(ex.toUserMessage())
                     }
-                    _messages.emit("Offline — status change will apply when back online")
                 },
             )
         }
@@ -1143,6 +1248,22 @@ class RepairJobDetailViewModel @Inject constructor(
                     } else {
                         emptyMap()
                     }
+                    // AMC visit jobs carry an engineers row id but no bid, so
+                    // engineerNames (keyed by engineer user_id, populated from
+                    // the bid list) has nothing for them and the assigned-
+                    // engineer card fell back to the literal "Engineer". Only
+                    // pay for this lookup on that path.
+                    val assignedEngineerRowId = job?.engineerId?.takeIf { it.isNotBlank() }
+                    val assignedEngineerName = if (
+                        role == ViewerRole.Hospital &&
+                        assignedEngineerRowId != null &&
+                        bids.none { it.status == RepairBidStatus.Accepted }
+                    ) {
+                        engineerDirectoryRepository.fetchPublicProfile(assignedEngineerRowId)
+                            .getOrNull()?.fullName?.takeIf { it.isNotBlank() }
+                    } else {
+                        null
+                    }
                     val hospitalProfile = if (role != ViewerRole.Hospital) {
                         job?.hospitalUserId?.let { hospitalId ->
                             profileRepository.fetchById(hospitalId).getOrNull()
@@ -1160,6 +1281,7 @@ class RepairJobDetailViewModel @Inject constructor(
                             viewerRole = role,
                             selfEngineerRowId = selfEngineerRowId,
                             engineerNames = engineerNames,
+                            assignedEngineerName = assignedEngineerName,
                             hospitalName = hospitalProfile?.displayName,
                             hospitalLocation = hospitalProfile?.locationLine,
                         )
@@ -1313,3 +1435,29 @@ internal fun canReportRepairJob(
     jobIsLoaded: Boolean,
     viewerRole: RepairJobDetailViewModel.ViewerRole,
 ): Boolean = jobIsLoaded && viewerRole != RepairJobDetailViewModel.ViewerRole.Hospital
+
+/**
+ * Photo-evidence gate for the check-in / completion transitions: the
+ * refusal message when the engineer picked photos and NONE of them
+ * reached the offline stash, else null.
+ *
+ * The stash rejects empty bytes and oversized files and throws on a
+ * disk-write failure, so "the engineer attached proof" and "proof
+ * exists" are different facts. Pin the asymmetry:
+ *
+ *   * requested 0 → null. Each caller has its own rule about whether
+ *     zero photos is allowed at all, and neither wants this helper
+ *     inventing a photo requirement on their behalf.
+ *   * requested N, stashed 0 → refuse. The status flip is what makes
+ *     the evidence unrecoverable (escrow auto-releases 48h after
+ *     completion), so the transition must not happen.
+ *   * requested N, stashed 1..N → null. Partial evidence still beats
+ *     stranding an engineer on-site; the audit-trail report flags the
+ *     shortfall for ops.
+ */
+internal fun photoEvidenceRefusal(requested: Int, stashed: Int): String? =
+    if (requested > 0 && stashed == 0) {
+        "Couldn't save the photo(s) — try a smaller photo, then tap again."
+    } else {
+        null
+    }

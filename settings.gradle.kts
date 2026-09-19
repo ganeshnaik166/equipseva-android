@@ -17,7 +17,11 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven("https://maven.pkg.jetbrains.space/public/p/ktor/eap")
+        // No extra repositories without a `content {}` filter: an unfiltered
+        // maven() is searched for every coordinate the two above do not
+        // serve, so a typo'd or unpublished coordinate can be satisfied by
+        // whoever controls that host. Every dependency in the catalog is a
+        // Central or Google release.
     }
 }
 

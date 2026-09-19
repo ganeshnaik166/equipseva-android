@@ -8,54 +8,42 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 
-private val LightColors = lightColorScheme(
-    primary = BrandGreen,
-    onPrimary = Surface0,
-    primaryContainer = Color98Green,
-    onPrimaryContainer = BrandGreenDark,
-    // S5 brand: vibrant electric-lime accent as the secondary slot.
-    secondary = AccentLime,
-    onSecondary = BrandGreenDeep,
-    secondaryContainer = AccentLimeSoft,
-    onSecondaryContainer = BrandGreenDeep,
-    tertiary = BrandGreenDeep,
-    onTertiary = Surface0,
-    background = Surface50,
-    onBackground = Ink900,
-    surface = Surface0,
-    onSurface = Ink900,
-    surfaceVariant = Surface100,
-    onSurfaceVariant = Ink500,
-    outline = Outline,
-    outlineVariant = Surface100,
-    error = ErrorRed,
-    onError = Surface0,
-)
+private fun materialColors(dark: Boolean) = (if (dark) darkColorScheme() else lightColorScheme()).let { base ->
+    val p = if (dark) DarkEsColors else LightEsColors
+    // Material primary is also text, cursor, radio and progress foreground. Lime on white
+    // is 1.19:1, so light mode uses ink here. Explicit primary actions use p.action instead.
+    base.copy(
+        primary = if (dark) p.action.container else p.text,
+        onPrimary = if (dark) p.action.content else p.surface,
+        primaryContainer = p.action.container, onPrimaryContainer = p.action.content,
+        inversePrimary = p.inverseFocus,
+        secondary = p.muted, onSecondary = p.surface,
+        secondaryContainer = p.raised, onSecondaryContainer = p.text,
+        tertiary = p.info.content, onTertiary = p.info.container,
+        tertiaryContainer = p.info.container, onTertiaryContainer = p.info.content,
+        background = p.canvas, onBackground = p.text,
+        surface = p.surface, onSurface = p.text,
+        surfaceVariant = p.raised, onSurfaceVariant = p.muted,
+        surfaceTint = Color.Transparent,
+        inverseSurface = p.inverse.container, inverseOnSurface = p.inverse.content,
+        surfaceDim = p.canvas, surfaceBright = p.raised,
+        surfaceContainerLowest = p.canvas, surfaceContainerLow = p.surface,
+        surfaceContainer = p.surface, surfaceContainerHigh = p.raised,
+        surfaceContainerHighest = p.raised,
+        outline = p.outline, outlineVariant = p.divider,
+        error = p.error.content, onError = p.error.container,
+        errorContainer = p.error.container, onErrorContainer = p.error.content,
+        scrim = Color.Black,
+    )
+}
 
-private val DarkColors = darkColorScheme(
-    primary = AccentLime,
-    onPrimary = BrandGreenDeep,
-    primaryContainer = BrandGreenDark,
-    onPrimaryContainer = AccentLimeBright,
-    secondary = BrandGreenLight,
-    onSecondary = Ink900,
-    secondaryContainer = Ink700,
-    onSecondaryContainer = AccentLimeBright,
-    tertiary = BrandGreenLight,
-    onTertiary = Ink900,
-    background = Ink900,
-    onBackground = Surface0,
-    surface = InkSurface,
-    onSurface = Surface0,
-    surfaceVariant = Ink700,
-    onSurfaceVariant = Ink300,
-    outline = Ink500,
-    outlineVariant = Ink700,
-    error = ErrorRed,
-    onError = Surface0,
-)
+private val LightColors = materialColors(false)
+private val DarkColors = materialColors(true)
 
 @Composable
 fun EquipSevaTheme(
@@ -63,6 +51,7 @@ fun EquipSevaTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
+    // Preserve the explicit opt-in API. App callers keep wallpaper colors disabled by default.
     val colors = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val ctx = LocalContext.current
@@ -71,10 +60,13 @@ fun EquipSevaTheme(
         darkTheme -> DarkColors
         else -> LightColors
     }
-    MaterialTheme(
-        colorScheme = colors,
-        typography = EquipSevaTypography,
-        shapes = EquipSevaShapes,
-        content = content,
-    )
+    val language = LocalConfiguration.current.locales[0]?.language.orEmpty()
+    CompositionLocalProvider(LocalEsColors provides if (darkTheme) DarkEsColors else LightEsColors) {
+        MaterialTheme(
+            colorScheme = colors,
+            typography = typographyForLanguage(language),
+            shapes = EquipSevaShapes,
+            content = content,
+        )
+    }
 }

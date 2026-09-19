@@ -1,0 +1,11 @@
+0 foreground=ffffffff background=ff052f22 ratio=14.622349617118822 text=EquipSeva
+1 foreground=ffffffff background=ff052f22 ratio=14.622349617118822 text=Connect for medical equipment service.
+2 foreground=ffc7f8d4 background=ff074b36 ratio=8.607236234950516 text=For hospitals
+3 foreground=ffe6edeb background=ff074b36 ratio=8.54527976149901 text=Request service and compare engineer bids.
+4 foreground=ffc7f8d4 background=ff074b36 ratio=8.607236234950516 text=For engineers
+5 foreground=ffe6edeb background=ff074b36 ratio=8.54527976149901 text=Find nearby jobs and send your quote.
+6 foreground=ff052f22 background=ff22e06a ratio=8.312735823908241 text=Sign in
+7 foreground=ffffffff background=ff052f22 ratio=14.622349617118822 text=Create account
+8 foreground=ffd9e0de background=ff052f22 ratio=10.909240570884682 text=By continuing, you agree to our terms and privacy policy.
+9 foreground=ffffffff background=ff052f22 ratio=14.622349617118822 text=Terms of service
+10 foreground=ffffffff background=ff052f22 ratio=14.622349617118822 text=Privacy policy

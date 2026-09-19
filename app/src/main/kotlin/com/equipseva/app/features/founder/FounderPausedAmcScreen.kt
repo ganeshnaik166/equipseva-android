@@ -42,6 +42,7 @@ import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.designsystem.components.EmptyStateView
+import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
@@ -105,6 +106,9 @@ fun FounderPausedAmcScreen(
                 subtitle = pausedAmcSubtitle(state.rows.size),
                 onBack = onBack,
             )
+            // Non-destructive refresh failure: the rows stay, the banner says
+            // the reload did not land. See founderListRefreshBanner.
+            ErrorBanner(message = founderListRefreshBanner(state.error, state.rows.size))
             // Round 382 — pull-to-refresh.
             androidx.compose.material3.pulltorefresh.PullToRefreshBox(
                 isRefreshing = state.refreshing,
@@ -115,7 +119,7 @@ fun FounderPausedAmcScreen(
                     state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
-                    state.error != null -> EmptyStateView(
+                    founderListShowsErrorState(state.error, state.rows.size) -> EmptyStateView(
                         icon = Icons.Outlined.ErrorOutline,
                         title = "Couldn't load",
                         subtitle = state.error,

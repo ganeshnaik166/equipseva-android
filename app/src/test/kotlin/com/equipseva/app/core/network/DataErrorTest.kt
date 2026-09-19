@@ -4,6 +4,7 @@ import com.equipseva.app.testing.FakeRest
 import io.github.jan.supabase.auth.exception.TokenExpiredException
 import io.github.jan.supabase.exceptions.RestException
 import kotlinx.coroutines.CancellationException
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertThrows
@@ -118,10 +119,36 @@ class DataErrorTest {
         assertTrue("got: $msg", msg.contains("session expired", ignoreCase = true))
     }
 
-    @Test fun `SQLSTATE 42501 permission denied maps to kyc gate copy`() {
+    // Most 42501 raises the client can reach are not about verification at all
+    // ("only the hospital can cancel a job", "not a party to this contract", a
+    // bare RLS denial). Telling those users to finish KYC sent verified
+    // engineers chasing a verification they already had, so the KYC nudge is
+    // now reserved for denials that actually mention it.
+    @Test fun `bare SQLSTATE 42501 maps to neutral permission copy, not the kyc nudge`() {
         val msg = rest("permission denied for table profiles, code 42501").toUserMessage()
+        assertTrue("got: $msg", msg.contains("permission", ignoreCase = true))
+        assertFalse("got: $msg", msg.contains("KYC", ignoreCase = true))
+    }
+
+    @Test fun `42501 that names verification still maps to the kyc gate copy`() {
+        val msg = rest("kyc_not_verified: engineer must be verified, code 42501").toUserMessage()
         assertTrue("got: $msg", msg.contains("don't have access", ignoreCase = true))
         assertTrue("got: $msg", msg.contains("KYC", ignoreCase = true))
+    }
+
+    @Test fun `42501 never echoes the raw denial text`() {
+        val msg = rest("permission denied for table repair_job_escrow, code 42501").toUserMessage()
+        assertEquals("You don't have permission to do that.", msg)
+        assertFalse("got: $msg", msg.contains("repair_job_escrow"))
+    }
+
+    @Test fun `a server RAISE without a SQLSTATE still passes through verbatim`() {
+        // The 42501 arm must not swallow the friendly RAISE messages that carry
+        // no code — those are the server talking to the user.
+        assertEquals(
+            "only the hospital can cancel a job",
+            rest("only the hospital can cancel a job").toUserMessage(),
+        )
     }
 
     @Test fun `PGRST116 not found maps to record-missing copy`() {

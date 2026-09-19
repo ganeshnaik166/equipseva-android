@@ -150,19 +150,16 @@ jobs:
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
         run: ./gradlew :app:bundleRelease --no-daemon --stacktrace
 
-      - name: Locate AAB + mapping
+      - name: Locate AAB
         id: artifacts
         run: |
           aab=$(find app/build/outputs/bundle/release -name '*.aab' | head -1)
-          map=$(find app/build/outputs/mapping/release -name 'mapping.txt' | head -1)
           if [ -z "$aab" ]; then
             echo "::error::No AAB produced."
             exit 1
           fi
           echo "aab=$aab" >> "$GITHUB_OUTPUT"
-          echo "mapping=$map" >> "$GITHUB_OUTPUT"
           ls -la "$aab"
-          [ -n "$map" ] && ls -la "$map" || echo "no mapping (R8 disabled?)"
 
       - name: Compute AAB SHA-256
         id: sha
@@ -181,6 +178,9 @@ jobs:
                  --notes "Signed AAB built from \`$TAG\`. SHA-256: \`${{ steps.sha.outputs.sha256 }}\`. Upload to Play Console → Production → Create new release."
 
           gh release upload "$TAG" "${{ steps.artifacts.outputs.aab }}" --clobber
-          if [ -n "${{ steps.artifacts.outputs.mapping }}" ]; then
-            gh release upload "$TAG" "${{ steps.artifacts.outputs.mapping }}" --clobber
-          fi
+          # mapping.txt must NOT be attached: Releases on this public
+          # repository are world-readable, and the map de-obfuscates the
+          # signed bundle sitting next to it — which is exactly what the R8
+          # obfuscation behind the anti-tamper layers is meant to cost an
+          # attacker. Sentry and Crashlytics get the mapping from their
+          # Gradle plugins during the build above.

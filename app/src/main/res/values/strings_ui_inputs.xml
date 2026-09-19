@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="es_dropdown_select">Select</string>
+    <string name="es_dropdown_expanded">Expanded</string>
+    <string name="es_dropdown_collapsed">Collapsed</string>
+    <string name="es_input_state_label">State</string>
+    <string name="es_input_district_label">District</string>
+    <string name="es_input_minimum_payout_label">Amount (₹)</string>
+    <string name="es_input_start_time_label">Start time</string>
+    <string name="es_input_end_time_label">End time</string>
+</resources>

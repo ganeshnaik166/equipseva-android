@@ -1,5 +1,7 @@
 package com.equipseva.app.features.engineerprofile
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -164,6 +166,7 @@ private fun EngineerProfileForm(
         // Bio (multiline)
         val bioLen = state.bio.trim().length
         EsField(
+            palette = LightEsColors,
             value = state.bio,
             onChange = onBioChange,
             label = "Bio",
@@ -175,6 +178,7 @@ private fun EngineerProfileForm(
 
         // Hourly rate (₹) — Number
         EsField(
+            palette = LightEsColors,
             value = state.hourlyRate,
             onChange = onHourlyRateChange,
             label = "Hourly rate (₹)",
@@ -184,6 +188,7 @@ private fun EngineerProfileForm(
 
         // Years of experience — Number (preserved from VM contract)
         EsField(
+            palette = LightEsColors,
             value = state.yearsExperience,
             onChange = onYearsChange,
             label = "Years of experience",
@@ -199,6 +204,7 @@ private fun EngineerProfileForm(
         // suggested localities or PINs would work — they don't, only
         // the district names the directory chip row enumerates.
         EsField(
+            palette = LightEsColors,
             value = state.serviceAreas,
             onChange = onServiceAreasChange,
             label = "Service areas",

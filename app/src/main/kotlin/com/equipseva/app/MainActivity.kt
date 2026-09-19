@@ -60,7 +60,12 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         // Round 470: compute dev-mode verdict before setContent so the
         // first frame is either the blocker or the nav graph, not flicker.
         devModeVerdict.value = DeviceIntegrityCheck.run(this)
-        deepLinkRouter.dispatch(intent)
+        // A3-03: only a FRESH launch carries a deep link worth acting on. After a
+        // configuration change or process restore the same launch intent is
+        // handed back to onCreate, and re-dispatching it navigated the user to
+        // the deep-link destination a second time (on top of the restored
+        // back stack). onNewIntent still handles taps while the activity lives.
+        if (savedInstanceState == null) deepLinkRouter.dispatch(intent)
         maybeRequestNotificationPermission()
         // r513 (v0.4 P5 #10 client wire) — fire-and-forget funnel ping.
         analytics.track(AnalyticsEvent.APP_OPEN)

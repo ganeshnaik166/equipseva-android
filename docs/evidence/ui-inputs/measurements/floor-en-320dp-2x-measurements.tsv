@@ -1,0 +1,5 @@
+Native Robolectric API34; synthetic input specimens; no popup/device acceptance
+floor-row-layout	component=Rect.fromLTRB(32.0, 124.0, 288.0, 242.0)	viewport=Rect.fromLTRB(0.0, 0.0, 320.0, 744.0)
+floor-label	lines=1	bounds=Rect.fromLTRB(36.0, 124.0, 177.0, 162.0)	ink=693	background=ffffffff	foreground=ff555d50	contrast=6.845214442427019
+floor-value	lines=1	bounds=Rect.fromLTRB(32.0, 168.0, 181.0, 242.0)	ink=209	background=ffffffff	foreground=ff11150f	contrast=18.45345624745603
+floor-row	row=Rect.fromLTRB(32.0, 124.0, 288.0, 242.0)	input=Rect.fromLTRB(32.0, 124.0, 181.0, 242.0)	save=Rect.fromLTRB(189.0, 176.0, 288.0, 242.0)	saved=1250.0

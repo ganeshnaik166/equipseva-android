@@ -1,5 +1,7 @@
 package com.equipseva.app.features.amc
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -118,9 +120,22 @@ class HospitalPortalViewModel @Inject constructor(
         viewModelScope.launch {
             val requests = repo.fetchMyRequests()
             val disputes = repo.fetchMyDisputes()
-            if (requests.isFailure) {
+            // Either failure has to surface. A failed disputes fetch used to
+            // be defaulted to an empty list, so the Disputes tab told a
+            // hospital it had no open disputes — the same screen it would use
+            // to chase one.
+            val firstFailure = requests.exceptionOrNull() ?: disputes.exceptionOrNull()
+            if (firstFailure != null) {
+                val msg = firstFailure.toUserMessage("Could not load.")
                 _state.update {
-                    it.copy(loading = false, error = requests.exceptionOrNull()?.toUserMessage("Could not load."))
+                    it.copy(
+                        loading = false,
+                        error = msg,
+                        // Keep whichever side did load: a half-populated
+                        // screen plus an error beats blanking both.
+                        requests = requests.getOrDefault(it.requests),
+                        disputes = disputes.getOrDefault(it.disputes),
+                    )
                 }
                 return@launch
             }
@@ -135,6 +150,9 @@ class HospitalPortalViewModel @Inject constructor(
     }
 
     fun submitRequest(kind: String, desiredTier: String?) {
+        // Two taps inside one frame filed two identical requests, which the
+        // ops queue then has to de-duplicate by hand.
+        if (_state.value.submitting) return
         _state.update { it.copy(submitting = true, submitError = null, submitted = false) }
         viewModelScope.launch {
             repo.submitSelfServiceRequest(kind, desiredTier)
@@ -149,6 +167,9 @@ class HospitalPortalViewModel @Inject constructor(
     }
 
     fun submitDispute(kind: String, description: String, amount: Double?) {
+        // A duplicate dispute is worse than a duplicate request: it opens a
+        // second money claim against the same job.
+        if (_state.value.submitting) return
         _state.update { it.copy(submitting = true, submitError = null, submitted = false) }
         viewModelScope.launch {
             repo.submitDispute(kind, description, amount)
@@ -174,9 +195,22 @@ fun HospitalPortalScreen(
     var tab by rememberSaveable { mutableStateOf(PortalTab.Requests) }
     var composerOpen by rememberSaveable { mutableStateOf(false) }
 
+    // A filed request/dispute closes its composer. Left open with Submit live
+    // again, the only sign anything had happened was a new row below the
+    // fold — so the natural next move was to submit it again.
+    androidx.compose.runtime.LaunchedEffect(state.submitted) {
+        if (state.submitted) composerOpen = false
+    }
+
     Box(Modifier.fillMaxSize().background(PaperDefault)) {
         Column(Modifier.fillMaxSize()) {
             EsTopBar(title = stringResource(R.string.hospital_portal_title), onBack = onBack)
+            // The not-loaded branch below renders `error` in its empty state;
+            // this covers the half-loaded case, where one of the two fetches
+            // failed but there is still content on screen.
+            if (state.requests.isNotEmpty() || state.disputes.isNotEmpty()) {
+                com.equipseva.app.designsystem.components.ErrorBanner(message = state.error)
+            }
 
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -353,6 +387,7 @@ private fun DisputeComposer(
         }
         Spacer(Modifier.height(10.dp))
         EsField(
+            palette = LightEsColors,
             value = description,
             onChange = { description = it },
             label = stringResource(R.string.hospital_portal_dispute_description_label),
@@ -360,6 +395,7 @@ private fun DisputeComposer(
         )
         Spacer(Modifier.height(10.dp))
         EsField(
+            palette = LightEsColors,
             value = amountText,
             onChange = { amountText = it.filter { c -> c.isDigit() } },
             label = stringResource(R.string.hospital_portal_dispute_amount_label),

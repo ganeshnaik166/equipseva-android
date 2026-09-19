@@ -1,0 +1,69 @@
+{
+  "format_version": 1,
+  "description": "Source line-ending metadata only; no source text or matched values. Apply CRLF to every existing normalized Git newline except the listed one-based LF-ending source line numbers. Preserve the original final-newline presence.",
+  "layouts": [
+    {
+      "source_path": "app/src/main/kotlin/com/equipseva/app/core/push/DeviceTokenRegistrar.kt",
+      "source_git_blob_oid": "fe1d508ada11079947a01d42cfa1f23b78eea55d",
+      "source_git_blob_bytes": 5985,
+      "default_newline": "CRLF",
+      "bare_LF_line_numbers": [
+        43,
+        44,
+        106,
+        107,
+        108,
+        109,
+        110,
+        128
+      ],
+      "newline_count": 132,
+      "CRLF_count": 124,
+      "bare_LF_count": 8,
+      "preserve_final_newline_from_git_blob": true,
+      "initial_worktree_provenance": {
+        "raw_worktree_path": "C:/Users/lokes/Documents/Codex/2026-09-07/im/work/equipseva-quality-integration-20260919/app/src/main/kotlin/com/equipseva/app/core/push/DeviceTokenRegistrar.kt",
+        "observed_raw_sha256_matches_historic_claim": true,
+        "observed_CRLF_to_LF_bytes_equal_exact_git_blob": true,
+        "captured_at_utc": "2026-09-19T10:28:08.664090+00:00",
+        "working_bytes_equal_positions_reconstruction": true
+      },
+      "historical_fingerprints": [
+        "5aaa78f073e00d82e6e211bd3ac2d548e14a3f39:docs/helper-reviews/codex-20260919/push-navigation-independent-review.md:generic-api-key:51"
+      ]
+    },
+    {
+      "source_path": "app/src/main/kotlin/com/equipseva/app/designsystem/theme/EsTokens.kt",
+      "source_git_blob_oid": "130b7add131f1a9a30e0a1bbafa1e5b5d033b420",
+      "source_git_blob_bytes": 947,
+      "default_newline": "CRLF",
+      "bare_LF_line_numbers": [
+        5,
+        8,
+        9,
+        10,
+        11,
+        22
+      ],
+      "newline_count": 26,
+      "CRLF_count": 20,
+      "bare_LF_count": 6,
+      "preserve_final_newline_from_git_blob": true,
+      "initial_worktree_provenance": {
+        "raw_worktree_path": "C:/Users/lokes/Documents/Codex/2026-09-07/im/work/equipseva-auth-integration-20260911/app/src/main/kotlin/com/equipseva/app/designsystem/theme/EsTokens.kt",
+        "observed_raw_sha256_matches_historic_claim": true,
+        "observed_CRLF_to_LF_bytes_equal_exact_git_blob": true,
+        "captured_at_utc": "2026-09-19T10:28:08.732457+00:00",
+        "working_bytes_equal_positions_reconstruction": true
+      },
+      "historical_fingerprints": [
+        "97f2a93b5c2a9324844472e67b75a4b2c053f323:docs/evidence/ui-foundation/verification.json:generic-api-key:3115",
+        "97f2a93b5c2a9324844472e67b75a4b2c053f323:docs/evidence/ui-inputs/verification.json:generic-api-key:3139",
+        "7ae61f9a53533333349ba12467f484d554a46e78:docs/evidence/ui-foundation/verification.json:generic-api-key:3115",
+        "7ae61f9a53533333349ba12467f484d554a46e78:docs/evidence/ui-inputs/verification.json:generic-api-key:3139",
+        "2498794a40152d3261e78cca955479d5d3271f83:docs/evidence/ui-inputs/verification.json:generic-api-key:3139",
+        "75e55c14730d6f3499d34bbcc7155e994f0f8816:docs/evidence/ui-foundation/verification.json:generic-api-key:3115"
+      ]
+    }
+  ]
+}

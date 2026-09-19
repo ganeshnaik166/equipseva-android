@@ -233,7 +233,7 @@ internal fun BidComposerSheet(
                 disabled = !(amountValid && etaValid) || placingBid,
             )
             EsBtn(
-                text = "Cancel",
+                text = stringResource(R.string.common_cancel),
                 onClick = onDismiss,
                 kind = EsBtnKind.Ghost,
                 full = true,

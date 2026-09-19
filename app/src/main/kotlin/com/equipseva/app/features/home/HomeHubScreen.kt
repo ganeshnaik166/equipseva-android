@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -33,6 +34,8 @@ import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.outlined.WorkOutline
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -44,6 +47,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
@@ -55,6 +59,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -75,6 +82,7 @@ import com.equipseva.app.designsystem.components.HelpSupportSheet
 import com.equipseva.app.designsystem.components.InlineStars
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
+import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.PaperDefault
@@ -95,11 +103,13 @@ import com.equipseva.app.designsystem.theme.SevaWarning500
 import com.equipseva.app.features.auth.UserRole
 import java.time.Duration
 import java.time.Instant
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeHubScreen(
     onOpenBookRepair: () -> Unit,
+    onRequestService: () -> Unit,
     onOpenEngineerJobs: () -> Unit,
     onOpenFounder: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
@@ -119,9 +129,10 @@ fun HomeHubScreen(
     onOpenAmcContractDetail: (contractId: String) -> Unit = {},
     onShowMessage: (String) -> Unit = {},
     viewModel: HomeHubViewModel = hiltViewModel(),
+    validatedRole: com.equipseva.app.features.auth.UserRole? = null,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val role = state.role
+    val role = validatedRole ?: state.role
     val kyc = state.kycStatus
 
     // FIX #10 — Help & Support sheet state. Lives at the screen level
@@ -152,16 +163,19 @@ fun HomeHubScreen(
                 onOpenHelp = { helpSheetOpen = true },
             )
 
-            // Greeting card
-            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                GreetingCard(
-                    role = role,
-                    openCount = state.openCount,
-                    activeCount = state.activeCount,
-                    pendingBidsCount = state.pendingBidsCount,
-                    nearbyEngineersCount = state.nearbyEngineersCount,
-                    hospitalHasPostedFirstJob = state.hospitalHasPostedFirstJob,
-                )
+            // Hospital's task panel below replaces the count-based greeting:
+            // failed best-effort Home fetches must not describe a zero-job state.
+            if (role != UserRole.HOSPITAL) {
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    GreetingCard(
+                        role = role,
+                        openCount = state.openCount,
+                        activeCount = state.activeCount,
+                        pendingBidsCount = state.pendingBidsCount,
+                        nearbyEngineersCount = state.nearbyEngineersCount,
+                        hospitalHasPostedFirstJob = state.hospitalHasPostedFirstJob,
+                    )
+                }
             }
 
             // r592 — role-specific tier/AMC chip under the greeting.
@@ -239,6 +253,18 @@ fun HomeHubScreen(
 
             Spacer(Modifier.height(8.dp))
 
+            // Payment recovery stays above the new-request action. This is a
+            // marketplace request; browsing an engineer remains a separate path.
+            if (role == UserRole.HOSPITAL) {
+                HospitalHomeActions(
+                    onRequestService = onRequestService,
+                    onOpenBookings = onOpenMyBookings,
+                    onBrowseEngineers = onOpenBookRepair,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+                Spacer(Modifier.height(12.dp))
+            }
+
             // PR-D34: aggregated AMC SLA breach credits this hospital
             // received in the trailing 30 days. Only rendered when
             // total > 0 (handled in the VM). Tap routes to the AMC
@@ -250,26 +276,14 @@ fun HomeHubScreen(
             }
 
             // PR-B: hospital home carousel of top-N recommended engineers.
-            // Hidden gracefully when no GPS / no rows so we never render
-            // an empty band. The static "Book a repair engineer" tile
-            // below remains the always-on fallback path.
+            // Hidden when GPS / recommendations are unavailable. The task
+            // panel's Browse engineers action remains reachable above.
             if (role == UserRole.HOSPITAL && state.recommended.isNotEmpty()) {
                 RecommendedEngineersCarousel(
                     rows = state.recommended,
                     onPick = onOpenEngineerProfile,
                     onSeeAll = onOpenBookRepair,
                 )
-                Spacer(Modifier.height(4.dp))
-            }
-
-            // Hospital onboarding CTA: first-time hospitals see a bold
-            // "Book your first repair" card before the standard tiles. After
-            // they post their first job, the stats row appears and this card
-            // is hidden.
-            if (role == UserRole.HOSPITAL && !state.hospitalHasPostedFirstJob) {
-                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    FirstJobCtaCard(onClick = onOpenBookRepair)
-                }
                 Spacer(Modifier.height(4.dp))
             }
 
@@ -280,21 +294,7 @@ fun HomeHubScreen(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                if (role == UserRole.HOSPITAL) {
-                    HomeTile(
-                        icon = Icons.Filled.Bolt,
-                        title = "Book a repair engineer",
-                        desc = "Browse verified biomedical engineers near you",
-                        onClick = onOpenBookRepair,
-                    )
-                    HomeTile(
-                        icon = Icons.Outlined.WorkOutline,
-                        title = "My bookings",
-                        desc = "Track open and active repair jobs",
-                        onClick = onOpenMyBookings,
-                    )
-                    // Messages tile removed (v0.3.4) — now a bottom-nav tab.
-                } else {
+                if (role != UserRole.HOSPITAL) {
                     val engVerified = kyc == VerificationStatus.Verified
                     HomeTile(
                         icon = Icons.Filled.Build,
@@ -382,10 +382,22 @@ fun HomeHubScreen(
                         // ISO timestamp via relativeTime(). Cached now
                         // so unrelated state changes don't churn the row
                         // params.
-                        val labeledRows = remember(state.recent) {
+                        // The labels are wall-clock relative, so caching them on
+                        // state.recent alone froze them: the hub is the
+                        // cold-start landing screen and only reloads on
+                        // ON_RESUME, so rows still read "just now" an hour
+                        // later. A minute tick is the coarsest key that keeps
+                        // the copy honest for every bucket the helper renders.
+                        val now by produceState(Instant.now()) {
+                            while (true) {
+                                delay(60_000)
+                                value = Instant.now()
+                            }
+                        }
+                        val labeledRows = remember(state.recent, now) {
                             val last = state.recent.lastIndex
                             state.recent.mapIndexed { i, n ->
-                                Triple(n, relativeTime(n.sentAt), i == last)
+                                Triple(n, relativeTime(n.sentAt, now), i == last)
                             }
                         }
                         labeledRows.forEach { (n, timeLabel, isLast) ->
@@ -488,11 +500,26 @@ private fun SpotAuditSheetBody(
             style = EsType.Body,
             color = SevaInk700,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // selectableGroup + Role.RadioButton: fill colour was the only signal
+        // of the chosen rating, so a screen-reader user could not tell which
+        // star was picked on a hospital-facing quality survey.
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.selectableGroup(),
+        ) {
             (1..5).forEach { star ->
                 val isOn = rating >= star
+                val starLabel = stringResource(R.string.home_spot_audit_rate_star_cd, star)
                 Box(
                     modifier = Modifier
+                        .sizeIn(minWidth = Spacing.MinTouchTarget, minHeight = Spacing.MinTouchTarget)
+                        .selectable(
+                            // The fill shows the scale up to this rating; only
+                            // the chosen value is selected in the radio group.
+                            selected = rating == star,
+                            role = Role.RadioButton,
+                        ) { rating = star }
+                        .semantics { contentDescription = starLabel }
                         .size(40.dp)
                         .clip(androidx.compose.foundation.shape.CircleShape)
                         .background(
@@ -503,10 +530,6 @@ private fun SpotAuditSheetBody(
                             com.equipseva.app.designsystem.theme.SevaWarning500,
                             androidx.compose.foundation.shape.CircleShape,
                         )
-                        .clickable(
-                            onClickLabel = "Rate $star out of 5",
-                            role = androidx.compose.ui.semantics.Role.Button,
-                        ) { rating = star }
                         .padding(8.dp),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -601,7 +624,7 @@ private fun SurveyAnswerButton(
             .clip(RoundedCornerShape(12.dp))
             .background(bg)
             .border(1.dp, border, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(vertical = 14.dp, horizontal = 16.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -624,7 +647,7 @@ private fun SlaCreditsCard(
             .background(com.equipseva.app.designsystem.theme.SevaGreen50)
             .border(1.dp, com.equipseva.app.designsystem.theme.SevaGreen700, RoundedCornerShape(12.dp))
             .clickable(
-                onClickLabel = "View SLA breaches",
+                onClickLabel = stringResource(R.string.home_sla_credits_cd),
                 role = androidx.compose.ui.semantics.Role.Button,
                 onClick = onClick,
             )
@@ -697,7 +720,7 @@ private fun HomeTopBar(
                 .size(48.dp)
                 .clip(CircleShape)
                 .clickable(
-                    onClickLabel = "Open help and support",
+                    onClickLabel = stringResource(R.string.home_help_support_cd),
                     role = androidx.compose.ui.semantics.Role.Button,
                     onClick = onOpenHelp,
                 ),
@@ -719,7 +742,9 @@ private fun HomeTopBar(
                 .size(48.dp)
                 .clip(CircleShape)
                 .clickable(
-                    onClickLabel = if (hasUnread) "Open notifications, unread" else "Open notifications",
+                    onClickLabel = stringResource(
+                        if (hasUnread) R.string.home_notifications_unread_cd else R.string.home_notifications_cd,
+                    ),
                     role = androidx.compose.ui.semantics.Role.Button,
                     onClick = onNotifications,
                 ),
@@ -742,42 +767,6 @@ private fun HomeTopBar(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun FirstJobCtaCard(onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color.White)
-            .border(1.dp, BorderDefault, RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(SevaGreen50),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(Icons.Filled.Build, contentDescription = null, tint = SevaGreen700, modifier = Modifier.size(24.dp))
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(stringResource(R.string.home_first_job_cta_title), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = SevaInk900)
-            Spacer(Modifier.height(4.dp))
-            Text(stringResource(R.string.home_first_job_cta_subtitle), fontSize = 12.sp, color = SevaInk500, lineHeight = 16.sp)
-        }
-        Icon(
-            Icons.Outlined.ChevronRight,
-            contentDescription = null,
-            tint = SevaInk400,
-            modifier = Modifier.size(18.dp),
-        )
     }
 }
 
@@ -809,7 +798,9 @@ private fun GreetingCard(
             Text(
                 text = greeting,
                 fontSize = 13.sp,
-                color = Color.White.copy(alpha = 0.75f),
+                // 0.75 white over the green gradient is 4.27:1 — under the
+                // 4.5:1 AA floor for 13 sp text. 0.85 clears it at 5.0:1.
+                color = Color.White.copy(alpha = 0.85f),
             )
             Spacer(Modifier.height(4.dp))
             Text(
@@ -853,7 +844,10 @@ private fun GreetingCard(
 @Composable
 private fun Stat(label: String, value: String) {
     Column {
-        Text(label, fontSize = 12.sp, color = Color.White.copy(alpha = 0.65f))
+        // 0.65 white over SevaGreen700 measured 3.61:1 — well under AA for
+        // 12 sp text. 0.85 clears it at 5.0:1 without flattening the hero's
+        // label / value hierarchy.
+        Text(label, fontSize = 12.sp, color = Color.White.copy(alpha = 0.85f))
         Spacer(Modifier.height(2.dp))
         Text(value, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
     }
@@ -873,7 +867,7 @@ private fun KycBanner(status: VerificationStatus?, onClick: () -> Unit) {
             .clip(RoundedCornerShape(12.dp))
             .background(bg)
             .clickable(
-                onClickLabel = "Open KYC",
+                onClickLabel = stringResource(R.string.home_kyc_banner_cd),
                 role = androidx.compose.ui.semantics.Role.Button,
                 onClick = onClick,
             )
@@ -908,7 +902,7 @@ private fun DirectoryVisibilityBanner(
             .clip(RoundedCornerShape(12.dp))
             .background(SevaInfo50)
             .clickable(
-                onClickLabel = "Complete your engineer profile",
+                onClickLabel = stringResource(R.string.home_directory_banner_cd),
                 role = androidx.compose.ui.semantics.Role.Button,
                 onClick = onClick,
             )
@@ -1072,7 +1066,7 @@ private fun PendingAmcContractBanner(onClick: () -> Unit) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(SevaWarning50)
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -1131,7 +1125,7 @@ private fun HomeTile(
             .clip(RoundedCornerShape(14.dp))
             .background(Color.White)
             .border(1.dp, BorderDefault, RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -1181,7 +1175,7 @@ private fun ActivityRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick)
+                .clickable(role = Role.Button, onClick = onClick)
                 .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -1198,7 +1192,8 @@ private fun ActivityRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(title, fontSize = 13.sp, color = SevaInk900, lineHeight = 18.sp)
                 Spacer(Modifier.height(3.dp))
-                Text(relativeTime, fontSize = 11.sp, color = SevaInk400)
+                // SevaInk400 is 3.95:1 on white — under AA for 11 sp text.
+                Text(relativeTime, fontSize = 11.sp, color = SevaInk500)
             }
             if (unread) {
                 Box(
@@ -1257,7 +1252,7 @@ private fun RecommendedEngineerCard(
             .clip(RoundedCornerShape(14.dp))
             .background(Color.White)
             .border(1.dp, BorderDefault, RoundedCornerShape(14.dp))
-            .clickable(onClick = onPick)
+            .clickable(role = Role.Button, onClick = onPick)
             .padding(12.dp),
     ) {
         Row(
@@ -1340,6 +1335,11 @@ private fun RecommendedEngineerCard(
             // profile screen is a small lie. Renamed to match what
             // happens; the actual booking starts from the profile's
             // sticky "Post a repair job" CTA.
+            //
+            // Label only, no click of its own: it is a ~24 dp tall target
+            // nested inside an already-clickable card that goes to the same
+            // destination, so it added a second, too-small accessibility stop
+            // for no extra reach.
             Text(
                 text = stringResource(R.string.home_recommended_engineer_view_label),
                 fontSize = 12.sp,
@@ -1348,7 +1348,6 @@ private fun RecommendedEngineerCard(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .background(SevaGreen50)
-                    .clickable(onClick = onPick)
                     .padding(horizontal = 10.dp, vertical = 4.dp),
             )
         }
@@ -1424,8 +1423,8 @@ internal fun recommendedEngineerCityDistanceLine(
     return if (parts.isEmpty()) null else parts.joinToString(" · ")
 }
 
-private fun relativeTime(at: Instant?): String =
-    if (at == null) "" else relativeTimeFromMinutes(Duration.between(at, Instant.now()).toMinutes())
+private fun relativeTime(at: Instant?, now: Instant): String =
+    if (at == null) "" else relativeTimeFromMinutes(Duration.between(at, now).toMinutes())
 
 /**
  * Pure form of [relativeTime]. Bucketed copy that the home dashboard

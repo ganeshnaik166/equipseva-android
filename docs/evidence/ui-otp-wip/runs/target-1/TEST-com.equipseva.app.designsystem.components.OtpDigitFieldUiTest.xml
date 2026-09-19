@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.equipseva.app.designsystem.components.OtpDigitFieldUiTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-09-13T06:23:09.400Z" hostname="LOKESH" time="9.641">
+  <properties/>
+  <testcase name="digit characters arrive on the onValueChange callback" classname="com.equipseva.app.designsystem.components.OtpDigitFieldUiTest" time="8.554"/>
+  <testcase name="error message renders when supplied" classname="com.equipseva.app.designsystem.components.OtpDigitFieldUiTest" time="0.173"/>
+  <testcase name="input over length is truncated" classname="com.equipseva.app.designsystem.components.OtpDigitFieldUiTest" time="0.232"/>
+  <testcase name="no error message node exists when error is null" classname="com.equipseva.app.designsystem.components.OtpDigitFieldUiTest" time="0.124"/>
+  <testcase name="non-digit input is filtered before the callback fires" classname="com.equipseva.app.designsystem.components.OtpDigitFieldUiTest" time="0.172"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

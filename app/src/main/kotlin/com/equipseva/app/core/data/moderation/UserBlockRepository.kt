@@ -94,14 +94,19 @@ class UserBlockRepository @Inject constructor(
 
     private suspend fun refresh() = withContext(Dispatchers.IO) {
         val userId = client.auth.currentUserOrNull()?.id ?: run {
-            cache.value = emptySet()
+            mutex.withLock { cache.value = emptySet() }
             return@withContext
         }
         val rows = client.from(TABLE).select(columns = Columns.list("blocked_user_id")) {
             filter { eq("blocker_user_id", userId) }
             limit(count = 5000)
         }.decodeList<BlockedRow>()
-        cache.value = rows.map { it.blocked_user_id }.toSet()
+        // Merge under the same lock block()/unblock() use: a refresh that
+        // snapshotted the table before a concurrent block() committed would
+        // otherwise overwrite the just-added id and isBlocked() would say no.
+        mutex.withLock {
+            cache.value = rows.map { it.blocked_user_id }.toSet() + (cache.value ?: emptySet())
+        }
     }
 
     private companion object {

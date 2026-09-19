@@ -1,5 +1,6 @@
 package com.equipseva.app.features.founder
 
+import androidx.activity.compose.BackHandler
 import com.equipseva.app.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,6 +25,8 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalBottomSheetProperties
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -32,6 +35,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -54,6 +59,7 @@ import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.core.util.sanitizeServerName
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.sheetDismissAllowed
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.components.EsTopBar
@@ -257,11 +263,26 @@ fun FounderKycReviewScreen(
     }
 
     if (state.rejectMode) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        // Keep the saved SheetState predicate stable and read current busy
+        // state through a state holder. Refusing only the dismiss callback
+        // can leave a hidden modal window swallowing
+        // every tap, with the rejection error rendered behind it.
+        val busy by rememberUpdatedState(state.acting)
+        val confirmTransition = remember {
+            { next: SheetValue -> sheetDismissAllowed(next, busy) }
+        }
+        val sheetState = rememberModalBottomSheetState(
+            skipPartiallyExpanded = true,
+            confirmValueChange = confirmTransition,
+        )
+        val dismiss = { if (!busy) viewModel.closeReject() }
         ModalBottomSheet(
             sheetState = sheetState,
-            onDismissRequest = { viewModel.closeReject() },
+            onDismissRequest = dismiss,
+            properties = ModalBottomSheetProperties(shouldDismissOnBackPress = false),
         ) {
+            // Native Back bypasses confirmValueChange in Material3 1.3.1.
+            BackHandler(onBack = dismiss)
             Column(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),

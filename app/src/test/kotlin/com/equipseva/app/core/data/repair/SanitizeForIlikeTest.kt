@@ -1,6 +1,7 @@
 package com.equipseva.app.core.data.repair
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 /**
@@ -63,5 +64,14 @@ class SanitizeForIlikeTest {
     @Test fun `unicode and special chars not in the wildcard set pass through`() {
         assertEquals("Bengaluru ₹", sanitizeForIlike("Bengaluru ₹"))
         assertEquals("héllo", sanitizeForIlike("héllo"))
+    }
+
+    // A comma or parenthesis ends a value inside PostgREST's `or=(col.ilike.…)`
+    // grammar and a double quote opens a quoted one, so a search for
+    // "GE, Philips (new)" used to come back as PGRST100 with an errored feed.
+    @Test fun `PostgREST or-grammar delimiters are neutralised`() {
+        val out = sanitizeForIlike("GE, Philips (new) \"x\"")
+        assertFalse(out, out.any { it == ',' || it == '(' || it == ')' || it == '"' })
+        assertEquals("GE  Philips  new   x ", out)
     }
 }

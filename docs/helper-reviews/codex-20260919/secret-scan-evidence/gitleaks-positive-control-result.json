@@ -1,0 +1,14 @@
+{
+  "gitleaks_version": "8.24.3",
+  "exact_proposed_fingerprints": 70,
+  "clean_exit": 0,
+  "synthetic_finding_exit": 23,
+  "wrapper_clean_exit": 0,
+  "wrapper_synthetic_finding_exit": 1,
+  "exact_patch_flags": "--full-history --diff-merges=first-parent --no-ext-diff --no-textconv --no-renames",
+  "detected_rules": [
+    "github-pat"
+  ],
+  "redaction_verified": true,
+  "network_or_real_credentials_used": false
+}

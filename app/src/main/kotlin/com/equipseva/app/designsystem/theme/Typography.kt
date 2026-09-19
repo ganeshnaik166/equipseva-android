@@ -1,25 +1,66 @@
 package com.equipseva.app.designsystem.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontSynthesis
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.equipseva.app.R
 
-private val Default = FontFamily.Default
-
-val EquipSevaTypography = Typography(
-    displayLarge = TextStyle(fontFamily = Default, fontWeight = FontWeight.Bold,     fontSize = 34.sp, lineHeight = 42.sp, letterSpacing = (-1.2).sp),
-    displayMedium = TextStyle(fontFamily = Default, fontWeight = FontWeight.Bold,     fontSize = 28.sp, lineHeight = 36.sp, letterSpacing = (-1.0).sp),
-    headlineLarge = TextStyle(fontFamily = Default, fontWeight = FontWeight.SemiBold, fontSize = 24.sp, lineHeight = 32.sp, letterSpacing = (-0.85).sp),
-    headlineMedium = TextStyle(fontFamily = Default, fontWeight = FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 28.sp, letterSpacing = (-0.7).sp),
-    titleLarge = TextStyle(fontFamily = Default, fontWeight = FontWeight.SemiBold, fontSize = 18.sp, lineHeight = 24.sp),
-    titleMedium = TextStyle(fontFamily = Default, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 22.sp, letterSpacing = 0.15.sp),
-    titleSmall = TextStyle(fontFamily = Default, fontWeight = FontWeight.Medium,   fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.1.sp),
-    bodyLarge = TextStyle(fontFamily = Default, fontWeight = FontWeight.Normal,   fontSize = 16.sp, lineHeight = 24.sp, letterSpacing = 0.15.sp),
-    bodyMedium = TextStyle(fontFamily = Default, fontWeight = FontWeight.Normal,   fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.2.sp),
-    bodySmall = TextStyle(fontFamily = Default, fontWeight = FontWeight.Normal,   fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.3.sp),
-    labelLarge = TextStyle(fontFamily = Default, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.1.sp),
-    labelMedium = TextStyle(fontFamily = Default, fontWeight = FontWeight.Medium,   fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.4.sp),
-    labelSmall = TextStyle(fontFamily = Default, fontWeight = FontWeight.Medium,   fontSize = 11.sp, lineHeight = 16.sp, letterSpacing = 0.5.sp),
+internal val SpaceGrotesk = FontFamily(Font(R.font.space_grotesk_semibold, FontWeight.SemiBold))
+internal val Inter = FontFamily(
+    Font(R.font.inter_regular, FontWeight.Normal),
+    Font(R.font.inter_medium, FontWeight.Medium),
+    Font(R.font.inter_semibold, FontWeight.SemiBold),
 )
+internal val Devanagari = FontFamily(
+    Font(R.font.noto_sans_devanagari_regular, FontWeight.Normal),
+    Font(R.font.noto_sans_devanagari_medium, FontWeight.Medium),
+    Font(R.font.noto_sans_devanagari_semibold, FontWeight.SemiBold),
+)
+internal val Telugu = FontFamily(
+    Font(R.font.noto_sans_telugu_regular, FontWeight.Normal),
+    Font(R.font.noto_sans_telugu_medium, FontWeight.Medium),
+    Font(R.font.noto_sans_telugu_semibold, FontWeight.SemiBold),
+)
+
+private fun typography(heading: FontFamily, body: FontFamily): Typography {
+    fun style(family: FontFamily, size: Int, line: Int, weight: FontWeight) = TextStyle(
+        fontFamily = family, fontSize = size.sp, lineHeight = line.sp, fontWeight = weight,
+        letterSpacing = 0.sp, fontSynthesis = FontSynthesis.None,
+        // Keep marks above/below Indic glyphs inside the layout on supported Android versions.
+        platformStyle = PlatformTextStyle(includeFontPadding = true),
+    )
+    val page = style(heading, 28, 34, FontWeight.SemiBold)
+    val section = style(heading, 20, 26, FontWeight.SemiBold)
+    val card = style(heading, 18, 24, FontWeight.SemiBold)
+    return Typography(
+        displayLarge = page, displayMedium = page, displaySmall = page,
+        headlineLarge = page, headlineMedium = section, headlineSmall = card,
+        titleLarge = section, titleMedium = card,
+        titleSmall = style(body, 16, 24, FontWeight.SemiBold),
+        bodyLarge = style(body, 16, 24, FontWeight.Normal),
+        bodyMedium = style(body, 14, 20, FontWeight.Normal),
+        bodySmall = style(body, 12, 18, FontWeight.Normal),
+        labelLarge = style(body, 16, 24, FontWeight.SemiBold),
+        labelMedium = style(body, 14, 20, FontWeight.SemiBold),
+        labelSmall = style(body, 12, 18, FontWeight.Medium),
+    )
+}
+
+/** Immutable English styles remain usable outside composition. Theme selects the active locale. */
+val EquipSevaTypography = typography(SpaceGrotesk, Inter)
+private val HindiTypography = typography(Devanagari, Devanagari)
+private val TeluguTypography = typography(Telugu, Telugu)
+
+/** Distinct resource IDs invalidate Compose's font cache when the configured language changes.
+ * Other scripts in mixed names use Android's system fallback; these families are not a glyph chain.
+ */
+internal fun typographyForLanguage(language: String): Typography = when (language) {
+    "hi" -> HindiTypography
+    "te" -> TeluguTypography
+    else -> EquipSevaTypography
+}

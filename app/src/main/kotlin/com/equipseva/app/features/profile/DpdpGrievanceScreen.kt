@@ -1,5 +1,7 @@
 package com.equipseva.app.features.profile
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -95,6 +97,10 @@ class DpdpGrievanceViewModel @Inject constructor(
     }
 
     fun submit(grievanceType: String, description: String) {
+        // A DPDP grievance starts a statutory response clock, so a double tap
+        // inside one frame would file two of them and leave the second
+        // unanswerable ("duplicate of your other request").
+        if (_state.value.submitting) return
         _state.update { it.copy(submitting = true, submitError = null, submitted = false) }
         viewModelScope.launch {
             repo.fileGrievance(grievanceType, description)
@@ -131,6 +137,17 @@ fun DpdpGrievanceScreen(
     var composerOpen by rememberSaveable { mutableStateOf(false) }
     var selectedType by rememberSaveable { mutableStateOf(GRIEVANCE_TYPES.first().first) }
     var description by rememberSaveable { mutableStateOf("") }
+
+    // Close the composer once the filing lands. Leaving it open with the
+    // description intact and Submit live again made a filed grievance look
+    // unfiled — the only change on screen was a new row further down the
+    // list — so the obvious next move was to tap Submit a second time.
+    androidx.compose.runtime.LaunchedEffect(state.submitted) {
+        if (state.submitted) {
+            composerOpen = false
+            description = ""
+        }
+    }
 
     Box(Modifier.fillMaxSize().background(PaperDefault)) {
         Column(Modifier.fillMaxSize()) {
@@ -180,7 +197,6 @@ fun DpdpGrievanceScreen(
                                 onDescriptionChange = { description = it },
                                 submitting = state.submitting,
                                 submitError = state.submitError,
-                                submitted = state.submitted,
                                 onSubmit = {
                                     viewModel.submit(selectedType, description.trim())
                                 },
@@ -229,7 +245,6 @@ private fun GrievanceComposer(
     onDescriptionChange: (String) -> Unit,
     submitting: Boolean,
     submitError: String?,
-    submitted: Boolean,
     onSubmit: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -266,6 +281,7 @@ private fun GrievanceComposer(
             }
             Spacer(Modifier.height(10.dp))
             EsField(
+                palette = LightEsColors,
                 value = description,
                 onChange = onDescriptionChange,
                 label = stringResource(R.string.dpdp_grievance_description_label),

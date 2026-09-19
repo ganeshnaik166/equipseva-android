@@ -17,6 +17,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
+import com.equipseva.app.designsystem.theme.SevaInk500
+
 import com.equipseva.app.designsystem.theme.EquipSevaTheme
 import com.equipseva.app.designsystem.theme.SevaInk400
 import com.equipseva.app.designsystem.theme.SevaInk700
@@ -41,7 +43,7 @@ fun InlineStars(rating: Double, count: Int, small: Boolean = false) {
     if (rating <= 0.0) {
         Text(
             text = "New",
-            color = SevaInk400,
+            color = SevaInk500,
             fontSize = if (small) 11.sp else 12.sp,
             fontWeight = FontWeight.SemiBold,
         )
@@ -65,7 +67,9 @@ fun InlineStars(rating: Double, count: Int, small: Boolean = false) {
         )
         Text(
             text = inlineStarsCountLabel(count),
-            color = SevaInk400,
+            // SevaInk400 is 3.95:1 on white — under the 4.5:1 AA floor, and
+            // this is 11-12 sp body text, not a large-text exemption.
+            color = SevaInk500,
             fontSize = if (small) 11.sp else 12.sp,
         )
     }

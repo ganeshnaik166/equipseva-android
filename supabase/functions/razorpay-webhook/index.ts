@@ -384,7 +384,11 @@ serve(async (req) => {
     // Any other event type — log to the audit table (without side effects)
     // and return 200 so Razorpay doesn't retry. We can replay manually
     // from the audit table later if needed.
-    await admin.from("razorpay_webhook_events")
+    // This insert is the ONLY record that the event ever reached us, so
+    // it has to be resolved before the response — a query left in flight
+    // dies with the invocation. A replayed event id hits the UNIQUE and
+    // is expected, so only other errors are worth logging.
+    const unhandledLog = await admin.from("razorpay_webhook_events")
       .insert({
         razorpay_event_id: eventId,
         event_type: eventType,
@@ -393,12 +397,10 @@ serve(async (req) => {
         apply_outcome: "unhandled_event_type",
       })
       .select()
-      .single()
-      .then((r) => {
-        if (r.error && !/duplicate/i.test(r.error.message)) {
-          console.error("razorpay-webhook: log unhandled failed", r.error.message);
-        }
-      });
+      .single();
+    if (unhandledLog.error && !/duplicate/i.test(unhandledLog.error.message)) {
+      console.error("razorpay-webhook: log unhandled failed", unhandledLog.error.message);
+    }
     return json(200, { ok: true, applied: false, code: "unhandled_event_type" });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

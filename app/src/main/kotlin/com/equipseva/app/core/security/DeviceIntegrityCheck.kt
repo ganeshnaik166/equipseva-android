@@ -9,6 +9,7 @@ import com.equipseva.app.BuildConfig
 import java.io.File
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Runs cheap local probes for signals that the device is rooted, an emulator,
@@ -145,17 +146,59 @@ object DeviceIntegrityCheck {
             hardware.contains("ranchu")
     }
 
-    private fun looksLikeFrida(): Boolean {
+    private fun looksLikeFrida(): Boolean = probeOffCallerThread(
+        threadName = "integrity-frida-probe",
+        joinTimeoutMs = FRIDA_PROBE_JOIN_MS,
+        ifUnavailable = false,
+    ) {
         // Frida-server default TCP port on the device's loopback. Very cheap
         // probe; misses gadget-based Frida but catches the common case.
-        val port = 27042
-        return runCatching {
-            Socket().use { s ->
-                s.connect(InetSocketAddress("127.0.0.1", port), 50)
-                true
-            }
-        }.getOrDefault(false)
+        Socket().use { s ->
+            s.connect(InetSocketAddress("127.0.0.1", FRIDA_SERVER_PORT), FRIDA_CONNECT_TIMEOUT_MS)
+            true
+        }
     }
 
     private const val TAG = "DeviceIntegrityCheck"
+    private const val FRIDA_SERVER_PORT = 27042
+    private const val FRIDA_CONNECT_TIMEOUT_MS = 50
+    private const val FRIDA_PROBE_JOIN_MS = 250L
+}
+
+/**
+ * Runs [probe] on a short-lived daemon thread and waits at most
+ * [joinTimeoutMs] for an answer, yielding [ifUnavailable] when the probe
+ * throws or outlives that window.
+ *
+ * The integrity checks are invoked from `Application.onCreate`, the
+ * ProcessLifecycleOwner observer and the activity's own resume path — all
+ * on the main thread, where Android throws NetworkOnMainThreadException
+ * even for a loopback connect. Swallowed, that made the socket probe read
+ * "clean" on every device and killed the signal it exists to provide.
+ * The join stays bounded because a hung probe must never stall a cold
+ * start, and a missed detection is picked up by the periodic re-check.
+ */
+internal fun <T> probeOffCallerThread(
+    threadName: String,
+    joinTimeoutMs: Long,
+    ifUnavailable: T,
+    probe: () -> T,
+): T {
+    val answer = AtomicReference(ifUnavailable)
+    val worker = Thread(
+        {
+            // A probe that cannot run is indistinguishable from a negative
+            // result for these signals, so failures keep the fallback.
+            runCatching { answer.set(probe()) }
+        },
+        threadName,
+    ).apply { isDaemon = true }
+    worker.start()
+    try {
+        worker.join(joinTimeoutMs)
+    } catch (_: InterruptedException) {
+        // Restore the flag for whoever owns the calling thread.
+        Thread.currentThread().interrupt()
+    }
+    return answer.get()
 }

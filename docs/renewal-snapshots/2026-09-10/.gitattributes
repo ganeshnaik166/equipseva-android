@@ -1,0 +1,2 @@
+# Preserve the exact archived bytes, including Windows line endings, in manifest.json.
+* -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
