@@ -22,6 +22,9 @@ import com.equipseva.app.core.sync.handlers.PhotoUploadStash
 import com.equipseva.app.core.util.timestampedName
 import kotlin.time.Clock
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,6 +32,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 import javax.inject.Inject
 
 @HiltViewModel
@@ -442,15 +446,25 @@ class KycViewModel @Inject constructor(
             it.copy(emailVerifySheetOpen = true, emailOtpCode = "", sendingEmailOtp = true, emailOtpError = null)
         }
         viewModelScope.launch {
-            authRepository.sendEmailOtp(email)
-                .onSuccess {
+            try {
+                val result = authRepository.sendEmailOtp(email)
+                currentCoroutineContext().ensureActive()
+                result.onSuccess {
                     _state.update { it.copy(sendingEmailOtp = false) }
                     _effects.emit(Effect.ShowMessage("Code sent to $email"))
-                }
-                .onFailure { err ->
+                }.onFailure { err ->
+                    val message = err.toUserMessage() // Propagates wrapped cancellation first.
                     _state.update { it.copy(sendingEmailOtp = false, emailVerifySheetOpen = false) }
-                    _effects.emit(Effect.ShowMessage(err.toUserMessage()))
+                    _effects.emit(Effect.ShowMessage(message))
                 }
+            } catch (cancelled: CancellationException) {
+                // A provider interruption may leave the caller alive. Unlock recovery
+                // without a delivery claim; a retired caller must publish nothing.
+                if (currentCoroutineContext().isActive) {
+                    _state.update { it.copy(sendingEmailOtp = false, emailVerifySheetOpen = false, emailOtpCode = "") }
+                }
+                throw cancelled
+            }
         }
     }
 
@@ -470,7 +484,7 @@ class KycViewModel @Inject constructor(
 
     fun submitEmailOtp() {
         val snap = _state.value
-        if (snap.verifyingEmailOtp) return
+        if (snap.sendingEmailOtp || snap.verifyingEmailOtp) return
         val email = snap.email ?: return
         if (snap.emailOtpCode.length != 6) {
             viewModelScope.launch {
@@ -480,12 +494,20 @@ class KycViewModel @Inject constructor(
         }
         _state.update { it.copy(verifyingEmailOtp = true, emailOtpError = null) }
         viewModelScope.launch {
-            authRepository.verifyEmailOtp(email, snap.emailOtpCode)
-                .onSuccess {
+            try {
+                val result = authRepository.verifyEmailOtp(email, snap.emailOtpCode)
+                currentCoroutineContext().ensureActive()
+                result.onSuccess {
                     // Auth trigger flips profile.email_verified server-side;
                     // reload the profile so UiState.emailVerified flips too.
                     val uid = userId
-                    val refreshed = uid?.let { profileRepository.fetchById(it).getOrNull() }
+                    val refreshed = uid?.let {
+                        val profileResult = profileRepository.fetchById(it)
+                        currentCoroutineContext().ensureActive()
+                        val failure = profileResult.exceptionOrNull()
+                        if (failure is CancellationException) throw failure
+                        profileResult.getOrNull()
+                    }
                     _state.update {
                         it.copy(
                             verifyingEmailOtp = false,
@@ -496,12 +518,17 @@ class KycViewModel @Inject constructor(
                         )
                     }
                     _effects.emit(Effect.ShowMessage("Email verified"))
-                }
-                .onFailure { err ->
+                }.onFailure { err ->
                     val message = err.toUserMessage()
                     _state.update { it.copy(verifyingEmailOtp = false, emailOtpError = message) }
                     _effects.emit(Effect.ShowMessage(message))
                 }
+            } catch (cancelled: CancellationException) {
+                if (currentCoroutineContext().isActive) {
+                    _state.update { it.copy(verifyingEmailOtp = false) }
+                }
+                throw cancelled
+            }
         }
     }
 
