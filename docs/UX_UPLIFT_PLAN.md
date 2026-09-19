@@ -1,5 +1,13 @@
 # EquipSeva UX/UI uplift — plan + operating prompt
 
+> **19 September 2026 direction:** [PRODUCT_PLAN.md](../PRODUCT_PLAN.md) is the
+> governing product plan. The current target adds organisation-scoped paid team
+> administration with a synthetic demo, three public signup purposes, privately
+> provisioned platform operations and state/district workflows without maps.
+> Its lime/ink/soft-white theme, Space Grotesk headings and Inter body text
+> supersede conflicting historical decisions below. This file retains historical
+> work evidence; it does not mark the expanded product implemented or accepted.
+
 > Drafted 2026-09-07 at HEAD `5b09bb7b` (branch `ops/r1388-calendar-burndown`, prod through round3819).
 > Author: Claude (acting PM/CEO/QA per the founder's standing delegation). Founder: Ganesh Dhanavath.
 >
