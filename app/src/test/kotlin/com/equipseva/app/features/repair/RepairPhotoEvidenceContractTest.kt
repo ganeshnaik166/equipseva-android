@@ -205,6 +205,33 @@ class RepairPhotoEvidenceContractTest {
         assertFalse(s.proofSheetOpen)
     }
 
+    @Test fun `no decoded before photos keeps selection open without starting GPS or check-in`() = runTest {
+        // CheckinSheet's mapNotNull produces this input when all selected URIs
+        // have become unreadable. Selected URI count is not usable evidence.
+        mockkStatic("com.equipseva.app.core.util.CurrentLocationKt")
+        coEvery { fetchCurrentLocation(any(), any()) } returns null
+        build(job(RepairJobStatus.Assigned))
+        runCurrent()
+        assertLoadedAsAssignedEngineer(RepairJobStatus.Assigned)
+        vm.openCheckinSheet()
+        assertTrue(vm.state.value.checkinSheetOpen)
+        val messages = mutableListOf<String>()
+        backgroundScope.launch { vm.messages.collect { messages += it } }
+        runCurrent()
+
+        vm.submitCheckinWithProof(emptyList())
+        runCurrent()
+
+        coVerify(exactly = 0) { fetchCurrentLocation(any(), any()) }
+        coVerify(exactly = 0) { stash.enqueue(any(), any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { jobRepository.engineerCheckInWithGeo(any(), any(), any()) }
+        assertTrue(vm.state.value.checkinSheetOpen)
+        assertFalse(vm.state.value.updatingStatus)
+        assertEquals(RepairJobStatus.Assigned, vm.state.value.job?.status)
+        assertEquals(1, messages.size)
+        assertTrue(messages.single().contains("photo", ignoreCase = true))
+    }
+
     @Test fun `before photos enqueue as uid slash job slash before-stored-name and check-in degrades safely without a location fix`() = runTest {
         mockkStatic("com.equipseva.app.core.util.CurrentLocationKt")
         coEvery { fetchCurrentLocation(any(), any()) } returns null
