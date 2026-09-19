@@ -34,7 +34,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -56,6 +55,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.R
+import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.EsBtnKind
+import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.Paper3
@@ -65,6 +67,7 @@ import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk600
 import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.features.auth.RoleSelectViewModel.RoleSelectEffect
 import com.equipseva.app.features.auth.RoleSelectViewModel.RoleSelectError
 import com.equipseva.app.features.auth.RoleSelectViewModel.RoleSelectState
@@ -129,8 +132,8 @@ internal fun RoleSelectContent(
                     .widthIn(max = 600.dp)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                    .padding(horizontal = 20.dp, vertical = Spacing.xl),
+                verticalArrangement = Arrangement.spacedBy(Spacing.lg),
             ) {
                 Text(
                     text = stringResource(R.string.role_picker_title),
@@ -154,13 +157,13 @@ internal fun RoleSelectContent(
                             text = error,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             style = EsType.Body,
-                            modifier = Modifier.padding(16.dp),
+                            modifier = Modifier.padding(Spacing.lg),
                         )
                     }
                 }
                 Column(
                     modifier = Modifier.fillMaxWidth().selectableGroup(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md),
                 ) {
                     state.roles.forEach { role ->
                         RoleCard(
@@ -191,13 +194,13 @@ internal fun RoleSelectContent(
                         disabledContainerColor = Paper3,
                         disabledContentColor = SevaInk500,
                     ),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                    contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = 14.dp),
                 ) {
                     if (state.form.submitting) {
                         CircularProgressIndicator(
                             color = SevaInk500,
                             strokeWidth = 2.dp,
-                            modifier = Modifier.padding(end = 8.dp).size(20.dp).clearAndSetSemantics {},
+                            modifier = Modifier.padding(end = Spacing.sm).size(20.dp).clearAndSetSemantics {},
                         )
                     }
                     Text(
@@ -212,14 +215,15 @@ internal fun RoleSelectContent(
                         style = EsType.Label,
                     )
                 }
-                TextButton(
+                EsBtn(
+                    text = stringResource(R.string.role_picker_sign_out),
                     onClick = onSignOut,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                    colors = ButtonDefaults.textButtonColors(contentColor = SevaInk600),
-                ) {
-                    Text(stringResource(R.string.role_picker_sign_out), style = EsType.Label)
-                }
+                    kind = EsBtnKind.Ghost,
+                    size = EsBtnSize.Sm,
+                    full = true,
+                    // This screen deliberately uses a fixed light surface.
+                    contentColor = SevaInk600,
+                )
                 Text(
                     text = stringResource(R.string.role_picker_sign_out_hint),
                     style = EsType.BodySm,
@@ -272,9 +276,9 @@ private fun RoleCard(
                 role = Role.RadioButton,
                 onClick = onClick,
             )
-            .padding(16.dp),
+            .padding(Spacing.lg),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Icon(
             imageVector = visual.icon,
@@ -282,7 +286,7 @@ private fun RoleCard(
             tint = if (selected) SevaGreen700 else SevaInk600,
             modifier = Modifier.size(28.dp),
         )
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(
                 text = stringResource(visual.label),
                 style = EsType.Body,

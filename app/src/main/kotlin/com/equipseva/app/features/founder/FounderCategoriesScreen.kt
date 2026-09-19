@@ -1,5 +1,6 @@
 package com.equipseva.app.features.founder
 
+import androidx.activity.compose.BackHandler
 import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -30,6 +31,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalBottomSheetProperties
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -40,6 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -285,20 +289,26 @@ fun FounderCategoriesScreen(
         ) { uri: Uri? ->
             if (uri != null) viewModel.uploadImage(context, uri)
         }
-        // rememberModalBottomSheetState captures confirmValueChange once, so
-        // the predicate reads the flag through a state holder to see later
-        // values. Blocking the gesture is what keeps the sheet open: refusing
-        // the dismiss callback alone leaves a hidden modal window swallowing
+        // Keep the saved SheetState predicate stable and read current busy
+        // state through a state holder. Refusing only the dismiss callback
+        // can leave a hidden modal window swallowing
         // every tap, with the save error rendered behind it.
         val busy by rememberUpdatedState(state.saving)
+        val confirmTransition = remember {
+            { next: SheetValue -> sheetDismissAllowed(next, busy) }
+        }
         val sheetState = rememberModalBottomSheetState(
             skipPartiallyExpanded = true,
-            confirmValueChange = { sheetDismissAllowed(it, busy) },
+            confirmValueChange = confirmTransition,
         )
+        val dismiss = { if (!busy) viewModel.closeSheet() }
         ModalBottomSheet(
             sheetState = sheetState,
-            onDismissRequest = { viewModel.closeSheet() },
+            onDismissRequest = dismiss,
+            properties = ModalBottomSheetProperties(shouldDismissOnBackPress = false),
         ) {
+            // Native Back bypasses confirmValueChange in Material3 1.3.1.
+            BackHandler(onBack = dismiss)
             Column(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),

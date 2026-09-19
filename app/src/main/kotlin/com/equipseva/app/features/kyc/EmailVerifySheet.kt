@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import com.equipseva.app.R
 import com.equipseva.app.designsystem.components.EsActionGroup
 import com.equipseva.app.designsystem.components.EsBtn
@@ -20,6 +19,8 @@ import com.equipseva.app.designsystem.components.OtpDigitField
 import com.equipseva.app.designsystem.components.PrimaryButton
 import com.equipseva.app.designsystem.theme.EsTheme
 import com.equipseva.app.designsystem.theme.EsType
+import com.equipseva.app.designsystem.theme.EsRadius
+import com.equipseva.app.designsystem.theme.Spacing
 
 private class EmailSheetLifetime { var active = true }
 
@@ -72,12 +73,12 @@ private fun EmailVerifyDialog(
     }
     ModalBottomSheet(onDismissRequest = dismiss, sheetState = sheetState,
         properties = ModalBottomSheetProperties(shouldDismissOnBackPress = false),
-        containerColor = p.surface, contentColor = p.text, shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)) {
+        containerColor = p.surface, contentColor = p.text, shape = RoundedCornerShape(topStart = EsRadius.Xl, topEnd = EsRadius.Xl)) {
         // Material3 1.3.1's Back path hides without consulting confirmValueChange.
         // Handle Back in this dialog before any hide starts, reading current busy state.
         BackHandler(onBack = dismiss)
-        Column(Modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
             Text(stringResource(R.string.kyc_verify_your_email), style = EsType.H4, color = p.text,
                 modifier = Modifier.semantics { heading() })
             Text(stringResource(if (sending) R.string.otp_sending_to else R.string.kyc_email_code_sent, email),

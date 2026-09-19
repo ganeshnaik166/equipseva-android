@@ -1,5 +1,6 @@
 package com.equipseva.app.designsystem.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,14 +11,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -28,7 +31,6 @@ import com.equipseva.app.R
 import com.equipseva.app.designsystem.theme.Ink700
 import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,19 +44,27 @@ fun DeleteAccountSheet(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    // rememberModalBottomSheetState captures confirmValueChange once, so the
-    // predicate has to read the flag through a state holder to see later values.
     val busy by rememberUpdatedState(deleting)
+    val currentDismiss by rememberUpdatedState(onDismiss)
+    // Material3 keys its saved SheetState on this callback. Keep its identity
+    // stable while reading the latest busy state for drag/scrim transitions.
+    val confirmTransition = remember {
+        { next: SheetValue -> sheetDismissAllowed(next, busy) }
+    }
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
-        confirmValueChange = { sheetDismissAllowed(it, busy) },
+        confirmValueChange = confirmTransition,
     )
-    val scope = rememberCoroutineScope()
+    val dismiss = remember { { if (!busy) currentDismiss() } }
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = dismiss,
         sheetState = sheetState,
+        properties = ModalBottomSheetProperties(shouldDismissOnBackPress = false),
     ) {
+        // Material3 1.3.1's native Back path hides without consulting the
+        // transition predicate. Consume Back inside the dialog before hiding.
+        BackHandler(onBack = dismiss)
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
@@ -115,12 +125,7 @@ fun DeleteAccountSheet(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
                 TextButton(
-                    onClick = {
-                        scope.launch {
-                            sheetState.hide()
-                            onDismiss()
-                        }
-                    },
+                    onClick = dismiss,
                     enabled = !deleting,
                     modifier = Modifier.weight(1f),
                 ) { Text(stringResource(R.string.common_cancel)) }

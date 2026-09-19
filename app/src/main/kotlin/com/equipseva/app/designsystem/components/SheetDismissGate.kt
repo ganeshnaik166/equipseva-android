@@ -20,6 +20,10 @@ import androidx.compose.material3.SheetValue
  * So the gesture itself has to be refused while the action runs. Every other
  * target — expanding, or hiding once the action has finished — is allowed, so
  * the sheet still closes normally the moment `busy` goes false.
+ *
+ * Material3 1.3.1's native Back path calls `hide()` without this predicate.
+ * Hosts must also set `shouldDismissOnBackPress = false` and install an
+ * in-dialog BackHandler that checks current busy state before dismissing.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 internal fun sheetDismissAllowed(target: SheetValue, busy: Boolean): Boolean =

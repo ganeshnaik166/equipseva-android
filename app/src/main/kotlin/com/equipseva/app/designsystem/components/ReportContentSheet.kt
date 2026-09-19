@@ -1,5 +1,6 @@
 package com.equipseva.app.designsystem.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,8 +14,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -22,7 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -36,7 +38,6 @@ import com.equipseva.app.core.data.moderation.ContentReportReason
 import com.equipseva.app.designsystem.theme.Ink700
 import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
-import kotlinx.coroutines.launch
 
 /**
  * Bottom sheet that lets the user pick a reason and add optional notes before
@@ -52,29 +53,30 @@ fun ReportContentSheet(
     onDismiss: () -> Unit,
     onSubmit: (reason: ContentReportReason, notes: String?) -> Unit,
 ) {
-    // rememberModalBottomSheetState captures confirmValueChange once, so the
-    // predicate has to read the flag through a state holder to see later values.
     val busy by rememberUpdatedState(submitting)
+    val currentDismiss by rememberUpdatedState(onDismiss)
+    // Material3 keys its saved SheetState on this callback. Keep its identity
+    // stable while reading the latest busy state for drag/scrim transitions.
+    val confirmTransition = remember {
+        { next: SheetValue -> sheetDismissAllowed(next, busy) }
+    }
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
-        confirmValueChange = { sheetDismissAllowed(it, busy) },
+        confirmValueChange = confirmTransition,
     )
-    val scope = rememberCoroutineScope()
     val reasons = remember { ContentReportReason.entries }
     var selected by rememberSaveable { mutableStateOf(ContentReportReason.Spam) }
     var notes by rememberSaveable { mutableStateOf("") }
 
-    val dismissWithAnim: () -> Unit = {
-        scope.launch {
-            sheetState.hide()
-            onDismiss()
-        }
-    }
+    val dismiss = remember { { if (!busy) currentDismiss() } }
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = dismiss,
         sheetState = sheetState,
+        properties = ModalBottomSheetProperties(shouldDismissOnBackPress = false),
     ) {
+        // Native Back bypasses confirmValueChange in Material3 1.3.1.
+        BackHandler(onBack = dismiss)
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
@@ -145,7 +147,7 @@ fun ReportContentSheet(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
                 TextButton(
-                    onClick = dismissWithAnim,
+                    onClick = dismiss,
                     enabled = !submitting,
                     modifier = Modifier.weight(1f),
                 ) { Text(stringResource(R.string.common_cancel)) }

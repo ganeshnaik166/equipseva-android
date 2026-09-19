@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -63,7 +64,7 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowDialog
 
 /**
- * DRAFT, NOT EXECUTED. Source contract inspected at b453f19a.
+ * Regression targets first inspected at b453f19a, with recorded RED execution.
  * Synthetic production components and native dialog windows, no accounts or provider calls.
  * No golden recording; only live semantics, native text layout and painted glyph measurements.
  */
@@ -134,18 +135,29 @@ class SharedUiReviewRegressionTest {
 
     private fun badge(scale: Float) {
         val unread = mutableStateOf(1)
+        val tabCount = mutableStateOf(3)
         render(scale) {
             Column(Modifier.fillMaxSize().background(Color.White).padding(16.dp)) {
                 EsBottomNav(
-                    tabs = listOf(
-                        EsBottomNavItem("home", "Home", Icons.Outlined.Home, badge = unread.value),
-                        EsBottomNavItem("jobs", "Jobs", Icons.Outlined.Home),
-                        EsBottomNavItem("profile", "Profile", Icons.Outlined.Home),
-                    ),
+                    tabs = buildList {
+                        add(EsBottomNavItem("home", "Home", Icons.Outlined.Home, badge = unread.value))
+                        add(EsBottomNavItem("jobs", "Jobs", Icons.Outlined.Home))
+                        if (tabCount.value == 4) {
+                            add(EsBottomNavItem("earnings", "Earnings", Icons.Outlined.Home))
+                        }
+                        add(EsBottomNavItem("profile", "Profile", Icons.Outlined.Home))
+                    },
                     currentRoute = "home", onSelect = {}, modifier = Modifier.testTag("review-nav"),
                 )
             }
         }
+        listOf(3, 4).forEach { count ->
+            compose.runOnIdle { tabCount.value = count }
+            assertBadgeCounts(unread, scale)
+        }
+    }
+
+    private fun assertBadgeCounts(unread: MutableState<Int>, scale: Float) {
         listOf(1, 99, 100).forEach { count ->
             compose.runOnIdle { unread.value = count }
             val expected = if (count == 100) "99+" else count.toString()
@@ -155,7 +167,14 @@ class SharedUiReviewRegressionTest {
             val layout = results.single { it.layoutInput.text.text == expected }
             assertEquals("Actual native text owner uses requested platform scale", scale,
                 layout.layoutInput.density.fontScale, 0.001f)
-            assertFalse("Badge $expected is horizontally clipped at $scale", layout.didOverflowWidth)
+            // String Text's semantics slow path rebuilds MultiParagraph using
+            // the parent's maximum width, then pairs it with the smaller real
+            // layoutSize (Foundation 1.9 ParagraphLayoutCache). Consequently
+            // didOverflowWidth can be true for fitting text: observed 5 px of
+            // glyphs in a 5 px layout with a 69 px semantics paragraph. Check
+            // actual line/character advances against allocated bounds instead.
+            assertTrue("Badge $expected has a nonempty allocated text layout at $scale",
+                layout.size.width > 0 && layout.size.height > 0)
             assertFalse("Badge $expected is vertically clipped at $scale", layout.didOverflowHeight)
             assertEquals("Badge stays one line", 1, layout.lineCount)
             assertFalse("Badge never replaces digits with ellipsis", layout.isLineEllipsized(0))
@@ -163,18 +182,23 @@ class SharedUiReviewRegressionTest {
                 layout.getLineEnd(0, visibleEnd = true))
             assertTrue("Glyph advances fit allocated text width", layout.getLineRight(0) <= layout.size.width + 1f)
             assertTrue("Glyph advances fit allocated text left edge", layout.getLineLeft(0) >= -1f)
+            assertTrue("Line height fits allocated text height", layout.getLineTop(0) >= -1f &&
+                layout.getLineBottom(0) <= layout.size.height + 1f)
             expected.indices.forEach { index ->
                 val glyph = layout.getBoundingBox(index)
                 assertTrue("Character $index fits badge width: $glyph", glyph.left >= -1f &&
                     glyph.right <= layout.size.width + 1f)
+                assertTrue("Character $index fits badge height: $glyph", glyph.top >= -1f &&
+                    glyph.bottom <= layout.size.height + 1f)
             }
             val labelBounds = bounds(label)
             assertContains("Badge is contained in full nav", bounds(compose.onNodeWithTag("review-nav")), labelBounds)
             val view = nativeView(label)
             assertContains("Badge remains inside native viewport",
                 Rect(0f, 0f, view.width.toFloat(), view.height.toFloat()), labelBounds)
-            compose.onNode(hasContentDescription(app.getString(R.string.bottom_nav_unread_cd, "Home", count)) and
+            val owningTab = compose.onNode(hasContentDescription(app.getString(R.string.bottom_nav_unread_cd, "Home", count)) and
                 SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)).assertExists()
+            assertContains("Badge is contained in its own tab", bounds(owningTab), labelBounds)
         }
     }
 
@@ -202,15 +226,21 @@ class SharedUiReviewRegressionTest {
             var right = Int.MIN_VALUE
             var bottom = Int.MIN_VALUE
             var pixels = 0
+            val colors = mutableMapOf<Int, Int>()
             for (y in floor(area.top).toInt().coerceAtLeast(0) until ceil(area.bottom).toInt().coerceAtMost(bitmap.height)) {
                 for (x in floor(area.left).toInt().coerceAtLeast(0) until ceil(area.right).toInt().coerceAtMost(bitmap.width)) {
-                    if (near(bitmap.getPixel(x, y), color)) {
+                    val pixel = bitmap.getPixel(x, y)
+                    colors[pixel] = (colors[pixel] ?: 0) + 1
+                    if (hasTintInk(pixel, color)) {
                         left = minOf(left, x); right = maxOf(right, x)
                         top = minOf(top, y); bottom = maxOf(bottom, y); pixels++
                     }
                 }
             }
-            assertTrue("Actual info-vector ink exists", pixels >= 8)
+            assertTrue("Actual info-vector ink exists: pixels=$pixels, target=$area, " +
+                "expected=${color.toUInt().toString(16)}, colors=" +
+                colors.entries.sortedByDescending { it.value }.take(12)
+                    .joinToString { "${it.key.toUInt().toString(16)}:${it.value}" }, pixels >= 8)
             val glyph = Rect(left.toFloat(), top.toFloat(), right + 1f, bottom + 1f)
             val maximum = glyphDp * app.resources.displayMetrics.density + 1f
             assertTrue("Info glyph width stays <= ${glyphDp}dp, independent of 48dp target: $glyph",
@@ -243,16 +273,19 @@ class SharedUiReviewRegressionTest {
         val titleText = app.getString(R.string.account_delete_title)
         // The destructive button may use the same words as the title.
         val title = compose.onNode(hasText(titleText) and !hasClickAction()).assertIsDisplayed()
-        val originalBounds = bounds(title)
         val dialog = requireNotNull(ShadowDialog.getLatestDialog())
         assertTrue(dialog.isShowing)
         assertNotSame(host.get().window.decorView, dialog.window!!.decorView)
         assertSame("Back owner is the modal, not the activity", dialog,
             nativeView(title).findViewTreeOnBackPressedDispatcherOwner())
         compose.runOnIdle { deleting.value = true }
+        // The busy label has different wrapping at this width; compare the
+        // same settled busy layout on either side of native Back.
+        compose.waitForIdle()
+        val busyBounds = bounds(title.assertIsDisplayed())
         nativeBack(dialog)
         title.assertIsDisplayed()
-        assertEquals("Native Back must not start a hidden transition", originalBounds.top,
+        assertEquals("Native Back must not start a hidden transition", busyBounds.top,
             bounds(title).top, 1f)
         compose.runOnIdle { assertEquals(0, dismissed); assertTrue(dialog.isShowing) }
         compose.runOnIdle { deleting.value = false; passwordError.value = "Incorrect password. Try again." }
@@ -296,6 +329,22 @@ class SharedUiReviewRegressionTest {
             inner.top >= outer.top - 1f && inner.right <= outer.right + 1f && inner.bottom <= outer.bottom + 1f)
     }
 
-    private fun near(actual: Int, expected: Int): Boolean =
-        listOf(0, 8, 16).all { shift -> abs(((actual shr shift) and 255) - ((expected shr shift) and 255)) <= 8 }
+    /**
+     * The fixture paints on white. Fractional vector strokes legitimately
+     * blend their tint with that background: the 14 dp icon had 81 nonwhite
+     * pixels but only three nearly opaque ones. Identify foreground-over-white
+     * ink, retaining the same minimum ink and maximum painted-size assertions.
+     */
+    private fun hasTintInk(actual: Int, expected: Int): Boolean {
+        val channels = listOf(0, 8, 16)
+        val tintDelta = channels.map { 255f - ((expected ushr it) and 255) }
+        val pixelDelta = channels.map { 255f - ((actual ushr it) and 255) }
+        val magnitude = tintDelta.sumOf { (it * it).toDouble() }.toFloat()
+        if (magnitude == 0f) return false
+        val coverage = tintDelta.indices.sumOf {
+            (tintDelta[it] * pixelDelta[it]).toDouble()
+        }.toFloat() / magnitude
+        if (coverage < 0.1f || coverage > 1.01f) return false
+        return tintDelta.indices.all { abs(pixelDelta[it] - coverage * tintDelta[it]) <= 3f }
+    }
 }

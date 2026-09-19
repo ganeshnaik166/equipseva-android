@@ -3,6 +3,7 @@ package com.equipseva.app.designsystem.components
 import com.equipseva.app.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,6 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -53,6 +56,7 @@ fun VerifiedBadgeWithInfo(
     small: Boolean = false,
 ) {
     var showInfoSheet by remember { mutableStateOf(false) }
+    val infoLabel = stringResource(R.string.verified_badge_info_title)
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -72,18 +76,23 @@ fun VerifiedBadgeWithInfo(
             fontSize = if (small) 10.sp else 11.sp,
             fontWeight = FontWeight.SemiBold,
         )
-        Icon(
-            Icons.Outlined.Info,
-            contentDescription = stringResource(R.string.verified_badge_info_title),
-            tint = SevaInk500,
+        Box(
             modifier = Modifier
-                // A 12-14 dp glyph is the only way into the "how we verify"
-                // sheet; reserving the interactive minimum around it makes it
-                // reachable without changing the glyph's own size.
                 .sizeIn(minWidth = Spacing.MinTouchTarget, minHeight = Spacing.MinTouchTarget)
+                .semantics { contentDescription = infoLabel }
                 .clickable(role = Role.Button) { showInfoSheet = true }
-                .size(if (small) 12.dp else 14.dp),
-        )
+                .padding(Spacing.sm),
+            contentAlignment = Alignment.Center,
+        ) {
+            // A separate child keeps the glyph compact while the whole 48 dp
+            // button remains reachable and has one accessible name.
+            Icon(
+                Icons.Outlined.Info,
+                contentDescription = null,
+                tint = SevaInk500,
+                modifier = Modifier.size(if (small) 12.dp else 14.dp),
+            )
+        }
     }
 
     if (showInfoSheet) {

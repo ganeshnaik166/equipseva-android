@@ -10,9 +10,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredHeightIn
-import androidx.compose.foundation.layout.requiredWidthIn
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
@@ -131,9 +130,14 @@ fun EsBottomNav(
                     modifier = Modifier
                         .clip(RoundedCornerShape(999.dp))
                         .background(if (active) SevaGreen50 else Color.Transparent)
-                        .padding(horizontal = 18.dp, vertical = 4.dp),
+                        // Leave room for the growing badge within its own tab,
+                        // including the four-tab layout at large font scales.
+                        .padding(horizontal = if (unread > 0) 4.dp else 18.dp, vertical = 4.dp),
                 ) {
-                    Box(modifier = Modifier.size(22.dp)) {
+                    // The badge must participate in measurement. A fixed icon
+                    // box also capped the badge text at 22 dp, even with a
+                    // required minimum size on the badge itself.
+                    Box {
                         Icon(
                             imageVector = tab.icon,
                             // The tab already has an accessible name (the
@@ -141,7 +145,7 @@ fun EsBottomNav(
                             // naming the icon too read the tab out twice.
                             contentDescription = null,
                             tint = if (active) SevaGreen700 else SevaInk500,
-                            modifier = Modifier.size(22.dp),
+                            modifier = Modifier.size(22.dp).align(Alignment.BottomStart),
                         )
                         if (unread > 0) {
                             // Bumped from 16dp / 9sp to 18dp / 11sp so the
@@ -153,15 +157,12 @@ fun EsBottomNav(
                             Box(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    // Grows sideways for a two- or three-glyph
-                                    // count instead of clipping it inside a
-                                    // fixed 18 dp square. The `required` forms
-                                    // are load-bearing: the enclosing icon box
-                                    // is exactly 22 dp, so the plain heightIn /
-                                    // widthIn would be coerced straight back to
-                                    // it and the wider pill would clip again.
-                                    .requiredHeightIn(min = 18.dp)
-                                    .requiredWidthIn(min = 18.dp)
+                                    // Reserve the icon's lower-left corner so
+                                    // a wider/taller count grows the entire pill
+                                    // rather than painting beyond its clipping
+                                    // bounds or covering the whole icon.
+                                    .padding(start = 11.dp, bottom = 11.dp)
+                                    .sizeIn(minWidth = 18.dp, minHeight = 18.dp)
                                     .clip(RoundedCornerShape(999.dp))
                                     .background(SevaDanger500)
                                     .padding(horizontal = 3.dp),
@@ -197,10 +198,8 @@ fun EsBottomNav(
 /**
  * Unread-count text inside the bottom-nav badge.
  *
- * Caps at "99+" because the badge is an 18 dp pill over a 22 dp icon: a
- * literal three- or four-digit count overflowed the circle and collided
- * with the neighbouring tab. Counts are informational at that point —
- * the exact number lives in the inbox.
+ * Caps at "99+" to keep the growing pill within its tab. The exact count
+ * remains available in the tab's accessible description and in the inbox.
  */
 internal fun bottomNavBadgeLabel(count: Int): String =
     if (count > 99) "99+" else count.toString()

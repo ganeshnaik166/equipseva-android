@@ -44,6 +44,8 @@ import androidx.compose.ui.unit.sp
 import com.equipseva.app.R
 import com.equipseva.app.core.util.openExternalUrl
 import com.equipseva.app.designsystem.theme.EsFontFamily
+import com.equipseva.app.designsystem.theme.EsText2xl
+import com.equipseva.app.designsystem.theme.EsTextSm
 import com.equipseva.app.designsystem.theme.SevaGlow
 import com.equipseva.app.designsystem.theme.SevaGlowSoft
 import com.equipseva.app.designsystem.theme.SevaGreen200
@@ -107,7 +109,7 @@ internal fun WelcomeContent(
                 Text(
                     text = stringResource(R.string.welcome_tagline),
                     fontFamily = EsFontFamily,
-                    fontSize = 24.sp,
+                    fontSize = EsText2xl,
                     lineHeight = 32.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White,
@@ -138,7 +140,7 @@ internal fun WelcomeContent(
                 Text(
                     text = stringResource(R.string.welcome_legal_intro),
                     fontFamily = EsFontFamily,
-                    fontSize = 14.sp,
+                    fontSize = EsTextSm,
                     lineHeight = 21.sp,
                     color = Color.White.copy(alpha = 0.85f),
                 )
@@ -193,7 +195,7 @@ private fun WelcomeAudience(title: String, description: String) {
         Text(
             text = description,
             fontFamily = EsFontFamily,
-            fontSize = 14.sp,
+            fontSize = EsTextSm,
             lineHeight = 21.sp,
             color = Color.White.copy(alpha = 0.9f),
         )
@@ -242,7 +244,7 @@ private fun WelcomeLegalAction(label: String, onClick: () -> Unit) {
             text = label,
             modifier = Modifier.fillMaxWidth(),
             fontFamily = EsFontFamily,
-            fontSize = 14.sp,
+            fontSize = EsTextSm,
             lineHeight = 21.sp,
             textAlign = TextAlign.Center,
             textDecoration = TextDecoration.Underline,

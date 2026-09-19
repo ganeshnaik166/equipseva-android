@@ -514,7 +514,9 @@ private fun SpotAuditSheetBody(
                     modifier = Modifier
                         .sizeIn(minWidth = Spacing.MinTouchTarget, minHeight = Spacing.MinTouchTarget)
                         .selectable(
-                            selected = isOn,
+                            // The fill shows the scale up to this rating; only
+                            // the chosen value is selected in the radio group.
+                            selected = rating == star,
                             role = Role.RadioButton,
                         ) { rating = star }
                         .semantics { contentDescription = starLabel }
