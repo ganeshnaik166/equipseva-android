@@ -3,3 +3,5 @@ app/src/main/assets/font_licenses/*_OFL.txt -text whitespace=cr-at-eol
 # Verbatim pinned upstream Space Grotesk OFL retains its original trailing space.
 app/src/main/assets/font_licenses/space_grotesk_OFL.txt -text whitespace=-blank-at-eol,cr-at-eol
 app/src/main/res/font/*.ttf -text
+# Keep the published overview byte-identical and out of text diff/merge filters.
+docs/product-plan/EquipSeva-Product-Plan-Overview.pdf binary

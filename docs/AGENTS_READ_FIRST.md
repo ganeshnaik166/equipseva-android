@@ -1,5 +1,13 @@
 # Agents: read this before you continue (updated 2026-09-16)
 
+> **Product direction updated 19 September 2026:** read
+> [PRODUCT_PLAN.md](../PRODUCT_PLAN.md) and the
+> [delivery ledger](product-plan/DELIVERY_LEDGER.md) first. They govern the new
+> three-choice registration, scoped paid engineering-team workspaces, synthetic
+> demo and district-based/no-map target. Earlier implementation notes below are
+> historical, not permission to retain obsolete product decisions. Preserve the
+> selected lime/ink theme and all existing security, test and release gates.
+
 `main` moved on 2026-09-16. If your branch (`codex/*`, `claudedev-*`, or anything older than `ee885deb`)
 was cut before that, rebase or merge `main` **before** you build on your own handoff, and read
 [`HANDOFF_2026-09-16_UX_PHASE0.md`](HANDOFF_2026-09-16_UX_PHASE0.md) for the details. Founder's rule:

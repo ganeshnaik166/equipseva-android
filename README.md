@@ -1,5 +1,13 @@
 # EquipSeva Android
 
+> **START HERE — [Current product plan](PRODUCT_PLAN.md)** (19 September 2026):
+> biomedical engineers, hospital administrators, subscribed engineering teams and
+> privately provisioned platform operations. Includes the page tree, state/district
+> workflow, demo/billing, anti-fraud controls and staged delivery gates.
+> **Plan approved by owner direction; implementation is staged, not all released.**
+> Read the [seven-page overview PDF](docs/product-plan/EquipSeva-Product-Plan-Overview.pdf)
+> or the [delivery ledger](docs/product-plan/DELIVERY_LEDGER.md) for evidence.
+
 > **Agents / contributors — read [`docs/AGENTS_READ_FIRST.md`](docs/AGENTS_READ_FIRST.md) before continuing any
 > workstream.** It records what landed on `main` most recently (screenshot-test gate, design-lint ratchet,
 > screen splits, prod fixes) and the merge points with in-flight branches. Latest session handoff:
