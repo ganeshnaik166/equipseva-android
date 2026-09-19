@@ -13,7 +13,6 @@ import android.window.OnBackAnimationCallback
 import android.window.OnBackInvokedCallback
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -23,6 +22,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.filters.SdkSuppress
 import com.equipseva.app.designsystem.theme.EquipSevaTheme
 import com.equipseva.app.features.kyc.EmailVerifySheet
 import com.equipseva.app.testing.IsolatedUiPackageParser
@@ -66,7 +66,7 @@ import org.robolectric.util.ReflectionHelpers
     qualifiers = "en-rUS-w360dp-h800dp-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @OptIn(ExperimentalTestApi::class)
-@RequiresApi(34)
+@SdkSuppress(minSdkVersion = 34)
 class OtpRenewalDismissalTest {
     @get:Rule val compose = createEmptyComposeRule()
     private lateinit var host: ActivityController<ComponentActivity>
@@ -159,7 +159,7 @@ class OtpRenewalDismissalTest {
 
     private fun open(name: String, predictive: Boolean = false) {
         report = name
-        output("$report.tsv").writeText("Native synthetic dialog; API34/M3 1.3.1/Robolectric 4.16.1; not a device/provider test\n")
+        output("$report.tsv").writeText("Native synthetic dialog; API34/M3 1.3.2/Robolectric 4.16.1; not a device/provider test\n")
         RuntimeEnvironment.setFontScale(1f)
         if (predictive) {
             ShadowApplication.setEnableOnBackInvokedCallback(true)
