@@ -1,5 +1,9 @@
 # Agents: read this before you continue (updated 2026-09-16)
 
+> **Current resume point:** [CURRENT_STATE.md](CURRENT_STATE.md) and
+> [MILESTONE_LOG.md](MILESTONE_LOG.md). Follow the repository [AGENTS.md](../AGENTS.md)
+> entry/save contract; the dated tables below retain historical implementation evidence.
+
 > **Product direction updated 19 September 2026:** read
 > [PRODUCT_PLAN.md](../PRODUCT_PLAN.md) and the
 > [delivery ledger](product-plan/DELIVERY_LEDGER.md) first. They govern the new
