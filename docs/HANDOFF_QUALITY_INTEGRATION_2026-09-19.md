@@ -81,3 +81,16 @@ Annotation follow-up at **`2fd157af`**: `./gradlew.bat :app:testDebugUnitTest --
 Fetched origin again before publishing: main remains `e4a5e0db`, quality remains `b453f19a`, both included in this candidate. The root-owned Gradle reservation was released to FREE after the follow-up completed; do not assume the slot remains free later.
 
 Independent reports: [initial security](helper-reviews/codex-20260919/security-sync.md), [money/backend](helper-reviews/codex-20260919/money-repair-backend.md), [initial UI](helper-reviews/codex-20260919/shared-ui.md), [push/navigation review](helper-reviews/codex-20260919/push-navigation-independent-review.md), [AMC/SLA review](helper-reviews/codex-20260919/payment-sla-independent-review.md), [CI-only review](helper-reviews/codex-20260919/ci-only-review.md), [corrected UI critic](helper-reviews/codex-20260919/ui-independent-critic.md), [independent UI QA with final XML](helper-reviews/codex-20260919/ui-independent-qa.md). Reports pin the source they reviewed; this handoff's later test evidence supersedes their earlier pending-execution notes only for the stated scope.
+
+### GitHub verification and secret-scan correction
+
+The candidate is published as **draft [PR 1877](https://github.com/ganeshnaik166/equipseva-android/pull/1877)** at initial checkpoint `4eff9984941b63683263b6ed1ade11350ef4660a`. It remains unaccepted and must not merge to main.
+
+- Linux Android PR run **35436516421** reproduced **3,675 tests / 3 failures**, the same enabled S1 cleanup regressions. Push Android failed too.
+- Roborazzi PR run **35436516410** failed **116 of 116 generated preview comparisons**. Inspect the actual rendered differences and baseline compatibility before proposing Linux golden updates. No screenshots were re-recorded or accepted in this turn.
+- Backend push **35436441128** and PR **35436516393** passed; this does not close the additional unimplemented payout/retry regressions.
+- The old secret-scan PR success **35436516414** had incomplete coverage: a single unpaginated API page and ancestry/merge omissions. The push failure was a verified source-checksum false positive. Details and links: [coverage investigation](helper-reviews/codex-20260919/ci-history-scan-investigation.md).
+- Isolated CI replacement **49b3cbec**, [PR 1878](https://github.com/ganeshnaik166/equipseva-android/pull/1878): 26 real-CLI regression tests, critic **9.5**, independent QA **9.5**. Linux secret scans passed on push **35437875937** and PR **35437909233**; its Android runs were pending when this record was written. This corrects the coverage defect without merging the app candidate.
+- Exhaustive checksum triage proved all 208 findings in the original full-history comparison. The final flags produce 70 exact fingerprints, now handled individually with a [reproducible metadata-only proof ledger](helper-reviews/codex-20260919/secret-scan-evidence/README.md). New synthetic default-rule detection remains active under both CLI and helper. Final committed candidate history still requires scanning.
+
+Only CI/policy metadata and review documentation change after `4eff9984`; Android production/tests remain the verified full-run/follow-up source. No new local Gradle run is claimed. Root-owned changes and helper work remain isolated; the original coordinator checkout is preserved.
