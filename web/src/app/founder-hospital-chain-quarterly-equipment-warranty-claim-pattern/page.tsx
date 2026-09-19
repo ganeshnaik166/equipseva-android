@@ -238,7 +238,7 @@ export default async function Page() {
             { key: 'rating', header: 'Rating', render: (r: OemRow) => r.rating },
           ]}
           emptyMessage="No data"
-          rowKey={(r: OemRow, i: number) => String(`${r.oem_name}-${r.asset_category}` ?? i)}
+          rowKey={(r: OemRow, i: number) => String(`${r.oem_name}-${r.asset_category}`)}
         />
       </section>
 
@@ -255,7 +255,7 @@ export default async function Page() {
             { key: 'rating', header: 'Rating', render: (r: WatchRow) => r.rating },
           ]}
           emptyMessage="No data"
-          rowKey={(r: WatchRow, i: number) => String(`${r.oem_name}-${r.asset_category}` ?? i)}
+          rowKey={(r: WatchRow, i: number) => String(`${r.oem_name}-${r.asset_category}`)}
         />
       </section>
     </div>

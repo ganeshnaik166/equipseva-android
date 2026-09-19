@@ -52,6 +52,7 @@ import com.equipseva.app.designsystem.components.ListSkeleton
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
 import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.EsRadius
 import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaGreen50
@@ -59,6 +60,7 @@ import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInk400
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.designsystem.theme.Spacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,7 +79,6 @@ fun MyBidsScreen(
     viewModel: MyBidsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val activeFilter = state.statusFilter ?: RepairBidStatus.Pending
 
     // Re-fetch on every ON_RESUME so a status change in the detail screen
     // (e.g., an accepted bid that flips status server-side) reflects when
@@ -90,7 +91,38 @@ fun MyBidsScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+    MyBidsContent(
+        state = state,
+        onRefresh = viewModel::onRefresh,
+        onStatusFilterChange = viewModel::onStatusFilterChange,
+        onBack = onBack,
+        onJobClick = onJobClick,
+        onBrowseJobs = onBrowseJobs,
+        onCheckProfitability = onCheckProfitability,
+        onPreviewPayout = onPreviewPayout,
+    )
+}
+
+/**
+ * Stateless body of the My-Bids screen. Kept ViewModel-free so screenshot
+ * fixtures and previews can pin each visual state without Hilt or a
+ * lifecycle owner.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun MyBidsContent(
+    state: MyBidsViewModel.UiState,
+    onRefresh: () -> Unit,
+    onStatusFilterChange: (RepairBidStatus) -> Unit,
+    onBack: () -> Unit,
+    onJobClick: (String) -> Unit,
+    onBrowseJobs: () -> Unit = {},
+    onCheckProfitability: (bidId: String) -> Unit = {},
+    onPreviewPayout: (repairJobId: String) -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    val activeFilter = state.statusFilter ?: RepairBidStatus.Pending
+    Surface(modifier = modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(title = "My bids", onBack = onBack)
             ErrorBanner(message = state.errorMessage)
@@ -107,21 +139,21 @@ fun MyBidsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 groups.forEach { (status, count) ->
                     EsChip(
                         text = "${status.displayName} ($count)",
                         active = activeFilter == status,
-                        onClick = { viewModel.onStatusFilterChange(status) },
+                        onClick = { onStatusFilterChange(status) },
                     )
                 }
             }
 
             PullToRefreshBox(
                 isRefreshing = state.refreshing,
-                onRefresh = viewModel::onRefresh,
+                onRefresh = onRefresh,
                 modifier = Modifier.fillMaxSize(),
             ) {
                 // Round 442 — memoize the filtered list so the walk doesn't
@@ -142,7 +174,7 @@ fun MyBidsScreen(
                     )
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         items(items = visibleRows, key = { it.bid.id }) { row ->
@@ -170,17 +202,17 @@ private fun BidRowCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(EsRadius.Lg))
             .background(Color.White)
-            .border(1.dp, BorderDefault, RoundedCornerShape(12.dp))
+            .border(1.dp, BorderDefault, RoundedCornerShape(EsRadius.Lg))
             .clickable(onClick = onClick)
             .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             Text(
                 text = bidRowEquipmentTitle(row.job?.equipmentLabel, row.job?.title),
@@ -231,7 +263,7 @@ private fun BidRowCard(
         // the caller to be the assigned engineer, so it's Accepted-only.
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
             BidLinkAction(
                 text = stringResource(R.string.mybids_check_profitability),
@@ -254,14 +286,14 @@ private fun BidLinkAction(text: String, onClick: () -> Unit) {
     // wrapper, while the label keeps its inline link look.
     Box(
         modifier = Modifier
-            .heightIn(min = 48.dp)
+            .heightIn(min = Spacing.MinTouchTarget)
             .clip(RoundedCornerShape(6.dp))
             .clickable(
                 onClickLabel = text,
                 role = androidx.compose.ui.semantics.Role.Button,
                 onClick = onClick,
             )
-            .padding(horizontal = 4.dp),
+            .padding(horizontal = Spacing.xs),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -278,12 +310,12 @@ private fun QueuedBidPill(count: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .padding(horizontal = Spacing.lg, vertical = Spacing.xs)
+            .clip(RoundedCornerShape(EsRadius.Lg))
             .background(SevaGreen50)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         Icon(
             imageVector = Icons.Outlined.CloudSync,

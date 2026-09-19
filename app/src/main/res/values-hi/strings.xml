@@ -21,24 +21,29 @@
     <string name="verified_badge_info_verified_on_date">Verified on %1$s</string>
 
     <!-- Common UI -->
-    <string name="common_cancel">à¤°à¤¦à¥à¤¦ à¤à¤°à¥à¤</string>
-    <string name="common_continue">à¤à¤¾à¤°à¥ à¤°à¤à¥à¤</string>
-    <string name="common_retry">à¤ªà¥à¤¨à¤ à¤ªà¥à¤°à¤¯à¤¾à¤¸</string>
-    <string name="common_save">à¤¸à¤¹à¥à¤à¥à¤</string>
-    <string name="common_submit">à¤¸à¤¬à¤®à¤¿à¤</string>
-    <string name="common_yes">à¤¹à¤¾à¤</string>
-    <string name="common_no">à¤¨à¤¹à¥à¤</string>
-    <string name="nav_home">à¤¹à¥à¤®</string>
+    <string name="common_cancel">रद्द करें</string>
+    <string name="common_continue">जारी रखें</string>
+    <string name="common_retry">पुनः प्रयास</string>
+    <string name="common_save">सहेजें</string>
+    <string name="common_submit">सबमिट</string>
+    <string name="common_yes">हाँ</string>
+    <string name="common_no">नहीं</string>
+    <string name="nav_home">होम</string>
+    <string name="nav_bookings">बुकिंग</string>
+    <string name="nav_messages">संदेश</string>
+    <string name="nav_jobs">कार्य</string>
+    <string name="nav_earnings">कमाई</string>
+    <string name="nav_profile">प्रोफ़ाइल</string>
 
     <!-- Account -->
-    <string name="account_delete_title">à¤à¥à¤¯à¤¾ à¤à¤ª à¤à¤ªà¤¨à¤¾ à¤à¤¾à¤¤à¤¾ à¤¹à¤à¤¾à¤¨à¤¾ à¤à¤¾à¤¹à¤¤à¥ à¤¹à¥à¤?</string>
-    <string name="account_delete_body">à¤à¤ªà¤à¥ à¤ªà¥à¤°à¥à¤«à¤¼à¤¾à¤à¤², à¤®à¤°à¤®à¥à¤®à¤¤ à¤à¤¾à¤°à¥à¤¯, à¤¬à¥à¤²à¤¿à¤¯à¤¾à¤ à¤à¤° AMC à¤à¤¨à¥à¤¬à¤à¤§ à¤¹à¤à¤¾ à¤¦à¤¿à¤ à¤à¤¾à¤à¤à¤à¥</string>
-    <string name="delete_account_sheet_body">Deletes your profile, repair jobs, bids, AMC contracts, messages, payments, saved addresses, and uploaded files. All device sessions are signed out immediately. This is permanent â support cannot restore the account after this runs.</string>
+    <string name="account_delete_title">क्या आप अपना खाता हटाना चाहते हैं?</string>
+    <string name="account_delete_body">आपकी प्रोफ़ाइल, मरम्मत कार्य, बोलियाँ और AMC अनुबंध हटा दिए जाएँगे</string>
+    <string name="delete_account_sheet_body">Deletes your profile, repair jobs, bids, AMC contracts, messages, payments, saved addresses, and uploaded files. All device sessions are signed out immediately. This is permanent — support cannot restore the account after this runs.</string>
     <string name="delete_account_sheet_reason_label">Reason (optional)</string>
     <string name="delete_account_sheet_reason_count">%1$d/500</string>
     <string name="delete_account_sheet_password_label">Confirm with your password</string>
-    <string name="role_change_title">à¤­à¥à¤®à¤¿à¤à¤¾ à¤¬à¤¦à¤²à¥à¤</string>
-    <string name="role_change_picker">à¤¨à¤ à¤­à¥à¤®à¤¿à¤à¤¾ à¤à¥à¤¨à¥à¤</string>
+    <string name="role_change_title">भूमिका बदलें</string>
+    <string name="role_change_picker">नई भूमिका चुनें</string>
 
     <!-- Sign up (English placeholder â pending native-speaker review) -->
     <string name="signup_get_started_title">Get started</string>
@@ -48,24 +53,24 @@
     <string name="signup_sign_in_link">Sign in</string>
 
     <!-- Device integrity -->
-    <string name="devmode_block_title">à¤¡à¥à¤µà¤²à¤ªà¤° à¤®à¥à¤¡ à¤à¤¾à¤²à¥ à¤¹à¥</string>
-    <string name="devmode_block_body">à¤¡à¥à¤µà¤²à¤ªà¤° à¤µà¤¿à¤à¤²à¥à¤ª à¤¯à¤¾ USB à¤¡à¤¿à¤¬à¤à¤¿à¤à¤ à¤à¤¾à¤²à¥ à¤°à¤¹à¤¨à¥ à¤ªà¤° EquipSeva à¤¨à¤¹à¥à¤ à¤à¤²à¥à¤à¤¾</string>
+    <string name="devmode_block_title">डेवलपर मोड चालू है</string>
+    <string name="devmode_block_body">डेवलपर विकल्प या USB डिबगिंग चालू रहने पर EquipSeva नहीं चलेगा</string>
     <!-- English placeholder â pending native-speaker review -->
     <string name="devmode_block_reason">EquipSeva can\'t run while Developer Options or USB debugging is enabled on your phone. These let other apps intercept payments and account data.</string>
-    <string name="devmode_block_steps">Steps: Settings â System â Developer Options â toggle off</string>
+    <string name="devmode_block_steps">Steps: Settings → System → Developer Options → toggle off</string>
     <string name="devmode_open_settings_button">Open Settings</string>
-    <string name="devmode_return_note">Return to EquipSeva after disabling â it\'ll let you in automatically.</string>
+    <string name="devmode_return_note">Return to EquipSeva after disabling — it\'ll let you in automatically.</string>
 
     <!-- Call masking -->
-    <string name="call_secure_line_note">à¤à¥à¤² EquipSeva à¤à¥ à¤¸à¥à¤°à¤à¥à¤·à¤¿à¤¤ à¤²à¤¾à¤à¤¨ à¤¸à¥ à¤°à¥à¤ à¤¹à¥à¤¤à¥ à¤¹à¥à¤</string>
-    <string name="call_scoped_note">à¤ªà¤¹à¤²à¥ à¤à¥à¤ à¤à¤¾à¤°à¥à¤¯ à¤¬à¥à¤ à¤à¤°à¥à¤ à¤¯à¤¾ à¤à¥à¤ à¤à¥à¤²à¥à¤ â à¤à¥à¤² à¤à¥à¤µà¤² à¤¸à¤à¥à¤°à¤¿à¤¯ à¤à¤¾à¤°à¥à¤¯à¥à¤ à¤¤à¤ à¤¸à¥à¤®à¤¿à¤¤ à¤¹à¥à¤</string>
+    <string name="call_secure_line_note">कॉल EquipSeva की सुरक्षित लाइन से रूट होती हैं</string>
+    <string name="call_scoped_note">पहले कोई कार्य बुक करें या चैट खोलें — कॉल केवल सक्रिय कार्यों तक सीमित हैं</string>
     <string name="call_connecting_dialog_title">Connecting…</string>
     <string name="call_connecting_dialog_secure_note">Your phone will ring shortly. Real numbers stay private — calls route through EquipSeva\'s secure line.</string>
 
     <!-- KYC -->
-    <string name="kyc_review_window">à¤¸à¤¬à¤®à¤¿à¤ à¤à¥ à¤¬à¤¾à¤¦: à¤à¤®à¤¤à¥à¤° à¤ªà¤° 4â24 à¤à¤à¤à¥à¤ à¤®à¥à¤ à¤¸à¤®à¥à¤à¥à¤·à¤¾</string>
-    <string name="kyc_photo_hint">à¤¶à¥à¤°à¥ à¤à¤°à¤¨à¥ à¤¸à¥ à¤ªà¤¹à¤²à¥ à¤à¤ªà¤à¤°à¤£ à¤à¥ 1â4 à¤¤à¤¸à¥à¤µà¥à¤°à¥à¤ à¤²à¥à¤</string>
-    <string name="kyc_verify_window">à¤¹à¤® 4â24 à¤à¤à¤à¥à¤ à¤®à¥à¤ à¤à¤ªà¤à¥ à¤¦à¤¸à¥à¤¤à¤¾à¤µà¥à¤à¤¼ à¤¸à¤¤à¥à¤¯à¤¾à¤ªà¤¿à¤¤ à¤à¤°à¥à¤à¤à¥ à¤à¤° à¤à¤ªà¤à¥ à¤¸à¥à¤à¤¿à¤¤ à¤à¤°à¥à¤à¤à¥</string>
+    <string name="kyc_review_window">सबमिट के बाद: आमतौर पर 4–24 घंटों में समीक्षा</string>
+    <string name="kyc_photo_hint">शुरू करने से पहले उपकरण की 1–4 तस्वीरें लें</string>
+    <string name="kyc_verify_window">हम 4–24 घंटों में आपके दस्तावेज़ सत्यापित करेंगे और आपको सूचित करेंगे</string>
     <string name="kyc_submitted_verify_notice">We\'ll verify your documents within 4–24 hours and notify you. Until then you can browse jobs but not bid.</string>
 
     <!-- KYC screen (KycScreen.kt) — English placeholder, pending native-speaker review -->
@@ -100,21 +105,21 @@
     <string name="kyc_back_button">Back</string>
 
     <!-- Job lifecycle -->
-    <string name="job_live">à¤à¤ªà¤à¤¾ à¤®à¤°à¤®à¥à¤®à¤¤ à¤à¤¨à¥à¤°à¥à¤§ à¤¸à¤à¥à¤°à¤¿à¤¯ à¤¹à¥</string>
-    <string name="job_bid_window">à¤à¤ªà¤à¥ à¤à¥à¤·à¥à¤¤à¥à¤° à¤à¥ à¤¸à¤¤à¥à¤¯à¤¾à¤ªà¤¿à¤¤ à¤à¤à¤à¥à¤¨à¤¿à¤¯à¤° à¤à¤®à¤¤à¥à¤° à¤ªà¤° 5â30 à¤®à¤¿à¤¨à¤ à¤®à¥à¤ à¤¬à¥à¤²à¥ à¤²à¤à¤¾à¤¤à¥ à¤¹à¥à¤</string>
-    <string name="job_status_submitted_for_review">à¤¸à¤®à¥à¤à¥à¤·à¤¾ à¤à¥ à¤²à¤¿à¤ à¤¸à¤¬à¤®à¤¿à¤</string>
-    <string name="job_status_withdrawn">à¤à¤¸à¥à¤ªà¤¤à¤¾à¤² à¤¦à¥à¤µà¤¾à¤°à¤¾ à¤µà¤¾à¤ªà¤¸ à¤²à¤¿à¤¯à¤¾ à¤à¤¯à¤¾</string>
+    <string name="job_live">आपका मरम्मत अनुरोध सक्रिय है</string>
+    <string name="job_bid_window">आपके क्षेत्र के सत्यापित इंजीनियर आमतौर पर 5–30 मिनट में बोली लगाते हैं</string>
+    <string name="job_status_submitted_for_review">समीक्षा के लिए सबमिट</string>
+    <string name="job_status_withdrawn">अस्पताल द्वारा वापस लिया गया</string>
 
     <!-- Payments -->
-    <string name="payment_razorpay_failed">Razorpay à¤¸à¥ à¤­à¥à¤à¤¤à¤¾à¤¨ à¤µà¤¿à¤«à¤²</string>
-    <string name="payment_cancelled">à¤­à¥à¤à¤¤à¤¾à¤¨ à¤°à¤¦à¥à¤¦ à¤à¤¿à¤¯à¤¾ à¤à¤¯à¤¾à¥¤</string>
-    <string name="payment_network_error">à¤­à¥à¤à¤¤à¤¾à¤¨ à¤à¥ à¤¦à¥à¤°à¤¾à¤¨ à¤¨à¥à¤à¤µà¤°à¥à¤ à¤¤à¥à¤°à¥à¤à¤¿à¥¤ à¤à¤¨à¥à¤à¥à¤¶à¤¨ à¤à¤¾à¤à¤à¥à¤ à¤à¤° à¤ªà¥à¤¨à¤ à¤ªà¥à¤°à¤¯à¤¾à¤¸ à¤à¤°à¥à¤à¥¤</string>
-    <string name="payment_tls_error">à¤à¤ªà¤à¥ à¤¡à¤¿à¤µà¤¾à¤à¤¸ à¤à¥ à¤¸à¥à¤°à¤à¥à¤·à¤¿à¤¤ à¤¨à¥à¤à¤µà¤°à¥à¤ à¤¸à¥à¤à¤¿à¤à¤ à¤¨à¥ à¤­à¥à¤à¤¤à¤¾à¤¨ à¤°à¥à¤ à¤¦à¤¿à¤¯à¤¾à¥¤ Android System WebView à¤à¤ªà¤¡à¥à¤ à¤à¤°à¥à¤ à¤à¤° à¤ªà¥à¤¨à¤ à¤ªà¥à¤°à¤¯à¤¾à¤¸ à¤à¤°à¥à¤à¥¤</string>
-    <string name="payment_invalid">à¤­à¥à¤à¤¤à¤¾à¤¨ à¤¶à¥à¤°à¥ à¤¨à¤¹à¥à¤ à¤¹à¥ à¤¸à¤à¤¾à¥¤ à¤à¥à¤ªà¤¯à¤¾ à¤ªà¥à¤¨à¤ à¤ªà¥à¤°à¤¯à¤¾à¤¸ à¤à¤°à¥à¤à¥¤</string>
-    <string name="payment_generic_failure">à¤­à¥à¤à¤¤à¤¾à¤¨ à¤µà¤¿à¤«à¤²à¥¤ à¤à¥à¤ªà¤¯à¤¾ à¤à¥à¤ à¤à¤° à¤¤à¤°à¥à¤à¤¾ à¤à¤à¤¼à¤®à¤¾à¤à¤ à¤¯à¤¾ à¤à¤ªà¤¨à¥ à¤¬à¥à¤à¤ à¤¸à¥ à¤¸à¤à¤ªà¤°à¥à¤ à¤à¤°à¥à¤à¥¤</string>
+    <string name="payment_razorpay_failed">Razorpay से भुगतान विफल</string>
+    <string name="payment_cancelled">भुगतान रद्द किया गया।</string>
+    <string name="payment_network_error">भुगतान के दौरान नेटवर्क त्रुटि। कनेक्शन जांचें और पुनः प्रयास करें।</string>
+    <string name="payment_tls_error">आपके डिवाइस की सुरक्षित नेटवर्क सेटिंग ने भुगतान रोक दिया। Android System WebView अपडेट करें और पुनः प्रयास करें।</string>
+    <string name="payment_invalid">भुगतान शुरू नहीं हो सका। कृपया पुनः प्रयास करें।</string>
+    <string name="payment_generic_failure">भुगतान विफल। कृपया कोई और तरीका आज़माएँ या अपने बैंक से संपर्क करें।</string>
 
     <!-- Moderation -->
-    <string name="moderation_pattern_flag">à¤ªà¥à¤à¤°à¥à¤¨ à¤«à¤¼à¥à¤²à¥à¤ â à¤µà¤¿à¤à¤¡à¥ à¤®à¥à¤ 3+ à¤µà¤¿à¤µà¤¾à¤¦</string>
+    <string name="moderation_pattern_flag">पैटर्न फ़्लैग — विंडो में 3+ विवाद</string>
 
     <!-- Hospital my-disputes (English placeholder â pending native-speaker review) -->
     <string name="hospital_dispute_resolution_note">EquipSeva note: %1$s</string>
@@ -153,7 +158,7 @@
 
     <!-- About screen (English placeholder â pending native-speaker review) -->
     <string name="about_version_label">Version %1$s (build %2$s)</string>
-    <string name="about_copyright">Â© %1$s EquipSeva</string>
+    <string name="about_copyright">© %1$s EquipSeva</string>
 
     <!-- Forgot password (English placeholder â pending native-speaker review) -->
     <string name="forgot_password_email_instructions">Enter your email. We\'ll send a link to reset your password.</string>
@@ -177,7 +182,7 @@
 
     <!-- Engineer onboarding (English placeholder â pending native-speaker review) -->
     <string name="engineer_onboarding_welcome_title">Welcome, engineer</string>
-    <string name="engineer_onboarding_intro">Tell us how hospitals can reach you and the area you service. Right after this you\'ll complete KYC â verified engineers appear in the public directory and start receiving jobs.</string>
+    <string name="engineer_onboarding_intro">Tell us how hospitals can reach you and the area you service. Right after this you\'ll complete KYC — verified engineers appear in the public directory and start receiving jobs.</string>
     <string name="engineer_onboarding_phone_label">Phone</string>
     <string name="engineer_onboarding_phone_placeholder">+91 98765 43210</string>
     <string name="engineer_onboarding_phone_error">Enter a valid 10-digit Indian mobile number.</string>
@@ -195,14 +200,14 @@
 
     <!-- Engineer payout method (English placeholder â pending native-speaker review) -->
     <string name="payout_method_send_earnings_question">Where should we send your earnings?</string>
-    <string name="payout_method_transfer_note">After a hospital confirms a completed job, we transfer your share automatically to the destination below â usually within minutes via UPI.</string>
+    <string name="payout_method_transfer_note">After a hospital confirms a completed job, we transfer your share automatically to the destination below — usually within minutes via UPI.</string>
     <string name="payout_method_current_upi">Current: UPI</string>
     <string name="payout_method_current_bank">Current: Bank</string>
     <string name="payout_method_how_it_works_title">How payouts work</string>
     <string name="payout_method_how_it_works_body">When a hospital confirms a job, your share is transferred to this destination. UPI typically lands in seconds; bank IMPS in minutes. EquipSeva\'s commission is deducted automatically.</string>
 
     <!-- Job escrow payment sheet (English placeholder â pending native-speaker review) -->
-    <string name="job_escrow_payment_note">Funds sit in EquipSeva escrow until the engineer completes the job. Released automatically 48 hours after completion, or anytime you confirm â and refundable if the job is cancelled.</string>
+    <string name="job_escrow_payment_note">Funds sit in EquipSeva escrow until the engineer completes the job. Released automatically 48 hours after completion, or anytime you confirm — and refundable if the job is cancelled.</string>
     <string name="job_escrow_amount_label">Amount</string>
     <string name="job_escrow_razorpay_note">You\'ll be redirected to Razorpay to complete payment. UPI, cards, and net banking are all supported.</string>
 
@@ -210,7 +215,7 @@
     <string name="address_book_delete_dialog_title">Delete this address?</string>
     <string name="address_book_delete_action">Delete</string>
     <string name="address_book_default_badge">Default</string>
-    <string name="address_book_name_phone_line">%1$s Â· %2$s</string>
+    <string name="address_book_name_phone_line">%1$s · %2$s</string>
     <string name="address_book_city_state_pincode">%1$s, %2$s %3$s</string>
     <string name="address_book_edit_action">Edit</string>
 
@@ -226,7 +231,7 @@
 
     <!-- Founder Users screen (English placeholder â pending native-speaker review) -->
     <string name="founder_users_search_placeholder">Search name, email, phone</string>
-    <string name="founder_users_change_role_sheet_title">Change role Â· %1$s</string>
+    <string name="founder_users_change_role_sheet_title">Change role · %1$s</string>
     <string name="founder_users_change_role_sheet_note">Pick the new role. This change is immediate.</string>
 
     <!-- Founder Reports Queue screen (English placeholder â pending native-speaker review) -->
@@ -237,12 +242,12 @@
     <string name="founder_reports_queue_confirm_action">Confirm</string>
 
     <!-- Founder Spot Audits screen (English placeholder â pending native-speaker review) -->
-    <string name="founder_spot_audits_hospital_to_engineer_format">%1$s â %2$s</string>
+    <string name="founder_spot_audits_hospital_to_engineer_format">%1$s → %2$s</string>
     <string name="founder_spot_audits_responded_at_format">Responded: %1$s</string>
 
     <!-- Request service screen (English placeholder â pending native-speaker review) -->
     <string name="request_service_booking_name">Booking %1$s</string>
-    <string name="request_service_rating_jobs_summary">%1$s Â· %2$s</string>
+    <string name="request_service_rating_jobs_summary">%1$s · %2$s</string>
     <string name="request_service_resume_draft">Resume your draft?</string>
     <string name="request_service_submitting">Submitting…</string>
     <string name="request_service_uploading_photo">Uploading photo…</string>
@@ -255,7 +260,7 @@
     <string name="request_service_serial_label">Serial number (optional)</string>
     <string name="request_service_serial_placeholder">Usually behind the unit</string>
     <string name="request_service_description_label">Description</string>
-    <string name="request_service_description_placeholder">Describe the issue clearly â symptoms, error codes, when it started.</string>
+    <string name="request_service_description_placeholder">Describe the issue clearly — symptoms, error codes, when it started.</string>
     <string name="request_service_severity_label">Severity</string>
     <string name="request_service_photos_label">Photos (optional)</string>
     <string name="request_service_photos_hint">Attach photos of the nameplate or fault. Up to 5 images, JPEG/PNG/WEBP.</string>
@@ -265,10 +270,10 @@
     <string name="request_service_preferred_slot_label">Preferred slot</string>
     <string name="request_service_date_picker_ok">OK</string>
     <string name="request_service_address_label">Address</string>
-    <string name="request_service_address_placeholder">Hospital name, street, city â type if you can\'t pin on the map</string>
+    <string name="request_service_address_placeholder">Hospital name, street, city — type if you can\'t pin on the map</string>
     <string name="request_service_engineer_note_label">Note for the engineer</string>
-    <string name="request_service_engineer_note_placeholder">Ward Â· Department Â· Floor Â· Gate to enter from</string>
-    <string name="request_service_budget_label">Budget (â¹, optional)</string>
+    <string name="request_service_engineer_note_placeholder">Ward · Department · Floor · Gate to enter from</string>
+    <string name="request_service_budget_label">Budget (₹, optional)</string>
     <string name="request_service_budget_placeholder">e.g. 5000</string>
     <string name="founder_payments_open_invoice">Open invoice</string>
     <string name="founder_payments_last_n_days">Last %1$d days</string>

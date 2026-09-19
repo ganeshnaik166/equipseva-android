@@ -12,6 +12,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.Engineering
+import androidx.compose.material.icons.outlined.LocalHospital
+import androidx.compose.material.icons.outlined.LocalShipping
+import androidx.compose.material.icons.outlined.MedicalServices
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,9 +27,12 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
+import com.equipseva.app.designsystem.theme.EquipSevaTheme
+import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Ink900
 import com.equipseva.app.designsystem.theme.Spacing
@@ -115,4 +124,106 @@ fun RoleSelectCard(
             }
         }
     }
+}
+
+// ---- Previews — design-system gallery. Every @Preview under designsystem/
+// is also a Roborazzi screenshot test (see app/build.gradle.kts), so a
+// variant that is missing here has no visual regression guard.
+
+@Composable
+private fun RoleSelectCardGallery() {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text("Selected / unselected", style = EsType.Caption)
+        RoleSelectCard(
+            icon = Icons.Outlined.LocalHospital,
+            title = "Hospital admin",
+            description = "Book engineers, manage repairs",
+            hue = 150,
+            selected = true,
+            onSelect = {},
+        )
+        RoleSelectCard(
+            icon = Icons.Outlined.Engineering,
+            title = "Biomedical engineer",
+            description = "Pick up jobs, bid, complete repairs",
+            hue = 280,
+            selected = false,
+            onSelect = {},
+        )
+
+        Text("With badge", style = EsType.Caption)
+        RoleSelectCard(
+            icon = Icons.Outlined.Engineering,
+            title = "Biomedical engineer",
+            description = "Pick up jobs, bid, complete repairs",
+            hue = 280,
+            selected = true,
+            onSelect = {},
+            badge = "Popular",
+        )
+        RoleSelectCard(
+            icon = Icons.Outlined.MedicalServices,
+            title = "Parts supplier",
+            description = "List parts and fulfil orders",
+            hue = 40,
+            selected = false,
+            onSelect = {},
+            badge = "New",
+        )
+
+        Text("Disabled", style = EsType.Caption)
+        RoleSelectCard(
+            icon = Icons.Outlined.Build,
+            title = "Manufacturer",
+            description = "Receive RFQs and respond to leads",
+            hue = 200,
+            selected = false,
+            onSelect = {},
+            enabled = false,
+            badge = "Coming soon",
+        )
+        RoleSelectCard(
+            icon = Icons.Outlined.LocalShipping,
+            title = "Logistics partner",
+            description = "Pick up and deliver shipments",
+            hue = 330,
+            selected = true,
+            onSelect = {},
+            enabled = false,
+        )
+
+        Text("Long wrapping copy / empty description", style = EsType.Caption)
+        RoleSelectCard(
+            icon = Icons.Outlined.LocalHospital,
+            title = "Hospital biomedical department head (multi-site)",
+            description = "Manage ventilators, dialysis machines and imaging equipment across Apollo, Fortis and district hospitals; approve engineer bids from ₹4,500 upwards",
+            hue = 150,
+            selected = false,
+            onSelect = {},
+            badge = "Popular",
+        )
+        RoleSelectCard(
+            icon = Icons.Outlined.Engineering,
+            title = "Biomedical engineer",
+            description = "",
+            hue = 280,
+            selected = false,
+            onSelect = {},
+        )
+    }
+}
+
+@Preview(name = "RoleSelectCard", showBackground = true)
+@Composable
+private fun RoleSelectCardPreview() {
+    EquipSevaTheme(darkTheme = false) { RoleSelectCardGallery() }
+}
+
+@Preview(name = "RoleSelectCard large text", showBackground = true, fontScale = 1.3f)
+@Composable
+private fun RoleSelectCardPreviewLargeText() {
+    EquipSevaTheme(darkTheme = false) { RoleSelectCardGallery() }
 }

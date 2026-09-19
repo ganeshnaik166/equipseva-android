@@ -1,7 +1,14 @@
 package com.equipseva.app.designsystem.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -14,6 +21,10 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.equipseva.app.designsystem.theme.EquipSevaTheme
+import com.equipseva.app.designsystem.theme.EsType
 
 /**
  * 17 SVG-derived equipment illustrations rendered to a 100x100 viewBox using Compose Canvas.
@@ -512,4 +523,66 @@ private fun DrawScope.drawPrecisionManufacturing(c: ArtPalette) {
     fillCircle(c.artBg, 64f, 46f, 5f); strokeCircle(c.artB, 64f, 46f, 5f, 1.2f)
     fillRect(c.artB, 44f, 68f, 4f, 6f)
     fillRect(c.artB, 54f, 68f, 4f, 6f)
+}
+
+// ---- Previews — design-system gallery. Every @Preview under designsystem/
+// is also a Roborazzi screenshot test (see app/build.gradle.kts), so a
+// variant that is missing here has no visual regression guard.
+
+@Composable
+private fun EquipmentArtGallery() {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text("All 17 illustrations, default hue 150", style = EsType.Caption)
+        EquipmentArt.entries.chunked(5).forEach { rowArts ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                rowArts.forEach { art ->
+                    EquipmentIllustration(art = art, modifier = Modifier.size(48.dp))
+                }
+            }
+        }
+
+        Text(
+            "Hue sweep: red 0, amber 40, green 150, blue 200, purple 280, pink 330",
+            style = EsType.Caption,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(0, 40, 150, 200, 280, 330).forEach { hue ->
+                EquipmentIllustration(
+                    art = EquipmentArt.MonitorHeart,
+                    hue = hue,
+                    modifier = Modifier.size(40.dp),
+                )
+            }
+        }
+
+        Text("Sizes 24 / 48 / 96 dp and a non-square 120x60 canvas", style = EsType.Caption)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            EquipmentIllustration(art = EquipmentArt.Engineering, modifier = Modifier.size(24.dp))
+            EquipmentIllustration(art = EquipmentArt.Engineering, modifier = Modifier.size(48.dp))
+            EquipmentIllustration(art = EquipmentArt.Engineering, modifier = Modifier.size(96.dp))
+        }
+        EquipmentIllustration(
+            art = EquipmentArt.LocalShipping,
+            hue = 200,
+            modifier = Modifier.size(width = 120.dp, height = 60.dp),
+        )
+    }
+}
+
+@Preview(name = "EquipmentArt", showBackground = true)
+@Composable
+private fun EquipmentArtPreview() {
+    EquipSevaTheme(darkTheme = false) { EquipmentArtGallery() }
+}
+
+@Preview(name = "EquipmentArt large text", showBackground = true, fontScale = 1.3f)
+@Composable
+private fun EquipmentArtPreviewLargeText() {
+    EquipSevaTheme(darkTheme = false) { EquipmentArtGallery() }
 }

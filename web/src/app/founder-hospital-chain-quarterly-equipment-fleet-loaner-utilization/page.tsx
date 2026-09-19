@@ -208,7 +208,7 @@ export default async function Page() {
             { key: 'outcome_grade', header: 'Grade', render: (r: RefillRow) => r.outcome_grade },
           ]}
           emptyMessage="No data"
-          rowKey={(r, i) => String(((r as RefillRow).hospital_chain_code + '-' + (r as RefillRow).asset_class) ?? i)}
+          rowKey={(r, i) => String(((r as RefillRow).hospital_chain_code + '-' + (r as RefillRow).asset_class))}
         />
       </section>
 
@@ -226,7 +226,7 @@ export default async function Page() {
             { key: 'outcome_grade', header: 'Grade', render: (r: LeaderRow) => r.outcome_grade },
           ]}
           emptyMessage="No data"
-          rowKey={(r, i) => String(((r as LeaderRow).hospital_chain_code + '-' + (r as LeaderRow).asset_class) ?? i)}
+          rowKey={(r, i) => String(((r as LeaderRow).hospital_chain_code + '-' + (r as LeaderRow).asset_class))}
         />
       </section>
 
@@ -247,7 +247,7 @@ export default async function Page() {
             { key: 'revenue_impact_rupees', header: 'Revenue', render: (r: EventRow) => fmtRupees(r.revenue_impact_rupees) },
           ]}
           emptyMessage="No data"
-          rowKey={(r, i) => String(((r as EventRow).asset_serial + '-' + (r as EventRow).event_date) ?? i)}
+          rowKey={(r, i) => String(((r as EventRow).asset_serial + '-' + (r as EventRow).event_date))}
         />
       </section>
 

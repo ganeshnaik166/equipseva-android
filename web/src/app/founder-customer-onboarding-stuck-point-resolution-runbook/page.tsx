@@ -137,7 +137,7 @@ export default async function Page() {
           rows={lessons}
           columns={lessonsCols}
           emptyMessage="No lessons captured."
-          rowKey={(r: any, i: number) => String(`${r.resolution_kind}-${r.outcome}` ?? i)}
+          rowKey={(r: any, i: number) => String(`${r.resolution_kind}-${r.outcome}`)}
         />
       </section>
 

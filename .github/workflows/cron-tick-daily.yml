@@ -21,6 +21,15 @@ on:
   schedule:
     - cron: "0 3 * * *"
   workflow_dispatch:
+    inputs:
+      slot:
+        # A single slot name (e.g. db-storage-snapshot) re-runs just that
+        # job through the real edge-function + PostgREST path. Replaying the
+        # whole `daily` group by hand is not safe — it includes money
+        # reconciliation, notifications and append-only work.
+        description: "cron-tick slot to run (default: the whole daily group)"
+        type: string
+        default: "daily"
 
 concurrency:
   group: cron-tick-daily
@@ -38,10 +47,11 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - name: POST cron-tick ?slot=daily
+      - name: POST cron-tick ?slot=${{ inputs.slot || 'daily' }}
         env:
           CRON_TICK_SECRET: ${{ secrets.CRON_TICK_SECRET }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SLOT: ${{ inputs.slot || 'daily' }}
         run: |
           set -euo pipefail
           if [ -z "${CRON_TICK_SECRET}" ]; then
@@ -52,7 +62,12 @@ jobs:
             echo "::error::SUPABASE_ANON_KEY not configured. Add it under Settings → Secrets and variables → Actions."
             exit 1
           fi
-          URL="https://eyswaywvtartpvtoxtdr.supabase.co/functions/v1/cron-tick?slot=daily"
+          # Dispatch input is data, never interpolated into shell code.
+          if [[ ! "${SLOT}" =~ ^[a-z0-9-]+$ ]]; then
+            echo "::error::Invalid cron slot name."
+            exit 1
+          fi
+          URL="https://eyswaywvtartpvtoxtdr.supabase.co/functions/v1/cron-tick?slot=${SLOT}"
           umask 077
           RESPONSE_BODY="$(mktemp "${RUNNER_TEMP}/cron-daily-response.XXXXXX")"
           trap 'rm -f -- "${RESPONSE_BODY}"' EXIT

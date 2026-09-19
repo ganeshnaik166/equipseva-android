@@ -47,3 +47,21 @@ npx vercel --prod
 - No realtime / SSE / polling — page reload is fine
 - No drill-down pages — founder uses Android app for decisive actions
 - 39 of 42 founder RPCs unwired — add as needs surface
+
+## Tables — `DataTable` column shapes
+
+`src/components/DataTable.tsx` accepts three column shapes, all first-class:
+
+| shape | example | cell |
+|---|---|---|
+| keyed (canonical) | `{ key: 'jobs', header: 'Jobs', render?: (row, i) => … }` | `render(row, i)` if given, else `row[key]` |
+| accessor | `{ header: 'Jobs', accessor: (row) => row.jobs }` | `accessor(row)`; `null`/`undefined`/`""` → `—` |
+| cell | `{ header: 'Jobs', cell: (row, i) => … }` | `cell(row, i)` |
+
+The accessor/cell shapes are what ~125 generated founder pages were written against; until 2026-09-16 the component
+only knew the keyed shape, so those pages type-failed (web CI red since June) and rendered `—` in every cell.
+`npm test` renders all three shapes and asserts real values; CI runs it after `npm run typecheck`.
+
+When a table's columns are written inline with different parameter annotations per column, TypeScript infers the
+row type from the first one and the rest fail — give the table an explicit row type instead:
+`<DataTable<ShareRow> rows={rows} columns={[{ key: 'x', header: 'X', render: (r) => r.x }]} … />`.

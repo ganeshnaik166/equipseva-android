@@ -36,3 +36,36 @@ git push origin main
 ```
 
 See [docs/launch/LAUNCH_CHECKLIST.md](../docs/launch/LAUNCH_CHECKLIST.md) for the end-to-end runbook.
+
+## Design-lint ratchet
+
+[`verify/design_lint.py`](verify/design_lint.py) (python3, stdlib only) counts design-system signals across
+`app/src/main/kotlin/com/equipseva/app/features/**/*.kt` and compares them to the committed
+[`verify/design_lint.baseline.json`](verify/design_lint.baseline.json). CI runs it before `assembleDebug`.
+Comments are stripped before matching, so commented-out code does not count; string contents are kept.
+
+**Negative signals — must never rise:** raw `.dp` / `.sp`, `fontSize =`, `Color(0x`, `RoundedCornerShape(`,
+raw Material3 `Button(` / `TextButton(` / `OutlinedButton(` / `TextField(` / `OutlinedTextField(` (the
+`Es*` wrappers, `IconButton`, `FilledTonalButton`, `BasicTextField` are not counted), `CircularProgressIndicator(`,
+imports of legacy colour tokens (`BrandGreen*`, `AccentLime*`, `Ink*`, `Surface*`, `Success`/`Warning`/`Info`/`Error*` …),
+the number of files with such imports, the number of files with *only* legacy tokens (listed by name), and
+`Text("...")` on a line without `stringResource(`.
+
+**Positive signals — informational, never fail:** `Motion*` tokens, `EsBtn(`, `EsField(`, `Spacing.`, `EsRadius.`,
+`EsType.`, `AnimatedVisibility` / `animateContentSize` / `AnimatedContent`, skeletons, `contentDescription`
+meaningful vs `null`, `testTag`, and `@Preview` counted over `designsystem/`.
+
+```bash
+python3 scripts/verify/design_lint.py                   # check vs baseline (what CI runs)
+python3 scripts/verify/design_lint.py --markdown        # same comparison as a GitHub table (for docs/UX_UPLIFT_PLAN.md §1)
+python3 scripts/verify/design_lint.py --json            # current counts, incl. per-feature breakdown
+python3 scripts/verify/design_lint.py --write-baseline  # refresh the baseline
+python3 scripts/verify/design_lint.py --baseline-file PATH   # compare against another baseline
+```
+
+**Refreshing the baseline.** Only in a commit that *lowers* the numbers (a token migration, a screen moved to
+`EsBtn`/`EsField`, …), and say so in the commit body — e.g. "design-lint baseline refreshed: raw_dp 2350 → 2290".
+Never refresh it to make a red check pass; fix the regression instead.
+
+**Exit codes:** `0` every negative signal at or below baseline (also after `--write-baseline` / `--json`);
+`1` at least one negative signal rose; `2` baseline file missing or unreadable (run `--write-baseline`).

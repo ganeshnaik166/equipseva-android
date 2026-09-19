@@ -6,14 +6,24 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,6 +36,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.equipseva.app.designsystem.theme.EsColors
 import com.equipseva.app.designsystem.theme.EsTheme
+
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.tooling.preview.Preview
+import com.equipseva.app.designsystem.theme.EquipSevaTheme
+import com.equipseva.app.designsystem.theme.EsType
+import com.equipseva.app.designsystem.theme.SevaInk500
 
 enum class EsBtnKind { Primary, Lime, Secondary, Ghost, DangerOutline, Danger }
 enum class EsBtnSize { Sm, Md, Lg }
@@ -92,4 +108,131 @@ fun EsBtn(
             if (trailing != null) Box(Modifier.size(20.dp), contentAlignment = Alignment.Center) { trailing() }
         }
     }
+}
+
+// ---- Previews — design-system gallery. Every @Preview under designsystem/
+// is also a Roborazzi screenshot test (see app/build.gradle.kts), so a
+// variant that is missing here has no visual regression guard.
+
+@Composable
+private fun EsBtnGallery() {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        EsBtnKind.entries.forEach { kind ->
+            Text(text = kind.name, style = EsType.Caption, color = SevaInk500)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                EsBtn(text = "Call", onClick = {}, kind = kind, size = EsBtnSize.Sm)
+                EsBtn(text = "Accept bid", onClick = {}, kind = kind, size = EsBtnSize.Md)
+                EsBtn(text = "Pay ₹4,500", onClick = {}, kind = kind, size = EsBtnSize.Lg)
+            }
+        }
+
+        // Disabled styling ignores kind, so one row per size covers every kind.
+        Text(text = "Disabled", style = EsType.Caption, color = SevaInk500)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            EsBtnSize.entries.forEach { size ->
+                EsBtn(text = "Awaiting KYC", onClick = {}, size = size, disabled = true)
+            }
+        }
+
+        Text(text = "Icon slots", style = EsType.Caption, color = SevaInk500)
+        EsBtn(
+            text = "Add equipment",
+            onClick = {},
+            kind = EsBtnKind.Primary,
+            leading = { EsBtnGalleryIcon(Icons.Filled.Add, EsBtnKind.Primary) },
+        )
+        EsBtn(
+            text = "View bids",
+            onClick = {},
+            kind = EsBtnKind.Secondary,
+            trailing = { EsBtnGalleryIcon(Icons.AutoMirrored.Filled.ArrowForward, EsBtnKind.Secondary) },
+        )
+        EsBtn(
+            text = "Confirm engineer",
+            onClick = {},
+            kind = EsBtnKind.Lime,
+            size = EsBtnSize.Lg,
+            leading = { EsBtnGalleryIcon(Icons.Filled.Check, EsBtnKind.Lime) },
+            trailing = { EsBtnGalleryIcon(Icons.AutoMirrored.Filled.ArrowForward, EsBtnKind.Lime) },
+        )
+        EsBtn(
+            text = "Cancel job",
+            onClick = {},
+            kind = EsBtnKind.DangerOutline,
+            size = EsBtnSize.Sm,
+            leading = { EsBtnGalleryIcon(Icons.Filled.Delete, EsBtnKind.DangerOutline) },
+        )
+        EsBtn(
+            text = "Skip for now",
+            onClick = {},
+            kind = EsBtnKind.Ghost,
+            trailing = { EsBtnGalleryIcon(Icons.AutoMirrored.Filled.ArrowForward, EsBtnKind.Ghost) },
+        )
+        EsBtn(
+            text = "Add equipment",
+            onClick = {},
+            kind = EsBtnKind.Primary,
+            leading = { EsBtnGalleryIcon(Icons.Filled.Add, EsBtnKind.Primary, disabled = true) },
+            disabled = true,
+        )
+
+        Text(text = "Full width", style = EsType.Caption, color = SevaInk500)
+        EsBtn(text = "Request repair quote", onClick = {}, full = true)
+        EsBtn(
+            text = "Pay ₹12,800 to Ramesh Iyer",
+            onClick = {},
+            kind = EsBtnKind.Lime,
+            size = EsBtnSize.Lg,
+            full = true,
+            leading = { EsBtnGalleryIcon(Icons.Filled.Check, EsBtnKind.Lime) },
+        )
+        EsBtn(
+            text = "Delete account",
+            onClick = {},
+            kind = EsBtnKind.Danger,
+            full = true,
+            trailing = { EsBtnGalleryIcon(Icons.Filled.Delete, EsBtnKind.Danger) },
+        )
+        EsBtn(text = "Continue", onClick = {}, full = true, disabled = true)
+
+        Text(text = "Edge text", style = EsType.Caption, color = SevaInk500)
+        EsBtn(text = "", onClick = {}, kind = EsBtnKind.Secondary)
+        EsBtn(
+            text = "Assign Ramesh Iyer (Senior Biomedical Engineer) to the Apollo Hospitals Chennai ventilator repair",
+            onClick = {},
+            full = true,
+        )
+    }
+}
+
+// Preview slots use the same paired tokens as EsBtn, including its disabled state.
+@Composable
+private fun EsBtnGalleryIcon(icon: ImageVector, kind: EsBtnKind, disabled: Boolean = false) {
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        modifier = Modifier.size(16.dp),
+        tint = if (disabled) EsTheme.colors.disabled.content else visual(kind, EsTheme.colors).fg,
+    )
+}
+
+@Preview(name = "EsBtn", showBackground = true)
+@Composable
+private fun EsBtnPreview() {
+    EquipSevaTheme(darkTheme = false) { EsBtnGallery() }
+}
+
+@Preview(name = "EsBtn large text", showBackground = true, fontScale = 1.3f)
+@Composable
+private fun EsBtnPreviewLargeText() {
+    EquipSevaTheme(darkTheme = false) { EsBtnGallery() }
 }

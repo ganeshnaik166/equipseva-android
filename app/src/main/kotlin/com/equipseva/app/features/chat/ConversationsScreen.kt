@@ -57,7 +57,6 @@ import com.equipseva.app.designsystem.theme.SevaInk400
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk900
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConversationsScreen(
     onBack: () -> Unit,
@@ -67,7 +66,30 @@ fun ConversationsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+    ConversationsContent(
+        state = state,
+        onQueryChange = viewModel::onQueryChange,
+        onRefresh = viewModel::refresh,
+        onBack = onBack,
+        onConversationClick = onConversationClick,
+        onSignIn = onSignIn,
+    )
+}
+
+// Stateless body so screenshot tests and previews can render every
+// inbox state without a Hilt graph or a live ViewModel.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun ConversationsContent(
+    state: ConversationsViewModel.UiState,
+    onQueryChange: (String) -> Unit,
+    onRefresh: () -> Unit,
+    onBack: () -> Unit,
+    onConversationClick: (String) -> Unit,
+    onSignIn: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(modifier = modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(title = "Messages", onBack = onBack)
             ErrorBanner(message = state.errorMessage)
@@ -77,7 +99,7 @@ fun ConversationsScreen(
                     EsField(
                         palette = LightEsColors,
                         value = state.query,
-                        onChange = viewModel::onQueryChange,
+                        onChange = onQueryChange,
                         placeholder = "Search conversations",
                         leading = {
                             Icon(
@@ -121,7 +143,7 @@ fun ConversationsScreen(
                 )
                 else -> PullToRefreshBox(
                     isRefreshing = state.refreshing,
-                    onRefresh = viewModel::refresh,
+                    onRefresh = onRefresh,
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     LazyColumn(

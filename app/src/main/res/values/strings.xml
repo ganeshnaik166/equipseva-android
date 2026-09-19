@@ -34,11 +34,16 @@
     <string name="common_yes">Yes</string>
     <string name="common_no">No</string>
     <string name="nav_home">Home</string>
+    <string name="nav_bookings">Bookings</string>
+    <string name="nav_messages">Messages</string>
+    <string name="nav_jobs">Jobs</string>
+    <string name="nav_earnings">Earnings</string>
+    <string name="nav_profile">Profile</string>
 
     <!-- Account -->
     <string name="account_delete_title">Delete your account?</string>
     <string name="account_delete_body">Deletes your profile, repair jobs, bids, AMC contracts</string>
-    <string name="delete_account_sheet_body">Deletes your profile, repair jobs, bids, AMC contracts, messages, payments, saved addresses, and uploaded files. All device sessions are signed out immediately. This is permanent â support cannot restore the account after this runs.</string>
+    <string name="delete_account_sheet_body">Deletes your profile, repair jobs, bids, AMC contracts, messages, payments, saved addresses, and uploaded files. All device sessions are signed out immediately. This is permanent — support cannot restore the account after this runs.</string>
     <string name="delete_account_sheet_reason_label">Reason (optional)</string>
     <string name="delete_account_sheet_reason_count">%1$d/500</string>
     <string name="delete_account_sheet_password_label">Confirm with your password</string>
@@ -56,20 +61,20 @@
     <string name="devmode_block_title">Developer Mode is on</string>
     <string name="devmode_block_body">EquipSeva can\'t run while Developer Options or USB debugging is enabled</string>
     <string name="devmode_block_reason">EquipSeva can\'t run while Developer Options or USB debugging is enabled on your phone. These let other apps intercept payments and account data.</string>
-    <string name="devmode_block_steps">Steps: Settings â System â Developer Options â toggle off</string>
+    <string name="devmode_block_steps">Steps: Settings → System → Developer Options → toggle off</string>
     <string name="devmode_open_settings_button">Open Settings</string>
-    <string name="devmode_return_note">Return to EquipSeva after disabling â it\'ll let you in automatically.</string>
+    <string name="devmode_return_note">Return to EquipSeva after disabling — it\'ll let you in automatically.</string>
 
     <!-- Call masking -->
     <string name="call_secure_line_note">Calls route through EquipSeva\'s secure line</string>
-    <string name="call_scoped_note">Book a job or open chat first â calls are scoped to active jobs</string>
+    <string name="call_scoped_note">Book a job or open chat first — calls are scoped to active jobs</string>
     <string name="call_connecting_dialog_title">Connecting…</string>
     <string name="call_connecting_dialog_secure_note">Your phone will ring shortly. Real numbers stay private — calls route through EquipSeva\'s secure line.</string>
 
     <!-- KYC -->
-    <string name="kyc_review_window">After submit: typically reviewed within 4â24 hours</string>
-    <string name="kyc_photo_hint">Capture 1â4 photos of the equipment before you start</string>
-    <string name="kyc_verify_window">We\'ll verify your documents within 4â24 hours and notify you</string>
+    <string name="kyc_review_window">After submit: typically reviewed within 4–24 hours</string>
+    <string name="kyc_photo_hint">Capture 1–4 photos of the equipment before you start</string>
+    <string name="kyc_verify_window">We\'ll verify your documents within 4–24 hours and notify you</string>
     <string name="kyc_submitted_verify_notice">We\'ll verify your documents within 4–24 hours and notify you. Until then you can browse jobs but not bid.</string>
 
     <!-- KYC screen (KycScreen.kt) -->
@@ -106,7 +111,7 @@
 
     <!-- Job lifecycle -->
     <string name="job_live">Your repair request is live</string>
-    <string name="job_bid_window">Verified engineers in your area usually bid within 5â30 min</string>
+    <string name="job_bid_window">Verified engineers in your area usually bid within 5–30 min</string>
     <string name="job_status_submitted_for_review">Submitted for review</string>
     <string name="job_status_withdrawn">Withdrawn by hospital</string>
 
@@ -119,7 +124,7 @@
     <string name="payment_generic_failure">Payment failed. Please try a different method or contact your bank.</string>
 
     <!-- Moderation -->
-    <string name="moderation_pattern_flag">Pattern flag â 3+ disputes in window</string>
+    <string name="moderation_pattern_flag">Pattern flag — 3+ disputes in window</string>
 
     <!-- Hospital my-disputes -->
     <string name="hospital_dispute_resolution_note">EquipSeva note: %1$s</string>
@@ -162,7 +167,7 @@
 
     <!-- About screen -->
     <string name="about_version_label">Version %1$s (build %2$s)</string>
-    <string name="about_copyright">Â© %1$s EquipSeva</string>
+    <string name="about_copyright">© %1$s EquipSeva</string>
 
     <!-- Forgot password -->
     <string name="forgot_password_email_instructions">Enter your email. We\'ll send a link to reset your password.</string>
@@ -189,7 +194,7 @@
 
     <!-- Engineer onboarding -->
     <string name="engineer_onboarding_welcome_title">Welcome, engineer</string>
-    <string name="engineer_onboarding_intro">Tell us how hospitals can reach you and the area you service. Right after this you\'ll complete KYC â verified engineers appear in the public directory and start receiving jobs.</string>
+    <string name="engineer_onboarding_intro">Tell us how hospitals can reach you and the area you service. Right after this you\'ll complete KYC — verified engineers appear in the public directory and start receiving jobs.</string>
     <string name="engineer_onboarding_phone_label">Phone</string>
     <string name="engineer_onboarding_phone_placeholder">+91 98765 43210</string>
     <string name="engineer_onboarding_phone_error">Enter a valid 10-digit Indian mobile number.</string>
@@ -207,14 +212,14 @@
 
     <!-- Engineer payout method -->
     <string name="payout_method_send_earnings_question">Where should we send your earnings?</string>
-    <string name="payout_method_transfer_note">After a hospital confirms a completed job, we transfer your share automatically to the destination below â usually within minutes via UPI.</string>
+    <string name="payout_method_transfer_note">After a hospital confirms a completed job, we transfer your share automatically to the destination below — usually within minutes via UPI.</string>
     <string name="payout_method_current_upi">Current: UPI</string>
     <string name="payout_method_current_bank">Current: Bank</string>
     <string name="payout_method_how_it_works_title">How payouts work</string>
     <string name="payout_method_how_it_works_body">When a hospital confirms a job, your share is transferred to this destination. UPI typically lands in seconds; bank IMPS in minutes. EquipSeva\'s commission is deducted automatically.</string>
 
     <!-- Job escrow payment sheet -->
-    <string name="job_escrow_payment_note">Funds sit in EquipSeva escrow until the engineer completes the job. Released automatically 48 hours after completion, or anytime you confirm â and refundable if the job is cancelled.</string>
+    <string name="job_escrow_payment_note">Funds sit in EquipSeva escrow until the engineer completes the job. Released automatically 48 hours after completion, or anytime you confirm — and refundable if the job is cancelled.</string>
     <string name="job_escrow_amount_label">Amount</string>
     <string name="job_escrow_razorpay_note">You\'ll be redirected to Razorpay to complete payment. UPI, cards, and net banking are all supported.</string>
 
@@ -222,7 +227,7 @@
     <string name="address_book_delete_dialog_title">Delete this address?</string>
     <string name="address_book_delete_action">Delete</string>
     <string name="address_book_default_badge">Default</string>
-    <string name="address_book_name_phone_line">%1$s Â· %2$s</string>
+    <string name="address_book_name_phone_line">%1$s · %2$s</string>
     <string name="address_book_city_state_pincode">%1$s, %2$s %3$s</string>
     <string name="address_book_edit_action">Edit</string>
 
@@ -238,7 +243,7 @@
 
     <!-- Founder Users screen -->
     <string name="founder_users_search_placeholder">Search name, email, phone</string>
-    <string name="founder_users_change_role_sheet_title">Change role Â· %1$s</string>
+    <string name="founder_users_change_role_sheet_title">Change role · %1$s</string>
     <string name="founder_users_change_role_sheet_note">Pick the new role. This change is immediate.</string>
 
     <!-- Founder Reports Queue screen -->
@@ -249,12 +254,12 @@
     <string name="founder_reports_queue_confirm_action">Confirm</string>
 
     <!-- Founder Spot Audits screen -->
-    <string name="founder_spot_audits_hospital_to_engineer_format">%1$s â %2$s</string>
+    <string name="founder_spot_audits_hospital_to_engineer_format">%1$s → %2$s</string>
     <string name="founder_spot_audits_responded_at_format">Responded: %1$s</string>
 
     <!-- Request service screen -->
     <string name="request_service_booking_name">Booking %1$s</string>
-    <string name="request_service_rating_jobs_summary">%1$s Â· %2$s</string>
+    <string name="request_service_rating_jobs_summary">%1$s · %2$s</string>
     <string name="request_service_resume_draft">Resume your draft?</string>
     <string name="request_service_submitting">Submitting…</string>
     <string name="request_service_uploading_photo">Uploading photo…</string>
@@ -267,7 +272,7 @@
     <string name="request_service_serial_label">Serial number (optional)</string>
     <string name="request_service_serial_placeholder">Usually behind the unit</string>
     <string name="request_service_description_label">Description</string>
-    <string name="request_service_description_placeholder">Describe the issue clearly â symptoms, error codes, when it started.</string>
+    <string name="request_service_description_placeholder">Describe the issue clearly — symptoms, error codes, when it started.</string>
     <string name="request_service_severity_label">Severity</string>
     <string name="request_service_photos_label">Photos (optional)</string>
     <string name="request_service_photos_hint">Attach photos of the nameplate or fault. Up to 5 images, JPEG/PNG/WEBP.</string>
@@ -277,10 +282,10 @@
     <string name="request_service_preferred_slot_label">Preferred slot</string>
     <string name="request_service_date_picker_ok">OK</string>
     <string name="request_service_address_label">Address</string>
-    <string name="request_service_address_placeholder">Hospital name, street, city â type if you can\'t pin on the map</string>
+    <string name="request_service_address_placeholder">Hospital name, street, city — type if you can\'t pin on the map</string>
     <string name="request_service_engineer_note_label">Note for the engineer</string>
-    <string name="request_service_engineer_note_placeholder">Ward Â· Department Â· Floor Â· Gate to enter from</string>
-    <string name="request_service_budget_label">Budget (â¹, optional)</string>
+    <string name="request_service_engineer_note_placeholder">Ward · Department · Floor · Gate to enter from</string>
+    <string name="request_service_budget_label">Budget (₹, optional)</string>
     <string name="request_service_budget_placeholder">e.g. 5000</string>
     <string name="founder_payments_open_invoice">Open invoice</string>
     <string name="founder_payments_last_n_days">Last %1$d days</string>

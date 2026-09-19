@@ -24,49 +24,49 @@ export default async function Page() {
   ]);
 
   const monthlyCols: Column<MonthlyOverview>[] = [
-    { key: 'audit_month', label: 'Month' },
-    { key: 'sites_audited', label: 'Sites' },
-    { key: 'sleeves_inspected', label: 'Inspected' },
-    { key: 'sleeves_failed', label: 'Failed' },
-    { key: 'failure_rate_pct', label: 'Failure %' },
+    { key: 'audit_month', header: 'Month' },
+    { key: 'sites_audited', header: 'Sites' },
+    { key: 'sleeves_inspected', header: 'Inspected' },
+    { key: 'sleeves_failed', header: 'Failed' },
+    { key: 'failure_rate_pct', header: 'Failure %' },
   ];
   const siteCols: Column<SiteLeader>[] = [
-    { key: 'customer_site', label: 'Site' },
-    { key: 'city', label: 'City' },
-    { key: 'total_inspected', label: 'Inspected' },
-    { key: 'total_failed', label: 'Failed' },
-    { key: 'failure_rate_pct', label: 'Failure %' },
+    { key: 'customer_site', header: 'Site' },
+    { key: 'city', header: 'City' },
+    { key: 'total_inspected', header: 'Inspected' },
+    { key: 'total_failed', header: 'Failed' },
+    { key: 'failure_rate_pct', header: 'Failure %' },
   ];
   const mixCols: Column<FailureMix>[] = [
-    { key: 'failure_mode', label: 'Failure mode' },
-    { key: 'audits', label: 'Audits' },
-    { key: 'total_failed', label: 'Failed' },
-    { key: 'share_pct', label: 'Share %' },
+    { key: 'failure_mode', header: 'Failure mode' },
+    { key: 'audits', header: 'Audits' },
+    { key: 'total_failed', header: 'Failed' },
+    { key: 'share_pct', header: 'Share %' },
   ];
   const sevCols: Column<Severity>[] = [
-    { key: 'severity', label: 'Severity' },
-    { key: 'audits', label: 'Audits' },
-    { key: 'open_audits', label: 'Open' },
-    { key: 'escalated_audits', label: 'Escalated' },
+    { key: 'severity', header: 'Severity' },
+    { key: 'audits', header: 'Audits' },
+    { key: 'open_audits', header: 'Open' },
+    { key: 'escalated_audits', header: 'Escalated' },
   ];
   const engCols: Column<Engineer>[] = [
-    { key: 'engineer_name', label: 'Engineer' },
-    { key: 'audits', label: 'Audits' },
-    { key: 'sleeves_inspected', label: 'Inspected' },
-    { key: 'clean_audits', label: 'Clean audits' },
+    { key: 'engineer_name', header: 'Engineer' },
+    { key: 'audits', header: 'Audits' },
+    { key: 'sleeves_inspected', header: 'Inspected' },
+    { key: 'clean_audits', header: 'Clean audits' },
   ];
   const openCols: Column<OpenAction>[] = [
-    { key: 'customer_site', label: 'Site' },
-    { key: 'action_type', label: 'Action' },
-    { key: 'owner', label: 'Owner' },
-    { key: 'due_date', label: 'Due' },
-    { key: 'action_status', label: 'Status' },
+    { key: 'customer_site', header: 'Site' },
+    { key: 'action_type', header: 'Action' },
+    { key: 'owner', header: 'Owner' },
+    { key: 'due_date', header: 'Due' },
+    { key: 'action_status', header: 'Status' },
   ];
   const costCols: Column<CostSummary>[] = [
-    { key: 'action_type', label: 'Action' },
-    { key: 'actions', label: 'Count' },
-    { key: 'total_cost_rupees', label: 'Cost (rupees)' },
-    { key: 'closed_actions', label: 'Closed' },
+    { key: 'action_type', header: 'Action' },
+    { key: 'actions', header: 'Count' },
+    { key: 'total_cost_rupees', header: 'Cost (rupees)' },
+    { key: 'closed_actions', header: 'Closed' },
   ];
 
   return (

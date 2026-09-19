@@ -265,7 +265,7 @@ export default async function Page() {
           rows={breach}
           columns={breachCols}
           emptyMessage="No covenant breaches detected."
-          rowKey={(r, i) => String(`${r.facility_code}-${r.scenario}` ?? i)}
+          rowKey={(r, i) => String(`${r.facility_code}-${r.scenario}`)}
         />
       </section>
 

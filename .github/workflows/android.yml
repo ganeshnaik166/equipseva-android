@@ -2,9 +2,16 @@ name: android
 
 on:
   pull_request:
+    # Same skip list as `push` below: a docs- or web-only PR does not need a
+    # 19-minute Android build. supabase/migrations/** deliberately still
+    # triggers it (the unit tests carry CHECK-constraint mirrors).
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+      - "web/**"
+      - "website/**"
   push:
-    # Main and ops now share the shipped history. Verify isolated renewal
-    # branches too, before their changes are proposed for integration.
+    # Build helper and integration branches before they reach main.
     branches: [main, "ops/**", "codex/**", "claudedev-**"]
     # Round 3810 — skip docs-only pushes. A single ops session produced
     # three stacked ~7-minute Android builds for commits touching only
@@ -138,6 +145,15 @@ jobs:
           name: lint-report
           path: app/build/reports/lint-results-debug.html
           if-no-files-found: warn
+
+      # UX uplift decision D5: every feature file that is touched ends the
+      # round on Es* design tokens and components. This ratchet compares the
+      # raw-usage counts (raw .dp/.sp, raw M3 Button/TextField, legacy colour
+      # tokens, hardcoded Text("...")) against scripts/verify/design_lint.baseline.json
+      # and fails if any of them rose. The baseline is refreshed deliberately
+      # with --write-baseline, in the same commit that lowers the counts.
+      - name: design-lint ratchet
+        run: python3 scripts/verify/design_lint.py
 
       - name: assembleDebug
         run: ./gradlew :app:assembleDebug --no-daemon --stacktrace

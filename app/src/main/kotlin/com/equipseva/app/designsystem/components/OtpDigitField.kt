@@ -1,13 +1,16 @@
 package com.equipseva.app.designsystem.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -23,6 +26,9 @@ import com.equipseva.app.designsystem.theme.EsColors
 import com.equipseva.app.designsystem.theme.EsRadius
 import com.equipseva.app.designsystem.theme.EsTheme
 import com.equipseva.app.designsystem.theme.EsType
+
+import androidx.compose.ui.tooling.preview.Preview
+import com.equipseva.app.designsystem.theme.EquipSevaTheme
 
 private class OtpInputLifetime { var active = true }
 
@@ -93,4 +99,50 @@ fun OtpDigitField(
             },
         )
     }
+}
+
+// ---- Previews — design-system gallery. Every @Preview under designsystem/
+// is also a Roborazzi screenshot test (see app/build.gradle.kts), so a
+// variant that is missing here has no visual regression guard.
+
+@Composable
+private fun OtpDigitFieldGallery() {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text("Empty", style = MaterialTheme.typography.labelSmall)
+        OtpDigitField(value = "", onValueChange = {})
+        Text("Partially entered", style = MaterialTheme.typography.labelSmall)
+        OtpDigitField(value = "482", onValueChange = {})
+        Text("Complete", style = MaterialTheme.typography.labelSmall)
+        OtpDigitField(value = "482913", onValueChange = {})
+        Text("Error", style = MaterialTheme.typography.labelSmall)
+        OtpDigitField(
+            value = "482913",
+            onValueChange = {},
+            error = "Incorrect code. Please try again.",
+        )
+        Text("Error, long message", style = MaterialTheme.typography.labelSmall)
+        OtpDigitField(
+            value = "48",
+            onValueChange = {},
+            error = "This code has expired. Request a new code for +91 98765 43210 " +
+                "and enter it within 10 minutes.",
+        )
+        Text("4 digits", style = MaterialTheme.typography.labelSmall)
+        OtpDigitField(value = "73", onValueChange = {}, length = 4)
+    }
+}
+
+@Preview(name = "OtpDigitField", showBackground = true)
+@Composable
+private fun OtpDigitFieldPreview() {
+    EquipSevaTheme(darkTheme = false) { OtpDigitFieldGallery() }
+}
+
+@Preview(name = "OtpDigitField large text", showBackground = true, fontScale = 1.3f)
+@Composable
+private fun OtpDigitFieldPreviewLargeText() {
+    EquipSevaTheme(darkTheme = false) { OtpDigitFieldGallery() }
 }

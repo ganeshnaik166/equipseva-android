@@ -195,7 +195,7 @@ export default async function Page() {
             { key: 'notes', header: 'Notes', render: (r: Red) => r.notes ?? '-' },
           ]}
           emptyMessage="No data"
-          rowKey={(r, i) => String(`${r.customer_org_name}-${r.equipment_code}` ?? i)}
+          rowKey={(r, i) => String(`${r.customer_org_name}-${r.equipment_code}`)}
         />
       </section>
     </div>

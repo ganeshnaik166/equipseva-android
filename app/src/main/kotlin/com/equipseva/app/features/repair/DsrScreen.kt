@@ -183,7 +183,38 @@ fun DsrScreen(
     LaunchedEffect(jobId) { viewModel.load(jobId) }
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    Box(Modifier.fillMaxSize().background(PaperDefault)) {
+    DsrContent(
+        state = state,
+        isHospital = isHospital,
+        onRefresh = viewModel::refresh,
+        onSubmit = viewModel::submit,
+        onSign = viewModel::sign,
+        onBack = onBack,
+    )
+}
+
+// Stateless body: everything visual lives here so the screen can be
+// rendered from a plain UiState (previews, screenshot fixtures) without
+// a Hilt graph behind it.
+@Composable
+internal fun DsrContent(
+    state: DsrViewModel.UiState,
+    isHospital: Boolean,
+    onRefresh: () -> Unit,
+    onSubmit: (
+        workSummary: String,
+        iec62353Passed: Boolean?,
+        calibrationPerformed: Boolean,
+        calibrationWithinOem: Boolean?,
+        calibrationLabRef: String,
+        recommendations: String,
+        equipmentSerial: String,
+    ) -> Unit,
+    onSign: (signerName: String, signerRole: String) -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier.fillMaxSize().background(PaperDefault)) {
         Column(Modifier.fillMaxSize()) {
             EsTopBar(title = stringResource(R.string.dsr_title), onBack = onBack)
 
@@ -197,7 +228,7 @@ fun DsrScreen(
                     title = stringResource(R.string.dsr_couldnt_load),
                     subtitle = state.error,
                     ctaLabel = stringResource(R.string.dsr_try_again),
-                    onCta = { viewModel.refresh() },
+                    onCta = { onRefresh() },
                 )
 
                 state.dsr == null && isHospital -> EmptyStateView(
@@ -209,7 +240,7 @@ fun DsrScreen(
                 state.dsr == null -> DsrForm(
                     submitting = state.submitting,
                     actionError = state.actionError,
-                    onSubmit = viewModel::submit,
+                    onSubmit = onSubmit,
                 )
 
                 else -> {
@@ -240,7 +271,7 @@ fun DsrScreen(
                             // "calibrated, within OEM tolerance" to "no
                             // calibration performed".
                             initialCalibrationWithinOem = dsr.calibrationWithinOem,
-                            onSubmit = viewModel::submit,
+                            onSubmit = onSubmit,
                         )
                     } else {
                         DsrRecord(
@@ -248,7 +279,7 @@ fun DsrScreen(
                             isHospital = isHospital,
                             signing = state.signing,
                             actionError = state.actionError,
-                            onSign = viewModel::sign,
+                            onSign = onSign,
                             onRevise = { revising = true },
                         )
                     }

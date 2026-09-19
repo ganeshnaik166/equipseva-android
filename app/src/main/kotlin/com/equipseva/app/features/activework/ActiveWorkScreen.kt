@@ -32,11 +32,13 @@ import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.ListSkeleton
+import com.equipseva.app.designsystem.theme.EsRadius
 import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.features.repair.components.EngineerJobCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,7 +62,26 @@ fun ActiveWorkScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
+    ActiveWorkContent(
+        state = state,
+        onRefresh = viewModel::onRefresh,
+        onBack = onBack,
+        onJobClick = onJobClick,
+        onBrowseOpenJobs = onBrowseOpenJobs,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun ActiveWorkContent(
+    state: ActiveWorkViewModel.UiState,
+    onRefresh: () -> Unit,
+    onBack: () -> Unit,
+    onJobClick: (String) -> Unit,
+    onBrowseOpenJobs: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(modifier = modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             val combined = state.activeJobs + state.completedJobs
             // Subtitle reads "X in progress · Y done" so the screen doesn't
@@ -79,7 +100,7 @@ fun ActiveWorkScreen(
             QueuedStatusPill(count = state.queuedStatusCount)
             PullToRefreshBox(
                 isRefreshing = state.refreshing,
-                onRefresh = viewModel::onRefresh,
+                onRefresh = onRefresh,
                 modifier = Modifier.fillMaxSize(),
             ) {
                 when {
@@ -97,7 +118,7 @@ fun ActiveWorkScreen(
                     )
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                        contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.md),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         items(items = combined, key = { it.id }) { job ->
@@ -120,12 +141,12 @@ private fun QueuedStatusPill(count: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .padding(horizontal = Spacing.lg, vertical = Spacing.xs)
+            .clip(RoundedCornerShape(EsRadius.Lg))
             .background(SevaGreen50)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         Icon(
             imageVector = Icons.Outlined.CloudSync,

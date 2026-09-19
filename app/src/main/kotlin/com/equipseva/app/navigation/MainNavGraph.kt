@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -34,6 +35,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.equipseva.app.R
 import com.equipseva.app.features.about.AboutScreen
 import com.equipseva.app.features.activework.ActiveWorkScreen
 import com.equipseva.app.features.chat.ChatScreen
@@ -60,6 +62,7 @@ import kotlinx.coroutines.launch
 //   • Engineer → 4 tabs (Home / Jobs / Earnings / Profile) — Earnings
 //     graduates from a Profile row to a top-level destination.
 //   • Unknown / deferred roles expose no tabs; root requires role confirmation.
+@Composable
 private fun tabsForRole(
     role: com.equipseva.app.features.auth.UserRole?,
 ): List<com.equipseva.app.designsystem.components.EsBottomNavItem> {
@@ -67,22 +70,22 @@ private fun tabsForRole(
     return routes.map { route ->
         when (route) {
             Routes.HOME -> com.equipseva.app.designsystem.components.EsBottomNavItem(
-                Routes.HOME, "Home", Icons.Outlined.Home,
+                Routes.HOME, stringResource(R.string.nav_home), Icons.Outlined.Home,
             )
             Routes.HOSPITAL_ACTIVE_JOBS -> com.equipseva.app.designsystem.components.EsBottomNavItem(
-                Routes.HOSPITAL_ACTIVE_JOBS, "Bookings", Icons.Outlined.WorkOutline,
+                Routes.HOSPITAL_ACTIVE_JOBS, stringResource(R.string.nav_bookings), Icons.Outlined.WorkOutline,
             )
             Routes.CONVERSATIONS -> com.equipseva.app.designsystem.components.EsBottomNavItem(
-                Routes.CONVERSATIONS, "Messages", Icons.AutoMirrored.Outlined.Chat,
+                Routes.CONVERSATIONS, stringResource(R.string.nav_messages), Icons.AutoMirrored.Outlined.Chat,
             )
             Routes.ENGINEER_JOBS_HUB -> com.equipseva.app.designsystem.components.EsBottomNavItem(
-                Routes.ENGINEER_JOBS_HUB, "Jobs", Icons.Outlined.Build,
+                Routes.ENGINEER_JOBS_HUB, stringResource(R.string.nav_jobs), Icons.Outlined.Build,
             )
             Routes.EARNINGS -> com.equipseva.app.designsystem.components.EsBottomNavItem(
-                Routes.EARNINGS, "Earnings", Icons.Outlined.CurrencyRupee,
+                Routes.EARNINGS, stringResource(R.string.nav_earnings), Icons.Outlined.CurrencyRupee,
             )
             Routes.PROFILE -> com.equipseva.app.designsystem.components.EsBottomNavItem(
-                Routes.PROFILE, "Profile", Icons.Outlined.Person,
+                Routes.PROFILE, stringResource(R.string.nav_profile), Icons.Outlined.Person,
             )
             else -> error("tabRoutesForRole returned unknown route: $route")
         }

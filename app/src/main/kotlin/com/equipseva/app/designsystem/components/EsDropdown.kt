@@ -21,6 +21,10 @@ import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import com.equipseva.app.R
 import com.equipseva.app.designsystem.theme.EsColors
+
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.tooling.preview.Preview
+import com.equipseva.app.designsystem.theme.EquipSevaTheme
 import com.equipseva.app.designsystem.theme.EsRadius
 import com.equipseva.app.designsystem.theme.EsTheme
 import com.equipseva.app.designsystem.theme.EsType
@@ -141,4 +145,105 @@ fun EsDropdown(
                 modifier = Modifier.padding(start = 4.dp, top = 4.dp))
         }
     }
+}
+
+// ---- Previews — design-system gallery. Every @Preview under designsystem/
+// is also a Roborazzi screenshot test (see app/build.gradle.kts), so a
+// variant that is missing here has no visual regression guard.
+
+@Composable
+private fun EsDropdownGallery() {
+    // Ten brands crosses the search-box threshold; four departments stays under it.
+    val brands = listOf(
+        "Philips", "GE Healthcare", "Siemens Healthineers", "Mindray", "BPL Medical",
+        "Skanray", "Dräger", "Nihon Kohden", "Medtronic", "Schiller",
+    )
+    val departments = listOf("ICU", "OT", "Emergency", "Radiology")
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        EsDropdown(value = null, onValueChange = {}, options = departments)
+        EsDropdown(
+            value = "Patient Monitor",
+            onValueChange = {},
+            options = listOf("Patient Monitor", "Ventilator", "Infusion Pump", "Defibrillator"),
+            label = "Equipment category",
+        )
+        EsDropdown(
+            value = null,
+            onValueChange = {},
+            options = listOf("Apollo Hospitals, Chennai", "Fortis Memorial, Gurugram", "KIMS, Hyderabad"),
+            label = "Hospital",
+            placeholder = "Choose hospital",
+        )
+        EsDropdown(
+            value = "",
+            onValueChange = {},
+            options = departments,
+            label = "Department (blank value falls back to placeholder)",
+        )
+        EsDropdown(
+            value = "Mindray",
+            onValueChange = {},
+            options = brands,
+            label = "Brand",
+            hint = "Warranty claims cover brands purchased after 2022",
+        )
+        EsDropdown(
+            value = null,
+            onValueChange = {},
+            options = brands,
+            label = "Brand",
+            error = "Select a brand to continue",
+        )
+        EsDropdown(
+            value = null,
+            onValueChange = {},
+            options = brands,
+            label = "Brand (error wins over hint)",
+            hint = "Warranty claims cover brands purchased after 2022",
+            error = "Select a brand to continue",
+        )
+        EsDropdown(
+            value = "Rajesh Kumar — Senior Biomedical Engineer",
+            onValueChange = {},
+            options = listOf("Rajesh Kumar — Senior Biomedical Engineer"),
+            label = "Assigned engineer",
+            enabled = false,
+        )
+        EsDropdown(
+            value = null,
+            onValueChange = {},
+            options = emptyList(),
+            label = "Model",
+            hint = "Select a brand first",
+        )
+        EsDropdown(
+            value = null,
+            onValueChange = {},
+            options = brands,
+            label = "Brand (search disabled)",
+            searchable = false,
+        )
+        EsDropdown(
+            value = "Siemens Healthineers ACUSON Sequoia Ultrasound System with 18L6 HD Linear Transducer — AMC quote ₹4,500 per visit",
+            onValueChange = {},
+            options = brands,
+            label = "Equipment under Annual Maintenance Contract at Sri Ramachandra Medical Centre, Porur, Chennai",
+            hint = "Long labels and values wrap instead of truncating",
+        )
+    }
+}
+
+@Preview(name = "EsDropdown", showBackground = true)
+@Composable
+private fun EsDropdownPreview() {
+    EquipSevaTheme(darkTheme = false) { EsDropdownGallery() }
+}
+
+@Preview(name = "EsDropdown large text", showBackground = true, fontScale = 1.3f)
+@Composable
+private fun EsDropdownPreviewLargeText() {
+    EquipSevaTheme(darkTheme = false) { EsDropdownGallery() }
 }

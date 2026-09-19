@@ -22,6 +22,75 @@ function fmtSigned(n: number | null | undefined): string {
   return `${sign}${v.toFixed(2)}%`;
 }
 
+type ShareRow = {
+  id?: string;
+  chain_name: string;
+  vor_status: string;
+  our_share_pct: number;
+  our_share_inr: number;
+  top_competitor: string;
+  top_competitor_share_pct: number;
+  share_movement_pct: number;
+  movement_direction: string;
+  primary_cause: string;
+  active_units: number;
+  monthly_jobs: number;
+  csat_score: number | null;
+};
+
+type MovementRow = {
+  movement_direction: string;
+  chain_count: number;
+  total_movement_pct: number;
+  total_our_share_inr: number;
+};
+
+type CauseRow = {
+  primary_cause: string;
+  chain_count: number;
+  avg_movement_pct: number;
+  total_share_impact_inr: number;
+};
+
+type CompetitorRow = {
+  top_competitor: string;
+  chains_competing_in: number;
+  avg_competitor_share_pct: number;
+  total_competitor_value_inr: number;
+};
+
+type AtRiskRow = {
+  chain_name: string;
+  vor_status: string;
+  our_share_pct: number;
+  share_movement_pct: number;
+  primary_cause: string;
+  top_competitor: string;
+  our_share_inr: number;
+  notes: string | null;
+};
+
+type PipelineRow = {
+  status: string;
+  action_count: number;
+  total_target_gain_pct: number;
+  total_revenue_lift_inr: number;
+};
+
+type ActionRow = {
+  id?: string;
+  priority: string;
+  chain_name: string;
+  action_title: string;
+  action_category: string;
+  target_share_gain_pct: number;
+  estimated_revenue_lift_inr: number;
+  owner_name: string;
+  due_date: string;
+  status: string;
+  blocker_note: string | null;
+};
+
 export default async function Page() {
   const supabase = await getSupabaseServerClient();
 
@@ -45,13 +114,13 @@ export default async function Page() {
     at_risk_chains: 0,
   };
 
-  const shareRows = rows.data ?? [];
-  const movementRows = movement.data ?? [];
-  const causeRows = causes.data ?? [];
-  const competitorRows = competitors.data ?? [];
-  const atRiskRows = atRisk.data ?? [];
-  const actionRows = actions.data ?? [];
-  const pipelineRows = pipeline.data ?? [];
+  const shareRows = (rows.data ?? []) as ShareRow[];
+  const movementRows = (movement.data ?? []) as MovementRow[];
+  const causeRows = (causes.data ?? []) as CauseRow[];
+  const competitorRows = (competitors.data ?? []) as CompetitorRow[];
+  const atRiskRows = (atRisk.data ?? []) as AtRiskRow[];
+  const actionRows = (actions.data ?? []) as ActionRow[];
+  const pipelineRows = (pipeline.data ?? []) as PipelineRow[];
 
   return (
     <main style={{ padding: 24, maxWidth: 1400, margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -74,117 +143,117 @@ export default async function Page() {
       </section>
 
       <Section title="Chain share snapshot">
-        <DataTable
+        <DataTable<ShareRow>
           rows={shareRows}
-          rowKey={(r: { id?: string }, i: number) => String(r.id ?? i)}
+          rowKey={(r, i) => String(r.id ?? i)}
           emptyMessage="No data"
           columns={[
-            { key: 'chain_name', header: 'Chain', render: (r: { chain_name: string }) => r.chain_name },
-            { key: 'vor_status', header: 'VOR status', render: (r: { vor_status: string }) => <StatusBadge s={r.vor_status} /> },
-            { key: 'our_share_pct', header: 'Our %', render: (r: { our_share_pct: number }) => fmtPct(r.our_share_pct) },
-            { key: 'our_share_inr', header: 'Our Rs', render: (r: { our_share_inr: number }) => fmtINR(r.our_share_inr) },
-            { key: 'top_competitor', header: 'Top competitor', render: (r: { top_competitor: string; top_competitor_share_pct: number }) => `${r.top_competitor} (${fmtPct(r.top_competitor_share_pct)})` },
-            { key: 'share_movement_pct', header: 'Movement', render: (r: { share_movement_pct: number; movement_direction: string }) => <MovementBadge dir={r.movement_direction} val={r.share_movement_pct} /> },
-            { key: 'primary_cause', header: 'Primary cause', render: (r: { primary_cause: string }) => r.primary_cause.replace(/_/g, ' ') },
-            { key: 'active_units', header: 'Units', render: (r: { active_units: number }) => String(r.active_units) },
-            { key: 'monthly_jobs', header: 'Jobs/mo', render: (r: { monthly_jobs: number }) => String(r.monthly_jobs) },
-            { key: 'csat_score', header: 'CSAT', render: (r: { csat_score: number | null }) => r.csat_score !== null ? r.csat_score.toFixed(1) : '-' },
+            { key: 'chain_name', header: 'Chain', render: (r) => r.chain_name },
+            { key: 'vor_status', header: 'VOR status', render: (r) => <StatusBadge s={r.vor_status} /> },
+            { key: 'our_share_pct', header: 'Our %', render: (r) => fmtPct(r.our_share_pct) },
+            { key: 'our_share_inr', header: 'Our Rs', render: (r) => fmtINR(r.our_share_inr) },
+            { key: 'top_competitor', header: 'Top competitor', render: (r) => `${r.top_competitor} (${fmtPct(r.top_competitor_share_pct)})` },
+            { key: 'share_movement_pct', header: 'Movement', render: (r) => <MovementBadge dir={r.movement_direction} val={r.share_movement_pct} /> },
+            { key: 'primary_cause', header: 'Primary cause', render: (r) => r.primary_cause.replace(/_/g, ' ') },
+            { key: 'active_units', header: 'Units', render: (r) => String(r.active_units) },
+            { key: 'monthly_jobs', header: 'Jobs/mo', render: (r) => String(r.monthly_jobs) },
+            { key: 'csat_score', header: 'CSAT', render: (r) => r.csat_score !== null ? r.csat_score.toFixed(1) : '-' },
           ]}
         />
       </Section>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 24, marginBottom: 28 }}>
         <Section title="Share movement">
-          <DataTable
+          <DataTable<MovementRow>
             rows={movementRows}
-            rowKey={(r: { movement_direction?: string }, i: number) => String(r.movement_direction ?? i)}
+            rowKey={(r, i) => String(r.movement_direction ?? i)}
             emptyMessage="No data"
             columns={[
-              { key: 'movement_direction', header: 'Direction', render: (r: { movement_direction: string }) => r.movement_direction.toUpperCase() },
-              { key: 'chain_count', header: 'Chains', render: (r: { chain_count: number }) => String(r.chain_count) },
-              { key: 'total_movement_pct', header: 'Total move', render: (r: { total_movement_pct: number }) => fmtSigned(r.total_movement_pct) },
-              { key: 'total_our_share_inr', header: 'Share Rs', render: (r: { total_our_share_inr: number }) => fmtINR(r.total_our_share_inr) },
+              { key: 'movement_direction', header: 'Direction', render: (r) => r.movement_direction.toUpperCase() },
+              { key: 'chain_count', header: 'Chains', render: (r) => String(r.chain_count) },
+              { key: 'total_movement_pct', header: 'Total move', render: (r) => fmtSigned(r.total_movement_pct) },
+              { key: 'total_our_share_inr', header: 'Share Rs', render: (r) => fmtINR(r.total_our_share_inr) },
             ]}
           />
         </Section>
 
         <Section title="Cause breakdown">
-          <DataTable
+          <DataTable<CauseRow>
             rows={causeRows}
-            rowKey={(r: { primary_cause?: string }, i: number) => String(r.primary_cause ?? i)}
+            rowKey={(r, i) => String(r.primary_cause ?? i)}
             emptyMessage="No data"
             columns={[
-              { key: 'primary_cause', header: 'Cause', render: (r: { primary_cause: string }) => r.primary_cause.replace(/_/g, ' ') },
-              { key: 'chain_count', header: 'Chains', render: (r: { chain_count: number }) => String(r.chain_count) },
-              { key: 'avg_movement_pct', header: 'Avg move', render: (r: { avg_movement_pct: number }) => fmtSigned(r.avg_movement_pct) },
-              { key: 'total_share_impact_inr', header: 'Impact', render: (r: { total_share_impact_inr: number }) => fmtINR(r.total_share_impact_inr) },
+              { key: 'primary_cause', header: 'Cause', render: (r) => r.primary_cause.replace(/_/g, ' ') },
+              { key: 'chain_count', header: 'Chains', render: (r) => String(r.chain_count) },
+              { key: 'avg_movement_pct', header: 'Avg move', render: (r) => fmtSigned(r.avg_movement_pct) },
+              { key: 'total_share_impact_inr', header: 'Impact', render: (r) => fmtINR(r.total_share_impact_inr) },
             ]}
           />
         </Section>
       </div>
 
       <Section title="Top competitors landscape">
-        <DataTable
+        <DataTable<CompetitorRow>
           rows={competitorRows}
-          rowKey={(r: { top_competitor?: string }, i: number) => String(r.top_competitor ?? i)}
+          rowKey={(r, i) => String(r.top_competitor ?? i)}
           emptyMessage="No data"
           columns={[
-            { key: 'top_competitor', header: 'Competitor', render: (r: { top_competitor: string }) => r.top_competitor },
-            { key: 'chains_competing_in', header: 'Chains', render: (r: { chains_competing_in: number }) => String(r.chains_competing_in) },
-            { key: 'avg_competitor_share_pct', header: 'Avg share', render: (r: { avg_competitor_share_pct: number }) => fmtPct(r.avg_competitor_share_pct) },
-            { key: 'total_competitor_value_inr', header: 'Their Rs', render: (r: { total_competitor_value_inr: number }) => fmtINR(r.total_competitor_value_inr) },
+            { key: 'top_competitor', header: 'Competitor', render: (r) => r.top_competitor },
+            { key: 'chains_competing_in', header: 'Chains', render: (r) => String(r.chains_competing_in) },
+            { key: 'avg_competitor_share_pct', header: 'Avg share', render: (r) => fmtPct(r.avg_competitor_share_pct) },
+            { key: 'total_competitor_value_inr', header: 'Their Rs', render: (r) => fmtINR(r.total_competitor_value_inr) },
           ]}
         />
       </Section>
 
       <Section title="At-risk chains (downward movement or at-risk VOR)">
-        <DataTable
+        <DataTable<AtRiskRow>
           rows={atRiskRows}
-          rowKey={(r: { chain_name?: string }, i: number) => String(r.chain_name ?? i)}
+          rowKey={(r, i) => String(r.chain_name ?? i)}
           emptyMessage="No at-risk chains"
           columns={[
-            { key: 'chain_name', header: 'Chain', render: (r: { chain_name: string }) => r.chain_name },
-            { key: 'vor_status', header: 'VOR', render: (r: { vor_status: string }) => <StatusBadge s={r.vor_status} /> },
-            { key: 'our_share_pct', header: 'Our %', render: (r: { our_share_pct: number }) => fmtPct(r.our_share_pct) },
-            { key: 'share_movement_pct', header: 'Movement', render: (r: { share_movement_pct: number }) => fmtSigned(r.share_movement_pct) },
-            { key: 'primary_cause', header: 'Cause', render: (r: { primary_cause: string }) => r.primary_cause.replace(/_/g, ' ') },
-            { key: 'top_competitor', header: 'Competitor', render: (r: { top_competitor: string }) => r.top_competitor },
-            { key: 'our_share_inr', header: 'At stake', render: (r: { our_share_inr: number }) => fmtINR(r.our_share_inr) },
-            { key: 'notes', header: 'Notes', render: (r: { notes: string | null }) => r.notes ?? '-' },
+            { key: 'chain_name', header: 'Chain', render: (r) => r.chain_name },
+            { key: 'vor_status', header: 'VOR', render: (r) => <StatusBadge s={r.vor_status} /> },
+            { key: 'our_share_pct', header: 'Our %', render: (r) => fmtPct(r.our_share_pct) },
+            { key: 'share_movement_pct', header: 'Movement', render: (r) => fmtSigned(r.share_movement_pct) },
+            { key: 'primary_cause', header: 'Cause', render: (r) => r.primary_cause.replace(/_/g, ' ') },
+            { key: 'top_competitor', header: 'Competitor', render: (r) => r.top_competitor },
+            { key: 'our_share_inr', header: 'At stake', render: (r) => fmtINR(r.our_share_inr) },
+            { key: 'notes', header: 'Notes', render: (r) => r.notes ?? '-' },
           ]}
         />
       </Section>
 
       <Section title="Increase-share action pipeline">
-        <DataTable
+        <DataTable<PipelineRow>
           rows={pipelineRows}
-          rowKey={(r: { status?: string }, i: number) => String(r.status ?? i)}
+          rowKey={(r, i) => String(r.status ?? i)}
           emptyMessage="No data"
           columns={[
-            { key: 'status', header: 'Status', render: (r: { status: string }) => r.status },
-            { key: 'action_count', header: 'Count', render: (r: { action_count: number }) => String(r.action_count) },
-            { key: 'total_target_gain_pct', header: 'Target gain', render: (r: { total_target_gain_pct: number }) => fmtPct(r.total_target_gain_pct) },
-            { key: 'total_revenue_lift_inr', header: 'Revenue lift', render: (r: { total_revenue_lift_inr: number }) => fmtINR(r.total_revenue_lift_inr) },
+            { key: 'status', header: 'Status', render: (r) => r.status },
+            { key: 'action_count', header: 'Count', render: (r) => String(r.action_count) },
+            { key: 'total_target_gain_pct', header: 'Target gain', render: (r) => fmtPct(r.total_target_gain_pct) },
+            { key: 'total_revenue_lift_inr', header: 'Revenue lift', render: (r) => fmtINR(r.total_revenue_lift_inr) },
           ]}
         />
       </Section>
 
       <Section title="Action items to increase share">
-        <DataTable
+        <DataTable<ActionRow>
           rows={actionRows}
-          rowKey={(r: { id?: string }, i: number) => String(r.id ?? i)}
+          rowKey={(r, i) => String(r.id ?? i)}
           emptyMessage="No actions"
           columns={[
-            { key: 'priority', header: 'Pri', render: (r: { priority: string }) => <PriorityBadge p={r.priority} /> },
-            { key: 'chain_name', header: 'Chain', render: (r: { chain_name: string }) => r.chain_name },
-            { key: 'action_title', header: 'Action', render: (r: { action_title: string }) => r.action_title },
-            { key: 'action_category', header: 'Type', render: (r: { action_category: string }) => r.action_category.replace(/_/g, ' ') },
-            { key: 'target_share_gain_pct', header: 'Target %', render: (r: { target_share_gain_pct: number }) => fmtPct(r.target_share_gain_pct) },
-            { key: 'estimated_revenue_lift_inr', header: 'Lift', render: (r: { estimated_revenue_lift_inr: number }) => fmtINR(r.estimated_revenue_lift_inr) },
-            { key: 'owner_name', header: 'Owner', render: (r: { owner_name: string }) => r.owner_name },
-            { key: 'due_date', header: 'Due', render: (r: { due_date: string }) => r.due_date },
-            { key: 'status', header: 'Status', render: (r: { status: string }) => r.status },
-            { key: 'blocker_note', header: 'Blocker', render: (r: { blocker_note: string | null }) => r.blocker_note ?? '-' },
+            { key: 'priority', header: 'Pri', render: (r) => <PriorityBadge p={r.priority} /> },
+            { key: 'chain_name', header: 'Chain', render: (r) => r.chain_name },
+            { key: 'action_title', header: 'Action', render: (r) => r.action_title },
+            { key: 'action_category', header: 'Type', render: (r) => r.action_category.replace(/_/g, ' ') },
+            { key: 'target_share_gain_pct', header: 'Target %', render: (r) => fmtPct(r.target_share_gain_pct) },
+            { key: 'estimated_revenue_lift_inr', header: 'Lift', render: (r) => fmtINR(r.estimated_revenue_lift_inr) },
+            { key: 'owner_name', header: 'Owner', render: (r) => r.owner_name },
+            { key: 'due_date', header: 'Due', render: (r) => r.due_date },
+            { key: 'status', header: 'Status', render: (r) => r.status },
+            { key: 'blocker_note', header: 'Blocker', render: (r) => r.blocker_note ?? '-' },
           ]}
         />
       </Section>

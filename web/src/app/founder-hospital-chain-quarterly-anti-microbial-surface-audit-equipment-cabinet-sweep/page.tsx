@@ -130,7 +130,7 @@ export default async function Page() {
 
       <section>
         <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Branch heatmap</h2>
-        <DataTable rows={branchRows} columns={branchCols} emptyMessage="No branches" rowKey={(r, i) => String(((r as BranchRow).chain_name + (r as BranchRow).hospital_branch) ?? i)} />
+        <DataTable rows={branchRows} columns={branchCols} emptyMessage="No branches" rowKey={(r, i) => String(((r as BranchRow).chain_name + (r as BranchRow).hospital_branch))} />
       </section>
 
       <section>

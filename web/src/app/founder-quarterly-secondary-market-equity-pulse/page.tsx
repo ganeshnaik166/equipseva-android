@@ -216,7 +216,7 @@ export default async function Page() {
             { key: 'founder_call', header: 'Founder Call', render: (r: ValuationRow) => r.founder_call },
           ]}
           emptyMessage="No valuation signals"
-          rowKey={(r: ValuationRow, i: number) => String(`${r.recorded_at}-${r.signal_source}` ?? i)}
+          rowKey={(r: ValuationRow, i: number) => String(`${r.recorded_at}-${r.signal_source}`)}
         />
       </section>
 

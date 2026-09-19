@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -29,6 +32,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.equipseva.app.R
 import com.equipseva.app.designsystem.theme.EsTheme
+
+import androidx.compose.ui.tooling.preview.Preview
+import com.equipseva.app.designsystem.theme.EquipSevaTheme
 
 @Composable
 fun PrimaryButton(
@@ -68,4 +74,38 @@ fun PrimaryButton(
                 textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
         }
     }
+}
+
+// ---- Previews — design-system gallery. Every @Preview under designsystem/
+// is also a Roborazzi screenshot test (see app/build.gradle.kts), so a
+// variant that is missing here has no visual regression guard.
+
+@Composable
+private fun PrimaryButtonGallery() {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        PrimaryButton(label = "Book engineer visit", onClick = {})
+        PrimaryButton(label = "Pay ₹4,500 advance", onClick = {}, enabled = false)
+        PrimaryButton(label = "Submitting bid", onClick = {}, loading = true)
+        PrimaryButton(label = "Submitting bid", onClick = {}, enabled = false, loading = true)
+        PrimaryButton(label = "", onClick = {})
+        PrimaryButton(
+            label = "Assign Ramesh Iyer to ventilator calibration at Apollo Hospitals, Chennai",
+            onClick = {},
+        )
+    }
+}
+
+@Preview(name = "PrimaryButton", showBackground = true)
+@Composable
+private fun PrimaryButtonPreview() {
+    EquipSevaTheme(darkTheme = false) { PrimaryButtonGallery() }
+}
+
+@Preview(name = "PrimaryButton large text", showBackground = true, fontScale = 1.3f)
+@Composable
+private fun PrimaryButtonPreviewLargeText() {
+    EquipSevaTheme(darkTheme = false) { PrimaryButtonGallery() }
 }

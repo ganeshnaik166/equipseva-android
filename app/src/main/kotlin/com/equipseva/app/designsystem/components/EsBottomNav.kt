@@ -14,6 +14,13 @@ import androidx.compose.foundation.layout.requiredHeightIn
 import androidx.compose.foundation.layout.requiredWidthIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.CurrencyRupee
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.WorkOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,10 +37,13 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.equipseva.app.R
 import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.EquipSevaTheme
 import com.equipseva.app.designsystem.theme.SevaDanger500
 import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaGreen700
@@ -194,3 +204,61 @@ fun EsBottomNav(
  */
 internal fun bottomNavBadgeLabel(count: Int): String =
     if (count > 99) "99+" else count.toString()
+
+// ---- Previews — design-system gallery. Every @Preview under designsystem/
+// is also a Roborazzi screenshot test (see app/build.gradle.kts), so a
+// variant that is missing here has no visual regression guard.
+
+@Composable
+private fun EsBottomNavGallery() {
+    val hospitalTabs = listOf(
+        EsBottomNavItem(route = "home", label = "Home", icon = Icons.Outlined.Home),
+        EsBottomNavItem(route = "bookings", label = "Bookings", icon = Icons.Outlined.WorkOutline),
+        EsBottomNavItem(route = "profile", label = "Profile", icon = Icons.Outlined.Person),
+    )
+    val engineerTabs = listOf(
+        EsBottomNavItem(route = "home", label = "Home", icon = Icons.Outlined.Home),
+        EsBottomNavItem(route = "jobs", label = "Jobs", icon = Icons.Outlined.Build, badge = 3),
+        EsBottomNavItem(route = "earnings", label = "Earnings", icon = Icons.Outlined.CurrencyRupee, badge = 0),
+        EsBottomNavItem(route = "profile", label = "Profile", icon = Icons.Outlined.Person),
+    )
+    val hospitalWithMessagesTabs = listOf(
+        EsBottomNavItem(route = "home", label = "Home", icon = Icons.Outlined.Home),
+        EsBottomNavItem(route = "bookings", label = "Bookings", icon = Icons.Outlined.WorkOutline, badge = 1),
+        EsBottomNavItem(route = "messages", label = "Messages", icon = Icons.AutoMirrored.Outlined.Chat, badge = 12),
+        EsBottomNavItem(route = "profile", label = "Profile", icon = Icons.Outlined.Person),
+    )
+    val longLabelTabs = listOf(
+        EsBottomNavItem(route = "home", label = "Home", icon = Icons.Outlined.Home),
+        EsBottomNavItem(route = "requests", label = "Service Requests", icon = Icons.Outlined.Build),
+        EsBottomNavItem(route = "payments", label = "Payment History", icon = Icons.Outlined.CurrencyRupee),
+        EsBottomNavItem(route = "profile", label = "Hospital Profile", icon = Icons.Outlined.Person),
+    )
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(text = "Hospital · 3 tabs · Home active", fontSize = 11.sp, color = SevaInk500)
+        EsBottomNav(tabs = hospitalTabs, currentRoute = "home", onSelect = {})
+        Text(text = "Engineer · 4 tabs · badge 3 on active, badge 0 hidden", fontSize = 11.sp, color = SevaInk500)
+        EsBottomNav(tabs = engineerTabs, currentRoute = "jobs", onSelect = {})
+        Text(text = "Badges 1 and 12 on inactive tabs", fontSize = 11.sp, color = SevaInk500)
+        EsBottomNav(tabs = hospitalWithMessagesTabs, currentRoute = "home", onSelect = {})
+        Text(text = "No active tab (currentRoute = null)", fontSize = 11.sp, color = SevaInk500)
+        EsBottomNav(tabs = engineerTabs, currentRoute = null, onSelect = {})
+        Text(text = "Long labels", fontSize = 11.sp, color = SevaInk500)
+        EsBottomNav(tabs = longLabelTabs, currentRoute = "payments", onSelect = {})
+    }
+}
+
+@Preview(name = "EsBottomNav", showBackground = true)
+@Composable
+private fun EsBottomNavPreview() {
+    EquipSevaTheme(darkTheme = false) { EsBottomNavGallery() }
+}
+
+@Preview(name = "EsBottomNav large text", showBackground = true, fontScale = 1.3f)
+@Composable
+private fun EsBottomNavPreviewLargeText() {
+    EquipSevaTheme(darkTheme = false) { EsBottomNavGallery() }
+}

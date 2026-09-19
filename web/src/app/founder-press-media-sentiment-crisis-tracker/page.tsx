@@ -270,7 +270,7 @@ export default async function FounderPressMediaSentimentCrisisTrackerPage() {
           rows={topHitRows}
           columns={topHitCols}
           emptyMessage="No top hits."
-          rowKey={(r, i) => String(`${r.outlet_name}-${r.published_at}` ?? i)}
+          rowKey={(r, i) => String(`${r.outlet_name}-${r.published_at}`)}
         />
       </section>
 
@@ -300,7 +300,7 @@ export default async function FounderPressMediaSentimentCrisisTrackerPage() {
           rows={openRows}
           columns={openCols}
           emptyMessage="No open crisis items — clean week."
-          rowKey={(r, i) => String(`${r.headline}-${r.due_at}` ?? i)}
+          rowKey={(r, i) => String(`${r.headline}-${r.due_at}`)}
         />
       </section>
     </div>

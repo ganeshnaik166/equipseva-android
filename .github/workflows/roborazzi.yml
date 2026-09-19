@@ -1,0 +1,165 @@
+name: roborazzi
+
+# Screenshot regression gate for the UX uplift program (docs/UX_UPLIFT_PLAN.md
+# Phase 0, U01). Two jobs, never both in one run:
+#
+#   verify  — PRs + pushes: renders every @Preview under designsystem/ plus
+#             the hand-written *ScreenshotTest fixtures and diffs them
+#             against the committed goldens in app/src/test/snapshots/
+#             roborazzi. Skips (with a warning) while no goldens exist.
+#   record  — manual (`workflow_dispatch` with record=true): re-records the
+#             goldens on THIS runner and commits them to the branch that was
+#             dispatched. Goldens must come from Linux — macOS/Windows
+#             rasterise fonts differently and would fail here.
+#
+# Both jobs run the plain unit-test task with Roborazzi's project property
+# (record/verify) instead of the recordRoborazziDebug / verifyRoborazziDebug
+# aliases — those aliases are lifecycle tasks and do not accept --tests, and
+# we want to filter to the screenshot classes only; the functional suite
+# already runs in android.yml.
+
+on:
+  pull_request:
+    paths:
+      - "app/**"
+      - "gradle/**"
+      - "*.gradle.kts"
+      - "gradle.properties"
+      - ".github/workflows/roborazzi.yml"
+  push:
+    branches: [main, "ops/**"]
+    paths:
+      - "app/**"
+      - "gradle/**"
+      - "*.gradle.kts"
+      - "gradle.properties"
+      - ".github/workflows/roborazzi.yml"
+  workflow_dispatch:
+    inputs:
+      record:
+        description: "Re-record goldens on this branch and commit them (Linux runner)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: roborazzi-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: verify goldens
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.record }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Cache Gradle
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', 'gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Seed local.properties + placeholder google-services.json
+        run: bash scripts/ci/seed-local-config.sh
+
+      - name: Goldens present?
+        id: goldens
+        run: |
+          if [ -n "$(find app/src/test/snapshots/roborazzi -name '*.png' -print -quit 2>/dev/null)" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No Roborazzi goldens committed yet — run this workflow manually with record=true to create them."
+          fi
+
+      - name: Verify screenshots against goldens
+        if: steps.goldens.outputs.present == 'true'
+        # Filters inline on purpose: a `--tests "x"` kept in an env var reaches
+        # Gradle with the quote characters inside the pattern and matches nothing.
+        run: >-
+          ./gradlew :app:testDebugUnitTest -Proborazzi.test.verify=true
+          --tests 'com.github.takahirom.roborazzi.*' --tests '*ScreenshotTest'
+          --no-daemon --stacktrace
+
+      - name: Upload diff report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: roborazzi-report
+          path: |
+            app/build/reports/roborazzi
+            app/build/outputs/roborazzi
+          if-no-files-found: warn
+
+  record:
+    name: record goldens (Linux)
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.record }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Cache Gradle
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', 'gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Seed local.properties + placeholder google-services.json
+        run: bash scripts/ci/seed-local-config.sh
+
+      - name: Record screenshots
+        run: >-
+          ./gradlew :app:testDebugUnitTest -Proborazzi.test.record=true
+          --tests 'com.github.takahirom.roborazzi.*' --tests '*ScreenshotTest'
+          --no-daemon --stacktrace
+
+      - name: Commit goldens
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/test/snapshots/roborazzi
+          if git diff --cached --quiet; then
+            echo "Goldens unchanged — nothing to commit."
+            exit 0
+          fi
+          git commit \
+            -m "test(ux): re-record Roborazzi goldens on Linux CI" \
+            -m "Recorded by .github/workflows/roborazzi.yml (record=true) at ${GITHUB_SHA}."
+          git push
+
+      - name: Upload recorded goldens
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: roborazzi-goldens
+          path: app/src/test/snapshots/roborazzi
+          if-no-files-found: warn

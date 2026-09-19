@@ -121,7 +121,7 @@ export default async function FounderWeeklyPrioritizationStackPage() {
           rows={currentFocus.data ?? []}
           columns={currentCols}
           emptyMessage="No current week priorities set"
-          rowKey={(r: any, i: number) => String(r.id ?? `${r.week_start}-${r.rank}` ?? i)}
+          rowKey={(r: any, i: number) => String(r.id ?? `${r.week_start}-${r.rank}`)}
         />
       </section>
 

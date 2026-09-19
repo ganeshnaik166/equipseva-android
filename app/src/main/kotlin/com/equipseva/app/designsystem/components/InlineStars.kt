@@ -1,8 +1,11 @@
 package com.equipseva.app.designsystem.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
@@ -10,10 +13,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import com.equipseva.app.designsystem.theme.SevaInk500
+
+import com.equipseva.app.designsystem.theme.EquipSevaTheme
+import com.equipseva.app.designsystem.theme.SevaInk400
 import com.equipseva.app.designsystem.theme.SevaInk700
 import com.equipseva.app.designsystem.theme.SevaWarning500
 
@@ -87,3 +94,54 @@ internal fun inlineStarsRatingLabel(rating: Double): String =
  */
 internal fun inlineStarsCountLabel(count: Int): String =
     "($count)"
+
+// ---- Previews — design-system gallery. Every @Preview under designsystem/
+// is also a Roborazzi screenshot test (see app/build.gradle.kts), so a
+// variant that is missing here has no visual regression guard.
+
+@Composable
+private fun InlineStarsGallery() {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        // A never-rated engineer collapses to the "New" chip, so the 0.0 rows
+        // guard that branch rather than a literal "0.0 (0)" rendering.
+        InlineStarsGalleryRow(label = "0.0 · never rated") { InlineStars(rating = 0.0, count = 0) }
+        InlineStarsGalleryRow(label = "0.0 · small") { InlineStars(rating = 0.0, count = 0, small = true) }
+        InlineStarsGalleryRow(label = "4.5 (57)") { InlineStars(rating = 4.5, count = 57) }
+        InlineStarsGalleryRow(label = "4.5 (57) · small") { InlineStars(rating = 4.5, count = 57, small = true) }
+        InlineStarsGalleryRow(label = "5.0 (1)") { InlineStars(rating = 5.0, count = 1) }
+        InlineStarsGalleryRow(label = "5.0 (1) · small") { InlineStars(rating = 5.0, count = 1, small = true) }
+        InlineStarsGalleryRow(label = "1.0 (1)") { InlineStars(rating = 1.0, count = 1) }
+        InlineStarsGalleryRow(label = "4.8 (1240)") { InlineStars(rating = 4.8, count = 1240) }
+    }
+}
+
+@Composable
+private fun InlineStarsGalleryRow(label: String, content: @Composable () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = label,
+            color = SevaInk400,
+            fontSize = 11.sp,
+            modifier = Modifier.width(120.dp),
+        )
+        content()
+    }
+}
+
+@Preview(name = "InlineStars", showBackground = true)
+@Composable
+private fun InlineStarsPreview() {
+    EquipSevaTheme(darkTheme = false) { InlineStarsGallery() }
+}
+
+@Preview(name = "InlineStars large text", showBackground = true, fontScale = 1.3f)
+@Composable
+private fun InlineStarsPreviewLargeText() {
+    EquipSevaTheme(darkTheme = false) { InlineStarsGallery() }
+}

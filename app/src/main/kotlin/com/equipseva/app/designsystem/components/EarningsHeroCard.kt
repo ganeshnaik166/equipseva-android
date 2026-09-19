@@ -19,10 +19,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.equipseva.app.R
 import com.equipseva.app.designsystem.theme.BrandGreenDark
+import com.equipseva.app.designsystem.theme.EquipSevaTheme
 import com.equipseva.app.designsystem.theme.Spacing
 import java.util.Locale
 
@@ -108,3 +110,63 @@ private fun EarningsSplit(
 }
 
 private fun formatRupees(v: Double): String = String.format(Locale.ENGLISH, "%,.0f", v)
+
+// ---- Previews — design-system gallery. Every @Preview under designsystem/
+// is also a Roborazzi screenshot test (see app/build.gradle.kts), so a
+// variant that is missing here has no visual regression guard.
+
+@Composable
+private fun EarningsHeroCardGallery() {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text("New engineer — nothing earned yet", style = MaterialTheme.typography.labelSmall)
+        EarningsHeroCard(
+            totalRupees = 0.0,
+            paidRupees = 0.0,
+            pendingRupees = 0.0,
+            onWithdraw = {},
+        )
+        Text("Typical month", style = MaterialTheme.typography.labelSmall)
+        EarningsHeroCard(
+            totalRupees = 48_500.0,
+            paidRupees = 32_000.0,
+            pendingRupees = 16_500.0,
+            onWithdraw = {},
+        )
+        Text("Everything paid out", style = MaterialTheme.typography.labelSmall)
+        EarningsHeroCard(
+            totalRupees = 4_500.0,
+            paidRupees = 4_500.0,
+            pendingRupees = 0.0,
+            onWithdraw = {},
+        )
+        Text("Paise rounds to whole rupees", style = MaterialTheme.typography.labelSmall)
+        EarningsHeroCard(
+            totalRupees = 7_250.75,
+            paidRupees = 3_125.25,
+            pendingRupees = 4_125.50,
+            onWithdraw = {},
+        )
+        Text("Seven-figure total — wide numerals", style = MaterialTheme.typography.labelSmall)
+        EarningsHeroCard(
+            totalRupees = 1_245_000.0,
+            paidRupees = 980_000.0,
+            pendingRupees = 265_000.0,
+            onWithdraw = {},
+        )
+    }
+}
+
+@Preview(name = "EarningsHeroCard", showBackground = true)
+@Composable
+private fun EarningsHeroCardPreview() {
+    EquipSevaTheme(darkTheme = false) { EarningsHeroCardGallery() }
+}
+
+@Preview(name = "EarningsHeroCard large text", showBackground = true, fontScale = 1.3f)
+@Composable
+private fun EarningsHeroCardPreviewLargeText() {
+    EquipSevaTheme(darkTheme = false) { EarningsHeroCardGallery() }
+}

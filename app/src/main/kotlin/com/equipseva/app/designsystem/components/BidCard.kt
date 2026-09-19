@@ -27,10 +27,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import java.util.Locale
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
+import com.equipseva.app.designsystem.theme.EquipSevaTheme
 import com.equipseva.app.designsystem.theme.Info
 import com.equipseva.app.designsystem.theme.Ink500
 import com.equipseva.app.designsystem.theme.Ink700
@@ -151,4 +153,87 @@ fun BidCard(
             color = Ink900,
         )
     }
+}
+
+// ---- Previews — design-system gallery. Every @Preview under designsystem/
+// is also a Roborazzi screenshot test (see app/build.gradle.kts), so a
+// variant that is missing here has no visual regression guard.
+
+@Composable
+private fun BidCardGallery() {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        BidCard(
+            engineerName = "Rajesh Kumar",
+            rating = 4.5f,
+            ratingCount = 128,
+            amountRupees = 4500.0,
+        )
+        BidCard(
+            engineerName = "Suresh Iyer",
+            rating = 4.8f,
+            ratingCount = 342,
+            amountRupees = 6200.0,
+            isVerified = true,
+        )
+        BidCard(
+            engineerName = "Mohammed Farhan",
+            rating = 4.9f,
+            ratingCount = 57,
+            amountRupees = 5100.0,
+            isTopMatch = true,
+        )
+        BidCard(
+            engineerName = "Anitha Krishnan",
+            rating = 4.2f,
+            ratingCount = 19,
+            amountRupees = 3800.0,
+            etaHours = 4,
+        )
+        BidCard(
+            engineerName = "Vikram Nair",
+            rating = 5.0f,
+            ratingCount = 1,
+            amountRupees = 12000.0,
+            etaHours = 24,
+            isVerified = true,
+            isTopMatch = true,
+            onClick = {},
+        )
+        BidCard(
+            engineerName = "Deepak Sharma",
+            rating = 0.0f,
+            ratingCount = 0,
+            amountRupees = 850.0,
+        )
+        BidCard(
+            engineerName = "Dr. Priya Venkataraman Subramaniam Biomedical Services",
+            rating = 3.7f,
+            ratingCount = 1204,
+            amountRupees = 125000.0,
+            etaHours = 72,
+            isVerified = true,
+            onClick = {},
+        )
+        BidCard(
+            engineerName = "",
+            rating = 4.0f,
+            ratingCount = 8,
+            amountRupees = 0.0,
+        )
+    }
+}
+
+@Preview(name = "BidCard", showBackground = true)
+@Composable
+private fun BidCardPreview() {
+    EquipSevaTheme(darkTheme = false) { BidCardGallery() }
+}
+
+@Preview(name = "BidCard large text", showBackground = true, fontScale = 1.3f)
+@Composable
+private fun BidCardPreviewLargeText() {
+    EquipSevaTheme(darkTheme = false) { BidCardGallery() }
 }

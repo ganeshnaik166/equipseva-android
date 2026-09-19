@@ -1,3 +1,6 @@
+@file:OptIn(ExperimentalRoborazziApi::class)
+
+import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -11,6 +14,7 @@ plugins {
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.sentry)
+    alias(libs.plugins.roborazzi)
 }
 
 val localProps = Properties().apply {
@@ -223,6 +227,16 @@ android {
         // resources when the test source-set actually depends on them).
         unitTests {
             isIncludeAndroidResources = true
+            all {
+                // Roborazzi renders Compose through Robolectric's NATIVE
+                // graphics mode; hardware pixel-copy is what makes the
+                // captured bitmap match what the device draws (software
+                // mode drops shadows and anti-aliasing). The heap bump is
+                // for the Pixel-class preview bitmaps, not for the
+                // ordinary JUnit suite.
+                it.systemProperties["robolectric.pixelCopyRenderMode"] = "hardware"
+                it.maxHeapSize = "2g"
+            }
         }
     }
 
@@ -247,6 +261,36 @@ android {
     // ApplicationAndroidResources, not defaultConfig/BaseFlavor.
     androidResources {
         localeFilters += setOf("en", "hi", "te")
+    }
+}
+
+// Screenshot tests (Roborazzi on Robolectric). Two sources of goldens:
+//   * every @Preview under designsystem/ is turned into a Robolectric test
+//     at build time (the design-system gallery — zero hand-written tests);
+//   * hand-written screen fixtures under app/src/test/.../features/*.
+// Goldens are committed under src/test/snapshots/roborazzi and MUST be
+// recorded on the Linux CI runner (roborazzi.yml `record` job) — macOS and
+// Windows rasterise fonts differently, so locally recorded goldens would
+// fail verification on CI. Local runs use compareRoborazziDebug and read
+// the report at app/build/reports/roborazzi/index.html.
+roborazzi {
+    outputDir.set(file("src/test/snapshots/roborazzi"))
+    generateComposePreviewRobolectricTests {
+        enable = true
+        packages = listOf("com.equipseva.app.designsystem")
+        // Previews are `private` so they never leak into the component API.
+        includePrivatePreviews = true
+        // Pin SDK + device so a Robolectric default change can't silently
+        // re-render every golden. `application` is the same vanilla
+        // Application every Compose UI test in this module uses: without it
+        // Robolectric boots EquipSevaApplication, whose Hilt graph builds a
+        // real SupabaseClient and dies on the JVM before the first preview
+        // renders (SettingsSessionManager has no Android-backed settings).
+        robolectricConfig = mapOf(
+            "sdk" to "[35]",
+            "qualifiers" to "RobolectricDeviceQualifiers.Pixel5",
+            "application" to "android.app.Application::class",
+        )
     }
 }
 
@@ -286,6 +330,10 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
+    // @Preview annotation for the design-system gallery (main classpath,
+    // annotation-only jar); ui-tooling renders those previews in Studio.
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    debugImplementation(libs.androidx.compose.ui.tooling)
 
     // Navigation
     implementation(libs.androidx.navigation.compose)
@@ -389,6 +437,10 @@ dependencies {
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    // Screenshot tests — see the roborazzi {} block above.
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.compose.preview.scanner.support)
+    testImplementation(libs.composable.preview.scanner)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

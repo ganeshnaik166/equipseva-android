@@ -31,25 +31,30 @@ fatigue on Home, a 3,551-line job screen, hidden accessibility debt, and no visu
 That is the next layer. This program is behaviour-preserving by design: it changes how the product
 looks, moves, and guides, not what it does.
 
-## 1. Measured baseline (re-run `scripts/verify/design_lint.*` once Phase 0 lands)
+## 1. Measured baseline
+
+> Refreshed 2026-09-16 on `ux/phase0-safety-net` (Phase 0 landed). Rows marked ⚙ come from
+> `python3 scripts/verify/design_lint.py --markdown` (features/, comments stripped) and are what the CI
+> ratchet enforces; re-run it instead of grepping. The 2026-09-07 numbers are kept in parentheses where
+> they moved.
 
 | Signal | Value at HEAD | Read |
 |---|---|---|
 | Screens / feature files / feature LOC | 84 / 147 / ~56 k | big surface; prioritise the money path |
 | Design-system files / LOC | 55 / 5,263 | solid base (Es* components, Seva tokens, Motion, Spacing, EsRadius) |
-| Feature files on Seva tokens / legacy tokens / legacy-only | 93 / 48 / 5 | token migration ~⅔ done; legacy-only: `RequestServiceScreen`, `KycStatusTimeline`, `ProfileForms`, `LocationPickerMap`, `ServiceAreaMap` |
+| ⚙ Feature files importing legacy tokens / legacy-only | 10 (was 48) / 1 (was 5); 62 legacy imports | legacy-only: `kyc/KycStatusTimeline.kt`. `RequestServiceScreen`, `ProfileForms`, `LocationPickerMap`, `ServiceAreaMap` already import Seva tokens too |
 | `MaterialTheme.colorScheme` wired to | **legacy** palette (`BrandGreen`, `AccentLime`, `Ink*`) | M3 widgets and Seva-token screens disagree on colour |
 | `EquipSevaShapes` | 5 dp for every M3 slot; `EsRadius` (4/8/12/16) has **0** uses; 386 raw `RoundedCornerShape(` | radius scale unused |
-| Raw `.dp` vs `Spacing.*` | 2,351 vs 83 | spacing scale bypassed |
-| Raw `.sp` / `fontSize =` vs `EsType.*` / `MaterialTheme.typography` | 666 / 630 vs 226 / 11 | type scale bypassed |
-| Raw `Button/TextButton/OutlinedButton` vs `EsBtn` | 126 vs 142 | half-adopted |
-| Raw `TextField/OutlinedTextField` vs `EsField` | 93 vs 57 | half-adopted |
-| `CircularProgressIndicator` vs skeleton (`ListSkeleton`/`Shimmer*`) | 72 vs 4 | spinners, not skeletons |
+| ⚙ Raw `.dp` vs `Spacing.*` | 2,350 vs 83 | spacing scale bypassed |
+| ⚙ Raw `.sp` / `fontSize =` vs `EsType.*` / `MaterialTheme.typography` | 666 / 634 vs 226 / 11 | type scale bypassed |
+| ⚙ Raw `Button/TextButton/OutlinedButton` vs `EsBtn` | 61 (12 / 39 / 10; was 126 incl. imports) vs 142 | half-adopted |
+| ⚙ Raw `TextField/OutlinedTextField` vs `EsField` | 46 (0 / 46; was 93 incl. imports) vs 57 | half-adopted |
+| ⚙ `CircularProgressIndicator` vs skeleton (`ListSkeleton`/`Shimmer*`) | 72 vs 4 | spinners, not skeletons |
 | `AnimatedVisibility` / `animateContentSize` / `AnimatedContent` / haptics / `Motion*` tokens | 0 / 0 / 0 / 0 / 0 | the app is static |
-| `contentDescription = null` vs meaningful | 131 vs 32 | a11y debt (some nulls are correctly decorative) |
-| `@Preview` / `testTag` / screenshot tests | 0 / 0 / none | **no visual safety net** |
-| Unit-test files / Compose UI tests (Robolectric) | 334 / 19 | behaviour is pinned; visuals are not |
-| i18n | 755 en / 754 hi / 754 te; 3 hardcoded `Text("` | excellent; **bottom-nav labels are hardcoded English** in `MainNavGraph.tabsForRole` |
+| ⚙ `contentDescription = null` vs meaningful | 131 vs 32 | a11y debt (some nulls are correctly decorative) |
+| `@Preview` / `testTag` / screenshot tests | 80 previews in 39 design-system files (was 0) / 0 / Roborazzi: every preview + 7 screen fixtures × 4 states (was none) | safety net in place; goldens recorded on Linux CI only (see Phase 0 gate) |
+| Unit-test files / Compose UI tests (Robolectric) | 339 / 19 + 7 `*ScreenshotTest` | behaviour pinned; design-system + 7 money-path screens now visually pinned |
+| i18n | 755 en / 754 hi / 754 te; ⚙ 2 hardcoded `Text("` | excellent; **bottom-nav labels are hardcoded English** in `MainNavGraph.tabsForRole` |
 | Largest screens (LOC) | RepairJobDetail 3,551 (34 composables, 6 sheets) · HomeHub 1,591 · AmcDetail 1,574 · Profile 1,544 · EngineerPublicProfile 1,417 · Kyc 1,345 · CreateAmcWizard 1,186 · RequestService 986 | monoliths on the money path |
 | Dead DS components | `PrimaryButton`, `TonalButton` (0 uses) | delete or alias |
 | Brand | app = Seva green `#0B6E4F` + glow (Color.kt, from `newdesign.zip:tokens.css`) · website `styles.css` = teal `#00d3c0` · `docs/launch/DESIGNER_BRIEF.md` = teal/blue | three brand languages |
@@ -101,24 +106,45 @@ the commit body or `docs/ux/`.
 
 ### Phase 0 — Safety net + measurement (no visual change) · ~1 session
 
-- [ ] **U01** Roborazzi screenshot tests on the existing Robolectric 4.16.1 stack: a design-system gallery
+- [x] **U01** (shipped 2026-09-16, `976fd537`) Roborazzi screenshot tests on the existing Robolectric 4.16.1 stack: a design-system gallery
       test that renders every `designsystem/components/*` in every variant/state. Check Maven metadata for
       the current Roborazzi version compatible with AGP 9.2.1 / Robolectric 4.16.1 — do not guess.
       `@GraphicsMode(NATIVE)`, Pixel-class qualifiers, fixed SDK. **Record baselines on the Linux CI runner**
       (a `workflow_dispatch` record job that commits them), never on Windows — font rasterisation differs.
       Local runs use `compareRoborazziDebug` with a small pixel-diff threshold.
-- [ ] **U02** `@Preview` on every design-system component (light, default font scale + 1.3).
-- [ ] **U03** Design-lint ratchet: `scripts/verify/design_lint.py` (or `.sh`) that counts, per
+      *As built:* Roborazzi 1.74.0 + `roborazzi-compose-preview-scanner-support` — every `@Preview` under
+      `com.equipseva.app.designsystem` is generated into a Robolectric test at build time (NATIVE graphics,
+      sdk 35, Pixel 5, vanilla `android.app.Application`), so U02's previews ARE the gallery test; no
+      hand-written gallery. Goldens: `app/src/test/snapshots/roborazzi/`. CI: `.github/workflows/roborazzi.yml`
+      (`verify` on PR/push; manual `record` job with `record=true` commits Linux goldens). Roborazzi throws on
+      a preview with no golden, so **adding or changing a preview/fixture ⇒ dispatch the record job**.
+- [x] **U02** (shipped 2026-09-16) `@Preview` on every design-system component (light, default font scale + 1.3).
+      39 of 45 files: each carries a private `<Stem>Gallery()` rendering every variant + two previews
+      (`"<Stem>"`, `"<Stem> large text"` @ 1.3f). Skipped on purpose: the four `ModalBottomSheet` components
+      (`DeleteAccountSheet`, `EsBottomSheet`, `HelpSupportSheet`, `ReportContentSheet` — a modal renders in its
+      own window; extracting their content is a refactor for Phase 1 U16), `SecureScreen` (FLAG_SECURE side
+      effect only) and `AdaptiveWidth` (layout helper, no UI).
+- [x] **U03** (shipped 2026-09-16, `53c922d4`) Design-lint ratchet: `scripts/verify/design_lint.py` that counts, per
       `features/`, raw `.dp`, `.sp`, `fontSize =`, `Color(0x`, `RoundedCornerShape(`, raw M3
       `Button/TextButton/OutlinedButton/TextField/OutlinedTextField/CircularProgressIndicator`, legacy token
       names, hardcoded `Text("`; writes `design_lint.baseline.json`; fails when any count rises. Wire into
       `android.yml` before `assemble`. Also count the *positive* signals (Motion tokens, `EsBtn`, `EsField`,
       `Spacing.`, `EsRadius.`, `EsType.`) for the progress table.
-- [ ] **U04** Screen fixture screenshots for the 12 money-path screens in loading / empty / error /
+- [~] **U04** Screen fixture screenshots for the money-path screens in loading / empty / error /
       populated states. Where a screen is not yet split into `XScreen(vm)` + stateless `XContent(state,
       callbacks)`, extract `XContent` first (behaviour-preserving, existing tests green).
+      *Shipped 2026-09-16 (7 screens):* `MyBids`, `HospitalActiveJobs`, `Earnings`, `ActiveWork`,
+      `Conversations`, `Dsr` (each split into `<Name>Content(state, callbacks…)` + `<Name>ScreenScreenshotTest`
+      with 4 states) and `RequestSent` (already stateless; 2 states). Fixtures null out every `createdAt`/
+      `lastMessage` instant so no relative-time label depends on `now`.
+      *Deferred, on purpose:* `HomeHub` (18 composables, 7 VM call sites), `RequestService` (wizard state),
+      `RepairJobs` (GoogleMap — not renderable on the JVM without a fake), `EngineerDirectory`, and
+      `RepairJobDetail` (3,551 lines) — their splits are the first step of U17, U18, U27, U21 and U22
+      respectively; do the split + fixture in those rounds.
 
-**Gate:** baselines committed, CI green, ratchet baseline committed, numbers in §1 refreshed.
+**Gate — CLOSED 2026-09-16:** ratchet baseline committed ✓, §1 refreshed ✓, PR #1870 CI green and merged ✓,
+107 goldens recorded on the Linux runner and committed by the bot (`6ec8a095`) ✓, verify run against them
+green ✓. After any intentional visual change: Actions → `roborazzi` → Run workflow → `record = true`.
 
 ### Phase 1 — One design language · ~2 sessions
 
@@ -136,12 +162,22 @@ the commit body or `docs/ux/`.
 - [ ] **U10–U12** Adopt `EsBtn` for the 126 raw buttons and `EsField` for the 93 raw text fields. First
       extend `EsField` with every needed variant (multiline, password toggle, trailing icon, helper +
       error text, `₹` prefix, read-only). Delete `PrimaryButton`/`TonalButton` or make them thin aliases.
-- [ ] **U13** Radius + spacing + type sweep on the money-path screens: `RoundedCornerShape(` → `EsRadius`,
+- [~] **U13** Radius + spacing + type sweep on the money-path screens: `RoundedCornerShape(` → `EsRadius`,
       raw `.sp`/`fontSize` → `EsType`, common paddings → `Spacing`. Targets for the ratchet table:
       raw `.sp` −80 %, `RoundedCornerShape(` in features −100 %, raw `.dp` −60 %.
+      *U13a shipped 2026-09-16 (pixel-identical slice):* `MyBids`, `HospitalActiveJobs`, `Earnings`, `ActiveWork`,
+      `EngineerActiveEscrows` — same-value swaps only (radius 4/8/12/16/999 → `EsRadius`, spacing 2/4/8/12/16/24 →
+      `Spacing` in padding/spacedBy/Spacer). raw `.dp` 2350 → 2265, `Spacing.*` 83 → 156, `EsRadius.*` 0 → 12; all 107
+      goldens byte-identical before/after. *Still open:* the `.sp`/`EsType` pass (changes rendering → needs the
+      Phase-1 direction lock), the 6/10/14/18 dp values with no token, and the Codex-touched screens.
 - [ ] **U14** Skeletons: replace list/detail `CircularProgressIndicator` with `ListSkeleton`/`ShimmerBox`
       shaped like the content; keep spinners only for in-flight buttons.
-- [ ] **U15** Bottom-nav labels → string resources (en/hi/te); grep-prove no other hardcoded UI English.
+- [x] **U15** (shipped 2026-09-16) Bottom-nav labels → string resources (en/hi/te): `nav_bookings/messages/jobs/
+      earnings/profile` next to the existing `nav_home`; `tabsForRole` is `@Composable`. Remaining hardcoded English in
+      `navigation/`: the three KYC-gate snackbar messages, the mailto subject and two error snackbars in `MainNavGraph`
+      — leave for the copy pass. **Found on the way:** the 30 hi/te native-script strings and 21 `values` entries
+      (arrows, middle dots, em-dashes) were double-encoded mojibake since the 2026-08-14 extraction batch; repaired in
+      the same PR (111 entries) — Hindi/Telugu users had been seeing garbage for those strings.
 - [ ] **U16** Consistency components that Phase 2 needs: `EsConfirmSheet` (destructive confirmations),
       `EsNextStepCard` (single prioritised action), `EsSectionHeader`, `EsInlineError` (error + retry that
       keeps partial content), `EsStatusTimeline`.
@@ -169,10 +205,21 @@ Hospital
       photo step thumbnails + remove, a review step, and a success screen with a what-happens-next timeline.
 - [ ] **U21** Bids inbox (in job detail): compare view — sort by price / ETA / rating, verified + tier
       badges, one "recommended" with its reason, accept → confirmation that explains escrow.
-- [ ] **U22–U25** `RepairJobDetailScreen` decomposition into `repair/detail/sections/*.kt` and
+- [~] **U22–U25** `RepairJobDetailScreen` decomposition into `repair/detail/sections/*.kt` and
       `repair/detail/sheets/*.kt` (behaviour-preserving, all tests green, screenshots identical), then
       hierarchy: status stepper as hero, exactly one primary CTA per state in `StickyBottomBar`, secondary
       actions in an overflow, terminal banners consistent.
+      *U22a shipped 2026-09-16:* thin `RepairJobDetailScreen` wrapper + `internal RepairJobDetailContent(state,
+      actions, …)`; the 41 ViewModel call sites are a 37-member `RepairJobDetailActions` interface
+      (`viewModel.asActions()` / `NoOpRepairJobDetailActions`); `RepairJobDetailScreenScreenshotTest` pins 9 states
+      (both roles, open → completed → cancelled), null coordinates so the map card renders its placeholder.
+      *U22b shipped 2026-09-16:* 30 composables moved verbatim into `repair/detail/sections/*.kt` (7 files) and
+      `repair/detail/sheets/*.kt` (7 files); the pure `internal fun` helpers stay in `RepairJobDetailScreen.kt`
+      because their tests import that package. Proof: all 116 goldens byte-identical before/after (same machine).
+      *U23a shipped 2026-09-16:* the `HospitalBanner` "Verified" pill no longer wraps letter-by-letter next to a long
+      hospital name (the name now yields width via `weight(1f, fill = false)`); 6 detail goldens re-recorded.
+      *Open for U23–U25:* hierarchy work per section (stepper as hero, one primary CTA per state, overflow for
+      secondary actions, consistent terminal banners).
 - [ ] **U26** DSR countersign + rating: a "what you are signing" summary, then rate, then next step.
 
 Engineer

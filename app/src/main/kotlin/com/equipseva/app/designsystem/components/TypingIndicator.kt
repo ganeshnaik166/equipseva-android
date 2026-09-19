@@ -9,20 +9,28 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.equipseva.app.designsystem.theme.BrandGreen
 import com.equipseva.app.designsystem.theme.BrandGreen50
+import com.equipseva.app.designsystem.theme.EquipSevaTheme
+import com.equipseva.app.designsystem.theme.EsType
+import com.equipseva.app.designsystem.theme.Paper3
+import com.equipseva.app.designsystem.theme.PaperDefault
+import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.Spacing
 
 // Three bouncing dots in a chat-bubble container — mirrors the design's typing indicator.
@@ -71,4 +79,51 @@ fun TypingIndicator(modifier: Modifier = Modifier) {
             )
         }
     }
+}
+
+// ---- Previews — design-system gallery. Every @Preview under designsystem/
+// is also a Roborazzi screenshot test (see app/build.gradle.kts), so a
+// variant that is missing here has no visual regression guard.
+
+@Composable
+private fun TypingIndicatorGallery() {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(text = "Default", style = EsType.Caption, color = SevaInk500)
+        TypingIndicator()
+
+        Text(text = "In a chat thread (engineer replying)", style = EsType.Caption, color = SevaInk500)
+        Row(
+            modifier = Modifier
+                .background(PaperDefault)
+                .padding(Spacing.md),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(Paper3),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(text = "RK", style = EsType.Caption, color = SevaInk500)
+            }
+            TypingIndicator(modifier = Modifier.padding(bottom = Spacing.xxs))
+        }
+    }
+}
+
+@Preview(name = "TypingIndicator", showBackground = true)
+@Composable
+private fun TypingIndicatorPreview() {
+    EquipSevaTheme(darkTheme = false) { TypingIndicatorGallery() }
+}
+
+@Preview(name = "TypingIndicator large text", showBackground = true, fontScale = 1.3f)
+@Composable
+private fun TypingIndicatorPreviewLargeText() {
+    EquipSevaTheme(darkTheme = false) { TypingIndicatorGallery() }
 }
