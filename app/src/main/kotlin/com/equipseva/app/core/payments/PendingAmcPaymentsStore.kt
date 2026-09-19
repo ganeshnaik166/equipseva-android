@@ -1,10 +1,13 @@
 package com.equipseva.app.core.payments
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
+import com.equipseva.app.core.auth.LocalSessionOwnership
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -31,19 +34,24 @@ private val Context.pendingPaymentsDataStore by preferencesDataStore("pending_pa
  * Razorpay dashboard webhook being configured.
  */
 @Singleton
-class PendingAmcPaymentsStore @Inject constructor(
-    @ApplicationContext private val context: Context,
+class PendingAmcPaymentsStore internal constructor(
+    private val dataStore: DataStore<Preferences>,
+    private val localSessionOwnership: LocalSessionOwnership,
 ) {
+    @Inject constructor(
+        @ApplicationContext context: Context,
+        localSessionOwnership: LocalSessionOwnership,
+    ) : this(context.pendingPaymentsDataStore, localSessionOwnership)
 
     fun observe(): Flow<Set<String>> =
-        context.pendingPaymentsDataStore.data
+        dataStore.data
             .map { it[KEY_PENDING_AMC] ?: emptySet() }
 
     suspend fun list(): Set<String> = observe().first()
 
     suspend fun add(paymentOrderId: String) {
         if (paymentOrderId.isBlank()) return
-        context.pendingPaymentsDataStore.edit { prefs ->
+        dataStore.edit { prefs ->
             val current = prefs[KEY_PENDING_AMC] ?: emptySet()
             prefs[KEY_PENDING_AMC] = current + paymentOrderId
         }
@@ -51,7 +59,7 @@ class PendingAmcPaymentsStore @Inject constructor(
 
     suspend fun remove(paymentOrderId: String) {
         if (paymentOrderId.isBlank()) return
-        context.pendingPaymentsDataStore.edit { prefs ->
+        dataStore.edit { prefs ->
             val current = prefs[KEY_PENDING_AMC] ?: emptySet()
             val next = current - paymentOrderId
             if (next.isEmpty()) {
@@ -82,7 +90,7 @@ class PendingAmcPaymentsStore @Inject constructor(
     suspend fun recordVerifiable(payment: VerifiableAmcPayment) {
         if (!payment.isVerifiable) return
         val encoded = encodeVerifiableAmcPayment(payment)
-        context.pendingPaymentsDataStore.edit { prefs ->
+        dataStore.edit { prefs ->
             val current = prefs[KEY_VERIFIABLE_AMC] ?: emptySet()
             // One payload per order: a retry of the same order replaces the
             // earlier attempt rather than accumulating stale signatures.
@@ -95,7 +103,7 @@ class PendingAmcPaymentsStore @Inject constructor(
 
     suspend fun verifiable(paymentOrderId: String): VerifiableAmcPayment? {
         if (paymentOrderId.isBlank()) return null
-        val raw = context.pendingPaymentsDataStore.data
+        val raw = dataStore.data
             .map { it[KEY_VERIFIABLE_AMC] ?: emptySet() }
             .first()
         return raw.asSequence()
@@ -104,9 +112,23 @@ class PendingAmcPaymentsStore @Inject constructor(
     }
 
     suspend fun clearAll() {
-        context.pendingPaymentsDataStore.edit {
+        dataStore.edit {
             it.remove(KEY_PENDING_AMC)
             it.remove(KEY_VERIFIABLE_AMC)
+        }
+    }
+
+    /**
+     * Validate after DataStore admission and remove marker/proof together.
+     * A stale or missing ticket retains recovery data. Writers serialized after
+     * an already-admitted clear commit afterward; this does not own those writers.
+     */
+    suspend fun clearForSignOut(ticket: LocalSessionOwnership.Ticket?) {
+        dataStore.edit { prefs ->
+            localSessionOwnership.withCurrent(ticket) {
+                prefs.remove(KEY_PENDING_AMC)
+                prefs.remove(KEY_VERIFIABLE_AMC)
+            }
         }
     }
 

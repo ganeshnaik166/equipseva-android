@@ -65,6 +65,7 @@ class SignOutCleanupOwnershipTest {
             pendingAmcContractsStore = mockk(relaxed = true),
             requestServiceDraftStore = drafts,
             deepLinkRouter = router,
+            localSessionOwnership = mockk(relaxed = true),
             context = mockk(relaxed = true),
         )
     }

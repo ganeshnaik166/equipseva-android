@@ -33,10 +33,13 @@ import javax.inject.Singleton
  * captured remote token row. This closes the old network-delay ordering gap,
  * but it does NOT establish account isolation: draft persistence, Room,
  * DataStore, cache locks and realtime removal can also suspend. The token
- * snapshot currently occurs after draft persistence, and global local wipes
- * can resume against a replacement login. A4 remains open until each mutation
- * uses an immutable departing ticket inside its actual storage boundary.
- * SignOutCleanupLocalBoundaryRegressionTest records three known failures;
+ * snapshot still occurs after draft persistence, and unowned local wipes can
+ * resume against a replacement login. AMC deletion alone uses an independent
+ * ticket captured first and checked inside its actual DataStore transform.
+ * Its producers/readers and historical global records remain unowned. A4
+ * remains open: token capture and outbox deletion regressions stay enabled in
+ * SignOutCleanupLocalBoundaryRegressionTest, and other cleanup resources still
+ * need ownership at their own mutation boundaries. The plan at
  * docs/helper-reviews/codex-20260919/signout-ownership-plan.md describes the
  * required ownership migration. A precheck or another reorder is insufficient.
  *
@@ -70,9 +73,11 @@ class SignOutCleanup @Inject constructor(
     // the departing user; a tap on A's stale tray entry must not navigate
     // inside B's session.
     private val deepLinkRouter: DeepLinkRouter,
+    private val localSessionOwnership: LocalSessionOwnership,
     @ApplicationContext private val context: Context,
 ) {
     suspend fun wipeLocalUserState() {
+        val departingTicket = localSessionOwnership.capture()
         // Revoke draft leases before slow FCM/network cleanup. Even if the disk
         // clear fails, an old form cannot restore or repopulate a later session.
         bestEffort { requestServiceDraftStore.fenceAndClearForSignOut() }
@@ -105,7 +110,7 @@ class SignOutCleanup @Inject constructor(
         // next user on this device doesn't see ghost "Pending payment"
         // banners for the previous user's Razorpay orders.
         bestEffort { pendingEscrowPaymentsStore.clearAll() }
-        bestEffort { pendingAmcPaymentsStore.clearAll() }
+        bestEffort { pendingAmcPaymentsStore.clearForSignOut(departingTicket) }
         bestEffort { pendingAmcContractsStore.clearAll() }
         // Realtime channels live on the singleton supabase client.
         // Disconnect drops the websocket so any chat / notification /

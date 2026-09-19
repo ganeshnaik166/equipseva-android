@@ -41,6 +41,7 @@ class SignOutDraftFenceTest {
             pendingAmcContractsStore = mockk(relaxed = true),
             requestServiceDraftStore = fixture.store,
             deepLinkRouter = mockk(relaxed = true),
+            localSessionOwnership = mockk(relaxed = true),
             context = mockk(relaxed = true),
         )
         val wipe = async { cleanup.wipeLocalUserState() }

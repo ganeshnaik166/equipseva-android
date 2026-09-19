@@ -277,6 +277,7 @@ class RequestServiceAccountSwitchIntegrationTest {
         pendingAmcContractsStore = mockk(relaxed = true),
         requestServiceDraftStore = store,
         deepLinkRouter = mockk(relaxed = true),
+        localSessionOwnership = mockk(relaxed = true),
         context = context,
     )
 
