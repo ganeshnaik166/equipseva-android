@@ -325,7 +325,10 @@ dependencies {
     implementation(libs.google.id)
 
     // Compose
-    implementation(platform(libs.androidx.compose.bom))
+    // Compile and runtime must use the same Compose API: preview tooling had
+    // lifted runtime to 1.9.0 while FlowRow still compiled against 1.7.6.
+    // The BOM now aligns the existing 1.9.0 tooling and accessibility APIs.
+    implementation(enforcedPlatform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.material3)
