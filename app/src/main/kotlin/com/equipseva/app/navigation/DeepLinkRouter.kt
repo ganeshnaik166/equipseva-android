@@ -3,17 +3,21 @@ package com.equipseva.app.navigation
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import androidx.annotation.MainThread
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -34,22 +38,22 @@ import javax.inject.Singleton
  *     whitelist of paths maps to nav routes; anything else is ignored so the
  *     app falls back to its default landing screen.
  *
- * Ownership (A3-02). Every event is stamped with the user that was signed in
- * when it was dispatched, and [DeepLinkHost] delivers it only to that owner's
- * MAIN. Links that arrive while auth is still resolving (cold start from a tray
- * tap) are queued IN ORDER and stamped when the first `SignedIn` arrives, so a
- * legitimate cold-start tap is preserved. Links that arrive while signed out are
- * dropped, and a sign-out clears both the queue and the buffered channel —
- * nothing dispatched under A can surface inside B's session, or inside A's next
- * login. An optional [EXTRA_RECIPIENT_USER_ID] (set by the FCM service from the
- * push payload) that disagrees with the signed-in user drops the event: that is
- * identity de-duplication, not authorization — every destination keeps its
- * server-side checks.
+ * Ownership (A3-02). Internal envelopes retain a user and observed login
+ * generation through both this router's and [DeepLinkHost]'s buffers. Delivery
+ * rechecks immediate auth, so an observed A -> B -> A cannot replay A's old tap.
+ * Only the initial Unknown may queue cold-start taps (the first 32, in order).
+ * Later Unknown, sign-out, blank IDs and explicit [clear] retire the owner and
+ * discard pending taps. Same-account email changes keep the current generation.
+ * A same-ID login boundary wholly unobserved by the upstream auth flow remains
+ * indistinguishable from a refresh; this is not server authorization. All
+ * ownership mutation and delivery are Main-confined, like activity dispatch.
+ * An optional [EXTRA_RECIPIENT_USER_ID] that disagrees with the signed-in user
+ * drops the event; every destination still keeps its server-side checks.
  */
 @Singleton
 class DeepLinkRouter(
     private val authRepository: AuthRepository,
-    scope: CoroutineScope,
+    private val scope: CoroutineScope,
     /** Diagnostics sink; production logs to logcat, JVM tests pass a recorder (android.util.Log is a stub there). */
     private val onLog: (String) -> Unit,
 ) {
@@ -64,34 +68,38 @@ class DeepLinkRouter(
     sealed interface Event {
         /**
          * A pre-resolved route string the nav graph can navigate directly to,
-         * bound to the login ([ownerUserId]) that was current when it was dispatched.
+         * bound to [ownerUserId]. The immutable login generation is retained by
+         * an internal envelope until delivery; callers keep this value API.
          */
         data class OpenRoute(val route: String, val ownerUserId: String) : Event
     }
 
     private data class Pending(val route: String, val recipientUserId: String?)
 
-    private val channel = Channel<Event>(Channel.BUFFERED)
-    val events: Flow<Event> = channel.receiveAsFlow()
+    internal data class Login(val userId: String, val generation: Long)
+    internal data class OwnedRoute(val event: Event.OpenRoute, val login: Login)
 
-    /** Routes dispatched while the session was still [AuthSession.Unknown]; stamped on first SignedIn. */
+    private val channel = Channel<OwnedRoute>(Channel.BUFFERED)
+    internal val ownedEvents: Flow<OwnedRoute> = channel.receiveAsFlow()
+        .filter { isCurrentLogin(it.login) }
+    val events: Flow<Event> = ownedEvents.map { it.event }
+
+    /** Only initial Unknown can queue taps; later Unknown must never adopt them into another login. */
     private val pendingUntilResolved = ArrayDeque<Pending>()
-
-    private val session: StateFlow<AuthSession> =
-        authRepository.sessionState.stateIn(scope, SharingStarted.Eagerly, AuthSession.Unknown)
+    private var initialResolution = true
+    private var nextGeneration = 0L
+    private var activeLogin: Login? = null
+    private var clearedUserId: String? = null
 
     init {
-        scope.launch {
-            session.collect { current ->
-                when (current) {
-                    AuthSession.SignedOut -> clear()
-                    is AuthSession.SignedIn -> flushPending(current.userId)
-                    AuthSession.Unknown -> Unit
-                }
-            }
+        // Observe directly: a second stateIn layer adds another opportunity for
+        // identity transitions to be conflated. No network work runs here.
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            authRepository.sessionState.collect(::observeSession)
         }
     }
 
+    @MainThread
     fun dispatch(intent: Intent?) {
         if (intent == null) return
         val explicit = intent.getStringExtra(EXTRA_ROUTE)?.takeIf { it.isNotBlank() }
@@ -132,39 +140,143 @@ class DeepLinkRouter(
      * Pure core of [dispatch] (visible for testing): routes an already-validated
      * [route] according to the current session.
      */
+    @MainThread
     internal fun dispatchRoute(route: String, recipientUserId: String?) {
-        when (val current = session.value) {
-            is AuthSession.SignedIn -> enqueue(route, recipientUserId, current.userId)
-            AuthSession.Unknown -> pendingUntilResolved.addLast(Pending(route, recipientUserId))
+        when (synchronizeCurrentSession()) {
+            is AuthSession.SignedIn -> {
+                val login = activeLogin
+                if (login != null) enqueue(route, recipientUserId, login)
+                else onLog("Dropped a deep link without an active login")
+            }
+            AuthSession.Unknown -> {
+                if (initialResolution && pendingUntilResolved.size < MAX_PENDING_ROUTES) {
+                    pendingUntilResolved.addLast(Pending(route, recipientUserId))
+                } else {
+                    onLog("Dropped a deep link while auth was unresolved or its queue was full")
+                }
+            }
             AuthSession.SignedOut -> onLog("Dropped a deep link that arrived while signed out")
+            null -> onLog("Dropped a deep link because current auth was unavailable")
         }
     }
 
-    /** Drop everything that has not been delivered yet. Called on sign-out. */
+    /**
+     * Retire even events already parked in a host. Sign-out cleanup can run
+     * before the SDK clears A, so the same cached A cannot rearm this router;
+     * an observed auth boundary must occur first.
+     */
+    @MainThread
     fun clear() {
+        clearedUserId = when (val current = readCurrentSession()) {
+            is AuthSession.SignedIn -> current.userId.takeIf { it.isNotBlank() }
+            null -> activeLogin?.userId
+            else -> null
+        }
+        initialResolution = false
+        retireLogin()
+    }
+
+    private fun observeSession(current: AuthSession) {
+        when (current) {
+            AuthSession.Unknown -> {
+                if (!initialResolution) {
+                    clearedUserId = null
+                    retireLogin()
+                }
+            }
+            AuthSession.SignedOut -> {
+                initialResolution = false
+                clearedUserId = null
+                retireLogin()
+            }
+            is AuthSession.SignedIn -> {
+                val userId = current.userId.takeIf { it.isNotBlank() }
+                if (userId == null) {
+                    initialResolution = false
+                    clearedUserId = null
+                    retireLogin()
+                    return
+                }
+                if (clearedUserId == userId) {
+                    retireLogin()
+                    return
+                }
+                clearedUserId = null
+                if (activeLogin?.userId == userId) return
+
+                val wasInitialResolution = initialResolution
+                initialResolution = false
+                if (!wasInitialResolution) retireLogin()
+                val login = Login(userId, ++nextGeneration)
+                activeLogin = login
+                if (wasInitialResolution) flushPending(login)
+            }
+        }
+    }
+
+    private fun retireLogin() {
+        activeLogin = null
         pendingUntilResolved.clear()
         while (channel.tryReceive().isSuccess) { /* drain */ }
     }
 
-    private fun flushPending(userId: String) {
-        if (userId.isBlank()) return
+    /** Called again by the host immediately before exposing its buffered event to navigation. */
+    @MainThread
+    internal fun isCurrentLogin(login: Login): Boolean {
+        synchronizeCurrentSession()
+        return activeLogin == login
+    }
+
+    private fun synchronizeCurrentSession(): AuthSession? {
+        val current = readCurrentSession()
+        if (current == null) {
+            // A delayed/non-replaying source is not permission to wait for a
+            // future account. Retire ownership and close cold-start buffering.
+            initialResolution = false
+            retireLogin()
+        } else {
+            observeSession(current)
+        }
+        return current
+    }
+
+    private fun readCurrentSession(): AuthSession? {
+        var current: AuthSession? = null
+        val probe = scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            try {
+                coroutineContext.ensureActive()
+                current = authRepository.sessionState.first()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // Auth that cannot be read immediately must fail closed.
+            }
+        }
+        val completed = probe.isCompleted && !probe.isCancelled
+        probe.cancel()
+        return current.takeIf { completed }
+    }
+
+    private fun flushPending(login: Login) {
         while (pendingUntilResolved.isNotEmpty()) {
             val next = pendingUntilResolved.removeFirst()
-            enqueue(next.route, next.recipientUserId, userId)
+            enqueue(next.route, next.recipientUserId, login)
         }
     }
 
-    private fun enqueue(route: String, recipientUserId: String?, ownerUserId: String) {
-        if (ownerUserId.isBlank()) return
-        if (recipientUserId != null && recipientUserId != ownerUserId) {
+    private fun enqueue(route: String, recipientUserId: String?, login: Login) {
+        if (recipientUserId != null && recipientUserId != login.userId) {
             onLog("Dropped a deep link addressed to a different account")
             return
         }
-        channel.trySend(Event.OpenRoute(route, ownerUserId))
+        if (channel.trySend(OwnedRoute(Event.OpenRoute(route, login.userId), login)).isFailure) {
+            onLog("Dropped a deep link because the delivery buffer was full")
+        }
     }
 
     companion object {
         private const val TAG = "DeepLinkRouter"
+        private const val MAX_PENDING_ROUTES = 32
         const val EXTRA_ROUTE = "com.equipseva.app.deeplink.ROUTE"
 
         /**

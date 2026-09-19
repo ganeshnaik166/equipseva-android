@@ -18,7 +18,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -26,7 +28,7 @@ import javax.inject.Inject
 /**
  * Owns the decision of whether a deep-link event should actually navigate.
  * The [DeepLinkRouter] produces raw events straight from the intent; this host
- * forwards them through the events SharedFlow to MainNavGraph.
+ * retains their login ownership through its buffer until MainNavGraph collects.
  *
  * Marketplace order verification was stripped along with the marketplace
  * surface in the v1 cleanup. Today only push-notification kind→route events
@@ -191,32 +193,20 @@ class DeepLinkHost @Inject constructor(
         data class OpenRoute(val route: String) : VerifiedEvent
     }
 
-    // Channel + receiveAsFlow gives one-shot, buffered delivery so a deep
-    // link emitted from MainActivity.onCreate() before MainNavGraph has
-    // started collecting still reaches the nav graph. The previous
-    // SharedFlow(replay=0) dropped any event emitted in that cold-start
-    // window — push notifications taps that booted the app from a killed
-    // state would land the user on the home screen instead of the deep
-    // link. Buffered channel parks the event until first collection.
-    private val _events = Channel<VerifiedEvent>(Channel.BUFFERED)
+    // Preserve cold-start buffering without discarding the login generation.
+    // Auth may change AFTER this host receives an event and BEFORE navigation
+    // starts collecting, so checking only at insertion would be insufficient.
+    // MainNavGraph receives the public value only after this final current-auth
+    // check and navigates synchronously on Main, without another buffer.
+    private val _events = Channel<DeepLinkRouter.OwnedRoute>(Channel.BUFFERED)
     val events: Flow<VerifiedEvent> = _events.receiveAsFlow()
+        .filter { router.isCurrentLogin(it.login) }
+        .map { VerifiedEvent.OpenRoute(it.event.route) }
 
     init {
         viewModelScope.launch {
-            router.events.collect { raw ->
-                when (raw) {
-                    is DeepLinkRouter.Event.OpenRoute -> {
-                        // A3-02: the router stamped the event with the login that
-                        // dispatched it. This host lives inside one owner's MAIN;
-                        // an event stamped for anyone else (A's buffered tap
-                        // surfacing after B signed in, or A's previous login) is
-                        // dropped rather than navigated in the wrong session.
-                        val liveUserId = currentUserId()
-                        if (liveUserId != null && liveUserId == raw.ownerUserId) {
-                            _events.trySend(VerifiedEvent.OpenRoute(raw.route))
-                        }
-                    }
-                }
+            router.ownedEvents.collect { owned ->
+                _events.trySend(owned)
             }
         }
     }
