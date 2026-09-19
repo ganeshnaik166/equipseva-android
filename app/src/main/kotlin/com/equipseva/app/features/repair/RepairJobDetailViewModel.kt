@@ -687,10 +687,9 @@ class RepairJobDetailViewModel @Inject constructor(
      * PR-D10 (T2.9): engineer must capture before-photos before
      * checking in. Photos enqueue async via PhotoUploadStash with
      * CONTEXT_REPAIR_JOB_BEFORE → drains into repair_jobs.before_photos.
-     * Then the existing geofenced check-in runs. UI gates on
-     * photos.isNotEmpty() so server-side enforcement isn't required
-     * for v1 — the audit-trail report (PR-D3) flags any check-in
-     * with empty before_photos for ops review.
+     * Then the existing geofenced check-in runs. Require decoded evidence here:
+     * selected URIs can become unreadable before submission. This local guard
+     * does not replace server evidence validation or confirm upload completion.
      */
     fun submitCheckinWithProof(photos: List<CompletionProofPhoto>) {
         val snap = _state.value
@@ -698,6 +697,12 @@ class RepairJobDetailViewModel @Inject constructor(
         if (snap.viewerRole != ViewerRole.Engineer) return
         if (snap.updatingStatus) return
         if (job.status !in setOf(RepairJobStatus.Assigned, RepairJobStatus.EnRoute)) return
+        if (photos.isEmpty()) {
+            viewModelScope.launch {
+                _messages.emit("Couldn't read the selected photos. Add at least one readable before photo to check in.")
+            }
+            return
+        }
         // Claim the in-flight flag synchronously, BEFORE the suspending
         // photo-stash loop. Reading four multi-megabyte photos takes long
         // enough for a second confirm tap to re-enter the whole path and
