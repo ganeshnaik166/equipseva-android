@@ -6,7 +6,9 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -39,8 +41,8 @@ class PendingAmcPaidCreditRecoveryTest {
     )
 
     private inner class Fixture(
-        status: String,
-        initialProof: VerifiableAmcPayment? = proof,
+        status: String?,
+        private val initialProof: VerifiableAmcPayment? = proof,
     ) {
         val pending = linkedSetOf(paymentOrderId)
         var storedProof = initialProof
@@ -88,7 +90,7 @@ class PendingAmcPaidCreditRecoveryTest {
 
         fun assertRetained() {
             assertEquals("Unconfirmed credit keeps its recovery marker", setOf(paymentOrderId), pending)
-            assertEquals("Unconfirmed credit keeps the original SDK proof", proof, storedProof)
+            assertEquals("Unconfirmed credit keeps its original SDK proof, if present", initialProof, storedProof)
             coVerify(exactly = 0) { store.remove(any()) }
         }
 
@@ -206,6 +208,61 @@ class PendingAmcPaidCreditRecoveryTest {
         f.assertCleared()
     }
 
+    @Test fun `verification with ok false preserves the recovery proof`() = runTest {
+        val f = Fixture("pending")
+        f.verifyReturns(Result.success(credited().copy(ok = false)))
+
+        f.reconciler.reconcile()
+
+        f.verifyCount(1)
+        f.assertRetained()
+    }
+
+    @Test fun `verification for a different payment order preserves the recovery proof`() = runTest {
+        val f = Fixture("pending")
+        f.verifyReturns(Result.success(credited().copy(paymentOrderId = "00000000-0000-0000-0000-000000000999")))
+
+        f.reconciler.reconcile()
+
+        f.verifyCount(1)
+        f.assertRetained()
+    }
+
+    @Test fun `verification without a credit ledger preserves the recovery proof`() = runTest {
+        val f = Fixture("pending")
+        f.verifyReturns(Result.success(credited().copy(ledgerId = null)))
+
+        f.reconciler.reconcile()
+
+        f.verifyCount(1)
+        f.assertRetained()
+    }
+
+    @Test fun `verification with a blank credit ledger preserves the recovery proof`() = runTest {
+        val f = Fixture("pending")
+        f.verifyReturns(Result.success(credited().copy(ledgerId = " \t ")))
+
+        f.reconciler.reconcile()
+
+        f.verifyCount(1)
+        f.assertRetained()
+    }
+
+    @Test fun `successful result returned into a cancelled sweep cannot remove recovery proof`() = runTest {
+        val f = Fixture("pending")
+        coEvery { f.repo.verifyPayment(any(), any(), any(), any()) } coAnswers {
+            currentCoroutineContext().cancel()
+            Result.success(credited())
+        }
+        val sweep = launch { f.reconciler.reconcile() }
+
+        runCurrent()
+
+        assertTrue(sweep.isCancelled)
+        f.verifyCount(1)
+        f.assertRetained()
+    }
+
     // Deliberate policy correction to the original unexecuted draft: the edge
     // marks paid before pool credit, so status alone cannot confirm completion.
     @Test fun `paid marker without SDK proof remains unresolved without inventing proof`() = runTest {
@@ -243,5 +300,14 @@ class PendingAmcPaidCreditRecoveryTest {
         coVerify(exactly = 0) { f.repo.verifyPayment(any(), any(), any(), any()) }
         f.assertRetained()
         assertNotNull(f.storedProof)
+    }
+
+    @Test fun `unavailable status preserves proof without assuming that credit completed`() = runTest {
+        val f = Fixture(null)
+
+        f.reconciler.reconcile()
+
+        coVerify(exactly = 0) { f.repo.verifyPayment(any(), any(), any(), any()) }
+        f.assertRetained()
     }
 }

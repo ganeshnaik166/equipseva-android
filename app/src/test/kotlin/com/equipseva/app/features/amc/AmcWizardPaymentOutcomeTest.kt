@@ -16,11 +16,13 @@ class AmcWizardPaymentOutcomeTest {
     }
 
     @Test fun `a charged-but-unconfirmed payment never asks for payment again`() {
-        // Razorpay captured the money. The old copy ("complete it or it will
-        // be cancelled in 24 hours") invited a SECOND charge for a contract
-        // that was about to activate itself.
+        // SDK success is not proof of capture or pool credit. Retain the
+        // duplicate-payment warning without promising automatic activation.
         val msg = amcWizardPaymentMessage(AmcWizardPaymentOutcome.ChargedAwaitingConfirmation)
-        assertTrue("must confirm the money arrived: $msg", msg.startsWith("Payment received."))
+        assertTrue("must state the unresolved confirmation: $msg", msg.startsWith("Your payment is awaiting confirmation."))
+        assertTrue("must discourage duplicate payment: $msg", msg.contains("Don't pay again yet."))
+        assertTrue("must explain recovery when still pending: $msg", msg.contains("contact support"))
+        assertFalse("must not guarantee automatic activation: $msg", msg.contains("activates on its own"))
         assertFalse("must not ask for payment again: $msg", msg.contains("Complete"))
         assertFalse("must not threaten cancellation: $msg", msg.contains("24 hours"))
     }

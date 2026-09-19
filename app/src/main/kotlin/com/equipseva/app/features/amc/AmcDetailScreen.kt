@@ -385,13 +385,12 @@ fun AmcDetailScreen(
             when (effect) {
                 AmcPaymentViewModel.Effect.Paid ->
                     onShowMessage("Payment received — pool updated.")
-                // Never "payment failed" here: Razorpay captured the money.
-                // The pending marker + reconciler will credit the pool once
-                // the server confirms, so paying again would double-charge.
+                // SDK success is not yet server credit confirmation. Avoid a
+                // duplicate payment without promising automatic recovery.
                 AmcPaymentViewModel.Effect.ChargedAwaitingConfirmation ->
                     onShowMessage(
-                        "Payment received. We're still confirming it with your bank — " +
-                            "the pool updates on its own, so don't pay again.",
+                        "Your payment is awaiting confirmation. Don't pay again yet. " +
+                            "If the AMC pool does not update, contact support.",
                     )
                 // No dismiss and no refresh on a failure: nothing changed
                 // server-side, and closing the sheet would take away the

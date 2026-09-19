@@ -437,8 +437,18 @@ class CreateAmcWizardViewModel @Inject constructor(
             _state.update { it.copy(error = "Monthly fee must be a positive number") }
             return
         }
-        val emergency = s.responseTimeEmergencyHours.toIntOrNull()?.coerceAtLeast(1) ?: 4
-        val standard = s.responseTimeStandardHours.toIntOrNull()?.coerceAtLeast(1) ?: 24
+        // Revalidate the captured draft at the write boundary: restored state
+        // can bypass the SLA page, and submission must preserve its chosen hours.
+        val responseHours = parseAmcResponseHours(
+            s.responseTimeStandardHours,
+            s.responseTimeEmergencyHours,
+        )
+        if (responseHours == null) {
+            _state.update {
+                it.copy(error = "Enter positive whole hours for both standard and emergency response times")
+            }
+            return
+        }
 
         // Default term = 1 year. start = today (IST), end = +365d.
         // Anchored to Asia/Kolkata so a device on UTC doesn't shift the
@@ -459,8 +469,8 @@ class CreateAmcWizardViewModel @Inject constructor(
                 endDate = end,
                 equipmentCategories = s.equipmentCategories,
                 scopeText = s.scopeText.takeIf { it.isNotBlank() },
-                responseTimeEmergencyHours = emergency,
-                responseTimeStandardHours = standard,
+                responseTimeEmergencyHours = responseHours.emergency,
+                responseTimeStandardHours = responseHours.standard,
                 // Auto-renew is opt-in via the Step 4 toggle. We pass the
                 // hospital's explicit choice through to the schema rather
                 // than letting the column default (true) silently auto-
@@ -720,9 +730,9 @@ private val AMC_WIZARD_VERIFY_RETRY_DELAYS_MS = longArrayOf(1_000L, 3_000L)
  *
  * Pinned because the three cases must never be told the same thing:
  *   * Paid — the contract is live.
- *   * ChargedAwaitingConfirmation — the money LEFT the hospital's account.
- *     Any copy that asks them to "complete payment" here invites a second
- *     charge for a contract that is about to activate itself.
+ *   * ChargedAwaitingConfirmation — the SDK reported success, but server credit
+ *     is unconfirmed. Discourage a duplicate payment without promising capture
+ *     or automatic activation; recovery may still need support.
  *   * NotPaid — nothing moved; the 24 h reaper deadline is the actionable
  *     fact, and Razorpay's own reason (when it gave one) leads it because it
  *     is the part the hospital can act on.
@@ -730,8 +740,8 @@ private val AMC_WIZARD_VERIFY_RETRY_DELAYS_MS = longArrayOf(1_000L, 3_000L)
 internal fun amcWizardPaymentMessage(outcome: AmcWizardPaymentOutcome): String = when (outcome) {
     is AmcWizardPaymentOutcome.Paid -> "AMC contract activated."
     is AmcWizardPaymentOutcome.ChargedAwaitingConfirmation ->
-        "Payment received. We're still confirming it with your bank — the contract " +
-            "activates on its own, so don't pay again."
+        "Your payment is awaiting confirmation. Don't pay again yet. " +
+            "If the contract remains pending, contact support."
     is AmcWizardPaymentOutcome.NotPaid -> {
         val pending = "Contract pending payment. Complete it from the AMC " +
             "detail screen or it will be cancelled in 24 hours."
@@ -1327,17 +1337,23 @@ internal fun canProceedFrequencyFeeStep(
  * whole hours. Pin > 0 strict — a 0-hour SLA would be meaningless and a
  * negative-hour SLA would silently route every visit as breached.
  *
- * Whole hours only, because submit sends `toIntOrNull()` to the server: a
- * "2.5" that passed this gate was silently replaced by the 4 h / 24 h
- * default, so the hospital agreed to an SLA it never chose.
+ * Uses the same parsed values as submission. The database accepts integer
+ * hours, so neither fractional nor invalid input may silently become defaults.
  */
 internal fun canProceedSlaStep(
     responseTimeStandardHours: String,
     responseTimeEmergencyHours: String,
-): Boolean {
-    val std = responseTimeStandardHours.trim().toIntOrNull()
-    val emerg = responseTimeEmergencyHours.trim().toIntOrNull()
-    return std != null && std > 0 && emerg != null && emerg > 0
+): Boolean = parseAmcResponseHours(responseTimeStandardHours, responseTimeEmergencyHours) != null
+
+internal data class AmcResponseHours(val standard: Int, val emergency: Int)
+
+internal fun parseAmcResponseHours(
+    responseTimeStandardHours: String,
+    responseTimeEmergencyHours: String,
+): AmcResponseHours? {
+    val standard = responseTimeStandardHours.trim().toIntOrNull()?.takeIf { it > 0 } ?: return null
+    val emergency = responseTimeEmergencyHours.trim().toIntOrNull()?.takeIf { it > 0 } ?: return null
+    return AmcResponseHours(standard = standard, emergency = emergency)
 }
 
 /**

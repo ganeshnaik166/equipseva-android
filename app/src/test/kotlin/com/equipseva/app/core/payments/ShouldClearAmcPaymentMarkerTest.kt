@@ -11,14 +11,15 @@ import org.junit.Test
  * the charge), whereas escrow rows model the same end-state as
  * "refunded".
  *
- * Same critical region: "pending" must KEEP the marker so the home
- * banner / support prompt can surface it. Auto-clearing would silently
- * drop an in-flight AMC payment record on a transient race.
+ * Both "pending" and "paid" keep the marker until credit verification:
+ * the edge writes paid before it applies the ledger entry. An unavailable
+ * status also retains recovery material instead of assuming completion.
  */
 class ShouldClearAmcPaymentMarkerTest {
 
-    @Test fun `paid clears the marker (terminal, ledger in order)`() {
-        assertTrue(shouldClearAmcPaymentMarker("paid"))
+    @Test fun `paid keeps the marker because status does not prove pool credit`() {
+        // Explicit correction of the old paid-is-terminal contract.
+        assertFalse(shouldClearAmcPaymentMarker("paid"))
     }
 
     @Test fun `refunded clears the marker (terminal)`() {
@@ -32,8 +33,8 @@ class ShouldClearAmcPaymentMarkerTest {
         assertTrue(shouldClearAmcPaymentMarker("failed"))
     }
 
-    @Test fun `null clears the marker (row missing or RLS denied)`() {
-        assertTrue(shouldClearAmcPaymentMarker(null))
+    @Test fun `null keeps the marker when the row is missing or RLS hidden`() {
+        assertFalse(shouldClearAmcPaymentMarker(null))
     }
 
     @Test fun `pending keeps the marker`() {

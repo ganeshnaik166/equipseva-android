@@ -7,23 +7,28 @@ import org.junit.Test
 /**
  * Pins [shouldClearAmcPaymentMarker] — sibling of shouldClearEscrowMarker with
  * the AMC payment-order status vocabulary (AMC orders have "failed"; escrow rows
- * don't). Money-critical: keep "pending" so the home banner / support prompt can
- * surface an in-flight AMC payment; clear it once the order resolves.
+ * don't). Paid is written before pool credit, so paid and pending must retain
+ * their recovery material until verify confirms a ledger for that order.
  */
 class PendingAmcPaymentsReconcilerTest {
 
-    @Test fun `resolved statuses clear the marker`() {
-        listOf("paid", "refunded", "failed").forEach {
+    @Test fun `refunded and failed statuses clear the marker`() {
+        listOf("refunded", "failed").forEach {
             assertTrue("$it should clear", shouldClearAmcPaymentMarker(it))
         }
     }
 
-    @Test fun `null status clears the marker`() {
-        assertTrue(shouldClearAmcPaymentMarker(null))
+    @Test fun `unavailable status keeps the marker`() {
+        // A hidden/missing row cannot prove that pool credit completed.
+        assertFalse(shouldClearAmcPaymentMarker(null))
     }
 
     @Test fun `pending keeps the marker`() {
         assertFalse(shouldClearAmcPaymentMarker("pending"))
+    }
+
+    @Test fun `paid status alone keeps the marker until ledger confirmation`() {
+        assertFalse(shouldClearAmcPaymentMarker("paid"))
     }
 
     @Test fun `unknown future status keeps the marker (forward-compat)`() {
@@ -31,17 +36,17 @@ class PendingAmcPaymentsReconcilerTest {
         assertFalse(shouldClearAmcPaymentMarker(""))
     }
 
-    @Test fun `only a pending order has its signature replayed`() {
-        // A pending order may be a captured payment whose verify never landed,
-        // and the verify edge fn is idempotent — so replaying it is the only
-        // way the pool gets credited without the dashboard webhook.
+    @Test fun `pending and paid orders can recover through idempotent verification`() {
+        // Paid can still lack its pool credit if the server stopped between
+        // the order update and the credit RPC. Never infer credit from status.
         assertTrue(shouldReverifyAmcPayment("pending"))
+        assertTrue(shouldReverifyAmcPayment("paid"))
     }
 
     @Test fun `resolved and unknown statuses are never replayed`() {
         // Terminal states are handled by shouldClearAmcPaymentMarker; an
         // unrecognised future status must not be guessed at with a signature.
-        listOf("paid", "refunded", "failed", "some_v2_status", "", null).forEach {
+        listOf("refunded", "failed", "some_v2_status", "", null).forEach {
             assertFalse("$it must not be re-verified", shouldReverifyAmcPayment(it))
         }
     }

@@ -9,8 +9,7 @@ import org.junit.Test
 import java.io.IOException
 
 /**
- * The cold-start recovery for a payment Razorpay captured but the server
- * never confirmed.
+ * Cold-start recovery when SDK success has not been confirmed as pool credit.
  *
  * Before this, the sweep only READ the order status: a still-pending order
  * kept its marker forever and the pool was credited only if the Razorpay
@@ -38,7 +37,9 @@ class PendingAmcPaymentsReverifyTest {
         val repo = mockk<AmcRepository>(relaxed = true) {
             coEvery { fetchAmcPaymentOrderStatus("po-1") } returns Result.success("pending")
             coEvery { verifyPayment(any(), any(), any(), any()) } returns Result.success(
-                AmcRepository.VerifyAmcPaymentResponse(paymentOrderId = "po-1"),
+                // The endpoint confirms completion with this order's ledger,
+                // not merely a successfully decoded HTTP response.
+                AmcRepository.VerifyAmcPaymentResponse(paymentOrderId = "po-1", ledgerId = "ledger-1"),
             )
         }
 
@@ -82,15 +83,20 @@ class PendingAmcPaymentsReverifyTest {
         coVerify(exactly = 0) { store.remove(any()) }
     }
 
-    @Test fun `a resolved order is cleared without a verify call`() = runTest {
+    @Test fun `paid status is reverified before its recovery marker clears`() = runTest {
+        // Replaces the earlier paid-is-terminal assumption: the edge writes
+        // paid before applying pool credit, and can repair that interrupted write.
         val store = store()
         val repo = mockk<AmcRepository>(relaxed = true) {
             coEvery { fetchAmcPaymentOrderStatus("po-1") } returns Result.success("paid")
+            coEvery { verifyPayment(any(), any(), any(), any()) } returns Result.success(
+                AmcRepository.VerifyAmcPaymentResponse(paymentOrderId = "po-1", ledgerId = "ledger-1"),
+            )
         }
 
         PendingAmcPaymentsReconciler(store, repo).reconcile()
 
-        coVerify(exactly = 0) { repo.verifyPayment(any(), any(), any(), any()) }
+        coVerify(exactly = 1) { repo.verifyPayment(any(), any(), any(), any()) }
         coVerify(exactly = 1) { store.remove("po-1") }
     }
 

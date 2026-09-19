@@ -258,8 +258,8 @@ class AmcRepository @Inject constructor(
     /**
      * Round 234 — direct status read for the process-death reconciler.
      * RLS gates: only the hospital that owns the contract can see the
-     * order. Returns null when the row is invisible / deleted (which
-     * the reconciler treats as a terminal "drop the marker").
+     * order. Null means invisible/deleted, not proven completion; recovery
+     * retains the marker and any proof until a terminal result is confirmed.
      */
     suspend fun fetchAmcPaymentOrderStatus(paymentOrderId: String): Result<String?> = runCatching {
         supabase.postgrest.from("amc_payment_orders")

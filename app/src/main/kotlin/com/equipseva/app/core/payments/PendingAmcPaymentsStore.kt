@@ -16,13 +16,11 @@ private val Context.pendingPaymentsDataStore by preferencesDataStore("pending_pa
 /**
  * Round 234 — Razorpay process-death recovery for AMC pool top-ups.
  *
- * Before the SDK's checkout.open() call we stash the [paymentOrderId]
- * here. The runCheckout coroutine then clears the entry in its
- * `finally` block — regardless of success / cancel / failure. If the
- * Android process gets killed *during* Razorpay's checkout activity
- * (user switches to a UPI app, OS memory pressure), the entry survives
- * and [PendingAmcPaymentsReconciler] picks it up on next cold start to
- * decide whether the payment actually went through.
+ * Before checkout opens, retain its payment-order ID here. SDK success also
+ * stores its verification proof; failed or incomplete confirmation preserves
+ * it across process death. [PendingAmcPaymentsReconciler] retries supported
+ * pending/paid recovery and removes proof only after matching ledger success,
+ * or a confirmed failed/refunded terminal state.
  *
  * Alongside each id we keep the Razorpay success payload (when the
  * SDK got far enough to hand one over) because the client is the only
@@ -152,8 +150,9 @@ internal fun encodeVerifiableAmcPayment(payment: VerifiableAmcPayment): String =
 /**
  * Returns null for anything this build cannot act on — a payload written by a
  * different schema, or one missing a field. A null here must be treated as
- * "no payload", never as an error: the order-status sweep is still able to
- * resolve the marker on its own.
+ * "no payload", never permission to discard unresolved recovery. The status
+ * sweep may clear failed/refunded markers, but paid without proof stays visible
+ * for support because status alone cannot establish pool credit.
  */
 internal fun decodeVerifiableAmcPayment(raw: String): VerifiableAmcPayment? {
     val parts = raw.split(VERIFIABLE_FIELD_SEPARATOR)
