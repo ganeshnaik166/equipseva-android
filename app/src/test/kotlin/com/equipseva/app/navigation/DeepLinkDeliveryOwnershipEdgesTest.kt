@@ -23,7 +23,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/** Additional proposed S3 cases. Draft outside repo: not compiled or run. */
+/** Real router/host buffer regressions with synthetic auth and fresh-delivery controls. */
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class DeepLinkDeliveryOwnershipEdgesTest {
     private val oldRoute = Routes.repairJobDetailRoute("RPR-1")

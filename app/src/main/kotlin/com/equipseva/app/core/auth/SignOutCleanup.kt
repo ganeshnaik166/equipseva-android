@@ -29,19 +29,16 @@ import javax.inject.Singleton
  * outbox / FCM token / DataStore prefs survived into the next user's
  * sign-in on the same device.
  *
- * Ordering contract (A4-01 / A4-02):
- *  1. Capture the departing identity (user id + cached FCM token) BEFORE
- *     anything can suspend on the network.
- *  2. Run every LOCAL wipe — draft fence, deep-link queue, tray, outbox,
- *     scheduler, photo stash, prefs, caches, pending-payment markers,
- *     realtime channels. These finish while the departing user is still
- *     the signed-in one, so they can never land on the next login's data.
- *  3. Only then the single NETWORK step: revoke the CAPTURED device-token
- *     row. Previously the revoke ran second and could stall for the HTTP
- *     timeout while B signed in; the global wipes that followed then
- *     deleted B's queued outbox rows, photo stash and pending-payment
- *     markers, and the revoke itself read the live user and deleted B's
- *     device_tokens row.
+ * Current ordering moves token revocation after local cleanup and uses a
+ * captured remote token row. This closes the old network-delay ordering gap,
+ * but it does NOT establish account isolation: draft persistence, Room,
+ * DataStore, cache locks and realtime removal can also suspend. The token
+ * snapshot currently occurs after draft persistence, and global local wipes
+ * can resume against a replacement login. A4 remains open until each mutation
+ * uses an immutable departing ticket inside its actual storage boundary.
+ * SignOutCleanupLocalBoundaryRegressionTest records three known failures;
+ * docs/helper-reviews/codex-20260919/signout-ownership-plan.md describes the
+ * required ownership migration. A precheck or another reorder is insufficient.
  *
  * Each step is best-effort: sign-out must never block on a flaky DELETE.
  * Unlike the old `runCatching`, [bestEffort] rethrows [CancellationException]
