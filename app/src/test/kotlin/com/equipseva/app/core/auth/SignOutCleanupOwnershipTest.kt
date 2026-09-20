@@ -1,6 +1,6 @@
 package com.equipseva.app.core.auth
 
-import com.equipseva.app.core.data.dao.OutboxDao
+import com.equipseva.app.core.sync.OutboxSignOutCleaner
 import com.equipseva.app.core.data.repair.RequestServiceDraftStore
 import com.equipseva.app.core.push.DeviceTokenRegistrar
 import com.equipseva.app.core.sync.handlers.PhotoUploadStash
@@ -46,7 +46,7 @@ class SignOutCleanupOwnershipTest {
                 order += "revoke:end"
             }
         }
-        val outboxDao = mockk<OutboxDao> { coEvery { clearAll() } answers { order += "outbox" } }
+        val outboxCleaner = mockk<OutboxSignOutCleaner> { coEvery { clearForSignOut(any()) } answers { order += "outbox" } }
         val stash = mockk<PhotoUploadStash> { coEvery { clearAll() } answers { order += "stash" } }
         val router = mockk<DeepLinkRouter> { every { clear() } answers { order += "router" } }
         val drafts = mockk<RequestServiceDraftStore> {
@@ -54,7 +54,7 @@ class SignOutCleanupOwnershipTest {
         }
         val cleanup = SignOutCleanup(
             deviceTokenRegistrar = registrar,
-            outboxDao = outboxDao,
+            outboxSignOutCleaner = outboxCleaner,
             outboxScheduler = mockk(relaxed = true),
             photoUploadStash = stash,
             userPrefs = mockk(relaxed = true),
@@ -96,7 +96,7 @@ class SignOutCleanupOwnershipTest {
 
     @Test fun `a step that throws is skipped but the rest still runs`() = runTest {
         val h = Harness()
-        coEvery { h.outboxDao.clearAll() } throws IllegalStateException("db closed")
+        coEvery { h.outboxCleaner.clearForSignOut(any()) } throws IllegalStateException("db closed")
         val wipe = async { h.cleanup.wipeLocalUserState() }
         runCurrent()
         h.networkRelease.complete(Unit)

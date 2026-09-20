@@ -1,11 +1,20 @@
 package com.equipseva.app.core.auth
 
+import android.app.Application
+import android.database.sqlite.SQLiteTransactionListener
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
-import com.equipseva.app.core.data.dao.OutboxDao
+import androidx.room.Room
+import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.db.SupportSQLiteOpenHelper
+import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
+import androidx.test.core.app.ApplicationProvider
+import com.equipseva.app.core.data.AppDatabase
+import com.equipseva.app.core.data.entities.OutboxEntryEntity
 import com.equipseva.app.core.data.repair.DraftStoreFixture
 import com.equipseva.app.core.payments.PendingAmcPaymentsStore
 import com.equipseva.app.core.payments.VerifiableAmcPayment
 import com.equipseva.app.core.push.DeviceTokenRegistrar
+import com.equipseva.app.core.sync.OutboxSignOutCleaner
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
@@ -29,11 +38,16 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.SQLiteMode
 import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 
-/** Real cleanup/draft fence and file-backed AMC store; outbox remains the original gated fake. */
+/** Real cleanup/draft fence, file-backed AMC store and generated Room outbox DAO. */
 @RunWith(RobolectricTestRunner::class)
 @Config(application = android.app.Application::class, manifest = Config.NONE, sdk = [34])
+@SQLiteMode(SQLiteMode.Mode.NATIVE)
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class SignOutCleanupLocalBoundaryRegressionTest {
     @get:Rule val temporaryFolder = TemporaryFolder()
@@ -52,22 +66,26 @@ class SignOutCleanupLocalBoundaryRegressionTest {
         private val diskJob = SupervisorJob()
         val revoked = mutableListOf<DeviceTokenRegistrar.Revocation?>()
         val captures = mutableListOf<DeviceTokenRegistrar.Revocation?>()
-        val outboxRows = mutableSetOf("A-row")
-        var outboxGate: CompletableDeferred<Unit>? = null
+        val outboxGate = AtomicReference<CountDownLatch?>()
         val outboxEntered = CompletableDeferred<Unit>()
+        private val context = ApplicationProvider.getApplicationContext<Application>()
+        private val databaseName = "cleanup.db"
+        private val database = Room.databaseBuilder(context, AppDatabase::class.java, databaseName)
+            .openHelperFactory(object : SupportSQLiteOpenHelper.Factory {
+                override fun create(configuration: SupportSQLiteOpenHelper.Configuration): SupportSQLiteOpenHelper {
+                    val actual = FrameworkSQLiteOpenHelperFactory().create(configuration)
+                    return object : SupportSQLiteOpenHelper by actual {
+                        override val writableDatabase: SupportSQLiteDatabase get() = wrap(actual.writableDatabase)
+                        override val readableDatabase: SupportSQLiteDatabase get() = wrap(actual.readableDatabase)
+                    }
+                }
+            }).build()
         val registrar = mockk<DeviceTokenRegistrar> {
             coEvery { captureRevocation() } answers {
                 draft.identity?.ownerId?.let { DeviceTokenRegistrar.Revocation(it, "token-$it") }
                     .also { captures += it }
             }
             coEvery { revoke(any()) } answers { revoked += firstArg<DeviceTokenRegistrar.Revocation?>() }
-        }
-        val outbox = mockk<OutboxDao> {
-            coEvery { clearAll() } coAnswers {
-                outboxEntered.complete(Unit)
-                outboxGate?.await()
-                outboxRows.clear()
-            }
         }
         val pendingPayments = PendingAmcPaymentsStore(
             PreferenceDataStoreFactory.create(
@@ -78,7 +96,7 @@ class SignOutCleanupLocalBoundaryRegressionTest {
         )
         val cleanup = SignOutCleanup(
             deviceTokenRegistrar = registrar,
-            outboxDao = outbox,
+            outboxSignOutCleaner = OutboxSignOutCleaner(database, ownership),
             outboxScheduler = mockk(relaxed = true),
             photoUploadStash = mockk(relaxed = true),
             userPrefs = mockk(relaxed = true),
@@ -94,6 +112,8 @@ class SignOutCleanupLocalBoundaryRegressionTest {
         )
 
         suspend fun seed() = realIo {
+            enqueue("A-row")
+            assertEquals(setOf("A-row"), outboxRows())
             pendingPayments.add("A-payment")
             pendingPayments.recordVerifiable(proof("A-payment"))
             assertTrue("A marker must exist before testing removal", "A-payment" in pendingPayments.list())
@@ -101,7 +121,35 @@ class SignOutCleanupLocalBoundaryRegressionTest {
         }
 
         suspend fun close() = withContext(NonCancellable + Dispatchers.IO) {
+            outboxGate.getAndSet(null)?.countDown()
             withTimeout(10_000) { diskJob.cancelAndJoin() }
+            database.close()
+            context.deleteDatabase(databaseName)
+        }
+
+        suspend fun enqueue(payload: String) = realIo {
+            database.outboxDao().enqueue(OutboxEntryEntity(kind = "synthetic", payload = payload, createdAt = 1))
+        }
+
+        suspend fun outboxRows(): Set<String> = realIo {
+            database.outboxDao().nextBatch().map { it.payload }.toSet()
+        }
+
+        private fun begin(action: () -> Unit) {
+            outboxGate.getAndSet(null)?.let { gate ->
+                outboxEntered.complete(Unit)
+                check(gate.await(10, TimeUnit.SECONDS)) { "Outbox transaction test barrier timed out" }
+            }
+            action()
+        }
+
+        private fun wrap(actual: SupportSQLiteDatabase): SupportSQLiteDatabase = object : SupportSQLiteDatabase by actual {
+            override fun beginTransaction() = begin { actual.beginTransaction() }
+            override fun beginTransactionNonExclusive() = begin { actual.beginTransactionNonExclusive() }
+            override fun beginTransactionWithListener(transactionListener: SQLiteTransactionListener) =
+                begin { actual.beginTransactionWithListener(transactionListener) }
+            override fun beginTransactionWithListenerNonExclusive(transactionListener: SQLiteTransactionListener) =
+                begin { actual.beginTransactionWithListenerNonExclusive(transactionListener) }
         }
     }
 
@@ -138,10 +186,11 @@ class SignOutCleanupLocalBoundaryRegressionTest {
                 runCurrent()
                 h.draft.signIn("B", "session-B")
                 runCurrent()
-                h.outboxRows += "B-row"
+                h.enqueue("B-row")
+                assertTrue("B's real row must exist before releasing A", "B-row" in h.outboxRows())
                 gate.complete(Unit)
                 wipe.await()
-                assertTrue("A's resumed global cleanup erased B's new work", "B-row" in h.outboxRows)
+                assertTrue("A's resumed global cleanup erased B's new work", "B-row" in h.outboxRows())
             } finally {
                 gate.complete(Unit)
                 wipe.cancelAndJoin()
@@ -151,11 +200,11 @@ class SignOutCleanupLocalBoundaryRegressionTest {
 
     @Test fun `B's payment marker survives A's suspended outbox clear`() = runTest {
         withHarness { h ->
-            val gate = CompletableDeferred<Unit>()
-            h.outboxGate = gate
+            val gate = CountDownLatch(1)
+            h.outboxGate.set(gate)
             val wipe = async { h.cleanup.wipeLocalUserState() }
             try {
-                h.outboxEntered.await()
+                realIo { h.outboxEntered.await() }
                 assertEquals(listOf(DeviceTokenRegistrar.Revocation("A", "token-A")), h.captures)
                 h.draft.signIn("B", "session-B")
                 runCurrent()
@@ -165,14 +214,14 @@ class SignOutCleanupLocalBoundaryRegressionTest {
                     assertTrue("B marker must commit before releasing A", "B-payment" in h.pendingPayments.list())
                     assertEquals(proof("B-payment"), h.pendingPayments.verifiable("B-payment"))
                 }
-                gate.complete(Unit)
+                gate.countDown()
                 wipe.await()
                 realIo {
                     assertTrue("A's resumed local cleanup erased B's payment marker", "B-payment" in h.pendingPayments.list())
                     assertEquals("A must preserve B's exact recovery proof", proof("B-payment"), h.pendingPayments.verifiable("B-payment"))
                 }
             } finally {
-                gate.complete(Unit)
+                gate.countDown()
                 wipe.cancelAndJoin()
             }
         }
@@ -211,7 +260,7 @@ class SignOutCleanupLocalBoundaryRegressionTest {
     @Test fun `ordinary A cleanup still clears A's local work and revokes A`() = runTest {
         withHarness { h ->
             h.cleanup.wipeLocalUserState()
-            assertTrue(h.outboxRows.isEmpty())
+            assertTrue(h.outboxRows().isEmpty())
             realIo {
                 assertTrue(h.pendingPayments.list().isEmpty())
                 assertNull(h.pendingPayments.verifiable("A-payment"))

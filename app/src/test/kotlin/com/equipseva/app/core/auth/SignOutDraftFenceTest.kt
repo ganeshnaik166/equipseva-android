@@ -30,7 +30,7 @@ class SignOutDraftFenceTest {
         }
         val cleanup = SignOutCleanup(
             deviceTokenRegistrar = registrar,
-            outboxDao = mockk(relaxed = true),
+            outboxSignOutCleaner = mockk(relaxed = true),
             outboxScheduler = mockk(relaxed = true),
             photoUploadStash = mockk(relaxed = true),
             userPrefs = mockk(relaxed = true),

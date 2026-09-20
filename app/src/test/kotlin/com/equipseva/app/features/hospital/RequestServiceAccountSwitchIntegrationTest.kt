@@ -266,7 +266,7 @@ class RequestServiceAccountSwitchIntegrationTest {
 
     private fun signOutCleanup(store: RequestServiceDraftStore) = SignOutCleanup(
         deviceTokenRegistrar = mockk(relaxed = true),
-        outboxDao = mockk(relaxed = true),
+        outboxSignOutCleaner = mockk(relaxed = true),
         outboxScheduler = mockk(relaxed = true),
         photoUploadStash = DefaultPhotoUploadStash(context, mockk<OutboxEnqueuer>(relaxed = true), Json),
         userPrefs = mockk(relaxed = true),

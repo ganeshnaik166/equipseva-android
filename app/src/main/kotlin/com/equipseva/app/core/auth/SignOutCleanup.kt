@@ -3,7 +3,7 @@ package com.equipseva.app.core.auth
 import android.content.Context
 import androidx.core.app.NotificationManagerCompat
 import com.equipseva.app.core.data.moderation.UserBlockRepository
-import com.equipseva.app.core.data.dao.OutboxDao
+import com.equipseva.app.core.sync.OutboxSignOutCleaner
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.repair.RequestServiceDraftStore
 import com.equipseva.app.core.payments.PendingAmcContractsStore
@@ -51,7 +51,7 @@ import javax.inject.Singleton
 @Singleton
 class SignOutCleanup @Inject constructor(
     private val deviceTokenRegistrar: DeviceTokenRegistrar,
-    private val outboxDao: OutboxDao,
+    private val outboxSignOutCleaner: OutboxSignOutCleaner,
     private val outboxScheduler: OutboxScheduler,
     private val photoUploadStash: PhotoUploadStash,
     private val userPrefs: UserPrefs,
@@ -87,7 +87,7 @@ class SignOutCleanup @Inject constructor(
         // ---- local wipes: nothing below suspends on the network ----
         bestEffort { deepLinkRouter.clear() }
         bestEffort { NotificationManagerCompat.from(context).cancelAll() }
-        bestEffort { outboxDao.clearAll() }
+        bestEffort { outboxSignOutCleaner.clearForSignOut(departingTicket) }
         bestEffort { outboxScheduler.cancelAll() }
         bestEffort { photoUploadStash.clearAll() }
         bestEffort { userPrefs.setLastScreen(null) }
