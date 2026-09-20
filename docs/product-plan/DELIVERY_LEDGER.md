@@ -1,6 +1,6 @@
 # Delivery ledger — four-persona EquipSeva
 
-Updated 19 September 2026. Governing decisions: [PRODUCT_PLAN.md](../../PRODUCT_PLAN.md).
+Updated 20 September 2026. Governing decisions: [PRODUCT_PLAN.md](../../PRODUCT_PLAN.md).
 
 This is a requirements/evidence ledger, not a percentage-complete counter. A design review does not accept an implementation. No app-wide numeric score is assigned.
 
@@ -23,13 +23,13 @@ Statuses: **planned**, **partial** (some reusable implementation), **blocked** (
 
 | ID | Outcome | Design | Implementation | Main integration | Required release evidence |
 |---|---|---|---|---|---|
-| P0 | Governing plan and 98-page carry-forward/new-page tree | Critic 9.5 / QA 9.6, planning only | Documentation only | Docs publication tracked below | Not an app-release gate |
-| P1.1 | Captured login ownership and safe cleanup | Concrete boundary plan | Partial; 3 known failing regressions | Blocked candidate | Real Room/DataStore race tests; ordinary cleanup positive controls |
+| P0 | Governing plan and 98-page carry-forward/new-page tree | Critic 9.5 / QA 9.6, planning only | Documentation and seven-page PDF | PR1879 merged at `24e01999`; portable continuity PR1880 merged at `62da836f` | Not an app-release gate |
+| P1.1 | Captured login ownership and safe cleanup | Concrete boundary plan | Partial: P1a AMC deletion guard at `434663c0`, test polish `8d80ba3c`; local scoped critic/QA **9.6 each**; full 3,734/2 with token/outbox failures retained | Blocked candidate; [P1a handoff](../HANDOFF_P1A_AMC_CLEANUP_2026-09-19.md) records the narrow boundary | Real Room and remaining resource ownership; producer/reader/confidentiality migration; ordinary cleanup controls |
 | P1.2 | Cancelled logout/account restoration retires stale work | Planned; existing S3 finding | Partial, earlier scope critic 9.2 | Blocked candidate | Root/session/router integration, logout and same-ID relogin |
 | P1.3 | Safe owner/workspace queue, photos, caches and push | Architecture mapped | Partial legacy protections | New scope not integrated | Delayed producers/readers, process death, revocation and reconnect |
 | P2.1 | Tenant membership, capabilities and immutable job parties | Planned source-bound migration | Existing hospital organisations/chain hierarchy only | New team model absent | Direct cross-tenant REST/RPC/storage/realtime/export denial tests |
 | P2.2 | Versioned State/UT and district contract | Planned | Existing string catalog and selection fields | Names only in current app | Dated LGD asset, server pair validation, legacy alias/rollback tests |
-| P2.3 | Region/registration presentation contracts | Planned small preparatory slice | Not yet implemented at plan creation | None | Pure malformed/unknown/state-change tests; explicitly no privilege grant |
+| P2.3 | Region/registration presentation contracts | Bounded preparation reviewed | Unused intent/region draft types at `d202cb38`; 45 targeted tests pass, critic 9.5 / QA 9.6 for four files only | Candidate only; no live role/UI wiring | Canonical region, UI and server authority gates still required |
 | P3.1 | Three-choice entry and returning-user workspace selection | Planned | Existing two-persona live root only | New org entry absent | Native auth/provider recovery; no paid/global-role shortcut |
 | P3.2 | Hospital/team claim, invitation, removal and owner transfer | Planned | Reuse existing account primitives only | New team flows absent | Forgery, last-owner, stale invite, wrong account and revocation tests |
 | P3.3 | Synthetic isolated demo | Planned | New | Absent | Network/mutation spy proves no live effects; demo/live cache separation |

@@ -13,8 +13,8 @@
 > or the [delivery ledger](docs/product-plan/DELIVERY_LEDGER.md) for evidence.
 
 > **Agents / contributors — read [`docs/AGENTS_READ_FIRST.md`](docs/AGENTS_READ_FIRST.md) before continuing any
-> workstream.** It records what landed on `main` most recently (screenshot-test gate, design-lint ratchet,
-> screen splits, prod fixes) and the merge points with in-flight branches. Latest session handoff:
+> workstream.** It records source/CI conventions and historical UX integration evidence
+> (screenshot gate, design ratchet and screen splits). Historical UX handoff:
 > [`docs/HANDOFF_2026-09-16_UX_PHASE0.md`](docs/HANDOFF_2026-09-16_UX_PHASE0.md).
 
 Native Kotlin + Jetpack Compose app for the EquipSeva ecosystem — a healthcare-equipment service platform for Indian hospitals: repair-job marketplace, engineer rotation, and annual maintenance contracts (AMC) with escrow.
