@@ -291,8 +291,10 @@ class PendingAmcPaymentsCleanupOwnershipTest {
     @Test fun `cancellation before admission and after transform preserves committed proof and allows fresh writes`() = runTest {
         for (point in Point.entries) {
             val f = fixture()
+            var fresh: Fixture? = null
             try {
                 runCurrent(); f.seed()
+                val before = f.rawPrefs()
                 val ticket = f.ticket()
                 val pause = f.barriers.pause(point)
                 val clear = start(f) { real { f.store.clearForSignOut(ticket) } }
@@ -301,11 +303,26 @@ class PendingAmcPaymentsCleanupOwnershipTest {
                 assertTrue("Cancellation must propagate from $point", clear.isCancelled)
                 pause.release.complete(Unit)
                 assertProof(f.rawPrefs(), proof("A"))
-                f.signIn("B"); runCurrent()
+
+                // Close the cancelled writer and read disk before any new write
+                // can conceal a lost original marker or exact proof.
+                val cancelledDisk = f.diskReread()
+                assertProof(cancelledDisk, proof("A"))
+                assertEquals("Cancellation at $point preserves exact markers", before[MARKERS], cancelledDisk[MARKERS])
+                assertEquals("Cancellation at $point preserves exact proofs", before[PROOFS], cancelledDisk[PROOFS])
+                assertEquals(before[EXTRA], cancelledDisk[EXTRA])
+
+                val replacement = Fixture(this, f.file).also { fresh = it }
+                replacement.signIn("B"); runCurrent()
                 val b = proof("B-after-cancel")
-                f.record(b)
-                assertProof(f.diskReread(), b)
-            } finally { f.close() }
+                replacement.record(b)
+                val afterFreshWrite = replacement.diskReread()
+                assertProof(afterFreshWrite, b)
+                assertProof(afterFreshWrite, proof("A"))
+                assertEquals(before[EXTRA], afterFreshWrite[EXTRA])
+            } finally {
+                try { fresh?.close() } finally { f.close() }
+            }
         }
     }
 
