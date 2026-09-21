@@ -7,6 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.withTransaction
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
+import androidx.sqlite.db.SupportSQLiteStatement
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import com.equipseva.app.core.auth.AuthSession
@@ -266,14 +267,14 @@ class OutboxSignOutCleanerTest {
     @Test fun `cancellation after real delete rolls back before disk reread and current retry succeeds`() = roomTest {
         val s = session()
         val original = put("A-rollback")
-        val transactions = Transactions(cancelCommit = true)
+        val transactions = Transactions(cancelAfterDelete = true)
         val cancellingDb = open(transactions)
         rows(cancellingDb)
         transactions.armed.set(true)
         var caught: CancellationException? = null
         try { clear(s, s.ticket(), cancellingDb) } catch (error: CancellationException) { caught = error }
         assertNotNull("Cancellation must propagate", caught)
-        assertTrue("The mutation reached the commit boundary", transactions.cancelledCommit.get())
+        assertTrue("The mutation reached the post-delete boundary", transactions.cancelledMutation.get())
         assertEquals("Actual deletion preceded injected cancellation", 0, transactions.rowsBeforeCancel)
         reopen()
         assertEquals(listOf(original), rows())
@@ -303,14 +304,14 @@ class OutboxSignOutCleanerTest {
     }
 
     /** Delegates all SQL; observes actual SQLite transaction calls, including nested Room queries. */
-    private class Transactions(private val holdEnd: Boolean = false, private val cancelCommit: Boolean = false) {
+    private class Transactions(private val holdEnd: Boolean = false, private val cancelAfterDelete: Boolean = false) {
         val armed = AtomicBoolean(false)
         val entered = CompletableDeferred<Unit>()
         val acquired = CompletableDeferred<Unit>()
         val ended = CompletableDeferred<Unit>()
         val beforeEnd = CompletableDeferred<Unit>()
         val releaseEnd = CountDownLatch(1)
-        val cancelledCommit = AtomicBoolean(false)
+        val cancelledMutation = AtomicBoolean(false)
         @Volatile var rowsBeforeEnd = -1
         @Volatile var rowsBeforeCancel = -1
         private val depth = ThreadLocal<Int>()
@@ -345,12 +346,22 @@ class OutboxSignOutCleanerTest {
             override fun beginTransactionWithListenerNonExclusive(transactionListener: SQLiteTransactionListener) =
                 begin { actual.beginTransactionWithListenerNonExclusive(transactionListener) }
 
-            override fun setTransactionSuccessful() {
-                if (depth.get() == 1 && cancelCommit && cancelledCommit.compareAndSet(false, true)) {
-                    rowsBeforeCancel = count(actual)
-                    throw CancellationException("synthetic cancellation before actual SQLite commit")
+            override fun compileStatement(sql: String): SupportSQLiteStatement {
+                val statement = actual.compileStatement(sql)
+                return object : SupportSQLiteStatement by statement {
+                    override fun execute() {
+                        statement.execute()
+                        // Throw inside the mutation block so Room owns rollback.
+                        // Throwing from setTransactionSuccessful instead can
+                        // interrupt SQLite's own commit/end sequence and leak a lock.
+                        if (sql == "DELETE FROM outbox" && depth.get() != null &&
+                            cancelAfterDelete && cancelledMutation.compareAndSet(false, true)
+                        ) {
+                            rowsBeforeCancel = count(actual)
+                            throw CancellationException("synthetic cancellation after real DELETE before commit")
+                        }
+                    }
                 }
-                actual.setTransactionSuccessful()
             }
 
             override fun endTransaction() {
