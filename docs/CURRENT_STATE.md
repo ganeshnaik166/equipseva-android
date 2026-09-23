@@ -18,9 +18,24 @@ This handoff can be published on main separately from app code. P1a implementati
 
 Current app checkout on this laptop: `C:/Users/lokes/Documents/Codex/2026-09-07/im/work/equipseva-quality-integration-20260919`. The old coordinator (`equipseva-auth-integration-20260911`) and helper worktrees are preserved. Do not use a guessed checkout or silently transfer their changes.
 
+## Owner decisions after the plan
+
+- **23 September 2026 — English only.** The owner wrote: "no need of Hindi, Telugu translations or words, all should be in English; update this in GitHub memory urgently." Recorded in [AGENTS.md](../AGENTS.md) (standing decisions), [PRODUCT_PLAN.md](../PRODUCT_PLAN.md), the delivery ledger, the page plan and the UX plan. Consequence for code: `app/src/main/res/values-hi` and `values-te` are deleted and `localeFilters` is `en` only (branch `claudedev-build-20260923`; measured before deletion: 724 of 759 hi/te entries were verbatim English copies, so devices set to Hindi/Telugu had been seeing a mixed 35-word translation). Nobody should start translation, language-picker or locale-config work.
+
+## Parallel branch: `claudedev-build-20260923` (Claude, opened 23 September 2026)
+
+Based on `main` `70c06420`; pushed to origin under that name; no PR yet. It does **not** touch the P1b files (`SignOutCleanup`, `OutboxSignOutCleaner`, the local-boundary regression tests) or any billing/SQL. Recorded scope and file ownership:
+
+| Slice | Files owned on this branch | Status |
+|---|---|---|
+| English-only resource cleanup | `app/src/main/res/values-hi/**`, `values-te/**` (deleted), `app/build.gradle.kts` `localeFilters` line, `app/src/test/kotlin/com/equipseva/app/i18n/StringsParityTest.kt` (replaced by an English-only guard) | in progress |
+| P2.2 client foundation: bundled region catalog reconciliation | `app/src/main/kotlin/com/equipseva/app/core/data/location/**` and its tests only; no UI, schema or RPC change | planned |
+
+Evidence, test counts and reviews for this branch are recorded in its handoff when each slice freezes; nothing here is main integration or release acceptance.
+
 ## Product direction
 
-Three public purposes: biomedical engineer, hospital administrator, engineering team/organisation. Platform owner is private and separately provisioned. Paid team administrators have authority within their own organisation; subscription is not a global role grant. Independent engineers retain their personal workspace. Use India State/UT and district, with no-map target workflows; existing GPS/server contracts still require a tested migration. Preserve lime/ink/soft-white, Space Grotesk/Inter and EN/HI/TE. Demo is local synthetic data; digital team subscription and physical service payments are separate. [PRODUCT_PLAN.md](../PRODUCT_PLAN.md) governs details.
+Three public purposes: biomedical engineer, hospital administrator, engineering team/organisation. Platform owner is private and separately provisioned. Paid team administrators have authority within their own organisation; subscription is not a global role grant. Independent engineers retain their personal workspace. Use India State/UT and district, with no-map target workflows; existing GPS/server contracts still require a tested migration. Preserve lime/ink/soft-white and Space Grotesk/Inter. **English only** (owner decision 23 September 2026): no Hindi/Telugu translations, words, locale resources or language pickers anywhere. Demo is local synthetic data; digital team subscription and physical service payments are separate. [PRODUCT_PLAN.md](../PRODUCT_PLAN.md) governs details.
 
 ## Verified evidence and open gates
 

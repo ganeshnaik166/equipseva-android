@@ -1,5 +1,7 @@
 # EquipSeva UX/UI uplift — plan + operating prompt
 
+> **Update 2026-09-23 — English only (owner decision).** Every "en/hi/te", "all three locales", "755-parity" and `values-hi`/`values-te` rule in this plan is superseded: the product ships English copy only, the two locale directories are removed, and no translation step exists in any round. Historical entries (e.g. U15, the mojibake repair) stay as recorded history.
+
 > **19 September 2026 direction:** [PRODUCT_PLAN.md](../PRODUCT_PLAN.md) is the
 > governing product plan. The current target adds organisation-scoped paid team
 > administration with a synthetic demo, three public signup purposes, privately

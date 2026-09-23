@@ -32,3 +32,15 @@ Append dated results. Keep design, implementation, main integration and release 
 - Final independent [critic](helper-reviews/codex-20260919/p1a-critic.md) **9.6**, [QA](helper-reviews/codex-20260919/p1a-qa.md) **9.6**, scoped to newer committed AMC data surviving stale cleanup. Initial reports preserved; no full S1/confidentiality/app/release acceptance. The full suite remains non-green.
 - [Detailed handoff](HANDOFF_P1A_AMC_CLEANUP_2026-09-19.md), CURRENT_STATE, delivery ledger and CLAUDE entry pointer make the checkpoint portable. README's obsolete latest-handoff label is corrected. These safe docs can reach main separately; the broad app draft must not merge to publish them.
 - Next: **P1b real Room outbox deletion safety**, not started. Freeze file ownership, add real transaction-admission races and ordinary/fresh-write controls, then guard the existing captured ticket inside the admitted transaction. Preserve token, other resource, global confidentiality, S3, money/integrity, visual and device/provider/signing gates.
+
+## 2026-09-23 — Owner decision recorded: English only
+
+- Owner instruction (verbatim intent): no Hindi or Telugu translations or words; everything in English; record it in the repository urgently. Recorded in `AGENTS.md` (standing product decisions), `CLAUDE.md`, `PRODUCT_PLAN.md`, `docs/CURRENT_STATE.md`, the delivery ledger, `PAGES_AND_WORKFLOWS.md` (N30 becomes theme-only), `AGENTS_READ_FIRST.md` and `UX_UPLIFT_PLAN.md`. Docs-only; no app code changed by this entry.
+- Measured before acting (branch `claudedev-build-20260923`, base `70c06420`): `values/strings.xml` 760 keys; `values-hi` and `values-te` 759 keys each, of which **724 were byte-identical English copies** and 35 were translated. The locale directories are removed in the next code commit on that branch together with `localeFilters = en` and an English-only resource guard test replacing `StringsParityTest`.
+- No test, build, review or release claim is attached to this entry.
+
+## 2026-09-23 — Owner decision recorded: English only
+
+- Owner instruction (verbatim intent): no Hindi or Telugu translations or words; everything in English; record it in the repository urgently. Recorded in `AGENTS.md` (standing product decisions), `CLAUDE.md`, `PRODUCT_PLAN.md`, `docs/CURRENT_STATE.md`, the delivery ledger, `PAGES_AND_WORKFLOWS.md` (N30 becomes theme-only), `AGENTS_READ_FIRST.md` and `UX_UPLIFT_PLAN.md`. Docs-only; no app code changed by this entry.
+- Measured before acting (branch `claudedev-build-20260923`, base `70c06420`): `values/strings.xml` 760 keys; `values-hi` and `values-te` 759 keys each, of which **724 were byte-identical English copies** and 35 were translated. The locale directories are removed in the next code commit on that branch together with `localeFilters = en` and an English-only resource guard test replacing `StringsParityTest`.
+- No test, build, review or release claim is attached to this entry.
